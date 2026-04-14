@@ -8,6 +8,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "zod": "^4.x"
+    "zod": "4.0.0"
   }
 }

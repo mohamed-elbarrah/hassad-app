@@ -5,7 +5,7 @@ import { LoginDto, RegisterDto } from '@hassad/shared';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../common/decorators/current-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
-import { Response } from 'express';
+import { Response, Request as ExpressRequest } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -48,7 +48,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt-refresh'))
   @Post('refresh')
   async refresh(
-    @Request() req: any,
+    @Request() req: ExpressRequest & { user: JwtPayload },
     @Res({ passthrough: true }) res: Response,
   ) {
     const { accessToken } = await this.authService.refresh(req.user);

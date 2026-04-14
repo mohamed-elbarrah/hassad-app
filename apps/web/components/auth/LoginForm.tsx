@@ -41,8 +41,9 @@ function LoginFormInner() {
       } else {
         router.push('/dashboard')
       }
-    } catch (err: any) {
-      setGlobalError(err?.data?.message || 'Login failed. Please verify your credentials.')
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } }
+      setGlobalError(error?.data?.message || 'Login failed. Please verify your credentials.')
     }
   }
 
