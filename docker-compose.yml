@@ -1,0 +1,19 @@
+# docker-compose.yml — monorepo root
+version: '3.9'
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: hassad_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hassad
+      POSTGRES_PASSWORD: hassad_dev_password
+      POSTGRES_DB: hassad
+    ports:
+      - "5432:5432"
+    volumes:
+      - hassad_pgdata:/var/lib/postgresql/data
+
+volumes:
+  hassad_pgdata:
+    driver: local

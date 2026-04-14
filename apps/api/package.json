@@ -1,0 +1,51 @@
+{
+  "name": "api",
+  "version": "0.0.1",
+  "private": true,
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
+  },
+  "dependencies": {
+    "@hassad/shared": "*",
+    "@nestjs/common": "^11.x",
+    "@nestjs/config": "^4.x",
+    "@nestjs/core": "^11.x",
+    "@nestjs/jwt": "^11.x",
+    "@nestjs/passport": "^11.x",
+    "@nestjs/platform-express": "^11.x",
+    "@nestjs/schedule": "^5.x",
+    "@prisma/client": "^6.x",
+    "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.x",
+    "class-validator": "^0.14.x",
+    "cookie-parser": "^1.4.7",
+    "passport": "^0.7.x",
+    "passport-jwt": "^4.x",
+    "reflect-metadata": "^0.2.x",
+    "rxjs": "^7.x"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.x",
+    "@nestjs/schematics": "^11.x",
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.x",
+    "@types/node": "^22.x",
+    "@types/passport-jwt": "^4.x",
+    "prisma": "^6.x",
+    "ts-loader": "^9.x",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.x",
+    "tsx": "^4.21.0",
+    "typescript": "^5.x"
+  }
+}
