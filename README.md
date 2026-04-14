@@ -15,7 +15,7 @@
 
 ## 🚀 Overview
 
-**Hassad** (حَصاد - Harvest) is a comprehensive, enterprise-grade SaaS platform specifically designed for marketing agencies. It streamlines the entire agency lifecycle: from initial lead acquisition in the CRM to project execution, financial management, and advanced marketing campaign analytics.
+**Hassad** (حَصاد) is a comprehensive, enterprise-grade SaaS platform specifically designed for marketing agencies. It streamlines the entire agency lifecycle: from initial lead acquisition in the CRM to project execution, financial management, and advanced marketing campaign analytics.
 
 Built with a modern monorepo architecture, Hassad provides a unified experience for both agency internal teams and their clients via a dedicated secure portal.
 
