@@ -9,6 +9,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 enum UserRole {
   ADMIN
   PM
@@ -22,9 +24,38 @@ enum UserRole {
 enum ClientStatus {
   LEAD
   ACTIVE
-  PAUSED
-  CLOSED
+  STOPPED
 }
+
+/// The 9 CRM sales pipeline stages, in order of progression.
+enum PipelineStage {
+  NEW_LEAD
+  CONTACTED
+  MEETING_SCHEDULED
+  REQUIREMENTS_GATHERING
+  PROPOSAL_SENT
+  NEGOTIATION
+  CONTRACT_SIGNED
+  FIRST_PAYMENT
+  TRANSFERRED_TO_OPERATIONS
+}
+
+enum BusinessType {
+  RESTAURANT
+  CLINIC
+  STORE
+  SERVICE
+}
+
+enum ClientSource {
+  AD
+  REFERRAL
+  WEBSITE
+  WHATSAPP
+  PLATFORM
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
   id            String   @id @default(cuid())
@@ -36,31 +67,33 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  assignedClients Client[] @relation("AssignedTo")
+  assignedClients Client[]  @relation("AssignedTo")
   managedProjects Project[] @relation("ProjectManager")
   tasks           Task[]    @relation("AssignedTask")
 }
 
 model Client {
-  id            String       @id @default(cuid())
-  name          String
-  phone         String
-  email         String?
-  businessName  String
-  businessType  String
-  source        String
-  status        ClientStatus @default(LEAD)
-  pipelineStage String       @default("NEW")
-  notes         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id           String        @id @default(cuid())
+  name         String
+  email        String?
+  phone        String
+  businessType BusinessType
+  source       ClientSource
+  status       ClientStatus  @default(LEAD)
+  stage        PipelineStage @default(NEW_LEAD)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  assignedTo    String
-  assignedEmployee User      @relation("AssignedTo", fields: [assignedTo], references: [id])
+  assignedToId     String
+  assignedTo       User           @relation("AssignedTo", fields: [assignedToId], references: [id])
 
-  contracts     Contract[]
-  projects      Project[]
-  activities    ClientActivity[]
+  contracts        Contract[]
+  projects         Project[]
+  activities       ClientActivity[]
+
+  @@index([status])
+  @@index([stage])
+  @@index([assignedToId])
 }
 
 model Contract {
@@ -117,6 +150,8 @@ model ClientActivity {
   action    String
   details   String?
   createdAt DateTime @default(now())
+
+  @@index([clientId])
 }
 
 model Invoice {

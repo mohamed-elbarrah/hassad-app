@@ -11,6 +11,7 @@
 It covers: CRM & Sales Pipeline → Project Management → Client Portal → Finance → Marketing Campaigns → AI layer.
 
 **Monorepo structure:**
+
 ```
 hassad/
 ├── apps/
@@ -27,20 +28,20 @@ hassad/
 
 ## Tech Stack (locked — do not deviate)
 
-| Layer | Technology | Version |
-|---|---|---|
-| Frontend | Next.js, App Router, TypeScript, Tailwind CSS, shadcn/ui | **16.2** |
-| State | Redux Toolkit + RTK Query | **2.x** |
-| Forms | React Hook Form + Zod | RHF **7.x** · Zod **4.x** |
-| Form Resolvers | @hookform/resolvers | **5.x** |
-| React | React | **19.x** |
-| Backend | NestJS, TypeScript | **11.x** |
-| ORM | Prisma | **6.x** |
-| Database | PostgreSQL | **17** (Docker only) |
-| File Storage | Cloudflare R2 (S3-compatible) | — |
-| Auth | JWT + Refresh Token | — |
-| Payments | Moyasar | — |
-| Monorepo | Turborepo | latest |
+| Layer          | Technology                                               | Version                   |
+| -------------- | -------------------------------------------------------- | ------------------------- |
+| Frontend       | Next.js, App Router, TypeScript, Tailwind CSS, shadcn/ui | **16.2**                  |
+| State          | Redux Toolkit + RTK Query                                | **2.x**                   |
+| Forms          | React Hook Form + Zod                                    | RHF **7.x** · Zod **4.x** |
+| Form Resolvers | @hookform/resolvers                                      | **5.x**                   |
+| React          | React                                                    | **19.x**                  |
+| Backend        | NestJS, TypeScript                                       | **11.x**                  |
+| ORM            | Prisma                                                   | **6.x**                   |
+| Database       | PostgreSQL                                               | **17** (Docker only)      |
+| File Storage   | Cloudflare R2 (S3-compatible)                            | —                         |
+| Auth           | JWT + Refresh Token                                      | —                         |
+| Payments       | Moyasar                                                  | —                         |
+| Monorepo       | Turborepo                                                | latest                    |
 
 > ⚠️ **Prisma v7 is NOT used** — it ships as ESM-only with breaking changes and no MongoDB support yet. Stay on v6.
 
@@ -54,7 +55,7 @@ hassad/
 
 ```yaml
 # docker-compose.yml — monorepo root
-version: '3.9'
+version: "3.9"
 services:
   postgres:
     image: postgres:17-alpine
@@ -67,7 +68,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - hassad_pgdata:/var/lib/postgresql/data  # named volume = survives container deletion
+      - hassad_pgdata:/var/lib/postgresql/data # named volume = survives container deletion
 
 volumes:
   hassad_pgdata:
@@ -75,6 +76,7 @@ volumes:
 ```
 
 **Key rules for the DB container:**
+
 - The `hassad_pgdata` named volume persists data even if the container is deleted or recreated
 - To start: `docker compose up -d postgres`
 - To back up: `docker exec hassad_db pg_dump -U hassad hassad > backup.sql`
@@ -100,15 +102,15 @@ Frontend and backend are **never** run inside Docker during development. Only th
 
 Every feature you build must respect this role matrix:
 
-| Role | Identifier | Access Scope |
-|---|---|---|
-| Super Admin | `ADMIN` | Everything |
-| Project Manager | `PM` | Own projects only |
-| Sales | `SALES` | CRM, proposals, contracts |
-| Executive Employee | `EMPLOYEE` | Own tasks only |
-| Marketing Manager | `MARKETING` | Campaigns, KPIs |
-| Accountant | `ACCOUNTANT` | Invoices, contracts (financial view) |
-| Client | `CLIENT` | Client portal section only |
+| Role               | Identifier   | Access Scope                         |
+| ------------------ | ------------ | ------------------------------------ |
+| Super Admin        | `ADMIN`      | Everything                           |
+| Project Manager    | `PM`         | Own projects only                    |
+| Sales              | `SALES`      | CRM, proposals, contracts            |
+| Executive Employee | `EMPLOYEE`   | Own tasks only                       |
+| Marketing Manager  | `MARKETING`  | Campaigns, KPIs                      |
+| Accountant         | `ACCOUNTANT` | Invoices, contracts (financial view) |
+| Client             | `CLIENT`     | Client portal section only           |
 
 **Rule:** Never expose data across role boundaries. When in doubt, restrict.
 
@@ -127,6 +129,7 @@ apps/web/app/
 ```
 
 Both sections are accessible on `localhost:3000` during development:
+
 - `localhost:3000/dashboard/...` → internal app
 - `localhost:3000/portal/...` → client portal
 
@@ -136,11 +139,11 @@ Both sections are accessible on `localhost:3000` during development:
 
 Before starting any task, read the relevant skill file:
 
-| Task Type | Skill File |
-|---|---|
-| Frontend work (UI, pages, components, forms) | `FRONTEND_SKILL.md` |
-| Backend work (APIs, modules, DB, business logic) | `BACKEND_SKILL.md` |
-| Debugging or fixing a bug | `PROBLEM_SOLVING.md` |
+| Task Type                                        | Skill File           |
+| ------------------------------------------------ | -------------------- |
+| Frontend work (UI, pages, components, forms)     | `FRONTEND_SKILL.md`  |
+| Backend work (APIs, modules, DB, business logic) | `BACKEND_SKILL.md`   |
+| Debugging or fixing a bug                        | `PROBLEM_SOLVING.md` |
 
 ---
 
@@ -156,22 +159,23 @@ Before starting any task, read the relevant skill file:
 8. **Always check role permissions** before implementing any API endpoint or UI component.
 9. **Commit messages must be descriptive** — `fix: invoice status not updating after Moyasar webhook` not `fix bug`.
 10. **When a task is ambiguous — stop and ask** rather than guessing and building wrong.
+11. **Shared package build** — Whenever modifying `packages/shared`, you MUST ensure `npm run build` is executed within that package before verifying changes in `apps/api`. Failure to do so creates a synchronization mismatch between compiled `dist/` and `src/`.
 
 ---
 
 ## Development Phases (reference)
 
-| Phase | Focus | Duration |
-|---|---|---|
-| Foundation | Monorepo setup, Prisma schema, shared types, Docker DB | 3–5 days |
-| Phase 1 | Auth + RBAC | 5–7 days |
-| Phase 2 | CRM + Sales Pipeline | 10–14 days |
-| Phase 3 | Project Management + Tasks | 10–14 days |
-| Phase 4 | Client Portal | 7–10 days |
-| Phase 5 | Finance + Contracts | 7–10 days |
-| Phase 6A | Marketing dashboard (manual KPIs) | 7–10 days |
-| Phase 6B | Ad platform API integrations | Later |
-| Phase 6C | AI layer | After 3 months of real data |
+| Phase      | Focus                                                  | Duration                    |
+| ---------- | ------------------------------------------------------ | --------------------------- |
+| Foundation | Monorepo setup, Prisma schema, shared types, Docker DB | 3–5 days                    |
+| Phase 1    | Auth + RBAC                                            | 5–7 days                    |
+| Phase 2    | CRM + Sales Pipeline                                   | 10–14 days                  |
+| Phase 3    | Project Management + Tasks                             | 10–14 days                  |
+| Phase 4    | Client Portal                                          | 7–10 days                   |
+| Phase 5    | Finance + Contracts                                    | 7–10 days                   |
+| Phase 6A   | Marketing dashboard (manual KPIs)                      | 7–10 days                   |
+| Phase 6B   | Ad platform API integrations                           | Later                       |
+| Phase 6C   | AI layer                                               | After 3 months of real data |
 
 **Do not jump phases.** Each phase has a completion gate defined in the development plan.
 

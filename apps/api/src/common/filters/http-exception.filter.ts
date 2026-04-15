@@ -24,10 +24,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : 'Internal server error'
 
+    const extractedMessage =
+      typeof message === 'object' && message !== null && 'message' in message
+        ? (message as { message: string | string[] }).message
+        : message;
+
+    const normalizedMessage = Array.isArray(extractedMessage)
+      ? extractedMessage.join('; ')
+      : extractedMessage;
+
     response.status(status).json({
       success: false,
       statusCode: status,
-      message: typeof message === 'object' ? (message as any).message : message,
+      message: normalizedMessage,
       timestamp: new Date().toISOString(),
       path: request.url,
     })

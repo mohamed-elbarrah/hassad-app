@@ -6,7 +6,9 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "scripts": {
+    "prebuild": "npm --prefix ../../packages/shared run build",
     "build": "nest build",
+    "prestart:dev": "npm --prefix ../../packages/shared run build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
