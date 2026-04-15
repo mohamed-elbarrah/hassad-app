@@ -1,15 +1,15 @@
 // Enums
-export * from './enums/roles';
-export * from './enums/client';
+export * from "./enums/roles";
+export * from "./enums/client";
 
 // Schemas
-export * from './schemas/auth.schema';
-export * from './schemas/client.schema';
+export * from "./schemas/auth.schema";
+export * from "./schemas/client.schema";
 
 // ─── Legacy interfaces (still used by API and Web) ────────────────────────────
 
-import { UserRole } from './enums/roles';
-import { ClientStatus, PipelineStage, BusinessType } from './enums/client';
+import { UserRole } from "./enums/roles";
+import { ClientStatus, PipelineStage, BusinessType } from "./enums/client";
 
 export interface User {
   id: string;

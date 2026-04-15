@@ -1,5 +1,10 @@
-import { z } from 'zod';
-import { ClientStatus, PipelineStage, BusinessType, ClientSource } from '../enums/client';
+import { z } from "zod";
+import {
+  ClientStatus,
+  PipelineStage,
+  BusinessType,
+  ClientSource,
+} from "../enums/client";
 
 /**
  * CreateClientSchema — validates the input required to create a new client.
@@ -7,9 +12,9 @@ import { ClientStatus, PipelineStage, BusinessType, ClientSource } from '../enum
  * `status`, `stage`, and `assignedToId` are set by server logic, not client input.
  */
 export const CreateClientSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address').optional().nullable(),
-  phone: z.string().min(5, 'Phone must be at least 5 characters'),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address").optional().nullable(),
+  phone: z.string().min(5, "Phone must be at least 5 characters"),
   businessType: z.nativeEnum(BusinessType),
   source: z.nativeEnum(ClientSource),
 });
@@ -23,18 +28,18 @@ export type CreateClientInput = z.infer<typeof CreateClientSchema>;
  */
 export const UpdateClientSchema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters').optional(),
-    email: z.string().email('Invalid email address').optional().nullable(),
-    phone: z.string().min(5, 'Phone must be at least 5 characters').optional(),
+    name: z.string().min(2, "Name must be at least 2 characters").optional(),
+    email: z.string().email("Invalid email address").optional().nullable(),
+    phone: z.string().min(5, "Phone must be at least 5 characters").optional(),
     businessType: z.nativeEnum(BusinessType).optional(),
     source: z.nativeEnum(ClientSource).optional(),
     status: z.nativeEnum(ClientStatus).optional(),
     stage: z.nativeEnum(PipelineStage).optional(),
-    assignedToId: z.string().cuid('Invalid user ID format').optional(),
+    assignedToId: z.string().cuid("Invalid user ID format").optional(),
   })
   .partial()
   .refine((data) => Object.keys(data).length > 0, {
-    message: 'At least one field must be provided for update',
+    message: "At least one field must be provided for update",
   });
 
 export type UpdateClientInput = z.infer<typeof UpdateClientSchema>;
