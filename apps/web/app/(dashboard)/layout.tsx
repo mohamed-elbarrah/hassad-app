@@ -54,20 +54,22 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        {/* ── Top bar ─────────────────────────────────────────────────── */}
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <SidebarTrigger className="-ms-1" />
-          <Separator orientation="vertical" className="me-2 h-4" />
-          <span className="text-sm text-muted-foreground">
-            {user?.name} — {user?.role}
-          </span>
-        </header>
+      <div className="flex min-h-svh w-full">
+        <AppSidebar side="right" />
+        <SidebarInset className="flex flex-col">
+          {/* ── Top bar ──────────────────────────────────────────────── */}
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <SidebarTrigger className="-ms-1" />
+            <Separator orientation="vertical" className="me-2 h-4" />
+            <span className="text-sm text-muted-foreground">
+              {user?.name} — {user?.role}
+            </span>
+          </header>
 
-        {/* ── Page content ────────────────────────────────────────────── */}
-        <main className="flex-1 p-6">{children}</main>
-      </SidebarInset>
+          {/* ── Page content ─────────────────────────────────────────── */}
+          <main className="flex-1 p-6">{children}</main>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

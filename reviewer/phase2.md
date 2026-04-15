@@ -364,3 +364,17 @@ Node.js v24.14.1 enables native TypeScript type-stripping by default (`--experim
 ---
 
 **Conclusion**: All three runtime bugs have been root-caused, fixed, and verified. `tsc --noEmit` exits 0 on all packages. The monorepo is in a clean, runnable state.
+
+---
+
+## UI/UX Polishing
+
+- **Sidebar orientation**: Sidebar now opens from the right on both mobile and desktop. Files changed:
+	- [apps/web/components/ui/sidebar.tsx](apps/web/components/ui/sidebar.tsx)
+	- [apps/web/components/app-sidebar.tsx](apps/web/components/app-sidebar.tsx)
+- **Mobile behavior**: Mobile drawer (`Sheet`) uses the `side` prop set to `right`, so it slides in from the right.
+- **Desktop behavior**: Sidebar is fixed on the right side of the screen; the layout still uses logical spacing for RTL.
+- **Inset effect**: Main content inset/margin now uses Tailwind logical properties (`ms-` / `me-` where appropriate). The `SidebarInset` component was updated to use `ms-` variants so the rounded/inset effect mirrors correctly when the sidebar is on the right.
+- **Numerals**: English numerals rule preserved (`tabular-nums` remains in sidebar badge styles).
+- **Verification**: Ran type checks and verified layout changes do not break types. `npx tsc --noEmit` returned no type errors for the workspace packages touched.
+
