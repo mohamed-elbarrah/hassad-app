@@ -1,105 +1,92 @@
-"use client";
+"use client"
 
-import {
-  Users,
-  FolderKanban,
-  ReceiptText,
-  Settings,
-  LayoutDashboard,
-} from "lucide-react";
+import * as React from "react"
+import { Home, Users, Briefcase, Calculator, Megaphone, Paintbrush } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main";
-import { NavUser } from "@/components/nav-user";
+import { useAppSelector } from "@/lib/hooks"
+
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar";
-import { useAppSelector } from "@/lib/hooks";
+} from "@/components/ui/sidebar"
 
-/** Navigation tree for the internal dashboard. Phase labels indicate readiness. */
-const navItems = [
+// Conditional navigation items based on UserRole
+const allNavItems = [
   {
-    title: "لوحة التحكم",
-    url: "/dashboard",
-    icon: LayoutDashboard,
-    isActive: false,
-    items: [],
+    title: "Admin Dashboard",
+    url: "/dashboard/admin",
+    icon: Home,
+    roles: ["ADMIN"],
   },
   {
-    title: "إدارة العملاء",
-    url: "/dashboard/crm/clients",
+    title: "Project Management",
+    url: "/dashboard/pm",
+    icon: Briefcase,
+    roles: ["ADMIN", "PM"],
+  },
+  {
+    title: "Sales & CRM",
+    url: "/dashboard/sales",
     icon: Users,
-    isActive: true,
-    items: [{ title: "قائمة العملاء", url: "/dashboard/crm/clients" }],
+    roles: ["ADMIN", "SALES"],
   },
   {
-    title: "المشاريع",
-    url: "#",
-    icon: FolderKanban,
-    isActive: false,
-    items: [{ title: "قريباً — المرحلة 3", url: "#" }],
+    title: "Financials",
+    url: "/dashboard/accountant",
+    icon: Calculator,
+    roles: ["ADMIN", "ACCOUNTANT"],
   },
   {
-    title: "المالية",
-    url: "#",
-    icon: ReceiptText,
-    isActive: false,
-    items: [{ title: "قريباً — المرحلة 5", url: "#" }],
+    title: "Marketing Campaigns",
+    url: "/dashboard/marketing",
+    icon: Megaphone,
+    roles: ["ADMIN", "MARKETING"],
   },
   {
-    title: "الإعدادات",
-    url: "/dashboard/settings",
-    icon: Settings,
-    isActive: false,
-    items: [],
+    title: "Design Workspace",
+    url: "/dashboard/designer",
+    icon: Paintbrush,
+    roles: ["ADMIN", "EMPLOYEE"],
   },
-];
+]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const user = useAppSelector((state) => state.auth.user);
+  const { user } = useAppSelector((state) => state.auth);
 
-  const sidebarUser = {
-    name: user?.name ?? "—",
-    email: user?.email ?? "—",
-    avatar: "",
-  };
+  const navItems = allNavItems.filter((item) => {
+    if (!user) return false;
+    return item.roles.includes(user.role);
+  });
 
   return (
-    <Sidebar side="right" collapsible="icon" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-                  ح
-                </div>
-                <div className="grid flex-1 text-start text-sm leading-tight">
-                  <span className="truncate font-semibold">Hassad</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    منصة التسويق
-                  </span>
-                </div>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
+    <Sidebar side="right" variant="inset" collapsible="icon" {...props}>
       <SidebarContent>
-        <NavMain items={navItems} />
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter>
-        <NavUser user={sidebarUser} />
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  );
+  )
 }
