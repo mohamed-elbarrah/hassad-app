@@ -3,15 +3,24 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import authReducer from "@/features/auth/authSlice";
 import { authApi } from "@/features/auth/authApi";
 import { clientsApi } from "@/features/clients/clientsApi";
+import { projectsApi } from "@/features/projects/projectsApi";
+import { tasksApi } from "@/features/tasks/tasksApi";
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     [authApi.reducerPath]: authApi.reducer,
     [clientsApi.reducerPath]: clientsApi.reducer,
+    [projectsApi.reducerPath]: projectsApi.reducer,
+    [tasksApi.reducerPath]: tasksApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(authApi.middleware, clientsApi.middleware),
+    getDefaultMiddleware().concat(
+      authApi.middleware,
+      clientsApi.middleware,
+      projectsApi.middleware,
+      tasksApi.middleware,
+    ),
 });
 
 setupListeners(store.dispatch);

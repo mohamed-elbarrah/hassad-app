@@ -35,7 +35,7 @@ const allNavItems = [
   },
   {
     title: "Project Management",
-    url: "/dashboard/pm",
+    url: "/dashboard/pm/projects",
     icon: Briefcase,
     roles: ["ADMIN", "PM"],
   },

@@ -5,7 +5,9 @@ import {
   type BaseQueryFn,
   type FetchArgs,
   type FetchBaseQueryError,
+  type FetchBaseQueryMeta,
 } from "@reduxjs/toolkit/query/react";
+import type { QueryReturnValue } from "@reduxjs/toolkit/query";
 import type {
   Client,
   CreateClientInput,
@@ -47,17 +49,22 @@ const _rawBaseQuery = fetchBaseQuery({
   credentials: "include",
 });
 
+type RawResult = QueryReturnValue<
+  unknown,
+  FetchBaseQueryError,
+  FetchBaseQueryMeta
+>;
+
 /** Strip the { success, data, timestamp } envelope from a successful response. */
-function unwrap(
-  result: Awaited<ReturnType<typeof _rawBaseQuery>>,
-): Awaited<ReturnType<typeof _rawBaseQuery>> {
+function unwrap(result: RawResult): RawResult {
   if (
+    !result.error &&
     result.data !== undefined &&
     result.data !== null &&
     typeof result.data === "object" &&
     "data" in (result.data as object)
   ) {
-    return { ...result, data: (result.data as { data: unknown }).data };
+    return { data: (result.data as { data: unknown }).data, meta: result.meta };
   }
   return result;
 }
