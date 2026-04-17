@@ -12,6 +12,7 @@ import { UpdateClientDto } from "./dto/update-client.dto";
 import { ClientFiltersDto } from "./dto/client-filters.dto";
 import { UpdateStageDto } from "./dto/update-stage.dto";
 import { UpdateRequirementsDto } from "./dto/update-requirements.dto";
+import { HandoverProjectDto } from "./dto/handover-project.dto";
 import type { JwtPayload } from "../common/decorators/current-user.decorator";
 
 @Injectable()
@@ -339,6 +340,87 @@ export class ClientsService {
       await tx.client.delete({ where: { id } });
 
       return { message: `Client ${id} deleted successfully` };
+    });
+  }
+
+  // ─── handover ───────────────────────────────────────────────────────────────
+
+  async handover(id: string, dto: HandoverProjectDto, user: JwtPayload) {
+    const client = await this.prisma.client.findUnique({ where: { id } });
+    if (!client) throw new NotFoundException(`Client ${id} not found`);
+
+    if (user.role === UserRole.SALES && client.assignedToId !== user.id) {
+      throw new ForbiddenException("You do not have access to this client");
+    }
+
+    // Verify the manager exists and has an appropriate role
+    const manager = await this.prisma.user.findUnique({
+      where: { id: dto.managerId },
+      select: { id: true, role: true, isActive: true },
+    });
+
+    if (!manager || !manager.isActive) {
+      throw new BadRequestException("Manager not found or inactive");
+    }
+
+    if (manager.role !== "PM" && manager.role !== "ADMIN") {
+      throw new BadRequestException("Manager must be a PM or ADMIN role user");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const currentLog = Array.isArray(client.activityLog)
+        ? (client.activityLog as Array<Record<string, unknown>>)
+        : [];
+
+      // Update client stage to HANDOVER
+      const updatedClient = await tx.client.update({
+        where: { id },
+        data: {
+          stage: PipelineStage.HANDOVER as PrismaPipelineStage,
+          activityLog: [
+            ...currentLog,
+            {
+              action: "HANDOVER",
+              to: PipelineStage.HANDOVER,
+              userId: user.id,
+              timestamp: new Date().toISOString(),
+            },
+          ] as Prisma.InputJsonValue,
+        },
+        select: {
+          id: true,
+          name: true,
+          stage: true,
+          status: true,
+          updatedAt: true,
+        },
+      });
+
+      // Create project linked to this client
+      const project = await tx.project.create({
+        data: {
+          name: dto.name,
+          clientId: id,
+          managerId: dto.managerId,
+          startDate: new Date(dto.startDate),
+          endDate: new Date(dto.endDate),
+        },
+        include: {
+          client: { select: { id: true, name: true } },
+          manager: { select: { id: true, name: true } },
+        },
+      });
+
+      await tx.clientActivity.create({
+        data: {
+          clientId: id,
+          userId: user.id,
+          action: "HANDOVER",
+          details: `Client handed over. Project "${project.name}" created and assigned to manager ${dto.managerId}`,
+        },
+      });
+
+      return { client: updatedClient, project };
     });
   }
 }

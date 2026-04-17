@@ -105,6 +105,7 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
           <p className="text-muted-foreground text-sm mb-2">مرحلة البيع</p>
           <StageSelect
             clientId={client.id}
+            clientName={client.name}
             currentStage={client.stage as PipelineStage}
           />
         </div>

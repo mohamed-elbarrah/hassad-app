@@ -27,6 +27,10 @@ import {
   useCreateProjectMutation,
   useUpdateProjectMutation,
 } from "@/features/projects/projectsApi";
+import { useGetClientsQuery } from "@/features/clients/clientsApi";
+import { useSearchUsersQuery } from "@/features/users/usersApi";
+import { SearchCombobox } from "./SearchCombobox";
+import { UserRole } from "@hassad/shared";
 import type { Project } from "@hassad/shared";
 
 // ── Form schema (strings for date inputs — Zod coerce handled server-side) ───
@@ -34,9 +38,9 @@ import type { Project } from "@hassad/shared";
 const ProjectFormSchema = z.object({
   name: z.string().min(2, "اسم المشروع يجب أن يكون حرفين على الأقل"),
   description: z.string().optional(),
-  clientId: z.string().min(1, "معرّف العميل مطلوب"),
+  clientId: z.string().min(1, "العميل مطلوب"),
   contractId: z.string().optional(),
-  managerId: z.string().min(1, "معرّف المدير مطلوب"),
+  managerId: z.string().min(1, "مدير المشروع مطلوب"),
   startDate: z.string().min(1, "تاريخ البدء مطلوب"),
   endDate: z.string().min(1, "تاريخ الانتهاء مطلوب"),
 });
@@ -58,9 +62,33 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
   const [open, setOpen] = useState(false);
   const isEdit = !!project;
 
+  // Search state for comboboxes
+  const [clientSearch, setClientSearch] = useState("");
+  const [managerSearch, setManagerSearch] = useState("");
+
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const isLoading = isCreating || isUpdating;
+
+  const { data: clientsData, isFetching: clientsFetching } = useGetClientsQuery(
+    { search: clientSearch, limit: 20 },
+    { skip: !open },
+  );
+
+  const { data: usersData, isFetching: usersFetching } = useSearchUsersQuery(
+    { search: managerSearch, role: UserRole.PM, limit: 20 },
+    { skip: !open },
+  );
+
+  const clientOptions = (clientsData?.items ?? []).map((c) => ({
+    id: c.id,
+    label: c.name,
+  }));
+
+  const managerOptions = (usersData?.items ?? []).map((u) => ({
+    id: u.id,
+    label: u.name,
+  }));
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(ProjectFormSchema),
@@ -168,30 +196,46 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
               )}
             />
 
-            {/* Client ID */}
+            {/* Client */}
             <FormField
               control={form.control}
               name="clientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>معرّف العميل</FormLabel>
+                  <FormLabel>العميل</FormLabel>
                   <FormControl>
-                    <Input placeholder="CUID الخاص بالعميل" {...field} />
+                    <SearchCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={clientOptions}
+                      onSearchChange={setClientSearch}
+                      placeholder="ابحث عن العميل..."
+                      searchPlaceholder="اكتب اسم العميل"
+                      isLoading={clientsFetching}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Manager ID */}
+            {/* Manager */}
             <FormField
               control={form.control}
               name="managerId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>مدير المشروع (معرّف)</FormLabel>
+                  <FormLabel>مدير المشروع</FormLabel>
                   <FormControl>
-                    <Input placeholder="CUID الخاص بالمدير" {...field} />
+                    <SearchCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={managerOptions}
+                      onSearchChange={setManagerSearch}
+                      placeholder="ابحث عن مدير المشروع..."
+                      searchPlaceholder="اكتب اسم المدير"
+                      isLoading={usersFetching}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

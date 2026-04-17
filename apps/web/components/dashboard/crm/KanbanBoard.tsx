@@ -19,6 +19,7 @@ import {
 } from "@/features/clients/clientsApi";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
+import { HandoverModal } from "./HandoverModal";
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
   [PipelineStage.NEW_LEAD]: "عميل جديد",
@@ -46,6 +47,10 @@ const STAGE_COLORS: Record<PipelineStage, string> = {
 
 export function KanbanBoard() {
   const [activeClient, setActiveClient] = useState<Client | null>(null);
+  const [pendingHandover, setPendingHandover] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [updateStage] = useUpdateClientStageMutation();
 
   const { data, isLoading, isError } = useGetClientsQuery({ limit: 100 });
@@ -84,6 +89,13 @@ export function KanbanBoard() {
 
     if (newStage === currentStage) return;
 
+    // Intercept HANDOVER — show the modal instead of calling the stage mutation
+    if (newStage === PipelineStage.HANDOVER) {
+      const client = data?.items.find((c) => c.id === clientId);
+      setPendingHandover({ id: clientId, name: client?.name ?? clientId });
+      return;
+    }
+
     try {
       await updateStage({ id: clientId, body: { stage: newStage } }).unwrap();
     } catch (err: unknown) {
@@ -121,39 +133,49 @@ export function KanbanBoard() {
   const totalClients = data?.total ?? 0;
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      {totalClients === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center gap-3 border-2 border-dashed rounded-xl">
-          <p className="text-lg font-medium text-muted-foreground">
-            لا يوجد أي عميل بعد
-          </p>
-          <p className="text-sm text-muted-foreground">
-            أضف أول عميل من صفحة المبيعات أو عبر رابط التسجيل
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto pb-4" dir="rtl">
-          <div className="flex gap-4 min-w-max">
-            {PIPELINE_STAGE_ORDER.map((stage) => (
-              <KanbanColumn
-                key={stage}
-                stage={stage}
-                label={STAGE_LABELS[stage]}
-                colorClass={STAGE_COLORS[stage]}
-                clients={clientsByStage.get(stage) ?? []}
-              />
-            ))}
+    <>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        {totalClients === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center gap-3 border-2 border-dashed rounded-xl">
+            <p className="text-lg font-medium text-muted-foreground">
+              لا يوجد أي عميل بعد
+            </p>
+            <p className="text-sm text-muted-foreground">
+              أضف أول عميل من صفحة المبيعات أو عبر رابط التسجيل
+            </p>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="overflow-x-auto pb-4" dir="rtl">
+            <div className="flex gap-4 min-w-max">
+              {PIPELINE_STAGE_ORDER.map((stage) => (
+                <KanbanColumn
+                  key={stage}
+                  stage={stage}
+                  label={STAGE_LABELS[stage]}
+                  colorClass={STAGE_COLORS[stage]}
+                  clients={clientsByStage.get(stage) ?? []}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
-      <DragOverlay>
-        {activeClient ? <KanbanCard client={activeClient} isOverlay /> : null}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay>
+          {activeClient ? <KanbanCard client={activeClient} isOverlay /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      {pendingHandover && (
+        <HandoverModal
+          open
+          client={pendingHandover}
+          onClose={() => setPendingHandover(null)}
+        />
+      )}
+    </>
   );
 }

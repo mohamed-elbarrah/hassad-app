@@ -13,6 +13,7 @@ import type {
   CreateClientInput,
   UpdateClientInput,
   UpdateStageInput,
+  Project,
 } from "@hassad/shared";
 import type { ClientStatus, PipelineStage } from "@hassad/shared";
 import { logout } from "../auth/authSlice";
@@ -33,6 +34,18 @@ export interface ClientFilters {
   search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface HandoverInput {
+  name: string;
+  managerId: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface HandoverResult {
+  client: Pick<Client, "id" | "name" | "stage" | "status" | "updatedAt">;
+  project: Project;
 }
 
 // ── Base query — unwraps ResponseInterceptor envelope + auto-refresh on 401 ──
@@ -101,7 +114,7 @@ const baseQuery: BaseQueryFn<
 export const clientsApi = createApi({
   reducerPath: "clientsApi",
   baseQuery,
-  tagTypes: ["Client"],
+  tagTypes: ["Client", "Project"],
   endpoints: (builder) => ({
     /** GET /v1/clients — paginated + filtered list */
     getClients: builder.query<PaginatedClients, ClientFilters>({
@@ -180,6 +193,27 @@ export const clientsApi = createApi({
         { type: "Client", id: "LIST" },
       ],
     }),
+
+    /**
+     * POST /v1/clients/:id/handover
+     * Atomically moves client to HANDOVER stage and creates a project.
+     * Invalidates both Client and Project caches.
+     */
+    handoverClient: builder.mutation<
+      HandoverResult,
+      { id: string; body: HandoverInput }
+    >({
+      query: ({ id, body }) => ({
+        url: `/clients/${id}/handover`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Client", id },
+        { type: "Client", id: "LIST" },
+        { type: "Project", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -190,4 +224,5 @@ export const {
   useUpdateClientMutation,
   useUpdateClientStageMutation,
   useUpdateClientRequirementsMutation,
+  useHandoverClientMutation,
 } = clientsApi;

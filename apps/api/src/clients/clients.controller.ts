@@ -21,6 +21,7 @@ import { CreateClientDto } from "./dto/create-client.dto";
 import { UpdateClientDto } from "./dto/update-client.dto";
 import { UpdateStageDto } from "./dto/update-stage.dto";
 import { UpdateRequirementsDto } from "./dto/update-requirements.dto";
+import { HandoverProjectDto } from "./dto/handover-project.dto";
 import { ClientFiltersDto } from "./dto/client-filters.dto";
 import type { JwtPayload } from "../common/decorators/current-user.decorator";
 
@@ -97,6 +98,22 @@ export class ClientsController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.clientsService.updateRequirements(id, dto, user);
+  }
+
+  /**
+   * POST /v1/clients/:id/handover
+   * Atomically moves the client to HANDOVER stage and creates a project linked to them.
+   * The form collects project name, manager, and dates before confirming.
+   */
+  @Post(":id/handover")
+  @Roles(UserRole.ADMIN, UserRole.SALES)
+  @HttpCode(HttpStatus.CREATED)
+  handover(
+    @Param("id") id: string,
+    @Body() dto: HandoverProjectDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.clientsService.handover(id, dto, user);
   }
 
   @HttpDelete(":id")
