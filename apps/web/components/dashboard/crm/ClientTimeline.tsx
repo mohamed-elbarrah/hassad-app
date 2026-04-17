@@ -100,6 +100,7 @@ export function ClientTimeline({ activities }: ClientTimelineProps) {
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
+                          numberingSystem: "latn",
                         }).format(new Date(activity.createdAt))}
                       </p>
                     </div>

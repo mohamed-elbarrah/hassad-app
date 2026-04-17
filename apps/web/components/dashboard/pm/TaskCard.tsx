@@ -75,10 +75,11 @@ export function TaskCard({ task }: TaskCardProps) {
           <div className="flex items-center gap-1">
             <Calendar className="size-3 shrink-0" />
             <span>
-              {new Date(task.dueDate).toLocaleDateString("ar-SA", {
+              {new Intl.DateTimeFormat("en-GB", {
                 month: "short",
                 day: "numeric",
-              })}
+                numberingSystem: "latn",
+              }).format(new Date(task.dueDate))}
             </span>
           </div>
         </div>

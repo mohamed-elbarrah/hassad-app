@@ -130,6 +130,7 @@ export function ClientsTable({
           day: "2-digit",
           month: "short",
           year: "numeric",
+          numberingSystem: "latn",
         }).format(new Date(info.getValue())),
     }),
   ] as ColumnDef<Client, string>[];

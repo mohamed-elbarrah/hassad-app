@@ -96,6 +96,7 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",
+                numberingSystem: "latn",
               }).format(new Date(client.createdAt))}
             </p>
           </div>

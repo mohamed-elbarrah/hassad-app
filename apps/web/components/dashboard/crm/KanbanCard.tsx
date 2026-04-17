@@ -65,6 +65,7 @@ export function KanbanCard({ client, isOverlay = false }: KanbanCardProps) {
           {new Intl.DateTimeFormat("en-GB", {
             day: "2-digit",
             month: "short",
+            numberingSystem: "latn",
           }).format(new Date(client.createdAt))}
         </span>
         {daysInStage > 0 && (

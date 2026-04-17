@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,6 +31,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateTaskMutation } from "@/features/tasks/tasksApi";
+import { useSearchUsersQuery } from "@/features/users/usersApi";
+import { SearchCombobox } from "@/components/dashboard/pm/SearchCombobox";
 import { TaskDepartment, TaskPriority } from "@hassad/shared";
 
 // ── Labels ────────────────────────────────────────────────────────────────────
@@ -54,7 +56,7 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 
 const TaskFormSchema = z.object({
   title: z.string().min(2, "عنوان المهمة يجب أن يكون حرفين على الأقل"),
-  assignedTo: z.string().min(1, "معرّف المُكلَّف مطلوب"),
+  assignedTo: z.string().min(1, "المُكلَّف مطلوب"),
   dept: z.nativeEnum(TaskDepartment, { message: "القسم مطلوب" }),
   priority: z.nativeEnum(TaskPriority).optional(),
   dueDate: z.string().min(1, "تاريخ الاستحقاق مطلوب"),
@@ -73,6 +75,7 @@ interface TaskFormProps {
 
 export function TaskForm({ projectId }: TaskFormProps) {
   const [open, setOpen] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
   const [createTask, { isLoading }] = useCreateTaskMutation();
 
   const form = useForm<TaskFormValues>({
@@ -86,6 +89,22 @@ export function TaskForm({ projectId }: TaskFormProps) {
       description: "",
     },
   });
+
+  const watchedDept = form.watch("dept");
+
+  // Reset assignee whenever department changes
+  useEffect(() => {
+    form.setValue("assignedTo", "");
+    setAssigneeSearch("");
+  }, [watchedDept, form]);
+
+  const { data: usersData, isFetching: usersLoading } = useSearchUsersQuery(
+    { department: watchedDept, search: assigneeSearch, limit: 20 },
+    { skip: !open || !watchedDept },
+  );
+
+  const assigneeOptions =
+    usersData?.items.map((u) => ({ id: u.id, label: u.name })) ?? [];
 
   async function onSubmit(values: TaskFormValues) {
     try {
@@ -102,6 +121,7 @@ export function TaskForm({ projectId }: TaskFormProps) {
       }).unwrap();
       toast.success("تم إنشاء المهمة بنجاح.");
       form.reset();
+      setAssigneeSearch("");
       setOpen(false);
     } catch {
       toast.error("فشل إنشاء المهمة. يرجى المحاولة مجدداً.");
@@ -131,20 +151,6 @@ export function TaskForm({ projectId }: TaskFormProps) {
                   <FormLabel>عنوان المهمة</FormLabel>
                   <FormControl>
                     <Input placeholder="أدخل عنوان المهمة" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="assignedTo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>معرّف المُكلَّف</FormLabel>
-                  <FormControl>
-                    <Input placeholder="CUID الخاص بالمستخدم" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -208,6 +214,31 @@ export function TaskForm({ projectId }: TaskFormProps) {
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="assignedTo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>المُكلَّف</FormLabel>
+                  <FormControl>
+                    <SearchCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={assigneeOptions}
+                      onSearchChange={setAssigneeSearch}
+                      placeholder={
+                        watchedDept ? "اختر المُكلَّف" : "اختر القسم أولاً"
+                      }
+                      searchPlaceholder="ابحث بالاسم..."
+                      isLoading={usersLoading}
+                      disabled={!watchedDept}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

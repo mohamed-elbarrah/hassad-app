@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma } from "@prisma/client";
+import { UserRole } from "@hassad/shared";
 import { UserSearchFiltersDto } from "./dto/user-search-filters.dto";
 
 @Injectable()
@@ -8,15 +9,29 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async searchUsers(filters: UserSearchFiltersDto) {
-    const where: Prisma.UserWhereInput = { isActive: true };
+    const andConditions: Prisma.UserWhereInput[] = [{ isActive: true }];
 
-    if (filters.role) where.role = filters.role;
-    if (filters.search) {
-      where.OR = [
-        { name: { contains: filters.search, mode: "insensitive" } },
-        { email: { contains: filters.search, mode: "insensitive" } },
-      ];
+    if (filters.role) {
+      andConditions.push({ role: filters.role });
     }
+
+    // When filtering by department, also include ADMIN users (they work across all depts)
+    if (filters.department) {
+      andConditions.push({
+        OR: [{ department: filters.department }, { role: UserRole.ADMIN }],
+      });
+    }
+
+    if (filters.search) {
+      andConditions.push({
+        OR: [
+          { name: { contains: filters.search, mode: "insensitive" } },
+          { email: { contains: filters.search, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    const where: Prisma.UserWhereInput = { AND: andConditions };
 
     const page = filters.page ?? 1;
     const limit = Math.min(filters.limit ?? 20, 100);

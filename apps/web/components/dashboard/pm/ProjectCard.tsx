@@ -46,16 +46,18 @@ interface ProjectCardProps {
 export function ProjectCard({ project }: ProjectCardProps) {
   const statusConfig = STATUS_CONFIG[project.status];
 
-  const startDate = new Date(project.startDate).toLocaleDateString("ar-SA", {
+  const startDate = new Intl.DateTimeFormat("en-GB", {
     year: "numeric",
     month: "short",
     day: "numeric",
-  });
-  const endDate = new Date(project.endDate).toLocaleDateString("ar-SA", {
+    numberingSystem: "latn",
+  }).format(new Date(project.startDate));
+  const endDate = new Intl.DateTimeFormat("en-GB", {
     year: "numeric",
     month: "short",
     day: "numeric",
-  });
+    numberingSystem: "latn",
+  }).format(new Date(project.endDate));
 
   return (
     <Link href={`/dashboard/pm/projects/${project.id}`}>

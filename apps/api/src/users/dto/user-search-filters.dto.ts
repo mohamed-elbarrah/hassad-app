@@ -1,11 +1,15 @@
 import { IsOptional, IsEnum, IsString, IsInt, Min, Max } from "class-validator";
 import { Type } from "class-transformer";
-import { UserRole } from "@hassad/shared";
+import { UserRole, TaskDepartment } from "@hassad/shared";
 
 export class UserSearchFiltersDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+
+  @IsOptional()
+  @IsEnum(TaskDepartment)
+  department?: TaskDepartment;
 
   @IsOptional()
   @IsString()

@@ -1,7 +1,7 @@
 // apps/web/features/users/usersApi.ts
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { UserRole } from "@hassad/shared";
+import type { UserRole, TaskDepartment } from "@hassad/shared";
 
 export interface UserSearchResult {
   id: string;
@@ -21,6 +21,7 @@ export interface PaginatedUsers {
 export interface UserSearchFilters {
   search?: string;
   role?: UserRole;
+  department?: TaskDepartment;
   page?: number;
   limit?: number;
 }

@@ -118,21 +118,23 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">البداية</span>
               <span>
-                {new Date(project.startDate).toLocaleDateString("ar-SA", {
+                {new Intl.DateTimeFormat("en-GB", {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
-                })}
+                  numberingSystem: "latn",
+                }).format(new Date(project.startDate))}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">النهاية</span>
               <span>
-                {new Date(project.endDate).toLocaleDateString("ar-SA", {
+                {new Intl.DateTimeFormat("en-GB", {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
-                })}
+                  numberingSystem: "latn",
+                }).format(new Date(project.endDate))}
               </span>
             </div>
           </CardContent>
