@@ -31,4 +31,6 @@ export interface Client {
   assignedToId: string;
   createdAt: Date;
   updatedAt: Date;
+  requirements?: Record<string, unknown> | null;
+  activityLog?: Array<Record<string, unknown>> | null;
 }

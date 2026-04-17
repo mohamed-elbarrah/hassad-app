@@ -18,7 +18,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isAuthenticated, isInitialized } = useAppSelector(
-    (state) => state.auth
+    (state) => state.auth,
   );
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -60,9 +60,7 @@ export default function DashboardLayout({
           <SidebarTrigger className="-ms-1" />
           <Separator orientation="vertical" className="me-2 h-4" />
         </header>
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+        <main className="flex-1 min-w-0 p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

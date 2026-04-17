@@ -29,9 +29,9 @@ const STAGE_LABELS: Record<PipelineStage, string> = {
   [PipelineStage.REQUIREMENTS_GATHERING]: "جمع المتطلبات",
   [PipelineStage.PROPOSAL_SENT]: "تم إرسال العرض",
   [PipelineStage.NEGOTIATION]: "التفاوض",
-  [PipelineStage.CONTRACT_SIGNED]: "تم توقيع العقد",
-  [PipelineStage.FIRST_PAYMENT]: "الدفعة الأولى",
-  [PipelineStage.TRANSFERRED_TO_OPERATIONS]: "تم التحويل للعمليات",
+  [PipelineStage.WAITING_FOR_SIGNATURE]: "بانتظار التوقيع",
+  [PipelineStage.CONTRACTED_WON]: "تم التعاقد",
+  [PipelineStage.HANDOVER]: "تسليم للعمليات",
 };
 
 interface ClientFiltersBarProps {

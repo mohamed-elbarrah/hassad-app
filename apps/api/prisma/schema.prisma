@@ -35,9 +35,9 @@ enum PipelineStage {
   REQUIREMENTS_GATHERING
   PROPOSAL_SENT
   NEGOTIATION
-  CONTRACT_SIGNED
-  FIRST_PAYMENT
-  TRANSFERRED_TO_OPERATIONS
+  WAITING_FOR_SIGNATURE
+  CONTRACTED_WON
+  HANDOVER
 }
 
 enum BusinessType {
@@ -91,6 +91,9 @@ model Client {
   projects         Project[]
   activities       ClientActivity[]
 
+  requirements  Json?
+  activityLog   Json?
+
   @@index([status])
   @@index([stage])
   @@index([assignedToId])
@@ -99,7 +102,7 @@ model Client {
 model Contract {
   id          String   @id @default(cuid())
   clientId    String
-  client      Client   @relation(fields: [clientId], references: [id])
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   services    Json
   startDate   DateTime
   endDate     DateTime
@@ -114,7 +117,7 @@ model Contract {
 model Project {
   id          String   @id @default(cuid())
   clientId    String
-  client      Client   @relation(fields: [clientId], references: [id])
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contractId  String
   contract    Contract @relation(fields: [contractId], references: [id])
   managerId   String
@@ -130,7 +133,7 @@ model Project {
 model Task {
   id          String   @id @default(cuid())
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   assignedTo  String
   assignee    User     @relation("AssignedTask", fields: [assignedTo], references: [id])
   dept        String
@@ -145,7 +148,7 @@ model Task {
 model ClientActivity {
   id        String   @id @default(cuid())
   clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   userId    String
   action    String
   details   String?

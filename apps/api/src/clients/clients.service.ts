@@ -3,15 +3,16 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-} from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, PipelineStage as PrismaPipelineStage } from '@prisma/client';
-import { UserRole, PipelineStage, PIPELINE_STAGE_ORDER } from '@hassad/shared';
-import { CreateClientDto } from './dto/create-client.dto';
-import { UpdateClientDto } from './dto/update-client.dto';
-import { ClientFiltersDto } from './dto/client-filters.dto';
-import { UpdateStageDto } from './dto/update-stage.dto';
-import type { JwtPayload } from '../common/decorators/current-user.decorator';
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { Prisma, PipelineStage as PrismaPipelineStage } from "@prisma/client";
+import { UserRole, PipelineStage, PIPELINE_STAGE_ORDER } from "@hassad/shared";
+import { CreateClientDto } from "./dto/create-client.dto";
+import { UpdateClientDto } from "./dto/update-client.dto";
+import { ClientFiltersDto } from "./dto/client-filters.dto";
+import { UpdateStageDto } from "./dto/update-stage.dto";
+import { UpdateRequirementsDto } from "./dto/update-requirements.dto";
+import type { JwtPayload } from "../common/decorators/current-user.decorator";
 
 @Injectable()
 export class ClientsService {
@@ -30,7 +31,7 @@ export class ClientsService {
     if (filters.status) where.status = filters.status;
     if (filters.stage) where.stage = filters.stage as PrismaPipelineStage;
     if (filters.search) {
-      where.OR = [{ name: { contains: filters.search, mode: 'insensitive' } }];
+      where.OR = [{ name: { contains: filters.search, mode: "insensitive" } }];
     }
 
     const page = filters.page ?? 1;
@@ -53,7 +54,7 @@ export class ClientsService {
           createdAt: true,
           updatedAt: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -70,7 +71,7 @@ export class ClientsService {
       where: { id },
       include: {
         assignedTo: { select: { id: true, name: true, email: true } },
-        activities: { orderBy: { createdAt: 'desc' }, take: 50 },
+        activities: { orderBy: { createdAt: "desc" }, take: 50 },
         contracts: { select: { id: true, status: true, value: true } },
         projects: { select: { id: true, status: true, progress: true } },
       },
@@ -80,7 +81,7 @@ export class ClientsService {
 
     // SALES users may only view their own assigned clients
     if (user.role === UserRole.SALES && client.assignedToId !== user.id) {
-      throw new ForbiddenException('You do not have access to this client');
+      throw new ForbiddenException("You do not have access to this client");
     }
 
     return client;
@@ -101,8 +102,8 @@ export class ClientsService {
           phone: dto.phone,
           businessType: dto.businessType,
           source: dto.source,
-          status: 'LEAD',
-          stage: 'NEW_LEAD',
+          status: "LEAD",
+          stage: "NEW_LEAD",
           assignedToId,
         },
         select: {
@@ -124,7 +125,7 @@ export class ClientsService {
         data: {
           clientId: client.id,
           userId: user.id,
-          action: 'CLIENT_CREATED',
+          action: "CLIENT_CREATED",
           details: `Client "${client.name}" created by user ${user.id}`,
         },
       });
@@ -141,7 +142,7 @@ export class ClientsService {
 
     // SALES can only update clients assigned to them
     if (user.role === UserRole.SALES && existing.assignedToId !== user.id) {
-      throw new ForbiddenException('You do not have access to this client');
+      throw new ForbiddenException("You do not have access to this client");
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -151,11 +152,17 @@ export class ClientsService {
           ...(dto.name !== undefined && { name: dto.name }),
           ...(dto.email !== undefined && { email: dto.email }),
           ...(dto.phone !== undefined && { phone: dto.phone }),
-          ...(dto.businessType !== undefined && { businessType: dto.businessType }),
+          ...(dto.businessType !== undefined && {
+            businessType: dto.businessType,
+          }),
           ...(dto.source !== undefined && { source: dto.source }),
           ...(dto.status !== undefined && { status: dto.status }),
-          ...(dto.stage !== undefined && { stage: dto.stage as PrismaPipelineStage }),
-          ...(dto.assignedToId !== undefined && { assignedToId: dto.assignedToId }),
+          ...(dto.stage !== undefined && {
+            stage: dto.stage as PrismaPipelineStage,
+          }),
+          ...(dto.assignedToId !== undefined && {
+            assignedToId: dto.assignedToId,
+          }),
         },
         select: {
           id: true,
@@ -175,7 +182,7 @@ export class ClientsService {
         data: {
           clientId: id,
           userId: user.id,
-          action: 'CLIENT_UPDATED',
+          action: "CLIENT_UPDATED",
           details: `Client updated by user ${user.id}`,
         },
       });
@@ -186,37 +193,68 @@ export class ClientsService {
 
   // ─── updateStage ────────────────────────────────────────────────────────────
 
-  /**
-   * Transitions a client to a new pipeline stage.
-   * Enforces forward-only progression through the defined 9-stage order.
-   * ADMIN can skip stages; SALES can only advance one step at a time.
-   */
+  // ─── updateStage ────────────────────────────────────────────────────────────
+
   async updateStage(id: string, dto: UpdateStageDto, user: JwtPayload) {
     const client = await this.prisma.client.findUnique({ where: { id } });
     if (!client) throw new NotFoundException(`Client ${id} not found`);
 
     if (user.role === UserRole.SALES && client.assignedToId !== user.id) {
-      throw new ForbiddenException('You do not have access to this client');
+      throw new ForbiddenException("You do not have access to this client");
     }
 
-    const currentIndex = PIPELINE_STAGE_ORDER.indexOf(client.stage as PipelineStage);
+    const currentIndex = PIPELINE_STAGE_ORDER.indexOf(
+      client.stage as PipelineStage,
+    );
     const targetIndex = PIPELINE_STAGE_ORDER.indexOf(dto.stage);
 
     if (targetIndex === -1) {
       throw new BadRequestException(`Invalid pipeline stage: ${dto.stage}`);
     }
 
-    // SALES may only advance forward (no backward movement)
     if (user.role === UserRole.SALES && targetIndex <= currentIndex) {
       throw new BadRequestException(
-        'Sales users can only advance a client to a later pipeline stage',
+        "Sales users can only advance a client to a later pipeline stage",
       );
     }
 
+    // Guard: requirements must be filled before moving to PROPOSAL_SENT
+    if (dto.stage === PipelineStage.PROPOSAL_SENT) {
+      if (
+        !client.requirements ||
+        Object.keys(client.requirements as Record<string, unknown>).length === 0
+      ) {
+        throw new BadRequestException(
+          "Requirements must be filled before moving to Proposal Sent stage",
+        );
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
+      const currentLog = Array.isArray(client.activityLog)
+        ? (client.activityLog as Array<Record<string, unknown>>)
+        : [];
+
+      const newLog = [
+        ...currentLog,
+        {
+          action: "STAGE_UPDATED",
+          from: client.stage,
+          to: dto.stage,
+          userId: user.id,
+          timestamp: new Date().toISOString(),
+        },
+      ];
+
       const updated = await tx.client.update({
         where: { id },
-        data: { stage: dto.stage as PrismaPipelineStage },
+        data: {
+          stage: dto.stage as PrismaPipelineStage,
+          ...(dto.stage === PipelineStage.CONTRACTED_WON && {
+            status: "ACTIVE",
+          }),
+          activityLog: newLog as Prisma.InputJsonValue,
+        },
         select: { id: true, stage: true, status: true, updatedAt: true },
       });
 
@@ -224,12 +262,83 @@ export class ClientsService {
         data: {
           clientId: id,
           userId: user.id,
-          action: 'STAGE_UPDATED',
+          action: "STAGE_UPDATED",
           details: `Stage changed from ${client.stage} to ${dto.stage}`,
         },
       });
 
       return updated;
+    });
+  }
+
+  // ─── updateRequirements ─────────────────────────────────────────────────────
+
+  async updateRequirements(
+    id: string,
+    dto: UpdateRequirementsDto,
+    user: JwtPayload,
+  ) {
+    const client = await this.prisma.client.findUnique({ where: { id } });
+    if (!client) throw new NotFoundException(`Client ${id} not found`);
+
+    if (user.role === UserRole.SALES && client.assignedToId !== user.id) {
+      throw new ForbiddenException("You do not have access to this client");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const currentLog = Array.isArray(client.activityLog)
+        ? (client.activityLog as Array<Record<string, unknown>>)
+        : [];
+
+      const updated = await tx.client.update({
+        where: { id },
+        data: {
+          requirements: dto.requirements as Prisma.InputJsonValue,
+          activityLog: [
+            ...currentLog,
+            {
+              action: "REQUIREMENTS_UPDATED",
+              userId: user.id,
+              timestamp: new Date().toISOString(),
+            },
+          ] as Prisma.InputJsonValue,
+        },
+        select: { id: true, requirements: true, updatedAt: true },
+      });
+
+      await tx.clientActivity.create({
+        data: {
+          clientId: id,
+          userId: user.id,
+          action: "REQUIREMENTS_UPDATED",
+          details: "Requirements form submitted",
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  // ─── delete ─────────────────────────────────────────────────────────────────
+
+  async delete(id: string, user: JwtPayload) {
+    const client = await this.prisma.client.findUnique({ where: { id } });
+    if (!client) throw new NotFoundException(`Client ${id} not found`);
+
+    return this.prisma.$transaction(async (tx) => {
+      // Log before deletion while the record still exists
+      await tx.clientActivity.create({
+        data: {
+          clientId: id,
+          userId: user.id,
+          action: "CLIENT_DELETED",
+          details: `Client "${client.name}" deleted by admin ${user.id}`,
+        },
+      });
+
+      await tx.client.delete({ where: { id } });
+
+      return { message: `Client ${id} deleted successfully` };
     });
   }
 }

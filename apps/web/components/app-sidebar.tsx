@@ -1,9 +1,18 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Home, Users, Briefcase, Calculator, Megaphone, Paintbrush } from "lucide-react"
+import * as React from "react";
+import Link from "next/link";
+import {
+  Home,
+  Users,
+  Briefcase,
+  Calculator,
+  Megaphone,
+  Paintbrush,
+  Kanban,
+} from "lucide-react";
 
-import { useAppSelector } from "@/lib/hooks"
+import { useAppSelector } from "@/lib/hooks";
 
 import {
   Sidebar,
@@ -14,7 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 // Conditional navigation items based on UserRole
 const allNavItems = [
@@ -37,6 +46,12 @@ const allNavItems = [
     roles: ["ADMIN", "SALES"],
   },
   {
+    title: "لوحة المبيعات",
+    url: "/dashboard/sales/pipeline",
+    icon: Kanban,
+    roles: ["ADMIN", "SALES"],
+  },
+  {
     title: "Financials",
     url: "/dashboard/accountant",
     icon: Calculator,
@@ -54,7 +69,7 @@ const allNavItems = [
     icon: Paintbrush,
     roles: ["ADMIN", "EMPLOYEE"],
   },
-]
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAppSelector((state) => state.auth);
@@ -74,10 +89,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -86,5 +101,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }
