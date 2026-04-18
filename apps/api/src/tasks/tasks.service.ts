@@ -2,13 +2,22 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { UserRole } from "@hassad/shared";
-import { TaskPriority } from "@hassad/shared";
+import {
+  UserRole,
+  TaskPriority,
+  TaskStatus,
+  TaskDepartment,
+  TASK_STATUS_TRANSITIONS,
+} from "@hassad/shared";
+import { MyTasksFiltersDto } from "./dto/my-tasks-filters.dto";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { UpdateTaskStatusDto } from "./dto/update-task-status.dto";
+import { CreateCommentDto } from "./dto/create-comment.dto";
 import type { JwtPayload } from "../common/decorators/current-user.decorator";
 
 @Injectable()
@@ -90,6 +99,28 @@ export class TasksService {
       throw new ForbiddenException("You do not have access to this project");
     }
 
+    // Validate assignee: must be EMPLOYEE and department must match
+    const assignee = await this.prisma.user.findUnique({
+      where: { id: dto.assignedTo },
+      select: { id: true, role: true, department: true, isActive: true },
+    });
+
+    if (!assignee || !assignee.isActive) {
+      throw new NotFoundException(
+        `User ${dto.assignedTo} not found or inactive`,
+      );
+    }
+
+    if (assignee.role !== UserRole.EMPLOYEE) {
+      throw new BadRequestException("Tasks can only be assigned to employees");
+    }
+
+    if (assignee.department !== dto.dept) {
+      throw new BadRequestException(
+        `User department (${assignee.department}) does not match task department (${dto.dept})`,
+      );
+    }
+
     return this.prisma.task.create({
       data: {
         title: dto.title,
@@ -118,6 +149,34 @@ export class TasksService {
 
     if (user.role === UserRole.PM && task.project.managerId !== user.id) {
       throw new ForbiddenException("You do not have access to this task");
+    }
+
+    // If reassigning, validate new assignee
+    if (dto.assignedTo !== undefined) {
+      const newAssignee = await this.prisma.user.findUnique({
+        where: { id: dto.assignedTo },
+        select: { id: true, role: true, department: true, isActive: true },
+      });
+
+      if (!newAssignee || !newAssignee.isActive) {
+        throw new NotFoundException(
+          `User ${dto.assignedTo} not found or inactive`,
+        );
+      }
+
+      if (newAssignee.role !== UserRole.EMPLOYEE) {
+        throw new BadRequestException(
+          "Tasks can only be assigned to employees",
+        );
+      }
+
+      // Use new dept if provided, otherwise use existing task dept
+      const effectiveDept = dto.dept ?? task.dept;
+      if (newAssignee.department !== effectiveDept) {
+        throw new BadRequestException(
+          `User department (${newAssignee.department}) does not match task department (${effectiveDept})`,
+        );
+      }
     }
 
     return this.prisma.task.update({
@@ -155,6 +214,19 @@ export class TasksService {
       );
     }
 
+    // ADMIN bypasses transition rules
+    if (user.role !== UserRole.ADMIN) {
+      const allowed =
+        TASK_STATUS_TRANSITIONS[task.status]?.[
+          user.role as UserRole.PM | UserRole.EMPLOYEE
+        ] ?? [];
+      if (!allowed.includes(dto.status)) {
+        throw new BadRequestException(
+          `Cannot transition task from ${task.status} to ${dto.status} as ${user.role}`,
+        );
+      }
+    }
+
     return this.prisma.task.update({
       where: { id },
       data: { status: dto.status },
@@ -168,5 +240,330 @@ export class TasksService {
     if (!task) throw new NotFoundException(`Task ${id} not found`);
 
     await this.prisma.task.delete({ where: { id } });
+  }
+
+  // ─── getMyTasks ──────────────────────────────────────────────────────────────
+
+  async getMyTasks(user: JwtPayload, filters: MyTasksFiltersDto) {
+    const where: Prisma.TaskWhereInput = {};
+
+    if (user.role === UserRole.EMPLOYEE) {
+      where.assignedTo = user.id;
+    } else if (user.role === UserRole.PM) {
+      where.OR = [{ assignedTo: user.id }, { project: { managerId: user.id } }];
+    }
+
+    if (filters.archived === true) {
+      where.archivedAt = { not: null };
+    } else {
+      where.archivedAt = null;
+    }
+
+    if (filters.status) where.status = filters.status;
+    if (filters.priority) where.priority = filters.priority;
+    if (filters.dept) where.dept = filters.dept;
+    if (filters.dueBefore || filters.dueAfter) {
+      where.dueDate = {};
+      if (filters.dueBefore)
+        (where.dueDate as Prisma.DateTimeFilter).lte = new Date(
+          filters.dueBefore,
+        );
+      if (filters.dueAfter)
+        (where.dueDate as Prisma.DateTimeFilter).gte = new Date(
+          filters.dueAfter,
+        );
+    }
+
+    return this.prisma.task.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        priority: true,
+        dept: true,
+        dueDate: true,
+        archivedAt: true,
+        description: true,
+        assignedTo: true,
+        assignee: { select: { id: true, name: true } },
+        project: { select: { id: true, name: true } },
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { dueDate: "asc" },
+    });
+  }
+
+  // ─── getMyTaskStats ──────────────────────────────────────────────────────────
+
+  async getMyTaskStats(user: JwtPayload) {
+    const baseWhere: Prisma.TaskWhereInput = { archivedAt: null };
+
+    if (user.role === UserRole.EMPLOYEE) {
+      baseWhere.assignedTo = user.id;
+    } else if (user.role === UserRole.PM) {
+      baseWhere.OR = [
+        { assignedTo: user.id },
+        { project: { managerId: user.id } },
+      ];
+    }
+
+    const [counts, overdue] = await Promise.all([
+      this.prisma.task.groupBy({
+        by: ["status"],
+        where: baseWhere,
+        _count: { status: true },
+      }),
+      this.prisma.task.count({
+        where: {
+          ...baseWhere,
+          dueDate: { lt: new Date() },
+          status: { not: TaskStatus.DONE },
+        },
+      }),
+    ]);
+
+    const stats = {
+      total: 0,
+      todo: 0,
+      inProgress: 0,
+      inReview: 0,
+      blocked: 0,
+      done: 0,
+      overdue,
+    };
+
+    for (const c of counts) {
+      const count = c._count.status;
+      stats.total += count;
+      if (c.status === TaskStatus.TODO) stats.todo = count;
+      else if (c.status === TaskStatus.IN_PROGRESS) stats.inProgress = count;
+      else if (c.status === TaskStatus.IN_REVIEW) stats.inReview = count;
+      else if (c.status === TaskStatus.BLOCKED) stats.blocked = count;
+      else if (c.status === TaskStatus.DONE) stats.done = count;
+    }
+
+    return stats;
+  }
+
+  // ─── toggleArchive ───────────────────────────────────────────────────────────
+
+  async toggleArchive(id: string, user: JwtPayload) {
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: { project: { select: { managerId: true } } },
+    });
+
+    if (!task) throw new NotFoundException(`Task ${id} not found`);
+
+    if (user.role === UserRole.PM && task.project.managerId !== user.id) {
+      throw new ForbiddenException("You do not have access to this task");
+    }
+
+    if (user.role === UserRole.EMPLOYEE && task.assignedTo !== user.id) {
+      throw new ForbiddenException("You can only archive your own tasks");
+    }
+
+    return this.prisma.task.update({
+      where: { id },
+      data: { archivedAt: task.archivedAt ? null : new Date() },
+      select: { id: true, archivedAt: true },
+    });
+  }
+
+  // ─── uploadFile ──────────────────────────────────────────────────────────────
+
+  async uploadFile(
+    taskId: string,
+    user: JwtPayload,
+    file: Express.Multer.File,
+  ) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { project: { select: { managerId: true } } },
+    });
+    if (!task) throw new NotFoundException(`Task ${taskId} not found`);
+
+    if (user.role === UserRole.PM && task.project.managerId !== user.id) {
+      throw new ForbiddenException("You do not have access to this task");
+    }
+    if (user.role === UserRole.EMPLOYEE && task.assignedTo !== user.id) {
+      throw new ForbiddenException(
+        "You can only upload files to your own tasks",
+      );
+    }
+
+    return this.prisma.taskFile.create({
+      data: {
+        taskId,
+        uploadedById: user.id,
+        fileName: file.originalname,
+        filePath: file.path,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+      },
+      select: {
+        id: true,
+        fileName: true,
+        fileSize: true,
+        mimeType: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  // ─── getTaskFiles ────────────────────────────────────────────────────────────
+
+  async getTaskFiles(taskId: string, user: JwtPayload) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { project: { select: { managerId: true } } },
+    });
+    if (!task) throw new NotFoundException(`Task ${taskId} not found`);
+
+    if (user.role === UserRole.PM && task.project.managerId !== user.id) {
+      throw new ForbiddenException("You do not have access to this task");
+    }
+    if (user.role === UserRole.EMPLOYEE && task.assignedTo !== user.id) {
+      throw new ForbiddenException("You can only view files of your own tasks");
+    }
+
+    return this.prisma.taskFile.findMany({
+      where: { taskId },
+      select: {
+        id: true,
+        fileName: true,
+        fileSize: true,
+        mimeType: true,
+        createdAt: true,
+        uploadedBy: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  // ─── deleteFile ──────────────────────────────────────────────────────────────
+
+  async deleteFile(taskId: string, fileId: string, user: JwtPayload) {
+    const file = await this.prisma.taskFile.findUnique({
+      where: { id: fileId },
+      include: {
+        task: { include: { project: { select: { managerId: true } } } },
+      },
+    });
+    if (!file || file.taskId !== taskId) {
+      throw new NotFoundException(`File ${fileId} not found`);
+    }
+
+    if (user.role === UserRole.PM && file.task.project.managerId !== user.id) {
+      throw new ForbiddenException("You do not have access to this task");
+    }
+    if (user.role === UserRole.EMPLOYEE && file.task.assignedTo !== user.id) {
+      throw new ForbiddenException(
+        "You can only delete files from your own tasks",
+      );
+    }
+
+    const fsPromises = await import("fs/promises");
+    try {
+      await fsPromises.unlink(file.filePath);
+    } catch {
+      // File may already be missing from disk — proceed with DB deletion
+    }
+
+    await this.prisma.taskFile.delete({ where: { id: fileId } });
+  }
+
+  // ─── downloadFile ────────────────────────────────────────────────────────────
+
+  async downloadFile(taskId: string, fileId: string, user: JwtPayload) {
+    const file = await this.prisma.taskFile.findUnique({
+      where: { id: fileId },
+      include: {
+        task: { include: { project: { select: { managerId: true } } } },
+      },
+    });
+    if (!file || file.taskId !== taskId) {
+      throw new NotFoundException(`File ${fileId} not found`);
+    }
+
+    if (user.role === UserRole.PM && file.task.project.managerId !== user.id) {
+      throw new ForbiddenException("You do not have access to this task");
+    }
+    if (user.role === UserRole.EMPLOYEE && file.task.assignedTo !== user.id) {
+      throw new ForbiddenException(
+        "You can only download files from your own tasks",
+      );
+    }
+
+    return {
+      filePath: file.filePath,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+    };
+  }
+
+  // ─── addComment ──────────────────────────────────────────────────────────────
+
+  async addComment(taskId: string, user: JwtPayload, dto: CreateCommentDto) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { project: { select: { managerId: true } } },
+    });
+    if (!task) throw new NotFoundException(`Task ${taskId} not found`);
+
+    if (user.role === UserRole.PM && task.project.managerId !== user.id) {
+      throw new ForbiddenException("You do not have access to this task");
+    }
+    if (user.role === UserRole.EMPLOYEE && task.assignedTo !== user.id) {
+      throw new ForbiddenException("You can only comment on your own tasks");
+    }
+
+    return this.prisma.taskComment.create({
+      data: {
+        taskId,
+        userId: user.id,
+        content: dto.content,
+      },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  // ─── getComments ─────────────────────────────────────────────────────────────
+
+  async getComments(taskId: string, user: JwtPayload) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { project: { select: { managerId: true } } },
+    });
+    if (!task) throw new NotFoundException(`Task ${taskId} not found`);
+
+    if (user.role === UserRole.PM && task.project.managerId !== user.id) {
+      throw new ForbiddenException("You do not have access to this task");
+    }
+    if (user.role === UserRole.EMPLOYEE && task.assignedTo !== user.id) {
+      throw new ForbiddenException(
+        "You can only view comments on your own tasks",
+      );
+    }
+
+    return this.prisma.taskComment.findMany({
+      where: { taskId },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        user: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
   }
 }

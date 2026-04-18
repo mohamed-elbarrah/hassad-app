@@ -1,0 +1,403 @@
+"use client";
+
+import { use, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, Paperclip, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { FileItem } from "@/components/dashboard/employee/FileItem";
+import { CommentItem } from "@/components/dashboard/employee/CommentItem";
+import {
+  useGetTaskByIdQuery,
+  useUpdateTaskStatusMutation,
+  useGetTaskFilesQuery,
+  useUploadTaskFileMutation,
+  useDeleteTaskFileMutation,
+  useGetTaskCommentsQuery,
+  useAddTaskCommentMutation,
+} from "@/features/tasks/tasksApi";
+import { useAppSelector } from "@/lib/hooks";
+import {
+  TaskStatus,
+  TaskPriority,
+  TaskDepartment,
+  TASK_STATUS_TRANSITIONS,
+  UserRole,
+} from "@hassad/shared";
+import { toast } from "sonner";
+
+// ── Label maps ────────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<TaskStatus, string> = {
+  [TaskStatus.TODO]: "للتنفيذ",
+  [TaskStatus.IN_PROGRESS]: "قيد التنفيذ",
+  [TaskStatus.IN_REVIEW]: "قيد المراجعة",
+  [TaskStatus.BLOCKED]: "محظور",
+  [TaskStatus.DONE]: "منجز",
+};
+
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  [TaskPriority.LOW]: "منخفض",
+  [TaskPriority.NORMAL]: "عادي",
+  [TaskPriority.HIGH]: "عالي",
+  [TaskPriority.URGENT]: "عاجل",
+};
+
+const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
+  [TaskDepartment.DESIGN]: "التصميم",
+  [TaskDepartment.MARKETING]: "التسويق",
+  [TaskDepartment.DEVELOPMENT]: "التطوير",
+  [TaskDepartment.CONTENT]: "المحتوى",
+  [TaskDepartment.MANAGEMENT]: "الإدارة",
+};
+
+const STATUS_VARIANT: Record<
+  TaskStatus,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  [TaskStatus.TODO]: "secondary",
+  [TaskStatus.IN_PROGRESS]: "default",
+  [TaskStatus.IN_REVIEW]: "outline",
+  [TaskStatus.BLOCKED]: "destructive",
+  [TaskStatus.DONE]: "secondary",
+};
+
+const PRIORITY_VARIANT: Record<
+  TaskPriority,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  [TaskPriority.LOW]: "secondary",
+  [TaskPriority.NORMAL]: "outline",
+  [TaskPriority.HIGH]: "default",
+  [TaskPriority.URGENT]: "destructive",
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getAllowedTransitions(
+  currentStatus: TaskStatus,
+  role: UserRole,
+): TaskStatus[] {
+  if (role === UserRole.ADMIN) {
+    return Object.values(TaskStatus).filter((s) => s !== currentStatus);
+  }
+  if (role === UserRole.PM || role === UserRole.EMPLOYEE) {
+    return (
+      TASK_STATUS_TRANSITIONS[currentStatus]?.[
+        role as UserRole.PM | UserRole.EMPLOYEE
+      ] ?? []
+    );
+  }
+  return [];
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+interface TaskDetailPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function TaskDetailPage({ params }: TaskDetailPageProps) {
+  const { id } = use(params);
+  const { user } = useAppSelector((state) => state.auth);
+
+  const { data: task, isLoading, isError } = useGetTaskByIdQuery(id);
+  const { data: files, isLoading: filesLoading } = useGetTaskFilesQuery(id);
+  const { data: comments, isLoading: commentsLoading } =
+    useGetTaskCommentsQuery(id);
+
+  const [updateStatus, { isLoading: isUpdatingStatus }] =
+    useUpdateTaskStatusMutation();
+  const [uploadFile, { isLoading: isUploading }] = useUploadTaskFileMutation();
+  const [deleteFile, { isLoading: isDeletingFile }] =
+    useDeleteTaskFileMutation();
+  const [addComment, { isLoading: isAddingComment }] =
+    useAddTaskCommentMutation();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [commentText, setCommentText] = useState("");
+
+  if (!user) return null;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-48 rounded-lg" />
+        <Skeleton className="h-48 rounded-lg" />
+      </div>
+    );
+  }
+
+  if (isError || !task) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Link href="/dashboard/employee">
+          <Button variant="ghost" size="sm">
+            <ArrowRight className="size-4 mr-1" />
+            العودة
+          </Button>
+        </Link>
+        <p className="text-destructive">
+          المهمة غير موجودة أو لا يمكن الوصول إليها.
+        </p>
+      </div>
+    );
+  }
+
+  const allowedTransitions = getAllowedTransitions(task.status, user.role);
+
+  async function handleStatusUpdate(newStatus: TaskStatus) {
+    try {
+      await updateStatus({ id, body: { status: newStatus } }).unwrap();
+      toast.success(`تم تحديث الحالة إلى "${STATUS_LABELS[newStatus]}"`);
+    } catch {
+      toast.error("فشل تحديث الحالة");
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      await uploadFile({ taskId: id, file: formData }).unwrap();
+      toast.success("تم رفع الملف بنجاح");
+    } catch {
+      toast.error("فشل رفع الملف");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleDeleteFile(fileId: string) {
+    try {
+      await deleteFile({ taskId: id, fileId }).unwrap();
+      toast.success("تم حذف الملف");
+    } catch {
+      toast.error("فشل حذف الملف");
+    }
+  }
+
+  async function handleAddComment() {
+    const trimmed = commentText.trim();
+    if (!trimmed) return;
+    try {
+      await addComment({ taskId: id, content: trimmed }).unwrap();
+      setCommentText("");
+      toast.success("تمت إضافة التعليق");
+    } catch {
+      toast.error("فشل إضافة التعليق");
+    }
+  }
+
+  const canDeleteFile = (uploadedById: string) =>
+    user.role === UserRole.ADMIN ||
+    user.role === UserRole.PM ||
+    user.id === uploadedById;
+
+  const taskWithRelations = task as typeof task & {
+    project?: { id: string; name: string };
+    assignee?: { id: string; name: string };
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Back navigation */}
+      <Link href="/dashboard/employee">
+        <Button variant="ghost" size="sm">
+          <ArrowRight className="size-4 mr-1" />
+          العودة
+        </Button>
+      </Link>
+
+      {/* Task header */}
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-bold">{task.title}</h1>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant={STATUS_VARIANT[task.status]}>
+            {STATUS_LABELS[task.status]}
+          </Badge>
+          <Badge variant={PRIORITY_VARIANT[task.priority]}>
+            {PRIORITY_LABELS[task.priority]}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Task details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">تفاصيل المهمة</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          {task.description && (
+            <div className="sm:col-span-2">
+              <p className="text-muted-foreground text-xs mb-1">الوصف</p>
+              <p className="whitespace-pre-wrap">{task.description}</p>
+            </div>
+          )}
+          {taskWithRelations.project && (
+            <div>
+              <p className="text-muted-foreground text-xs mb-1">المشروع</p>
+              <p className="font-medium">{taskWithRelations.project.name}</p>
+            </div>
+          )}
+          <div>
+            <p className="text-muted-foreground text-xs mb-1">القسم</p>
+            <p className="font-medium">{DEPARTMENT_LABELS[task.dept]}</p>
+          </div>
+          {taskWithRelations.assignee && (
+            <div>
+              <p className="text-muted-foreground text-xs mb-1">المسند إليه</p>
+              <p className="font-medium">{taskWithRelations.assignee.name}</p>
+            </div>
+          )}
+          <div>
+            <p className="text-muted-foreground text-xs mb-1">
+              تاريخ الاستحقاق
+            </p>
+            <p className="font-medium">
+              {new Date(task.dueDate).toLocaleDateString("ar-SA")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Status update */}
+      {allowedTransitions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">تحديث الحالة</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {allowedTransitions.map((status) => (
+              <Button
+                key={status}
+                variant="outline"
+                size="sm"
+                onClick={() => handleStatusUpdate(status)}
+                disabled={isUpdatingStatus}
+              >
+                {STATUS_LABELS[status]}
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Files */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Paperclip className="size-4" />
+            الملفات
+          </CardTitle>
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              <Upload className="size-3.5 mr-1" />
+              {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filesLoading ? (
+            <div className="flex flex-col gap-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 rounded-md" />
+              ))}
+            </div>
+          ) : !files || files.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              لا توجد ملفات مرفقة.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {files.map((file) => (
+                <FileItem
+                  key={file.id}
+                  file={file}
+                  taskId={id}
+                  canDelete={canDeleteFile(file.uploadedById)}
+                  onDelete={handleDeleteFile}
+                  isDeleting={isDeletingFile}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Comments */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">التعليقات</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {commentsLoading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 rounded-md" />
+              ))}
+            </div>
+          ) : !comments || comments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              لا توجد تعليقات بعد.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {[...comments]
+                .sort(
+                  (a, b) =>
+                    new Date(a.createdAt).getTime() -
+                    new Date(b.createdAt).getTime(),
+                )
+                .map((comment) => (
+                  <CommentItem key={comment.id} comment={comment} />
+                ))}
+            </div>
+          )}
+
+          {/* Add comment */}
+          <div className="flex flex-col gap-2 pt-2 border-t">
+            <Textarea
+              placeholder="اكتب تعليقًا..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              rows={3}
+              disabled={isAddingComment}
+            />
+            <Button
+              size="sm"
+              className="self-end"
+              onClick={handleAddComment}
+              disabled={isAddingComment || !commentText.trim()}
+            >
+              {isAddingComment ? "جارٍ الإرسال..." : "إرسال"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

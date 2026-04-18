@@ -1,7 +1,12 @@
 // apps/web/features/users/usersApi.ts
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { UserRole, TaskDepartment } from "@hassad/shared";
+import type {
+  UserRole,
+  TaskDepartment,
+  CreateUserInput,
+  UpdateUserInput,
+} from "@hassad/shared";
 
 export interface UserSearchResult {
   id: string;
@@ -26,6 +31,17 @@ export interface UserSearchFilters {
   limit?: number;
 }
 
+export interface UserDetail {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  department?: TaskDepartment | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export const usersApi = createApi({
   reducerPath: "usersApi",
   baseQuery,
@@ -38,7 +54,44 @@ export const usersApi = createApi({
       }),
       providesTags: [{ type: "User", id: "LIST" }],
     }),
+
+    createUser: builder.mutation<UserDetail, CreateUserInput>({
+      query: (body) => ({ url: "/users", method: "POST", body }),
+      invalidatesTags: [{ type: "User", id: "LIST" }],
+    }),
+
+    getUserById: builder.query<UserDetail, string>({
+      query: (id) => `/users/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "User", id }],
+    }),
+
+    updateUser: builder.mutation<
+      UserDetail,
+      { id: string; body: UpdateUserInput }
+    >({
+      query: ({ id, body }) => ({ url: `/users/${id}`, method: "PATCH", body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "User", id },
+        { type: "User", id: "LIST" },
+      ],
+    }),
+
+    deactivateUser: builder.mutation<{ id: string; isActive: boolean }, string>(
+      {
+        query: (id) => ({ url: `/users/${id}/deactivate`, method: "PATCH" }),
+        invalidatesTags: (_result, _error, id) => [
+          { type: "User", id },
+          { type: "User", id: "LIST" },
+        ],
+      },
+    ),
   }),
 });
 
-export const { useSearchUsersQuery } = usersApi;
+export const {
+  useSearchUsersQuery,
+  useCreateUserMutation,
+  useGetUserByIdQuery,
+  useUpdateUserMutation,
+  useDeactivateUserMutation,
+} = usersApi;

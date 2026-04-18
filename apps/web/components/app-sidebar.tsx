@@ -8,8 +8,8 @@ import {
   Briefcase,
   Calculator,
   Megaphone,
-  Paintbrush,
   Kanban,
+  ClipboardList,
 } from "lucide-react";
 
 import { useAppSelector } from "@/lib/hooks";
@@ -41,14 +41,8 @@ const allNavItems = [
   },
   {
     title: "Sales & CRM",
-    url: "/dashboard/sales",
-    icon: Users,
-    roles: ["ADMIN", "SALES"],
-  },
-  {
-    title: "لوحة المبيعات",
     url: "/dashboard/sales/pipeline",
-    icon: Kanban,
+    icon: Users,
     roles: ["ADMIN", "SALES"],
   },
   {
@@ -64,10 +58,16 @@ const allNavItems = [
     roles: ["ADMIN", "MARKETING"],
   },
   {
-    title: "Design Workspace",
-    url: "/dashboard/designer",
-    icon: Paintbrush,
-    roles: ["ADMIN", "EMPLOYEE"],
+    title: "لوحتي",
+    url: "/dashboard/employee",
+    icon: ClipboardList,
+    roles: ["EMPLOYEE"],
+  },
+  {
+    title: "الموظفون",
+    url: "/dashboard/admin/employees",
+    icon: Users,
+    roles: ["ADMIN"],
   },
 ];
 

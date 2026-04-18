@@ -1,8 +1,15 @@
-import { Injectable } from "@nestjs/common";
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma } from "@prisma/client";
+import * as bcrypt from "bcrypt";
 import { UserRole } from "@hassad/shared";
 import { UserSearchFiltersDto } from "./dto/user-search-filters.dto";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
 
 @Injectable()
 export class UsersService {
@@ -15,10 +22,12 @@ export class UsersService {
       andConditions.push({ role: filters.role });
     }
 
-    // When filtering by department, also include ADMIN users (they work across all depts)
+    // When filtering by department for assignment purposes,
+    // return ONLY employees from that department (not admins)
     if (filters.department) {
       andConditions.push({
-        OR: [{ department: filters.department }, { role: UserRole.ADMIN }],
+        department: filters.department,
+        role: UserRole.EMPLOYEE,
       });
     }
 
@@ -48,5 +57,97 @@ export class UsersService {
     ]);
 
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async createUser(dto: CreateUserDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing) throw new ConflictException("Email already in use");
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    return this.prisma.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        passwordHash,
+        role: dto.role,
+        department: dto.department ?? null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getUserById(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+    return user;
+  }
+
+  async updateUser(id: string, dto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+
+    if (dto.email && dto.email !== user.email) {
+      const existing = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+      if (existing) throw new ConflictException("Email already in use");
+    }
+
+    const data: Prisma.UserUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.email !== undefined) data.email = dto.email;
+    if (dto.password !== undefined)
+      data.passwordHash = await bcrypt.hash(dto.password, 12);
+    if (dto.role !== undefined) data.role = dto.role;
+    if (dto.department !== undefined) data.department = dto.department;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        isActive: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async deactivateUser(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive: !user.isActive },
+      select: { id: true, isActive: true },
+    });
   }
 }

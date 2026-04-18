@@ -7,6 +7,7 @@ export * from "./enums/project";
 export * from "./schemas/auth.schema";
 export * from "./schemas/client.schema";
 export * from "./schemas/project.schema";
+export * from "./schemas/user.schema";
 
 // ─── Legacy interfaces (still used by API and Web) ────────────────────────────
 
@@ -17,6 +18,7 @@ import {
   TaskStatus,
   TaskPriority,
   TaskDepartment,
+  NotificationType,
 } from "./enums/project";
 
 export interface User {
@@ -70,4 +72,37 @@ export interface Task {
   description?: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface TaskFile {
+  id: string;
+  taskId: string;
+  uploadedById: string;
+  uploadedBy?: { id: string; name: string };
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  createdAt: Date;
+}
+
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  userId: string;
+  user?: { id: string; name: string };
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body?: string | null;
+  isRead: boolean;
+  referenceId?: string | null;
+  createdAt: Date;
 }

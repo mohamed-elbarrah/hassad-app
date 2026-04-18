@@ -28,3 +28,51 @@ export enum TaskDepartment {
   CONTENT = "CONTENT",
   MANAGEMENT = "MANAGEMENT",
 }
+
+export enum NotificationType {
+  TASK_ASSIGNED = "TASK_ASSIGNED",
+  TASK_STATUS_CHANGED = "TASK_STATUS_CHANGED",
+  TASK_COMMENTED = "TASK_COMMENTED",
+  PROJECT_STATUS_CHANGED = "PROJECT_STATUS_CHANGED",
+}
+
+import { UserRole } from "./roles";
+
+/**
+ * Allowed task status transitions per role.
+ * ADMIN is not in this map — ADMIN can set any status.
+ */
+export const TASK_STATUS_TRANSITIONS: Record<
+  TaskStatus,
+  Partial<Record<UserRole.EMPLOYEE | UserRole.PM, TaskStatus[]>>
+> = {
+  [TaskStatus.TODO]: {
+    [UserRole.EMPLOYEE]: [TaskStatus.IN_PROGRESS],
+    [UserRole.PM]: [
+      TaskStatus.IN_PROGRESS,
+      TaskStatus.BLOCKED,
+      TaskStatus.DONE,
+    ],
+  },
+  [TaskStatus.IN_PROGRESS]: {
+    [UserRole.EMPLOYEE]: [TaskStatus.IN_REVIEW, TaskStatus.BLOCKED],
+    [UserRole.PM]: [
+      TaskStatus.IN_REVIEW,
+      TaskStatus.BLOCKED,
+      TaskStatus.DONE,
+      TaskStatus.TODO,
+    ],
+  },
+  [TaskStatus.IN_REVIEW]: {
+    [UserRole.EMPLOYEE]: [],
+    [UserRole.PM]: [TaskStatus.IN_PROGRESS, TaskStatus.DONE],
+  },
+  [TaskStatus.BLOCKED]: {
+    [UserRole.EMPLOYEE]: [TaskStatus.IN_PROGRESS],
+    [UserRole.PM]: [TaskStatus.IN_PROGRESS, TaskStatus.DONE],
+  },
+  [TaskStatus.DONE]: {
+    [UserRole.EMPLOYEE]: [],
+    [UserRole.PM]: [TaskStatus.IN_PROGRESS],
+  },
+};

@@ -99,9 +99,12 @@ model User {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  assignedClients Client[]  @relation("AssignedTo")
-  managedProjects Project[] @relation("ProjectManager")
-  tasks           Task[]    @relation("AssignedTask")
+  assignedClients  Client[]       @relation("AssignedTo")
+  managedProjects  Project[]      @relation("ProjectManager")
+  tasks            Task[]         @relation("AssignedTask")
+  uploadedFiles    TaskFile[]     @relation("UploadedFiles")
+  taskComments     TaskComment[]  @relation("TaskComments")
+  notifications    Notification[] @relation("UserNotifications")
 }
 
 model Client {
@@ -184,6 +187,10 @@ model Task {
   description String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+  archivedAt  DateTime?
+
+  files        TaskFile[]
+  comments     TaskComment[]
 
   @@index([projectId])
   @@index([assignedTo])
@@ -200,6 +207,55 @@ model ClientActivity {
   createdAt DateTime @default(now())
 
   @@index([clientId])
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_STATUS_CHANGED
+  TASK_COMMENTED
+  PROJECT_STATUS_CHANGED
+}
+
+model TaskFile {
+  id           String   @id @default(cuid())
+  taskId       String
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy   User     @relation("UploadedFiles", fields: [uploadedById], references: [id])
+  fileName     String
+  filePath     String
+  fileSize     Int
+  mimeType     String
+  createdAt    DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("TaskComments", fields: [userId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("UserNotifications", fields: [userId], references: [id])
+  type        NotificationType
+  title       String
+  body        String?
+  isRead      Boolean          @default(false)
+  referenceId String?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, isRead])
 }
 
 model Invoice {
