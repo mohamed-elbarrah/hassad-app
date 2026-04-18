@@ -55,34 +55,35 @@ export class TaskNotificationHandler {
 
   @OnEvent(NOTIFICATION_EVENTS.TASK_STATUS_CHANGED)
   async handleTaskStatusChanged(event: TaskStatusChangedEvent): Promise<void> {
-    const message = `تحولت المهمة "${event.taskTitle}" من ${event.oldStatus} إلى ${event.newStatus}`;
+    try {
+      const message = `تحولت المهمة "${event.taskTitle}" من ${event.oldStatus} إلى ${event.newStatus}`;
 
-    const notifications: Promise<void>[] = [
-      this.notificationsService.createNotification({
-        userId: event.assignedToUserId,
-        type: NotificationType.TASK_STATUS_CHANGED,
-        title: "تغيّر حالة المهمة",
-        message,
-        entityId: event.taskId,
-        entityType: "task",
-      }),
-    ];
-
-    // Notify PM if they are different from the assignee
-    if (event.projectManagerId !== event.assignedToUserId) {
-      notifications.push(
+      const notifications: Promise<void>[] = [
         this.notificationsService.createNotification({
-          userId: event.projectManagerId,
+          userId: event.assignedToUserId,
           type: NotificationType.TASK_STATUS_CHANGED,
           title: "تغيّر حالة المهمة",
           message,
           entityId: event.taskId,
           entityType: "task",
         }),
-      );
-    }
+      ];
 
-    await Promise.allSettled(notifications).then((results) => {
+      // Notify PM if they are different from the assignee
+      if (event.projectManagerId !== event.assignedToUserId) {
+        notifications.push(
+          this.notificationsService.createNotification({
+            userId: event.projectManagerId,
+            type: NotificationType.TASK_STATUS_CHANGED,
+            title: "تغيّر حالة المهمة",
+            message,
+            entityId: event.taskId,
+            entityType: "task",
+          }),
+        );
+      }
+
+      const results = await Promise.allSettled(notifications);
       for (const result of results) {
         if (result.status === "rejected") {
           this.logger.error(
@@ -91,7 +92,12 @@ export class TaskNotificationHandler {
           );
         }
       }
-    });
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle task.status.changed for task ${event.taskId}`,
+        error,
+      );
+    }
   }
 
   @OnEvent(NOTIFICATION_EVENTS.TASK_COMMENT_ADDED)

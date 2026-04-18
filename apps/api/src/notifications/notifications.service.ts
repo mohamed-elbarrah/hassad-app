@@ -172,7 +172,12 @@ export class NotificationsService {
       message: dto.message,
     }));
 
-    await this.prisma.notification.createMany({ data: notifications });
+    const BATCH_SIZE = 1000;
+    for (let i = 0; i < notifications.length; i += BATCH_SIZE) {
+      await this.prisma.notification.createMany({
+        data: notifications.slice(i, i + BATCH_SIZE),
+      });
+    }
 
     this.logger.log(
       `Broadcast notification "${dto.title}" sent to ${users.length} users`,

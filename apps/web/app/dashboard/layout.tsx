@@ -11,6 +11,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { NotificationBell } from "@/components/common/NotificationBell";
 
 export default function DashboardLayout({
   children,
@@ -59,6 +60,8 @@ export default function DashboardLayout({
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ms-1" />
           <Separator orientation="vertical" className="me-2 h-4" />
+          <div className="flex-1" />
+          <NotificationBell />
         </header>
         <main className="flex-1 min-w-0 p-6">{children}</main>
       </SidebarInset>

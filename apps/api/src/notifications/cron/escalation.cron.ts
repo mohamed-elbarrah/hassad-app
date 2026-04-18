@@ -86,11 +86,15 @@ export class EscalationCronService {
 
     if (hoursOverdue >= 24 && task.escalationLevel === 2) {
       // Level 2 → 3: notify all admins
+      // Use updateMany with escalationLevel condition to prevent duplicate escalation
       await this.prisma.$transaction(async (tx) => {
-        await tx.task.update({
-          where: { id: task.id },
+        const { count } = await tx.task.updateMany({
+          where: { id: task.id, escalationLevel: 2 },
           data: { escalationLevel: 3, escalationNotifiedAt: now },
         });
+
+        // Guard: skip notification if another process already updated this task
+        if (count === 0) return;
 
         if (adminUsers.length > 0) {
           await tx.notification.createMany({
@@ -112,10 +116,12 @@ export class EscalationCronService {
     } else if (hoursOverdue >= 2 && task.escalationLevel === 1) {
       // Level 1 → 2: notify PM
       await this.prisma.$transaction(async (tx) => {
-        await tx.task.update({
-          where: { id: task.id },
+        const { count } = await tx.task.updateMany({
+          where: { id: task.id, escalationLevel: 1 },
           data: { escalationLevel: 2, escalationNotifiedAt: now },
         });
+
+        if (count === 0) return;
 
         await tx.notification.create({
           data: {
@@ -133,10 +139,12 @@ export class EscalationCronService {
     } else if (hoursOverdue >= 0 && task.escalationLevel === 0) {
       // Level 0 → 1: notify employee
       await this.prisma.$transaction(async (tx) => {
-        await tx.task.update({
-          where: { id: task.id },
+        const { count } = await tx.task.updateMany({
+          where: { id: task.id, escalationLevel: 0 },
           data: { escalationLevel: 1, escalationNotifiedAt: now },
         });
+
+        if (count === 0) return;
 
         await tx.notification.create({
           data: {

@@ -50,6 +50,8 @@ export const notificationsApi = createApi({
   reducerPath: "notificationsApi",
   baseQuery,
   tagTypes: ["Notification"],
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
   endpoints: (builder) => ({
     /** GET /notifications/my — paginated list, supports isRead filter */
     getMyNotifications: builder.query<
