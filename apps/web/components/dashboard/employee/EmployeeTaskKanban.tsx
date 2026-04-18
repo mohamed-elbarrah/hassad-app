@@ -98,11 +98,20 @@ interface EmployeeTaskKanbanProps {
 interface DraggableCardProps {
   task: TaskWithProject;
   overlay?: boolean;
+  canDrag?: boolean;
 }
 
-function DraggableCard({ task, overlay = false }: DraggableCardProps) {
+function DraggableCard({
+  task,
+  overlay = false,
+  canDrag = true,
+}: DraggableCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({ id: task.id, data: { status: task.status } });
+    useDraggable({
+      id: task.id,
+      data: { status: task.status },
+      disabled: !canDrag,
+    });
 
   const isOverdue =
     task.dueDate != null &&
@@ -131,12 +140,16 @@ function DraggableCard({ task, overlay = false }: DraggableCardProps) {
     >
       <div className="flex items-start gap-2">
         <span
-          {...attributes}
-          {...listeners}
-          className="mt-0.5 text-muted-foreground shrink-0"
-          aria-label="اسحب للتحريك"
+          {...(canDrag ? attributes : {})}
+          {...(canDrag ? listeners : {})}
+          className={`mt-0.5 text-muted-foreground shrink-0 ${canDrag ? "" : "cursor-not-allowed opacity-60"}`}
+          aria-label={canDrag ? "اسحب للتحريك" : "غير مسموح بالتحريك"}
         >
-          <GripVertical className="h-4 w-4" />
+          {canDrag ? (
+            <GripVertical className="h-4 w-4" />
+          ) : (
+            <Lock className="h-4 w-4" />
+          )}
         </span>
         <div className="flex-1 min-w-0">
           <Link
@@ -176,9 +189,15 @@ interface DroppableColumnProps {
   config: ColumnConfig;
   tasks: TaskWithProject[];
   pmOnly?: boolean;
+  currentUser?: { id: string; role: UserRole } | null;
 }
 
-function DroppableColumn({ config, tasks, pmOnly }: DroppableColumnProps) {
+function DroppableColumn({
+  config,
+  tasks,
+  pmOnly,
+  currentUser,
+}: DroppableColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: config.status });
 
   return (
@@ -213,7 +232,16 @@ function DroppableColumn({ config, tasks, pmOnly }: DroppableColumnProps) {
             <p className="text-xs text-muted-foreground">اسحب هنا</p>
           </div>
         ) : (
-          tasks.map((task) => <DraggableCard key={task.id} task={task} />)
+          tasks.map((task) => {
+            const canDrag =
+              !!currentUser &&
+              (currentUser.role === UserRole.ADMIN ||
+                currentUser.role === UserRole.PM ||
+                task.assignee?.id === currentUser.id);
+            return (
+              <DraggableCard key={task.id} task={task} canDrag={canDrag} />
+            );
+          })
         )}
       </div>
     </div>
@@ -261,7 +289,7 @@ export function EmployeeTaskKanban({
     setActiveTask(task ?? null);
   }
 
-  function handleDragEnd(event: DragEndEvent) {
+  async function handleDragEnd(event: DragEndEvent) {
     setActiveTask(null);
 
     const { active, over } = event;
@@ -294,8 +322,16 @@ export function EmployeeTaskKanban({
       }
     }
 
-    updateTaskStatus({ id: taskId, body: { status: newStatus } });
-    onStatusChange?.(taskId, newStatus);
+    try {
+      await updateTaskStatus({
+        id: taskId,
+        body: { status: newStatus },
+      }).unwrap();
+      onStatusChange?.(taskId, newStatus);
+    } catch (err: any) {
+      const msg = err?.data?.message ?? err?.error ?? "فشل تحديث الحالة";
+      toast.error(msg);
+    }
   }
 
   return (
@@ -311,6 +347,7 @@ export function EmployeeTaskKanban({
               user?.role !== UserRole.ADMIN &&
               user?.role !== UserRole.PM
             }
+            currentUser={user}
           />
         ))}
       </div>

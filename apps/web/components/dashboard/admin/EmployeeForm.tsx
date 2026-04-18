@@ -56,24 +56,40 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
-const CreateEmployeeSchema = z.object({
-  name: z.string().min(2, "الاسم مطلوب"),
-  email: z.string().email("بريد إلكتروني غير صالح"),
-  password: z.string().min(8, "كلمة المرور 8 أحرف على الأقل"),
-  role: z.nativeEnum(UserRole),
-  department: z.nativeEnum(TaskDepartment).optional(),
-});
+const CreateEmployeeSchema = z
+  .object({
+    name: z.string().min(2, "الاسم مطلوب"),
+    email: z.string().email("بريد إلكتروني غير صالح"),
+    password: z.string().min(8, "كلمة المرور 8 أحرف على الأقل"),
+    role: z.nativeEnum(UserRole),
+    department: z.nativeEnum(TaskDepartment).optional(),
+  })
+  .refine(
+    (data) => data.role !== UserRole.EMPLOYEE || data.department !== undefined,
+    {
+      path: ["department"],
+      message: "القسم مطلوب للموظفين",
+    },
+  );
 
-const EditEmployeeSchema = z.object({
-  name: z.string().min(2, "الاسم مطلوب"),
-  email: z.string().email("بريد إلكتروني غير صالح"),
-  password: z.union([
-    z.string().min(8, "كلمة المرور 8 أحرف على الأقل"),
-    z.literal(""),
-  ]),
-  role: z.nativeEnum(UserRole),
-  department: z.nativeEnum(TaskDepartment).optional(),
-});
+const EditEmployeeSchema = z
+  .object({
+    name: z.string().min(2, "الاسم مطلوب"),
+    email: z.string().email("بريد إلكتروني غير صالح"),
+    password: z.union([
+      z.string().min(8, "كلمة المرور 8 أحرف على الأقل"),
+      z.literal(""),
+    ]),
+    role: z.nativeEnum(UserRole),
+    department: z.nativeEnum(TaskDepartment).optional(),
+  })
+  .refine(
+    (data) => data.role !== UserRole.EMPLOYEE || data.department !== undefined,
+    {
+      path: ["department"],
+      message: "القسم مطلوب للموظفين",
+    },
+  );
 
 type CreateFormValues = z.infer<typeof CreateEmployeeSchema>;
 type EditFormValues = z.infer<typeof EditEmployeeSchema>;
@@ -252,7 +268,7 @@ export function EmployeeForm({ mode, employee, onClose }: EmployeeFormProps) {
                 name="department"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>القسم (اختياري)</FormLabel>
+                    <FormLabel>القسم</FormLabel>
                     <Select
                       onValueChange={(v) =>
                         field.onChange(

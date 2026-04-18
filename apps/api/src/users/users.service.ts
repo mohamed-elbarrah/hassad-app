@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma } from "@prisma/client";
@@ -64,6 +65,14 @@ export class UsersService {
       where: { email: dto.email },
     });
     if (existing) throw new ConflictException("Email already in use");
+
+    // Require department for employee accounts to ensure assignment/filtering works
+    if (
+      dto.role === UserRole.EMPLOYEE &&
+      (dto.department === undefined || dto.department === null)
+    ) {
+      throw new BadRequestException("Department is required for employees");
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
