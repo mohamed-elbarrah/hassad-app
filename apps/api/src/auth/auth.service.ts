@@ -41,7 +41,12 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    const payload = { id: user.id, email: user.email, role: user.role };
+    const payload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
@@ -69,7 +74,12 @@ export class AuthService {
   }
 
   async refresh(user: JwtPayload) {
-    const payload = { id: user.id, email: user.email, role: user.role };
+    const payload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
     return {
       accessToken: this.jwtService.sign(payload),
     };

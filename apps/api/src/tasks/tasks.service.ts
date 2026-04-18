@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import {
@@ -19,10 +20,19 @@ import { UpdateTaskDto } from "./dto/update-task.dto";
 import { UpdateTaskStatusDto } from "./dto/update-task-status.dto";
 import { CreateCommentDto } from "./dto/create-comment.dto";
 import type { JwtPayload } from "../common/decorators/current-user.decorator";
+import { NOTIFICATION_EVENTS } from "../notifications/events/notification-events.enum";
+import { TaskAssignedEvent } from "../notifications/events/task-assigned.event";
+import { TaskUpdatedEvent } from "../notifications/events/task-updated.event";
+import { TaskStatusChangedEvent } from "../notifications/events/task-status-changed.event";
+import { TaskCommentAddedEvent } from "../notifications/events/task-comment-added.event";
+import { TaskFileUploadedEvent } from "../notifications/events/task-file-uploaded.event";
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   // ─── findAllByProject ────────────────────────────────────────────────────────
 
@@ -121,20 +131,28 @@ export class TasksService {
       );
     }
 
-    return this.prisma.task.create({
-      data: {
-        title: dto.title,
-        projectId,
-        assignedTo: dto.assignedTo,
-        dept: dto.dept,
-        priority: dto.priority ?? TaskPriority.NORMAL,
-        dueDate: new Date(dto.dueDate),
-        description: dto.description ?? null,
-      },
-      include: {
-        assignee: { select: { id: true, name: true } },
-      },
-    });
+    return this.prisma.task
+      .create({
+        data: {
+          title: dto.title,
+          projectId,
+          assignedTo: dto.assignedTo,
+          dept: dto.dept,
+          priority: dto.priority ?? TaskPriority.NORMAL,
+          dueDate: new Date(dto.dueDate),
+          description: dto.description ?? null,
+        },
+        include: {
+          assignee: { select: { id: true, name: true } },
+        },
+      })
+      .then((task) => {
+        this.eventEmitter.emit(
+          NOTIFICATION_EVENTS.TASK_ASSIGNED,
+          new TaskAssignedEvent(task.id, task.title, dto.assignedTo, projectId),
+        );
+        return task;
+      });
   }
 
   // ─── update ─────────────────────────────────────────────────────────────────
@@ -179,17 +197,34 @@ export class TasksService {
       }
     }
 
-    return this.prisma.task.update({
-      where: { id },
-      data: {
-        ...(dto.title !== undefined && { title: dto.title }),
-        ...(dto.assignedTo !== undefined && { assignedTo: dto.assignedTo }),
-        ...(dto.dept !== undefined && { dept: dto.dept }),
-        ...(dto.priority !== undefined && { priority: dto.priority }),
-        ...(dto.dueDate !== undefined && { dueDate: new Date(dto.dueDate) }),
-        ...(dto.description !== undefined && { description: dto.description }),
-      },
-    });
+    return this.prisma.task
+      .update({
+        where: { id },
+        data: {
+          ...(dto.title !== undefined && { title: dto.title }),
+          ...(dto.assignedTo !== undefined && { assignedTo: dto.assignedTo }),
+          ...(dto.dept !== undefined && { dept: dto.dept }),
+          ...(dto.priority !== undefined && { priority: dto.priority }),
+          ...(dto.dueDate !== undefined && { dueDate: new Date(dto.dueDate) }),
+          ...(dto.description !== undefined && {
+            description: dto.description,
+          }),
+        },
+      })
+      .then((updated) => {
+        if (updated.assignedTo) {
+          this.eventEmitter.emit(
+            NOTIFICATION_EVENTS.TASK_UPDATED,
+            new TaskUpdatedEvent(
+              updated.id,
+              updated.title,
+              updated.assignedTo,
+              user.name,
+            ),
+          );
+        }
+        return updated;
+      });
   }
 
   // ─── updateStatus ────────────────────────────────────────────────────────────
@@ -227,10 +262,25 @@ export class TasksService {
       }
     }
 
-    return this.prisma.task.update({
-      where: { id },
-      data: { status: dto.status },
-    });
+    return this.prisma.task
+      .update({
+        where: { id },
+        data: { status: dto.status },
+      })
+      .then((updated) => {
+        this.eventEmitter.emit(
+          NOTIFICATION_EVENTS.TASK_STATUS_CHANGED,
+          new TaskStatusChangedEvent(
+            updated.id,
+            updated.title,
+            updated.assignedTo,
+            task.project.managerId,
+            task.status,
+            dto.status,
+          ),
+        );
+        return updated;
+      });
   }
 
   // ─── remove ─────────────────────────────────────────────────────────────────
@@ -394,23 +444,37 @@ export class TasksService {
       );
     }
 
-    return this.prisma.taskFile.create({
-      data: {
-        taskId,
-        uploadedById: user.id,
-        fileName: file.originalname,
-        filePath: file.path,
-        fileSize: file.size,
-        mimeType: file.mimetype,
-      },
-      select: {
-        id: true,
-        fileName: true,
-        fileSize: true,
-        mimeType: true,
-        createdAt: true,
-      },
-    });
+    return this.prisma.taskFile
+      .create({
+        data: {
+          taskId,
+          uploadedById: user.id,
+          fileName: file.originalname,
+          filePath: file.path,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+        },
+        select: {
+          id: true,
+          fileName: true,
+          fileSize: true,
+          mimeType: true,
+          createdAt: true,
+        },
+      })
+      .then((savedFile) => {
+        this.eventEmitter.emit(
+          NOTIFICATION_EVENTS.TASK_FILE_UPLOADED,
+          new TaskFileUploadedEvent(
+            taskId,
+            task.title,
+            task.assignedTo,
+            user.name,
+            file.originalname,
+          ),
+        );
+        return savedFile;
+      });
   }
 
   // ─── getTaskFiles ────────────────────────────────────────────────────────────
@@ -520,20 +584,34 @@ export class TasksService {
       throw new ForbiddenException("You can only comment on your own tasks");
     }
 
-    return this.prisma.taskComment.create({
-      data: {
-        taskId,
-        userId: user.id,
-        content: dto.content,
-      },
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        updatedAt: true,
-        user: { select: { id: true, name: true } },
-      },
-    });
+    return this.prisma.taskComment
+      .create({
+        data: {
+          taskId,
+          userId: user.id,
+          content: dto.content,
+        },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          updatedAt: true,
+          user: { select: { id: true, name: true } },
+        },
+      })
+      .then((comment) => {
+        this.eventEmitter.emit(
+          NOTIFICATION_EVENTS.TASK_COMMENT_ADDED,
+          new TaskCommentAddedEvent(
+            taskId,
+            task.title,
+            task.assignedTo,
+            user.id,
+            user.name,
+          ),
+        );
+        return comment;
+      });
   }
 
   // ─── getComments ─────────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { NotificationBell } from "@/components/common/NotificationBell";
 
 export default function DashboardLayout({
   children,
@@ -18,7 +19,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isAuthenticated, isInitialized } = useAppSelector(
-    (state) => state.auth
+    (state) => state.auth,
   );
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -53,19 +54,19 @@ export default function DashboardLayout({
   }
 
   return (
-  <SidebarProvider dir="rtl">
-    <AppSidebar side="right" />
+    <SidebarProvider dir="rtl">
+      <AppSidebar side="right" />
 
-    <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ms-1" />
-        <Separator orientation="vertical" className="me-2 h-4" />
-      </header>
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ms-1" />
+          <Separator orientation="vertical" className="me-2 h-4" />
+          <div className="flex-1" />
+          <NotificationBell />
+        </header>
 
-      <main className="flex-1 p-6">
-        {children}
-      </main>
-    </SidebarInset>
-  </SidebarProvider>
-);
+        <main className="flex-1 p-6">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }

@@ -1,9 +1,10 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import type { Request } from 'express';
-import { UserRole } from '@hassad/shared';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import type { Request } from "express";
+import { UserRole } from "@hassad/shared";
 
 export interface JwtPayload {
   id: string;
+  name: string;
   email: string;
   role: UserRole;
 }

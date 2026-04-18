@@ -101,8 +101,9 @@ export interface Notification {
   userId: string;
   type: NotificationType;
   title: string;
-  body?: string | null;
+  message: string;
   isRead: boolean;
-  referenceId?: string | null;
+  entityId?: string | null;
+  entityType?: string | null;
   createdAt: Date;
 }

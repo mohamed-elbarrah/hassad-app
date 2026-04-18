@@ -21,6 +21,7 @@
     "@nestjs/common": "^11.x",
     "@nestjs/config": "^4.x",
     "@nestjs/core": "^11.x",
+    "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/jwt": "^11.x",
     "@nestjs/passport": "^11.x",
     "@nestjs/platform-express": "^11.x",

@@ -6,15 +6,19 @@ import { clientsApi } from "@/features/clients/clientsApi";
 import { projectsApi } from "@/features/projects/projectsApi";
 import { tasksApi } from "@/features/tasks/tasksApi";
 import { usersApi } from "@/features/users/usersApi";
+import { notificationsApi } from "@/features/notifications/notificationsApi";
+import notificationsReducer from "@/features/notifications/notificationsSlice";
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    notifications: notificationsReducer,
     [authApi.reducerPath]: authApi.reducer,
     [clientsApi.reducerPath]: clientsApi.reducer,
     [projectsApi.reducerPath]: projectsApi.reducer,
     [tasksApi.reducerPath]: tasksApi.reducer,
     [usersApi.reducerPath]: usersApi.reducer,
+    [notificationsApi.reducerPath]: notificationsApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -23,6 +27,7 @@ export const store = configureStore({
       projectsApi.middleware,
       tasksApi.middleware,
       usersApi.middleware,
+      notificationsApi.middleware,
     ),
 });
 
