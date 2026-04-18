@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Pencil, PowerOff, Power } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -13,6 +13,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "sonner";
 import {
   useSearchUsersQuery,
@@ -145,9 +153,21 @@ export default function EmployeesPage() {
 
       {/* Content */}
       {isLoading && (
-        <div className="flex flex-col gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-lg" />
+        <div className="rounded-lg border overflow-hidden">
+          <div className="bg-muted/50 px-4 py-3 flex gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-4 w-20" />
+            ))}
+          </div>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex gap-6 px-4 py-3 border-t">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-4 w-16" />
+            </div>
           ))}
         </div>
       )}
@@ -166,62 +186,98 @@ export default function EmployeesPage() {
               <p className="text-sm mt-1">ابدأ بإضافة موظف جديد</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {employees.map((emp) => (
-                <div
-                  key={emp.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-card p-4"
-                >
-                  {/* Info */}
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-base truncate">
-                        {emp.name}
-                      </span>
-                      <Badge variant={ROLE_BADGE_VARIANTS[emp.role]}>
-                        {ROLE_LABELS[emp.role]}
-                      </Badge>
-                      {emp.department && (
-                        <Badge variant="outline">
-                          {DEPARTMENT_LABELS[emp.department]}
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="text-right font-semibold">
+                      الاسم
+                    </TableHead>
+                    <TableHead className="text-right font-semibold">
+                      البريد الإلكتروني
+                    </TableHead>
+                    <TableHead className="text-right font-semibold">
+                      الدور
+                    </TableHead>
+                    <TableHead className="text-right font-semibold">
+                      القسم
+                    </TableHead>
+                    <TableHead className="text-right font-semibold">
+                      الحالة
+                    </TableHead>
+                    <TableHead className="text-right font-semibold">
+                      الإجراءات
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees.map((emp) => (
+                    <TableRow key={emp.id} className="hover:bg-muted/30">
+                      <TableCell className="font-medium">{emp.name}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {emp.email}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={ROLE_BADGE_VARIANTS[emp.role]}>
+                          {ROLE_LABELS[emp.role]}
                         </Badge>
-                      )}
-                      <Badge
-                        variant={emp.isActive ? "default" : "destructive"}
-                        className={
-                          emp.isActive
-                            ? "bg-green-600 hover:bg-green-700"
-                            : undefined
-                        }
-                      >
-                        {emp.isActive ? "نشط" : "غير نشط"}
-                      </Badge>
-                    </div>
-                    <span className="text-sm text-muted-foreground truncate">
-                      {emp.email}
-                    </span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditEmployee(emp)}
-                    >
-                      تعديل
-                    </Button>
-                    <Button
-                      variant={emp.isActive ? "destructive" : "default"}
-                      size="sm"
-                      disabled={isDeactivating}
-                      onClick={() => handleToggleActive(emp.id, emp.isActive)}
-                    >
-                      {emp.isActive ? "تعطيل" : "تفعيل"}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                      </TableCell>
+                      <TableCell>
+                        {emp.department ? (
+                          <Badge variant="outline">
+                            {DEPARTMENT_LABELS[emp.department]}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={emp.isActive ? "default" : "destructive"}
+                          className={
+                            emp.isActive
+                              ? "bg-green-600 hover:bg-green-700"
+                              : undefined
+                          }
+                        >
+                          {emp.isActive ? "نشط" : "غير نشط"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            onClick={() => setEditEmployee(emp)}
+                            aria-label="تعديل"
+                          >
+                            <Pencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`size-8 ${emp.isActive ? "text-destructive hover:text-destructive" : "text-green-600 hover:text-green-600"}`}
+                            disabled={isDeactivating}
+                            onClick={() =>
+                              handleToggleActive(emp.id, emp.isActive)
+                            }
+                            aria-label={emp.isActive ? "تعطيل" : "تفعيل"}
+                          >
+                            {emp.isActive ? (
+                              <PowerOff className="size-3.5" />
+                            ) : (
+                              <Power className="size-3.5" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
           <p className="text-xs text-muted-foreground">

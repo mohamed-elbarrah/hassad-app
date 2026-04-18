@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, User } from "lucide-react";
@@ -45,48 +46,50 @@ export function TaskCard({ task }: TaskCardProps) {
   const priorityConfig = PRIORITY_CONFIG[task.priority];
 
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow cursor-default">
-      <CardHeader className="pb-2 pt-3 px-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm font-medium leading-tight line-clamp-2">
-            {task.title}
-          </CardTitle>
-          <Badge
-            variant={priorityConfig.variant}
-            className="text-[10px] shrink-0"
-          >
-            {priorityConfig.label}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="px-3 pb-3 space-y-2">
-        {task.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2">
-            {task.description}
-          </p>
-        )}
-        <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
-          {task.assignee && (
-            <div className="flex items-center gap-1">
-              <User className="size-3 shrink-0" />
-              <span>{task.assignee.name}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1">
-            <Calendar className="size-3 shrink-0" />
-            <span>
-              {new Intl.DateTimeFormat("en-GB", {
-                month: "short",
-                day: "numeric",
-                numberingSystem: "latn",
-              }).format(new Date(task.dueDate))}
-            </span>
+    <Link href={`/dashboard/pm/tasks/${task.id}`} className="block">
+      <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+        <CardHeader className="pb-2 pt-3 px-3">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-sm font-medium leading-tight line-clamp-2">
+              {task.title}
+            </CardTitle>
+            <Badge
+              variant={priorityConfig.variant}
+              className="text-[10px] shrink-0"
+            >
+              {priorityConfig.label}
+            </Badge>
           </div>
-        </div>
-        <div className="text-[10px] text-muted-foreground border-t pt-1.5">
-          {STATUS_LABELS[task.status]}
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="px-3 pb-3 space-y-2">
+          {task.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {task.description}
+            </p>
+          )}
+          <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+            {task.assignee && (
+              <div className="flex items-center gap-1">
+                <User className="size-3 shrink-0" />
+                <span>{task.assignee.name}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <Calendar className="size-3 shrink-0" />
+              <span>
+                {new Intl.DateTimeFormat("en-GB", {
+                  month: "short",
+                  day: "numeric",
+                  numberingSystem: "latn",
+                }).format(new Date(task.dueDate))}
+              </span>
+            </div>
+          </div>
+          <div className="text-[10px] text-muted-foreground border-t pt-1.5">
+            {STATUS_LABELS[task.status]}
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

@@ -10,7 +10,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -175,18 +175,27 @@ function DraggableCard({ task, overlay = false }: DraggableCardProps) {
 interface DroppableColumnProps {
   config: ColumnConfig;
   tasks: TaskWithProject[];
+  pmOnly?: boolean;
 }
 
-function DroppableColumn({ config, tasks }: DroppableColumnProps) {
+function DroppableColumn({ config, tasks, pmOnly }: DroppableColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: config.status });
 
   return (
     <div className="flex flex-col min-w-56 shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className={`text-sm font-semibold ${config.headerColor}`}>
-          {config.label}
-        </h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className={`text-sm font-semibold ${config.headerColor}`}>
+            {config.label}
+          </h3>
+          {pmOnly && (
+            <Lock
+              className="size-3 text-muted-foreground"
+              aria-label="يحتاج موافقة المدير"
+            />
+          )}
+        </div>
         <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
           {tasks.length}
         </span>
@@ -270,7 +279,17 @@ export function EmployeeTaskKanban({
       const allowed = TASK_STATUS_TRANSITIONS[task.status]?.[roleKey] ?? [];
 
       if (!allowed.includes(newStatus)) {
-        toast.error("لا يمكنك نقل المهمة إلى هذه الحالة");
+        // Give a specific message when trying to move from IN_REVIEW to DONE
+        if (
+          task.status === TaskStatus.IN_REVIEW &&
+          newStatus === TaskStatus.DONE
+        ) {
+          toast.error(
+            "يجب على مدير المشروع مراجعة المهمة والموافقة عليها قبل إتمامها",
+          );
+        } else {
+          toast.error("لا يمكنك نقل المهمة إلى هذه الحالة");
+        }
         return;
       }
     }
@@ -287,6 +306,11 @@ export function EmployeeTaskKanban({
             key={col.status}
             config={col}
             tasks={tasksByStatus[col.status] ?? []}
+            pmOnly={
+              col.status === TaskStatus.DONE &&
+              user?.role !== UserRole.ADMIN &&
+              user?.role !== UserRole.PM
+            }
           />
         ))}
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -106,6 +106,9 @@ export function EmployeeForm({ mode, employee, onClose }: EmployeeFormProps) {
       department: employee?.department ?? undefined,
     },
   });
+
+  const selectedRole = useWatch({ control: form.control, name: "role" });
+  const showDepartment = selectedRole === UserRole.EMPLOYEE;
 
   async function onSubmit(values: EmployeeFormValues) {
     try {
@@ -242,39 +245,41 @@ export function EmployeeForm({ mode, employee, onClose }: EmployeeFormProps) {
               )}
             />
 
-            {/* Department */}
-            <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>القسم (اختياري)</FormLabel>
-                  <Select
-                    onValueChange={(v) =>
-                      field.onChange(
-                        v === "none" ? undefined : (v as TaskDepartment),
-                      )
-                    }
-                    value={field.value ?? "none"}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر القسم" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">بدون قسم</SelectItem>
-                      {Object.values(TaskDepartment).map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {DEPARTMENT_LABELS[dept]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Department — only visible for EMPLOYEE role */}
+            {showDepartment && (
+              <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>القسم (اختياري)</FormLabel>
+                    <Select
+                      onValueChange={(v) =>
+                        field.onChange(
+                          v === "none" ? undefined : (v as TaskDepartment),
+                        )
+                      }
+                      value={field.value ?? "none"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر القسم" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">بدون قسم</SelectItem>
+                        {Object.values(TaskDepartment).map((dept) => (
+                          <SelectItem key={dept} value={dept}>
+                            {DEPARTMENT_LABELS[dept]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2">
