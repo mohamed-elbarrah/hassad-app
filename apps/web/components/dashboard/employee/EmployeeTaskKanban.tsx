@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -233,11 +233,13 @@ function DroppableColumn({
           </div>
         ) : (
           tasks.map((task) => {
+            // Use task.assignedTo (direct string FK) — always present and reliable.
+            // task.assignee?.id is the joined relation and may be undefined.
             const canDrag =
               !!currentUser &&
               (currentUser.role === UserRole.ADMIN ||
                 currentUser.role === UserRole.PM ||
-                task.assignee?.id === currentUser.id);
+                task.assignedTo === currentUser.id);
             return (
               <DraggableCard key={task.id} task={task} canDrag={canDrag} />
             );
@@ -258,6 +260,12 @@ export function EmployeeTaskKanban({
   const { user } = useAppSelector((state) => state.auth);
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   const [activeTask, setActiveTask] = useState<TaskWithProject | null>(null);
+  // Local optimistic state so UI updates immediately on drop
+  const [localTasks, setLocalTasks] = useState<TaskWithProject[]>(tasks);
+
+  useEffect(() => {
+    setLocalTasks(tasks);
+  }, [tasks]);
 
   if (isLoading) {
     return (
@@ -278,14 +286,14 @@ export function EmployeeTaskKanban({
 
   const tasksByStatus = COLUMNS.reduce<Record<TaskStatus, TaskWithProject[]>>(
     (acc, col) => {
-      acc[col.status] = tasks.filter((t) => t.status === col.status);
+      acc[col.status] = localTasks.filter((t) => t.status === col.status);
       return acc;
     },
     {} as Record<TaskStatus, TaskWithProject[]>,
   );
 
   function handleDragStart(event: { active: { id: string | number } }) {
-    const task = tasks.find((t) => t.id === String(event.active.id));
+    const task = localTasks.find((t) => t.id === String(event.active.id));
     setActiveTask(task ?? null);
   }
 
@@ -297,7 +305,7 @@ export function EmployeeTaskKanban({
 
     const taskId = String(active.id);
     const newStatus = over.id as TaskStatus;
-    const task = tasks.find((t) => t.id === taskId);
+    const task = localTasks.find((t) => t.id === taskId);
 
     if (!task || task.status === newStatus) return;
 
@@ -322,6 +330,14 @@ export function EmployeeTaskKanban({
       }
     }
 
+    // Optimistic UI update: apply change locally immediately
+    const prevTasks = localTasks;
+    const updatedTasks = localTasks.map((t) =>
+      t.id === taskId ? { ...t, status: newStatus } : t,
+    );
+
+    setLocalTasks(updatedTasks);
+
     try {
       await updateTaskStatus({
         id: taskId,
@@ -329,6 +345,8 @@ export function EmployeeTaskKanban({
       }).unwrap();
       onStatusChange?.(taskId, newStatus);
     } catch (err: any) {
+      // Revert optimistic update on error
+      setLocalTasks(prevTasks);
       const msg = err?.data?.message ?? err?.error ?? "فشل تحديث الحالة";
       toast.error(msg);
     }
