@@ -26,6 +26,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  department?: string | null;
   isActive?: boolean;
 }
 

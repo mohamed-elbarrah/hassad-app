@@ -67,6 +67,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
+        department: user.department ?? null,
       },
       accessToken,
       refreshToken,
@@ -88,7 +89,14 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, role: true, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        isActive: true,
+      },
     });
     if (!user) throw new UnauthorizedException();
     return user;
