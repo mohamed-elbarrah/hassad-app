@@ -6,14 +6,23 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { Prisma, PipelineStage as PrismaPipelineStage } from "@prisma/client";
-import { UserRole, PipelineStage, PIPELINE_STAGE_ORDER } from "@hassad/shared";
+import {
+  UserRole,
+  PipelineStage,
+  PIPELINE_STAGE_ORDER,
+  ContactOutcome,
+  ClientStatus,
+} from "@hassad/shared";
 import { CreateClientDto } from "./dto/create-client.dto";
 import { UpdateClientDto } from "./dto/update-client.dto";
 import { ClientFiltersDto } from "./dto/client-filters.dto";
 import { UpdateStageDto } from "./dto/update-stage.dto";
 import { UpdateRequirementsDto } from "./dto/update-requirements.dto";
 import { HandoverProjectDto } from "./dto/handover-project.dto";
+import { LogContactAttemptDto } from "./dto/log-contact-attempt.dto";
 import type { JwtPayload } from "../common/decorators/current-user.decorator";
+
+const FOLLOW_UP_INTERVAL_HOURS = 24;
 
 @Injectable()
 export class ClientsService {
@@ -50,6 +59,10 @@ export class ClientsService {
           source: true,
           status: true,
           stage: true,
+          contactAttempts: true,
+          lastContactAttemptAt: true,
+          nextFollowUpAt: true,
+          followUpStep: true,
           assignedToId: true,
           assignedTo: { select: { id: true, name: true } },
           createdAt: true,
@@ -74,6 +87,7 @@ export class ClientsService {
         assignedTo: { select: { id: true, name: true, email: true } },
         activities: { orderBy: { createdAt: "desc" }, take: 50 },
         contracts: { select: { id: true, status: true, value: true } },
+        proposals: { select: { id: true, status: true, price: true } },
         projects: { select: { id: true, status: true, progress: true } },
       },
     });
@@ -91,9 +105,7 @@ export class ClientsService {
   // ─── create ─────────────────────────────────────────────────────────────────
 
   async create(dto: CreateClientDto, user: JwtPayload) {
-    // For ADMIN: allow explicit assignedToId override (not in DTO — server-assigned)
-    // For SALES: always self-assign
-    const assignedToId = user.id;
+    const assignedToId = await this.resolveAssigneeId(dto.assignedToId, user);
 
     return this.prisma.$transaction(async (tx) => {
       const client = await tx.client.create({
@@ -103,8 +115,8 @@ export class ClientsService {
           phone: dto.phone,
           businessType: dto.businessType,
           source: dto.source,
-          status: "LEAD",
-          stage: "NEW_LEAD",
+          status: ClientStatus.LEAD,
+          stage: PipelineStage.NEW_LEAD,
           assignedToId,
         },
         select: {
@@ -144,6 +156,32 @@ export class ClientsService {
     // SALES can only update clients assigned to them
     if (user.role === UserRole.SALES && existing.assignedToId !== user.id) {
       throw new ForbiddenException("You do not have access to this client");
+    }
+
+    if (dto.assignedToId && user.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        "Only admins can reassign clients to another employee",
+      );
+    }
+
+    if (dto.assignedToId) {
+      const assignee = await this.prisma.user.findUnique({
+        where: { id: dto.assignedToId },
+        select: { id: true, role: true, isActive: true },
+      });
+
+      if (!assignee || !assignee.isActive) {
+        throw new BadRequestException("Assigned user not found or inactive");
+      }
+
+      if (
+        assignee.role !== UserRole.SALES &&
+        assignee.role !== UserRole.ADMIN
+      ) {
+        throw new BadRequestException(
+          "Assigned user must be a SALES or ADMIN role",
+        );
+      }
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -219,14 +257,14 @@ export class ClientsService {
       );
     }
 
-    // Guard: requirements must be filled before moving to PROPOSAL_SENT
-    if (dto.stage === PipelineStage.PROPOSAL_SENT) {
+    // Guard: requirements must be filled before moving to PROPOSAL
+    if (dto.stage === PipelineStage.PROPOSAL) {
       if (
         !client.requirements ||
         Object.keys(client.requirements as Record<string, unknown>).length === 0
       ) {
         throw new BadRequestException(
-          "Requirements must be filled before moving to Proposal Sent stage",
+          "Requirements must be filled before moving to Proposal stage",
         );
       }
     }
@@ -251,8 +289,8 @@ export class ClientsService {
         where: { id },
         data: {
           stage: dto.stage as PrismaPipelineStage,
-          ...(dto.stage === PipelineStage.CONTRACTED_WON && {
-            status: "ACTIVE",
+          ...(dto.stage === PipelineStage.CONTRACT_SIGNED && {
+            status: ClientStatus.ACTIVE,
           }),
           activityLog: newLog as Prisma.InputJsonValue,
         },
@@ -265,6 +303,10 @@ export class ClientsService {
           userId: user.id,
           action: "STAGE_UPDATED",
           details: `Stage changed from ${client.stage} to ${dto.stage}`,
+          metadata: {
+            from: client.stage,
+            to: dto.stage,
+          } as Prisma.InputJsonValue,
         },
       });
 
@@ -313,6 +355,82 @@ export class ClientsService {
           userId: user.id,
           action: "REQUIREMENTS_UPDATED",
           details: "Requirements form submitted",
+          metadata: { requirements: true } as Prisma.InputJsonValue,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  // ─── logContactAttempt ────────────────────────────────────────────────────
+
+  async logContactAttempt(
+    id: string,
+    dto: LogContactAttemptDto,
+    user: JwtPayload,
+  ) {
+    const client = await this.prisma.client.findUnique({ where: { id } });
+    if (!client) throw new NotFoundException(`Client ${id} not found`);
+
+    if (user.role === UserRole.SALES && client.assignedToId !== user.id) {
+      throw new ForbiddenException("You do not have access to this client");
+    }
+
+    const now = new Date();
+    const nextAttemptCount = client.contactAttempts + 1;
+    const isNoResponse = dto.outcome === ContactOutcome.NO_RESPONSE;
+    const shouldAutomate =
+      isNoResponse && client.status !== ClientStatus.STOPPED;
+    const followUpStep = shouldAutomate ? Math.min(nextAttemptCount, 3) : 0;
+    const nextFollowUpAt = shouldAutomate
+      ? new Date(now.getTime() + FOLLOW_UP_INTERVAL_HOURS * 60 * 60 * 1000)
+      : null;
+
+    return this.prisma.$transaction(async (tx) => {
+      const currentLog = Array.isArray(client.activityLog)
+        ? (client.activityLog as Array<Record<string, unknown>>)
+        : [];
+
+      const updated = await tx.client.update({
+        where: { id },
+        data: {
+          contactAttempts: nextAttemptCount,
+          lastContactAttemptAt: now,
+          nextFollowUpAt,
+          followUpStep,
+          activityLog: [
+            ...currentLog,
+            {
+              action: "CONTACT_ATTEMPT",
+              outcome: dto.outcome,
+              notes: dto.notes ?? null,
+              attempt: nextAttemptCount,
+              userId: user.id,
+              timestamp: now.toISOString(),
+            },
+          ] as Prisma.InputJsonValue,
+        },
+        select: {
+          id: true,
+          contactAttempts: true,
+          lastContactAttemptAt: true,
+          nextFollowUpAt: true,
+          followUpStep: true,
+          updatedAt: true,
+        },
+      });
+
+      await tx.clientActivity.create({
+        data: {
+          clientId: id,
+          userId: user.id,
+          action: "CONTACT_ATTEMPT",
+          details: dto.notes ?? null,
+          metadata: {
+            outcome: dto.outcome,
+            attempt: nextAttemptCount,
+          } as Prisma.InputJsonValue,
         },
       });
 
@@ -353,6 +471,12 @@ export class ClientsService {
       throw new ForbiddenException("You do not have access to this client");
     }
 
+    if (client.stage !== PipelineStage.CONTRACT_SIGNED) {
+      throw new BadRequestException(
+        "Client must have a signed contract before handover",
+      );
+    }
+
     // Verify the manager exists and has an appropriate role
     const manager = await this.prisma.user.findUnique({
       where: { id: dto.managerId },
@@ -363,7 +487,7 @@ export class ClientsService {
       throw new BadRequestException("Manager not found or inactive");
     }
 
-    if (manager.role !== "PM" && manager.role !== "ADMIN") {
+    if (manager.role !== UserRole.PM && manager.role !== UserRole.ADMIN) {
       throw new BadRequestException("Manager must be a PM or ADMIN role user");
     }
 
@@ -372,16 +496,15 @@ export class ClientsService {
         ? (client.activityLog as Array<Record<string, unknown>>)
         : [];
 
-      // Update client stage to HANDOVER
+      // Log handover event on the client record
       const updatedClient = await tx.client.update({
         where: { id },
         data: {
-          stage: PipelineStage.HANDOVER as PrismaPipelineStage,
           activityLog: [
             ...currentLog,
             {
               action: "HANDOVER",
-              to: PipelineStage.HANDOVER,
+              to: PipelineStage.CONTRACT_SIGNED,
               userId: user.id,
               timestamp: new Date().toISOString(),
             },
@@ -422,5 +545,59 @@ export class ClientsService {
 
       return { client: updatedClient, project };
     });
+  }
+
+  // ─── resolveAssigneeId ────────────────────────────────────────────────────
+
+  private async resolveAssigneeId(
+    requestedId: string | undefined,
+    user: JwtPayload,
+  ): Promise<string> {
+    if (user.role !== UserRole.ADMIN) return user.id;
+
+    if (requestedId) {
+      const assignee = await this.prisma.user.findUnique({
+        where: { id: requestedId },
+        select: { id: true, role: true, isActive: true },
+      });
+
+      if (!assignee || !assignee.isActive) {
+        throw new BadRequestException("Assigned user not found or inactive");
+      }
+
+      if (
+        assignee.role !== UserRole.SALES &&
+        assignee.role !== UserRole.ADMIN
+      ) {
+        throw new BadRequestException(
+          "Assigned user must be a SALES or ADMIN role",
+        );
+      }
+
+      return assignee.id;
+    }
+
+    const salesUsers = await this.prisma.user.findMany({
+      where: { role: UserRole.SALES, isActive: true },
+      select: { id: true },
+    });
+
+    if (salesUsers.length === 0) return user.id;
+
+    const salesIds = salesUsers.map((u) => u.id);
+    const counts = await this.prisma.client.groupBy({
+      by: ["assignedToId"],
+      _count: { _all: true },
+      where: { assignedToId: { in: salesIds } },
+    });
+
+    const countMap = new Map<string, number>();
+    counts.forEach((row) => countMap.set(row.assignedToId, row._count._all));
+
+    return salesIds.reduce((lowest, current) => {
+      const currentCount = countMap.get(current) ?? 0;
+      const lowestCount = countMap.get(lowest) ?? 0;
+      return currentCount < lowestCount ? current : lowest;
+    }, salesIds[0]);
   }
 }

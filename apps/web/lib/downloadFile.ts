@@ -1,11 +1,13 @@
+import { getApiBaseUrl } from "@/lib/utils";
+
 export async function downloadTaskFile(
   taskId: string,
   fileId: string,
   fileName: string,
 ): Promise<void> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const apiUrl = getApiBaseUrl();
   const response = await fetch(
-    `${apiUrl}/v1/tasks/${taskId}/files/${fileId}/download`,
+    `${apiUrl}/tasks/${taskId}/files/${fileId}/download`,
     { credentials: "include" },
   );
   if (!response.ok) throw new Error("Download failed");

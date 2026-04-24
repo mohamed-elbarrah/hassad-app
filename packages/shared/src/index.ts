@@ -6,13 +6,21 @@ export * from "./enums/project";
 // Schemas
 export * from "./schemas/auth.schema";
 export * from "./schemas/client.schema";
+export * from "./schemas/contract.schema";
+export * from "./schemas/proposal.schema";
 export * from "./schemas/project.schema";
 export * from "./schemas/user.schema";
 
 // ─── Legacy interfaces (still used by API and Web) ────────────────────────────
 
 import { UserRole } from "./enums/roles";
-import { ClientStatus, PipelineStage, BusinessType } from "./enums/client";
+import {
+  ClientStatus,
+  PipelineStage,
+  BusinessType,
+  ProposalStatus,
+  ContractStatus,
+} from "./enums/client";
 import {
   ProjectStatus,
   TaskStatus,
@@ -44,6 +52,44 @@ export interface Client {
   updatedAt: Date;
   requirements?: Record<string, unknown> | null;
   activityLog?: Array<Record<string, unknown>> | null;
+  contactAttempts?: number | null;
+  lastContactAttemptAt?: Date | null;
+  nextFollowUpAt?: Date | null;
+  followUpStep?: number | null;
+}
+
+export interface Proposal {
+  id: string;
+  clientId: string;
+  services: string[];
+  price: number;
+  startDate: Date;
+  notes?: string | null;
+  status: ProposalStatus;
+  shareToken?: string | null;
+  sentAt?: Date | null;
+  approvedAt?: Date | null;
+  revisionNotes?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Contract {
+  id: string;
+  clientId: string;
+  services: string[];
+  startDate: Date;
+  endDate: Date;
+  value: number;
+  status: ContractStatus;
+  fileUrl?: string | null;
+  sentAt?: Date | null;
+  signedAt?: Date | null;
+  signedByName?: string | null;
+  signedByEmail?: string | null;
+  signatureUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Project {

@@ -39,7 +39,7 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
     return (
       <div className="flex gap-4 overflow-x-auto pb-4">
         {COLUMNS.map((col) => (
-          <div key={col.status} className="min-w-52 flex-shrink-0">
+          <div key={col.status} className="min-w-52 shrink-0">
             <Skeleton className="h-6 w-28 mb-3" />
             <div className="space-y-2">
               <Skeleton className="h-24 rounded-lg" />
@@ -72,7 +72,7 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
       {COLUMNS.map((col) => {
         const columnTasks = tasksByStatus[col.status] ?? [];
         return (
-          <div key={col.status} className="min-w-56 flex-shrink-0">
+          <div key={col.status} className="min-w-56 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium">{col.label}</h3>
               <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">

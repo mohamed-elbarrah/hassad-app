@@ -2,6 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   CircleDot,
+  PhoneCall,
+  MessageCircle,
+  Send,
+  Bell,
   UserCheck,
   FileText,
   ClipboardList,
@@ -44,6 +48,71 @@ const ACTION_CONFIG: Record<
     label: "تحديث المتطلبات",
     icon: ClipboardList,
     color: "text-emerald-500",
+  },
+  CONTACT_ATTEMPT: {
+    label: "محاولة تواصل",
+    icon: PhoneCall,
+    color: "text-blue-500",
+  },
+  FOLLOW_UP_INTRO_MESSAGE: {
+    label: "رسالة تعريفية تلقائية",
+    icon: MessageCircle,
+    color: "text-indigo-500",
+  },
+  FOLLOW_UP_MEETING_LINK: {
+    label: "رابط تحديد موعد",
+    icon: MessageCircle,
+    color: "text-purple-500",
+  },
+  FOLLOW_UP_SERVICE_SUMMARY: {
+    label: "عرض مختصر للخدمة",
+    icon: FileText,
+    color: "text-orange-500",
+  },
+  FOLLOW_UP_REMINDER: {
+    label: "تذكير متابعة",
+    icon: Bell,
+    color: "text-amber-500",
+  },
+  PROPOSAL_CREATED: {
+    label: "إنشاء عرض فني",
+    icon: FileText,
+    color: "text-sky-500",
+  },
+  PROPOSAL_SENT: {
+    label: "إرسال عرض فني",
+    icon: Send,
+    color: "text-sky-500",
+  },
+  PROPOSAL_APPROVED: {
+    label: "موافقة على العرض",
+    icon: CheckCircle2,
+    color: "text-emerald-600",
+  },
+  PROPOSAL_REVISION_REQUESTED: {
+    label: "طلب تعديل العرض",
+    icon: ClipboardList,
+    color: "text-amber-600",
+  },
+  CONTRACT_CREATED: {
+    label: "إنشاء عقد",
+    icon: FileText,
+    color: "text-indigo-600",
+  },
+  CONTRACT_SENT: {
+    label: "إرسال عقد",
+    icon: Send,
+    color: "text-indigo-600",
+  },
+  CONTRACT_SIGNED: {
+    label: "توقيع عقد",
+    icon: CheckCircle2,
+    color: "text-emerald-600",
+  },
+  HANDOVER: {
+    label: "تسليم للعمليات",
+    icon: ClipboardList,
+    color: "text-muted-foreground",
   },
 };
 

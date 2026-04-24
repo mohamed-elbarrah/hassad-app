@@ -30,14 +30,33 @@ enum ClientStatus {
 /// The 9 CRM sales pipeline stages, in order of progression.
 enum PipelineStage {
   NEW_LEAD
-  CONTACTED
+  INTRO_MESSAGE
+  CONTACT_ATTEMPT
   MEETING_SCHEDULED
-  REQUIREMENTS_GATHERING
-  PROPOSAL_SENT
-  NEGOTIATION
-  WAITING_FOR_SIGNATURE
-  CONTRACTED_WON
-  HANDOVER
+  MEETING_HELD
+  PROPOSAL
+  FOLLOW_UP
+  APPROVAL
+  CONTRACT_SIGNED
+}
+
+enum ContactOutcome {
+  NO_RESPONSE
+  RESPONDED
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REVISION_REQUESTED
+  REJECTED
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  SIGNED
 }
 
 enum ProjectStatus {
@@ -119,10 +138,16 @@ model Client {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
+  contactAttempts     Int       @default(0)
+  lastContactAttemptAt DateTime?
+  nextFollowUpAt      DateTime?
+  followUpStep        Int       @default(0)
+
   assignedToId     String
   assignedTo       User           @relation("AssignedTo", fields: [assignedToId], references: [id])
 
   contracts        Contract[]
+  proposals        Proposal[]
   projects         Project[]
   activities       ClientActivity[]
 
@@ -132,6 +157,27 @@ model Client {
   @@index([status])
   @@index([stage])
   @@index([assignedToId])
+  @@index([nextFollowUpAt])
+}
+
+model Proposal {
+  id                 String         @id @default(cuid())
+  clientId           String
+  client             Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  services           Json
+  price              Float
+  startDate          DateTime
+  notes              String?
+  status             ProposalStatus @default(DRAFT)
+  shareToken         String?        @unique
+  sentAt             DateTime?
+  approvedAt         DateTime?
+  revisionNotes      String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([clientId])
+  @@index([status])
 }
 
 model Contract {
@@ -142,7 +188,13 @@ model Contract {
   startDate   DateTime
   endDate     DateTime
   value       Float
-  status      String   @default("DRAFT")
+  status      ContractStatus @default(DRAFT)
+  fileUrl     String?
+  sentAt      DateTime?
+  signedAt    DateTime?
+  signedByName String?
+  signedByEmail String?
+  signatureUrl String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -208,6 +260,7 @@ model ClientActivity {
   userId    String
   action    String
   details   String?
+  metadata  Json?
   createdAt DateTime @default(now())
 
   @@index([clientId])

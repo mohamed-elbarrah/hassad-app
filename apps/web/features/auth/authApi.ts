@@ -8,13 +8,14 @@ import {
 import type { RootState } from "@/lib/store";
 import type { LoginDto, RegisterDto, User } from "@hassad/shared";
 import { logout, setCredentials } from "./authSlice";
+import { getApiBaseUrl } from "@/lib/utils";
 
 interface AuthResponse {
   user: User;
 }
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: `${process.env.NEXT_PUBLIC_API_URL}/v1/auth`,
+  baseUrl: `${getApiBaseUrl()}/auth`,
   credentials: "include", // Important for HttpOnly cookies
 });
 

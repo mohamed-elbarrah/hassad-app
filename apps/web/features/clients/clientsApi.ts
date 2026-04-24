@@ -1,22 +1,15 @@
 // apps/web/features/clients/clientsApi.ts
-import {
-  createApi,
-  fetchBaseQuery,
-  type BaseQueryFn,
-  type FetchArgs,
-  type FetchBaseQueryError,
-  type FetchBaseQueryMeta,
-} from "@reduxjs/toolkit/query/react";
-import type { QueryReturnValue } from "@reduxjs/toolkit/query";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQuery } from "@/lib/baseQuery";
 import type {
   Client,
   CreateClientInput,
   UpdateClientInput,
   UpdateStageInput,
   Project,
+  ContactOutcome,
 } from "@hassad/shared";
 import type { ClientStatus, PipelineStage } from "@hassad/shared";
-import { logout } from "../auth/authSlice";
 
 // ── Response types ────────────────────────────────────────────────────────────
 
@@ -48,66 +41,19 @@ export interface HandoverResult {
   project: Project;
 }
 
-// ── Base query — unwraps ResponseInterceptor envelope + auto-refresh on 401 ──
-//
-// The NestJS ResponseInterceptor wraps every response as:
-//   { success: true, data: <actual_payload>, timestamp: "..." }
-// We strip that wrapper here once so every endpoint receives the raw payload.
-//
-// On 401 (expired access token), this wrapper calls POST /auth/refresh to get a
-// new access token (stored in the `token` HttpOnly cookie) and retries once.
-
-const _rawBaseQuery = fetchBaseQuery({
-  baseUrl: `${process.env.NEXT_PUBLIC_API_URL}/v1`,
-  credentials: "include",
-});
-
-type RawResult = QueryReturnValue<
-  unknown,
-  FetchBaseQueryError,
-  FetchBaseQueryMeta
->;
-
-/** Strip the { success, data, timestamp } envelope from a successful response. */
-function unwrap(result: RawResult): RawResult {
-  if (
-    !result.error &&
-    result.data !== undefined &&
-    result.data !== null &&
-    typeof result.data === "object" &&
-    "data" in (result.data as object)
-  ) {
-    return { data: (result.data as { data: unknown }).data, meta: result.meta };
-  }
-  return result;
+export interface ContactAttemptInput {
+  outcome: ContactOutcome;
+  notes?: string;
 }
 
-const baseQuery: BaseQueryFn<
-  string | FetchArgs,
-  unknown,
-  FetchBaseQueryError
-> = async (args, api, extraOptions) => {
-  let result = unwrap(await _rawBaseQuery(args, api, extraOptions));
-
-  // Auto-refresh when the access token has expired
-  if (result.error && (result.error as FetchBaseQueryError).status === 401) {
-    const refreshResult = await _rawBaseQuery(
-      { url: "/auth/refresh", method: "POST" },
-      api,
-      extraOptions,
-    );
-
-    if (refreshResult.data) {
-      // New access token cookie is now set — retry the original request
-      result = unwrap(await _rawBaseQuery(args, api, extraOptions));
-    } else {
-      // Refresh failed (refresh token expired) — force logout
-      api.dispatch(logout());
-    }
-  }
-
-  return result;
-};
+export interface ContactAttemptResult {
+  id: string;
+  contactAttempts: number;
+  lastContactAttemptAt: string | null;
+  nextFollowUpAt: string | null;
+  followUpStep: number;
+  updatedAt: string;
+}
 
 // ── API slice ─────────────────────────────────────────────────────────────────
 
@@ -194,6 +140,22 @@ export const clientsApi = createApi({
       ],
     }),
 
+    /** POST /v1/clients/:id/contact-attempts — log contact attempt */
+    logContactAttempt: builder.mutation<
+      ContactAttemptResult,
+      { id: string; body: ContactAttemptInput }
+    >({
+      query: ({ id, body }) => ({
+        url: `/clients/${id}/contact-attempts`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Client", id },
+        { type: "Client", id: "LIST" },
+      ],
+    }),
+
     /**
      * POST /v1/clients/:id/handover
      * Atomically moves client to HANDOVER stage and creates a project.
@@ -224,5 +186,6 @@ export const {
   useUpdateClientMutation,
   useUpdateClientStageMutation,
   useUpdateClientRequirementsMutation,
+  useLogContactAttemptMutation,
   useHandoverClientMutation,
 } = clientsApi;

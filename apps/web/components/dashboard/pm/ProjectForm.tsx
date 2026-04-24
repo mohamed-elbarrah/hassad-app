@@ -29,7 +29,7 @@ import {
 } from "@/features/projects/projectsApi";
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { SearchCombobox } from "./SearchCombobox";
+import { SearchCombobox } from "@/components/common/SearchCombobox";
 import { UserRole } from "@hassad/shared";
 import type { Project } from "@hassad/shared";
 

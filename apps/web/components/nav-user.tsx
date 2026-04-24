@@ -59,14 +59,14 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className=" data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg text-xs">
+              <Avatar className="h-8 w-8  rounded-lg">
+                <AvatarFallback className="rounded-lg bg-gray-300 text-xs">
                   {getInitials(user.name)}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+              <div className="grid flex-1 text-right text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
                 <span className="truncate text-xs text-muted-foreground">
                   {user.email}
@@ -82,18 +82,18 @@ export function NavUser() {
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg text-xs">
-                    {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+              <div className="flex items-center  gap-2 px-1 py-1.5 text-right text-sm">
+                <div className="grid flex-1 text-right text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {user.email}
                   </span>
                 </div>
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarFallback className="rounded-lg bg-gray-300 text-xs">
+                    {getInitials(user.name)}
+                  </AvatarFallback>
+                </Avatar>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -101,6 +101,7 @@ export function NavUser() {
               <DropdownMenuItem
                 onClick={handleAccount}
                 className="cursor-pointer"
+              dir="rtl"
               >
                 <BadgeCheck className="size-4" />
                 إدارة الحساب
@@ -110,6 +111,7 @@ export function NavUser() {
             <DropdownMenuItem
               onClick={handleLogout}
               className="cursor-pointer text-destructive focus:text-destructive"
+              dir="rtl"
             >
               <LogOut className="size-4" />
               تسجيل الخروج

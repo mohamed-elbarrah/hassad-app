@@ -7,6 +7,9 @@ import { projectsApi } from "@/features/projects/projectsApi";
 import { tasksApi } from "@/features/tasks/tasksApi";
 import { usersApi } from "@/features/users/usersApi";
 import { notificationsApi } from "@/features/notifications/notificationsApi";
+import { proposalsApi } from "@/features/proposals/proposalsApi";
+import { contractsApi } from "@/features/contracts/contractsApi";
+import { salesApi } from "@/features/sales/salesApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
 
 export const store = configureStore({
@@ -19,6 +22,9 @@ export const store = configureStore({
     [tasksApi.reducerPath]: tasksApi.reducer,
     [usersApi.reducerPath]: usersApi.reducer,
     [notificationsApi.reducerPath]: notificationsApi.reducer,
+    [proposalsApi.reducerPath]: proposalsApi.reducer,
+    [contractsApi.reducerPath]: contractsApi.reducer,
+    [salesApi.reducerPath]: salesApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -28,6 +34,9 @@ export const store = configureStore({
       tasksApi.middleware,
       usersApi.middleware,
       notificationsApi.middleware,
+      proposalsApi.middleware,
+      contractsApi.middleware,
+      salesApi.middleware,
     ),
 });
 

@@ -10,9 +10,10 @@ import {
 } from "@reduxjs/toolkit/query/react";
 import type { QueryReturnValue } from "@reduxjs/toolkit/query";
 import { logout } from "@/features/auth/authSlice";
+import { getApiBaseUrl } from "@/lib/utils";
 
 const _rawBaseQuery = fetchBaseQuery({
-  baseUrl: `${process.env.NEXT_PUBLIC_API_URL}/v1`,
+  baseUrl: getApiBaseUrl(),
   credentials: "include",
 });
 

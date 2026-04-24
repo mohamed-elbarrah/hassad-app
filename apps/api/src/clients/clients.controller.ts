@@ -23,6 +23,7 @@ import { UpdateStageDto } from "./dto/update-stage.dto";
 import { UpdateRequirementsDto } from "./dto/update-requirements.dto";
 import { HandoverProjectDto } from "./dto/handover-project.dto";
 import { ClientFiltersDto } from "./dto/client-filters.dto";
+import { LogContactAttemptDto } from "./dto/log-contact-attempt.dto";
 import type { JwtPayload } from "../common/decorators/current-user.decorator";
 
 /**
@@ -101,8 +102,23 @@ export class ClientsController {
   }
 
   /**
+   * POST /v1/clients/:id/contact-attempts
+   * Logs a sales contact attempt and schedules follow-up automation if needed.
+   */
+  @Post(":id/contact-attempts")
+  @Roles(UserRole.ADMIN, UserRole.SALES)
+  @HttpCode(HttpStatus.CREATED)
+  logContactAttempt(
+    @Param("id") id: string,
+    @Body() dto: LogContactAttemptDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.clientsService.logContactAttempt(id, dto, user);
+  }
+
+  /**
    * POST /v1/clients/:id/handover
-   * Atomically moves the client to HANDOVER stage and creates a project linked to them.
+   * Creates a project linked to the client after contract signing.
    * The form collects project name, manager, and dates before confirming.
    */
   @Post(":id/handover")

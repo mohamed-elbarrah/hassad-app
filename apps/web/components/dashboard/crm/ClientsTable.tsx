@@ -118,7 +118,6 @@ export function ClientsTable({
       cell: (info) => (
         <StageSelect
           clientId={info.row.original.id}
-          clientName={info.row.original.name}
           currentStage={info.getValue() as PipelineStage}
         />
       ),

@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import type { Client } from "@hassad/shared";
 import {
   ClientStatus,
   BusinessType,
   ClientSource,
   PipelineStage,
+  UserRole,
 } from "@hassad/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAppSelector } from "@/lib/hooks";
 import { StageSelect } from "./StageSelect";
+import { ContactAttemptDialog } from "./ContactAttemptDialog";
+import { HandoverModal } from "./HandoverModal";
 
 const STATUS_VARIANT: Record<
   ClientStatus,
@@ -46,6 +52,14 @@ interface ClientInfoCardProps {
 }
 
 export function ClientInfoCard({ client }: ClientInfoCardProps) {
+  const { user } = useAppSelector((state) => state.auth);
+  const [handoverOpen, setHandoverOpen] = useState(false);
+
+  const canManageSales =
+    user?.role === UserRole.ADMIN || user?.role === UserRole.SALES;
+  const canHandover =
+    canManageSales && client.stage === PipelineStage.CONTRACT_SIGNED;
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -103,14 +117,42 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
         </div>
 
         <div className="pt-2 border-t">
-          <p className="text-muted-foreground text-sm mb-2">مرحلة البيع</p>
-          <StageSelect
-            clientId={client.id}
-            clientName={client.name}
-            currentStage={client.stage as PipelineStage}
-          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-muted-foreground text-sm">مرحلة البيع</p>
+            {canManageSales && (
+              <div className="flex flex-wrap items-center gap-2">
+                <ContactAttemptDialog
+                  clientId={client.id}
+                  clientName={client.name}
+                />
+                {canHandover && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setHandoverOpen(true)}
+                  >
+                    تسليم للعمليات
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="mt-2">
+            <StageSelect
+              clientId={client.id}
+              currentStage={client.stage as PipelineStage}
+            />
+          </div>
         </div>
       </CardContent>
+
+      {handoverOpen && (
+        <HandoverModal
+          open={handoverOpen}
+          client={{ id: client.id, name: client.name }}
+          onClose={() => setHandoverOpen(false)}
+        />
+      )}
     </Card>
   );
 }

@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useHandoverClientMutation } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { SearchCombobox } from "@/components/dashboard/pm/SearchCombobox";
+import { SearchCombobox } from "@/components/common/SearchCombobox";
 import { UserRole } from "@hassad/shared";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -123,8 +123,8 @@ export function HandoverModal({ open, onClose, client }: HandoverModalProps) {
         <DialogHeader>
           <DialogTitle>تسليم العميل للعمليات</DialogTitle>
           <DialogDescription>
-            سيتم نقل <strong>{client.name}</strong> إلى مرحلة التسليم وإنشاء
-            مشروع جديد تلقائياً.
+            سيتم إنشاء مشروع جديد لـ <strong>{client.name}</strong> وتعيين مدير
+            مشروع مسؤول.
           </DialogDescription>
         </DialogHeader>
 

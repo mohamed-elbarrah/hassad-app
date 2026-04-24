@@ -40,7 +40,7 @@ function LoginFormInner() {
     [UserRole.SALES]: "/dashboard/sales",
     [UserRole.ACCOUNTANT]: "/dashboard/accountant",
     [UserRole.MARKETING]: "/dashboard/marketing",
-    [UserRole.EMPLOYEE]: "/dashboard/designer",
+    [UserRole.EMPLOYEE]: "/dashboard/employee",
     [UserRole.CLIENT]: "/portal",
   };
 

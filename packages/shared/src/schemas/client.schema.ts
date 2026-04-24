@@ -9,7 +9,7 @@ import {
 /**
  * CreateClientSchema — validates the input required to create a new client.
  * Matches the Prisma `Client` model's writable fields exactly.
- * `status`, `stage`, and `assignedToId` are set by server logic, not client input.
+ * `status` and `stage` are set by server logic, not client input.
  */
 export const CreateClientSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -17,6 +17,7 @@ export const CreateClientSchema = z.object({
   phone: z.string().min(5, "Phone must be at least 5 characters"),
   businessType: z.nativeEnum(BusinessType),
   source: z.nativeEnum(ClientSource),
+  assignedToId: z.string().cuid("Invalid user ID format").optional(),
 });
 
 export type CreateClientInput = z.infer<typeof CreateClientSchema>;

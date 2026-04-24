@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { PipelineStage } from "@hassad/shared";
+import { ClientStatus } from "@hassad/shared";
 import type { Client } from "@hassad/shared";
 import { useUpdateClientRequirementsMutation } from "@/features/clients/clientsApi";
 import {
@@ -49,7 +49,7 @@ interface RequirementsFormProps {
 export function RequirementsForm({ client }: RequirementsFormProps) {
   const [updateRequirements, { isLoading }] =
     useUpdateClientRequirementsMutation();
-  const isEditable = client.stage === PipelineStage.REQUIREMENTS_GATHERING;
+  const isEditable = client.status === ClientStatus.LEAD;
   const existingReqs = (client as unknown as ClientWithRequirements)
     .requirements;
 
@@ -95,7 +95,7 @@ export function RequirementsForm({ client }: RequirementsFormProps) {
         <CardDescription>
           {isEditable
             ? "أدخل متطلبات العميل بالتفصيل لتتمكن من المتابعة للمرحلة التالية"
-            : "لا يمكن تعديل المتطلبات إلا في مرحلة جمع المتطلبات"}
+            : "لا يمكن تعديل المتطلبات بعد توقيع العقد"}
         </CardDescription>
       </CardHeader>
       <CardContent>

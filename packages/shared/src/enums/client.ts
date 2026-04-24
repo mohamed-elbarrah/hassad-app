@@ -6,32 +6,51 @@ export enum ClientStatus {
 
 /**
  * The 9 defined Sales Pipeline stages for the Hassad CRM.
- * Order matters: stages are traversed from NEW_LEAD → HANDOVER.
+ * Order matters: stages are traversed from NEW_LEAD → CONTRACT_SIGNED.
  */
 export enum PipelineStage {
   NEW_LEAD = "NEW_LEAD",
-  CONTACTED = "CONTACTED",
+  INTRO_MESSAGE = "INTRO_MESSAGE",
+  CONTACT_ATTEMPT = "CONTACT_ATTEMPT",
   MEETING_SCHEDULED = "MEETING_SCHEDULED",
-  REQUIREMENTS_GATHERING = "REQUIREMENTS_GATHERING",
-  PROPOSAL_SENT = "PROPOSAL_SENT",
-  NEGOTIATION = "NEGOTIATION",
-  WAITING_FOR_SIGNATURE = "WAITING_FOR_SIGNATURE",
-  CONTRACTED_WON = "CONTRACTED_WON",
-  HANDOVER = "HANDOVER",
+  MEETING_HELD = "MEETING_HELD",
+  PROPOSAL = "PROPOSAL",
+  FOLLOW_UP = "FOLLOW_UP",
+  APPROVAL = "APPROVAL",
+  CONTRACT_SIGNED = "CONTRACT_SIGNED",
 }
 
 /** Ordered list of pipeline stages for validation and transitions */
 export const PIPELINE_STAGE_ORDER: readonly PipelineStage[] = [
   PipelineStage.NEW_LEAD,
-  PipelineStage.CONTACTED,
+  PipelineStage.INTRO_MESSAGE,
+  PipelineStage.CONTACT_ATTEMPT,
   PipelineStage.MEETING_SCHEDULED,
-  PipelineStage.REQUIREMENTS_GATHERING,
-  PipelineStage.PROPOSAL_SENT,
-  PipelineStage.NEGOTIATION,
-  PipelineStage.WAITING_FOR_SIGNATURE,
-  PipelineStage.CONTRACTED_WON,
-  PipelineStage.HANDOVER,
+  PipelineStage.MEETING_HELD,
+  PipelineStage.PROPOSAL,
+  PipelineStage.FOLLOW_UP,
+  PipelineStage.APPROVAL,
+  PipelineStage.CONTRACT_SIGNED,
 ] as const;
+
+export enum ContactOutcome {
+  NO_RESPONSE = "NO_RESPONSE",
+  RESPONDED = "RESPONDED",
+}
+
+export enum ProposalStatus {
+  DRAFT = "DRAFT",
+  SENT = "SENT",
+  APPROVED = "APPROVED",
+  REVISION_REQUESTED = "REVISION_REQUESTED",
+  REJECTED = "REJECTED",
+}
+
+export enum ContractStatus {
+  DRAFT = "DRAFT",
+  SENT = "SENT",
+  SIGNED = "SIGNED",
+}
 
 export enum BusinessType {
   RESTAURANT = "RESTAURANT",

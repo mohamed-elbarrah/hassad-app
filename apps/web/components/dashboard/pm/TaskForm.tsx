@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { useCreateTaskMutation } from "@/features/tasks/tasksApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { SearchCombobox } from "@/components/dashboard/pm/SearchCombobox";
+import { SearchCombobox } from "@/components/common/SearchCombobox";
 import { TaskDepartment, TaskPriority } from "@hassad/shared";
 
 // ── Labels ────────────────────────────────────────────────────────────────────

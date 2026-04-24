@@ -1,41 +1,89 @@
-'use client'
+"use client";
 
-import { useAppSelector } from '@/lib/hooks'
-import { useRouter } from 'next/navigation'
+import Link from "next/link";
+import { useAppSelector } from "@/lib/hooks";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const SUMMARY_CARDS = [
+  { title: "آخر تسليم", value: "تصميم بانر إعلاني" },
+  { title: "حالة الحملة", value: "قيد الإطلاق" },
+  { title: "الفاتورة القادمة", value: "10 مايو" },
+];
 
 export default function PortalPage() {
-  const { user } = useAppSelector((state) => state.auth)
-  const router = useRouter()
+  const { user } = useAppSelector((state) => state.auth);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-primary">Welcome, {user?.name}</h1>
+    <div className="flex flex-col gap-6" dir="rtl">
+      <div>
+        <h1 className="text-2xl font-semibold">مرحباً، {user?.name} 👋</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          هذه نظرة سريعة على تقدم المشروع.
+        </p>
       </div>
-      
-      <div className="grid gap-6 md:grid-cols-2">
-        <div 
-          onClick={() => router.push('/portal/projects')}
-          className="p-8 bg-white rounded-xl border-2 border-primary/5 shadow-sm hover:border-primary/20 transition-all cursor-pointer group"
-        >
-          <div className="p-3 bg-primary/5 text-primary rounded-lg w-fit group-hover:bg-primary/10 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <h3 className="text-xl font-bold mt-4">My Projects</h3>
-          <p className="text-muted-foreground mt-2">View the status and progress of your active marketing campaigns.</p>
-        </div>
 
-        <div 
-          onClick={() => router.push('/portal/invoices')}
-          className="p-8 bg-white rounded-xl border-2 border-primary/5 shadow-sm hover:border-primary/20 transition-all cursor-pointer group"
-        >
-          <div className="p-3 bg-primary/5 text-primary rounded-lg w-fit group-hover:bg-primary/10 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">التقدم العام</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+            <span>65% من المشروع</span>
+            <span>65%</span>
           </div>
-          <h3 className="text-xl font-bold mt-4">Invoices & Payments</h3>
-          <p className="text-muted-foreground mt-2">Manage your billing, download invoices, and process payments.</p>
-        </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-primary" style={{ width: "65%" }} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {SUMMARY_CARDS.map((card) => (
+          <Card key={card.title}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">
+                {card.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-lg font-semibold">{card.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link href="/portal/deliverables">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="text-base">التسليمات</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              استعرض الأعمال واعتمدها.
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/portal/reports">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="text-base">التقارير</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              تقارير الحملات لمنصات الإعلانات.
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/portal/finance">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader>
+              <CardTitle className="text-base">المالية</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              الفواتير والمدفوعات والعقود.
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
-  )
+  );
 }

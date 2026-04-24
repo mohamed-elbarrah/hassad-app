@@ -19,38 +19,33 @@ import {
 } from "@/features/clients/clientsApi";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
-import { HandoverModal } from "./HandoverModal";
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
   [PipelineStage.NEW_LEAD]: "عميل جديد",
-  [PipelineStage.CONTACTED]: "تم التواصل",
-  [PipelineStage.MEETING_SCHEDULED]: "اجتماع محدد",
-  [PipelineStage.REQUIREMENTS_GATHERING]: "جمع المتطلبات",
-  [PipelineStage.PROPOSAL_SENT]: "تم إرسال العرض",
-  [PipelineStage.NEGOTIATION]: "التفاوض",
-  [PipelineStage.WAITING_FOR_SIGNATURE]: "بانتظار التوقيع",
-  [PipelineStage.CONTRACTED_WON]: "تم التعاقد",
-  [PipelineStage.HANDOVER]: "تسليم للعمليات",
+  [PipelineStage.INTRO_MESSAGE]: "رسالة تعريفية",
+  [PipelineStage.CONTACT_ATTEMPT]: "محاولة اتصال",
+  [PipelineStage.MEETING_SCHEDULED]: "موعد محدد",
+  [PipelineStage.MEETING_HELD]: "اجتماع",
+  [PipelineStage.PROPOSAL]: "عرض فني",
+  [PipelineStage.FOLLOW_UP]: "متابعة",
+  [PipelineStage.APPROVAL]: "موافقة",
+  [PipelineStage.CONTRACT_SIGNED]: "توقيع عقد",
 };
 
 const STAGE_COLORS: Record<PipelineStage, string> = {
   [PipelineStage.NEW_LEAD]: "bg-slate-50 border-slate-300",
-  [PipelineStage.CONTACTED]: "bg-blue-50 border-blue-300",
-  [PipelineStage.MEETING_SCHEDULED]: "bg-indigo-50 border-indigo-300",
-  [PipelineStage.REQUIREMENTS_GATHERING]: "bg-violet-50 border-violet-300",
-  [PipelineStage.PROPOSAL_SENT]: "bg-amber-50 border-amber-300",
-  [PipelineStage.NEGOTIATION]: "bg-orange-50 border-orange-300",
-  [PipelineStage.WAITING_FOR_SIGNATURE]: "bg-yellow-50 border-yellow-300",
-  [PipelineStage.CONTRACTED_WON]: "bg-emerald-50 border-emerald-300",
-  [PipelineStage.HANDOVER]: "bg-green-50 border-green-300",
+  [PipelineStage.INTRO_MESSAGE]: "bg-blue-50 border-blue-300",
+  [PipelineStage.CONTACT_ATTEMPT]: "bg-indigo-50 border-indigo-300",
+  [PipelineStage.MEETING_SCHEDULED]: "bg-violet-50 border-violet-300",
+  [PipelineStage.MEETING_HELD]: "bg-purple-50 border-purple-300",
+  [PipelineStage.PROPOSAL]: "bg-amber-50 border-amber-300",
+  [PipelineStage.FOLLOW_UP]: "bg-orange-50 border-orange-300",
+  [PipelineStage.APPROVAL]: "bg-yellow-50 border-yellow-300",
+  [PipelineStage.CONTRACT_SIGNED]: "bg-emerald-50 border-emerald-300",
 };
 
 export function KanbanBoard() {
   const [activeClient, setActiveClient] = useState<Client | null>(null);
-  const [pendingHandover, setPendingHandover] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
   const [updateStage] = useUpdateClientStageMutation();
 
   const { data, isLoading, isError } = useGetClientsQuery({ limit: 100 });
@@ -88,13 +83,6 @@ export function KanbanBoard() {
     const currentStage = active.data.current?.stage as PipelineStage;
 
     if (newStage === currentStage) return;
-
-    // Intercept HANDOVER — show the modal instead of calling the stage mutation
-    if (newStage === PipelineStage.HANDOVER) {
-      const client = data?.items.find((c) => c.id === clientId);
-      setPendingHandover({ id: clientId, name: client?.name ?? clientId });
-      return;
-    }
 
     try {
       await updateStage({ id: clientId, body: { stage: newStage } }).unwrap();
@@ -168,14 +156,6 @@ export function KanbanBoard() {
           {activeClient ? <KanbanCard client={activeClient} isOverlay /> : null}
         </DragOverlay>
       </DndContext>
-
-      {pendingHandover && (
-        <HandoverModal
-          open
-          client={pendingHandover}
-          onClose={() => setPendingHandover(null)}
-        />
-      )}
     </>
   );
 }

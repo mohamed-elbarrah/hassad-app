@@ -6,7 +6,13 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
-import { LoginDto, UserRole, ClientSource } from "@hassad/shared";
+import {
+  LoginDto,
+  UserRole,
+  ClientSource,
+  ClientStatus,
+  PipelineStage,
+} from "@hassad/shared";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { JwtPayload } from "../common/decorators/current-user.decorator";
@@ -143,8 +149,8 @@ export class AuthService {
           phone: dto.phone,
           businessType: dto.businessType,
           source: ClientSource.PLATFORM,
-          status: "LEAD",
-          stage: "NEW_LEAD",
+          status: ClientStatus.LEAD,
+          stage: PipelineStage.NEW_LEAD,
           assignedToId,
           activityLog: [
             {

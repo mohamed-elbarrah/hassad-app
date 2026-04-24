@@ -30,7 +30,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateClientMutation } from "@/features/clients/clientsApi";
-import { CreateClientSchema, BusinessType, ClientSource } from "@hassad/shared";
+import { useSearchUsersQuery } from "@/features/users/usersApi";
+import { useAppSelector } from "@/lib/hooks";
+import {
+  CreateClientSchema,
+  BusinessType,
+  ClientSource,
+  UserRole,
+} from "@hassad/shared";
 import type { CreateClientInput } from "@hassad/shared";
 
 // ── Labels ────────────────────────────────────────────────────────────────────
@@ -53,8 +60,14 @@ const SOURCE_LABELS: Record<ClientSource, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function CreateClientDialog() {
+  const { user } = useAppSelector((state) => state.auth);
+  const isAdmin = user?.role === UserRole.ADMIN;
   const [open, setOpen] = useState(false);
   const [createClient, { isLoading }] = useCreateClientMutation();
+  const { data: salesUsers } = useSearchUsersQuery(
+    { role: UserRole.SALES, limit: 50 },
+    { skip: !isAdmin || !open },
+  );
 
   const form = useForm<CreateClientInput>({
     resolver: zodResolver(CreateClientSchema),
@@ -64,6 +77,7 @@ export function CreateClientDialog() {
       phone: "",
       businessType: undefined,
       source: undefined,
+      assignedToId: undefined,
     },
   });
 
@@ -207,6 +221,39 @@ export function CreateClientDialog() {
                 </FormItem>
               )}
             />
+
+            {isAdmin && (
+              <FormField
+                control={form.control}
+                name="assignedToId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>تعيين موظف مبيعات (اختياري)</FormLabel>
+                    <Select
+                      value={field.value ?? "AUTO"}
+                      onValueChange={(value) =>
+                        field.onChange(value === "AUTO" ? undefined : value)
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="تعيين تلقائي" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="AUTO">تعيين تلقائي</SelectItem>
+                        {(salesUsers?.items ?? []).map((staff) => (
+                          <SelectItem key={staff.id} value={staff.id}>
+                            {staff.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Root error */}
             {form.formState.errors.root && (

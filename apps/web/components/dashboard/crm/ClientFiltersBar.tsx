@@ -24,14 +24,14 @@ const STATUS_LABELS: Record<ClientStatus, string> = {
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
   [PipelineStage.NEW_LEAD]: "عميل جديد",
-  [PipelineStage.CONTACTED]: "تم التواصل",
-  [PipelineStage.MEETING_SCHEDULED]: "اجتماع محدد",
-  [PipelineStage.REQUIREMENTS_GATHERING]: "جمع المتطلبات",
-  [PipelineStage.PROPOSAL_SENT]: "تم إرسال العرض",
-  [PipelineStage.NEGOTIATION]: "التفاوض",
-  [PipelineStage.WAITING_FOR_SIGNATURE]: "بانتظار التوقيع",
-  [PipelineStage.CONTRACTED_WON]: "تم التعاقد",
-  [PipelineStage.HANDOVER]: "تسليم للعمليات",
+  [PipelineStage.INTRO_MESSAGE]: "رسالة تعريفية",
+  [PipelineStage.CONTACT_ATTEMPT]: "محاولة اتصال",
+  [PipelineStage.MEETING_SCHEDULED]: "موعد محدد",
+  [PipelineStage.MEETING_HELD]: "اجتماع",
+  [PipelineStage.PROPOSAL]: "عرض فني",
+  [PipelineStage.FOLLOW_UP]: "متابعة",
+  [PipelineStage.APPROVAL]: "موافقة",
+  [PipelineStage.CONTRACT_SIGNED]: "توقيع عقد",
 };
 
 interface ClientFiltersBarProps {

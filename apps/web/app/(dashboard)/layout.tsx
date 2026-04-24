@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppSelector } from "@/lib/hooks";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { UserRole } from "@hassad/shared";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -22,7 +22,34 @@ export default function DashboardLayout({
     (state) => state.auth,
   );
   const router = useRouter();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+
+  const roleHome: Record<UserRole, string> = {
+    [UserRole.ADMIN]: "/dashboard/admin",
+    [UserRole.PM]: "/dashboard/pm",
+    [UserRole.SALES]: "/dashboard/sales",
+    [UserRole.ACCOUNTANT]: "/dashboard/accountant",
+    [UserRole.MARKETING]: "/dashboard/marketing",
+    [UserRole.EMPLOYEE]: "/dashboard/employee",
+    [UserRole.CLIENT]: "/portal",
+  };
+
+  const commonPrefixes = [
+    "/dashboard/account",
+    "/dashboard/notifications",
+    "/dashboard/tasks",
+  ];
+
+  const rolePrefixes: Record<UserRole, string[]> = {
+    [UserRole.ADMIN]: ["/dashboard"],
+    [UserRole.PM]: ["/dashboard/pm"],
+    [UserRole.SALES]: ["/dashboard/sales"],
+    [UserRole.ACCOUNTANT]: ["/dashboard/accountant"],
+    [UserRole.MARKETING]: ["/dashboard/marketing"],
+    [UserRole.EMPLOYEE]: ["/dashboard/employee", "/dashboard/designer"],
+    [UserRole.CLIENT]: ["/portal"],
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -34,9 +61,25 @@ export default function DashboardLayout({
         router.push("/login");
       } else if (user?.role === UserRole.CLIENT) {
         router.push("/portal");
+      } else if (user && pathname) {
+        if (user.role !== UserRole.ADMIN) {
+          const allowedPrefixes = [
+            ...commonPrefixes,
+            ...(rolePrefixes[user.role] ?? []),
+          ];
+
+          const isDashboardRoot = pathname === "/dashboard";
+          const isAllowed =
+            isDashboardRoot ||
+            allowedPrefixes.some((prefix) => pathname.startsWith(prefix));
+
+          if (!isAllowed) {
+            router.push(roleHome[user.role] ?? "/dashboard");
+          }
+        }
       }
     }
-  }, [isAuthenticated, user, router, mounted, isInitialized]);
+  }, [isAuthenticated, user, router, mounted, isInitialized, pathname]);
 
   if (!mounted || !isInitialized) {
     return (

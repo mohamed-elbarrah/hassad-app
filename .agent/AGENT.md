@@ -165,17 +165,17 @@ Before starting any task, read the relevant skill file:
 
 ## Development Phases (reference)
 
-| Phase      | Focus                                                  | Duration                    |
-| ---------- | ------------------------------------------------------ | --------------------------- |
-| Foundation | Monorepo setup, Prisma schema, shared types, Docker DB | 3–5 days                    |
-| Phase 1    | Auth + RBAC                                            | 5–7 days                    |
-| Phase 2    | CRM + Sales Pipeline                                   | 10–14 days                  |
-| Phase 3    | Project Management + Tasks                             | 10–14 days                  |
-| Phase 4    | Client Portal                                          | 7–10 days                   |
-| Phase 5    | Finance + Contracts                                    | 7–10 days                   |
-| Phase 6A   | Marketing dashboard (manual KPIs)                      | 7–10 days                   |
-| Phase 6B   | Ad platform API integrations                           | Later                       |
-| Phase 6C   | AI layer                                               | After 3 months of real data |
+| Phase      | Focus                                                  | Duration                    | Status      |
+| ---------- | ------------------------------------------------------ | --------------------------- | ----------- |
+| Foundation | Monorepo setup, Prisma schema, shared types, Docker DB | 3–5 days                    | Done        |
+| Phase 1    | Auth + RBAC                                            | 5–7 days                    | Done        |
+| Phase 2    | CRM + Sales Pipeline                                   | 10–14 days                  | Done        |
+| Phase 3    | Project Management + Tasks                             | 10–14 days                  | In Progress |
+| Phase 4    | Client Portal                                          | 7–10 days                   | Planned     |
+| Phase 5    | Finance + Contracts                                    | 7–10 days                   | Planned     |
+| Phase 6A   | Marketing dashboard (manual KPIs)                      | 7–10 days                   | Planned     |
+| Phase 6B   | Ad platform API integrations                           | Later                       | Planned     |
+| Phase 6C   | AI layer                                               | After 3 months of real data | Planned     |
 
 **Do not jump phases.** Each phase has a completion gate defined in the development plan.
 

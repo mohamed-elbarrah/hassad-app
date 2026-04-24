@@ -11,6 +11,12 @@ import {
   Kanban,
   ClipboardList,
   Leaf,
+  Shield,
+  FileText,
+  FileSignature,
+  Ticket,
+  UserCircle,
+  ListChecks,
 } from "lucide-react";
 
 import { useAppSelector } from "@/lib/hooks";
@@ -35,46 +41,118 @@ import {
 
 const allNavItems = [
   {
-    title: "Admin Dashboard",
+    title: "لوحة الإدارة العليا",
     url: "/dashboard/admin",
     icon: Home,
     roles: ["ADMIN"],
   },
   {
-    title: "Project Management",
-    url: "/dashboard/pm/projects",
-    icon: Briefcase,
-    roles: ["ADMIN", "PM"],
-  },
-  {
-    title: "Sales & CRM",
-    url: "/dashboard/sales/pipeline",
+    title: "إدارة العملاء (CRM)",
+    url: "/dashboard/admin/clients",
     icon: Users,
-    roles: ["ADMIN", "SALES"],
-  },
-  {
-    title: "Financials",
-    url: "/dashboard/accountant",
-    icon: Calculator,
-    roles: ["ADMIN", "ACCOUNTANT"],
-  },
-  {
-    title: "Marketing Campaigns",
-    url: "/dashboard/marketing",
-    icon: Megaphone,
-    roles: ["ADMIN", "MARKETING"],
-  },
-  {
-    title: "لوحتي",
-    url: "/dashboard/employee",
-    icon: ClipboardList,
-    roles: ["EMPLOYEE"],
+    roles: ["ADMIN"],
   },
   {
     title: "الموظفون",
     url: "/dashboard/admin/employees",
     icon: Users,
     roles: ["ADMIN"],
+  },
+  {
+    title: "الإعدادات والصلاحيات",
+    url: "/dashboard/admin/settings",
+    icon: Shield,
+    roles: ["ADMIN"],
+  },
+  {
+    title: "لوحة مدير المشروع",
+    url: "/dashboard/pm",
+    icon: Briefcase,
+    roles: ["ADMIN", "PM"],
+  },
+  {
+    title: "المشاريع",
+    url: "/dashboard/pm/projects",
+    icon: Briefcase,
+    roles: ["ADMIN", "PM"],
+  },
+  {
+    title: "المهام",
+    url: "/dashboard/pm/tasks",
+    icon: ListChecks,
+    roles: ["ADMIN", "PM"],
+  },
+  {
+    title: "طلبات التعديل",
+    url: "/dashboard/pm/requests",
+    icon: ClipboardList,
+    roles: ["ADMIN", "PM"],
+  },
+  {
+    title: "لوحة المبيعات",
+    url: "/dashboard/sales/pipeline",
+    icon: Kanban,
+    roles: ["ADMIN", "SALES"],
+  },
+  {
+    title: "العروض الفنية",
+    url: "/dashboard/sales/proposals",
+    icon: FileText,
+    roles: ["ADMIN", "SALES"],
+  },
+  {
+    title: "العقود",
+    url: "/dashboard/sales/contracts",
+    icon: FileSignature,
+    roles: ["ADMIN", "SALES"],
+  },
+  {
+    title: "لوحة الموظف التنفيذي",
+    url: "/dashboard/employee",
+    icon: ClipboardList,
+    roles: ["EMPLOYEE"],
+  },
+  {
+    title: "لوحة التسويق",
+    url: "/dashboard/marketing",
+    icon: Megaphone,
+    roles: ["ADMIN", "MARKETING"],
+  },
+  {
+    title: "عملاء التسويق",
+    url: "/dashboard/marketing/clients",
+    icon: Users,
+    roles: ["ADMIN", "MARKETING"],
+  },
+  {
+    title: "الحملات",
+    url: "/dashboard/marketing/campaigns",
+    icon: Megaphone,
+    roles: ["ADMIN", "MARKETING"],
+  },
+  {
+    title: "الفواتير",
+    url: "/dashboard/accountant/invoices",
+    icon: FileText,
+    roles: ["ADMIN", "ACCOUNTANT"],
+  },
+  {
+    title: "التذاكر المالية",
+    url: "/dashboard/accountant/tickets",
+    icon: Ticket,
+    roles: ["ADMIN", "ACCOUNTANT"],
+  },
+  {
+    title: "عقود مالية",
+    url: "/dashboard/accountant/contracts",
+    icon: FileSignature,
+    roles: ["ADMIN", "ACCOUNTANT"],
+  },
+  {
+    title: "الحساب الشخصي",
+    url: "/dashboard/account",
+    icon: UserCircle,
+    roles: ["ADMIN", "PM", "SALES", "EMPLOYEE", "MARKETING", "ACCOUNTANT"],
   },
 ];
 
