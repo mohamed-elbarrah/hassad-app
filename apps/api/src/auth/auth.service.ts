@@ -30,6 +30,7 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
+      include: { role: true },
     });
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");
@@ -51,7 +52,7 @@ export class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.role.name,
     };
     const accessToken = this.jwtService.sign(payload);
 
@@ -72,8 +73,8 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
-        department: user.department ?? null,
+        role: user.role.name,
+        department: null, // departments is now an array, returning null for legacy compat
       },
       accessToken,
       refreshToken,
@@ -95,17 +96,22 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
+      include: {
         role: true,
-        department: true,
-        isActive: true,
+        departments: {
+          include: {
+            department: true,
+          },
+        },
       },
     });
     if (!user) throw new UnauthorizedException();
-    return user;
+    
+    return {
+      ...user,
+      role: user.role.name,
+      departments: user.departments.map(ud => ud.department.name),
+    };
   }
 
   async registerClient(dto: RegisterClientDto) {
@@ -124,20 +130,17 @@ export class AuthService {
           name: dto.name,
           email: dto.email,
           passwordHash,
-          role: UserRole.CLIENT,
+          role: { connect: { name: UserRole.CLIENT } },
         },
       });
 
-      // Self-registered clients must be assigned to a SALES user so they appear
-      // in each SALES user's pipeline view (which filters by assignedToId = sales.id).
-      // If no SALES user exists yet, fall back to the first ADMIN.
       const salesUser = await tx.user.findFirst({
-        where: { role: UserRole.SALES, isActive: true },
+        where: { role: { name: UserRole.SALES }, isActive: true },
         select: { id: true },
       });
       const adminUser = !salesUser
         ? await tx.user.findFirst({
-            where: { role: UserRole.ADMIN },
+            where: { role: { name: UserRole.ADMIN } },
             select: { id: true },
           })
         : null;
@@ -145,20 +148,15 @@ export class AuthService {
 
       await tx.client.create({
         data: {
-          name: dto.name,
-          phone: dto.phone,
+          companyName: dto.name, // Using name as companyName for now
+          contactName: dto.name,
+          phoneWhatsapp: dto.phone,
+          email: dto.email,
+          businessName: dto.name,
           businessType: dto.businessType,
-          source: ClientSource.PLATFORM,
-          status: ClientStatus.LEAD,
-          stage: PipelineStage.NEW_LEAD,
-          assignedToId,
-          activityLog: [
-            {
-              action: "CLIENT_CREATED",
-              userId: user.id,
-              timestamp: new Date().toISOString(),
-            },
-          ],
+          accountManager: assignedToId,
+          status: ClientStatus.ACTIVE,
+          leadId: null, // Self-registered client
         },
       });
 
@@ -181,11 +179,17 @@ export class AuthService {
         name: dto.name,
         email: dto.email,
         passwordHash,
-        role: dto.role,
+        role: { connect: { name: dto.role } },
       },
-      select: { id: true, name: true, email: true, role: true },
+      include: { role: true },
     });
 
-    return user;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role.name,
+    };
   }
+
 }

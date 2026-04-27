@@ -7,10 +7,22 @@ import { ClientsTableSkeleton } from "@/components/dashboard/crm/ClientsTableSke
 import { CreateClientDialog } from "@/components/dashboard/crm/CreateClientDialog";
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import type { ClientFilters } from "@/features/clients/clientsApi";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+
+function resolveClientError(error: unknown): string {
+  const e = error as FetchBaseQueryError | undefined;
+  if (!e) return "حدث خطأ غير متوقع.";
+  if (e.status === 401) return "انتهت صلاحية جلستك. يرجى تسجيل الدخول مجدداً.";
+  if (e.status === 403) return "لا تملك صلاحية الوصول إلى بيانات العملاء.";
+  if (typeof e.status === "number" && e.status >= 500)
+    return "خطأ في الخادم. يرجى المحاولة لاحقاً.";
+  if (e.status === "FETCH_ERROR") return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
+  return "حدث خطأ أثناء تحميل العملاء. يرجى المحاولة مجدداً.";
+}
 
 export default function AdminClientsPage() {
   const [filters, setFilters] = useState<ClientFilters>({ page: 1, limit: 20 });
-  const { data, isLoading, isError } = useGetClientsQuery(filters);
+  const { data, isLoading, isError, error } = useGetClientsQuery(filters);
 
   const page = filters.page ?? 1;
   const totalPages = data?.totalPages ?? 1;
@@ -28,7 +40,7 @@ export default function AdminClientsPage() {
 
       {isError && (
         <p className="text-sm text-destructive">
-          حدث خطأ أثناء تحميل العملاء. يرجى المحاولة مجدداً.
+          {resolveClientError(error)}
         </p>
       )}
 

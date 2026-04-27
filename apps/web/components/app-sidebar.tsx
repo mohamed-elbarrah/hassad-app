@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Home,
   Users,
   Briefcase,
-  Calculator,
   Megaphone,
   Kanban,
   ClipboardList,
@@ -15,14 +15,20 @@ import {
   FileText,
   FileSignature,
   Ticket,
-  UserCircle,
   ListChecks,
+  ChevronRight,
+  type LucideIcon,
 } from "lucide-react";
 
 import { useAppSelector } from "@/lib/hooks";
 import { UserRole, TaskDepartment } from "@hassad/shared";
 import { NavUser } from "@/components/nav-user";
 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -34,125 +40,161 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 
-// ── Navigation items ──────────────────────────────────────────────────────────
+// ── Navigation types ──────────────────────────────────────────────────────────
 
-const allNavItems = [
+type NavSubItem = { title: string; url: string };
+type NavItem = {
+  title: string;
+  url?: string;
+  icon: LucideIcon;
+  roles: string[];
+  items?: NavSubItem[];
+};
+type NavSection = { label: string; items: NavItem[] };
+
+// ── Navigation config ─────────────────────────────────────────────────────────
+
+const navSections: NavSection[] = [
   {
-    title: "لوحة الإدارة العليا",
-    url: "/dashboard/admin",
-    icon: Home,
-    roles: ["ADMIN"],
+    label: "الإدارة",
+    items: [
+      {
+        title: "لوحة الإدارة العليا",
+        url: "/dashboard/admin",
+        icon: Home,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "إدارة الحسابات",
+        icon: Users,
+        roles: ["ADMIN"],
+        items: [
+          { title: "الموظفون", url: "/dashboard/admin/employees" },
+          { title: "العملاء (CRM)", url: "/dashboard/admin/clients" },
+        ],
+      },
+      {
+        title: "الإعدادات والصلاحيات",
+        url: "/dashboard/admin/settings",
+        icon: Shield,
+        roles: ["ADMIN"],
+      },
+    ],
   },
   {
-    title: "إدارة العملاء (CRM)",
-    url: "/dashboard/admin/clients",
-    icon: Users,
-    roles: ["ADMIN"],
+    label: "المشاريع",
+    items: [
+      {
+        title: "لوحة مدير المشروع",
+        url: "/dashboard/pm",
+        icon: Briefcase,
+        roles: ["ADMIN", "PM"],
+      },
+      {
+        title: "المشاريع",
+        url: "/dashboard/pm/projects",
+        icon: Briefcase,
+        roles: ["ADMIN", "PM"],
+      },
+      {
+        title: "المهام",
+        url: "/dashboard/pm/tasks",
+        icon: ListChecks,
+        roles: ["ADMIN", "PM"],
+      },
+      {
+        title: "طلبات التعديل",
+        url: "/dashboard/pm/requests",
+        icon: ClipboardList,
+        roles: ["ADMIN", "PM"],
+      },
+    ],
   },
   {
-    title: "الموظفون",
-    url: "/dashboard/admin/employees",
-    icon: Users,
-    roles: ["ADMIN"],
+    label: "المبيعات",
+    items: [
+      {
+        title: "لوحة المبيعات",
+        url: "/dashboard/sales/pipeline",
+        icon: Kanban,
+        roles: ["ADMIN", "SALES"],
+      },
+      {
+        title: "العروض الفنية",
+        url: "/dashboard/sales/proposals",
+        icon: FileText,
+        roles: ["ADMIN", "SALES"],
+      },
+      {
+        title: "العقود",
+        url: "/dashboard/sales/contracts",
+        icon: FileSignature,
+        roles: ["ADMIN", "SALES"],
+      },
+    ],
   },
   {
-    title: "الإعدادات والصلاحيات",
-    url: "/dashboard/admin/settings",
-    icon: Shield,
-    roles: ["ADMIN"],
+    label: "الموظف التنفيذي",
+    items: [
+      {
+        title: "لوحة الموظف التنفيذي",
+        url: "/dashboard/employee",
+        icon: ClipboardList,
+        roles: ["EMPLOYEE"],
+      },
+    ],
   },
   {
-    title: "لوحة مدير المشروع",
-    url: "/dashboard/pm",
-    icon: Briefcase,
-    roles: ["ADMIN", "PM"],
+    label: "التسويق",
+    items: [
+      {
+        title: "لوحة التسويق",
+        url: "/dashboard/marketing",
+        icon: Megaphone,
+        roles: ["ADMIN", "MARKETING"],
+      },
+      {
+        title: "عملاء التسويق",
+        url: "/dashboard/marketing/clients",
+        icon: Users,
+        roles: ["ADMIN", "MARKETING"],
+      },
+      {
+        title: "الحملات",
+        url: "/dashboard/marketing/campaigns",
+        icon: Megaphone,
+        roles: ["ADMIN", "MARKETING"],
+      },
+    ],
   },
   {
-    title: "المشاريع",
-    url: "/dashboard/pm/projects",
-    icon: Briefcase,
-    roles: ["ADMIN", "PM"],
-  },
-  {
-    title: "المهام",
-    url: "/dashboard/pm/tasks",
-    icon: ListChecks,
-    roles: ["ADMIN", "PM"],
-  },
-  {
-    title: "طلبات التعديل",
-    url: "/dashboard/pm/requests",
-    icon: ClipboardList,
-    roles: ["ADMIN", "PM"],
-  },
-  {
-    title: "لوحة المبيعات",
-    url: "/dashboard/sales/pipeline",
-    icon: Kanban,
-    roles: ["ADMIN", "SALES"],
-  },
-  {
-    title: "العروض الفنية",
-    url: "/dashboard/sales/proposals",
-    icon: FileText,
-    roles: ["ADMIN", "SALES"],
-  },
-  {
-    title: "العقود",
-    url: "/dashboard/sales/contracts",
-    icon: FileSignature,
-    roles: ["ADMIN", "SALES"],
-  },
-  {
-    title: "لوحة الموظف التنفيذي",
-    url: "/dashboard/employee",
-    icon: ClipboardList,
-    roles: ["EMPLOYEE"],
-  },
-  {
-    title: "لوحة التسويق",
-    url: "/dashboard/marketing",
-    icon: Megaphone,
-    roles: ["ADMIN", "MARKETING"],
-  },
-  {
-    title: "عملاء التسويق",
-    url: "/dashboard/marketing/clients",
-    icon: Users,
-    roles: ["ADMIN", "MARKETING"],
-  },
-  {
-    title: "الحملات",
-    url: "/dashboard/marketing/campaigns",
-    icon: Megaphone,
-    roles: ["ADMIN", "MARKETING"],
-  },
-  {
-    title: "الفواتير",
-    url: "/dashboard/accountant/invoices",
-    icon: FileText,
-    roles: ["ADMIN", "ACCOUNTANT"],
-  },
-  {
-    title: "التذاكر المالية",
-    url: "/dashboard/accountant/tickets",
-    icon: Ticket,
-    roles: ["ADMIN", "ACCOUNTANT"],
-  },
-  {
-    title: "عقود مالية",
-    url: "/dashboard/accountant/contracts",
-    icon: FileSignature,
-    roles: ["ADMIN", "ACCOUNTANT"],
-  },
-  {
-    title: "الحساب الشخصي",
-    url: "/dashboard/account",
-    icon: UserCircle,
-    roles: ["ADMIN", "PM", "SALES", "EMPLOYEE", "MARKETING", "ACCOUNTANT"],
+    label: "المالية",
+    items: [
+      {
+        title: "الفواتير",
+        url: "/dashboard/accountant/invoices",
+        icon: FileText,
+        roles: ["ADMIN", "ACCOUNTANT"],
+      },
+      {
+        title: "التذاكر المالية",
+        url: "/dashboard/accountant/tickets",
+        icon: Ticket,
+        roles: ["ADMIN", "ACCOUNTANT"],
+      },
+      {
+        title: "عقود مالية",
+        url: "/dashboard/accountant/contracts",
+        icon: FileSignature,
+        roles: ["ADMIN", "ACCOUNTANT"],
+      },
+    ],
   },
 ];
 
@@ -180,11 +222,7 @@ const DEPT_LABELS: Record<TaskDepartment, string> = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAppSelector((state) => state.auth);
-
-  const navItems = allNavItems.filter((item) => {
-    if (!user) return false;
-    return item.roles.includes(user.role);
-  });
+  const pathname = usePathname();
 
   // For employees show department name; for others show role label
   const roleLabel = user
@@ -193,6 +231,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ROLE_LABELS[user.role as UserRole])
       : ROLE_LABELS[user.role as UserRole]
     : "";
+
+  // Filter sections and items by user role; drop empty sections
+  const visibleSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(
+        (item) => user && item.roles.includes(user.role),
+      ),
+    }))
+    .filter((section) => section.items.length > 0);
 
   return (
     <Sidebar side="right" variant="inset" collapsible="icon" {...props}>
@@ -213,25 +261,74 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarSeparator />
 
-      {/* ── Nav items ── */}
+      {/* ── Nav sections ── */}
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {visibleSections.map((section, sectionIdx) => (
+          <React.Fragment key={section.label}>
+            <SidebarGroup>
+              <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {section.items.map((item) =>
+                    item.items ? (
+                      /* Collapsible parent (e.g. إدارة الحسابات) */
+                      <Collapsible
+                        key={item.title}
+                        defaultOpen={item.items.some((sub) =>
+                          pathname.startsWith(sub.url),
+                        )}
+                        className="group/collapsible"
+                      >
+                        <SidebarMenuItem>
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton tooltip={item.title}>
+                              <item.icon />
+                              <span>{item.title}</span>
+                              <ChevronRight className="mr-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <SidebarMenuSub>
+                              {item.items.map((sub) => (
+                                <SidebarMenuSubItem key={sub.title}>
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    isActive={pathname.startsWith(sub.url)}
+                                  >
+                                    <Link href={sub.url}>
+                                      <span>{sub.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </SidebarMenuItem>
+                      </Collapsible>
+                    ) : (
+                      /* Plain link item */
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={
+                            item.url !== undefined &&
+                            pathname.startsWith(item.url)
+                          }
+                        >
+                          <Link href={item.url ?? "#"}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ),
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            {sectionIdx < visibleSections.length - 1 && <SidebarSeparator />}
+          </React.Fragment>
+        ))}
       </SidebarContent>
 
       <SidebarSeparator />

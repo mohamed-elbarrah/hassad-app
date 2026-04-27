@@ -3,9 +3,21 @@
 import { CreateProposalDialog } from "@/components/dashboard/sales/CreateProposalDialog";
 import { ProposalsTable } from "@/components/dashboard/sales/ProposalsTable";
 import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+
+function resolveProposalError(error: unknown): string {
+  const e = error as FetchBaseQueryError | undefined;
+  if (!e) return "حدث خطأ غير متوقع.";
+  if (e.status === 401) return "انتهت صلاحية جلستك. يرجى تسجيل الدخول مجدداً.";
+  if (e.status === 403) return "لا تملك صلاحية الوصول إلى العروض الفنية.";
+  if (typeof e.status === "number" && e.status >= 500)
+    return "خطأ في الخادم. يرجى المحاولة لاحقاً.";
+  if (e.status === "FETCH_ERROR") return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
+  return "فشل تحميل العروض الفنية.";
+}
 
 export default function ProposalsPage() {
-  const { data, isLoading, isError } = useGetProposalsQuery({
+  const { data, isLoading, isError, error } = useGetProposalsQuery({
     page: 1,
     limit: 20,
   });
@@ -23,7 +35,7 @@ export default function ProposalsPage() {
 
       {isError && (
         <div className="rounded-md border p-4 text-sm text-destructive">
-          فشل تحميل العروض الفنية.
+          {resolveProposalError(error)}
         </div>
       )}
 

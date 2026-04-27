@@ -1,0 +1,11 @@
+export enum TriggerEvent {
+  PROJECT_COMPLETED = 'PROJECT_COMPLETED',
+  TASK_APPROVED = 'TASK_APPROVED',
+  MONTHLY_REVIEW = 'MONTHLY_REVIEW',
+}
+
+export enum AutoAction {
+  NONE = 'NONE',
+  NOTIFY_PM = 'NOTIFY_PM',
+  ESC_TO_ADMIN = 'ESC_TO_ADMIN',
+}

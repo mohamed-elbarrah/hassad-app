@@ -11,14 +11,32 @@ datasource db {
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-enum UserRole {
-  ADMIN
-  PM
-  SALES
-  EMPLOYEE
-  MARKETING
-  ACCOUNTANT
-  CLIENT
+enum BusinessType {
+  RESTAURANT
+  CLINIC
+  STORE
+  SERVICE
+  OTHER
+}
+
+enum ClientSource {
+  AD
+  REFERRAL
+  WEBSITE
+  WHATSAPP
+  PLATFORM
+}
+
+enum PipelineStage {
+  NEW_LEAD
+  INTRO_MESSAGE
+  CONTACT_ATTEMPT
+  MEETING_SCHEDULED
+  MEETING_HELD
+  TECHNICAL_PROPOSAL
+  FOLLOW_UP
+  APPROVAL
+  CONTRACT_SIGNED
 }
 
 enum ClientStatus {
@@ -27,22 +45,24 @@ enum ClientStatus {
   STOPPED
 }
 
-/// The 9 CRM sales pipeline stages, in order of progression.
-enum PipelineStage {
-  NEW_LEAD
-  INTRO_MESSAGE
-  CONTACT_ATTEMPT
-  MEETING_SCHEDULED
-  MEETING_HELD
-  PROPOSAL
-  FOLLOW_UP
-  APPROVAL
-  CONTRACT_SIGNED
+enum ContactLogType {
+  CALL
+  WHATSAPP
+  MEETING
+  EMAIL
 }
 
-enum ContactOutcome {
+enum ContactLogResult {
   NO_RESPONSE
   RESPONDED
+  BUSY
+  WRONG_NUMBER
+}
+
+enum AutomationStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 enum ProposalStatus {
@@ -53,10 +73,25 @@ enum ProposalStatus {
   REJECTED
 }
 
+enum ContractType {
+  MONTHLY_RETAINER
+  FIXED_PROJECT
+  ONE_TIME_SERVICE
+}
+
 enum ContractStatus {
   DRAFT
   SENT
   SIGNED
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum RenewalAlertType {
+  SIXTY_DAYS
+  THIRTY_DAYS
+  SEVEN_DAYS
 }
 
 enum ProjectStatus {
@@ -67,12 +102,18 @@ enum ProjectStatus {
   CANCELLED
 }
 
+enum ProjectMemberRole {
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
 enum TaskStatus {
   TODO
   IN_PROGRESS
   IN_REVIEW
-  BLOCKED
   DONE
+  REVISION
 }
 
 enum TaskPriority {
@@ -84,257 +125,1023 @@ enum TaskPriority {
 
 enum TaskDepartment {
   DESIGN
-  MARKETING
-  DEVELOPMENT
   CONTENT
-  MANAGEMENT
+  DEVELOPMENT
+  MARKETING
+  PRODUCTION
 }
 
-enum BusinessType {
-  RESTAURANT
-  CLINIC
-  STORE
-  SERVICE
+enum FilePurpose {
+  DELIVERABLE
+  REFERENCE
+  INTERNAL_DRAFT
 }
 
-enum ClientSource {
-  AD
-  REFERRAL
-  WEBSITE
-  WHATSAPP
-  PLATFORM
+enum DelayAlertLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CampaignPlatform {
+  META
+  GOOGLE
+  SNAPCHAT
+  TIKTOK
+  LINKEDIN
+}
+
+enum CampaignStatus {
+  PLANNING
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum DataSource {
+  API
+  MANUAL
+}
+
+enum AbTestElement {
+  HEADLINE
+  CREATIVE
+  AUDIENCE
+  OFFER
+}
+
+enum AbTestStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DUE
+  PAID
+  LATE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  APPLE_PAY
+  MADA
+  VISA_MC
+  TABBY
+  TAMARA
+  BANK_TRANSFER
+}
+
+enum TicketStatus {
+  PENDING
+  COLLECTION
+  PAID
+  LATE
+}
+
+enum TriggerEvent {
+  PROJECT_COMPLETED
+  TASK_APPROVED
+  MONTHLY_REVIEW
+}
+
+enum AutoAction {
+  NONE
+  NOTIFY_PM
+  ESC_TO_ADMIN
+}
+
+enum WorkloadStatus {
+  AVAILABLE
+  BUSY
+  OVERLOADED
+}
+
+enum AiEntityType {
+  LEAD
+  CLIENT
+  PROJECT
+  TASK
+  CAMPAIGN
+}
+
+enum AiAnalysisType {
+  CHURN_PREDICTION
+  SENTIMENT_ANALYSIS
+  PERFORMANCE_FORECAST
+  CONTENT_GENERATION
+  QUALITY_CHECK
+}
+
+enum AiSuggestionType {
+  STRATEGY
+  OPTIMIZATION
+  CONTENT
+}
+
+enum AiSuggestionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
-model User {
-  id            String          @id @default(cuid())
-  name          String
-  email         String          @unique
-  passwordHash  String
-  role          UserRole        @default(EMPLOYEE)
-  department    TaskDepartment?
-  isActive      Boolean         @default(true)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+// 🟣 CORE & PERMISSIONS
 
-  assignedClients  Client[]       @relation("AssignedTo")
-  managedProjects  Project[]      @relation("ProjectManager")
-  tasks            Task[]         @relation("AssignedTask")
-  uploadedFiles    TaskFile[]     @relation("UploadedFiles")
-  taskComments     TaskComment[]  @relation("TaskComments")
-  notifications    Notification[] @relation("UserNotifications")
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  roleId       String    @map("role_id")
+  role         Role      @relation(fields: [roleId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  permissions      UserPermission[]
+  departments      UserDepartment[]
+  assignedLeads    Lead[]                   @relation("LeadAssignee")
+  leadHistory      LeadPipelineHistory[]
+  contactLogs      LeadContactLog[]
+  managedClients   Client[]                 @relation("AccountManager")
+  clientHistory    ClientHistoryLog[]
+  createdProposals Proposal[]
+  createdContracts Contract[]               @relation("ContractCreator")
+  contractVersions ContractVersion[]
+  managedProjects  Project[]                @relation("ProjectManager")
+  projectMembers   ProjectMember[]
+  assignedTasks    Task[]                   @relation("TaskAssignee")
+  createdTasks     Task[]                   @relation("TaskCreator")
+  approvedTasks    Task[]                   @relation("TaskApprover")
+  taskHistory      TaskStatusHistory[]
+  uploadedFiles    TaskFile[]
+  taskComments     TaskComment[]
+  notifiedDelays   TaskDelayAlert[]
+  approvedDelivs   Deliverable[]
+  managedCampaigns Campaign[]               @relation("CampaignManager")
+  kpiSnapshots     CampaignKpiSnapshot[]
+  auditLogs        CampaignKpiAuditLog[]
+  createdAbTests   AbTest[]
+  createdInvoices  Invoice[]
+  assignedTickets  PaymentTicket[]          @relation("TicketAssignee")
+  internalRatings  InternalRating[]         @relation("RatedBy")
+  workload         StaffWorkload?
+  chatParticipants ConversationParticipant[]
+  sentMessages     Message[]
+  triggeredAiLogs  AiAnalysisLog[]
+  actionedAiSuggs  AiSuggestion[]
+  notifications    Notification[]
+
+  @@map("users")
+  @@index([roleId])
+  @@index([createdAt])
+}
+
+model Role {
+  id   String @id @default(uuid())
+  name String @unique
+
+  permissions RolePermission[]
+  users       User[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id   String @id @default(uuid())
+  name String @unique
+
+  roles RolePermission[]
+  users UserPermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  userId       String @map("user_id")
+  permissionId String @map("permission_id")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userDepartments UserDepartment[]
+  tasks           Task[]
+
+  @@map("departments")
+}
+
+model UserDepartment {
+  id           String @id @default(uuid())
+  userId       String @map("user_id")
+  departmentId String @map("department_id")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@map("user_departments")
+  @@unique([userId, departmentId])
+  @@index([userId])
+  @@index([departmentId])
+}
+
+
+// 🔵 CRM & PIPELINE
+
+model Lead {
+  id                  String        @id @default(uuid())
+  companyName         String        @map("company_name")
+  contactName         String        @map("contact_name")
+  phoneWhatsapp       String        @map("phone_whatsapp")
+  email               String?
+  businessName        String        @map("business_name")
+  businessType        BusinessType  @map("business_type")
+  source              ClientSource
+  assignedTo          String?       @map("assigned_to")
+  pipelineStage       PipelineStage @map("pipeline_stage")
+  contactAttemptCount Int           @default(0) @map("contact_attempt_count")
+  lastContactAt       DateTime?     @map("last_contact_at")
+  notes               String?
+  isActive            Boolean       @default(true) @map("is_active")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  assignee        User?                  @relation("LeadAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  pipelineHistory LeadPipelineHistory[]
+  contactLogs     LeadContactLog[]
+  automationLogs  LeadAutomationLog[]
+  client          Client?
+  proposals       Proposal[]
+
+  @@map("leads")
+  @@index([assignedTo])
+  @@index([pipelineStage])
+  @@index([createdAt])
+}
+
+model LeadPipelineHistory {
+  id        String        @id @default(uuid())
+  leadId    String        @map("lead_id")
+  fromStage PipelineStage @map("from_stage")
+  toStage   PipelineStage @map("to_stage")
+  changedBy String        @map("changed_by")
+  changedAt DateTime      @default(now()) @map("changed_at")
+
+  lead    Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  changer User @relation(fields: [changedBy], references: [id], onDelete: Restrict)
+
+  @@map("lead_pipeline_history")
+  @@index([leadId])
+  @@index([changedAt])
+}
+
+model LeadContactLog {
+  id          String           @id @default(uuid())
+  leadId      String           @map("lead_id")
+  userId      String           @map("user_id")
+  type        ContactLogType
+  result      ContactLogResult
+  notes       String?
+  contactedAt DateTime         @default(now()) @map("contacted_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("lead_contact_log")
+  @@index([leadId])
+  @@index([userId])
+}
+
+model LeadAutomationRule {
+  id            String   @id @default(uuid())
+  name          String
+  triggerType   String   @map("trigger_type")
+  conditionJson Json     @map("condition_json")
+  actionJson    Json     @map("action_json")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  logs LeadAutomationLog[]
+
+  @@map("lead_automation_rules")
+}
+
+model LeadAutomationLog {
+  id           String           @id @default(uuid())
+  leadId       String           @map("lead_id")
+  ruleId       String           @map("rule_id")
+  executedAt   DateTime         @default(now()) @map("executed_at")
+  status       AutomationStatus
+  responseData Json?            @map("response_data")
+
+  lead Lead               @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  rule LeadAutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@map("lead_automation_logs")
+  @@index([leadId])
+  @@index([ruleId])
 }
 
 model Client {
-  id           String        @id @default(cuid())
-  name         String
-  email        String?
-  phone        String
-  businessType BusinessType
-  source       ClientSource
-  status       ClientStatus  @default(LEAD)
-  stage        PipelineStage @default(NEW_LEAD)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                   String       @id @default(uuid())
+  leadId               String?      @unique @map("lead_id")
+  companyName          String       @map("company_name")
+  contactName          String       @map("contact_name")
+  phoneWhatsapp        String       @map("phone_whatsapp")
+  email                String?
+  businessName         String       @map("business_name")
+  businessType         String       @map("business_type") // Plain string as per DATA_BASE_V2.md, though it likely maps to BusinessType
+  accountManager       String?      @map("account_manager")
+  status               ClientStatus
+  portalAccessToken    String?      @unique @map("portal_access_token")
+  portalTokenExpiresAt DateTime?    @map("portal_token_expires_at")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
 
-  contactAttempts     Int       @default(0)
-  lastContactAttemptAt DateTime?
-  nextFollowUpAt      DateTime?
-  followUpStep        Int       @default(0)
+  lead         Lead?                @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  manager      User?                @relation("AccountManager", fields: [accountManager], references: [id], onDelete: SetNull)
+  historyLogs  ClientHistoryLog[]
+  contracts    Contract[]
+  projects     Project[]
+  revisionReqs ClientRevisionRequest[]
+  intakeForms  PortalIntakeForm[]
+  campaigns    Campaign[]
+  adPlatConns  AdPlatformConnection[]
+  invoices     Invoice[]
+  payTickets   PaymentTicket[]
+  satRatings   SatisfactionRating[]
 
-  assignedToId     String
-  assignedTo       User           @relation("AssignedTo", fields: [assignedToId], references: [id])
-
-  contracts        Contract[]
-  proposals        Proposal[]
-  projects         Project[]
-  activities       ClientActivity[]
-
-  requirements  Json?
-  activityLog   Json?
-
+  @@map("clients")
+  @@index([accountManager])
   @@index([status])
-  @@index([stage])
-  @@index([assignedToId])
-  @@index([nextFollowUpAt])
+  @@index([createdAt])
 }
 
-model Proposal {
-  id                 String         @id @default(cuid())
-  clientId           String
-  client             Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  services           Json
-  price              Float
-  startDate          DateTime
-  notes              String?
-  status             ProposalStatus @default(DRAFT)
-  shareToken         String?        @unique
-  sentAt             DateTime?
-  approvedAt         DateTime?
-  revisionNotes      String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+model ClientHistoryLog {
+  id          String   @id @default(uuid())
+  clientId    String   @map("client_id")
+  userId      String   @map("user_id")
+  eventType   String   @map("event_type") // ENUM in .md but values vary
+  description String
+  metadata    Json?
+  occurredAt  DateTime @default(now()) @map("occurred_at")
 
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("client_history_log")
   @@index([clientId])
+  @@index([occurredAt])
+}
+
+// 🟠 PROPOSALS & CONTRACTS
+
+model Proposal {
+  id                 String         @id @default(uuid())
+  leadId             String?        @map("lead_id")
+  createdBy          String         @map("created_by")
+  title              String
+  serviceDescription String         @map("service_description")
+  servicesList       Json           @map("services_list")
+  totalPrice         Float          @map("total_price")
+  durationDays       Int            @map("duration_days")
+  platforms          Json
+  status             ProposalStatus
+  shareLinkToken     String?        @unique @map("share_link_token")
+  sentAt             DateTime?      @map("sent_at")
+  approvedAt         DateTime?      @map("approved_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+
+  lead     Lead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  creator  User       @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  contract Contract?
+
+  @@map("proposals")
+  @@index([leadId])
+  @@index([createdBy])
   @@index([status])
 }
 
 model Contract {
-  id          String   @id @default(cuid())
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  services    Json
-  startDate   DateTime
-  endDate     DateTime
-  value       Float
-  status      ContractStatus @default(DRAFT)
-  fileUrl     String?
-  sentAt      DateTime?
-  signedAt    DateTime?
-  signedByName String?
-  signedByEmail String?
-  signatureUrl String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String         @id @default(uuid())
+  clientId     String         @map("client_id")
+  proposalId   String?        @unique @map("proposal_id")
+  createdBy    String         @map("created_by")
+  title        String
+  type         ContractType
+  status       ContractStatus
+  startDate    DateTime       @map("start_date")
+  endDate      DateTime       @map("end_date")
+  monthlyValue Float          @map("monthly_value")
+  totalValue   Float          @map("total_value")
+  filePath     String?        @map("file_path")
+  versionNumber Int            @default(1) @map("version_number")
+  eSigned      Boolean        @default(false) @map("e_signed")
+  signedAt     DateTime?      @map("signed_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
 
-  projects    Project[]
+  client       Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  proposal     Proposal?               @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  creator      User                    @relation("ContractCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  versions     ContractVersion[]
+  renewalAlerts ContractRenewalAlert[]
+  projects     Project[]
+  invoices     Invoice[]
+
+  @@map("contracts")
+  @@index([clientId])
+  @@index([status])
 }
 
+model ContractVersion {
+  id            String   @id @default(uuid())
+  contractId    String   @map("contract_id")
+  versionNumber Int      @map("version_number")
+  filePath      String   @map("file_path")
+  createdBy     String   @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  creator  User     @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("contract_versions")
+  @@index([contractId])
+}
+
+model ContractRenewalAlert {
+  id         String           @id @default(uuid())
+  contractId String           @map("contract_id")
+  alertType  RenewalAlertType @map("alert_type")
+  isSent     Boolean          @default(false) @map("is_sent")
+  scheduledAt DateTime         @map("scheduled_at")
+  sentAt     DateTime?        @map("sent_at")
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@map("contract_renewal_alerts")
+  @@index([contractId])
+}
+
+// 🟢 PROJECT MANAGEMENT
+
 model Project {
-  id          String        @id @default(cuid())
-  name        String
-  description String?
-  clientId    String
-  client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  contractId  String?
-  contract    Contract?     @relation(fields: [contractId], references: [id])
-  managerId   String
-  manager     User          @relation("ProjectManager", fields: [managerId], references: [id])
-  status      ProjectStatus @default(PLANNING)
-  progress    Float         @default(0)
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                 String        @id @default(uuid())
+  clientId           String        @map("client_id")
+  contractId         String?       @map("contract_id")
+  projectManagerId   String?       @map("project_manager_id")
+  name               String
+  description        String?
+  status             ProjectStatus
+  priority           TaskPriority  @map("priority")
+  startDate          DateTime      @map("start_date")
+  endDate            DateTime      @map("end_date")
+  completionPercentage Float       @default(0) @map("completion_percentage")
+  isArchived         Boolean       @default(false) @map("is_archived")
+  archivedAt         DateTime?     @map("archived_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
 
-  tasks       Task[]
+  client         Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contract       Contract?            @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  manager        User?                @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
+  members        ProjectMember[]
+  tasks          Task[]
+  deliverables   Deliverable[]
+  campaigns      Campaign[]
+  satRatings     SatisfactionRating[]
 
+  @@map("projects")
   @@index([clientId])
-  @@index([managerId])
+  @@index([projectManagerId])
   @@index([status])
+}
+
+model ProjectMember {
+  id        String            @id @default(uuid())
+  projectId String            @map("project_id")
+  userId    String            @map("user_id")
+  role      ProjectMemberRole
+  joinedAt  DateTime          @default(now()) @map("joined_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("project_members")
+  @@index([projectId])
+  @@index([userId])
 }
 
 model Task {
-  id                   String         @id @default(cuid())
-  title                String
-  projectId            String
-  project              Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignedTo           String
-  assignee             User           @relation("AssignedTask", fields: [assignedTo], references: [id])
-  dept                 TaskDepartment
-  status               TaskStatus     @default(TODO)
-  dueDate              DateTime
-  startDate            DateTime?
-  priority             TaskPriority   @default(NORMAL)
-  description          String?
-  escalationLevel      Int            @default(0)
-  escalationNotifiedAt DateTime?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  archivedAt           DateTime?
+  id                String         @id @default(uuid())
+  projectId         String         @map("project_id")
+  departmentId      String         @map("department_id")
+  assignedTo        String?        @map("assigned_to")
+  createdBy         String         @map("created_by")
+  approvedBy        String?        @map("approved_by")
+  title             String
+  description       String?
+  status            TaskStatus
+  priority          TaskPriority
+  dueDate           DateTime       @map("due_date")
+  startedAt         DateTime?      @map("started_at")
+  submittedAt       DateTime?      @map("submitted_at")
+  approvedAt        DateTime?      @map("approved_at")
+  revisionCount     Int            @default(0) @map("revision_count")
+  isVisibleToClient Boolean        @default(false) @map("is_visible_to_client")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
 
-  files        TaskFile[]
-  comments     TaskComment[]
+  project        Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  department     Department          @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  assignee       User?               @relation("TaskAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  creator        User                @relation("TaskCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  approver       User?               @relation("TaskApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  statusHistory  TaskStatusHistory[]
+  files          TaskFile[]
+  comments       TaskComment[]
+  delayAlerts    TaskDelayAlert[]
+  deliverables   Deliverable[]
+  internalRating InternalRating?
 
+  @@map("tasks")
   @@index([projectId])
   @@index([assignedTo])
   @@index([status])
-  @@index([escalationLevel])
+  @@index([createdAt])
 }
 
-model ClientActivity {
-  id        String   @id @default(cuid())
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  userId    String
-  action    String
-  details   String?
-  metadata  Json?
-  createdAt DateTime @default(now())
+model TaskStatusHistory {
+  id         String     @id @default(uuid())
+  taskId     String     @map("task_id")
+  fromStatus TaskStatus @map("from_status")
+  toStatus   TaskStatus @map("to_status")
+  changedBy  String     @map("changed_by")
+  changedAt  DateTime   @default(now()) @map("changed_at")
 
-  @@index([clientId])
-}
+  task    Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  changer User @relation(fields: [changedBy], references: [id], onDelete: Restrict)
 
-enum NotificationType {
-  // Existing values
-  TASK_ASSIGNED
-  TASK_STATUS_CHANGED
-  TASK_COMMENTED
-  PROJECT_STATUS_CHANGED
-  // New values
-  TASK_UPDATED
-  TASK_COMMENT_ADDED
-  TASK_FILE_UPLOADED
-  TASK_OVERDUE
-  TASK_DELAY_WARNING
-  TASK_ESCALATED_PM
-  TASK_ESCALATED_ADMIN
-  ADMIN_BROADCAST
-  SYSTEM_ALERT
+  @@map("task_status_history")
+  @@index([taskId])
 }
 
 model TaskFile {
-  id           String   @id @default(cuid())
-  taskId       String
-  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  uploadedById String
-  uploadedBy   User     @relation("UploadedFiles", fields: [uploadedById], references: [id])
-  fileName     String
-  filePath     String
-  fileSize     Int
-  mimeType     String
-  createdAt    DateTime @default(now())
+  id         String      @id @default(uuid())
+  taskId     String      @map("task_id")
+  uploadedBy String      @map("uploaded_by")
+  filePath   String      @map("file_path")
+  fileName   String      @map("file_name")
+  fileType   String      @map("file_type")
+  fileSize   Int         @map("file_size")
+  purpose    FilePurpose
+  uploadedAt DateTime    @default(now()) @map("uploaded_at")
 
+  task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader User @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@map("task_files")
   @@index([taskId])
 }
 
 model TaskComment {
-  id        String   @id @default(cuid())
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation("TaskComments", fields: [userId], references: [id])
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(uuid())
+  taskId          String   @map("task_id")
+  userId          String   @map("user_id")
+  content         String
+  isInternal      Boolean  @default(true) @map("is_internal")
+  createdAt       DateTime @default(now()) @map("created_at")
 
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("task_comments")
   @@index([taskId])
 }
 
-model Notification {
-  id         String           @id @default(cuid())
-  userId     String
-  user       User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
-  type       NotificationType
-  title      String
-  message    String
-  isRead     Boolean          @default(false)
-  entityId   String?
-  entityType String?
-  createdAt  DateTime         @default(now())
+model TaskDelayAlert {
+  id             String          @id @default(uuid())
+  taskId         String          @map("task_id")
+  notifiedUserId String          @map("notified_user_id")
+  alertLevel     DelayAlertLevel @map("alert_level")
+  isAcknowledged Boolean         @default(false) @map("is_acknowledged")
+  triggeredAt    DateTime        @default(now()) @map("triggered_at")
+  acknowledgedAt DateTime?       @map("acknowledged_at")
 
-  @@index([userId, isRead])
-  @@index([createdAt])
-  @@index([type])
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [notifiedUserId], references: [id], onDelete: Restrict)
+
+  @@map("task_delay_alerts")
+  @@index([taskId])
 }
 
+// 🟦 CLIENT PORTAL
+
+model Deliverable {
+  id                String            @id @default(uuid())
+  projectId         String            @map("project_id")
+  taskId            String?           @map("task_id")
+  approvedBy        String?           @map("approved_by")
+  title             String
+  description       String?
+  filePath          String            @map("file_path")
+  status            TaskStatus        @default(TODO) // Reuses TaskStatus or needs its own DeliverableStatus
+  isVisibleToClient Boolean           @default(true) @map("is_visible_to_client")
+  approvedAt        DateTime?         @map("approved_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task             Task?                    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  approver         User?                    @relation(fields: [approvedBy], references: [id], onDelete: SetNull)
+  revisionRequests ClientRevisionRequest[]
+
+  @@map("deliverables")
+  @@index([projectId])
+}
+
+model ClientRevisionRequest {
+  id                 String     @id @default(uuid())
+  deliverableId      String     @map("deliverable_id")
+  clientId           String     @map("client_id")
+  requestDescription String     @map("request_description")
+  status             TaskStatus @default(REVISION)
+  createdAt          DateTime   @default(now()) @map("created_at")
+  resolvedAt         DateTime?  @map("resolved_at")
+
+  deliverable Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("client_revision_requests")
+  @@index([deliverableId])
+  @@index([clientId])
+}
+
+model PortalIntakeForm {
+  id                  String    @id @default(uuid())
+  clientId            String    @map("client_id")
+  token               String    @unique
+  businessDescription String?   @map("business_description")
+  goals               Json?
+  uploadedFiles       Json?     @map("uploaded_files")
+  isSubmitted         Boolean   @default(false) @map("is_submitted")
+  submittedAt         DateTime? @map("submitted_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("portal_intake_forms")
+  @@index([clientId])
+}
+
+// 🔴 MARKETING
+
+model Campaign {
+  id           String           @id @default(uuid())
+  clientId     String           @map("client_id")
+  projectId    String?          @map("project_id")
+  managedBy    String           @map("managed_by")
+  name         String
+  platform     CampaignPlatform
+  status       CampaignStatus
+  startDate    DateTime         @map("start_date")
+  endDate      DateTime?        @map("end_date")
+  budgetTotal  Float            @map("budget_total")
+  budgetSpent  Float            @default(0) @map("budget_spent")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  client       Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project      Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  manager      User                  @relation("CampaignManager", fields: [managedBy], references: [id], onDelete: Restrict)
+  kpiSnapshots CampaignKpiSnapshot[]
+  abTests      AbTest[]
+
+  @@map("campaigns")
+  @@index([clientId])
+  @@index([managedBy])
+}
+
+model CampaignKpiSnapshot {
+  id                  String     @id @default(uuid())
+  campaignId          String     @map("campaign_id")
+  recordedBy          String     @map("recorded_by")
+  snapshotDate        DateTime   @map("snapshot_date")
+  impressions         Int        @default(0)
+  clicks              Int        @default(0)
+  messagesReceived    Int        @default(0) @map("messages_received")
+  ordersCount         Int        @default(0) @map("orders_count")
+  leadsCount          Int        @default(0) @map("leads_count")
+  conversionRate      Float      @default(0) @map("conversion_rate")
+  cac                 Float      @default(0)
+  ctr                 Float      @default(0)
+  dataSource          DataSource @map("data_source")
+  isApprovedByManager Boolean    @default(false) @map("is_approved_by_manager")
+  createdAt           DateTime   @default(now()) @map("created_at")
+
+  campaign Campaign              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  recorder User                  @relation(fields: [recordedBy], references: [id], onDelete: Restrict)
+  auditLogs CampaignKpiAuditLog[]
+
+  @@map("campaign_kpi_snapshots")
+  @@index([campaignId])
+  @@index([snapshotDate])
+}
+
+model CampaignKpiAuditLog {
+  id         String   @id @default(uuid())
+  snapshotId String   @map("snapshot_id")
+  updatedBy  String   @map("updated_by")
+  changes    Json
+  updatedAt  DateTime @default(now()) @map("updated_at")
+
+  snapshot CampaignKpiSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  updater  User                @relation(fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@map("campaign_kpi_audit_logs")
+  @@index([snapshotId])
+}
+
+model AdPlatformConnection {
+  id                   String           @id @default(uuid())
+  clientId             String           @map("client_id")
+  platform             CampaignPlatform
+  accessTokenEncrypted String           @map("access_token_encrypted")
+  accountId            String           @map("account_id")
+  tokenExpiresAt       DateTime?        @map("token_expires_at")
+  isActive             Boolean          @default(true) @map("is_active")
+  connectedAt          DateTime         @default(now()) @map("connected_at")
+  lastSyncedAt         DateTime?        @map("last_synced_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("ad_platform_connections")
+  @@index([clientId])
+}
+
+model AbTest {
+  id               String        @id @default(uuid())
+  campaignId       String        @map("campaign_id")
+  createdBy        String        @map("created_by")
+  name             String
+  testElement      AbTestElement @map("test_element")
+  status           AbTestStatus
+  variants         Json
+  winningVariantId String?       @map("winning_variant_id")
+  startedAt        DateTime?     @map("started_at")
+  endedAt          DateTime?     @map("ended_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator  User     @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("ab_tests")
+  @@index([campaignId])
+}
+
+// 🟡 FINANCE
+
 model Invoice {
-  id        String   @id @default(cuid())
-  clientId  String
-  amount    Float
-  status    String   @default("PENDING")
-  dueDate   DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String        @id @default(uuid())
+  clientId         String        @map("client_id")
+  contractId       String?       @map("contract_id")
+  createdBy        String        @map("created_by")
+  invoiceNumber    String        @unique @map("invoice_number")
+  amount           Float
+  status           InvoiceStatus
+  paymentMethod    PaymentMethod @map("payment_method")
+  issueDate        DateTime      @map("issue_date")
+  dueDate          DateTime      @map("due_date")
+  paidAt           DateTime?     @map("paid_at")
+  paymentReference String?       @map("payment_reference")
+  notes            String?
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  client   Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contract Contract?       @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  creator  User            @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  tickets  PaymentTicket[]
+
+  @@map("invoices")
+  @@index([clientId])
+  @@index([invoiceNumber])
+  @@index([status])
+}
+
+model PaymentTicket {
+  id         String       @id @default(uuid())
+  invoiceId  String       @map("invoice_id")
+  clientId   String       @map("client_id")
+  assignedTo String?      @map("assigned_to")
+  status     TicketStatus
+  notes      String?
+  createdAt  DateTime     @default(now()) @map("created_at")
+  resolvedAt DateTime?    @map("resolved_at")
+
+  invoice  Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  client   Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignee User?   @relation("TicketAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  @@map("payment_tickets")
+  @@index([invoiceId])
+  @@index([clientId])
+}
+
+// 🟣 RATINGS & PERFORMANCE
+
+model SatisfactionRating {
+  id           String       @id @default(uuid())
+  clientId     String       @map("client_id")
+  projectId    String?      @map("project_id")
+  score        Int
+  comment      String?
+  triggerEvent TriggerEvent @map("trigger_event")
+  autoAction   AutoAction   @map("auto_action")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@map("satisfaction_ratings")
+  @@index([clientId])
+}
+
+model InternalRating {
+  id        String   @id @default(uuid())
+  taskId    String   @unique @map("task_id")
+  ratedBy   String   @map("rated_by")
+  score     Int
+  feedback  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  rater User @relation("RatedBy", fields: [ratedBy], references: [id], onDelete: Restrict)
+
+  @@map("internal_ratings")
+  @@index([taskId])
+}
+
+model StaffWorkload {
+  id                    String         @id @default(uuid())
+  userId                String         @unique @map("user_id")
+  activeTasksCount      Int            @default(0) @map("active_tasks_count")
+  workloadStatus        WorkloadStatus @map("workload_status")
+  avgCompletionSpeedDays Float          @default(0) @map("avg_completion_speed_days")
+  avgQualityScore       Float          @default(0) @map("avg_quality_score")
+  calculatedAt          DateTime       @default(now()) @map("calculated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("staff_workload")
+}
+
+// ⚫ COMMUNICATION (CHAT)
+
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String @id @default(uuid())
+  conversationId String @map("conversation_id")
+  userId         String @map("user_id")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("conversation_participants")
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id")
+  senderId       String   @map("sender_id")
+  content        String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  attachments  MessageAttachment[]
+
+  @@map("messages")
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model MessageAttachment {
+  id         String   @id @default(uuid())
+  messageId  String   @map("message_id")
+  filePath   String   @map("file_path")
+  fileName   String   @map("file_name")
+  fileType   String   @map("file_type")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
+  @@index([messageId])
+}
+
+// ⚪ NOTIFICATIONS
+
+model NotificationEvent {
+  id          String   @id @default(uuid())
+  entityId    String   @map("entity_id")
+  entityType  String   @map("entity_type")
+  eventType   String   @map("event_type")
+  metadata    Json?
+  triggeredAt DateTime @default(now()) @map("triggered_at")
+
+  notifications Notification[]
+
+  @@map("notification_events")
+}
+
+model Notification {
+  id      String    @id @default(uuid())
+  eventId String    @map("event_id")
+  userId  String    @map("user_id")
+  title   String
+  body    String
+  isRead  Boolean   @default(false) @map("is_read")
+  channel String // email, push, etc.
+  sentAt  DateTime? @map("sent_at")
+  readAt  DateTime? @map("read_at")
+
+  event NotificationEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@index([userId])
+  @@index([isRead])
+  @@index([sentAt])
+}
+
+// 🔵 AI LAYER
+
+model AiAnalysisLog {
+  id              String         @id @default(uuid())
+  entityId        String         @map("entity_id")
+  entityType      AiEntityType   @map("entity_type")
+  analysisType    AiAnalysisType @map("analysis_type")
+  inputData       Json           @map("input_data")
+  outputData      Json           @map("output_data")
+  confidenceScore Float          @map("confidence_score")
+  triggeredBy     String?        @map("triggered_by")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  user        User?          @relation(fields: [triggeredBy], references: [id], onDelete: SetNull)
+  suggestions AiSuggestion[]
+
+  @@map("ai_analysis_logs")
+  @@index([entityId])
+  @@index([analysisType])
+}
+
+model AiSuggestion {
+  id             String             @id @default(uuid())
+  logId          String             @map("log_id")
+  entityId       String             @map("entity_id")
+  suggestionType AiSuggestionType   @map("suggestion_type")
+  description    String
+  status         AiSuggestionStatus
+  actionedBy     String?            @map("actioned_by")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  actionedAt     DateTime?          @map("actioned_at")
+
+  log    AiAnalysisLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  actor  User?         @relation(fields: [actionedBy], references: [id], onDelete: SetNull)
+
+  @@map("ai_suggestions")
+  @@index([logId])
+  @@index([status])
 }

@@ -17,8 +17,20 @@ import {
   useGetClientsQuery,
   useUpdateClientStageMutation,
 } from "@/features/clients/clientsApi";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
+
+function resolveKanbanError(error: unknown): string {
+  const e = error as FetchBaseQueryError | undefined;
+  if (!e) return "حدث خطأ غير متوقع.";
+  if (e.status === 401) return "انتهت صلاحية جلستك. يرجى تسجيل الدخول مجدداً.";
+  if (e.status === 403) return "لا تملك صلاحية الوصول إلى بيانات العملاء.";
+  if (typeof e.status === "number" && e.status >= 500)
+    return "خطأ في الخادم. يرجى المحاولة لاحقاً.";
+  if (e.status === "FETCH_ERROR") return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
+  return "فشل تحميل لوحة المبيعات.";
+}
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
   [PipelineStage.NEW_LEAD]: "عميل جديد",
@@ -48,7 +60,7 @@ export function KanbanBoard() {
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [updateStage] = useUpdateClientStageMutation();
 
-  const { data, isLoading, isError } = useGetClientsQuery({ limit: 100 });
+  const { data, isLoading, isError, error } = useGetClientsQuery({ limit: 100 });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -110,9 +122,8 @@ export function KanbanBoard() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-        <p className="text-destructive font-medium">فشل تحميل لوحة المبيعات</p>
-        <p className="text-sm text-muted-foreground">
-          تحقق من الاتصال بالخادم وأعد المحاولة
+        <p className="text-destructive font-medium">
+          {resolveKanbanError(error)}
         </p>
       </div>
     );

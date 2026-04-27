@@ -2,6 +2,11 @@
 export * from "./enums/roles";
 export * from "./enums/client";
 export * from "./enums/project";
+export * from "./enums/marketing";
+export * from "./enums/finance";
+export * from "./enums/ai";
+export * from "./enums/satisfaction";
+export * from "./enums/workload";
 
 // Schemas
 export * from "./schemas/auth.schema";
@@ -26,7 +31,6 @@ import {
   TaskStatus,
   TaskPriority,
   TaskDepartment,
-  NotificationType,
 } from "./enums/project";
 
 export interface User {
@@ -146,7 +150,7 @@ export interface TaskComment {
 export interface Notification {
   id: string;
   userId: string;
-  type: NotificationType;
+  type: string;
   title: string;
   message: string;
   isRead: boolean;

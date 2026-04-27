@@ -4,14 +4,20 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
-import { ClientsModule } from "./clients/clients.module";
-import { ProjectsModule } from "./projects/projects.module";
-import { TasksModule } from "./tasks/tasks.module";
-import { UsersModule } from "./users/users.module";
-import { NotificationsModule } from "./notifications/notifications.module";
-import { ProposalsModule } from "./proposals/proposals.module";
-import { ContractsModule } from "./contracts/contracts.module";
-import { SalesModule } from "./sales/sales.module";
+
+// V2 Modules
+import { CoreModule } from "./modules/core/core.module";
+import { CrmModule } from "./modules/crm/crm.module";
+import { ProposalsModule } from "./modules/proposals/proposals.module";
+import { ContractsModule } from "./modules/contracts/contracts.module";
+import { ProjectsModule } from "./modules/projects/projects.module";
+import { TasksModule } from "./modules/tasks/tasks.module";
+import { PortalModule } from "./modules/portal/portal.module";
+import { MarketingModule } from "./modules/marketing/marketing.module";
+import { FinanceModule } from "./modules/finance/finance.module";
+import { ChatModule } from "./modules/chat/chat.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { AiModule } from "./modules/ai/ai.module";
 
 @Module({
   imports: [
@@ -26,14 +32,20 @@ import { SalesModule } from "./sales/sales.module";
     ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
-    ClientsModule,
-    ProjectsModule,
-    TasksModule,
-    UsersModule,
-    NotificationsModule,
+    
+    // V2 Modules
+    CoreModule,
+    CrmModule,
     ProposalsModule,
     ContractsModule,
-    SalesModule,
+    ProjectsModule,
+    TasksModule,
+    PortalModule,
+    MarketingModule,
+    FinanceModule,
+    ChatModule,
+    NotificationsModule,
+    AiModule,
   ],
 })
 export class AppModule {}

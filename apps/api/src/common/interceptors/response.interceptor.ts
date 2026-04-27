@@ -10,7 +10,7 @@ import { map } from 'rxjs/operators'
 export interface Response<T> {
   success: boolean
   data: T
-  timestamp: string
+  error: any
 }
 
 @Injectable()
@@ -23,8 +23,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
       map((data) => ({
         success: true,
         data,
-        timestamp: new Date().toISOString(),
+        error: null,
       }))
     )
   }
 }
+
