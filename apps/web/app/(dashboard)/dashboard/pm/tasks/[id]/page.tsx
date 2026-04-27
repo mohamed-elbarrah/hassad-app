@@ -24,10 +24,19 @@ import {
   TaskStatus,
   TaskPriority,
   TaskDepartment,
-  TASK_STATUS_TRANSITIONS,
   UserRole,
 } from "@hassad/shared";
 import { toast } from "sonner";
+
+// Allowed status transitions per role (mirrors API workflow)
+const TASK_STATUS_TRANSITIONS: Partial<Record<TaskStatus, Partial<Record<UserRole, TaskStatus[]>>>> = {
+  [TaskStatus.TODO]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
+  [TaskStatus.IN_PROGRESS]: { EMPLOYEE: [TaskStatus.IN_REVIEW] },
+  [TaskStatus.IN_REVIEW]: {
+    PM: [TaskStatus.DONE, TaskStatus.REVISION],
+  },
+  [TaskStatus.REVISION]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
+};
 
 // ── Label maps ────────────────────────────────────────────────────────────────
 
@@ -35,7 +44,7 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.TODO]: "للتنفيذ",
   [TaskStatus.IN_PROGRESS]: "قيد التنفيذ",
   [TaskStatus.IN_REVIEW]: "قيد المراجعة",
-  [TaskStatus.BLOCKED]: "محظور",
+  [TaskStatus.REVISION]: "يحتاج تعديل",
   [TaskStatus.DONE]: "منجز",
 };
 
@@ -51,7 +60,7 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "التسويق",
   [TaskDepartment.DEVELOPMENT]: "التطوير",
   [TaskDepartment.CONTENT]: "المحتوى",
-  [TaskDepartment.MANAGEMENT]: "الإدارة",
+  [TaskDepartment.PRODUCTION]: "الإدارة",
 };
 
 const STATUS_VARIANT: Record<
@@ -61,7 +70,7 @@ const STATUS_VARIANT: Record<
   [TaskStatus.TODO]: "secondary",
   [TaskStatus.IN_PROGRESS]: "default",
   [TaskStatus.IN_REVIEW]: "outline",
-  [TaskStatus.BLOCKED]: "destructive",
+  [TaskStatus.REVISION]: "destructive",
   [TaskStatus.DONE]: "secondary",
 };
 
@@ -87,7 +96,7 @@ function getAllowedTransitions(
   if (role === UserRole.PM || role === UserRole.EMPLOYEE) {
     return (
       TASK_STATUS_TRANSITIONS[currentStatus]?.[
-        role as UserRole.PM | UserRole.EMPLOYEE
+        role as string
       ] ?? []
     );
   }

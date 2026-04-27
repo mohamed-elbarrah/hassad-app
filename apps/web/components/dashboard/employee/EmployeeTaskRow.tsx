@@ -14,7 +14,7 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.TODO]: "للتنفيذ",
   [TaskStatus.IN_PROGRESS]: "قيد التنفيذ",
   [TaskStatus.IN_REVIEW]: "قيد المراجعة",
-  [TaskStatus.BLOCKED]: "محظور",
+  [TaskStatus.REVISION]: "يحتاج تعديل",
   [TaskStatus.DONE]: "منجز",
 };
 
@@ -30,7 +30,7 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "تسويق",
   [TaskDepartment.DEVELOPMENT]: "تطوير",
   [TaskDepartment.CONTENT]: "محتوى",
-  [TaskDepartment.MANAGEMENT]: "إدارة",
+  [TaskDepartment.PRODUCTION]: "إدارة",
 };
 
 const PRIORITY_VARIANT: Record<

@@ -28,14 +28,14 @@ enum ClientSource {
 }
 
 enum PipelineStage {
-  NEW_LEAD
-  INTRO_MESSAGE
-  CONTACT_ATTEMPT
+  NEW
+  INTRO_SENT
+  CALL_ATTEMPT
   MEETING_SCHEDULED
-  MEETING_HELD
-  TECHNICAL_PROPOSAL
+  MEETING_DONE
+  PROPOSAL_SENT
   FOLLOW_UP
-  APPROVAL
+  APPROVED
   CONTRACT_SIGNED
 }
 
@@ -472,7 +472,7 @@ model Client {
   phoneWhatsapp        String       @map("phone_whatsapp")
   email                String?
   businessName         String       @map("business_name")
-  businessType         String       @map("business_type") // Plain string as per DATA_BASE_V2.md, though it likely maps to BusinessType
+  businessType         BusinessType @map("business_type")
   accountManager       String?      @map("account_manager")
   status               ClientStatus
   portalAccessToken    String?      @unique @map("portal_access_token")
@@ -785,7 +785,7 @@ model ClientRevisionRequest {
   deliverableId      String     @map("deliverable_id")
   clientId           String     @map("client_id")
   requestDescription String     @map("request_description")
-  status             TaskStatus @default(REVISION)
+  status             TaskStatus @default(TODO)
   createdAt          DateTime   @default(now()) @map("created_at")
   resolvedAt         DateTime?  @map("resolved_at")
 

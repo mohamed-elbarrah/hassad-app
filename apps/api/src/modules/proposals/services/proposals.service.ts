@@ -64,7 +64,7 @@ export class ProposalsService {
       if (proposal.leadId) {
         await tx.lead.update({
           where: { id: proposal.leadId },
-          data: { pipelineStage: PipelineStage.APPROVAL },
+          data: { pipelineStage: PipelineStage.APPROVED },
         });
       }
 

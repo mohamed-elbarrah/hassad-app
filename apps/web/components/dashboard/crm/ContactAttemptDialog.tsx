@@ -42,6 +42,8 @@ type ContactAttemptValues = z.infer<typeof contactAttemptSchema>;
 const OUTCOME_LABELS: Record<ContactOutcome, string> = {
   [ContactOutcome.NO_RESPONSE]: "لا يوجد رد",
   [ContactOutcome.RESPONDED]: "تم الرد",
+  [ContactOutcome.BUSY]: "مشغول",
+  [ContactOutcome.WRONG_NUMBER]: "رقم خاطئ",
 };
 
 interface ContactAttemptDialogProps {

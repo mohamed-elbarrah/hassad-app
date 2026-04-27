@@ -33,26 +33,26 @@ function resolveKanbanError(error: unknown): string {
 }
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
-  [PipelineStage.NEW_LEAD]: "عميل جديد",
-  [PipelineStage.INTRO_MESSAGE]: "رسالة تعريفية",
-  [PipelineStage.CONTACT_ATTEMPT]: "محاولة اتصال",
+  [PipelineStage.NEW]: "عميل جديد",
+  [PipelineStage.INTRO_SENT]: "تم التواصل",
+  [PipelineStage.CALL_ATTEMPT]: "محاولة اتصال",
   [PipelineStage.MEETING_SCHEDULED]: "موعد محدد",
-  [PipelineStage.MEETING_HELD]: "اجتماع",
-  [PipelineStage.PROPOSAL]: "عرض فني",
+  [PipelineStage.MEETING_DONE]: "تم الاجتماع",
+  [PipelineStage.PROPOSAL_SENT]: "تم إرسال العرض",
   [PipelineStage.FOLLOW_UP]: "متابعة",
-  [PipelineStage.APPROVAL]: "موافقة",
+  [PipelineStage.APPROVED]: "موافقة",
   [PipelineStage.CONTRACT_SIGNED]: "توقيع عقد",
 };
 
 const STAGE_COLORS: Record<PipelineStage, string> = {
-  [PipelineStage.NEW_LEAD]: "bg-slate-50 border-slate-300",
-  [PipelineStage.INTRO_MESSAGE]: "bg-blue-50 border-blue-300",
-  [PipelineStage.CONTACT_ATTEMPT]: "bg-indigo-50 border-indigo-300",
+  [PipelineStage.NEW]: "bg-slate-50 border-slate-300",
+  [PipelineStage.INTRO_SENT]: "bg-blue-50 border-blue-300",
+  [PipelineStage.CALL_ATTEMPT]: "bg-indigo-50 border-indigo-300",
   [PipelineStage.MEETING_SCHEDULED]: "bg-violet-50 border-violet-300",
-  [PipelineStage.MEETING_HELD]: "bg-purple-50 border-purple-300",
-  [PipelineStage.PROPOSAL]: "bg-amber-50 border-amber-300",
+  [PipelineStage.MEETING_DONE]: "bg-purple-50 border-purple-300",
+  [PipelineStage.PROPOSAL_SENT]: "bg-amber-50 border-amber-300",
   [PipelineStage.FOLLOW_UP]: "bg-orange-50 border-orange-300",
-  [PipelineStage.APPROVAL]: "bg-yellow-50 border-yellow-300",
+  [PipelineStage.APPROVED]: "bg-yellow-50 border-yellow-300",
   [PipelineStage.CONTRACT_SIGNED]: "bg-emerald-50 border-emerald-300",
 };
 

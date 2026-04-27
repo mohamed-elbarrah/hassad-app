@@ -109,7 +109,7 @@ const ACTION_CONFIG: Record<
     icon: CheckCircle2,
     color: "text-emerald-600",
   },
-  HANDOVER: {
+  CONTRACT_SIGNED_HANDOVER: {
     label: "تسليم للعمليات",
     icon: ClipboardList,
     color: "text-muted-foreground",

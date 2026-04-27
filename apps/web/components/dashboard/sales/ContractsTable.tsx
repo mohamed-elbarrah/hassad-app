@@ -22,6 +22,9 @@ const STATUS_LABELS: Record<ContractStatus, string> = {
   [ContractStatus.DRAFT]: "مسودة",
   [ContractStatus.SENT]: "مرسل",
   [ContractStatus.SIGNED]: "موقع",
+  [ContractStatus.ACTIVE]: "نشط",
+  [ContractStatus.EXPIRED]: "منتهي",
+  [ContractStatus.CANCELLED]: "ملغى",
 };
 
 interface ContractsTableProps {

@@ -12,7 +12,7 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: TaskStatus.TODO, label: "للتنفيذ" },
   { status: TaskStatus.IN_PROGRESS, label: "قيد التنفيذ" },
   { status: TaskStatus.IN_REVIEW, label: "قيد المراجعة" },
-  { status: TaskStatus.BLOCKED, label: "محظور" },
+  { status: TaskStatus.REVISION, label: "يحتاج تعديل" },
   { status: TaskStatus.DONE, label: "منجز" },
 ];
 

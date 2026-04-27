@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
 
@@ -7,6 +7,18 @@ export class ProjectsService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateProjectDto) {
+    if (!dto.contractId) {
+      throw new BadRequestException('Project must be linked to a signed contract');
+    }
+
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: dto.contractId },
+    });
+
+    if (!contract) {
+      throw new NotFoundException(`Contract with ID ${dto.contractId} not found`);
+    }
+
     return this.prisma.project.create({
       data: {
         ...dto,

@@ -11,7 +11,7 @@ export class LeadsService {
     return this.prisma.lead.create({
       data: {
         ...dto,
-        pipelineStage: PipelineStage.NEW_LEAD,
+        pipelineStage: PipelineStage.NEW,
       },
     });
   }
@@ -127,6 +127,12 @@ export class LeadsService {
       // TODO: Emit notification event
 
       return client;
+    });
+  }
+  async remove(id: string) {
+    return this.prisma.lead.update({
+      where: { id },
+      data: { isActive: false },
     });
   }
 }

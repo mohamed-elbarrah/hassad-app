@@ -26,7 +26,7 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.TODO]: "للتنفيذ",
   [TaskStatus.IN_PROGRESS]: "قيد التنفيذ",
   [TaskStatus.IN_REVIEW]: "قيد المراجعة",
-  [TaskStatus.BLOCKED]: "محظور",
+  [TaskStatus.REVISION]: "يحتاج تعديل",
   [TaskStatus.DONE]: "منجز",
 };
 

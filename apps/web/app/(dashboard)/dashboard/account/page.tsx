@@ -23,7 +23,7 @@ const DEPT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "التسويق",
   [TaskDepartment.DEVELOPMENT]: "التطوير",
   [TaskDepartment.CONTENT]: "المحتوى",
-  [TaskDepartment.MANAGEMENT]: "الإدارة",
+  [TaskDepartment.PRODUCTION]: "الإدارة",
 };
 
 function getInitials(name: string) {

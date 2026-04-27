@@ -56,6 +56,20 @@ export class TasksService {
   private async updateStatus(id: string, userId: string, toStatus: TaskStatus, approvedBy?: string) {
     const task = await this.findOne(id);
 
+    // Workflow enforcement
+    if (toStatus === TaskStatus.IN_PROGRESS && task.status !== TaskStatus.TODO) {
+      throw new BadRequestException('Task must be TODO to start');
+    }
+    if (toStatus === TaskStatus.IN_REVIEW && task.status !== TaskStatus.IN_PROGRESS) {
+      throw new BadRequestException('Task must be IN_PROGRESS to submit');
+    }
+    if (toStatus === TaskStatus.DONE && task.status !== TaskStatus.IN_REVIEW) {
+      throw new BadRequestException('Task must be IN_REVIEW to approve');
+    }
+    if (toStatus === TaskStatus.REVISION && task.status !== TaskStatus.IN_REVIEW) {
+      throw new BadRequestException('Task must be IN_REVIEW to reject for revision');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const updatedTask = await tx.task.update({
         where: { id },

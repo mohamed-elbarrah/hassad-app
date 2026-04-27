@@ -15,21 +15,62 @@ export enum ClientSource {
 }
 
 export enum PipelineStage {
-  NEW_LEAD = 'NEW_LEAD',
-  INTRO_MESSAGE = 'INTRO_MESSAGE',
-  CONTACT_ATTEMPT = 'CONTACT_ATTEMPT',
+  NEW = 'NEW',
+  INTRO_SENT = 'INTRO_SENT',
+  CALL_ATTEMPT = 'CALL_ATTEMPT',
   MEETING_SCHEDULED = 'MEETING_SCHEDULED',
-  MEETING_HELD = 'MEETING_HELD',
-  TECHNICAL_PROPOSAL = 'TECHNICAL_PROPOSAL',
+  MEETING_DONE = 'MEETING_DONE',
+  PROPOSAL_SENT = 'PROPOSAL_SENT',
   FOLLOW_UP = 'FOLLOW_UP',
-  APPROVAL = 'APPROVAL',
+  APPROVED = 'APPROVED',
   CONTRACT_SIGNED = 'CONTRACT_SIGNED',
 }
+
+export const PIPELINE_UI_MAP = {
+  [PipelineStage.NEW]: 'New Lead',
+  [PipelineStage.INTRO_SENT]: 'Contacted',
+  [PipelineStage.CALL_ATTEMPT]: 'Follow-up Attempt',
+  [PipelineStage.MEETING_SCHEDULED]: 'Meeting Scheduled',
+  [PipelineStage.MEETING_DONE]: 'Meeting Completed',
+  [PipelineStage.PROPOSAL_SENT]: 'Proposal Sent',
+  [PipelineStage.FOLLOW_UP]: 'Negotiation / Follow-up',
+  [PipelineStage.APPROVED]: 'Approved',
+  [PipelineStage.CONTRACT_SIGNED]: 'Won (Contract Signed)',
+};
+
+export const PIPELINE_STAGE_ORDER: PipelineStage[] = [
+  PipelineStage.NEW,
+  PipelineStage.INTRO_SENT,
+  PipelineStage.CALL_ATTEMPT,
+  PipelineStage.MEETING_SCHEDULED,
+  PipelineStage.MEETING_DONE,
+  PipelineStage.PROPOSAL_SENT,
+  PipelineStage.FOLLOW_UP,
+  PipelineStage.APPROVED,
+  PipelineStage.CONTRACT_SIGNED,
+];
 
 export enum ClientStatus {
   LEAD = 'LEAD',
   ACTIVE = 'ACTIVE',
   STOPPED = 'STOPPED',
+}
+
+export enum ProposalStatus {
+  DRAFT = 'DRAFT',
+  SENT = 'SENT',
+  APPROVED = 'APPROVED',
+  REVISION_REQUESTED = 'REVISION_REQUESTED',
+  REJECTED = 'REJECTED',
+}
+
+export enum ContractStatus {
+  DRAFT = 'DRAFT',
+  SENT = 'SENT',
+  SIGNED = 'SIGNED',
+  ACTIVE = 'ACTIVE',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum ContactLogType {
@@ -52,32 +93,30 @@ export enum AutomationStatus {
   FAILED = 'FAILED',
 }
 
-export enum ProposalStatus {
-  DRAFT = 'DRAFT',
-  SENT = 'SENT',
-  APPROVED = 'APPROVED',
-  REVISION_REQUESTED = 'REVISION_REQUESTED',
-  REJECTED = 'REJECTED',
-}
-
 export enum ContractType {
   MONTHLY_RETAINER = 'MONTHLY_RETAINER',
   FIXED_PROJECT = 'FIXED_PROJECT',
   ONE_TIME_SERVICE = 'ONE_TIME_SERVICE',
 }
 
-export enum ContractStatus {
-  DRAFT = 'DRAFT',
-  SENT = 'SENT',
-  SIGNED = 'SIGNED',
-  ACTIVE = 'ACTIVE',
-  EXPIRED = 'EXPIRED',
-  CANCELLED = 'CANCELLED',
-}
-
 export enum RenewalAlertType {
   SIXTY_DAYS = 'SIXTY_DAYS',
   THIRTY_DAYS = 'THIRTY_DAYS',
   SEVEN_DAYS = 'SEVEN_DAYS',
+}
+
+export enum ContactOutcome {
+  NO_RESPONSE = 'NO_RESPONSE',
+  RESPONDED = 'RESPONDED',
+  BUSY = 'BUSY',
+  WRONG_NUMBER = 'WRONG_NUMBER',
+}
+
+export enum NotificationType {
+  INFO = 'INFO',
+  SUCCESS = 'SUCCESS',
+  WARNING = 'WARNING',
+  ERROR = 'ERROR',
+  SYSTEM = 'SYSTEM',
 }
 

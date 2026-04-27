@@ -56,6 +56,7 @@ const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.CLINIC]: "عيادة",
   [BusinessType.STORE]: "متجر",
   [BusinessType.SERVICE]: "خدمة",
+  [BusinessType.OTHER]: "أخرى",
 };
 
 export default function SignupPage() {

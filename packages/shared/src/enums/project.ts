@@ -6,12 +6,6 @@ export enum ProjectStatus {
   CANCELLED = 'CANCELLED',
 }
 
-export enum ProjectMemberRole {
-  MANAGER = 'MANAGER',
-  MEMBER = 'MEMBER',
-  VIEWER = 'VIEWER',
-}
-
 export enum TaskStatus {
   TODO = 'TODO',
   IN_PROGRESS = 'IN_PROGRESS',
@@ -35,6 +29,12 @@ export enum TaskDepartment {
   PRODUCTION = 'PRODUCTION',
 }
 
+export enum ProjectMemberRole {
+  MANAGER = 'MANAGER',
+  MEMBER = 'MEMBER',
+  VIEWER = 'VIEWER',
+}
+
 export enum FilePurpose {
   DELIVERABLE = 'DELIVERABLE',
   REFERENCE = 'REFERENCE',
@@ -46,4 +46,3 @@ export enum DelayAlertLevel {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
 }
-

@@ -42,7 +42,7 @@ const DEPT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "تسويق",
   [TaskDepartment.DEVELOPMENT]: "تطوير",
   [TaskDepartment.CONTENT]: "محتوى",
-  [TaskDepartment.MANAGEMENT]: "إدارة",
+  [TaskDepartment.PRODUCTION]: "إدارة",
 };
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {

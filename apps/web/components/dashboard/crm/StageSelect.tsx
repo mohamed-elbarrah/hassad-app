@@ -12,14 +12,14 @@ import { useUpdateClientStageMutation } from "@/features/clients/clientsApi";
 import { PipelineStage, PIPELINE_STAGE_ORDER } from "@hassad/shared";
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
-  [PipelineStage.NEW_LEAD]: "عميل جديد",
-  [PipelineStage.INTRO_MESSAGE]: "رسالة تعريفية",
-  [PipelineStage.CONTACT_ATTEMPT]: "محاولة اتصال",
+  [PipelineStage.NEW]: "عميل جديد",
+  [PipelineStage.INTRO_SENT]: "تم التواصل",
+  [PipelineStage.CALL_ATTEMPT]: "محاولة اتصال",
   [PipelineStage.MEETING_SCHEDULED]: "موعد محدد",
-  [PipelineStage.MEETING_HELD]: "اجتماع",
-  [PipelineStage.PROPOSAL]: "عرض فني",
+  [PipelineStage.MEETING_DONE]: "تم الاجتماع",
+  [PipelineStage.PROPOSAL_SENT]: "تم إرسال العرض",
   [PipelineStage.FOLLOW_UP]: "متابعة",
-  [PipelineStage.APPROVAL]: "موافقة",
+  [PipelineStage.APPROVED]: "موافقة",
   [PipelineStage.CONTRACT_SIGNED]: "توقيع عقد",
 };
 

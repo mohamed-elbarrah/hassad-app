@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Delete,
   UseGuards,
 } from '@nestjs/common';
 import { LeadsService } from '../services/leads.service';
@@ -76,5 +77,11 @@ export class LeadsController {
     @CurrentUser() user: any,
   ) {
     return this.leadsService.convertToClient(id, user.id);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('leads.delete')
+  remove(@Param('id') id: string) {
+    return this.leadsService.remove(id);
   }
 }

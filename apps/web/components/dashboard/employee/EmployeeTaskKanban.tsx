@@ -17,12 +17,19 @@ import { toast } from "sonner";
 import {
   TaskStatus,
   TaskPriority,
-  TASK_STATUS_TRANSITIONS,
   UserRole,
 } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
 import { useUpdateTaskStatusMutation } from "@/features/tasks/tasksApi";
 import { useAppSelector } from "@/lib/hooks";
+
+// Allowed status transitions per role (mirrors API workflow)
+const TASK_STATUS_TRANSITIONS: Partial<Record<TaskStatus, Partial<Record<string, TaskStatus[]>>>> = {
+  [TaskStatus.TODO]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
+  [TaskStatus.IN_PROGRESS]: { EMPLOYEE: [TaskStatus.IN_REVIEW] },
+  [TaskStatus.IN_REVIEW]: { PM: [TaskStatus.DONE, TaskStatus.REVISION] },
+  [TaskStatus.REVISION]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
+};
 
 // ── Column config ─────────────────────────────────────────────────────────────
 
@@ -53,8 +60,8 @@ const COLUMNS: ColumnConfig[] = [
     headerColor: "text-amber-700",
   },
   {
-    status: TaskStatus.BLOCKED,
-    label: "محظور",
+    status: TaskStatus.REVISION,
+    label: "يحتاج تعديل",
     bg: "bg-red-50",
     headerColor: "text-red-700",
   },
@@ -311,7 +318,7 @@ export function EmployeeTaskKanban({
 
     // ADMIN bypasses all transition restrictions
     if (user.role !== UserRole.ADMIN) {
-      const roleKey = user.role as UserRole.EMPLOYEE | UserRole.PM;
+      const roleKey = user.role;
       const allowed = TASK_STATUS_TRANSITIONS[task.status]?.[roleKey] ?? [];
 
       if (!allowed.includes(newStatus)) {
