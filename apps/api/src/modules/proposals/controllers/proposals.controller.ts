@@ -38,8 +38,8 @@ export class ProposalsController {
 
   @Post(':id/approve')
   @RequirePermissions('proposals.approve')
-  approve(@Param('id') id: string) {
-    return this.proposalsService.approve(id);
+  approve(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.proposalsService.approve(id, user.id);
   }
 
   @Post(':id/reject')

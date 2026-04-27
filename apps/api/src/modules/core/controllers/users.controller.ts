@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
+import { DepartmentsService } from '../services/departments.service';
 import { CreateUserDto, UpdateUserDto } from '../dto/user.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -17,7 +18,10 @@ import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 @Controller('users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly departmentsService: DepartmentsService,
+  ) {}
 
   @Post()
   @RequirePermissions('users.create')
@@ -47,5 +51,15 @@ export class UsersController {
   @RequirePermissions('users.delete')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  // Spec-compliant path: POST /users/:id/departments
+  @Post(':id/departments')
+  @RequirePermissions('departments.assign')
+  assignDepartment(
+    @Param('id') userId: string,
+    @Body('departmentId') departmentId: string,
+  ) {
+    return this.departmentsService.assignToUser(userId, departmentId);
   }
 }

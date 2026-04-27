@@ -60,6 +60,12 @@ export class LeadsController {
     return this.leadsService.addContactLog(id, user.id, dto);
   }
 
+  @Get(':id/contact-log')
+  @RequirePermissions('leads.read')
+  getContactLogs(@Param('id') id: string) {
+    return this.leadsService.getContactLogs(id);
+  }
+
   @Post(':id/stage')
   @RequirePermissions('leads.update')
   changeStage(

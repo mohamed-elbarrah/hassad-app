@@ -28,7 +28,8 @@ function resolveKanbanError(error: unknown): string {
   if (e.status === 403) return "لا تملك صلاحية الوصول إلى بيانات العملاء.";
   if (typeof e.status === "number" && e.status >= 500)
     return "خطأ في الخادم. يرجى المحاولة لاحقاً.";
-  if (e.status === "FETCH_ERROR") return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
+  if (e.status === "FETCH_ERROR")
+    return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
   return "فشل تحميل لوحة المبيعات.";
 }
 
@@ -60,7 +61,9 @@ export function KanbanBoard() {
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [updateStage] = useUpdateClientStageMutation();
 
-  const { data, isLoading, isError, error } = useGetClientsQuery({ limit: 100 });
+  const { data, isLoading, isError, error } = useGetClientsQuery({
+    limit: 100,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

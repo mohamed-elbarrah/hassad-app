@@ -3,10 +3,14 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProposalDto } from '../dto/proposal.dto';
 import { ProposalStatus, PipelineStage } from '@hassad/shared';
 import { randomBytes } from 'crypto';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
 export class ProposalsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(userId: string, dto: CreateProposalDto) {
     return this.prisma.proposal.create({
@@ -48,11 +52,11 @@ export class ProposalsService {
     });
   }
 
-  async approve(id: string) {
+  async approve(id: string, userId: string) {
     const proposal = await this.findOne(id);
 
-    return this.prisma.$transaction(async (tx) => {
-      const updatedProposal = await tx.proposal.update({
+    const updatedProposal = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.proposal.update({
         where: { id },
         data: {
           status: ProposalStatus.APPROVED,
@@ -60,22 +64,62 @@ export class ProposalsService {
         },
       });
 
-      // Update lead stage to APPROVAL
+      // Update lead stage to APPROVED and record history
       if (proposal.leadId) {
+        const lead = await tx.lead.findUnique({
+          where: { id: proposal.leadId },
+          select: { pipelineStage: true },
+        });
+
         await tx.lead.update({
           where: { id: proposal.leadId },
           data: { pipelineStage: PipelineStage.APPROVED },
         });
+
+        if (lead) {
+          await tx.leadPipelineHistory.create({
+            data: {
+              leadId: proposal.leadId,
+              fromStage: lead.pipelineStage,
+              toStage: PipelineStage.APPROVED,
+              changedBy: userId,
+            },
+          });
+        }
       }
 
-      return updatedProposal;
+      return updated;
     });
+
+    await this.notificationsService.createNotification({
+      entityId: proposal.id,
+      entityType: 'proposal',
+      eventType: 'PROPOSAL_APPROVED',
+      userId: proposal.createdBy,
+      title: 'Proposal Approved',
+      body: `Proposal for "${proposal.lead?.contactName ?? 'client'}" has been approved`,
+    });
+
+    return updatedProposal;
   }
 
   async reject(id: string) {
-    return this.prisma.proposal.update({
+    const proposal = await this.findOne(id);
+
+    const updated = await this.prisma.proposal.update({
       where: { id },
       data: { status: ProposalStatus.REJECTED },
     });
+
+    await this.notificationsService.createNotification({
+      entityId: proposal.id,
+      entityType: 'proposal',
+      eventType: 'PROPOSAL_REJECTED',
+      userId: proposal.createdBy,
+      title: 'Proposal Rejected',
+      body: `Proposal for "${proposal.lead?.contactName ?? 'client'}" has been rejected`,
+    });
+
+    return updated;
   }
 }

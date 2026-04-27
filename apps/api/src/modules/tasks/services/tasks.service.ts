@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateTaskDto, UpdateTaskDto, AssignTaskDto, CreateTaskFileDto, CreateTaskCommentDto } from '../dto/task.dto';
 import { TaskStatus } from '@hassad/shared';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(userId: string, dto: CreateTaskDto) {
     return this.prisma.task.create({
@@ -57,8 +61,8 @@ export class TasksService {
     const task = await this.findOne(id);
 
     // Workflow enforcement
-    if (toStatus === TaskStatus.IN_PROGRESS && task.status !== TaskStatus.TODO) {
-      throw new BadRequestException('Task must be TODO to start');
+    if (toStatus === TaskStatus.IN_PROGRESS && task.status !== TaskStatus.TODO && task.status !== TaskStatus.REVISION) {
+      throw new BadRequestException('Task must be TODO or REVISION to start');
     }
     if (toStatus === TaskStatus.IN_REVIEW && task.status !== TaskStatus.IN_PROGRESS) {
       throw new BadRequestException('Task must be IN_PROGRESS to submit');
@@ -70,8 +74,8 @@ export class TasksService {
       throw new BadRequestException('Task must be IN_REVIEW to reject for revision');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const updatedTask = await tx.task.update({
+    const updatedTask = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.task.update({
         where: { id },
         data: {
           status: toStatus,
@@ -91,10 +95,24 @@ export class TasksService {
         },
       });
 
-      // TODO: Emit notification
-
-      return updatedTask;
+      return updated;
     });
+
+    // Notify the assigned user on approval or rejection
+    if (task.assignedTo && (toStatus === TaskStatus.DONE || toStatus === TaskStatus.REVISION)) {
+      await this.notificationsService.createNotification({
+        entityId: id,
+        entityType: 'task',
+        eventType: toStatus === TaskStatus.DONE ? 'TASK_APPROVED' : 'TASK_REJECTED',
+        userId: task.assignedTo,
+        title: toStatus === TaskStatus.DONE ? 'Task Approved' : 'Task Sent for Revision',
+        body: toStatus === TaskStatus.DONE
+          ? `Your task "${task.title}" has been approved`
+          : `Your task "${task.title}" has been sent back for revision`,
+      });
+    }
+
+    return updatedTask;
   }
 
   async assign(id: string, userId: string, dto: AssignTaskDto) {

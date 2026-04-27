@@ -11,6 +11,7 @@ import { UpdateClientDto } from '../dto/client.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 @Controller('clients')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -31,8 +32,8 @@ export class ClientsController {
 
   @Patch(':id')
   @RequirePermissions('clients.update')
-  update(@Param('id') id: string, @Body() updateClientDto: UpdateClientDto) {
-    return this.clientsService.update(id, updateClientDto);
+  update(@Param('id') id: string, @CurrentUser() user: any, @Body() updateClientDto: UpdateClientDto) {
+    return this.clientsService.update(id, user.id, updateClientDto);
   }
 
   @Get(':id/activity')

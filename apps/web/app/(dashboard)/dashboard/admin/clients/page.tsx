@@ -16,7 +16,8 @@ function resolveClientError(error: unknown): string {
   if (e.status === 403) return "لا تملك صلاحية الوصول إلى بيانات العملاء.";
   if (typeof e.status === "number" && e.status >= 500)
     return "خطأ في الخادم. يرجى المحاولة لاحقاً.";
-  if (e.status === "FETCH_ERROR") return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
+  if (e.status === "FETCH_ERROR")
+    return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
   return "حدث خطأ أثناء تحميل العملاء. يرجى المحاولة مجدداً.";
 }
 
@@ -39,9 +40,7 @@ export default function AdminClientsPage() {
       {isLoading && <ClientsTableSkeleton />}
 
       {isError && (
-        <p className="text-sm text-destructive">
-          {resolveClientError(error)}
-        </p>
+        <p className="text-sm text-destructive">{resolveClientError(error)}</p>
       )}
 
       {!isLoading && !isError && (

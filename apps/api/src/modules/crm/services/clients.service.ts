@@ -31,11 +31,22 @@ export class ClientsService {
     return client;
   }
 
-  async update(id: string, dto: UpdateClientDto) {
-    return this.prisma.client.update({
+  async update(id: string, userId: string, dto: UpdateClientDto) {
+    const client = await this.prisma.client.update({
       where: { id },
       data: dto,
     });
+
+    await this.prisma.clientHistoryLog.create({
+      data: {
+        clientId: id,
+        userId,
+        eventType: 'CLIENT_UPDATED',
+        description: 'Client record updated',
+      },
+    });
+
+    return client;
   }
 
   async getActivity(id: string) {

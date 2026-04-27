@@ -12,7 +12,8 @@ function resolveProposalError(error: unknown): string {
   if (e.status === 403) return "لا تملك صلاحية الوصول إلى العروض الفنية.";
   if (typeof e.status === "number" && e.status >= 500)
     return "خطأ في الخادم. يرجى المحاولة لاحقاً.";
-  if (e.status === "FETCH_ERROR") return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
+  if (e.status === "FETCH_ERROR")
+    return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
   return "فشل تحميل العروض الفنية.";
 }
 

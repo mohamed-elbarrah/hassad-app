@@ -2,10 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateInvoiceDto, CreateTicketDto } from '../dto/finance.dto';
 import { InvoiceStatus, TicketStatus } from '@hassad/shared';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
 export class FinanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async createInvoice(userId: string, dto: CreateInvoiceDto) {
     return this.prisma.invoice.create({
@@ -45,6 +49,29 @@ export class FinanceService {
         paymentReference,
       },
     });
+  }
+
+  async sendInvoice(id: string) {
+    const invoice = await this.findInvoice(id);
+
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: {
+        status: InvoiceStatus.SENT,
+        sentAt: new Date(),
+      },
+    });
+
+    await this.notificationsService.createNotification({
+      entityId: invoice.id,
+      entityType: 'invoice',
+      eventType: 'INVOICE_SENT',
+      userId: invoice.createdBy,
+      title: 'Invoice Sent',
+      body: `Invoice has been sent to the client`,
+    });
+
+    return updated;
   }
 
   async createTicket(dto: CreateTicketDto) {

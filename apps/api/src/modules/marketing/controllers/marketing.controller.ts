@@ -66,10 +66,4 @@ export class MarketingController {
   createAbTest(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: CreateAbTestDto) {
     return this.marketingService.createAbTest(id, user.id, dto);
   }
-
-  @Post('/ab-tests/:id/stop') // Note: Adjusted path as per common sense if multiple ab-tests
-  @RequirePermissions('marketing.manage_tests')
-  stopAbTest(@Param('id') id: string, @Body('winningVariantId') winningVariantId: string) {
-    return this.marketingService.stopAbTest(id, winningVariantId);
-  }
 }

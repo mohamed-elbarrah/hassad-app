@@ -178,6 +178,7 @@ enum AbTestStatus {
 
 enum InvoiceStatus {
   DUE
+  SENT
   PAID
   LATE
   CANCELLED
@@ -933,6 +934,7 @@ model Invoice {
   issueDate        DateTime      @map("issue_date")
   dueDate          DateTime      @map("due_date")
   paidAt           DateTime?     @map("paid_at")
+  sentAt           DateTime?     @map("sent_at")
   paymentReference String?       @map("payment_reference")
   notes            String?
   createdAt        DateTime      @default(now()) @map("created_at")

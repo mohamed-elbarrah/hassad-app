@@ -35,7 +35,7 @@ export class ContractsService {
     return contract;
   }
 
-  async sign(id: string) {
+  async sign(id: string, userId: string) {
     const contract = await this.findOne(id);
 
     return this.prisma.$transaction(async (tx) => {
@@ -48,12 +48,28 @@ export class ContractsService {
         },
       });
 
-      // Update lead stage to CONTRACT_SIGNED if applicable
+      // Update lead stage to CONTRACT_SIGNED and record history
       if (contract.client.leadId) {
+        const lead = await tx.lead.findUnique({
+          where: { id: contract.client.leadId },
+          select: { pipelineStage: true },
+        });
+
         await tx.lead.update({
           where: { id: contract.client.leadId },
           data: { pipelineStage: PipelineStage.CONTRACT_SIGNED },
         });
+
+        if (lead) {
+          await tx.leadPipelineHistory.create({
+            data: {
+              leadId: contract.client.leadId,
+              fromStage: lead.pipelineStage,
+              toStage: PipelineStage.CONTRACT_SIGNED,
+              changedBy: userId,
+            },
+          });
+        }
       }
 
       return updatedContract;

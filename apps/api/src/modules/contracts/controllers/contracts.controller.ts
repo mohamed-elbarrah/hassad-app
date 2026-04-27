@@ -32,8 +32,8 @@ export class ContractsController {
 
   @Post(':id/sign')
   @RequirePermissions('contracts.sign')
-  sign(@Param('id') id: string) {
-    return this.contractsService.sign(id);
+  sign(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.contractsService.sign(id, user.id);
   }
 
   @Post(':id/activate')

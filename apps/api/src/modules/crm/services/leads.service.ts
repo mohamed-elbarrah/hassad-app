@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateLeadDto, UpdateLeadDto, AssignLeadDto, CreateContactLogDto, ChangeLeadStageDto } from '../dto/lead.dto';
 import { PipelineStage, ClientStatus } from '@hassad/shared';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
 export class LeadsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(dto: CreateLeadDto) {
     return this.prisma.lead.create({
@@ -66,6 +70,14 @@ export class LeadsService {
     });
   }
 
+  async getContactLogs(id: string) {
+    return this.prisma.leadContactLog.findMany({
+      where: { leadId: id },
+      include: { user: true },
+      orderBy: { contactedAt: 'desc' },
+    });
+  }
+
   async changeStage(id: string, userId: string, dto: ChangeLeadStageDto) {
     const lead = await this.findOne(id);
 
@@ -102,7 +114,13 @@ export class LeadsService {
       throw new BadRequestException('Lead must be in CONTRACT_SIGNED stage to convert');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const client = await this.prisma.$transaction(async (tx) => {
+      // Guard: prevent double conversion
+      const existing = await tx.client.findFirst({ where: { leadId: id } });
+      if (existing) {
+        throw new BadRequestException('Lead has already been converted to a client');
+      }
+
       // Create Client
       const client = await tx.client.create({
         data: {
@@ -124,10 +142,32 @@ export class LeadsService {
         data: { isActive: false },
       });
 
-      // TODO: Emit notification event
+      // Write CLIENT_CREATED history log
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId: client.id,
+          userId,
+          eventType: 'CLIENT_CREATED',
+          description: 'Client created from lead conversion',
+        },
+      });
 
       return client;
     });
+
+    // Notify the assigned user after the transaction succeeds
+    if (lead.assignedTo) {
+      await this.notificationsService.createNotification({
+        entityId: client.id,
+        entityType: 'lead',
+        eventType: 'LEAD_CONVERTED',
+        userId: lead.assignedTo,
+        title: 'Lead Converted',
+        body: `Lead "${lead.contactName}" has been successfully converted to a client`,
+      });
+    }
+
+    return client;
   }
   async remove(id: string) {
     return this.prisma.lead.update({

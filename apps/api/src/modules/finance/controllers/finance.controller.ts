@@ -36,6 +36,12 @@ export class FinanceController {
     return this.financeService.markInvoicePaid(id, paymentReference);
   }
 
+  @Post('invoices/:id/send')
+  @RequirePermissions('finance.update_invoice')
+  sendInvoice(@Param('id') id: string) {
+    return this.financeService.sendInvoice(id);
+  }
+
   @Post('payment-tickets')
   @RequirePermissions('finance.manage_tickets')
   createTicket(@Body() dto: CreateTicketDto) {

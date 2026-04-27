@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
+import { ContractStatus } from '@hassad/shared';
 
 @Injectable()
 export class ProjectsService {
@@ -17,6 +18,12 @@ export class ProjectsService {
 
     if (!contract) {
       throw new NotFoundException(`Contract with ID ${dto.contractId} not found`);
+    }
+
+    if (contract.status !== ContractStatus.SIGNED && contract.status !== ContractStatus.ACTIVE) {
+      throw new BadRequestException(
+        `Contract must be SIGNED or ACTIVE to create a project (current status: ${contract.status})`,
+      );
     }
 
     return this.prisma.project.create({
