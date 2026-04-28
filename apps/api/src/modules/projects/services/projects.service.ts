@@ -93,7 +93,14 @@ export class ProjectsService {
     });
   }
 
-  async findAll(filters: { status?: string; search?: string; page?: number; limit?: number; clientId?: string }) {
+  async findAll(filters: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+    clientId?: string;
+    projectManagerId?: string;
+  }) {
     const page = filters.page ? Number(filters.page) : 1;
     const limit = filters.limit ? Number(filters.limit) : 20;
 
@@ -101,6 +108,7 @@ export class ProjectsService {
     if (filters.status) where['status'] = filters.status;
     if (filters.search) where['name'] = { contains: filters.search, mode: 'insensitive' };
     if (filters.clientId) where['clientId'] = filters.clientId;
+    if (filters.projectManagerId) where['projectManagerId'] = filters.projectManagerId;
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.project.findMany({

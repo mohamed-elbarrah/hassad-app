@@ -6,6 +6,37 @@ import { Prisma } from '@prisma/client';
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
+  private mapNotificationRow(
+    row: {
+      id: string;
+      userId: string;
+      title: string;
+      body: string;
+      isRead: boolean;
+      channel: string;
+      sentAt: Date | null;
+      readAt: Date | null;
+      event: { entityId: string; entityType: string; eventType: string };
+    },
+  ) {
+    const createdAt = row.sentAt ?? row.readAt ?? new Date();
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      title: row.title,
+      body: row.body,
+      isRead: row.isRead,
+      channel: row.channel,
+      sentAt: row.sentAt,
+      readAt: row.readAt,
+      createdAt,
+      entityId: row.event.entityId,
+      entityType: row.event.entityType,
+      eventType: row.event.eventType,
+    };
+  }
+
   async createNotification(params: {
     entityId: string;
     entityType: string;
@@ -50,6 +81,15 @@ export class NotificationsService {
     const [data, total, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where,
+        include: {
+          event: {
+            select: {
+              entityId: true,
+              entityType: true,
+              eventType: true,
+            },
+          },
+        },
         orderBy: { sentAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -58,7 +98,13 @@ export class NotificationsService {
       this.prisma.notification.count({ where: { userId, isRead: false } }),
     ]);
 
-    return { data, total, page, limit, unreadCount };
+    return {
+      data: data.map((item) => this.mapNotificationRow(item)),
+      total,
+      page,
+      limit,
+      unreadCount,
+    };
   }
 
   async getUnreadCount(userId: string) {
@@ -70,8 +116,8 @@ export class NotificationsService {
 
   async markOneRead(userId: string, notificationId: string) {
     return this.prisma.notification.updateMany({
-      where: { id: notificationId, userId },
-      data: { isRead: true },
+      where: { id: notificationId, userId, isRead: false },
+      data: { isRead: true, readAt: new Date() },
     });
   }
 
@@ -80,15 +126,16 @@ export class NotificationsService {
       where: {
         userId,
         id: { in: notificationIds },
+        isRead: false,
       },
-      data: { isRead: true },
+      data: { isRead: true, readAt: new Date() },
     });
   }
 
   async markAllRead(userId: string) {
     return this.prisma.notification.updateMany({
       where: { userId, isRead: false },
-      data: { isRead: true },
+      data: { isRead: true, readAt: new Date() },
     });
   }
 

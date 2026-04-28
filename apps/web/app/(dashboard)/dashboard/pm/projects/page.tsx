@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectCard } from "@/components/dashboard/pm/ProjectCard";
+import { ProjectKanbanBoard } from "@/components/dashboard/pm/ProjectKanbanBoard";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { useGetProjectsQuery } from "@/features/projects/projectsApi";
 import { useAppSelector } from "@/lib/hooks";
@@ -35,11 +36,16 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">(
     "all",
   );
+  const [view, setView] = useState<"kanban" | "cards">("kanban");
 
   const { data, isLoading, isError } = useGetProjectsQuery({
     search: search || undefined,
     status:
       statusFilter === "all" ? undefined : (statusFilter as ProjectStatus),
+    projectManagerId: user?.role === "PM" ? user.id : undefined,
+    limit: 100,
+  }, {
+    skip: view !== "cards",
   });
 
   if (!user) return null;
@@ -79,10 +85,46 @@ export default function ProjectsPage() {
             ))}
           </SelectContent>
         </Select>
+        <div className="flex rounded-md border p-1 gap-1">
+          <button
+            type="button"
+            onClick={() => setView("kanban")}
+            className={`px-3 py-1.5 text-sm rounded ${
+              view === "kanban"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground"
+            }`}
+          >
+            كانبان
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("cards")}
+            className={`px-3 py-1.5 text-sm rounded ${
+              view === "cards"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground"
+            }`}
+          >
+            بطاقات
+          </button>
+        </div>
       </div>
 
+      {view === "kanban" && (
+        <ProjectKanbanBoard
+          projectManagerId={user.role === "PM" ? user.id : undefined}
+          search={search || undefined}
+          status={
+            statusFilter === "all"
+              ? undefined
+              : (statusFilter as ProjectStatus)
+          }
+        />
+      )}
+
       {/* Content */}
-      {isLoading && (
+      {view === "cards" && isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-48 rounded-lg" />
@@ -90,13 +132,13 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {isError && (
+      {view === "cards" && isError && (
         <p className="text-destructive text-sm">
           حدث خطأ أثناء تحميل المشاريع. يرجى تحديث الصفحة.
         </p>
       )}
 
-      {!isLoading && !isError && data && (
+      {view === "cards" && !isLoading && !isError && data && (
         <>
           {data.items.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">

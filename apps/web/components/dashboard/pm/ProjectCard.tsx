@@ -45,6 +45,12 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const statusConfig = STATUS_CONFIG[project.status];
+  const progressValue = Math.round(
+    (project.progress ??
+      (project as ProjectWithMeta & { completionPercentage?: number })
+        .completionPercentage ??
+      0),
+  );
 
   const startDate = new Intl.DateTimeFormat("en-GB", {
     year: "numeric",
@@ -82,12 +88,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div>
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
               <span>التقدم</span>
-              <span>{Math.round(project.progress ?? 0)}%</span>
+              <span>{progressValue}%</span>
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${Math.round(project.progress ?? 0)}%` }}
+                style={{ width: `${progressValue}%` }}
               />
             </div>
           </div>

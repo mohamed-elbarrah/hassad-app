@@ -3,6 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateTaskDto, UpdateTaskDto, AssignTaskDto, CreateTaskFileDto, CreateTaskCommentDto } from '../dto/task.dto';
 import { TaskStatus } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TasksService {
@@ -11,17 +12,57 @@ export class TasksService {
     private notificationsService: NotificationsService,
   ) {}
 
+  private progressWeightByStatus(status: TaskStatus): number {
+    if (status === TaskStatus.DONE) return 100;
+    if (status === TaskStatus.IN_REVIEW) return 80;
+    if (status === TaskStatus.IN_PROGRESS) return 50;
+    if (status === TaskStatus.REVISION) return 25;
+    return 0;
+  }
+
+  private async recalculateProjectProgress(
+    projectId: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const tasks = await db.task.findMany({
+      where: { projectId },
+      select: { status: true },
+    });
+
+    const completionPercentage =
+      tasks.length === 0
+        ? 0
+        : Math.round(
+            tasks.reduce(
+              (sum, task) =>
+                sum + this.progressWeightByStatus(task.status as TaskStatus),
+              0,
+            ) / tasks.length,
+          );
+
+    await db.project.update({
+      where: { id: projectId },
+      data: { completionPercentage },
+    });
+  }
+
   async create(userId: string, dto: CreateTaskDto) {
     const department = await this.prisma.department.findFirst({ where: { name: dto.dept } });
     const { dept, ...rest } = dto;
-    return this.prisma.task.create({
-      data: {
-        ...rest,
-        departmentId: department?.id ?? undefined,
-        dueDate: new Date(dto.dueDate),
-        createdBy: userId,
-        status: TaskStatus.TODO,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const createdTask = await tx.task.create({
+        data: {
+          ...rest,
+          departmentId: department?.id ?? undefined,
+          dueDate: new Date(dto.dueDate),
+          createdBy: userId,
+          status: TaskStatus.TODO,
+        },
+      });
+
+      await this.recalculateProjectProgress(dto.projectId, tx);
+
+      return createdTask;
     });
   }
 
@@ -98,6 +139,8 @@ export class TasksService {
           changedBy: userId,
         },
       });
+
+      await this.recalculateProjectProgress(task.projectId, tx);
 
       return updated;
     });
@@ -253,7 +296,21 @@ export class TasksService {
   }
 
   async delete(id: string) {
-    return this.prisma.task.delete({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      const existingTask = await tx.task.findUnique({
+        where: { id },
+        select: { id: true, projectId: true },
+      });
+
+      if (!existingTask) {
+        throw new NotFoundException(`Task with ID ${id} not found`);
+      }
+
+      const deletedTask = await tx.task.delete({ where: { id } });
+      await this.recalculateProjectProgress(existingTask.projectId, tx);
+
+      return deletedTask;
+    });
   }
 
   async deleteFile(taskId: string, fileId: string) {

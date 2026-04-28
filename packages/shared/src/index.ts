@@ -143,6 +143,7 @@ export interface Project {
   priority: TaskPriority;
   startDate: Date | string;
   endDate: Date | string;
+  completionPercentage?: number;
   progress?: number;
   createdAt: Date | string;
   updatedAt: Date | string;

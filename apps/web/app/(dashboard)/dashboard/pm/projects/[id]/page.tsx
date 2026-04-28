@@ -74,6 +74,12 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   }
 
   const statusConfig = STATUS_CONFIG[project.status];
+  const progressValue = Math.round(
+    (project.progress ??
+      (project as typeof project & { completionPercentage?: number })
+        .completionPercentage ??
+      0),
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -149,12 +155,12 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {Math.round(project.progress ?? 0)}%
+              {progressValue}%
             </p>
             <div className="h-2 bg-muted rounded-full mt-2 overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${Math.round(project.progress ?? 0)}%` }}
+                style={{ width: `${progressValue}%` }}
               />
             </div>
           </CardContent>
