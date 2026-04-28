@@ -12,14 +12,82 @@ export class ProposalsService {
     private notificationsService: NotificationsService,
   ) {}
 
+  /**
+   * One-step: create proposal as DRAFT then immediately send it.
+   * Also auto-advances the lead to PROPOSAL_SENT stage.
+   * Notifies the CLIENT who submitted the original intake form (lead.createdBy).
+   */
   async create(userId: string, dto: CreateProposalDto) {
-    return this.prisma.proposal.create({
-      data: {
-        ...dto,
-        createdBy: userId,
-        status: ProposalStatus.DRAFT,
-      },
+    const token = randomBytes(32).toString('hex');
+
+    const proposal = await this.prisma.$transaction(async (tx) => {
+      // 1. Create + immediately mark as SENT in one write
+      const created = await tx.proposal.create({
+        data: {
+          leadId: dto.leadId,
+          createdBy: userId,
+          title: dto.title,
+          serviceDescription: dto.serviceDescription ?? '',
+          servicesList: dto.servicesList ?? [],
+          totalPrice: dto.totalPrice ?? 0,
+          durationDays: dto.durationDays ?? 0,
+          platforms: dto.platforms ?? [],
+          filePath: dto.filePath ?? null,
+          status: ProposalStatus.SENT,
+          shareLinkToken: token,
+          sentAt: new Date(),
+        },
+      });
+
+      // 2. Auto-advance lead to PROPOSAL_SENT and record history
+      if (dto.leadId) {
+        const lead = await tx.lead.findUnique({
+          where: { id: dto.leadId },
+          select: { pipelineStage: true },
+        });
+
+        if (lead) {
+          await tx.lead.update({
+            where: { id: dto.leadId },
+            data: { pipelineStage: PipelineStage.PROPOSAL_SENT },
+          });
+
+          await tx.leadPipelineHistory.create({
+            data: {
+              leadId: dto.leadId,
+              fromStage: lead.pipelineStage,
+              toStage: PipelineStage.PROPOSAL_SENT,
+              changedBy: userId,
+            },
+          });
+        }
+      }
+
+      return created;
     });
+
+    // 3. Notify the CLIENT who submitted the lead (fire-and-forget)
+    if (dto.leadId) {
+      this.prisma.lead
+        .findUnique({ where: { id: dto.leadId }, select: { createdBy: true } })
+        .then((lead) => {
+          if (lead?.createdBy) {
+            return this.notificationsService.createNotification({
+              entityId: token, // shareLinkToken so client can navigate directly
+              entityType: 'proposal',
+              eventType: 'PROPOSAL_SENT',
+              userId: lead.createdBy,
+              title: 'عرض فني جديد بانتظار مراجعتك',
+              body: `تم إرسال عرض فني جديد لك: "${proposal.title}". يمكنك الاطلاع عليه والرد من خلال الرابط المرسل.`,
+            });
+          }
+        })
+        .catch(() => {
+          // Non-critical: swallow notification errors silently
+        });
+    }
+
+    return proposal;
   }
 
   async findAll(filters: { status?: string; leadId?: string; search?: string; page?: number; limit?: number }) {
@@ -127,8 +195,8 @@ export class ProposalsService {
       entityType: 'proposal',
       eventType: 'PROPOSAL_APPROVED',
       userId: proposal.createdBy,
-      title: 'Proposal Approved',
-      body: `Proposal "${proposal.title}" has been approved`,
+      title: 'تمت الموافقة على العرض الفني',
+      body: `تمت الموافقة على العرض الفني "${proposal.title}"`,
     });
 
     return updatedProposal;
@@ -147,8 +215,8 @@ export class ProposalsService {
       entityType: 'proposal',
       eventType: 'PROPOSAL_REJECTED',
       userId: proposal.createdBy,
-      title: 'Proposal Rejected',
-      body: `Proposal "${proposal.title}" has been rejected`,
+      title: 'تم رفض العرض الفني',
+      body: `تم رفض العرض الفني "${proposal.title}"`,
     });
 
     return updated;
@@ -185,14 +253,40 @@ export class ProposalsService {
       },
     });
 
+    // Notify SALES creator
     await this.notificationsService.createNotification({
       entityId: proposal.id,
       entityType: 'proposal',
       eventType: 'PROPOSAL_APPROVED_BY_CLIENT',
       userId: proposal.createdBy,
-      title: 'Proposal Approved by Client',
-      body: `Proposal "${proposal.title}" has been approved by the client`,
+      title: 'وافق العميل على العرض الفني',
+      body: `وافق العميل على العرض الفني "${proposal.title}"${notes ? ` — ملاحظاته: ${notes}` : ''}`,
     });
+
+    // Also auto-advance lead to APPROVED if not already
+    if (proposal.leadId) {
+      const lead = await this.prisma.lead.findUnique({
+        where: { id: proposal.leadId },
+        select: { pipelineStage: true },
+      });
+
+      if (lead && lead.pipelineStage !== PipelineStage.APPROVED) {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.lead.update({
+            where: { id: proposal.leadId! },
+            data: { pipelineStage: PipelineStage.APPROVED },
+          });
+          await tx.leadPipelineHistory.create({
+            data: {
+              leadId: proposal.leadId!,
+              fromStage: lead.pipelineStage,
+              toStage: PipelineStage.APPROVED,
+              changedBy: proposal.createdBy,
+            },
+          });
+        });
+      }
+    }
 
     return { id: updated.id, status: updated.status, approvedAt: updated.approvedAt };
   }
@@ -214,10 +308,25 @@ export class ProposalsService {
       entityType: 'proposal',
       eventType: 'PROPOSAL_REVISION_REQUESTED',
       userId: proposal.createdBy,
-      title: 'Proposal Revision Requested',
-      body: `Client requested revision on proposal "${proposal.title}"${notes ? ': ' + notes : ''}`,
+      title: 'طلب تعديل على العرض الفني',
+      body: `طلب العميل تعديلاً على العرض الفني "${proposal.title}"${notes ? `: ${notes}` : ''}`,
     });
 
     return { id: updated.id, status: updated.status, revisionNotes: notes ?? null };
+  }
+
+  /**
+   * CLIENT portal: return all proposals linked to leads where createdBy = userId.
+   */
+  async getMyProposals(userId: string) {
+    return this.prisma.proposal.findMany({
+      where: {
+        lead: { createdBy: userId },
+      },
+      include: {
+        lead: { select: { id: true, contactName: true, companyName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }

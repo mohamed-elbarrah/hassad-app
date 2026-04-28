@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ContractStatus } from "@hassad/shared";
-import type { ContractListItem } from "@/features/contracts/contractsApi";
+import type { ContractItem as ContractListItem } from "@/features/contracts/contractsApi";
 import {
   useSendContractMutation,
   useSignContractMutation,

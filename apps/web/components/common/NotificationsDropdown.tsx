@@ -41,6 +41,14 @@ function resolveEntityUrl(
   if (entityType === "project") {
     return `/dashboard/pm/projects/${entityId}`;
   }
+  if (entityType === "proposal") {
+    if (role === UserRole.CLIENT) return `/portal/proposals/${entityId}`;
+    return `/dashboard/sales/proposals`;
+  }
+  if (entityType === "contract") {
+    if (role === UserRole.CLIENT) return `/portal/contracts/${entityId}`;
+    return `/dashboard/sales/contracts`;
+  }
   return null;
 }
 
@@ -240,7 +248,13 @@ export function NotificationsDropdown() {
                 <ExternalLink className="h-3.5 w-3.5" />
                 {selectedNotification?.entityType === "task"
                   ? "فتح المهمة"
-                  : "فتح المشروع"}
+                  : selectedNotification?.entityType === "project"
+                    ? "فتح المشروع"
+                    : selectedNotification?.entityType === "proposal"
+                      ? "عرض العروض"
+                      : selectedNotification?.entityType === "contract"
+                        ? "عرض العقود"
+                        : "فتح"}
               </Button>
             )}
             <Button

@@ -308,53 +308,62 @@ export default function LeadDetailPage({
       </div>
 
       {/* ── Pipeline history ─────────────────────────────────────────── */}
-      {lead.pipelineHistory.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              مسار المراحل
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="relative border-r border-muted mr-2 space-y-4">
-              {[...lead.pipelineHistory]
-                .sort(
-                  (a, b) =>
-                    new Date(a.changedAt).getTime() - new Date(b.changedAt).getTime(),
-                )
-                .map((entry) => (
-                  <li key={entry.id} className="mr-4">
-                    {/* Timeline dot */}
-                    <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-background bg-primary" />
-                    <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-xs font-medium",
-                          STAGE_BADGE[entry.fromStage] ?? "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {STAGE_LABELS[entry.fromStage] ?? entry.fromStage}
-                      </span>
-                      <ArrowRight className="w-3 h-3 text-muted-foreground rotate-180" />
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-xs font-medium",
-                          STAGE_BADGE[entry.toStage] ?? "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {STAGE_LABELS[entry.toStage] ?? entry.toStage}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(entry.changedAt)}
-                    </p>
-                  </li>
-                ))}
-            </ol>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            مسار المراحل
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol className="relative border-r border-muted mr-2 space-y-4">
+            {/* Synthetic "lead created" entry always shown first */}
+            <li className="mr-4">
+              <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-background bg-slate-400" />
+              <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                  أُنشئ العميل المحتمل
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">{formatDate(lead.createdAt)}</p>
+            </li>
+
+            {[...lead.pipelineHistory]
+              .sort(
+                (a, b) =>
+                  new Date(a.changedAt).getTime() - new Date(b.changedAt).getTime(),
+              )
+              .map((entry) => (
+                <li key={entry.id} className="mr-4">
+                  {/* Timeline dot */}
+                  <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-background bg-primary" />
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-xs font-medium",
+                        STAGE_BADGE[entry.fromStage] ?? "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {STAGE_LABELS[entry.fromStage] ?? entry.fromStage}
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-muted-foreground rotate-180" />
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-xs font-medium",
+                        STAGE_BADGE[entry.toStage] ?? "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {STAGE_LABELS[entry.toStage] ?? entry.toStage}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(entry.changedAt)}
+                  </p>
+                </li>
+              ))}
+          </ol>
+        </CardContent>
+      </Card>
 
       {/* ── Contact logs ─────────────────────────────────────────────── */}
       {lead.contactLogs.length > 0 && (

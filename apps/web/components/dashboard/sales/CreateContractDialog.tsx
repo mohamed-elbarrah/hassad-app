@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,10 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useGetClientsQuery } from "@/features/clients/clientsApi";
+import { useGetLeadsQuery } from "@/features/leads/leadsApi";
 import { useCreateContractMutation } from "@/features/contracts/contractsApi";
-import { SearchCombobox } from "@/components/common/SearchCombobox";
-import { ContractType } from "@hassad/shared";
+import { ContractType, PipelineStage } from "@hassad/shared";
+import { FileText, Upload, Copy, CheckCheck } from "lucide-react";
 
 // ── Labels ─────────────────────────────────────────────────────────────────────
 
@@ -45,7 +45,7 @@ const TYPE_LABELS: Record<ContractType, string> = {
 // ── Schema ─────────────────────────────────────────────────────────────────────
 
 const contractFormSchema = z.object({
-  clientId: z.string().min(1, "اختر العميل"),
+  leadId: z.string().min(1, "اختر العميل المحتمل"),
   title: z.string().min(2, "اكتب عنوان العقد"),
   type: z.nativeEnum(ContractType, { message: "اختر نوع العقد" }),
   monthlyValue: z.number().nonnegative("القيمة الشهرية مطلوبة"),
@@ -60,23 +60,26 @@ type ContractFormValues = z.infer<typeof contractFormSchema>;
 
 export function CreateContractDialog() {
   const [open, setOpen] = useState(false);
-  const [clientSearch, setClientSearch] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [createContract, { isLoading }] = useCreateContractMutation();
 
-  const { data: clientsData, isFetching: clientsFetching } = useGetClientsQuery(
-    { search: clientSearch, limit: 20 },
+  const { data: leadsData, isFetching: leadsFetching } = useGetLeadsQuery(
+    { limit: 100 },
     { skip: !open },
   );
 
-  const clientOptions = (clientsData?.items ?? []).map((client) => ({
-    id: client.id,
-    label: client.companyName,
-  }));
+  // Only show leads in APPROVED stage (ready for contract)
+  const approvedLeads = (leadsData ?? []).filter(
+    (l) => l.pipelineStage === PipelineStage.APPROVED,
+  );
 
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
     defaultValues: {
-      clientId: "",
+      leadId: "",
       title: "",
       type: undefined,
       monthlyValue: 0,
@@ -86,27 +89,69 @@ export function CreateContractDialog() {
     },
   });
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setFile(f);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0] ?? null;
+    if (f?.type === "application/pdf") setFile(f);
+    else toast.error("يُقبل ملفات PDF فقط");
+  }
+
   async function onSubmit(values: ContractFormValues) {
+    if (!file) {
+      toast.error("يرجى رفع ملف العقد (PDF)");
+      return;
+    }
     try {
-      await createContract({
-        clientId: values.clientId,
+      const result = await createContract({
+        leadId: values.leadId,
         title: values.title,
         type: values.type,
         monthlyValue: values.monthlyValue,
         totalValue: values.totalValue,
         startDate: values.startDate,
         endDate: values.endDate,
+        file,
       }).unwrap();
-      toast.success("تم إنشاء العقد بنجاح");
+
+      // Build shareable link
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const token = result.shareLinkToken;
+      if (token) setShareLink(`${origin}/contract/${token}`);
+
+      toast.success("تم إنشاء العقد وإرساله إلى العميل");
       form.reset();
-      setOpen(false);
-    } catch {
-      toast.error("فشل إنشاء العقد");
+      setFile(null);
+    } catch (err: unknown) {
+      const msg = (err as { data?: { message?: string } })?.data?.message ?? "فشل إنشاء العقد";
+      console.error("createContract error:", err);
+      toast.error(msg);
     }
   }
 
+  function handleClose(val: boolean) {
+    if (!val) {
+      setShareLink(null);
+      setCopied(false);
+      form.reset();
+      setFile(null);
+    }
+    setOpen(val);
+  }
+
+  async function copyLink() {
+    if (!shareLink) return;
+    await navigator.clipboard.writeText(shareLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogTrigger asChild>
         <Button>إنشاء عقد</Button>
       </DialogTrigger>
@@ -114,169 +159,280 @@ export function CreateContractDialog() {
         <DialogHeader>
           <DialogTitle>عقد جديد</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Client */}
-            <FormField
-              control={form.control}
-              name="clientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>العميل</FormLabel>
-                  <FormControl>
-                    <SearchCombobox
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={clientOptions}
-                      onSearchChange={setClientSearch}
-                      placeholder="ابحث عن العميل..."
-                      searchPlaceholder="اكتب اسم الشركة"
-                      isLoading={clientsFetching}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
-            {/* Title */}
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>عنوان العقد</FormLabel>
-                  <FormControl>
-                    <Input placeholder="عقد خدمات التسويق..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {/* ── Success: show share link ── */}
+        {shareLink ? (
+          <div className="space-y-5 py-2">
+            {/* Success banner */}
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCheck className="h-7 w-7 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-base">تم إنشاء العقد وإرساله</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  شارك رابط التوقيع مع العميل ليوقّع إلكترونياً
+                </p>
+              </div>
+            </div>
 
-            {/* Type */}
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>نوع العقد</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر النوع" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {(Object.values(ContractType) as ContractType[]).map(
-                        (t) => (
-                          <SelectItem key={t} value={t}>
-                            {TYPE_LABELS[t]}
+            {/* Copy row — show link inside a full-width read-only input with internal copy button */}
+            <div className="min-w-0">
+              <div className="relative w-full">
+                <Input
+                  readOnly
+                  value={shareLink ?? ""}
+                  dir="ltr"
+                  className="w-full pr-36 text-xs font-mono truncate"
+                />
+                <div className="absolute inset-y-0 right-2 flex items-center">
+                  <Button
+                    size="sm"
+                    variant={copied ? "secondary" : "default"}
+                    className="gap-2"
+                    onClick={copyLink}
+                  >
+                    {copied ? (
+                      <>
+                        <CheckCheck className="w-3.5 h-3.5" />
+                        تم النسخ
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        نسخ الرابط
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <Button className="w-full" variant="outline" onClick={() => handleClose(false)}>
+              إغلاق
+            </Button>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Lead picker (APPROVED only) */}
+              <FormField
+                control={form.control}
+                name="leadId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>العميل المحتمل (مرحلة موافقة)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              leadsFetching
+                                ? "جارٍ التحميل..."
+                                : approvedLeads.length === 0
+                                  ? "لا يوجد عملاء في مرحلة الموافقة"
+                                  : "اختر العميل"
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {approvedLeads.map((lead) => (
+                          <SelectItem key={lead.id} value={lead.id}>
+                            {lead.companyName}
+                            {lead.contactName ? ` — ${lead.contactName}` : ""}
                           </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Values */}
-            <div className="grid grid-cols-2 gap-3">
+              {/* Title */}
               <FormField
                 control={form.control}
-                name="monthlyValue"
+                name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>القيمة الشهرية (ر.س)</FormLabel>
+                    <FormLabel>عنوان العقد</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        placeholder="عقد خدمات التسويق الرقمي..."
                         {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) => {
-                          const n = e.target.valueAsNumber;
-                          field.onChange(Number.isNaN(n) ? undefined : n);
-                        }}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="totalValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>إجمالي القيمة (ر.س)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) => {
-                          const n = e.target.valueAsNumber;
-                          field.onChange(Number.isNaN(n) ? undefined : n);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
 
-            {/* Dates */}
-            <div className="grid grid-cols-2 gap-3">
+              {/* Type */}
               <FormField
                 control={form.control}
-                name="startDate"
+                name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>تاريخ البداية</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
+                    <FormLabel>نوع العقد</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر النوع" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(Object.values(ContractType) as ContractType[]).map(
+                          (t) => (
+                            <SelectItem key={t} value={t}>
+                              {TYPE_LABELS[t]}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>تاريخ النهاية</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
 
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={isLoading}
-              >
-                إلغاء
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "جارٍ الحفظ..." : "حفظ"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+              {/* Financial values */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="monthlyValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>القيمة الشهرية (ر.س)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            const n = e.target.valueAsNumber;
+                            field.onChange(Number.isNaN(n) ? undefined : n);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="totalValue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>إجمالي القيمة (ر.س)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            const n = e.target.valueAsNumber;
+                            field.onChange(Number.isNaN(n) ? undefined : n);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>تاريخ البداية</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>تاريخ النهاية</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* PDF Upload */}
+              <div>
+                <p className="text-sm font-medium mb-1.5">ملف العقد (PDF)</p>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer hover:bg-muted/40 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ")
+                      fileInputRef.current?.click();
+                  }}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                >
+                  {file ? (
+                    <>
+                      <FileText className="w-8 h-8 text-blue-600" />
+                      <p className="text-sm font-medium">{file.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(file.size / 1024).toFixed(0)} KB
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-7 h-7 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        اسحب الملف هنا أو انقر للاختيار
+                      </p>
+                    </>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleClose(false)}
+                  disabled={isLoading}
+                >
+                  إلغاء
+                </Button>
+                <Button type="submit" disabled={isLoading || !file}>
+                  {isLoading ? "جارٍ الإرسال..." : "إنشاء وإرسال"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -6,8 +6,6 @@ import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 import * as cookieParser from "cookie-parser";
-import { join } from "path";
-
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new Logger(), // NestJS 11 ConsoleLogger with JSON support
@@ -15,7 +13,11 @@ async function bootstrap() {
 
   app.setGlobalPrefix("v1");
 
-  app.useStaticAssets(join(__dirname, "..", "uploads"), {
+  // process.cwd() = apps/api/ (NestJS CLI runs from the package dir).
+  // Do NOT use __dirname here: the compiled output lives at dist/src/main.js,
+  // so __dirname = dist/src/ and join(__dirname, '..', 'uploads') would
+  // wrongly resolve to dist/uploads/ instead of the real uploads/ folder.
+  app.useStaticAssets(process.cwd() + "/uploads", {
     prefix: "/uploads",
   });
 

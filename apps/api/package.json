@@ -43,6 +43,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.x",
+    "@types/multer": "^2.1.0",
     "@types/node": "^22.x",
     "@types/passport-jwt": "^4.x",
     "prisma": "^6.x",

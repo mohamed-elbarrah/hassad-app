@@ -557,6 +557,16 @@ async function main() {
     "automation.create",
     "automation.read",
     "automation.execute",
+    "contracts.create",
+    "contracts.read",
+    "contracts.update",
+    "contracts.send",
+    "contracts.sign",
+    "contracts.activate",
+    "contracts.cancel",
+    "contracts.manage_versions",
+    "contracts.read_public",
+    "contracts.sign_public",
   ];
 
   for (const name of permissions) {
@@ -596,6 +606,14 @@ async function main() {
       "proposals.read",
       "proposals.send",
       "proposals.read_public",
+      "contracts.create",
+      "contracts.read",
+      "contracts.update",
+      "contracts.send",
+      "contracts.sign",
+      "contracts.activate",
+      "contracts.cancel",
+      "contracts.manage_versions",
       "notifications.read",
       "notifications.update",
     ],
@@ -614,7 +632,7 @@ async function main() {
       "finance.update_invoice",
       "finance.manage_tickets",
     ],
-    CLIENT: ["proposals.read_public", "notifications.read", "leads.create"],
+    CLIENT: ["proposals.read_public", "notifications.read", "leads.create", "contracts.read_public", "contracts.sign_public"],
   };
 
   for (const [roleName, permNames] of Object.entries(rolePermissionMapping)) {

@@ -264,6 +264,7 @@ model User {
   permissions      UserPermission[]
   departments      UserDepartment[]
   assignedLeads    Lead[]                   @relation("LeadAssignee")
+  createdLeads     Lead[]                   @relation("LeadCreator")
   leadHistory      LeadPipelineHistory[]
   contactLogs      LeadContactLog[]
   managedClients   Client[]                 @relation("AccountManager")
@@ -381,6 +382,7 @@ model Lead {
   businessType        BusinessType  @map("business_type")
   source              ClientSource
   assignedTo          String?       @map("assigned_to")
+  createdBy           String?       @map("created_by")
   pipelineStage       PipelineStage @map("pipeline_stage")
   contactAttemptCount Int           @default(0) @map("contact_attempt_count")
   lastContactAt       DateTime?     @map("last_contact_at")
@@ -390,6 +392,7 @@ model Lead {
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
   assignee        User?                  @relation("LeadAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  creator         User?                  @relation("LeadCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   pipelineHistory LeadPipelineHistory[]
   contactLogs     LeadContactLog[]
   automationLogs  LeadAutomationLog[]
@@ -398,6 +401,7 @@ model Lead {
 
   @@map("leads")
   @@index([assignedTo])
+  @@index([createdBy])
   @@index([pipelineStage])
   @@index([createdAt])
 }
@@ -529,6 +533,7 @@ model Proposal {
   totalPrice         Float          @map("total_price")
   durationDays       Int            @map("duration_days")
   platforms          Json
+  filePath           String?        @map("file_path")
   status             ProposalStatus
   shareLinkToken     String?        @unique @map("share_link_token")
   sentAt             DateTime?      @map("sent_at")
@@ -557,11 +562,12 @@ model Contract {
   endDate      DateTime       @map("end_date")
   monthlyValue Float          @map("monthly_value")
   totalValue   Float          @map("total_value")
-  filePath     String?        @map("file_path")
-  versionNumber Int            @default(1) @map("version_number")
-  eSigned      Boolean        @default(false) @map("e_signed")
-  signedAt     DateTime?      @map("signed_at")
-  createdAt    DateTime       @default(now()) @map("created_at")
+  filePath        String?        @map("file_path")
+  shareLinkToken  String?        @unique @map("share_link_token")
+  versionNumber   Int            @default(1) @map("version_number")
+  eSigned         Boolean        @default(false) @map("e_signed")
+  signedAt        DateTime?      @map("signed_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
 
   client       Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   proposal     Proposal?               @relation(fields: [proposalId], references: [id], onDelete: SetNull)

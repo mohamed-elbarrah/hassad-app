@@ -160,6 +160,26 @@ export default function PortalPage() {
                 </CardContent>
               </Card>
             </Link>
+            <Link href="/portal/proposals">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="text-base">العروض الفنية</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  راجع العروض المقدّمة ووافق عليها.
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/portal/contracts">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader>
+                  <CardTitle className="text-base">العقود</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  استعرض عقودك ووقّع إلكترونياً.
+                </CardContent>
+              </Card>
+            </Link>
             <Link href="/portal/reports">
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardHeader>

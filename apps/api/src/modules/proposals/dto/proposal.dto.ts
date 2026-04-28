@@ -7,20 +7,29 @@ export class CreateProposalDto {
   @IsString()
   title: string;
 
+  @IsOptional()
   @IsString()
-  serviceDescription: string;
+  serviceDescription?: string;
 
+  @IsOptional()
   @IsArray()
-  servicesList: any[];
+  servicesList?: any[];
 
+  @IsOptional()
   @IsNumber()
-  totalPrice: number;
+  totalPrice?: number;
 
+  @IsOptional()
   @IsNumber()
-  durationDays: number;
+  durationDays?: number;
 
+  @IsOptional()
   @IsArray()
-  platforms: string[];
+  platforms?: string[];
+
+  @IsOptional()
+  @IsString()
+  filePath?: string;
 }
 
 export class UpdateProposalDto {
@@ -47,6 +56,10 @@ export class UpdateProposalDto {
   @IsOptional()
   @IsArray()
   platforms?: string[];
+
+  @IsOptional()
+  @IsString()
+  filePath?: string;
 }
 
 export class ProposalResponseDto {

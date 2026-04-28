@@ -7,6 +7,7 @@ import { UserRole } from "@hassad/shared";
 import { NavUser } from "@/components/nav-user";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
+import { NotificationBell } from "@/components/common/NotificationBell";
 
 // ─── localStorage key helper ──────────────────────────────────────────────────
 function intakeStorageKey(userId: string) {
@@ -83,7 +84,8 @@ export default function PortalLayout({
       <div className="min-h-screen bg-white flex flex-col w-full">
         <header className="bg-blue-600 text-white p-4 shadow-md flex items-center justify-between">
           <span className="font-semibold text-lg">بوابة العميل</span>
-          <div className="[&_button]:text-white [&_button]:bg-transparent [&_button:hover]:bg-white/10">
+          <div className="flex items-center gap-2 [&_button]:text-white [&_button]:bg-transparent [&_button:hover]:bg-white/10">
+            <NotificationBell />
             <NavUser />
           </div>
         </header>

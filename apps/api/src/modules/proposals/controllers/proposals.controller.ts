@@ -7,13 +7,30 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { randomBytes } from 'crypto';
 import { ProposalsService } from '../services/proposals.service';
 import { CreateProposalDto, UpdateProposalDto, ProposalResponseDto } from '../dto/proposal.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+
+// ─── Multer storage config ────────────────────────────────────────────────────
+const proposalStorage = diskStorage({
+  destination: join(process.cwd(), 'uploads', 'proposals'),
+  filename: (_req, file, cb) => {
+    const unique = randomBytes(16).toString('hex');
+    const ext = extname(file.originalname);
+    cb(null, `${unique}${ext}`);
+  },
+});
 
 @Controller('proposals')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -22,14 +39,29 @@ export class ProposalsController {
 
   @Post()
   @RequirePermissions('proposals.create')
-  create(@CurrentUser() user: any, @Body() createProposalDto: CreateProposalDto) {
-    return this.proposalsService.create(user.id, createProposalDto);
+  @UseInterceptors(FileInterceptor('file', { storage: proposalStorage }))
+  async create(
+    @CurrentUser() user: any,
+    @Body() createProposalDto: CreateProposalDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('PDF file is required');
+    }
+    const filePath = `/uploads/proposals/${file.filename}`;
+    return this.proposalsService.create(user.id, { ...createProposalDto, filePath });
   }
 
   @Get()
   @RequirePermissions('proposals.read')
   findAll(@Query() filters: any) {
     return this.proposalsService.findAll(filters);
+  }
+
+  @Get('my')
+  @RequirePermissions('proposals.read_public')
+  getMyProposals(@CurrentUser() user: any) {
+    return this.proposalsService.getMyProposals(user.id);
   }
 
   @Get('share/:token')

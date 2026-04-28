@@ -1,19 +1,40 @@
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type {
-  Contract,
-  CreateContractInput,
-  UpdateContractInput,
-  SignContractInput,
-  ContractStatus,
-} from "@hassad/shared";
+import { getApiBaseUrl } from "@/lib/utils";
+import type { ContractStatus, ContractType } from "@hassad/shared";
 
-export interface ContractListItem extends Contract {
-  client?: { id: string; companyName: string; contactName: string };
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface ContractClient {
+  id: string;
+  companyName: string;
+  contactName: string;
+  leadId?: string | null;
+}
+
+export interface ContractItem {
+  id: string;
+  clientId: string;
+  proposalId?: string | null;
+  createdBy: string;
+  title: string;
+  type: ContractType;
+  status: ContractStatus;
+  startDate: string;
+  endDate: string;
+  monthlyValue: number;
+  totalValue: number;
+  filePath?: string | null;
+  shareLinkToken?: string | null;
+  versionNumber: number;
+  eSigned: boolean;
+  signedAt?: string | null;
+  createdAt: string;
+  client?: ContractClient;
 }
 
 export interface PaginatedContracts {
-  items: ContractListItem[];
+  items: ContractItem[];
   total: number;
   page: number;
   limit: number;
@@ -27,6 +48,26 @@ export interface ContractFilters {
   page?: number;
   limit?: number;
 }
+
+/** Input for the FormData POST /contracts mutation */
+export interface CreateContractFormInput {
+  leadId: string;
+  title: string;
+  type: ContractType;
+  monthlyValue: number;
+  totalValue: number;
+  startDate: string; // ISO date string e.g. "2026-05-01"
+  endDate: string;
+  file: File;
+  proposalId?: string;
+}
+
+export interface SignContractInput {
+  signedByName: string;
+  signedByEmail?: string;
+}
+
+// ─── API slice ────────────────────────────────────────────────────────────────
 
 export const contractsApi = createApi({
   reducerPath: "contractsApi",
@@ -47,19 +88,51 @@ export const contractsApi = createApi({
           : [{ type: "Contract", id: "LIST" }],
     }),
 
-    getContractById: builder.query<ContractListItem, string>({
+    getContractById: builder.query<ContractItem, string>({
       query: (id) => `/contracts/${id}`,
       providesTags: (_result, _error, id) => [{ type: "Contract", id }],
     }),
 
-    createContract: builder.mutation<ContractListItem, CreateContractInput>({
-      query: (body) => ({ url: "/contracts", method: "POST", body }),
+    /** One-step: multipart/form-data upload (file + leadId + title + …) */
+    createContract: builder.mutation<ContractItem, CreateContractFormInput>({
+      queryFn: async (input, _api, _extraOptions) => {
+        const formData = new FormData();
+        formData.append("leadId", input.leadId);
+        formData.append("title", input.title);
+        formData.append("type", input.type);
+        formData.append("monthlyValue", String(input.monthlyValue));
+        formData.append("totalValue", String(input.totalValue));
+        formData.append("startDate", input.startDate);
+        formData.append("endDate", input.endDate);
+        formData.append("file", input.file, input.file.name);
+        if (input.proposalId) formData.append("proposalId", input.proposalId);
+
+        const apiBase =
+          getApiBaseUrl() ||
+          (typeof window !== "undefined"
+            ? `${window.location.origin.replace(/\/+$/, "")}/v1`
+            : "");
+
+        const res = await fetch(`${apiBase}/contracts`, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+
+        const json = await res.json();
+        if (!res.ok) {
+          return { error: { status: res.status, data: json } };
+        }
+        // Unwrap envelope
+        const data = json?.data !== undefined ? json.data : json;
+        return { data };
+      },
       invalidatesTags: [{ type: "Contract", id: "LIST" }],
     }),
 
     updateContract: builder.mutation<
-      ContractListItem,
-      { id: string; body: UpdateContractInput }
+      ContractItem,
+      { id: string; body: Partial<ContractItem> }
     >({
       query: ({ id, body }) => ({
         url: `/contracts/${id}`,
@@ -72,10 +145,7 @@ export const contractsApi = createApi({
       ],
     }),
 
-    sendContract: builder.mutation<
-      { id: string; status: ContractStatus },
-      string
-    >({
+    sendContract: builder.mutation<ContractItem, string>({
       query: (id) => ({ url: `/contracts/${id}/send`, method: "POST" }),
       invalidatesTags: (_result, _error, id) => [
         { type: "Contract", id },
@@ -84,12 +154,7 @@ export const contractsApi = createApi({
     }),
 
     signContract: builder.mutation<
-      {
-        id: string;
-        status: ContractStatus;
-        signedAt: string;
-        signedByName: string;
-      },
+      ContractItem,
       { id: string; body: SignContractInput }
     >({
       query: ({ id, body }) => ({
@@ -99,6 +164,36 @@ export const contractsApi = createApi({
       }),
       invalidatesTags: (_result, _error, { id }) => [
         { type: "Contract", id },
+        { type: "Contract", id: "LIST" },
+      ],
+    }),
+
+    // ─── Public token-based endpoints ───────────────────────────────────────
+
+    getContractByToken: builder.query<ContractItem, string>({
+      query: (token) => `/contracts/share/${token}`,
+      providesTags: (_result, _error, token) => [
+        { type: "Contract", id: `token:${token}` },
+      ],
+    }),
+
+    /** CLIENT portal: contracts linked to the logged-in user's leads */
+    getMyContracts: builder.query<ContractItem[], void>({
+      query: () => `/contracts/my`,
+      providesTags: [{ type: "Contract", id: "MY" }],
+    }),
+
+    signContractByToken: builder.mutation<
+      ContractItem,
+      { token: string; body: SignContractInput }
+    >({
+      query: ({ token, body }) => ({
+        url: `/contracts/share/${token}/sign`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { token }) => [
+        { type: "Contract", id: `token:${token}` },
         { type: "Contract", id: "LIST" },
       ],
     }),
@@ -112,4 +207,7 @@ export const {
   useUpdateContractMutation,
   useSendContractMutation,
   useSignContractMutation,
+  useGetContractByTokenQuery,
+  useGetMyContractsQuery,
+  useSignContractByTokenMutation,
 } = contractsApi;

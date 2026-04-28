@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateLeadDto, UpdateLeadDto, AssignLeadDto, CreateContactLogDto, ChangeLeadStageDto } from '../dto/lead.dto';
-import { PipelineStage, ClientStatus } from '@hassad/shared';
+import { PipelineStage, ClientStatus, ProposalStatus } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
@@ -11,11 +11,12 @@ export class LeadsService {
     private notificationsService: NotificationsService,
   ) {}
 
-  async create(dto: CreateLeadDto) {
+  async create(userId: string, dto: CreateLeadDto) {
     const lead = await this.prisma.lead.create({
       data: {
         ...dto,
         pipelineStage: PipelineStage.NEW,
+        createdBy: userId,
       },
     });
 
@@ -99,6 +100,19 @@ export class LeadsService {
       throw new BadRequestException('Lead is already in this stage');
     }
 
+    // ── Stage gate: moving to APPROVED requires an APPROVED proposal ──────────
+    if (dto.toStage === PipelineStage.APPROVED) {
+      const approvedProposal = await this.prisma.proposal.findFirst({
+        where: { leadId: id, status: ProposalStatus.APPROVED },
+      });
+
+      if (!approvedProposal) {
+        throw new BadRequestException(
+          'لا يمكن الانتقال إلى مرحلة الموافقة قبل اعتماد عرض فني من قِبَل العميل',
+        );
+      }
+    }
+
     // Update Lead and Create History in a transaction
     return this.prisma.$transaction(async (tx) => {
       const updatedLead = await tx.lead.update({
@@ -114,8 +128,6 @@ export class LeadsService {
           changedBy: userId,
         },
       });
-
-      // TODO: Emit notification event
 
       return updatedLead;
     });

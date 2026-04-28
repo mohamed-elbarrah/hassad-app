@@ -40,8 +40,8 @@ export const PIPELINE_UI_MAP = {
 
 export const PIPELINE_STAGE_ORDER: PipelineStage[] = [
   PipelineStage.NEW,
-  PipelineStage.INTRO_SENT,
   PipelineStage.CALL_ATTEMPT,
+  PipelineStage.INTRO_SENT,
   PipelineStage.MEETING_SCHEDULED,
   PipelineStage.MEETING_DONE,
   PipelineStage.PROPOSAL_SENT,

@@ -71,7 +71,7 @@ const KANBAN_GROUPS = [
     label: "الاستقطاب",
     accentClass: "bg-blue-50 border-blue-200 text-blue-700",
     textClass: "text-blue-700",
-    stages: [PipelineStage.NEW, PipelineStage.INTRO_SENT],
+    stages: [PipelineStage.NEW, PipelineStage.CALL_ATTEMPT],
   },
   {
     id: "qualification",
@@ -79,7 +79,7 @@ const KANBAN_GROUPS = [
     accentClass: "bg-violet-50 border-violet-200 text-violet-700",
     textClass: "text-violet-700",
     stages: [
-      PipelineStage.CALL_ATTEMPT,
+      PipelineStage.INTRO_SENT,
       PipelineStage.MEETING_SCHEDULED,
       PipelineStage.MEETING_DONE,
     ],
@@ -194,7 +194,7 @@ export function KanbanBoard() {
   const emptyBanner = totalLeads === 0 && data !== undefined && (
     <div className="mb-4 rounded-xl border-2 border-dashed px-6 py-4 text-center">
       <p className="text-sm font-medium text-muted-foreground">
-        لا يوجد أي عميل محتمل بعد — أضف أول عميل عبر زر &quot;صفقة جديدة&quot;
+        لا يوجد أي عميل محتمل بعد — سيظهر هنا بعد تقديم طلبات جديدة عبر بوابة العملاء
       </p>
     </div>
   );

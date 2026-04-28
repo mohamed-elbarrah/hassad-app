@@ -22,8 +22,8 @@ export class LeadsController {
 
   @Post()
   @RequirePermissions('leads.create')
-  create(@Body() createLeadDto: CreateLeadDto) {
-    return this.leadsService.create(createLeadDto);
+  create(@CurrentUser() user: any, @Body() createLeadDto: CreateLeadDto) {
+    return this.leadsService.create(user.id, createLeadDto);
   }
 
   @Get()

@@ -1,14 +1,15 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import { getApiBaseUrl } from "@/lib/utils";
 import type {
   Proposal,
-  CreateProposalInput,
   UpdateProposalInput,
   ProposalResponseInput,
   ProposalStatus,
 } from "@hassad/shared";
 
 export interface ProposalListItem extends Proposal {
+  filePath?: string | null;
   lead?: { id: string; contactName: string; companyName: string };
   creator?: { id: string; name: string };
 }
@@ -27,6 +28,13 @@ export interface ProposalFilters {
   search?: string;
   page?: number;
   limit?: number;
+}
+
+/** Input for one-step create+send via multipart/form-data */
+export interface CreateProposalFormInput {
+  leadId: string;
+  title: string;
+  file: File;
 }
 
 export const proposalsApi = createApi({
@@ -53,8 +61,40 @@ export const proposalsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Proposal", id }],
     }),
 
-    createProposal: builder.mutation<ProposalListItem, CreateProposalInput>({
-      query: (body) => ({ url: "/proposals", method: "POST", body }),
+    /**
+     * One-step: multipart/form-data upload (file + leadId + title).
+     * Returns a SENT proposal with shareLinkToken populated.
+     */
+    createProposal: builder.mutation<ProposalListItem, CreateProposalFormInput>({
+      queryFn: async (input) => {
+        const formData = new FormData();
+        formData.append("leadId", input.leadId);
+        formData.append("title", input.title);
+        formData.append("file", input.file, input.file.name);
+
+        // Ensure we have a usable API base URL. In dev this may be missing
+        // from env during client runtime, so fall back to window origin.
+        const apiBase =
+          getApiBaseUrl() ||
+          (typeof window !== "undefined"
+            ? `${window.location.origin.replace(/\/+$/, "")}/v1`
+            : "");
+
+        const res = await fetch(`${apiBase}/proposals`, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+
+        const json = await res.json();
+        if (!res.ok) {
+          return { error: { status: res.status, data: json } };
+        }
+        // Unwrap the { success, data, timestamp } envelope
+        const data: ProposalListItem =
+          json?.data !== undefined ? json.data : json;
+        return { data };
+      },
       invalidatesTags: [{ type: "Proposal", id: "LIST" }],
     }),
 
@@ -93,6 +133,12 @@ export const proposalsApi = createApi({
       query: (token) => `/proposals/share/${token}`,
     }),
 
+    /** CLIENT portal: proposals linked to the logged-in user's leads */
+    getMyProposals: builder.query<ProposalListItem[], void>({
+      query: () => `/proposals/my`,
+      providesTags: [{ type: "Proposal", id: "MY" }],
+    }),
+
     approveProposalByToken: builder.mutation<
       { id: string; status: ProposalStatus; approvedAt: string },
       { token: string; body: ProposalResponseInput }
@@ -124,6 +170,7 @@ export const {
   useUpdateProposalMutation,
   useSendProposalMutation,
   useGetProposalByTokenQuery,
+  useGetMyProposalsQuery,
   useApproveProposalByTokenMutation,
   useRequestRevisionByTokenMutation,
 } = proposalsApi;
