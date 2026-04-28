@@ -74,7 +74,7 @@ export function CreateProposalDialog() {
   );
 
   // Client-side filter on leads list
-  const filteredLeads = (leadsData?.items ?? []).filter(
+  const filteredLeads = (leadsData ?? []).filter(
     (l) =>
       !leadSearch ||
       l.companyName.toLowerCase().includes(leadSearch.toLowerCase()) ||

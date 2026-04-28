@@ -12,12 +12,26 @@ export class LeadsService {
   ) {}
 
   async create(dto: CreateLeadDto) {
-    return this.prisma.lead.create({
+    const lead = await this.prisma.lead.create({
       data: {
         ...dto,
         pipelineStage: PipelineStage.NEW,
       },
     });
+
+    // Notify all SALES users — fire-and-forget so a notification failure
+    // never blocks or rolls back lead creation.
+    this.notificationsService
+      .broadcast({
+        title: 'عميل محتمل جديد',
+        message: `طلب جديد من ${lead.contactName} — ${lead.companyName}`,
+        roles: ['SALES'],
+      })
+      .catch(() => {
+        // Non-critical: swallow notification errors silently
+      });
+
+    return lead;
   }
 
   async findAll() {

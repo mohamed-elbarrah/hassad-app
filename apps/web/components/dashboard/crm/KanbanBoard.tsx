@@ -11,7 +11,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { toast } from "sonner";
-import { PipelineStage, PIPELINE_STAGE_ORDER } from "@hassad/shared";
+import { PipelineStage } from "@hassad/shared";
 import type { LeadListItem } from "@/features/leads/leadsApi";
 import {
   useGetLeadsQuery,
@@ -20,7 +20,9 @@ import {
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
+import { KanbanGroup } from "./KanbanGroup";
 
+// ─── Error resolver ──────────────────────────────────────────────────────────
 function resolveKanbanError(error: unknown): string {
   const e = error as FetchBaseQueryError | undefined;
   if (!e) return "حدث خطأ غير متوقع.";
@@ -33,6 +35,7 @@ function resolveKanbanError(error: unknown): string {
   return "فشل تحميل لوحة المبيعات.";
 }
 
+// ─── Stage labels ─────────────────────────────────────────────────────────────
 const STAGE_LABELS: Record<PipelineStage, string> = {
   [PipelineStage.NEW]: "عميل جديد",
   [PipelineStage.INTRO_SENT]: "تم التواصل",
@@ -45,37 +48,81 @@ const STAGE_LABELS: Record<PipelineStage, string> = {
   [PipelineStage.CONTRACT_SIGNED]: "توقيع عقد",
 };
 
-const STAGE_COLORS: Record<PipelineStage, string> = {
-  [PipelineStage.NEW]: "bg-slate-50 border-slate-300",
-  [PipelineStage.INTRO_SENT]: "bg-blue-50 border-blue-300",
-  [PipelineStage.CALL_ATTEMPT]: "bg-indigo-50 border-indigo-300",
-  [PipelineStage.MEETING_SCHEDULED]: "bg-violet-50 border-violet-300",
-  [PipelineStage.MEETING_DONE]: "bg-purple-50 border-purple-300",
-  [PipelineStage.PROPOSAL_SENT]: "bg-amber-50 border-amber-300",
-  [PipelineStage.FOLLOW_UP]: "bg-orange-50 border-orange-300",
-  [PipelineStage.APPROVED]: "bg-yellow-50 border-yellow-300",
-  [PipelineStage.CONTRACT_SIGNED]: "bg-emerald-50 border-emerald-300",
+// ─── Column colors (header bg + border, dot) ──────────────────────────────────
+const STAGE_COLORS: Record<
+  PipelineStage,
+  { column: string; dot: string }
+> = {
+  [PipelineStage.NEW]: { column: "bg-slate-50 border-slate-200", dot: "bg-slate-400" },
+  [PipelineStage.INTRO_SENT]: { column: "bg-blue-50 border-blue-200", dot: "bg-blue-400" },
+  [PipelineStage.CALL_ATTEMPT]: { column: "bg-indigo-50 border-indigo-200", dot: "bg-indigo-400" },
+  [PipelineStage.MEETING_SCHEDULED]: { column: "bg-violet-50 border-violet-200", dot: "bg-violet-400" },
+  [PipelineStage.MEETING_DONE]: { column: "bg-purple-50 border-purple-200", dot: "bg-purple-400" },
+  [PipelineStage.PROPOSAL_SENT]: { column: "bg-amber-50 border-amber-200", dot: "bg-amber-400" },
+  [PipelineStage.FOLLOW_UP]: { column: "bg-orange-50 border-orange-200", dot: "bg-orange-400" },
+  [PipelineStage.APPROVED]: { column: "bg-yellow-50 border-yellow-200", dot: "bg-yellow-400" },
+  [PipelineStage.CONTRACT_SIGNED]: { column: "bg-emerald-50 border-emerald-200", dot: "bg-emerald-500" },
 };
 
+// ─── Stage groups ─────────────────────────────────────────────────────────────
+const KANBAN_GROUPS = [
+  {
+    id: "acquisition",
+    label: "الاستقطاب",
+    accentClass: "bg-blue-50 border-blue-200 text-blue-700",
+    textClass: "text-blue-700",
+    stages: [PipelineStage.NEW, PipelineStage.INTRO_SENT],
+  },
+  {
+    id: "qualification",
+    label: "التأهيل",
+    accentClass: "bg-violet-50 border-violet-200 text-violet-700",
+    textClass: "text-violet-700",
+    stages: [
+      PipelineStage.CALL_ATTEMPT,
+      PipelineStage.MEETING_SCHEDULED,
+      PipelineStage.MEETING_DONE,
+    ],
+  },
+  {
+    id: "deal",
+    label: "العرض والمتابعة",
+    accentClass: "bg-amber-50 border-amber-200 text-amber-700",
+    textClass: "text-amber-700",
+    stages: [PipelineStage.PROPOSAL_SENT, PipelineStage.FOLLOW_UP],
+  },
+  {
+    id: "closing",
+    label: "الإغلاق",
+    accentClass: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    textClass: "text-emerald-700",
+    stages: [PipelineStage.APPROVED, PipelineStage.CONTRACT_SIGNED],
+  },
+] as const;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export function KanbanBoard() {
   const [activeLead, setActiveLead] = useState<LeadListItem | null>(null);
   const [updateLeadStage] = useUpdateLeadStageMutation();
 
-  const { data, isLoading, isError, error } = useGetLeadsQuery({ limit: 100 });
+  const { data, isLoading, isError, error } = useGetLeadsQuery(
+    { limit: 100 },
+    { pollingInterval: 30_000 },
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
+  // Group leads by pipeline stage
   const leadsByStage = useMemo(() => {
     const map = new Map<PipelineStage, LeadListItem[]>();
-    PIPELINE_STAGE_ORDER.forEach((stage) => map.set(stage, []));
-    if (data?.items) {
-      data.items.forEach((lead) => {
+    Object.values(PipelineStage).forEach((stage) => map.set(stage, []));
+    if (data) {
+      data.forEach((lead) => {
         const stage = lead.pipelineStage as PipelineStage;
         if (map.has(stage)) {
-          const list = map.get(stage)!;
-          map.set(stage, [...list, lead]);
+          map.set(stage, [...(map.get(stage) ?? []), lead]);
         }
       });
     }
@@ -84,7 +131,7 @@ export function KanbanBoard() {
 
   function handleDragStart(event: DragStartEvent) {
     const leadId = event.active.id as string;
-    const lead = data?.items.find((l) => l.id === leadId) ?? null;
+    const lead = data?.find((l) => l.id === leadId) ?? null;
     setActiveLead(lead);
   }
 
@@ -109,19 +156,28 @@ export function KanbanBoard() {
     }
   }
 
+  // ── Loading skeleton ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {PIPELINE_STAGE_ORDER.map((stage) => (
-          <div
-            key={stage}
-            className="w-64 shrink-0 h-96 bg-muted animate-pulse rounded-lg"
-          />
+      <div className="space-y-4">
+        {KANBAN_GROUPS.map((group) => (
+          <div key={group.id} className="space-y-2">
+            <div className="h-10 bg-muted animate-pulse rounded-lg" />
+            <div className="flex gap-3">
+              {group.stages.map((stage) => (
+                <div
+                  key={stage}
+                  className="w-72 shrink-0 h-48 bg-muted animate-pulse rounded-xl"
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     );
   }
 
+  // ── Error state ────────────────────────────────────────────────────────────
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
@@ -132,44 +188,59 @@ export function KanbanBoard() {
     );
   }
 
-  const totalLeads = data?.total ?? 0;
+  const totalLeads = data?.length ?? 0;
 
+  // ── Empty hint (inline, board still renders) ───────────────────────────────
+  const emptyBanner = totalLeads === 0 && data !== undefined && (
+    <div className="mb-4 rounded-xl border-2 border-dashed px-6 py-4 text-center">
+      <p className="text-sm font-medium text-muted-foreground">
+        لا يوجد أي عميل محتمل بعد — أضف أول عميل عبر زر &quot;صفقة جديدة&quot;
+      </p>
+    </div>
+  );
+
+  // ── Board ──────────────────────────────────────────────────────────────────
   return (
-    <>
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        {totalLeads === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center gap-3 border-2 border-dashed rounded-xl">
-            <p className="text-lg font-medium text-muted-foreground">
-              لا يوجد أي عميل محتمل بعد
-            </p>
-            <p className="text-sm text-muted-foreground">
-              أضف أول عميل محتمل من صفحة العملاء المحتملين
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto pb-4" dir="rtl">
-            <div className="flex gap-4 min-w-max">
-              {PIPELINE_STAGE_ORDER.map((stage) => (
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-5" dir="rtl">
+        {emptyBanner}
+        {KANBAN_GROUPS.map((group) => {
+          const groupCount = group.stages.reduce(
+            (sum, stage) => sum + (leadsByStage.get(stage)?.length ?? 0),
+            0,
+          );
+
+          return (
+            <KanbanGroup
+              key={group.id}
+              id={group.id}
+              label={group.label}
+              accentClass={group.accentClass}
+              textClass={group.textClass}
+              totalCount={groupCount}
+            >
+              {group.stages.map((stage) => (
                 <KanbanColumn
                   key={stage}
                   stage={stage}
                   label={STAGE_LABELS[stage]}
-                  colorClass={STAGE_COLORS[stage]}
+                  colorClass={STAGE_COLORS[stage].column}
+                  dotClass={STAGE_COLORS[stage].dot}
                   clients={leadsByStage.get(stage) ?? []}
                 />
               ))}
-            </div>
-          </div>
-        )}
+            </KanbanGroup>
+          );
+        })}
+      </div>
 
-        <DragOverlay>
-          {activeLead ? <KanbanCard client={activeLead} isOverlay /> : null}
-        </DragOverlay>
-      </DndContext>
-    </>
+      <DragOverlay>
+        {activeLead ? <KanbanCard client={activeLead} isOverlay /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

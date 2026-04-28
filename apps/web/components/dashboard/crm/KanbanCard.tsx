@@ -3,21 +3,42 @@
 import { useDraggable } from "@dnd-kit/core";
 import { useRouter } from "next/navigation";
 import type { LeadListItem } from "@/features/leads/leadsApi";
-import { BusinessType } from "@hassad/shared";
 import { cn } from "@/lib/utils";
-import { Calendar, GripVertical } from "lucide-react";
-
-const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
-  [BusinessType.RESTAURANT]: "مطعم",
-  [BusinessType.CLINIC]: "عيادة",
-  [BusinessType.STORE]: "متجر",
-  [BusinessType.SERVICE]: "خدمة",
-  [BusinessType.OTHER]: "أخرى",
-};
+import { Building2, Clock, GripVertical, Phone } from "lucide-react";
 
 interface KanbanCardProps {
   client: LeadListItem;
   isOverlay?: boolean;
+}
+
+/** Parse a short description from the notes JSON (if any) */
+function parseDescription(notes?: string | null): string | null {
+  if (!notes) return null;
+  try {
+    const parsed = JSON.parse(notes) as { description?: string };
+    return parsed.description?.trim() || null;
+  } catch {
+    // notes is plain text, not JSON
+    return notes.trim() || null;
+  }
+}
+
+/** Format relative "last activity" time in Arabic */
+function formatRelativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days = Math.floor(diff / 86_400_000);
+
+  if (minutes < 1) return "الآن";
+  if (minutes < 60) return `منذ ${minutes} دقيقة`;
+  if (hours < 24) return `منذ ${hours} ساعة`;
+  if (days === 1) return "أمس";
+  if (days < 7) return `منذ ${days} أيام`;
+  return new Intl.DateTimeFormat("ar-SA", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(dateStr));
 }
 
 export function KanbanCard({ client: lead, isOverlay = false }: KanbanCardProps) {
@@ -27,9 +48,7 @@ export function KanbanCard({ client: lead, isOverlay = false }: KanbanCardProps)
     data: { stage: lead.pipelineStage },
   });
 
-  const daysInStage = Math.floor(
-    (Date.now() - new Date(lead.updatedAt).getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const description = parseDescription(lead.notes);
 
   function handleClick(e: React.MouseEvent) {
     if (isDragging) return;
@@ -41,39 +60,51 @@ export function KanbanCard({ client: lead, isOverlay = false }: KanbanCardProps)
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-background rounded-md border p-3 cursor-grab active:cursor-grabbing",
-        "hover:border-primary/50 transition-colors duration-100",
-        (isDragging || isOverlay) && "opacity-50 shadow-lg",
+        "bg-background rounded-lg border p-3 cursor-grab active:cursor-grabbing",
+        "hover:border-primary/40 hover:shadow-sm transition-all duration-100",
+        (isDragging || isOverlay) && "opacity-50 shadow-xl rotate-1 scale-105",
       )}
       {...attributes}
       {...listeners}
       onClick={handleClick}
     >
+      {/* ── Header: Name + Drag Handle ─────────────────────────────── */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{lead.companyName}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {BUSINESS_TYPE_LABELS[lead.businessType as BusinessType] ??
-              lead.businessType ?? "—"}
+          <p className="text-sm font-semibold leading-tight truncate">
+            {lead.contactName}
           </p>
+          {lead.companyName && (
+            <div className="flex items-center gap-1 mt-1">
+              <Building2 className="w-3 h-3 text-muted-foreground shrink-0" />
+              <p className="text-xs text-muted-foreground truncate">
+                {lead.companyName}
+              </p>
+            </div>
+          )}
         </div>
-        <GripVertical className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />
+        <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-0.5" />
       </div>
 
-      <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-        <Calendar className="h-3 w-3" />
-        <span dir="ltr">
-          {new Intl.DateTimeFormat("en-GB", {
-            day: "2-digit",
-            month: "short",
-            numberingSystem: "latn",
-          }).format(new Date(lead.createdAt))}
-        </span>
-        {daysInStage > 0 && (
-          <span className="mr-auto text-amber-600 font-medium">
-            {daysInStage} أيام
+      {/* ── Short Description ──────────────────────────────────────── */}
+      {description && (
+        <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed border-t pt-2">
+          {description}
+        </p>
+      )}
+
+      {/* ── Footer: Phone + Last Activity ─────────────────────────── */}
+      <div className="flex items-center justify-between mt-2 pt-1 gap-2">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+          <Phone className="w-3 h-3 shrink-0" />
+          <span dir="ltr" className="truncate">
+            {lead.phoneWhatsapp}
           </span>
-        )}
+        </div>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          <Clock className="w-3 h-3" />
+          <span>{formatRelativeTime(lead.updatedAt)}</span>
+        </div>
       </div>
     </div>
   );

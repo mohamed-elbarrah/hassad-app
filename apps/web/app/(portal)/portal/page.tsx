@@ -1,14 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { useGetDeliverablesByClientQuery } from "@/features/deliverables/deliverablesApi";
 import { useGetInvoicesByClientQuery } from "@/features/finance/financeApi";
 import { useGetCampaignsQuery } from "@/features/campaigns/campaignsApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
 
 export default function PortalPage() {
+  const [showNewDeal, setShowNewDeal] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
 
@@ -72,11 +77,21 @@ export default function PortalPage() {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      <div>
-        <h1 className="text-2xl font-semibold">مرحباً، {user?.name} 👋</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          هذه نظرة سريعة على تقدم مشروعك.
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">مرحباً، {user?.name} 👋</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            هذه نظرة سريعة على تقدم مشروعك.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          className="gap-2"
+          onClick={() => setShowNewDeal(true)}
+        >
+          <Plus className="w-4 h-4" />
+          طلب خدمة جديدة
+        </Button>
       </div>
 
       {!clientId && (
@@ -167,6 +182,15 @@ export default function PortalPage() {
             </Link>
           </div>
         </>
+      )}
+
+      {/* New service request modal */}
+      {showNewDeal && (
+        <IntakeFormModal
+          mandatory={false}
+          onSuccess={() => setShowNewDeal(false)}
+          onClose={() => setShowNewDeal(false)}
+        />
       )}
     </div>
   );
