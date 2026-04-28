@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import {
   useGetMyTasksQuery,
   useGetMyTaskStatsQuery,
@@ -15,8 +16,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { TaskStatus } from "@hassad/shared";
+import { TaskStatus } from "@hassad/shared";
 
 const STATUS_LABELS: Record<string, string> = {
   TODO: "للتنفيذ",
@@ -40,9 +42,31 @@ const PRIORITY_LABELS: Record<string, string> = {
   HIGH: "عالية",
 };
 
+type TasksFilterKey = "ALL" | "IN_REVIEW" | "IN_PROGRESS" | "DONE";
+
 export default function PMTasksPage() {
+  const [activeFilter, setActiveFilter] = useState<TasksFilterKey>("IN_REVIEW");
   const { data: stats, isLoading: statsLoading } = useGetMyTaskStatsQuery();
   const { data: tasks, isLoading: tasksLoading, isError } = useGetMyTasksQuery({});
+
+  const tasksCounts = useMemo(() => {
+    const allTasks = tasks ?? [];
+    return {
+      ALL: allTasks.length,
+      IN_REVIEW: allTasks.filter((task) => task.status === TaskStatus.IN_REVIEW)
+        .length,
+      IN_PROGRESS: allTasks.filter(
+        (task) => task.status === TaskStatus.IN_PROGRESS,
+      ).length,
+      DONE: allTasks.filter((task) => task.status === TaskStatus.DONE).length,
+    };
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    if (!tasks) return [];
+    if (activeFilter === "ALL") return tasks;
+    return tasks.filter((task) => task.status === activeFilter);
+  }, [tasks, activeFilter]);
 
   const STAT_CARDS = [
     { label: "إجمالي", value: stats?.total ?? 0 },
@@ -82,6 +106,36 @@ export default function PMTasksPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">قائمة المهام</CardTitle>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button
+              size="sm"
+              variant={activeFilter === "IN_REVIEW" ? "default" : "outline"}
+              onClick={() => setActiveFilter("IN_REVIEW")}
+            >
+              قيد المراجعة ({tasksCounts.IN_REVIEW})
+            </Button>
+            <Button
+              size="sm"
+              variant={activeFilter === "IN_PROGRESS" ? "default" : "outline"}
+              onClick={() => setActiveFilter("IN_PROGRESS")}
+            >
+              جارية ({tasksCounts.IN_PROGRESS})
+            </Button>
+            <Button
+              size="sm"
+              variant={activeFilter === "DONE" ? "default" : "outline"}
+              onClick={() => setActiveFilter("DONE")}
+            >
+              منجزة ({tasksCounts.DONE})
+            </Button>
+            <Button
+              size="sm"
+              variant={activeFilter === "ALL" ? "default" : "outline"}
+              onClick={() => setActiveFilter("ALL")}
+            >
+              الكل ({tasksCounts.ALL})
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {tasksLoading && (
@@ -106,14 +160,14 @@ export default function PMTasksPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.length === 0 && (
+                {filteredTasks.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                       لا توجد مهام.
                     </TableCell>
                   </TableRow>
                 )}
-                {tasks.map((task) => (
+                {filteredTasks.map((task) => (
                   <TableRow key={task.id}>
                     <TableCell className="font-medium">
                       <Link

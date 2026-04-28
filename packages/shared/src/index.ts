@@ -161,6 +161,7 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate: Date | string;
+  revisionCount?: number;
   isArchived?: boolean;
   archivedAt?: Date | string | null;
   createdAt: Date | string;
@@ -175,6 +176,7 @@ export interface TaskFile {
   filePath: string;
   fileSize: number;
   mimeType: string;
+  purpose?: string;
   createdAt: Date | string;
 }
 
