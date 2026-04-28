@@ -6,89 +6,425 @@ const prisma = new PrismaClient();
 async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
 
-  // 1. Seed Roles
-  const roles = [
-    'ADMIN',
-    'PM',
-    'SALES',
-    'EMPLOYEE',
-    'MARKETING',
-    'ACCOUNTANT',
-    'CLIENT',
-  ];
-
-  for (const roleName of roles) {
-    await prisma.role.upsert({
-      where: { name: roleName },
-      update: {},
-      create: { name: roleName },
-    });
+  // ── 1. Roles ─────────────────────────────────────────────────────────────────
+  const roleNames = ["ADMIN", "PM", "SALES", "EMPLOYEE", "MARKETING", "ACCOUNTANT", "CLIENT"];
+  for (const name of roleNames) {
+    await prisma.role.upsert({ where: { name }, update: {}, create: { name } });
   }
 
-  // 2. Seed Departments
-  const departments = [
-    'MANAGEMENT',
-    'DESIGN',
-    'CONTENT',
-    'DEVELOPMENT',
-    'MARKETING',
-    'PRODUCTION',
-  ];
-
-  for (const deptName of departments) {
-    await prisma.department.upsert({
-      where: { name: deptName },
-      update: {},
-      create: { name: deptName },
-    });
+  // ── 2. Departments ────────────────────────────────────────────────────────────
+  const deptNames = ["MANAGEMENT", "DESIGN", "CONTENT", "DEVELOPMENT", "MARKETING", "PRODUCTION"];
+  for (const name of deptNames) {
+    await prisma.department.upsert({ where: { name }, update: {}, create: { name } });
   }
 
-  // 3. Seed Users
-  const users = [
-    { email: "admin@hassad.com", name: "Super Admin", role: "ADMIN" },
-    { email: "pm@hassad.com", name: "Project Manager", role: "PM", dept: "MANAGEMENT" },
-    { email: "sales@hassad.com", name: "Sales Agent", role: "SALES" },
-    { email: "employee@hassad.com", name: "Employee User", role: "EMPLOYEE", dept: "DESIGN" },
-    { email: "marketing@hassad.com", name: "Marketing Manager", role: "MARKETING", dept: "MARKETING" },
-    { email: "accountant@hassad.com", name: "Accountant", role: "ACCOUNTANT" },
-    { email: "client@hassad.com", name: "Test Client", role: "CLIENT" },
+  // ── 3. Users ──────────────────────────────────────────────────────────────────
+  const userDefs = [
+    { email: "admin@hassad.com",      name: "Super Admin",      role: "ADMIN" },
+    { email: "pm@hassad.com",         name: "Layla PM",          role: "PM",          dept: "MANAGEMENT" },
+    { email: "sales@hassad.com",      name: "Omar Sales",        role: "SALES" },
+    { email: "employee@hassad.com",   name: "Hana Designer",     role: "EMPLOYEE",    dept: "DESIGN" },
+    { email: "marketing@hassad.com",  name: "Ziad Marketing",    role: "MARKETING",   dept: "MARKETING" },
+    { email: "accountant@hassad.com", name: "Sara Accountant",   role: "ACCOUNTANT" },
+    { email: "client@hassad.com",     name: "Tech Ventures CEO", role: "CLIENT" },
   ];
 
-  for (const user of users) {
-    const createdUser = await prisma.user.upsert({
-      where: { email: user.email },
-      update: {
-        role: { connect: { name: user.role } },
-      },
-      create: {
-        email: user.email,
-        name: user.name,
-        passwordHash,
-        role: { connect: { name: user.role } },
-      },
+  const users: Record<string, string> = {};
+  for (const u of userDefs) {
+    const created = await prisma.user.upsert({
+      where: { email: u.email },
+      update: { role: { connect: { name: u.role } } },
+      create: { email: u.email, name: u.name, passwordHash, role: { connect: { name: u.role } } },
     });
+    users[u.role] = created.id;
 
-    if (user.dept) {
-      const dept = await prisma.department.findUnique({ where: { name: user.dept } });
+    if (u.dept) {
+      const dept = await prisma.department.findUnique({ where: { name: u.dept } });
       if (dept) {
         await prisma.userDepartment.upsert({
-          where: {
-            userId_departmentId: {
-              userId: createdUser.id,
-              departmentId: dept.id,
-            },
-          },
+          where: { userId_departmentId: { userId: created.id, departmentId: dept.id } },
           update: {},
-          create: {
-            userId: createdUser.id,
-            departmentId: dept.id,
-          },
+          create: { userId: created.id, departmentId: dept.id },
         });
       }
     }
   }
 
-  console.log("Database seeded with roles, departments, and standard users (password: password123)");
+  // ── 4. Leads ──────────────────────────────────────────────────────────────────
+  const lead1 = await prisma.lead.create({
+    data: {
+      companyName: "Nova Eats",
+      contactName: "Ahmad Saleh",
+      phoneWhatsapp: "+966501112233",
+      email: "ahmad@novaeats.sa",
+      businessName: "Nova Eats Restaurant",
+      businessType: "RESTAURANT",
+      source: "REFERRAL",
+      assignedTo: users["SALES"],
+      pipelineStage: "PROPOSAL_SENT",
+      notes: "Interested in social media management",
+    },
+  });
+
+  const lead2 = await prisma.lead.create({
+    data: {
+      companyName: "AlShifa Clinic",
+      contactName: "Dr. Sara Al-Nasser",
+      phoneWhatsapp: "+966507778899",
+      email: "sara@alshifa.sa",
+      businessName: "AlShifa Medical Center",
+      businessType: "CLINIC",
+      source: "AD",
+      assignedTo: users["SALES"],
+      pipelineStage: "MEETING_DONE",
+    },
+  });
+
+  const lead3 = await prisma.lead.create({
+    data: {
+      companyName: "TechVentures",
+      contactName: "Tech Ventures CEO",
+      phoneWhatsapp: "+966509990011",
+      email: "client@hassad.com",
+      businessName: "TechVentures Co.",
+      businessType: "OTHER",
+      source: "WEBSITE",
+      assignedTo: users["SALES"],
+      pipelineStage: "CONTRACT_SIGNED",
+    },
+  });
+
+  // ── 5. Clients ────────────────────────────────────────────────────────────────
+  const client1 = await prisma.client.create({
+    data: {
+      leadId: lead3.id,
+      companyName: "TechVentures",
+      contactName: "Tech Ventures CEO",
+      phoneWhatsapp: "+966509990011",
+      email: "client@hassad.com",
+      businessName: "TechVentures Co.",
+      businessType: "OTHER",
+      accountManager: users["PM"],
+      status: "ACTIVE",
+    },
+  });
+
+  const client2 = await prisma.client.create({
+    data: {
+      leadId: lead1.id,
+      companyName: "Nova Eats",
+      contactName: "Ahmad Saleh",
+      phoneWhatsapp: "+966501112233",
+      email: "ahmad@novaeats.sa",
+      businessName: "Nova Eats Restaurant",
+      businessType: "RESTAURANT",
+      accountManager: users["PM"],
+      status: "ACTIVE",
+    },
+  });
+
+  // ── 6. Proposal ───────────────────────────────────────────────────────────────
+  const proposal1 = await prisma.proposal.create({
+    data: {
+      leadId: lead1.id,
+      createdBy: users["SALES"],
+      title: "Social Media Management Package",
+      serviceDescription: "Full social media management including content creation, scheduling, and reporting.",
+      servicesList: [
+        { name: "Content Creation", sessions: 12 },
+        { name: "Story Design", sessions: 30 },
+        { name: "Monthly Report", sessions: 1 },
+      ],
+      totalPrice: 5500,
+      durationDays: 30,
+      platforms: ["Instagram", "TikTok", "Snapchat"],
+      status: "SENT",
+      shareLinkToken: "demo-share-token-abc123",
+      sentAt: new Date(),
+    },
+  });
+
+  // ── 7. Contracts ──────────────────────────────────────────────────────────────
+  const contract1 = await prisma.contract.create({
+    data: {
+      clientId: client1.id,
+      createdBy: users["PM"],
+      title: "TechVentures Digital Marketing Contract",
+      type: "MONTHLY_RETAINER",
+      status: "ACTIVE",
+      startDate: new Date("2024-01-01"),
+      endDate: new Date("2024-12-31"),
+      monthlyValue: 8000,
+      totalValue: 96000,
+      eSigned: true,
+      signedAt: new Date("2024-01-01"),
+    },
+  });
+
+  const contract2 = await prisma.contract.create({
+    data: {
+      clientId: client2.id,
+      createdBy: users["PM"],
+      title: "Nova Eats Social Media Contract",
+      type: "MONTHLY_RETAINER",
+      status: "SIGNED",
+      startDate: new Date("2024-03-01"),
+      endDate: new Date("2025-02-28"),
+      monthlyValue: 5500,
+      totalValue: 66000,
+      eSigned: true,
+      signedAt: new Date("2024-03-01"),
+    },
+  });
+
+  // ── 8. Projects ───────────────────────────────────────────────────────────────
+  const designDept = await prisma.department.findUnique({ where: { name: "DESIGN" } });
+  const contentDept = await prisma.department.findUnique({ where: { name: "CONTENT" } });
+  const marketingDept = await prisma.department.findUnique({ where: { name: "MARKETING" } });
+
+  const project1 = await prisma.project.create({
+    data: {
+      clientId: client1.id,
+      contractId: contract1.id,
+      projectManagerId: users["PM"],
+      name: "TechVentures Brand Overhaul",
+      description: "Complete brand identity and digital presence overhaul for TechVentures.",
+      status: "ACTIVE",
+      priority: "HIGH",
+      startDate: new Date("2024-01-15"),
+      endDate: new Date("2024-07-15"),
+    },
+  });
+
+  const project2 = await prisma.project.create({
+    data: {
+      clientId: client2.id,
+      contractId: contract2.id,
+      projectManagerId: users["PM"],
+      name: "Nova Eats Monthly Content",
+      description: "Monthly content creation and social media management for Nova Eats.",
+      status: "ACTIVE",
+      priority: "NORMAL",
+      startDate: new Date("2024-03-01"),
+      endDate: new Date("2025-02-28"),
+    },
+  });
+
+  // Project members
+  await prisma.projectMember.createMany({
+    data: [
+      { projectId: project1.id, userId: users["EMPLOYEE"], role: "MEMBER" },
+      { projectId: project1.id, userId: users["MARKETING"], role: "MEMBER" },
+      { projectId: project2.id, userId: users["EMPLOYEE"], role: "MEMBER" },
+      { projectId: project2.id, userId: users["MARKETING"], role: "MEMBER" },
+    ],
+    skipDuplicates: true,
+  });
+
+  // ── 9. Tasks ──────────────────────────────────────────────────────────────────
+  await prisma.task.createMany({
+    data: [
+      {
+        projectId: project1.id,
+        departmentId: designDept!.id,
+        assignedTo: users["EMPLOYEE"],
+        createdBy: users["PM"],
+        title: "Design brand logo variants",
+        description: "Create 3 logo variants for TechVentures new identity",
+        status: "IN_REVIEW",
+        priority: "HIGH",
+        dueDate: new Date("2024-02-10"),
+      },
+      {
+        projectId: project1.id,
+        departmentId: contentDept!.id,
+        assignedTo: users["EMPLOYEE"],
+        createdBy: users["PM"],
+        title: "Write brand voice guidelines",
+        description: "Document tone, voice, and messaging pillars",
+        status: "IN_PROGRESS",
+        priority: "NORMAL",
+        dueDate: new Date("2024-02-20"),
+      },
+      {
+        projectId: project2.id,
+        departmentId: contentDept!.id,
+        assignedTo: users["EMPLOYEE"],
+        createdBy: users["PM"],
+        title: "Create April content calendar",
+        description: "Plan and design 30 posts for Instagram and TikTok",
+        status: "TODO",
+        priority: "NORMAL",
+        dueDate: new Date("2024-03-25"),
+      },
+      {
+        projectId: project2.id,
+        departmentId: marketingDept!.id,
+        assignedTo: users["MARKETING"],
+        createdBy: users["PM"],
+        title: "Launch Ramadan campaign",
+        description: "Set up and launch Meta ads for the Ramadan promotion",
+        status: "DONE",
+        priority: "URGENT",
+        dueDate: new Date("2024-03-10"),
+        approvedBy: users["PM"],
+        approvedAt: new Date("2024-03-09"),
+      },
+    ],
+  });
+
+  // ── 10. Campaigns ─────────────────────────────────────────────────────────────
+  const campaign1 = await prisma.campaign.create({
+    data: {
+      clientId: client2.id,
+      projectId: project2.id,
+      managedBy: users["MARKETING"],
+      name: "Nova Eats Ramadan 2024",
+      platform: "META",
+      status: "COMPLETED",
+      startDate: new Date("2024-03-01"),
+      endDate: new Date("2024-04-10"),
+      budgetTotal: 3000,
+      budgetSpent: 2850,
+    },
+  });
+
+  const campaign2 = await prisma.campaign.create({
+    data: {
+      clientId: client1.id,
+      projectId: project1.id,
+      managedBy: users["MARKETING"],
+      name: "TechVentures Brand Awareness",
+      platform: "GOOGLE",
+      status: "ACTIVE",
+      startDate: new Date("2024-02-01"),
+      budgetTotal: 10000,
+      budgetSpent: 4200,
+    },
+  });
+
+  // KPI snapshots for campaign1
+  await prisma.campaignKpiSnapshot.createMany({
+    data: [
+      {
+        campaignId: campaign1.id,
+        recordedBy: users["MARKETING"],
+        snapshotDate: new Date("2024-03-15"),
+        impressions: 85000,
+        clicks: 3200,
+        messagesReceived: 240,
+        ordersCount: 45,
+        leadsCount: 88,
+        ctr: 3.76,
+        conversionRate: 2.75,
+        cac: 63.3,
+        dataSource: "API",
+        isApprovedByManager: true,
+      },
+      {
+        campaignId: campaign1.id,
+        recordedBy: users["MARKETING"],
+        snapshotDate: new Date("2024-04-01"),
+        impressions: 110000,
+        clicks: 4500,
+        messagesReceived: 380,
+        ordersCount: 72,
+        leadsCount: 130,
+        ctr: 4.09,
+        conversionRate: 2.89,
+        cac: 39.6,
+        dataSource: "API",
+        isApprovedByManager: true,
+      },
+    ],
+  });
+
+  // ── 11. Invoices ──────────────────────────────────────────────────────────────
+  const invoice1 = await prisma.invoice.create({
+    data: {
+      clientId: client1.id,
+      contractId: contract1.id,
+      createdBy: users["ACCOUNTANT"],
+      invoiceNumber: "INV-20240101-0001",
+      amount: 8000,
+      status: "PAID",
+      paymentMethod: "BANK_TRANSFER",
+      issueDate: new Date("2024-01-01"),
+      dueDate: new Date("2024-01-15"),
+      paidAt: new Date("2024-01-10"),
+      paymentReference: "TXN-2024-001",
+    },
+  });
+
+  const invoice2 = await prisma.invoice.create({
+    data: {
+      clientId: client1.id,
+      contractId: contract1.id,
+      createdBy: users["ACCOUNTANT"],
+      invoiceNumber: "INV-20240201-0002",
+      amount: 8000,
+      status: "SENT",
+      paymentMethod: "BANK_TRANSFER",
+      issueDate: new Date("2024-02-01"),
+      dueDate: new Date("2024-02-15"),
+    },
+  });
+
+  const invoice3 = await prisma.invoice.create({
+    data: {
+      clientId: client2.id,
+      contractId: contract2.id,
+      createdBy: users["ACCOUNTANT"],
+      invoiceNumber: "INV-20240301-0003",
+      amount: 5500,
+      status: "DUE",
+      paymentMethod: "MADA",
+      issueDate: new Date("2024-03-01"),
+      dueDate: new Date("2024-03-15"),
+    },
+  });
+
+  // Payment ticket for the overdue invoice
+  await prisma.paymentTicket.create({
+    data: {
+      invoiceId: invoice3.id,
+      clientId: client2.id,
+      assignedTo: users["ACCOUNTANT"],
+      status: "PENDING",
+      notes: "Client requested 1-week extension",
+    },
+  });
+
+  // ── 12. Notifications ─────────────────────────────────────────────────────────
+  const createNotif = async (
+    entityId: string,
+    entityType: string,
+    eventType: string,
+    userId: string,
+    title: string,
+    body: string,
+  ) => {
+    const event = await prisma.notificationEvent.create({
+      data: { entityId, entityType, eventType },
+    });
+    return prisma.notification.create({
+      data: { eventId: event.id, userId, title, body, channel: "in-app", sentAt: new Date() },
+    });
+  };
+
+  await createNotif(proposal1.id, "proposal", "PROPOSAL_SENT", users["SALES"],
+    "Proposal Sent", `Proposal "${proposal1.title}" was sent to the client`);
+
+  await createNotif(invoice2.id, "invoice", "INVOICE_SENT", users["ACCOUNTANT"],
+    "Invoice Sent", "Invoice INV-20240201-0002 has been sent to TechVentures");
+
+  await createNotif(invoice3.id, "invoice", "INVOICE_OVERDUE", users["ACCOUNTANT"],
+    "Invoice Overdue", "Invoice INV-20240301-0003 for Nova Eats is past due");
+
+  await createNotif(project1.id, "project", "PROJECT_STARTED", users["PM"],
+    "Project Activated", `Project "${project1.name}" is now active`);
+
+  console.log("✓ Database seeded with full demo data for all 7 roles (password: password123)");
 }
 
 main()

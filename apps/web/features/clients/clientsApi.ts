@@ -5,11 +5,9 @@ import type {
   Client,
   CreateClientInput,
   UpdateClientInput,
-  UpdateStageInput,
   Project,
-  ContactOutcome,
 } from "@hassad/shared";
-import type { ClientStatus, PipelineStage } from "@hassad/shared";
+import type { ClientStatus } from "@hassad/shared";
 
 // ── Response types ────────────────────────────────────────────────────────────
 
@@ -23,7 +21,6 @@ export interface PaginatedClients {
 
 export interface ClientFilters {
   status?: ClientStatus;
-  stage?: PipelineStage;
   search?: string;
   page?: number;
   limit?: number;
@@ -37,22 +34,8 @@ export interface HandoverInput {
 }
 
 export interface HandoverResult {
-  client: Pick<Client, "id" | "name" | "stage" | "status" | "updatedAt">;
+  client: Pick<Client, "id" | "status" | "updatedAt">;
   project: Project;
-}
-
-export interface ContactAttemptInput {
-  outcome: ContactOutcome;
-  notes?: string;
-}
-
-export interface ContactAttemptResult {
-  id: string;
-  contactAttempts: number;
-  lastContactAttemptAt: string | null;
-  nextFollowUpAt: string | null;
-  followUpStep: number;
-  updatedAt: string;
 }
 
 // ── API slice ─────────────────────────────────────────────────────────────────
@@ -108,58 +91,9 @@ export const clientsApi = createApi({
       ],
     }),
 
-    /** PATCH /v1/clients/:id/stage — dedicated pipeline stage transition */
-    updateClientStage: builder.mutation<
-      Client,
-      { id: string; body: UpdateStageInput }
-    >({
-      query: ({ id, body }) => ({
-        url: `/clients/${id}/stage`,
-        method: "PATCH",
-        body,
-      }),
-      invalidatesTags: (_result, _error, { id }) => [
-        { type: "Client", id },
-        { type: "Client", id: "LIST" },
-      ],
-    }),
-
-    /** PATCH /v1/clients/:id/requirements — save requirements form data */
-    updateClientRequirements: builder.mutation<
-      { id: string; requirements: Record<string, unknown>; updatedAt: string },
-      { id: string; body: Record<string, unknown> }
-    >({
-      query: ({ id, body }) => ({
-        url: `/clients/${id}/requirements`,
-        method: "PATCH",
-        body: { requirements: body },
-      }),
-      invalidatesTags: (_result, _error, { id }) => [
-        { type: "Client", id },
-        { type: "Client", id: "LIST" },
-      ],
-    }),
-
-    /** POST /v1/clients/:id/contact-attempts — log contact attempt */
-    logContactAttempt: builder.mutation<
-      ContactAttemptResult,
-      { id: string; body: ContactAttemptInput }
-    >({
-      query: ({ id, body }) => ({
-        url: `/clients/${id}/contact-attempts`,
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: (_result, _error, { id }) => [
-        { type: "Client", id },
-        { type: "Client", id: "LIST" },
-      ],
-    }),
-
     /**
      * POST /v1/clients/:id/handover
-     * Atomically moves client to HANDOVER stage and creates a project.
-     * Invalidates both Client and Project caches.
+     * Atomically moves client to ACTIVE status and creates a project.
      */
     handoverClient: builder.mutation<
       HandoverResult,
@@ -184,8 +118,5 @@ export const {
   useGetClientByIdQuery,
   useCreateClientMutation,
   useUpdateClientMutation,
-  useUpdateClientStageMutation,
-  useUpdateClientRequirementsMutation,
-  useLogContactAttemptMutation,
   useHandoverClientMutation,
 } = clientsApi;

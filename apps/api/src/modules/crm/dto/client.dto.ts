@@ -1,5 +1,30 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { ClientStatus } from '@hassad/shared';
+import { IsString, IsEmail, IsOptional, IsEnum, IsUUID, IsDateString } from 'class-validator';
+import { ClientStatus, BusinessType } from '@hassad/shared';
+
+export class CreateClientDto {
+  @IsString()
+  companyName: string;
+
+  @IsString()
+  contactName: string;
+
+  @IsString()
+  phoneWhatsapp: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsString()
+  businessName: string;
+
+  @IsEnum(BusinessType)
+  businessType: BusinessType;
+
+  @IsOptional()
+  @IsUUID()
+  accountManager?: string;
+}
 
 export class UpdateClientDto {
   @IsOptional()
@@ -15,6 +40,36 @@ export class UpdateClientDto {
   phoneWhatsapp?: string;
 
   @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  businessName?: string;
+
+  @IsOptional()
+  @IsEnum(BusinessType)
+  businessType?: BusinessType;
+
+  @IsOptional()
+  @IsUUID()
+  accountManager?: string;
+
+  @IsOptional()
   @IsEnum(ClientStatus)
   status?: ClientStatus;
+}
+
+export class HandoverClientDto {
+  @IsString()
+  projectName: string;
+
+  @IsUUID()
+  managerId: string;
+
+  @IsDateString()
+  startDate: string;
+
+  @IsDateString()
+  endDate: string;
 }

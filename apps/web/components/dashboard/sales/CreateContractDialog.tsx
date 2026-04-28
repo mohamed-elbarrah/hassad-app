@@ -22,26 +22,47 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import { useCreateContractMutation } from "@/features/contracts/contractsApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
+import { ContractType } from "@hassad/shared";
+
+// ── Labels ─────────────────────────────────────────────────────────────────────
+
+const TYPE_LABELS: Record<ContractType, string> = {
+  [ContractType.ONE_TIME_SERVICE]: "مرة واحدة",
+  [ContractType.MONTHLY_RETAINER]: "اشتراك شهري",
+  [ContractType.FIXED_PROJECT]: "مشروع محدد",
+};
+
+// ── Schema ─────────────────────────────────────────────────────────────────────
 
 const contractFormSchema = z.object({
   clientId: z.string().min(1, "اختر العميل"),
-  services: z.string().min(2, "اكتب خدمة واحدة على الأقل"),
-  value: z.number().positive("القيمة مطلوبة"),
+  title: z.string().min(2, "اكتب عنوان العقد"),
+  type: z.nativeEnum(ContractType, { message: "اختر نوع العقد" }),
+  monthlyValue: z.number().nonnegative("القيمة الشهرية مطلوبة"),
+  totalValue: z.number().positive("إجمالي القيمة مطلوب"),
   startDate: z.string().min(1, "تاريخ البداية مطلوب"),
   endDate: z.string().min(1, "تاريخ النهاية مطلوب"),
-  fileUrl: z.string().url("رابط غير صالح").optional().or(z.literal("")),
 });
 
 type ContractFormValues = z.infer<typeof contractFormSchema>;
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function CreateContractDialog() {
   const [open, setOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [createContract, { isLoading }] = useCreateContractMutation();
+
   const { data: clientsData, isFetching: clientsFetching } = useGetClientsQuery(
     { search: clientSearch, limit: 20 },
     { skip: !open },
@@ -49,42 +70,33 @@ export function CreateContractDialog() {
 
   const clientOptions = (clientsData?.items ?? []).map((client) => ({
     id: client.id,
-    label: client.name,
+    label: client.companyName,
   }));
 
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
     defaultValues: {
       clientId: "",
-      services: "",
-      value: 0,
+      title: "",
+      type: undefined,
+      monthlyValue: 0,
+      totalValue: 0,
       startDate: "",
       endDate: "",
-      fileUrl: "",
     },
   });
 
   async function onSubmit(values: ContractFormValues) {
-    const services = values.services
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    if (services.length === 0) {
-      toast.error("أضف خدمة واحدة على الأقل");
-      return;
-    }
-
     try {
       await createContract({
         clientId: values.clientId,
-        services,
-        value: values.value,
+        title: values.title,
+        type: values.type,
+        monthlyValue: values.monthlyValue,
+        totalValue: values.totalValue,
         startDate: values.startDate,
         endDate: values.endDate,
-        fileUrl: values.fileUrl || undefined,
       }).unwrap();
-
       toast.success("تم إنشاء العقد بنجاح");
       form.reset();
       setOpen(false);
@@ -104,6 +116,7 @@ export function CreateContractDialog() {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Client */}
             <FormField
               control={form.control}
               name="clientId"
@@ -117,7 +130,7 @@ export function CreateContractDialog() {
                       options={clientOptions}
                       onSearchChange={setClientSearch}
                       placeholder="ابحث عن العميل..."
-                      searchPlaceholder="اكتب اسم العميل"
+                      searchPlaceholder="اكتب اسم الشركة"
                       isLoading={clientsFetching}
                     />
                   </FormControl>
@@ -126,31 +139,57 @@ export function CreateContractDialog() {
               )}
             />
 
+            {/* Title */}
             <FormField
               control={form.control}
-              name="services"
+              name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الخدمات</FormLabel>
+                  <FormLabel>عنوان العقد</FormLabel>
                   <FormControl>
-                    <Textarea
-                      rows={3}
-                      placeholder="اكتب الخدمات المطلوبة مفصولة بفواصل"
-                      {...field}
-                    />
+                    <Input placeholder="عقد خدمات التسويق..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Type */}
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>نوع العقد</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر النوع" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {(Object.values(ContractType) as ContractType[]).map(
+                        (t) => (
+                          <SelectItem key={t} value={t}>
+                            {TYPE_LABELS[t]}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Values */}
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
-                name="value"
+                name="monthlyValue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>قيمة العقد</FormLabel>
+                    <FormLabel>القيمة الشهرية (ر.س)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -158,11 +197,9 @@ export function CreateContractDialog() {
                         step="0.01"
                         {...field}
                         value={field.value ?? ""}
-                        onChange={(event) => {
-                          const nextValue = event.target.valueAsNumber;
-                          field.onChange(
-                            Number.isNaN(nextValue) ? undefined : nextValue,
-                          );
+                        onChange={(e) => {
+                          const n = e.target.valueAsNumber;
+                          field.onChange(Number.isNaN(n) ? undefined : n);
                         }}
                       />
                     </FormControl>
@@ -172,12 +209,22 @@ export function CreateContractDialog() {
               />
               <FormField
                 control={form.control}
-                name="fileUrl"
+                name="totalValue"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>رابط العقد (اختياري)</FormLabel>
+                    <FormLabel>إجمالي القيمة (ر.س)</FormLabel>
                     <FormControl>
-                      <Input type="url" {...field} />
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const n = e.target.valueAsNumber;
+                          field.onChange(Number.isNaN(n) ? undefined : n);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -185,6 +232,7 @@ export function CreateContractDialog() {
               />
             </div>
 
+            {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}

@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { StatsCard } from "@/components/dashboard/employee/StatsCard";
 import { EmployeeTaskKanban } from "@/components/dashboard/employee/EmployeeTaskKanban";
 import {
@@ -36,12 +35,10 @@ export default function EmployeeDashboardPage() {
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "all">(
     "all",
   );
-  const [showArchived, setShowArchived] = useState(false);
 
   const { data: stats, isLoading: statsLoading } = useGetMyTaskStatsQuery();
   const { data: tasks, isLoading: tasksLoading } = useGetMyTasksQuery({
     priority: priorityFilter === "all" ? undefined : priorityFilter,
-    archived: showArchived || undefined,
   });
 
   if (!user) return null;
@@ -93,19 +90,6 @@ export default function EmployeeDashboardPage() {
             ))}
           </SelectContent>
         </Select>
-
-        <div className="flex items-center gap-2">
-          <input
-            id="show-archived"
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            className="cursor-pointer"
-          />
-          <Label htmlFor="show-archived" className="text-sm cursor-pointer">
-            عرض المؤرشف
-          </Label>
-        </div>
       </div>
 
       {/* Kanban board */}

@@ -22,10 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { StageSelect } from "@/components/dashboard/crm/StageSelect";
 import type { Client } from "@hassad/shared";
-import { ClientStatus, PipelineStage } from "@hassad/shared";
-import { cn } from "@/lib/utils";
+import { ClientStatus } from "@hassad/shared";
 
 // ── Column helper ─────────────────────────────────────────────────────────────
 
@@ -37,15 +35,15 @@ const STATUS_VARIANT: Record<
   ClientStatus,
   "default" | "secondary" | "destructive"
 > = {
-  [ClientStatus.LEAD]: "secondary",
   [ClientStatus.ACTIVE]: "default",
   [ClientStatus.STOPPED]: "destructive",
+  [ClientStatus.LEAD]: "secondary",
 };
 
 const STATUS_LABELS: Record<ClientStatus, string> = {
-  [ClientStatus.LEAD]: "عميل محتمل",
   [ClientStatus.ACTIVE]: "نشط",
   [ClientStatus.STOPPED]: "متوقف",
+  [ClientStatus.LEAD]: "عميل محتمل",
 };
 
 // ── Table component ───────────────────────────────────────────────────────────
@@ -66,7 +64,7 @@ export function ClientsTable({
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const columns: ColumnDef<Client, string>[] = [
-    columnHelper.accessor("name", {
+    columnHelper.accessor("companyName", {
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -74,13 +72,17 @@ export function ClientsTable({
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="gap-1 px-0 font-medium"
         >
-          الاسم
+          الشركة
           <ArrowUpDown className="h-3 w-3" />
         </Button>
       ),
       cell: (info) => <span className="font-medium">{info.getValue()}</span>,
     }),
-    columnHelper.accessor("phone", {
+    columnHelper.accessor("contactName", {
+      header: "جهة الاتصال",
+      cell: (info) => info.getValue(),
+    }),
+    columnHelper.accessor("phoneWhatsapp", {
       header: "الهاتف",
       cell: (info) => (
         <span dir="ltr" className="font-mono text-sm">
@@ -97,30 +99,11 @@ export function ClientsTable({
       cell: (info) => {
         const status = info.getValue() as ClientStatus;
         return (
-          <Badge variant={STATUS_VARIANT[status]}>
-            {STATUS_LABELS[status]}
+          <Badge variant={STATUS_VARIANT[status] ?? "secondary"}>
+            {STATUS_LABELS[status] ?? status}
           </Badge>
         );
       },
-    }),
-    columnHelper.accessor("stage", {
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="gap-1 px-0 font-medium"
-        >
-          مرحلة البيع
-          <ArrowUpDown className="h-3 w-3" />
-        </Button>
-      ),
-      cell: (info) => (
-        <StageSelect
-          clientId={info.row.original.id}
-          currentStage={info.getValue() as PipelineStage}
-        />
-      ),
     }),
     columnHelper.accessor("createdAt", {
       header: "تاريخ الإضافة",

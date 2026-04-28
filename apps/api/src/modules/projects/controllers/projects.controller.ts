@@ -7,8 +7,10 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ProjectsService } from '../services/projects.service';
+import { TasksService } from '../../tasks/services/tasks.service';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -17,7 +19,10 @@ import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 @Controller('projects')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly tasksService: TasksService,
+  ) {}
 
   @Post()
   @RequirePermissions('projects.create')
@@ -53,5 +58,23 @@ export class ProjectsController {
   @RequirePermissions('projects.manage_members')
   removeMember(@Param('id') id: string, @Param('userId') userId: string) {
     return this.projectsService.removeMember(id, userId);
+  }
+
+  @Get()
+  @RequirePermissions('projects.read')
+  findAll(@Query() filters: any) {
+    return this.projectsService.findAll(filters);
+  }
+
+  @Patch(':id/status')
+  @RequirePermissions('projects.update')
+  updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
+    return this.projectsService.updateStatus(id, body.status);
+  }
+
+  @Get(':id/tasks')
+  @RequirePermissions('tasks.read')
+  getTasksByProject(@Param('id') projectId: string) {
+    return this.tasksService.findByProject(projectId);
   }
 }

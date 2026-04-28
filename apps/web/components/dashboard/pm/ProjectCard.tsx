@@ -32,7 +32,7 @@ const STATUS_CONFIG: Record<
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ProjectWithMeta extends Project {
-  client?: { id: string; name: string };
+  client?: { id: string; companyName: string };
   manager?: { id: string; name: string };
   _count?: { tasks: number };
 }
@@ -73,7 +73,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </div>
           {project.client && (
             <CardDescription className="text-xs">
-              {project.client.name}
+              {project.client.companyName}
             </CardDescription>
           )}
         </CardHeader>

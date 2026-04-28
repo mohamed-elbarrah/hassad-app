@@ -20,7 +20,12 @@ import {
   UserRole,
 } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
-import { useUpdateTaskStatusMutation } from "@/features/tasks/tasksApi";
+import {
+  useStartTaskMutation,
+  useSubmitTaskMutation,
+  useApproveTaskMutation,
+  useRejectTaskMutation,
+} from "@/features/tasks/tasksApi";
 import { useAppSelector } from "@/lib/hooks";
 
 // Allowed status transitions per role (mirrors API workflow)
@@ -265,7 +270,10 @@ export function EmployeeTaskKanban({
   onStatusChange,
 }: EmployeeTaskKanbanProps) {
   const { user } = useAppSelector((state) => state.auth);
-  const [updateTaskStatus] = useUpdateTaskStatusMutation();
+  const [startTask] = useStartTaskMutation();
+  const [submitTask] = useSubmitTaskMutation();
+  const [approveTask] = useApproveTaskMutation();
+  const [rejectTask] = useRejectTaskMutation();
   const [activeTask, setActiveTask] = useState<TaskWithProject | null>(null);
   // Local optimistic state so UI updates immediately on drop
   const [localTasks, setLocalTasks] = useState<TaskWithProject[]>(tasks);
@@ -346,15 +354,44 @@ export function EmployeeTaskKanban({
     setLocalTasks(updatedTasks);
 
     try {
-      await updateTaskStatus({
-        id: taskId,
-        body: { status: newStatus },
-      }).unwrap();
+      // Map transition to correct action endpoint
+      if (
+        task.status === TaskStatus.TODO &&
+        newStatus === TaskStatus.IN_PROGRESS
+      ) {
+        await startTask(taskId).unwrap();
+      } else if (
+        task.status === TaskStatus.IN_PROGRESS &&
+        newStatus === TaskStatus.IN_REVIEW
+      ) {
+        await submitTask(taskId).unwrap();
+      } else if (
+        task.status === TaskStatus.IN_REVIEW &&
+        newStatus === TaskStatus.DONE
+      ) {
+        await approveTask(taskId).unwrap();
+      } else if (
+        task.status === TaskStatus.IN_REVIEW &&
+        newStatus === TaskStatus.REVISION
+      ) {
+        await rejectTask(taskId).unwrap();
+      } else if (
+        task.status === TaskStatus.REVISION &&
+        newStatus === TaskStatus.IN_PROGRESS
+      ) {
+        await startTask(taskId).unwrap();
+      } else {
+        // Unsupported transition — revert
+        setLocalTasks(prevTasks);
+        toast.error("لا يمكنك نقل المهمة إلى هذه الحالة");
+        return;
+      }
       onStatusChange?.(taskId, newStatus);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Revert optimistic update on error
       setLocalTasks(prevTasks);
-      const msg = err?.data?.message ?? err?.error ?? "فشل تحديث الحالة";
+      const msg = (err as { data?: { message?: string }; error?: string })?.data?.message ??
+        (err as { error?: string })?.error ?? "فشل تحديث الحالة";
       toast.error(msg);
     }
   }

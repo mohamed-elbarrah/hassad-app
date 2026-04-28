@@ -2,19 +2,11 @@
 
 import { useState } from "react";
 import type { Client } from "@hassad/shared";
-import {
-  ClientStatus,
-  BusinessType,
-  ClientSource,
-  PipelineStage,
-  UserRole,
-} from "@hassad/shared";
+import { ClientStatus, BusinessType, UserRole } from "@hassad/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/lib/hooks";
-import { StageSelect } from "./StageSelect";
-import { ContactAttemptDialog } from "./ContactAttemptDialog";
 import { HandoverModal } from "./HandoverModal";
 
 const STATUS_VARIANT: Record<
@@ -40,14 +32,6 @@ const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.OTHER]: "أخرى",
 };
 
-const SOURCE_LABELS: Record<ClientSource, string> = {
-  [ClientSource.AD]: "إعلان",
-  [ClientSource.REFERRAL]: "إحالة",
-  [ClientSource.WEBSITE]: "الموقع الإلكتروني",
-  [ClientSource.WHATSAPP]: "واتساب",
-  [ClientSource.PLATFORM]: "المنصة",
-};
-
 interface ClientInfoCardProps {
   client: Client;
 }
@@ -58,8 +42,7 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
 
   const canManageSales =
     user?.role === UserRole.ADMIN || user?.role === UserRole.SALES;
-  const canHandover =
-    canManageSales && client.stage === PipelineStage.CONTRACT_SIGNED;
+  const canHandover = canManageSales && client.status === ClientStatus.ACTIVE;
 
   return (
     <Card>
@@ -74,13 +57,17 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground mb-1">الاسم</p>
-            <p className="font-medium">{client.name}</p>
+            <p className="text-muted-foreground mb-1">اسم الشركة</p>
+            <p className="font-medium">{client.companyName}</p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-1">الهاتف</p>
+            <p className="text-muted-foreground mb-1">اسم المسؤول</p>
+            <p className="font-medium">{client.contactName}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground mb-1">رقم الواتساب</p>
             <p className="font-medium font-mono" dir="ltr">
-              {client.phone}
+              {client.phoneWhatsapp}
             </p>
           </div>
           {client.email && (
@@ -99,12 +86,6 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-1">المصدر</p>
-            <p className="font-medium">
-              {SOURCE_LABELS[client.source as ClientSource] ?? client.source}
-            </p>
-          </div>
-          <div>
             <p className="text-muted-foreground mb-1">تاريخ الإضافة</p>
             <p className="font-medium" dir="ltr">
               {new Intl.DateTimeFormat("en-GB", {
@@ -115,42 +96,31 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
               }).format(new Date(client.createdAt))}
             </p>
           </div>
+          {client.accountManager && (
+            <div>
+              <p className="text-muted-foreground mb-1">مدير الحساب</p>
+              <p className="font-medium">{client.accountManager}</p>
+            </div>
+          )}
         </div>
 
-        <div className="pt-2 border-t">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-muted-foreground text-sm">مرحلة البيع</p>
-            {canManageSales && (
-              <div className="flex flex-wrap items-center gap-2">
-                <ContactAttemptDialog
-                  clientId={client.id}
-                  clientName={client.name}
-                />
-                {canHandover && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => setHandoverOpen(true)}
-                  >
-                    تسليم للعمليات
-                  </Button>
-                )}
-              </div>
-            )}
+        {canHandover && (
+          <div className="pt-2 border-t flex justify-end">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setHandoverOpen(true)}
+            >
+              تسليم للعمليات
+            </Button>
           </div>
-          <div className="mt-2">
-            <StageSelect
-              clientId={client.id}
-              currentStage={client.stage as PipelineStage}
-            />
-          </div>
-        </div>
+        )}
       </CardContent>
 
       {handoverOpen && (
         <HandoverModal
           open={handoverOpen}
-          client={{ id: client.id, name: client.name }}
+          client={{ id: client.id, name: client.companyName }}
           onClose={() => setHandoverOpen(false)}
         />
       )}

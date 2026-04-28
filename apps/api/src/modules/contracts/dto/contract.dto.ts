@@ -32,6 +32,45 @@ export class CreateContractDto {
   filePath?: string;
 }
 
+export class UpdateContractDto {
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  monthlyValue?: number;
+
+  @IsOptional()
+  @IsNumber()
+  totalValue?: number;
+
+  @IsOptional()
+  @IsString()
+  filePath?: string;
+}
+
+export class SignContractDto {
+  @IsString()
+  signedByName: string;
+
+  @IsOptional()
+  @IsString()
+  signedByEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  signatureUrl?: string;
+}
+
 export class CreateVersionDto {
   @IsString()
   filePath: string;

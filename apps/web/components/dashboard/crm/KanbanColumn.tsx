@@ -2,7 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { PipelineStage } from "@hassad/shared";
-import type { Client } from "@hassad/shared";
+import type { LeadListItem } from "@/features/leads/leadsApi";
 import { cn } from "@/lib/utils";
 import { KanbanCard } from "./KanbanCard";
 
@@ -10,7 +10,7 @@ interface KanbanColumnProps {
   stage: PipelineStage;
   label: string;
   colorClass: string;
-  clients: Client[];
+  clients: LeadListItem[];
 }
 
 export function KanbanColumn({

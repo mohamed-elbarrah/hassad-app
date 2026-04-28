@@ -9,7 +9,8 @@ import type {
 } from "@hassad/shared";
 
 export interface ProposalListItem extends Proposal {
-  client?: { id: string; name: string };
+  lead?: { id: string; contactName: string; companyName: string };
+  creator?: { id: string; name: string };
 }
 
 export interface PaginatedProposals {
@@ -22,7 +23,7 @@ export interface PaginatedProposals {
 
 export interface ProposalFilters {
   status?: ProposalStatus;
-  clientId?: string;
+  leadId?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -76,7 +77,7 @@ export const proposalsApi = createApi({
       {
         id: string;
         status: ProposalStatus;
-        shareToken: string;
+        shareLinkToken: string;
         sentAt: string;
       },
       string

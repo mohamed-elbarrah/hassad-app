@@ -80,7 +80,7 @@ function NotificationListItem({
             {notification.title}
           </p>
           <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {notification.message}
+            {notification.body}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             {formatRelativeTime(notification.createdAt as string)}
@@ -227,7 +227,7 @@ export function NotificationsDropdown() {
           </DialogHeader>
 
           <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {selectedNotification?.message}
+            {selectedNotification?.body}
           </p>
 
           <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">

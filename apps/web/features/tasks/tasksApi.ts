@@ -5,12 +5,10 @@ import type {
   Task,
   CreateTaskInput,
   UpdateTaskInput,
-  UpdateTaskStatusInput,
   TaskFile,
   TaskComment,
   TaskStatus,
   TaskPriority,
-  TaskDepartment,
 } from "@hassad/shared";
 
 // ── Local interfaces ─────────────────────────────────────────────────────────
@@ -18,8 +16,8 @@ import type {
 interface MyTasksFilters {
   status?: TaskStatus;
   priority?: TaskPriority;
-  dept?: TaskDepartment;
-  archived?: boolean;
+  /** departmentId UUID filter */
+  dept?: string;
   dueBefore?: string;
   dueAfter?: string;
 }
@@ -27,7 +25,6 @@ interface MyTasksFilters {
 export interface TaskWithProject extends Task {
   project?: { id: string; name: string };
   assignee?: { id: string; name: string };
-  archivedAt?: string | null;
 }
 
 export interface TaskStats {
@@ -65,18 +62,18 @@ export const tasksApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Task", id }],
     }),
 
-    /** POST /v1/projects/:projectId/tasks — create a task in a project */
-    createTask: builder.mutation<
-      Task,
-      { projectId: string; body: CreateTaskInput }
-    >({
-      query: ({ projectId, body }) => ({
-        url: `/projects/${projectId}/tasks`,
+    /**
+     * POST /v1/tasks — create a task.
+     * projectId and departmentId must be included in the body.
+     */
+    createTask: builder.mutation<Task, CreateTaskInput>({
+      query: (body) => ({
+        url: "/tasks",
         method: "POST",
         body,
       }),
-      invalidatesTags: (_result, _error, { projectId }) => [
-        { type: "Task", id: `PROJECT_${projectId}` },
+      invalidatesTags: (_result, _error, body) => [
+        { type: "Task", id: `PROJECT_${"projectId" in body ? (body as any).projectId : ""}` },
       ],
     }),
 
@@ -84,19 +81,6 @@ export const tasksApi = createApi({
     updateTask: builder.mutation<Task, { id: string; body: UpdateTaskInput }>({
       query: ({ id, body }) => ({
         url: `/tasks/${id}`,
-        method: "PATCH",
-        body,
-      }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: "Task", id }],
-    }),
-
-    /** PATCH /v1/tasks/:id/status — dedicated status transition */
-    updateTaskStatus: builder.mutation<
-      Task,
-      { id: string; body: UpdateTaskStatusInput }
-    >({
-      query: ({ id, body }) => ({
-        url: `/tasks/${id}/status`,
         method: "PATCH",
         body,
       }),
@@ -125,10 +109,7 @@ export const tasksApi = createApi({
     }),
 
     /** PATCH /v1/tasks/:id/archive — toggle archive */
-    toggleArchiveTask: builder.mutation<
-      { id: string; archivedAt: string | null },
-      string
-    >({
+    toggleArchiveTask: builder.mutation<{ message: string }, string>({
       query: (id) => ({ url: `/tasks/${id}/archive`, method: "PATCH" }),
       invalidatesTags: (_result, _error, id) => [
         { type: "Task", id },
@@ -193,6 +174,30 @@ export const tasksApi = createApi({
         { type: "Task", id: `COMMENTS_${taskId}` },
       ],
     }),
+
+    /** POST /v1/tasks/:id/start — move TODO→IN_PROGRESS */
+    startTask: builder.mutation<Task, string>({
+      query: (id) => ({ url: `/tasks/${id}/start`, method: "POST" }),
+      invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+    }),
+
+    /** POST /v1/tasks/:id/submit — move IN_PROGRESS→IN_REVIEW */
+    submitTask: builder.mutation<Task, string>({
+      query: (id) => ({ url: `/tasks/${id}/submit`, method: "POST" }),
+      invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+    }),
+
+    /** POST /v1/tasks/:id/approve — move IN_REVIEW→DONE */
+    approveTask: builder.mutation<Task, string>({
+      query: (id) => ({ url: `/tasks/${id}/approve`, method: "POST" }),
+      invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+    }),
+
+    /** POST /v1/tasks/:id/reject — move IN_REVIEW→REVISION */
+    rejectTask: builder.mutation<Task, string>({
+      query: (id) => ({ url: `/tasks/${id}/reject`, method: "POST" }),
+      invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+    }),
   }),
 });
 
@@ -201,7 +206,6 @@ export const {
   useGetTaskByIdQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
-  useUpdateTaskStatusMutation,
   useDeleteTaskMutation,
   useGetMyTasksQuery,
   useGetMyTaskStatsQuery,
@@ -211,4 +215,8 @@ export const {
   useDeleteTaskFileMutation,
   useGetTaskCommentsQuery,
   useAddTaskCommentMutation,
+  useStartTaskMutation,
+  useSubmitTaskMutation,
+  useApproveTaskMutation,
+  useRejectTaskMutation,
 } = tasksApi;

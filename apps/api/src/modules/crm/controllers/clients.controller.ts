@@ -1,13 +1,15 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
-  Param,
   Body,
+  Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ClientsService } from '../services/clients.service';
-import { UpdateClientDto } from '../dto/client.dto';
+import { CreateClientDto, UpdateClientDto, HandoverClientDto } from '../dto/client.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
@@ -18,10 +20,16 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
+  @Post()
+  @RequirePermissions('clients.create')
+  create(@CurrentUser() user: any, @Body() dto: CreateClientDto) {
+    return this.clientsService.create(user.id, dto);
+  }
+
   @Get()
   @RequirePermissions('clients.read')
-  findAll() {
-    return this.clientsService.findAll();
+  findAll(@Query() filters: any) {
+    return this.clientsService.findAll(filters);
   }
 
   @Get(':id')
@@ -40,5 +48,11 @@ export class ClientsController {
   @RequirePermissions('clients.read_activity')
   getActivity(@Param('id') id: string) {
     return this.clientsService.getActivity(id);
+  }
+
+  @Post(':id/handover')
+  @RequirePermissions('clients.handover')
+  handover(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: HandoverClientDto) {
+    return this.clientsService.handover(id, user.id, dto);
   }
 }

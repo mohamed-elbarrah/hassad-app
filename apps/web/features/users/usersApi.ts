@@ -13,6 +13,10 @@ export interface UserSearchResult {
   name: string;
   email: string;
   role: UserRole;
+  isActive: boolean;
+  department?: TaskDepartment | null;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface PaginatedUsers {
@@ -31,16 +35,8 @@ export interface UserSearchFilters {
   limit?: number;
 }
 
-export interface UserDetail {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  department?: TaskDepartment | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
+// UserDetail is now the same shape as UserSearchResult (backend always returns full shape)
+export type UserDetail = UserSearchResult;
 
 export const usersApi = createApi({
   reducerPath: "usersApi",
@@ -76,15 +72,21 @@ export const usersApi = createApi({
       ],
     }),
 
-    deactivateUser: builder.mutation<{ id: string; isActive: boolean }, string>(
-      {
-        query: (id) => ({ url: `/users/${id}/deactivate`, method: "PATCH" }),
-        invalidatesTags: (_result, _error, id) => [
-          { type: "User", id },
-          { type: "User", id: "LIST" },
-        ],
-      },
-    ),
+    deactivateUser: builder.mutation<UserDetail, string>({
+      query: (id) => ({ url: `/users/${id}/deactivate`, method: "PATCH" }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: "User", id },
+        { type: "User", id: "LIST" },
+      ],
+    }),
+
+    reactivateUser: builder.mutation<UserDetail, string>({
+      query: (id) => ({ url: `/users/${id}/reactivate`, method: "PATCH" }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: "User", id },
+        { type: "User", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -94,4 +96,5 @@ export const {
   useGetUserByIdQuery,
   useUpdateUserMutation,
   useDeactivateUserMutation,
+  useReactivateUserMutation,
 } = usersApi;

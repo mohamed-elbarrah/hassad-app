@@ -1,32 +1,29 @@
 import { z } from "zod";
-import { ContractStatus } from "../enums/client";
+import { ContractType } from "../enums/client";
 
 export const CreateContractSchema = z.object({
-  clientId: z.string().cuid("Invalid client ID format"),
-  services: z
-    .array(z.string().min(1, "Service name is required"))
-    .min(1, "At least one service is required"),
+  clientId: z.string().uuid("Invalid client ID format"),
+  proposalId: z.string().uuid().optional(),
+  title: z.string().min(1, "Title is required"),
+  type: z.nativeEnum(ContractType),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
-  value: z.number().positive("Value must be greater than zero"),
-  fileUrl: z.string().url("Invalid file URL").optional().nullable(),
+  monthlyValue: z.number().nonnegative("Monthly value must be zero or greater"),
+  totalValue: z.number().positive("Total value must be greater than zero"),
+  filePath: z.string().optional().nullable(),
 });
 
 export type CreateContractInput = z.infer<typeof CreateContractSchema>;
 
 export const UpdateContractSchema = z
   .object({
-    services: z
-      .array(z.string().min(1, "Service name is required"))
-      .min(1, "At least one service is required")
-      .optional(),
-    startDate: z.string().min(1, "Start date is required").optional(),
-    endDate: z.string().min(1, "End date is required").optional(),
-    value: z.number().positive("Value must be greater than zero").optional(),
-    fileUrl: z.string().url("Invalid file URL").optional().nullable(),
-    status: z.nativeEnum(ContractStatus).optional(),
+    title: z.string().min(1).optional(),
+    startDate: z.string().min(1).optional(),
+    endDate: z.string().min(1).optional(),
+    monthlyValue: z.number().nonnegative().optional(),
+    totalValue: z.number().positive().optional(),
+    filePath: z.string().optional().nullable(),
   })
-  .partial()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
   });

@@ -1,4 +1,12 @@
-import { IsEmail, IsString, IsUUID, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  MinLength,
+} from 'class-validator';
+import { UserRole, TaskDepartment } from '@hassad/shared';
 
 export class CreateUserDto {
   @IsString()
@@ -8,10 +16,15 @@ export class CreateUserDto {
   email: string;
 
   @IsString()
-  passwordHash: string;
+  @MinLength(8)
+  password: string;
 
-  @IsUUID()
-  roleId: string;
+  @IsEnum(UserRole)
+  role: UserRole;
+
+  @IsOptional()
+  @IsEnum(TaskDepartment)
+  department?: TaskDepartment;
 }
 
 export class UpdateUserDto {
@@ -24,8 +37,17 @@ export class UpdateUserDto {
   email?: string;
 
   @IsOptional()
-  @IsUUID()
-  roleId?: string;
+  @IsString()
+  @MinLength(8)
+  password?: string;
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
+
+  @IsOptional()
+  @IsEnum(TaskDepartment)
+  department?: TaskDepartment | null;
 
   @IsOptional()
   @IsBoolean()

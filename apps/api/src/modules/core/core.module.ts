@@ -7,6 +7,7 @@ import { PermissionsController } from './controllers/permissions.controller';
 import { PermissionsService } from './services/permissions.service';
 import { DepartmentsController } from './controllers/departments.controller';
 import { DepartmentsService } from './services/departments.service';
+import { AdminController } from './controllers/admin.controller';
 
 @Module({
   controllers: [
@@ -14,6 +15,7 @@ import { DepartmentsService } from './services/departments.service';
     RolesController,
     PermissionsController,
     DepartmentsController,
+    AdminController,
   ],
   providers: [
     UsersService,

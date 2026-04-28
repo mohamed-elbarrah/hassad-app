@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { MarketingService } from '../services/marketing.service';
@@ -21,8 +22,14 @@ export class MarketingController {
 
   @Post()
   @RequirePermissions('marketing.create')
-  createCampaign(@Body() dto: CreateCampaignDto) {
-    return this.marketingService.createCampaign(dto);
+  createCampaign(@CurrentUser() user: any, @Body() dto: CreateCampaignDto) {
+    return this.marketingService.createCampaign(user.id, dto);
+  }
+
+  @Get()
+  @RequirePermissions('marketing.read')
+  findAll(@Query() filters: any) {
+    return this.marketingService.findAll(filters);
   }
 
   @Get(':id')

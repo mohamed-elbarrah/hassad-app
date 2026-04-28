@@ -92,4 +92,44 @@ export class ProjectsService {
       },
     });
   }
+
+  async findAll(filters: { status?: string; search?: string; page?: number; limit?: number; clientId?: string }) {
+    const page = filters.page ? Number(filters.page) : 1;
+    const limit = filters.limit ? Number(filters.limit) : 20;
+
+    const where: Record<string, unknown> = {};
+    if (filters.status) where['status'] = filters.status;
+    if (filters.search) where['name'] = { contains: filters.search, mode: 'insensitive' };
+    if (filters.clientId) where['clientId'] = filters.clientId;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.project.findMany({
+        where,
+        include: {
+          client: { select: { id: true, companyName: true } },
+          members: { select: { id: true, userId: true } },
+          tasks: { select: { id: true, status: true } },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.project.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async updateStatus(id: string, status: string) {
+    return this.prisma.project.update({
+      where: { id },
+      data: { status: status as import('@prisma/client').ProjectStatus },
+    });
+  }
 }

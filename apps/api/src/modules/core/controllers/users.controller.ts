@@ -7,13 +7,15 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
-import { UsersService } from '../services/users.service';
+import { UsersService, UserListFilters } from '../services/users.service';
 import { DepartmentsService } from '../services/departments.service';
 import { CreateUserDto, UpdateUserDto } from '../dto/user.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { UserRole, TaskDepartment } from '@hassad/shared';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -31,8 +33,21 @@ export class UsersController {
 
   @Get()
   @RequirePermissions('users.read')
-  findAll() {
-    return this.usersService.findAll();
+  findAll(
+    @Query('search') search?: string,
+    @Query('role') role?: UserRole,
+    @Query('department') department?: TaskDepartment,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const filters: UserListFilters = {
+      search: search || undefined,
+      role: role || undefined,
+      department: department || undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    };
+    return this.usersService.findAll(filters);
   }
 
   @Get(':id')
@@ -45,6 +60,18 @@ export class UsersController {
   @RequirePermissions('users.update')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
+  }
+
+  @Patch(':id/deactivate')
+  @RequirePermissions('users.update')
+  deactivate(@Param('id') id: string) {
+    return this.usersService.deactivate(id);
+  }
+
+  @Patch(':id/reactivate')
+  @RequirePermissions('users.update')
+  reactivate(@Param('id') id: string) {
+    return this.usersService.reactivate(id);
   }
 
   @Delete(':id')

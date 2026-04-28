@@ -93,9 +93,9 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
             contracts.map((contract) => (
               <TableRow key={contract.id}>
                 <TableCell>
-                  {contract.client?.name ?? contract.clientId}
+                  {contract.client?.companyName ?? contract.clientId}
                 </TableCell>
-                <TableCell>{contract.value.toLocaleString("en-US")}</TableCell>
+                <TableCell>{contract.totalValue.toLocaleString("en-US")}</TableCell>
                 <TableCell>
                   {new Intl.DateTimeFormat("en-GB", {
                     day: "2-digit",

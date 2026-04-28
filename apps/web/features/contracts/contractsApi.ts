@@ -9,7 +9,7 @@ import type {
 } from "@hassad/shared";
 
 export interface ContractListItem extends Contract {
-  client?: { id: string; name: string };
+  client?: { id: string; companyName: string; contactName: string };
 }
 
 export interface PaginatedContracts {
@@ -73,7 +73,7 @@ export const contractsApi = createApi({
     }),
 
     sendContract: builder.mutation<
-      { id: string; status: ContractStatus; sentAt: string },
+      { id: string; status: ContractStatus },
       string
     >({
       query: (id) => ({ url: `/contracts/${id}/send`, method: "POST" }),

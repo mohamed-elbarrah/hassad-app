@@ -95,8 +95,11 @@ export function EmployeeTaskRow({
           <Badge variant={PRIORITY_VARIANT[task.priority]}>
             {PRIORITY_LABELS[task.priority]}
           </Badge>
-          {task.dept && (
-            <Badge variant="secondary">{DEPARTMENT_LABELS[task.dept]}</Badge>
+          {task.department?.name && (
+            <Badge variant="secondary">
+              {DEPARTMENT_LABELS[task.department.name as TaskDepartment] ??
+                task.department.name}
+            </Badge>
           )}
         </div>
 
@@ -120,9 +123,9 @@ export function EmployeeTaskRow({
           className="shrink-0"
           disabled={isArchiving}
           onClick={() => onArchive(task.id)}
-          title={task.archivedAt ? "إلغاء الأرشفة" : "أرشفة"}
+          title={task.isArchived ? "إلغاء الأرشفة" : "أرشفة"}
         >
-          {task.archivedAt ? (
+          {task.isArchived ? (
             <ArchiveRestore className="size-4" />
           ) : (
             <Archive className="size-4" />

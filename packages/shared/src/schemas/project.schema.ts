@@ -8,20 +8,18 @@ import {
 
 /**
  * CreateProjectSchema — validates input required to create a new project.
- * projectId comes from route params; status/progress are server-controlled.
+ * Dates are ISO date strings (YYYY-MM-DD) — backend uses @IsDateString().
  */
 export const CreateProjectSchema = z.object({
   name: z.string().min(2, "Project name must be at least 2 characters"),
   description: z.string().optional().nullable(),
-  clientId: z.string().cuid("Invalid client ID format"),
-  contractId: z
-    .string()
-    .cuid("Invalid contract ID format")
-    .optional()
-    .nullable(),
-  managerId: z.string().cuid("Invalid manager ID format"),
-  startDate: z.coerce.date(),
-  endDate: z.coerce.date(),
+  clientId: z.string().min(1, "Client ID is required"),
+  contractId: z.string().optional().nullable(),
+  projectManagerId: z.string().optional(),
+  status: z.nativeEnum(ProjectStatus),
+  priority: z.nativeEnum(TaskPriority),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
 });
 
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
@@ -37,15 +35,12 @@ export const UpdateProjectSchema = z
       .min(2, "Project name must be at least 2 characters")
       .optional(),
     description: z.string().optional().nullable(),
-    contractId: z
-      .string()
-      .cuid("Invalid contract ID format")
-      .optional()
-      .nullable(),
-    managerId: z.string().cuid("Invalid manager ID format").optional(),
-    startDate: z.coerce.date().optional(),
-    endDate: z.coerce.date().optional(),
+    contractId: z.string().optional().nullable(),
+    projectManagerId: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
     status: z.nativeEnum(ProjectStatus).optional(),
+    priority: z.nativeEnum(TaskPriority).optional(),
     progress: z.number().min(0).max(100).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
@@ -67,12 +62,14 @@ export type UpdateProjectStatusInput = z.infer<
 
 /**
  * CreateTaskSchema — validates input required to create a new task.
- * projectId comes from route params; status is server-controlled (defaults to TODO).
+ * dept is the TaskDepartment enum name; the server resolves it to a UUID.
+ * status defaults to TODO on server.
  */
 export const CreateTaskSchema = z.object({
-  title: z.string().min(2, "Task title must be at least 2 characters"),
-  assignedTo: z.string().cuid("Invalid user ID format"),
+  projectId: z.string().uuid("Invalid project ID format"),
   dept: z.nativeEnum(TaskDepartment),
+  title: z.string().min(2, "Task title must be at least 2 characters"),
+  assignedTo: z.string().uuid("Invalid user ID format").optional(),
   priority: z.nativeEnum(TaskPriority).optional().default(TaskPriority.NORMAL),
   dueDate: z.coerce.date(),
   description: z.string().optional().nullable(),

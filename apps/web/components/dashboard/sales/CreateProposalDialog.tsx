@@ -23,65 +23,104 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateProposalMutation } from "@/features/proposals/proposalsApi";
-import { useGetClientsQuery } from "@/features/clients/clientsApi";
+import { useGetLeadsQuery } from "@/features/leads/leadsApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
 
+// ── Available platforms ───────────────────────────────────────────────────────
+
+const PLATFORMS = [
+  { id: "Instagram", label: "Instagram" },
+  { id: "TikTok", label: "TikTok" },
+  { id: "Snapchat", label: "Snapchat" },
+  { id: "Twitter/X", label: "Twitter/X" },
+  { id: "LinkedIn", label: "LinkedIn" },
+  { id: "Facebook", label: "Facebook" },
+  { id: "Google", label: "Google" },
+];
+
+// ── Schema ────────────────────────────────────────────────────────────────────
+
 const proposalFormSchema = z.object({
-  clientId: z.string().min(1, "اختر العميل"),
-  services: z.string().min(2, "اكتب خدمة واحدة على الأقل"),
-  price: z.number().positive("السعر مطلوب"),
-  startDate: z.string().min(1, "تاريخ البداية مطلوب"),
-  notes: z.string().optional(),
+  leadId: z.string().min(1, "اختر العميل المحتمل"),
+  title: z.string().min(2, "أدخل عنوان العرض"),
+  serviceDescription: z.string().min(5, "اكتب وصفاً للخدمة"),
+  servicesText: z
+    .string()
+    .min(2, "اكتب خدمة واحدة على الأقل (مفصولة بفاصلة)"),
+  totalPrice: z.number().positive("السعر الإجمالي مطلوب"),
+  durationDays: z
+    .number()
+    .int()
+    .positive("المدة يجب أن تكون أيام صحيحة موجبة"),
+  platforms: z
+    .array(z.string())
+    .min(1, "اختر منصة واحدة على الأقل"),
 });
 
 type ProposalFormValues = z.infer<typeof proposalFormSchema>;
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function CreateProposalDialog() {
   const [open, setOpen] = useState(false);
-  const [clientSearch, setClientSearch] = useState("");
+  const [leadSearch, setLeadSearch] = useState("");
   const [createProposal, { isLoading }] = useCreateProposalMutation();
-  const { data: clientsData, isFetching: clientsFetching } = useGetClientsQuery(
-    { search: clientSearch, limit: 20 },
+
+  const { data: leadsData, isFetching: leadsFetching } = useGetLeadsQuery(
+    undefined,
     { skip: !open },
   );
 
-  const clientOptions = (clientsData?.items ?? []).map((client) => ({
-    id: client.id,
-    label: client.name,
+  // Client-side filter on leads list
+  const filteredLeads = (leadsData?.items ?? []).filter(
+    (l) =>
+      !leadSearch ||
+      l.companyName.toLowerCase().includes(leadSearch.toLowerCase()) ||
+      l.contactName.toLowerCase().includes(leadSearch.toLowerCase()),
+  );
+
+  const leadOptions = filteredLeads.map((l) => ({
+    id: l.id,
+    label: `${l.companyName} — ${l.contactName}`,
   }));
 
   const form = useForm<ProposalFormValues>({
     resolver: zodResolver(proposalFormSchema),
     defaultValues: {
-      clientId: "",
-      services: "",
-      price: 0,
-      startDate: "",
-      notes: "",
+      leadId: "",
+      title: "",
+      serviceDescription: "",
+      servicesText: "",
+      totalPrice: 0,
+      durationDays: 30,
+      platforms: [],
     },
   });
 
   async function onSubmit(values: ProposalFormValues) {
-    const services = values.services
+    const servicesList = values.servicesText
       .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((name) => ({ name }));
 
-    if (services.length === 0) {
+    if (servicesList.length === 0) {
       toast.error("أضف خدمة واحدة على الأقل");
       return;
     }
 
     try {
       await createProposal({
-        clientId: values.clientId,
-        services,
-        price: values.price,
-        startDate: values.startDate,
-        notes: values.notes || undefined,
+        leadId: values.leadId,
+        title: values.title,
+        serviceDescription: values.serviceDescription,
+        servicesList,
+        totalPrice: values.totalPrice,
+        durationDays: values.durationDays,
+        platforms: values.platforms,
       }).unwrap();
-
       toast.success("تم إنشاء العرض الفني بنجاح");
       form.reset();
       setOpen(false);
@@ -101,21 +140,22 @@ export function CreateProposalDialog() {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Lead */}
             <FormField
               control={form.control}
-              name="clientId"
+              name="leadId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>العميل</FormLabel>
+                  <FormLabel>العميل المحتمل</FormLabel>
                   <FormControl>
                     <SearchCombobox
                       value={field.value}
                       onChange={field.onChange}
-                      options={clientOptions}
-                      onSearchChange={setClientSearch}
-                      placeholder="ابحث عن العميل..."
-                      searchPlaceholder="اكتب اسم العميل"
-                      isLoading={clientsFetching}
+                      options={leadOptions}
+                      onSearchChange={setLeadSearch}
+                      placeholder="ابحث عن عميل..."
+                      searchPlaceholder="اكتب اسم الشركة أو العميل"
+                      isLoading={leadsFetching}
                     />
                   </FormControl>
                   <FormMessage />
@@ -123,16 +163,16 @@ export function CreateProposalDialog() {
               )}
             />
 
+            {/* Title */}
             <FormField
               control={form.control}
-              name="services"
+              name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الخدمات</FormLabel>
+                  <FormLabel>عنوان العرض</FormLabel>
                   <FormControl>
-                    <Textarea
-                      rows={3}
-                      placeholder="اكتب الخدمات المطلوبة مفصولة بفواصل"
+                    <Input
+                      placeholder="باقة إدارة وسائل التواصل الاجتماعي"
                       {...field}
                     />
                   </FormControl>
@@ -141,13 +181,51 @@ export function CreateProposalDialog() {
               )}
             />
 
+            {/* Service description */}
+            <FormField
+              control={form.control}
+              name="serviceDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>وصف الخدمة</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={2}
+                      placeholder="وصف مختصر للخدمات المقدمة..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Services list */}
+            <FormField
+              control={form.control}
+              name="servicesText"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>قائمة الخدمات (مفصولة بفاصلة)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="تصميم المحتوى, إدارة الحسابات, التقارير الشهرية"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Price + Duration */}
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={form.control}
-                name="price"
+                name="totalPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>السعر</FormLabel>
+                    <FormLabel>السعر الإجمالي (ر.س)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -155,11 +233,9 @@ export function CreateProposalDialog() {
                         step="0.01"
                         {...field}
                         value={field.value ?? ""}
-                        onChange={(event) => {
-                          const nextValue = event.target.valueAsNumber;
-                          field.onChange(
-                            Number.isNaN(nextValue) ? undefined : nextValue,
-                          );
+                        onChange={(e) => {
+                          const n = e.target.valueAsNumber;
+                          field.onChange(Number.isNaN(n) ? undefined : n);
                         }}
                       />
                     </FormControl>
@@ -169,12 +245,22 @@ export function CreateProposalDialog() {
               />
               <FormField
                 control={form.control}
-                name="startDate"
+                name="durationDays"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>تاريخ البداية</FormLabel>
+                    <FormLabel>المدة (بالأيام)</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const n = e.target.valueAsNumber;
+                          field.onChange(Number.isNaN(n) ? undefined : n);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -182,15 +268,38 @@ export function CreateProposalDialog() {
               />
             </div>
 
+            {/* Platforms */}
             <FormField
               control={form.control}
-              name="notes"
+              name="platforms"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ملاحظات إضافية (اختياري)</FormLabel>
-                  <FormControl>
-                    <Textarea rows={2} {...field} />
-                  </FormControl>
+                  <FormLabel>المنصات</FormLabel>
+                  <div className="flex flex-wrap gap-3 pt-1">
+                    {PLATFORMS.map((p) => (
+                      <div key={p.id} className="flex items-center gap-1.5">
+                        <Checkbox
+                          id={`platform-${p.id}`}
+                          checked={field.value.includes(p.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              field.onChange([...field.value, p.id]);
+                            } else {
+                              field.onChange(
+                                field.value.filter((v) => v !== p.id),
+                              );
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`platform-${p.id}`}
+                          className="text-sm cursor-pointer"
+                        >
+                          {p.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

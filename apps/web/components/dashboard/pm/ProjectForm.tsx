@@ -24,23 +24,49 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   useCreateProjectMutation,
   useUpdateProjectMutation,
 } from "@/features/projects/projectsApi";
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
-import { UserRole } from "@hassad/shared";
+import { UserRole, ProjectStatus, TaskPriority } from "@hassad/shared";
 import type { Project } from "@hassad/shared";
 
-// ── Form schema (strings for date inputs — Zod coerce handled server-side) ───
+// ── Labels ────────────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<ProjectStatus, string> = {
+  [ProjectStatus.PLANNING]: "تخطيط",
+  [ProjectStatus.ACTIVE]: "نشط",
+  [ProjectStatus.ON_HOLD]: "متوقف مؤقتاً",
+  [ProjectStatus.COMPLETED]: "مكتمل",
+  [ProjectStatus.CANCELLED]: "ملغي",
+};
+
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  [TaskPriority.LOW]: "منخفض",
+  [TaskPriority.NORMAL]: "عادي",
+  [TaskPriority.HIGH]: "عالي",
+  [TaskPriority.URGENT]: "عاجل",
+};
+
+// ── Form schema ───────────────────────────────────────────────────────────────
 
 const ProjectFormSchema = z.object({
   name: z.string().min(2, "اسم المشروع يجب أن يكون حرفين على الأقل"),
   description: z.string().optional(),
   clientId: z.string().min(1, "العميل مطلوب"),
   contractId: z.string().optional(),
-  managerId: z.string().min(1, "مدير المشروع مطلوب"),
+  projectManagerId: z.string().min(1, "مدير المشروع مطلوب"),
+  status: z.nativeEnum(ProjectStatus),
+  priority: z.nativeEnum(TaskPriority),
   startDate: z.string().min(1, "تاريخ البدء مطلوب"),
   endDate: z.string().min(1, "تاريخ الانتهاء مطلوب"),
 });
@@ -52,7 +78,7 @@ type ProjectFormValues = z.infer<typeof ProjectFormSchema>;
 interface ProjectFormProps {
   /** When provided, the form is in edit mode */
   project?: Project;
-  /** Current user's ID — used to pre-fill managerId */
+  /** Current user's ID — used to pre-fill projectManagerId */
   currentUserId: string;
 }
 
@@ -82,7 +108,7 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
 
   const clientOptions = (clientsData?.items ?? []).map((c) => ({
     id: c.id,
-    label: c.name,
+    label: c.companyName,
   }));
 
   const managerOptions = (usersData?.items ?? []).map((u) => ({
@@ -97,7 +123,9 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
       description: project?.description ?? "",
       clientId: project?.clientId ?? "",
       contractId: project?.contractId ?? "",
-      managerId: project?.managerId ?? currentUserId,
+      projectManagerId: project?.projectManagerId ?? currentUserId,
+      status: (project?.status as ProjectStatus) ?? ProjectStatus.PLANNING,
+      priority: (project?.priority as TaskPriority) ?? TaskPriority.NORMAL,
       startDate: project?.startDate
         ? new Date(project.startDate).toISOString().split("T")[0]
         : "",
@@ -108,15 +136,18 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
   });
 
   async function onSubmit(values: ProjectFormValues) {
-    // The API body matches the form values exactly (dates are ISO strings, coerced on backend)
+    // Dates from <input type="date"> are already ISO date strings (YYYY-MM-DD)
+    // which satisfy @IsDateString() on the backend.
     const body = {
       name: values.name,
       description: values.description || undefined,
       clientId: values.clientId,
       contractId: values.contractId || undefined,
-      managerId: values.managerId,
-      startDate: new Date(values.startDate),
-      endDate: new Date(values.endDate),
+      projectManagerId: values.projectManagerId,
+      status: values.status,
+      priority: values.priority,
+      startDate: values.startDate,
+      endDate: values.endDate,
     };
 
     try {
@@ -222,7 +253,7 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
             {/* Manager */}
             <FormField
               control={form.control}
-              name="managerId"
+              name="projectManagerId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>مدير المشروع</FormLabel>
@@ -241,6 +272,58 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
                 </FormItem>
               )}
             />
+
+            {/* Status + Priority */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>الحالة</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر الحالة" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(ProjectStatus).map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {STATUS_LABELS[s]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>الأولوية</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر الأولوية" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(TaskPriority).map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {PRIORITY_LABELS[p]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3">

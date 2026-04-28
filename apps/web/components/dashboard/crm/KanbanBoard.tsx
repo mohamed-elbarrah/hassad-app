@@ -12,11 +12,11 @@ import {
 } from "@dnd-kit/core";
 import { toast } from "sonner";
 import { PipelineStage, PIPELINE_STAGE_ORDER } from "@hassad/shared";
-import type { Client } from "@hassad/shared";
+import type { LeadListItem } from "@/features/leads/leadsApi";
 import {
-  useGetClientsQuery,
-  useUpdateClientStageMutation,
-} from "@/features/clients/clientsApi";
+  useGetLeadsQuery,
+  useUpdateLeadStageMutation,
+} from "@/features/leads/leadsApi";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
@@ -25,7 +25,7 @@ function resolveKanbanError(error: unknown): string {
   const e = error as FetchBaseQueryError | undefined;
   if (!e) return "حدث خطأ غير متوقع.";
   if (e.status === 401) return "انتهت صلاحية جلستك. يرجى تسجيل الدخول مجدداً.";
-  if (e.status === 403) return "لا تملك صلاحية الوصول إلى بيانات العملاء.";
+  if (e.status === 403) return "لا تملك صلاحية الوصول إلى بيانات العملاء المحتملين.";
   if (typeof e.status === "number" && e.status >= 500)
     return "خطأ في الخادم. يرجى المحاولة لاحقاً.";
   if (e.status === "FETCH_ERROR")
@@ -58,49 +58,49 @@ const STAGE_COLORS: Record<PipelineStage, string> = {
 };
 
 export function KanbanBoard() {
-  const [activeClient, setActiveClient] = useState<Client | null>(null);
-  const [updateStage] = useUpdateClientStageMutation();
+  const [activeLead, setActiveLead] = useState<LeadListItem | null>(null);
+  const [updateLeadStage] = useUpdateLeadStageMutation();
 
-  const { data, isLoading, isError, error } = useGetClientsQuery({
-    limit: 100,
-  });
+  const { data, isLoading, isError, error } = useGetLeadsQuery({ limit: 100 });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const clientsByStage = useMemo(() => {
-    const map = new Map<PipelineStage, Client[]>();
+  const leadsByStage = useMemo(() => {
+    const map = new Map<PipelineStage, LeadListItem[]>();
     PIPELINE_STAGE_ORDER.forEach((stage) => map.set(stage, []));
     if (data?.items) {
-      data.items.forEach((client) => {
-        const stage = client.stage as PipelineStage;
-        const list = map.get(stage) ?? [];
-        map.set(stage, [...list, client]);
+      data.items.forEach((lead) => {
+        const stage = lead.pipelineStage as PipelineStage;
+        if (map.has(stage)) {
+          const list = map.get(stage)!;
+          map.set(stage, [...list, lead]);
+        }
       });
     }
     return map;
   }, [data]);
 
   function handleDragStart(event: DragStartEvent) {
-    const clientId = event.active.id as string;
-    const client = data?.items.find((c) => c.id === clientId) ?? null;
-    setActiveClient(client);
+    const leadId = event.active.id as string;
+    const lead = data?.items.find((l) => l.id === leadId) ?? null;
+    setActiveLead(lead);
   }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    setActiveClient(null);
+    setActiveLead(null);
     if (!over) return;
 
-    const clientId = active.id as string;
+    const leadId = active.id as string;
     const newStage = over.id as PipelineStage;
     const currentStage = active.data.current?.stage as PipelineStage;
 
     if (newStage === currentStage) return;
 
     try {
-      await updateStage({ id: clientId, body: { stage: newStage } }).unwrap();
+      await updateLeadStage({ id: leadId, toStage: newStage }).unwrap();
     } catch (err: unknown) {
       const message =
         (err as { data?: { message?: string } })?.data?.message ??
@@ -132,7 +132,7 @@ export function KanbanBoard() {
     );
   }
 
-  const totalClients = data?.total ?? 0;
+  const totalLeads = data?.total ?? 0;
 
   return (
     <>
@@ -141,13 +141,13 @@ export function KanbanBoard() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        {totalClients === 0 ? (
+        {totalLeads === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center gap-3 border-2 border-dashed rounded-xl">
             <p className="text-lg font-medium text-muted-foreground">
-              لا يوجد أي عميل بعد
+              لا يوجد أي عميل محتمل بعد
             </p>
             <p className="text-sm text-muted-foreground">
-              أضف أول عميل من صفحة المبيعات أو عبر رابط التسجيل
+              أضف أول عميل محتمل من صفحة العملاء المحتملين
             </p>
           </div>
         ) : (
@@ -159,7 +159,7 @@ export function KanbanBoard() {
                   stage={stage}
                   label={STAGE_LABELS[stage]}
                   colorClass={STAGE_COLORS[stage]}
-                  clients={clientsByStage.get(stage) ?? []}
+                  clients={leadsByStage.get(stage) ?? []}
                 />
               ))}
             </div>
@@ -167,7 +167,7 @@ export function KanbanBoard() {
         )}
 
         <DragOverlay>
-          {activeClient ? <KanbanCard client={activeClient} isOverlay /> : null}
+          {activeLead ? <KanbanCard client={activeLead} isOverlay /> : null}
         </DragOverlay>
       </DndContext>
     </>

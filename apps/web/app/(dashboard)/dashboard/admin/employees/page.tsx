@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import {
   useSearchUsersQuery,
   useDeactivateUserMutation,
+  useReactivateUserMutation,
   type UserDetail,
   type UserSearchFilters,
 } from "@/features/users/usersApi";
@@ -96,20 +97,26 @@ export default function EmployeesPage() {
 
   const [deactivateUser, { isLoading: isDeactivating }] =
     useDeactivateUserMutation();
+  const [reactivateUser, { isLoading: isReactivating }] =
+    useReactivateUserMutation();
+  const isToggling = isDeactivating || isReactivating;
 
   async function handleToggleActive(id: string, currentlyActive: boolean) {
     try {
-      await deactivateUser(id).unwrap();
-      toast.success(currentlyActive ? "تم تعطيل الموظف." : "تم تفعيل الموظف.");
+      if (currentlyActive) {
+        await deactivateUser(id).unwrap();
+        toast.success("تم تعطيل الموظف.");
+      } else {
+        await reactivateUser(id).unwrap();
+        toast.success("تم تفعيل الموظف.");
+      }
     } catch {
       toast.error("فشلت العملية. يرجى المحاولة مجدداً.");
     }
   }
 
-  // The API returns UserSearchResult (no isActive/department), so we cast here.
-  // The backend GET /users endpoint returns full detail — we rely on the
-  // UserDetail type for the edit flow via invalidation + re-fetch.
-  const employees = (data?.items ?? []) as unknown as UserDetail[];
+  // The API returns paginated shape; items include isActive and department.
+  const employees = (data?.items ?? []) as UserDetail[];
 
   return (
     <div className="flex flex-col gap-6">
@@ -272,7 +279,7 @@ export default function EmployeesPage() {
                             variant="ghost"
                             size="icon"
                             className={`size-8 ${emp.isActive ? "text-destructive hover:text-destructive" : "text-green-600 hover:text-green-600"}`}
-                            disabled={isDeactivating}
+                            disabled={isToggling}
                             onClick={() =>
                               handleToggleActive(emp.id, emp.isActive)
                             }

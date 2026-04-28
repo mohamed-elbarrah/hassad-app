@@ -12,7 +12,10 @@ import { FileItem } from "@/components/dashboard/employee/FileItem";
 import { CommentItem } from "@/components/dashboard/employee/CommentItem";
 import {
   useGetTaskByIdQuery,
-  useUpdateTaskStatusMutation,
+  useStartTaskMutation,
+  useSubmitTaskMutation,
+  useApproveTaskMutation,
+  useRejectTaskMutation,
   useGetTaskFilesQuery,
   useUploadTaskFileMutation,
   useDeleteTaskFileMutation,
@@ -118,8 +121,11 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const { data: comments, isLoading: commentsLoading } =
     useGetTaskCommentsQuery(id);
 
-  const [updateStatus, { isLoading: isUpdatingStatus }] =
-    useUpdateTaskStatusMutation();
+  const [startTask, { isLoading: isStarting }] = useStartTaskMutation();
+  const [submitTask, { isLoading: isSubmitting }] = useSubmitTaskMutation();
+  const [approveTask, { isLoading: isApproving }] = useApproveTaskMutation();
+  const [rejectTask, { isLoading: isRejecting }] = useRejectTaskMutation();
+  const isUpdatingStatus = isStarting || isSubmitting || isApproving || isRejecting;
   const [uploadFile, { isLoading: isUploading }] = useUploadTaskFileMutation();
   const [deleteFile, { isLoading: isDeletingFile }] =
     useDeleteTaskFileMutation();
@@ -166,7 +172,15 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
 
   async function handleStatusUpdate(newStatus: TaskStatus) {
     try {
-      await updateStatus({ id, body: { status: newStatus } }).unwrap();
+      if (newStatus === TaskStatus.IN_PROGRESS) {
+        await startTask(id).unwrap();
+      } else if (newStatus === TaskStatus.IN_REVIEW) {
+        await submitTask(id).unwrap();
+      } else if (newStatus === TaskStatus.DONE) {
+        await approveTask(id).unwrap();
+      } else if (newStatus === TaskStatus.REVISION) {
+        await rejectTask(id).unwrap();
+      }
       toast.success(`تم تحديث الحالة إلى "${STATUS_LABELS[newStatus]}"`);
     } catch {
       toast.error("فشل تحديث الحالة");
@@ -262,7 +276,11 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
           )}
           <div>
             <p className="text-muted-foreground text-xs mb-1">القسم</p>
-            <p className="font-medium">{DEPARTMENT_LABELS[task.dept]}</p>
+            <p className="font-medium">
+              {DEPARTMENT_LABELS[task.department?.name as TaskDepartment] ??
+                task.department?.name ??
+                "—"}
+            </p>
           </div>
           {taskWithRelations.assignee && (
             <div>
@@ -347,7 +365,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                   key={file.id}
                   file={file}
                   taskId={id}
-                  canDelete={canDeleteFile(file.uploadedById)}
+                  canDelete={canDeleteFile(file.uploadedBy)}
                   onDelete={handleDeleteFile}
                   isDeleting={isDeletingFile}
                 />

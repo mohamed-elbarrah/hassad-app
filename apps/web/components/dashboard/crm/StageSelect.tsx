@@ -1,6 +1,5 @@
 "use client";
 
-import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -8,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUpdateClientStageMutation } from "@/features/clients/clientsApi";
 import { PipelineStage, PIPELINE_STAGE_ORDER } from "@hassad/shared";
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
@@ -24,43 +22,39 @@ const STAGE_LABELS: Record<PipelineStage, string> = {
 };
 
 interface StageSelectProps {
-  clientId: string;
   currentStage: PipelineStage;
+  onStageChange?: (stage: PipelineStage) => void;
+  disabled?: boolean;
 }
 
-export function StageSelect({ clientId, currentStage }: StageSelectProps) {
-  const [updateStage, { isLoading }] = useUpdateClientStageMutation();
-
-  async function handleChange(value: string) {
+export function StageSelect({
+  currentStage,
+  onStageChange,
+  disabled,
+}: StageSelectProps) {
+  function handleChange(value: string) {
     const stage = value as PipelineStage;
-    if (stage === currentStage) return;
-
-    try {
-      await updateStage({ id: clientId, body: { stage } }).unwrap();
-      toast.success(`المرحلة محدّثة إلى: ${STAGE_LABELS[stage]}`);
-    } catch {
-      toast.error("فشل تحديث المرحلة. حاول مجدداً.");
+    if (stage !== currentStage && onStageChange) {
+      onStageChange(stage);
     }
   }
 
   return (
-    <>
-      <Select
-        value={currentStage}
-        onValueChange={handleChange}
-        disabled={isLoading}
-      >
-        <SelectTrigger className="h-8 w-52 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {PIPELINE_STAGE_ORDER.map((stage) => (
-            <SelectItem key={stage} value={stage} className="text-xs">
-              {STAGE_LABELS[stage]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </>
+    <Select
+      value={currentStage}
+      onValueChange={handleChange}
+      disabled={disabled}
+    >
+      <SelectTrigger className="h-8 w-52 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {PIPELINE_STAGE_ORDER.map((stage) => (
+          <SelectItem key={stage} value={stage} className="text-xs">
+            {STAGE_LABELS[stage]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

@@ -9,8 +9,7 @@ export class CreateCampaignDto {
   @IsUUID()
   projectId?: string;
 
-  @IsUUID()
-  managedBy: string;
+  // managedBy is set automatically from the authenticated user — not required from client
 
   @IsString()
   name: string;

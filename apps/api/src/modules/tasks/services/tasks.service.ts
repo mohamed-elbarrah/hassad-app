@@ -12,9 +12,12 @@ export class TasksService {
   ) {}
 
   async create(userId: string, dto: CreateTaskDto) {
+    const department = await this.prisma.department.findFirst({ where: { name: dto.dept } });
+    const { dept, ...rest } = dto;
     return this.prisma.task.create({
       data: {
-        ...dto,
+        ...rest,
+        departmentId: department?.id ?? undefined,
         dueDate: new Date(dto.dueDate),
         createdBy: userId,
         status: TaskStatus.TODO,
@@ -30,6 +33,7 @@ export class TasksService {
         assignee: true,
         creator: true,
         approver: true,
+        department: { select: { id: true, name: true } },
         files: true,
         comments: {
           include: {
@@ -162,5 +166,105 @@ export class TasksService {
         ...dto,
       },
     });
+  }
+
+  async findByProject(projectId: string) {
+    return this.prisma.task.findMany({
+      where: { projectId },
+      include: {
+        assignee: { select: { id: true, name: true } },
+        files: true,
+        comments: {
+          include: {
+            user: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findMine(userId: string, filters: { status?: string; priority?: string; dept?: string; dueBefore?: string; dueAfter?: string }) {
+    const where: Record<string, unknown> = { assignedTo: userId };
+    if (filters.status) where['status'] = filters.status;
+    if (filters.priority) where['priority'] = filters.priority;
+    if (filters.dept) where['departmentId'] = filters.dept;
+
+    if (filters.dueBefore || filters.dueAfter) {
+      const dueDateFilter: Record<string, Date> = {};
+      if (filters.dueBefore) dueDateFilter['lte'] = new Date(filters.dueBefore);
+      if (filters.dueAfter) dueDateFilter['gte'] = new Date(filters.dueAfter);
+      where['dueDate'] = dueDateFilter;
+    }
+
+    return this.prisma.task.findMany({
+      where,
+      include: {
+        project: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async myStats(userId: string) {
+    const [grouped, overdue] = await Promise.all([
+      this.prisma.task.groupBy({
+        by: ['status'],
+        where: { assignedTo: userId },
+        _count: { status: true },
+      }),
+      this.prisma.task.count({
+        where: {
+          assignedTo: userId,
+          dueDate: { lt: new Date() },
+          status: { not: TaskStatus.DONE },
+        },
+      }),
+    ]);
+
+    const counts: Record<string, number> = {};
+    for (const g of grouped) {
+      counts[g.status] = g._count.status;
+    }
+
+    const total = grouped.reduce((sum, g) => sum + g._count.status, 0);
+
+    return {
+      total,
+      todo: counts[TaskStatus.TODO] ?? 0,
+      inProgress: counts[TaskStatus.IN_PROGRESS] ?? 0,
+      inReview: counts[TaskStatus.IN_REVIEW] ?? 0,
+      blocked: counts['BLOCKED'] ?? 0,
+      done: counts[TaskStatus.DONE] ?? 0,
+      overdue,
+    };
+  }
+
+  async getComments(taskId: string) {
+    return this.prisma.taskComment.findMany({
+      where: { taskId },
+      include: {
+        user: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async delete(id: string) {
+    return this.prisma.task.delete({ where: { id } });
+  }
+
+  async deleteFile(taskId: string, fileId: string) {
+    return this.prisma.taskFile.delete({
+      where: { id: fileId, taskId },
+    });
+  }
+
+  async toggleArchive(_taskId: string): Promise<{ message: string }> {
+    // Task model does not have an archivedAt field in the current schema.
+    // This is a placeholder that returns a not-implemented response.
+    return { message: 'Archive toggling is not supported in the current schema.' };
   }
 }

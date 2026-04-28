@@ -59,6 +59,18 @@ export class PortalController {
     return this.portalService.getRevisions(id);
   }
 
+  @Get('projects/:id/deliverables')
+  @RequirePermissions('portal.read')
+  getDeliverablesByProject(@Param('id') projectId: string) {
+    return this.portalService.findDeliverablesByProject(projectId);
+  }
+
+  @Get('clients/:id/deliverables')
+  @RequirePermissions('portal.read')
+  getDeliverablesByClient(@Param('id') clientId: string) {
+    return this.portalService.findDeliverablesByClient(clientId);
+  }
+
   @Post('clients/:id/intake-form')
   @RequirePermissions('portal.manage_intake')
   createIntakeForm(@Param('id') clientId: string, @Body() dto: CreateIntakeFormDto) {

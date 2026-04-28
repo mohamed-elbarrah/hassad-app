@@ -1,5 +1,5 @@
 import { IsString, IsNumber, IsUUID, IsDateString, IsEnum, IsOptional } from 'class-validator';
-import { PaymentMethod, TicketStatus } from '@hassad/shared';
+import { PaymentMethod } from '@hassad/shared';
 
 export class CreateInvoiceDto {
   @IsUUID()
@@ -9,8 +9,10 @@ export class CreateInvoiceDto {
   @IsUUID()
   contractId?: string;
 
+  // invoiceNumber is auto-generated on backend — do not require from frontend
+  @IsOptional()
   @IsString()
-  invoiceNumber: string;
+  invoiceNumber?: string;
 
   @IsNumber()
   amount: number;
@@ -29,6 +31,8 @@ export class CreateInvoiceDto {
   notes?: string;
 }
 
+// DB PaymentTicket has: invoiceId (required), clientId, assignedTo?, status, notes?
+// No amount or description fields exist in the schema
 export class CreateTicketDto {
   @IsUUID()
   invoiceId: string;

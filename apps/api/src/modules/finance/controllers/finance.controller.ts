@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { FinanceService } from '../services/finance.service';
@@ -22,6 +23,18 @@ export class FinanceController {
   @RequirePermissions('finance.create_invoice')
   createInvoice(@CurrentUser() user: any, @Body() dto: CreateInvoiceDto) {
     return this.financeService.createInvoice(user.id, dto);
+  }
+
+  @Get('invoices')
+  @RequirePermissions('finance.read')
+  findAllInvoices(@Query() filters: any) {
+    return this.financeService.findAllInvoices(filters);
+  }
+
+  @Get('invoices/by-client/:clientId')
+  @RequirePermissions('finance.read')
+  findInvoicesByClient(@Param('clientId') clientId: string) {
+    return this.financeService.findInvoicesByClient(clientId);
   }
 
   @Get('invoices/:id')
@@ -46,6 +59,12 @@ export class FinanceController {
   @RequirePermissions('finance.manage_tickets')
   createTicket(@Body() dto: CreateTicketDto) {
     return this.financeService.createTicket(dto);
+  }
+
+  @Get('payment-tickets')
+  @RequirePermissions('finance.read')
+  findAllTickets(@Query() filters: any) {
+    return this.financeService.findAllTickets(filters);
   }
 
   @Get('payment-tickets/:id')

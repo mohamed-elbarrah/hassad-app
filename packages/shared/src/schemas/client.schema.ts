@@ -1,55 +1,38 @@
 import { z } from "zod";
-import {
-  ClientStatus,
-  PipelineStage,
-  BusinessType,
-  ClientSource,
-} from "../enums/client";
+import { ClientStatus, BusinessType } from "../enums/client";
 
 /**
- * CreateClientSchema — validates the input required to create a new client.
- * Matches the Prisma `Client` model's writable fields exactly.
- * `status` and `stage` are set by server logic, not client input.
+ * CreateClientSchema — validates the input required to create a new client directly.
+ * Matches the DB `Client` model's writable fields.
  */
 export const CreateClientSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  companyName: z.string().min(2, "Company name must be at least 2 characters"),
+  contactName: z.string().min(2, "Contact name must be at least 2 characters"),
+  phoneWhatsapp: z.string().min(5, "Phone must be at least 5 characters"),
   email: z.string().email("Invalid email address").optional().nullable(),
-  phone: z.string().min(5, "Phone must be at least 5 characters"),
+  businessName: z.string().min(2, "Business name must be at least 2 characters"),
   businessType: z.nativeEnum(BusinessType),
-  source: z.nativeEnum(ClientSource),
-  assignedToId: z.string().cuid("Invalid user ID format").optional(),
+  accountManager: z.string().uuid("Invalid user ID format").optional(),
 });
 
 export type CreateClientInput = z.infer<typeof CreateClientSchema>;
 
 /**
  * UpdateClientSchema — validates partial updates to an existing client.
- * All fields are optional; at least one must be provided.
- * Stage and status transitions have dedicated endpoints.
  */
 export const UpdateClientSchema = z
   .object({
-    name: z.string().min(2, "Name must be at least 2 characters").optional(),
-    email: z.string().email("Invalid email address").optional().nullable(),
-    phone: z.string().min(5, "Phone must be at least 5 characters").optional(),
+    companyName: z.string().min(2).optional(),
+    contactName: z.string().min(2).optional(),
+    phoneWhatsapp: z.string().min(5).optional(),
+    email: z.string().email().optional().nullable(),
+    businessName: z.string().min(2).optional(),
     businessType: z.nativeEnum(BusinessType).optional(),
-    source: z.nativeEnum(ClientSource).optional(),
+    accountManager: z.string().uuid().optional(),
     status: z.nativeEnum(ClientStatus).optional(),
-    stage: z.nativeEnum(PipelineStage).optional(),
-    assignedToId: z.string().cuid("Invalid user ID format").optional(),
   })
-  .partial()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
   });
 
 export type UpdateClientInput = z.infer<typeof UpdateClientSchema>;
-
-/**
- * UpdateStageSchema — validates a pipeline stage transition.
- */
-export const UpdateStageSchema = z.object({
-  stage: z.nativeEnum(PipelineStage),
-});
-
-export type UpdateStageInput = z.infer<typeof UpdateStageSchema>;

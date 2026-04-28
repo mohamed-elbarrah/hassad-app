@@ -2,11 +2,14 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
+  Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { NotificationsService } from '../services/notifications.service';
-import { MarkReadDto } from '../dto/notification.dto';
+import { BroadcastNotificationDto } from '../dto/notification.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
@@ -17,21 +20,46 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  @Get()
+  /** GET /notifications/my — paginated notifications for current user */
+  @Get('my')
   @RequirePermissions('notifications.read')
-  findAll(@CurrentUser() user: any) {
-    return this.notificationsService.findAll(user.id);
+  findMine(
+    @CurrentUser() user: any,
+    @Query() filters: { page?: number; limit?: number; isRead?: boolean },
+  ) {
+    return this.notificationsService.findAll(user.id, filters);
   }
 
-  @Post('mark-read')
+  /** GET /notifications/my/unread-count */
+  @Get('my/unread-count')
+  @RequirePermissions('notifications.read')
+  getUnreadCount(@CurrentUser() user: any) {
+    return this.notificationsService.getUnreadCount(user.id);
+  }
+
+  /** PATCH /notifications/:id/read — mark single notification as read */
+  @Patch(':id/read')
   @RequirePermissions('notifications.update')
-  markRead(@CurrentUser() user: any, @Body() dto: MarkReadDto) {
-    return this.notificationsService.markRead(user.id, dto.notificationIds);
+  markOneRead(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.notificationsService.markOneRead(user.id, id);
   }
 
-  @Post('mark-all-read')
+  /** PATCH /notifications/read-all — mark all as read */
+  @Patch('read-all')
   @RequirePermissions('notifications.update')
   markAllRead(@CurrentUser() user: any) {
     return this.notificationsService.markAllRead(user.id);
+  }
+
+  /** POST /notifications/broadcast — admin only */
+  @Post('broadcast')
+  @RequirePermissions('notifications.broadcast')
+  broadcast(@Body() dto: BroadcastNotificationDto) {
+    return this.notificationsService.broadcast({
+      title: dto.title,
+      message: dto.message,
+      roles: dto.roles,
+      departments: dto.departments,
+    });
   }
 }

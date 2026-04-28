@@ -9,29 +9,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import {
-  ClientStatus,
-  PipelineStage,
-  PIPELINE_STAGE_ORDER,
-} from "@hassad/shared";
+import { ClientStatus } from "@hassad/shared";
 import type { ClientFilters } from "@/features/clients/clientsApi";
 
 const STATUS_LABELS: Record<ClientStatus, string> = {
   [ClientStatus.LEAD]: "عميل محتمل",
   [ClientStatus.ACTIVE]: "نشط",
   [ClientStatus.STOPPED]: "متوقف",
-};
-
-const STAGE_LABELS: Record<PipelineStage, string> = {
-  [PipelineStage.NEW]: "عميل جديد",
-  [PipelineStage.INTRO_SENT]: "تم التواصل",
-  [PipelineStage.CALL_ATTEMPT]: "محاولة اتصال",
-  [PipelineStage.MEETING_SCHEDULED]: "موعد محدد",
-  [PipelineStage.MEETING_DONE]: "تم الاجتماع",
-  [PipelineStage.PROPOSAL_SENT]: "تم إرسال العرض",
-  [PipelineStage.FOLLOW_UP]: "متابعة",
-  [PipelineStage.APPROVED]: "موافقة",
-  [PipelineStage.CONTRACT_SIGNED]: "توقيع عقد",
 };
 
 interface ClientFiltersBarProps {
@@ -52,23 +36,11 @@ export function ClientFiltersBar({ filters, onChange }: ClientFiltersBarProps) {
     });
   }
 
-  function handleStage(value: string) {
-    onChange({
-      ...filters,
-      stage: value === "ALL" ? undefined : (value as PipelineStage),
-      page: 1,
-    });
-  }
-
   function handleReset() {
     onChange({ page: 1, limit: 20 });
   }
 
-  const hasActiveFilters = !!(
-    filters.search ||
-    filters.status ||
-    filters.stage
-  );
+  const hasActiveFilters = !!(filters.search || filters.status);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -90,21 +62,6 @@ export function ClientFiltersBar({ filters, onChange }: ClientFiltersBarProps) {
           {(Object.values(ClientStatus) as ClientStatus[]).map((s) => (
             <SelectItem key={s} value={s}>
               {STATUS_LABELS[s]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Stage filter */}
-      <Select value={filters.stage ?? "ALL"} onValueChange={handleStage}>
-        <SelectTrigger className="h-9 w-52">
-          <SelectValue placeholder="كل المراحل" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">كل المراحل</SelectItem>
-          {PIPELINE_STAGE_ORDER.map((stage) => (
-            <SelectItem key={stage} value={stage}>
-              {STAGE_LABELS[stage]}
             </SelectItem>
           ))}
         </SelectContent>

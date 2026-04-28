@@ -33,7 +33,7 @@ export function ProposalsTable({ proposals }: ProposalsTableProps) {
     try {
       const result = await sendProposal(id).unwrap();
       toast.success("تم إرسال العرض بنجاح");
-      const shareUrl = `${window.location.origin}/proposal/${result.shareToken}`;
+      const shareUrl = `${window.location.origin}/proposal/${result.shareLinkToken}`;
       await navigator.clipboard.writeText(shareUrl);
       toast.success("تم نسخ رابط العرض");
     } catch (err: unknown) {
@@ -60,9 +60,9 @@ export function ProposalsTable({ proposals }: ProposalsTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>العميل</TableHead>
+            <TableHead>العميل / العميل المحتمل</TableHead>
             <TableHead>السعر</TableHead>
-            <TableHead>تاريخ البداية</TableHead>
+            <TableHead>تاريخ الإنشاء</TableHead>
             <TableHead>الحالة</TableHead>
             <TableHead className="text-right">إجراءات</TableHead>
           </TableRow>
@@ -81,16 +81,16 @@ export function ProposalsTable({ proposals }: ProposalsTableProps) {
             proposals.map((proposal) => (
               <TableRow key={proposal.id}>
                 <TableCell>
-                  {proposal.client?.name ?? proposal.clientId}
+                  {proposal.lead?.companyName ?? proposal.leadId ?? "—"}
                 </TableCell>
-                <TableCell>{proposal.price.toLocaleString("en-US")}</TableCell>
+                <TableCell>{proposal.totalPrice.toLocaleString("en-US")}</TableCell>
                 <TableCell>
                   {new Intl.DateTimeFormat("en-GB", {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
                     numberingSystem: "latn",
-                  }).format(new Date(proposal.startDate))}
+                  }).format(new Date(proposal.createdAt))}
                 </TableCell>
                 <TableCell>{STATUS_LABELS[proposal.status]}</TableCell>
                 <TableCell className="text-right">
@@ -108,8 +108,8 @@ export function ProposalsTable({ proposals }: ProposalsTableProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleCopy(proposal.shareToken)}
-                        disabled={!proposal.shareToken}
+                        onClick={() => handleCopy(proposal.shareLinkToken)}
+                        disabled={!proposal.shareLinkToken}
                       >
                         نسخ الرابط
                       </Button>

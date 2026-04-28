@@ -106,11 +106,21 @@ export class AuthService {
       },
     });
     if (!user) throw new UnauthorizedException();
-    
+
+    let clientId: string | undefined;
+    if (user.role.name === UserRole.CLIENT) {
+      const client = await this.prisma.client.findFirst({
+        where: { email: user.email },
+        select: { id: true },
+      });
+      clientId = client?.id ?? undefined;
+    }
+
     return {
       ...user,
       role: user.role.name,
       departments: user.departments.map(ud => ud.department.name),
+      ...(clientId !== undefined && { clientId }),
     };
   }
 

@@ -2,29 +2,26 @@ import { z } from "zod";
 import { ProposalStatus } from "../enums/client";
 
 export const CreateProposalSchema = z.object({
-  clientId: z.string().cuid("Invalid client ID format"),
-  services: z
-    .array(z.string().min(1, "Service name is required"))
-    .min(1, "At least one service is required"),
-  price: z.number().positive("Price must be greater than zero"),
-  startDate: z.string().min(1, "Start date is required"),
-  notes: z.string().optional().nullable(),
+  leadId: z.string().uuid("Invalid lead ID format"),
+  title: z.string().min(1, "Title is required"),
+  serviceDescription: z.string().min(1, "Service description is required"),
+  servicesList: z.array(z.unknown()).min(1, "At least one service is required"),
+  totalPrice: z.number().positive("Price must be greater than zero"),
+  durationDays: z.number().int().positive("Duration must be a positive integer"),
+  platforms: z.array(z.string()).min(1, "At least one platform is required"),
 });
 
 export type CreateProposalInput = z.infer<typeof CreateProposalSchema>;
 
 export const UpdateProposalSchema = z
   .object({
-    services: z
-      .array(z.string().min(1, "Service name is required"))
-      .min(1, "At least one service is required")
-      .optional(),
-    price: z.number().positive("Price must be greater than zero").optional(),
-    startDate: z.string().min(1, "Start date is required").optional(),
-    notes: z.string().optional().nullable(),
-    status: z.nativeEnum(ProposalStatus).optional(),
+    title: z.string().min(1).optional(),
+    serviceDescription: z.string().min(1).optional(),
+    servicesList: z.array(z.unknown()).min(1).optional(),
+    totalPrice: z.number().positive().optional(),
+    durationDays: z.number().int().positive().optional(),
+    platforms: z.array(z.string()).min(1).optional(),
   })
-  .partial()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
   });

@@ -3,6 +3,7 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import authReducer from "@/features/auth/authSlice";
 import { authApi } from "@/features/auth/authApi";
 import { clientsApi } from "@/features/clients/clientsApi";
+import { leadsApi } from "@/features/leads/leadsApi";
 import { projectsApi } from "@/features/projects/projectsApi";
 import { tasksApi } from "@/features/tasks/tasksApi";
 import { usersApi } from "@/features/users/usersApi";
@@ -10,6 +11,10 @@ import { notificationsApi } from "@/features/notifications/notificationsApi";
 import { proposalsApi } from "@/features/proposals/proposalsApi";
 import { contractsApi } from "@/features/contracts/contractsApi";
 import { salesApi } from "@/features/sales/salesApi";
+import { financeApi } from "@/features/finance/financeApi";
+import { campaignsApi } from "@/features/campaigns/campaignsApi";
+import { deliverablesApi } from "@/features/deliverables/deliverablesApi";
+import { adminApi } from "@/features/admin/adminApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
 
 export const store = configureStore({
@@ -18,6 +23,7 @@ export const store = configureStore({
     notifications: notificationsReducer,
     [authApi.reducerPath]: authApi.reducer,
     [clientsApi.reducerPath]: clientsApi.reducer,
+    [leadsApi.reducerPath]: leadsApi.reducer,
     [projectsApi.reducerPath]: projectsApi.reducer,
     [tasksApi.reducerPath]: tasksApi.reducer,
     [usersApi.reducerPath]: usersApi.reducer,
@@ -25,11 +31,16 @@ export const store = configureStore({
     [proposalsApi.reducerPath]: proposalsApi.reducer,
     [contractsApi.reducerPath]: contractsApi.reducer,
     [salesApi.reducerPath]: salesApi.reducer,
+    [financeApi.reducerPath]: financeApi.reducer,
+    [campaignsApi.reducerPath]: campaignsApi.reducer,
+    [deliverablesApi.reducerPath]: deliverablesApi.reducer,
+    [adminApi.reducerPath]: adminApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
       authApi.middleware,
       clientsApi.middleware,
+      leadsApi.middleware,
       projectsApi.middleware,
       tasksApi.middleware,
       usersApi.middleware,
@@ -37,6 +48,10 @@ export const store = configureStore({
       proposalsApi.middleware,
       contractsApi.middleware,
       salesApi.middleware,
+      financeApi.middleware,
+      campaignsApi.middleware,
+      deliverablesApi.middleware,
+      adminApi.middleware,
     ),
 });
 

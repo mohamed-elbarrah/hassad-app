@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { useRouter } from "next/navigation";
-import type { Client } from "@hassad/shared";
+import type { LeadListItem } from "@/features/leads/leadsApi";
 import { BusinessType } from "@hassad/shared";
 import { cn } from "@/lib/utils";
 import { Calendar, GripVertical } from "lucide-react";
@@ -16,25 +16,25 @@ const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
 };
 
 interface KanbanCardProps {
-  client: Client;
+  client: LeadListItem;
   isOverlay?: boolean;
 }
 
-export function KanbanCard({ client, isOverlay = false }: KanbanCardProps) {
+export function KanbanCard({ client: lead, isOverlay = false }: KanbanCardProps) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: client.id,
-    data: { stage: client.stage },
+    id: lead.id,
+    data: { stage: lead.pipelineStage },
   });
 
   const daysInStage = Math.floor(
-    (Date.now() - new Date(client.updatedAt).getTime()) / (1000 * 60 * 60 * 24),
+    (Date.now() - new Date(lead.updatedAt).getTime()) / (1000 * 60 * 60 * 24),
   );
 
   function handleClick(e: React.MouseEvent) {
     if (isDragging) return;
     e.stopPropagation();
-    router.push(`/dashboard/sales/clients/${client.id}`);
+    router.push(`/dashboard/sales/leads/${lead.id}`);
   }
 
   return (
@@ -51,10 +51,10 @@ export function KanbanCard({ client, isOverlay = false }: KanbanCardProps) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{client.name}</p>
+          <p className="text-sm font-medium truncate">{lead.companyName}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {BUSINESS_TYPE_LABELS[client.businessType as BusinessType] ??
-              client.businessType}
+            {BUSINESS_TYPE_LABELS[lead.businessType as BusinessType] ??
+              lead.businessType ?? "—"}
           </p>
         </div>
         <GripVertical className="h-4 w-4 text-muted-foreground/50 shrink-0 mt-0.5" />
@@ -67,7 +67,7 @@ export function KanbanCard({ client, isOverlay = false }: KanbanCardProps) {
             day: "2-digit",
             month: "short",
             numberingSystem: "latn",
-          }).format(new Date(client.createdAt))}
+          }).format(new Date(lead.createdAt))}
         </span>
         {daysInStage > 0 && (
           <span className="mr-auto text-amber-600 font-medium">

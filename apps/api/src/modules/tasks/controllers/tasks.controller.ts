@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   UseGuards,
+  Query,
+  Delete,
 } from '@nestjs/common';
 import { TasksService } from '../services/tasks.service';
 import { CreateTaskDto, UpdateTaskDto, AssignTaskDto, CreateTaskFileDto, CreateTaskCommentDto } from '../dto/task.dto';
@@ -18,6 +20,18 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
+
+  @Get('my')
+  @RequirePermissions('tasks.read')
+  getMyTasks(@CurrentUser() user: any, @Query() filters: any) {
+    return this.tasksService.findMine(user.id, filters);
+  }
+
+  @Get('my/stats')
+  @RequirePermissions('tasks.read')
+  getMyStats(@CurrentUser() user: any) {
+    return this.tasksService.myStats(user.id);
+  }
 
   @Post()
   @RequirePermissions('tasks.create')
@@ -83,5 +97,29 @@ export class TasksController {
   @RequirePermissions('tasks.comment')
   addComment(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: CreateTaskCommentDto) {
     return this.tasksService.addComment(id, user.id, dto);
+  }
+
+  @Get(':id/comments')
+  @RequirePermissions('tasks.read')
+  getComments(@Param('id') id: string) {
+    return this.tasksService.getComments(id);
+  }
+
+  @Delete(':id')
+  @RequirePermissions('tasks.delete')
+  delete(@Param('id') id: string) {
+    return this.tasksService.delete(id);
+  }
+
+  @Patch(':id/archive')
+  @RequirePermissions('tasks.update')
+  archive(@Param('id') id: string) {
+    return this.tasksService.toggleArchive(id);
+  }
+
+  @Delete(':id/files/:fileId')
+  @RequirePermissions('tasks.update')
+  deleteFile(@Param('id') taskId: string, @Param('fileId') fileId: string) {
+    return this.tasksService.deleteFile(taskId, fileId);
   }
 }

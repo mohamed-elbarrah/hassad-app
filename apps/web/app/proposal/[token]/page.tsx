@@ -67,7 +67,7 @@ export default function ProposalSharePage({ params }: PageProps) {
     <div className="min-h-screen bg-muted/40 flex items-center justify-center p-6">
       <Card className="w-full max-w-2xl" dir="rtl">
         <CardHeader>
-          <CardTitle>عرض فني — {data.client?.name ?? "العميل"}</CardTitle>
+          <CardTitle>عرض فني — {data.lead?.companyName ?? "العميل"}</CardTitle>
           <p className="text-sm text-muted-foreground">
             الحالة الحالية: {STATUS_LABELS[data.status as ProposalStatus]}
           </p>
@@ -76,7 +76,7 @@ export default function ProposalSharePage({ params }: PageProps) {
           <div>
             <p className="text-sm text-muted-foreground mb-1">الخدمات</p>
             <ul className="list-disc ps-5 text-sm">
-              {(data.services as string[]).map((service) => (
+              {(data.servicesList as string[]).map((service) => (
                 <li key={service}>{service}</li>
               ))}
             </ul>
@@ -85,27 +85,21 @@ export default function ProposalSharePage({ params }: PageProps) {
             <div>
               <p className="text-muted-foreground">السعر</p>
               <p className="font-medium">
-                {data.price.toLocaleString("en-US")}
+                {data.totalPrice.toLocaleString("en-US")}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">تاريخ البداية</p>
+              <p className="text-muted-foreground">تاريخ الإنشاء</p>
               <p className="font-medium">
                 {new Intl.DateTimeFormat("en-GB", {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
                   numberingSystem: "latn",
-                }).format(new Date(data.startDate))}
+                }).format(new Date(data.createdAt as string))}
               </p>
             </div>
           </div>
-          {data.notes && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">ملاحظات</p>
-              <p className="text-sm">{data.notes}</p>
-            </div>
-          )}
 
           <div>
             <p className="text-sm text-muted-foreground mb-1">ملاحظاتك</p>

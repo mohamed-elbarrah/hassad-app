@@ -194,7 +194,7 @@ export default function NotificationsPage() {
                     {notification.title}
                   </p>
                   <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                    {notification.message}
+                    {notification.body}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {formatRelativeTime(notification.createdAt as string)}
@@ -247,7 +247,7 @@ export default function NotificationsPage() {
           </DialogHeader>
 
           <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {selectedNotification?.message}
+            {selectedNotification?.body}
           </p>
 
           <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">

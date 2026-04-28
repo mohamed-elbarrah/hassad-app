@@ -69,6 +69,27 @@ export class PortalService {
     });
   }
 
+  async findDeliverablesByProject(projectId: string) {
+    return this.prisma.deliverable.findMany({
+      where: { projectId },
+      include: { revisionRequests: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findDeliverablesByClient(clientId: string) {
+    const projects = await this.prisma.project.findMany({
+      where: { clientId },
+      select: { id: true },
+    });
+    const projectIds = projects.map(p => p.id);
+    return this.prisma.deliverable.findMany({
+      where: { projectId: { in: projectIds } },
+      include: { project: { select: { id: true, name: true } }, revisionRequests: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async createIntakeForm(clientId: string, dto: CreateIntakeFormDto) {
     const token = randomBytes(32).toString('hex');
     return this.prisma.portalIntakeForm.create({

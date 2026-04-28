@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateContractDto, CreateVersionDto } from '../dto/contract.dto';
+import { CreateContractDto, UpdateContractDto, SignContractDto, CreateVersionDto } from '../dto/contract.dto';
 import { ContractStatus, PipelineStage } from '@hassad/shared';
 
 @Injectable()
@@ -35,7 +35,29 @@ export class ContractsService {
     return contract;
   }
 
-  async sign(id: string, userId: string) {
+  async update(id: string, dto: UpdateContractDto) {
+    return this.prisma.contract.update({
+      where: { id },
+      data: {
+        ...dto,
+        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      },
+    });
+  }
+
+  async send(id: string) {
+    await this.findOne(id);
+
+    return this.prisma.contract.update({
+      where: { id },
+      data: {
+        status: ContractStatus.SENT,
+      },
+    });
+  }
+
+  async sign(id: string, userId: string, dto: SignContractDto) {
     const contract = await this.findOne(id);
 
     return this.prisma.$transaction(async (tx) => {
@@ -72,7 +94,7 @@ export class ContractsService {
         }
       }
 
-      return updatedContract;
+      return { ...updatedContract, signedByName: dto.signedByName };
     });
   }
 
@@ -88,6 +110,26 @@ export class ContractsService {
       where: { id },
       data: { status: ContractStatus.CANCELLED },
     });
+  }
+
+  async findAll(filters: { status?: string; clientId?: string; search?: string; page?: number; limit?: number }) {
+    const page = Number(filters.page) || 1;
+    const limit = Number(filters.limit) || 20;
+    const where: any = {};
+    if (filters.status) where.status = filters.status;
+    if (filters.clientId) where.clientId = filters.clientId;
+    if (filters.search) where.title = { contains: filters.search, mode: 'insensitive' };
+    const [items, total] = await Promise.all([
+      this.prisma.contract.findMany({
+        where,
+        include: { client: { select: { id: true, companyName: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.contract.count({ where }),
+    ]);
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async createVersion(id: string, userId: string, dto: CreateVersionDto) {

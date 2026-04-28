@@ -2,12 +2,14 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ContractsService } from '../services/contracts.service';
-import { CreateContractDto, CreateVersionDto } from '../dto/contract.dto';
+import { CreateContractDto, UpdateContractDto, SignContractDto, CreateVersionDto } from '../dto/contract.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
@@ -24,16 +26,34 @@ export class ContractsController {
     return this.contractsService.create(user.id, createContractDto);
   }
 
+  @Get()
+  @RequirePermissions('contracts.read')
+  findAll(@Query() filters: any) {
+    return this.contractsService.findAll(filters);
+  }
+
   @Get(':id')
   @RequirePermissions('contracts.read')
   findOne(@Param('id') id: string) {
     return this.contractsService.findOne(id);
   }
 
+  @Patch(':id')
+  @RequirePermissions('contracts.update')
+  update(@Param('id') id: string, @Body() dto: UpdateContractDto) {
+    return this.contractsService.update(id, dto);
+  }
+
+  @Post(':id/send')
+  @RequirePermissions('contracts.send')
+  send(@Param('id') id: string) {
+    return this.contractsService.send(id);
+  }
+
   @Post(':id/sign')
   @RequirePermissions('contracts.sign')
-  sign(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.contractsService.sign(id, user.id);
+  sign(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: SignContractDto) {
+    return this.contractsService.sign(id, user.id, dto);
   }
 
   @Post(':id/activate')
@@ -47,7 +67,6 @@ export class ContractsController {
   cancel(@Param('id') id: string) {
     return this.contractsService.cancel(id);
   }
-
 
   @Post(':id/versions')
   @RequirePermissions('contracts.manage_versions')

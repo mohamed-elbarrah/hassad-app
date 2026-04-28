@@ -110,14 +110,12 @@ export function TaskForm({ projectId }: TaskFormProps) {
     try {
       await createTask({
         projectId,
-        body: {
-          title: values.title,
-          assignedTo: values.assignedTo,
-          dept: values.dept,
-          priority: values.priority,
-          dueDate: new Date(values.dueDate),
-          description: values.description || undefined,
-        },
+        title: values.title,
+        assignedTo: values.assignedTo || undefined,
+        dept: values.dept,
+        priority: values.priority,
+        dueDate: new Date(values.dueDate),
+        description: values.description || undefined,
       }).unwrap();
       toast.success("تم إنشاء المهمة بنجاح.");
       form.reset();

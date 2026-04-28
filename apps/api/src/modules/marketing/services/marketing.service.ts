@@ -7,10 +7,30 @@ import { CampaignStatus, AbTestStatus } from '@hassad/shared';
 export class MarketingService {
   constructor(private prisma: PrismaService) {}
 
-  async createCampaign(dto: CreateCampaignDto) {
+  async findAll(filters: { status?: string; clientId?: string; page?: number; limit?: number }) {
+    const page = Number(filters.page) || 1;
+    const limit = Number(filters.limit) || 20;
+    const where: any = {};
+    if (filters.status) where.status = filters.status;
+    if (filters.clientId) where.clientId = filters.clientId;
+    const [items, total] = await Promise.all([
+      this.prisma.campaign.findMany({
+        where,
+        include: { client: { select: { id: true, companyName: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.campaign.count({ where }),
+    ]);
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async createCampaign(userId: string, dto: CreateCampaignDto) {
     return this.prisma.campaign.create({
       data: {
         ...dto,
+        managedBy: userId,
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         status: CampaignStatus.PLANNING,

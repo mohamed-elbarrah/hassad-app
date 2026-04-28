@@ -70,7 +70,7 @@ export default function ClientDetailPage({ params }: PageProps) {
           <ArrowRight className="h-4 w-4" />
           رجوع
         </Button>
-        <h1 className="text-2xl font-semibold">{client.name}</h1>
+        <h1 className="text-2xl font-semibold">{client.companyName}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

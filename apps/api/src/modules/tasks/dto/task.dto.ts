@@ -1,12 +1,12 @@
 import { IsString, IsEnum, IsUUID, IsDateString, IsOptional, IsBoolean } from 'class-validator';
-import { TaskStatus, TaskPriority, FilePurpose } from '@hassad/shared';
+import { TaskStatus, TaskPriority, TaskDepartment, FilePurpose } from '@hassad/shared';
 
 export class CreateTaskDto {
   @IsUUID()
   projectId: string;
 
-  @IsUUID()
-  departmentId: string;
+  @IsEnum(TaskDepartment)
+  dept: TaskDepartment;
 
   @IsOptional()
   @IsUUID()

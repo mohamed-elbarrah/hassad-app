@@ -35,7 +35,6 @@ import { useAppSelector } from "@/lib/hooks";
 import {
   CreateClientSchema,
   BusinessType,
-  ClientSource,
   UserRole,
 } from "@hassad/shared";
 import type { CreateClientInput } from "@hassad/shared";
@@ -48,14 +47,6 @@ const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.STORE]: "متجر",
   [BusinessType.SERVICE]: "خدمة",
   [BusinessType.OTHER]: "أخرى",
-};
-
-const SOURCE_LABELS: Record<ClientSource, string> = {
-  [ClientSource.AD]: "إعلان",
-  [ClientSource.REFERRAL]: "إحالة",
-  [ClientSource.WEBSITE]: "الموقع الإلكتروني",
-  [ClientSource.WHATSAPP]: "واتساب",
-  [ClientSource.PLATFORM]: "المنصة",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -73,12 +64,13 @@ export function CreateClientDialog() {
   const form = useForm<CreateClientInput>({
     resolver: zodResolver(CreateClientSchema),
     defaultValues: {
-      name: "",
+      companyName: "",
+      contactName: "",
+      phoneWhatsapp: "",
       email: "",
-      phone: "",
+      businessName: "",
       businessType: undefined,
-      source: undefined,
-      assignedToId: undefined,
+      accountManager: undefined,
     },
   });
 
@@ -112,28 +104,43 @@ export function CreateClientDialog() {
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4 pt-2"
           >
-            {/* Name */}
+            {/* Company Name */}
             <FormField
               control={form.control}
-              name="name"
+              name="companyName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الاسم</FormLabel>
+                  <FormLabel>اسم الشركة</FormLabel>
                   <FormControl>
-                    <Input placeholder="اسم العميل أو الشركة" {...field} />
+                    <Input placeholder="مثال: شركة النجوم" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Phone */}
+            {/* Contact Name */}
             <FormField
               control={form.control}
-              name="phone"
+              name="contactName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>رقم الهاتف</FormLabel>
+                  <FormLabel>اسم جهة الاتصال</FormLabel>
+                  <FormControl>
+                    <Input placeholder="الاسم الكامل للمسؤول" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Phone (WhatsApp) */}
+            <FormField
+              control={form.control}
+              name="phoneWhatsapp"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>رقم الواتساب</FormLabel>
                   <FormControl>
                     <Input
                       dir="ltr"
@@ -167,13 +174,28 @@ export function CreateClientDialog() {
               )}
             />
 
+            {/* Business Name */}
+            <FormField
+              control={form.control}
+              name="businessName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>اسم النشاط التجاري</FormLabel>
+                  <FormControl>
+                    <Input placeholder="الاسم التجاري المعروف به" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Business Type */}
             <FormField
               control={form.control}
               name="businessType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>نوع النشاط التجاري</FormLabel>
+                  <FormLabel>نوع النشاط</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -195,41 +217,14 @@ export function CreateClientDialog() {
               )}
             />
 
-            {/* Source */}
-            <FormField
-              control={form.control}
-              name="source"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>مصدر العميل</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر المصدر" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {(Object.values(ClientSource) as ClientSource[]).map(
-                        (src) => (
-                          <SelectItem key={src} value={src}>
-                            {SOURCE_LABELS[src]}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            {/* Account Manager (admin only) */}
             {isAdmin && (
               <FormField
                 control={form.control}
-                name="assignedToId"
+                name="accountManager"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>تعيين موظف مبيعات (اختياري)</FormLabel>
+                    <FormLabel>مدير الحساب (اختياري)</FormLabel>
                     <Select
                       value={field.value ?? "AUTO"}
                       onValueChange={(value) =>
@@ -256,7 +251,6 @@ export function CreateClientDialog() {
               />
             )}
 
-            {/* Root error */}
             {form.formState.errors.root && (
               <p className="text-sm text-destructive">
                 {form.formState.errors.root.message}
