@@ -24,6 +24,8 @@ export interface ProjectFilters {
   search?: string;
   page?: number;
   limit?: number;
+  clientId?: string;
+  projectManagerId?: string;
 }
 
 // ── API slice ─────────────────────────────────────────────────────────────────

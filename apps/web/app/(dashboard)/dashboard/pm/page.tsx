@@ -13,7 +13,10 @@ const ALERTS = [
 
 export default function PMWorkspacePage() {
   const { user } = useAppSelector((state) => state.auth);
-  const { data, isLoading, isError } = useGetProjectsQuery({ limit: 6 });
+  const { data, isLoading, isError } = useGetProjectsQuery({
+    limit: 6,
+    projectManagerId: user?.role === "PM" ? user.id : undefined,
+  });
 
   if (!user) return null;
 

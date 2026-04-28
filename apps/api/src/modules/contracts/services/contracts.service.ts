@@ -13,14 +13,159 @@ import {
   SignByTokenDto,
   CreateVersionDto,
 } from '../dto/contract.dto';
-import { ClientStatus, ContractStatus, PipelineStage } from '@hassad/shared';
+import {
+  ClientStatus,
+  ContractStatus,
+  PipelineStage,
+  ProjectStatus,
+  TaskPriority,
+} from '@hassad/shared';
+import { LeadsService } from '../../crm/services/leads.service';
 
 @Injectable()
 export class ContractsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private leadsService: LeadsService,
   ) {}
+
+  private async createProjectFromSignedContract(contractId: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: {
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            contactName: true,
+            accountManager: true,
+          },
+        },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found for project handover');
+    }
+
+    const managerCandidates = [
+      contract.client.accountManager,
+      contract.createdBy,
+    ].filter((value): value is string => !!value);
+
+    const preferredManagers =
+      managerCandidates.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: {
+              id: { in: managerCandidates },
+              isActive: true,
+              role: { name: 'PM' },
+            },
+            select: { id: true },
+          });
+
+    let projectManagerId =
+      preferredManagers.find((candidate) => candidate.id === contract.client.accountManager)?.id ??
+      preferredManagers.find((candidate) => candidate.id === contract.createdBy)?.id;
+
+    let fallbackUsed = false;
+
+    if (!projectManagerId) {
+      const fallbackPm = await this.prisma.user.findFirst({
+        where: {
+          isActive: true,
+          role: { name: 'PM' },
+        },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+      });
+
+      if (!fallbackPm) {
+        throw new BadRequestException(
+          'Cannot auto-create project without an active PM account',
+        );
+      }
+
+      fallbackUsed = true;
+      projectManagerId = fallbackPm.id;
+    }
+
+    const projectName = `${contract.client.companyName} — ${contract.title}`;
+    const projectDescription = [
+      `Auto-created after signing contract: ${contract.title}`,
+      `Client contact: ${contract.client.contactName}`,
+      'Next step: PM creates and assigns tasks from the project board.',
+    ].join('\n');
+
+    const project = await this.prisma.$transaction(async (tx) => {
+      const existingProject = await tx.project.findFirst({
+        where: { contractId },
+        select: { id: true },
+      });
+
+      if (existingProject) {
+        return null;
+      }
+
+      const createdProject = await tx.project.create({
+        data: {
+          clientId: contract.clientId,
+          contractId: contract.id,
+          projectManagerId,
+          name: projectName,
+          description: projectDescription,
+          status: ProjectStatus.PLANNING,
+          priority: TaskPriority.NORMAL,
+          startDate: contract.startDate,
+          endDate: contract.endDate,
+        },
+      });
+
+      await tx.projectMember.create({
+        data: {
+          projectId: createdProject.id,
+          userId: projectManagerId,
+          role: 'MANAGER',
+        },
+      });
+
+      return createdProject;
+    });
+
+    if (!project) {
+      return null;
+    }
+
+    await this.notificationsService
+      .createNotification({
+        entityId: project.id,
+        entityType: 'project',
+        eventType: 'PROJECT_CREATED_FROM_CONTRACT',
+        userId: projectManagerId,
+        title: 'تم إنشاء مشروع جديد تلقائياً',
+        body: `تم إنشاء مشروع "${project.name}" بعد توقيع العقد. يمكنك الآن توزيع المهام على الفريق.`,
+        metadata: {
+          contractId: contract.id,
+          clientId: contract.clientId,
+          autoCreated: true,
+        },
+      })
+      .catch(() => undefined);
+
+    if (fallbackUsed) {
+      this.notificationsService
+        .broadcast({
+          title: 'تعيين مدير مشروع احتياطي',
+          message: `تم إنشاء مشروع تلقائياً من العقد "${contract.title}" وتم تعيين مدير مشروع احتياطي بسبب عدم توفر PM مرتبط بالعميل.`,
+          roles: ['ADMIN', 'SALES'],
+        })
+        .catch(() => undefined);
+    }
+
+    return project;
+  }
 
   /**
    * One-step: create contract + immediately set SENT + generate shareLinkToken.
@@ -156,7 +301,7 @@ export class ContractsService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const signedResult = await this.prisma.$transaction(async (tx) => {
       // 1. Sign the contract
       const signed = await tx.contract.update({
         where: { id: contract.id },
@@ -205,6 +350,25 @@ export class ContractsService {
 
       return { ...signed, signedByName: dto.signedByName };
     });
+
+    await this.createProjectFromSignedContract(contract.id).catch(() => {
+      this.notificationsService
+        .broadcast({
+          title: 'فشل إنشاء مشروع تلقائي',
+          message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع تلقائياً. يرجى مراجعة الحالة يدوياً.`,
+          roles: ['ADMIN', 'SALES'],
+        })
+        .catch(() => undefined);
+    });
+
+    if (contract.client.leadId) {
+      await this.leadsService.convertToClient(
+        contract.client.leadId,
+        contract.createdBy,
+      ).catch(() => undefined);
+    }
+
+    return signedResult;
   }
 
   async update(id: string, dto: UpdateContractDto) {
@@ -232,7 +396,13 @@ export class ContractsService {
   async sign(id: string, userId: string, dto: SignContractDto) {
     const contract = await this.findOne(id);
 
-    return this.prisma.$transaction(async (tx) => {
+    if (contract.status !== ContractStatus.SENT) {
+      throw new BadRequestException(
+        'لا يمكن توقيع هذا العقد في وضعه الحالي',
+      );
+    }
+
+    const signedResult = await this.prisma.$transaction(async (tx) => {
       const updatedContract = await tx.contract.update({
         where: { id },
         data: {
@@ -268,6 +438,24 @@ export class ContractsService {
 
       return { ...updatedContract, signedByName: dto.signedByName };
     });
+
+    await this.createProjectFromSignedContract(id).catch(() => {
+      this.notificationsService
+        .broadcast({
+          title: 'فشل إنشاء مشروع تلقائي',
+          message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع تلقائياً. يرجى مراجعة الحالة يدوياً.`,
+          roles: ['ADMIN', 'SALES'],
+        })
+        .catch(() => undefined);
+    });
+
+    if (contract.client.leadId) {
+      await this.leadsService
+        .convertToClient(contract.client.leadId, userId)
+        .catch(() => undefined);
+    }
+
+    return signedResult;
   }
 
   async activate(id: string) {

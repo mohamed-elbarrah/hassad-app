@@ -2,7 +2,6 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import type {
   Notification,
-  NotificationType,
   UserRole,
   TaskDepartment,
 } from "@hassad/shared";
@@ -41,7 +40,9 @@ export interface UnreadCountResult {
 // Extend shared Notification to ensure string createdAt for API responses
 export type NotificationItem = Omit<Notification, "createdAt"> & {
   createdAt: string;
-  type: NotificationType;
+  eventType: string;
+  entityType?: string | null;
+  entityId?: string | null;
 };
 
 // ── API slice ─────────────────────────────────────────────────────────────────
