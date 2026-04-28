@@ -57,7 +57,8 @@ export function FileItem({
         <div className="min-w-0">
           <p className="font-medium truncate">{file.fileName}</p>
           <p className="text-xs text-muted-foreground">
-            {formatFileSize(file.fileSize)} ·{" "}
+            {formatFileSize(file.fileSize)}
+            {file.purpose ? ` · ${file.purpose}` : ""} ·{" "}
             {new Date(file.createdAt).toLocaleDateString("ar-SA")}
           </p>
         </div>

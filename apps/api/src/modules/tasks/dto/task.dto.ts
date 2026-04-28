@@ -1,5 +1,13 @@
-import { IsString, IsEnum, IsUUID, IsDateString, IsOptional, IsBoolean } from 'class-validator';
-import { TaskStatus, TaskPriority, TaskDepartment, FilePurpose } from '@hassad/shared';
+import {
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsDateString,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+} from 'class-validator';
+import { TaskPriority, TaskDepartment, FilePurpose } from '@hassad/shared';
 
 export class CreateTaskDto {
   @IsUUID()
@@ -57,21 +65,36 @@ export class AssignTaskDto {
   userId: string;
 }
 
-export class CreateTaskFileDto {
+export class UploadTaskFileDto {
+  @IsOptional()
+  @IsEnum(FilePurpose)
+  purpose?: FilePurpose;
+}
+
+export class TaskFileResponseDto {
   @IsString()
-  filePath: string;
+  id: string;
+
+  @IsString()
+  taskId: string;
+
+  @IsString()
+  uploadedBy: string;
 
   @IsString()
   fileName: string;
 
   @IsString()
-  fileType: string;
+  filePath: string;
 
-  @IsString() // Should be number in DB but validation can be string for some reason? No, let's use number.
+  @IsNumber()
   fileSize: number;
 
-  @IsEnum(FilePurpose)
-  purpose: FilePurpose;
+  @IsString()
+  mimeType: string;
+
+  @IsDateString()
+  createdAt: string;
 }
 
 export class CreateTaskCommentDto {

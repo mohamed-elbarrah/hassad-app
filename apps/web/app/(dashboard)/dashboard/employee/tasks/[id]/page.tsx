@@ -28,6 +28,7 @@ import {
   TaskPriority,
   TaskDepartment,
   UserRole,
+  FilePurpose,
 } from "@hassad/shared";
 import { toast } from "sonner";
 
@@ -87,6 +88,12 @@ const PRIORITY_VARIANT: Record<
   [TaskPriority.URGENT]: "destructive",
 };
 
+const FILE_PURPOSE_LABELS: Record<FilePurpose, string> = {
+  [FilePurpose.DELIVERABLE]: "تسليم نهائي",
+  [FilePurpose.REFERENCE]: "مرجع",
+  [FilePurpose.INTERNAL_DRAFT]: "مسودة داخلية",
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getAllowedTransitions(
@@ -134,6 +141,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [commentText, setCommentText] = useState("");
+  const [filePurpose, setFilePurpose] = useState<FilePurpose>(
+    FilePurpose.DELIVERABLE,
+  );
 
   if (!user) return null;
 
@@ -190,10 +200,8 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
     try {
-      await uploadFile({ taskId: id, file: formData }).unwrap();
+      await uploadFile({ taskId: id, file, purpose: filePurpose }).unwrap();
       toast.success("تم رفع الملف بنجاح");
     } catch {
       toast.error("فشل رفع الملف");
@@ -231,6 +239,12 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const taskWithRelations = task as typeof task & {
     project?: { id: string; name: string };
     assignee?: { id: string; name: string };
+    statusHistory?: Array<{
+      id: string;
+      fromStatus: TaskStatus;
+      toStatus: TaskStatus;
+      changedAt: string | Date;
+    }>;
   };
 
   return (
@@ -253,6 +267,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
           <Badge variant={PRIORITY_VARIANT[task.priority]}>
             {PRIORITY_LABELS[task.priority]}
           </Badge>
+          {typeof task.revisionCount === "number" && task.revisionCount > 0 && (
+            <Badge variant="destructive">طلبات تعديل: {task.revisionCount}</Badge>
+          )}
         </div>
       </div>
 
@@ -299,6 +316,41 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
         </CardContent>
       </Card>
 
+      {/* Workflow history */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">سجل انتقال الحالة</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!taskWithRelations.statusHistory ||
+          taskWithRelations.statusHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">لا توجد انتقالات بعد.</p>
+          ) : (
+            <div className="flex flex-col gap-2 text-sm">
+              {[...taskWithRelations.statusHistory]
+                .sort(
+                  (a, b) =>
+                    new Date(b.changedAt).getTime() -
+                    new Date(a.changedAt).getTime(),
+                )
+                .map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="rounded-md border px-3 py-2 flex items-center justify-between"
+                  >
+                    <p className="font-medium">
+                      {STATUS_LABELS[entry.fromStatus]} ← {STATUS_LABELS[entry.toStatus]}
+                    </p>
+                    <p className="text-xs text-muted-foreground" dir="ltr">
+                      {new Date(entry.changedAt).toLocaleString("ar-SA")}
+                    </p>
+                  </div>
+                ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Status update */}
       {allowedTransitions.length > 0 && (
         <Card>
@@ -328,7 +380,20 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             <Paperclip className="size-4" />
             الملفات
           </CardTitle>
-          <div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground">نوع الملف</label>
+            <select
+              className="h-8 rounded-md border bg-background px-2 text-xs"
+              value={filePurpose}
+              onChange={(e) => setFilePurpose(e.target.value as FilePurpose)}
+              disabled={isUploading}
+            >
+              {Object.values(FilePurpose).map((purpose) => (
+                <option key={purpose} value={purpose}>
+                  {FILE_PURPOSE_LABELS[purpose]}
+                </option>
+              ))}
+            </select>
             <input
               ref={fileInputRef}
               type="file"

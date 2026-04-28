@@ -8,9 +8,20 @@ import {
   UseGuards,
   Query,
   Delete,
+  UploadedFile,
+  UseInterceptors,
+  Res,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { TasksService } from '../services/tasks.service';
-import { CreateTaskDto, UpdateTaskDto, AssignTaskDto, CreateTaskFileDto, CreateTaskCommentDto } from '../dto/task.dto';
+import {
+  CreateTaskDto,
+  UpdateTaskDto,
+  AssignTaskDto,
+  UploadTaskFileDto,
+  CreateTaskCommentDto,
+} from '../dto/task.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
@@ -83,8 +94,32 @@ export class TasksController {
 
   @Post(':id/files')
   @RequirePermissions('tasks.update')
-  addFile(@Param('id') id: string, @CurrentUser() user: any, @Body() dto: CreateTaskFileDto) {
-    return this.tasksService.addFile(id, user.id, dto);
+  @UseInterceptors(FileInterceptor('file'))
+  addFile(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: UploadTaskFileDto,
+  ) {
+    return this.tasksService.addFile(id, user.id, file, dto);
+  }
+
+  @Get(':id/files/:fileId/download')
+  @RequirePermissions('tasks.read')
+  async downloadFile(
+    @Param('id') taskId: string,
+    @Param('fileId') fileId: string,
+    @Res() res: Response,
+  ) {
+    const file = await this.tasksService.downloadFile(taskId, fileId);
+
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+    );
+
+    file.stream.pipe(res);
   }
 
   @Get(':id/files')

@@ -9,6 +9,7 @@ import type {
   TaskComment,
   TaskStatus,
   TaskPriority,
+  FilePurpose,
 } from "@hassad/shared";
 
 // ── Local interfaces ─────────────────────────────────────────────────────────
@@ -129,13 +130,21 @@ export const tasksApi = createApi({
     /** POST /v1/tasks/:taskId/files */
     uploadTaskFile: builder.mutation<
       TaskFile,
-      { taskId: string; file: FormData }
+      { taskId: string; file: File; purpose?: FilePurpose }
     >({
-      query: ({ taskId, file }) => ({
+      query: ({ taskId, file, purpose }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (purpose) {
+          formData.append("purpose", purpose);
+        }
+
+        return {
         url: `/tasks/${taskId}/files`,
         method: "POST",
-        body: file,
-      }),
+        body: formData,
+      };
+      },
       invalidatesTags: (_result, _error, { taskId }) => [
         { type: "Task", id: `FILES_${taskId}` },
       ],

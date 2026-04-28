@@ -1,9 +1,17 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateTaskDto, UpdateTaskDto, AssignTaskDto, CreateTaskFileDto, CreateTaskCommentDto } from '../dto/task.dto';
+import {
+  CreateTaskDto,
+  UpdateTaskDto,
+  AssignTaskDto,
+  UploadTaskFileDto,
+  CreateTaskCommentDto,
+} from '../dto/task.dto';
 import { TaskStatus } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-import { Prisma } from '@prisma/client';
+import { FilePurpose, Prisma } from '@prisma/client';
+import { createReadStream, existsSync, ReadStream } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class TasksService {
@@ -46,10 +54,34 @@ export class TasksService {
     });
   }
 
+  private mapTaskFile(file: {
+    id: string;
+    taskId: string;
+    uploadedBy: string;
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    fileType: string;
+    purpose: string;
+    uploadedAt: Date;
+  }) {
+    return {
+      id: file.id,
+      taskId: file.taskId,
+      uploadedBy: file.uploadedBy,
+      fileName: file.fileName,
+      filePath: file.filePath,
+      fileSize: file.fileSize,
+      mimeType: file.fileType,
+      purpose: file.purpose,
+      createdAt: file.uploadedAt,
+    };
+  }
+
   async create(userId: string, dto: CreateTaskDto) {
     const department = await this.prisma.department.findFirst({ where: { name: dto.dept } });
     const { dept, ...rest } = dto;
-    return this.prisma.$transaction(async (tx) => {
+    const createdTask = await this.prisma.$transaction(async (tx) => {
       const createdTask = await tx.task.create({
         data: {
           ...rest,
@@ -64,6 +96,26 @@ export class TasksService {
 
       return createdTask;
     });
+
+    if (createdTask.assignedTo) {
+      this.notificationsService
+        .createNotification({
+          entityId: createdTask.id,
+          entityType: 'task',
+          eventType: 'TASK_ASSIGNED',
+          userId: createdTask.assignedTo,
+          title: 'تم إسناد مهمة جديدة',
+          body: `تم إسناد المهمة "${createdTask.title}" إليك.`,
+          metadata: {
+            taskId: createdTask.id,
+            projectId: createdTask.projectId,
+            assignedBy: userId,
+          },
+        })
+        .catch(() => undefined);
+    }
+
+    return createdTask;
   }
 
   async findOne(id: string) {
@@ -128,6 +180,9 @@ export class TasksService {
           approvedAt: toStatus === TaskStatus.DONE ? new Date() : undefined,
           submittedAt: toStatus === TaskStatus.IN_REVIEW ? new Date() : undefined,
           startedAt: (toStatus === TaskStatus.IN_PROGRESS && !task.startedAt) ? new Date() : undefined,
+          ...(toStatus === TaskStatus.REVISION
+            ? { revisionCount: { increment: 1 } }
+            : {}),
         },
       });
 
@@ -145,28 +200,105 @@ export class TasksService {
       return updated;
     });
 
-    // Notify the assigned user on approval or rejection
+    const notificationJobs: Array<Promise<any>> = [];
+
     if (task.assignedTo && (toStatus === TaskStatus.DONE || toStatus === TaskStatus.REVISION)) {
-      await this.notificationsService.createNotification({
-        entityId: id,
-        entityType: 'task',
-        eventType: toStatus === TaskStatus.DONE ? 'TASK_APPROVED' : 'TASK_REJECTED',
-        userId: task.assignedTo,
-        title: toStatus === TaskStatus.DONE ? 'Task Approved' : 'Task Sent for Revision',
-        body: toStatus === TaskStatus.DONE
-          ? `Your task "${task.title}" has been approved`
-          : `Your task "${task.title}" has been sent back for revision`,
-      });
+      notificationJobs.push(
+        this.notificationsService.createNotification({
+          entityId: id,
+          entityType: 'task',
+          eventType: toStatus === TaskStatus.DONE ? 'TASK_APPROVED' : 'TASK_REJECTED',
+          userId: task.assignedTo,
+          title: toStatus === TaskStatus.DONE ? 'تم اعتماد المهمة' : 'تم إرجاع المهمة للتعديل',
+          body:
+            toStatus === TaskStatus.DONE
+              ? `تم اعتماد المهمة "${task.title}".`
+              : `تم إرجاع المهمة "${task.title}" للتعديل.`,
+          metadata: {
+            taskId: task.id,
+            projectId: task.projectId,
+            changedBy: userId,
+          },
+        }),
+      );
+    }
+
+    const projectManagerId = task.project?.projectManagerId;
+    if (
+      projectManagerId &&
+      projectManagerId !== userId &&
+      (toStatus === TaskStatus.IN_PROGRESS || toStatus === TaskStatus.IN_REVIEW)
+    ) {
+      notificationJobs.push(
+        this.notificationsService.createNotification({
+          entityId: id,
+          entityType: 'task',
+          eventType:
+            toStatus === TaskStatus.IN_PROGRESS ? 'TASK_STARTED' : 'TASK_SUBMITTED',
+          userId: projectManagerId,
+          title:
+            toStatus === TaskStatus.IN_PROGRESS
+              ? 'بدأ تنفيذ المهمة'
+              : 'مهمة بانتظار المراجعة',
+          body:
+            toStatus === TaskStatus.IN_PROGRESS
+              ? `بدأ الفريق تنفيذ المهمة "${task.title}".`
+              : `تم إرسال المهمة "${task.title}" للمراجعة.`,
+          metadata: {
+            taskId: task.id,
+            projectId: task.projectId,
+            changedBy: userId,
+          },
+        }),
+      );
+    }
+
+    if (notificationJobs.length > 0) {
+      Promise.allSettled(notificationJobs).catch(() => undefined);
     }
 
     return updatedTask;
   }
 
   async assign(id: string, userId: string, dto: AssignTaskDto) {
-    return this.prisma.task.update({
+    const existingTask = await this.prisma.task.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        projectId: true,
+        assignedTo: true,
+      },
+    });
+
+    if (!existingTask) {
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    }
+
+    const updatedTask = await this.prisma.task.update({
       where: { id },
       data: { assignedTo: dto.userId },
     });
+
+    if (dto.userId !== existingTask.assignedTo) {
+      this.notificationsService
+        .createNotification({
+          entityId: existingTask.id,
+          entityType: 'task',
+          eventType: 'TASK_ASSIGNED',
+          userId: dto.userId,
+          title: 'تم إسناد مهمة جديدة',
+          body: `تم إسناد المهمة "${existingTask.title}" إليك.`,
+          metadata: {
+            taskId: existingTask.id,
+            projectId: existingTask.projectId,
+            assignedBy: userId,
+          },
+        })
+        .catch(() => undefined);
+    }
+
+    return updatedTask;
   }
 
   async start(id: string, userId: string) {
@@ -185,20 +317,79 @@ export class TasksService {
     return this.updateStatus(id, userId, TaskStatus.REVISION);
   }
 
-  async addFile(id: string, userId: string, dto: CreateTaskFileDto) {
-    return this.prisma.taskFile.create({
+  async addFile(
+    id: string,
+    userId: string,
+    file: Express.Multer.File,
+    dto: UploadTaskFileDto,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Task file is required');
+    }
+
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    }
+
+    const createdFile = await this.prisma.taskFile.create({
       data: {
         taskId: id,
         uploadedBy: userId,
-        ...dto,
+        filePath: `/uploads/tasks/${file.filename}`,
+        fileName: file.originalname,
+        fileType: file.mimetype,
+        fileSize: file.size,
+        purpose: (dto.purpose ?? FilePurpose.REFERENCE) as FilePurpose,
       },
     });
+
+    return this.mapTaskFile(createdFile);
   }
 
   async getFiles(id: string) {
-    return this.prisma.taskFile.findMany({
+    const files = await this.prisma.taskFile.findMany({
       where: { taskId: id },
+      orderBy: { uploadedAt: 'desc' },
     });
+
+    return files.map((file) => this.mapTaskFile(file));
+  }
+
+  async downloadFile(taskId: string, fileId: string): Promise<{
+    stream: ReadStream;
+    fileName: string;
+    mimeType: string;
+  }> {
+    const file = await this.prisma.taskFile.findFirst({
+      where: { id: fileId, taskId },
+      select: {
+        filePath: true,
+        fileName: true,
+        fileType: true,
+      },
+    });
+
+    if (!file) {
+      throw new NotFoundException('Task file not found');
+    }
+
+    const normalizedPath = file.filePath.replace(/^\//, '');
+    const absolutePath = join(process.cwd(), normalizedPath);
+
+    if (!existsSync(absolutePath)) {
+      throw new NotFoundException('Task file is missing on disk');
+    }
+
+    return {
+      stream: createReadStream(absolutePath),
+      fileName: file.fileName,
+      mimeType: file.fileType,
+    };
   }
 
   async addComment(id: string, userId: string, dto: CreateTaskCommentDto) {
