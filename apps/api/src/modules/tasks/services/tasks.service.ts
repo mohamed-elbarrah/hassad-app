@@ -1,24 +1,28 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
 import {
   CreateTaskDto,
   UpdateTaskDto,
   AssignTaskDto,
   UploadTaskFileDto,
   CreateTaskCommentDto,
-} from '../dto/task.dto';
-import { TaskDepartment, TaskStatus, UserRole } from '@hassad/shared';
-import { NotificationsService } from '../../notifications/services/notifications.service';
-import { FilePurpose, Prisma } from '@prisma/client';
-import { createReadStream, existsSync, ReadStream } from 'fs';
-import { join } from 'path';
+} from "../dto/task.dto";
+import { TaskDepartment, TaskStatus, UserRole } from "@hassad/shared";
+import { NotificationsService } from "../../notifications/services/notifications.service";
+import { FilePurpose, Prisma } from "@prisma/client";
+import { createReadStream, existsSync, ReadStream } from "fs";
+import { join } from "path";
 
 const DEPARTMENT_ARABIC_LABELS: Record<TaskDepartment, string> = {
-  [TaskDepartment.DESIGN]: 'التصميم',
-  [TaskDepartment.CONTENT]: 'المحتوى',
-  [TaskDepartment.DEVELOPMENT]: 'التطوير',
-  [TaskDepartment.MARKETING]: 'التسويق',
-  [TaskDepartment.PRODUCTION]: 'المونتاج',
+  [TaskDepartment.DESIGN]: "التصميم",
+  [TaskDepartment.CONTENT]: "المحتوى",
+  [TaskDepartment.DEVELOPMENT]: "التطوير",
+  [TaskDepartment.MARKETING]: "التسويق",
+  [TaskDepartment.PRODUCTION]: "المونتاج",
 };
 
 @Injectable()
@@ -30,8 +34,14 @@ export class TasksService {
 
   private getDepartmentArabicLabel(departmentName: string | null | undefined) {
     if (!departmentName) return null;
-    return (
-      DEPARTMENT_ARABIC_LABELS[departmentName as TaskDepartment] ?? null
+    return DEPARTMENT_ARABIC_LABELS[departmentName as TaskDepartment] ?? null;
+  }
+
+  private toUniqueUserIds(
+    ...userIds: Array<string | null | undefined>
+  ): string[] {
+    return Array.from(
+      new Set(userIds.filter((value): value is string => !!value)),
     );
   }
 
@@ -121,8 +131,8 @@ export class TasksService {
       ...(search
         ? {
             OR: [
-              { name: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
+              { name: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
             ],
           }
         : {}),
@@ -132,7 +142,7 @@ export class TasksService {
       this.prisma.user.findMany({
         where,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           role: true,
           departments: { include: { department: true } },
@@ -184,31 +194,47 @@ export class TasksService {
     }
 
     if (!user.isActive) {
-      throw new BadRequestException('Cannot assign task to an inactive user');
+      throw new BadRequestException("Cannot assign task to an inactive user");
     }
 
-    const allowedRoles = new Set<UserRole>([UserRole.EMPLOYEE, UserRole.MARKETING]);
+    const allowedRoles = new Set<UserRole>([
+      UserRole.EMPLOYEE,
+      UserRole.MARKETING,
+    ]);
     const assigneeRole = user.role.name as UserRole;
     if (!allowedRoles.has(assigneeRole)) {
-      throw new BadRequestException('Task assignee must be an executable team member');
+      throw new BadRequestException(
+        "Task assignee must be an executable team member",
+      );
     }
 
-    const inDepartment = user.departments.some((d) => d.departmentId === departmentId);
+    const inDepartment = user.departments.some(
+      (d) => d.departmentId === departmentId,
+    );
     if (!inDepartment) {
-      throw new BadRequestException('Assignee does not belong to the selected department');
+      throw new BadRequestException(
+        "Assignee does not belong to the selected department",
+      );
     }
 
     return user;
   }
 
   async create(userId: string, dto: CreateTaskDto) {
-    const department = await this.prisma.department.findFirst({ where: { name: dto.dept } });
+    const department = await this.prisma.department.findFirst({
+      where: { name: dto.dept },
+    });
     if (!department) {
       throw new BadRequestException(`Department ${dto.dept} not found`);
     }
 
+    let assigneeInfo: { id: string; name: string } | null = null;
+
     if (dto.assignedTo) {
-      await this.resolveAssignableUser(dto.assignedTo, department.id);
+      assigneeInfo = await this.resolveAssignableUser(
+        dto.assignedTo,
+        department.id,
+      );
     }
 
     const { dept, ...rest } = dto;
@@ -230,24 +256,42 @@ export class TasksService {
 
     if (createdTask.assignedTo) {
       const departmentLabel = this.getDepartmentArabicLabel(department.name);
-      this.notificationsService
-        .createNotification({
-          entityId: createdTask.id,
-          entityType: 'task',
-          eventType: 'TASK_ASSIGNED',
-          userId: createdTask.assignedTo,
-          title: 'تم إسناد مهمة جديدة',
-          body: departmentLabel
-            ? `تم إسناد المهمة "${createdTask.title}" إليك في قسم ${departmentLabel}.`
-            : `تم إسناد المهمة "${createdTask.title}" إليك.`,
-          metadata: {
-            taskId: createdTask.id,
-            projectId: createdTask.projectId,
-            assignedBy: userId,
-            assigneeDepartment: department.name,
-          },
-        })
-        .catch(() => undefined);
+      const project = await this.prisma.project.findUnique({
+        where: { id: createdTask.projectId },
+        select: { projectManagerId: true },
+      });
+      const recipients = this.toUniqueUserIds(
+        createdTask.assignedTo,
+        project?.projectManagerId,
+      );
+
+      if (recipients.length > 0) {
+        const notificationJobs = recipients.map((recipientId) =>
+          this.notificationsService.createNotification({
+            entityId: createdTask.id,
+            entityType: "task",
+            eventType: "TASK_ASSIGNED",
+            userId: recipientId,
+            title: "تم إسناد مهمة جديدة",
+            body:
+              recipientId === createdTask.assignedTo
+                ? departmentLabel
+                  ? `تم إسناد المهمة "${createdTask.title}" إليك في قسم ${departmentLabel}.`
+                  : `تم إسناد المهمة "${createdTask.title}" إليك.`
+                : assigneeInfo?.name
+                  ? `تم إسناد المهمة "${createdTask.title}" إلى ${assigneeInfo.name}.`
+                  : `تم إسناد المهمة "${createdTask.title}" إلى أحد أعضاء الفريق.`,
+            metadata: {
+              taskId: createdTask.id,
+              projectId: createdTask.projectId,
+              assignedBy: userId,
+              assigneeDepartment: department.name,
+            },
+          }),
+        );
+
+        Promise.allSettled(notificationJobs).catch(() => undefined);
+      }
     }
 
     return createdTask;
@@ -289,21 +333,38 @@ export class TasksService {
     });
   }
 
-  private async updateStatus(id: string, userId: string, toStatus: TaskStatus, approvedBy?: string) {
+  private async updateStatus(
+    id: string,
+    userId: string,
+    toStatus: TaskStatus,
+    approvedBy?: string,
+  ) {
     const task = await this.findOne(id);
 
     // Workflow enforcement
-    if (toStatus === TaskStatus.IN_PROGRESS && task.status !== TaskStatus.TODO && task.status !== TaskStatus.REVISION) {
-      throw new BadRequestException('Task must be TODO or REVISION to start');
+    if (
+      toStatus === TaskStatus.IN_PROGRESS &&
+      task.status !== TaskStatus.TODO &&
+      task.status !== TaskStatus.REVISION
+    ) {
+      throw new BadRequestException("Task must be TODO or REVISION to start");
     }
-    if (toStatus === TaskStatus.IN_REVIEW && task.status !== TaskStatus.IN_PROGRESS) {
-      throw new BadRequestException('Task must be IN_PROGRESS to submit');
+    if (
+      toStatus === TaskStatus.IN_REVIEW &&
+      task.status !== TaskStatus.IN_PROGRESS
+    ) {
+      throw new BadRequestException("Task must be IN_PROGRESS to submit");
     }
     if (toStatus === TaskStatus.DONE && task.status !== TaskStatus.IN_REVIEW) {
-      throw new BadRequestException('Task must be IN_REVIEW to approve');
+      throw new BadRequestException("Task must be IN_REVIEW to approve");
     }
-    if (toStatus === TaskStatus.REVISION && task.status !== TaskStatus.IN_REVIEW) {
-      throw new BadRequestException('Task must be IN_REVIEW to reject for revision');
+    if (
+      toStatus === TaskStatus.REVISION &&
+      task.status !== TaskStatus.IN_REVIEW
+    ) {
+      throw new BadRequestException(
+        "Task must be IN_REVIEW to reject for revision",
+      );
     }
 
     const updatedTask = await this.prisma.$transaction(async (tx) => {
@@ -313,8 +374,12 @@ export class TasksService {
           status: toStatus,
           approvedBy: approvedBy || undefined,
           approvedAt: toStatus === TaskStatus.DONE ? new Date() : undefined,
-          submittedAt: toStatus === TaskStatus.IN_REVIEW ? new Date() : undefined,
-          startedAt: (toStatus === TaskStatus.IN_PROGRESS && !task.startedAt) ? new Date() : undefined,
+          submittedAt:
+            toStatus === TaskStatus.IN_REVIEW ? new Date() : undefined,
+          startedAt:
+            toStatus === TaskStatus.IN_PROGRESS && !task.startedAt
+              ? new Date()
+              : undefined,
           ...(toStatus === TaskStatus.REVISION
             ? { revisionCount: { increment: 1 } }
             : {}),
@@ -335,58 +400,57 @@ export class TasksService {
       return updated;
     });
 
-    const notificationJobs: Array<Promise<any>> = [];
-
-    if (task.assignedTo && (toStatus === TaskStatus.DONE || toStatus === TaskStatus.REVISION)) {
-      notificationJobs.push(
-        this.notificationsService.createNotification({
-          entityId: id,
-          entityType: 'task',
-          eventType: toStatus === TaskStatus.DONE ? 'TASK_APPROVED' : 'TASK_REJECTED',
-          userId: task.assignedTo,
-          title: toStatus === TaskStatus.DONE ? 'تم اعتماد المهمة' : 'تم إرجاع المهمة للتعديل',
-          body:
-            toStatus === TaskStatus.DONE
-              ? `تم اعتماد المهمة "${task.title}".`
-              : `تم إرجاع المهمة "${task.title}" للتعديل.`,
-          metadata: {
-            taskId: task.id,
-            projectId: task.projectId,
-            changedBy: userId,
-          },
-        }),
-      );
-    }
-
     const projectManagerId = task.project?.projectManagerId;
-    if (
-      projectManagerId &&
-      projectManagerId !== userId &&
-      (toStatus === TaskStatus.IN_PROGRESS || toStatus === TaskStatus.IN_REVIEW)
-    ) {
-      notificationJobs.push(
+    const recipients = this.toUniqueUserIds(task.assignedTo, projectManagerId);
+    const statusNotificationByTarget: Record<
+      TaskStatus,
+      { eventType: string; title: string; body: string }
+    > = {
+      [TaskStatus.IN_PROGRESS]: {
+        eventType: "TASK_STARTED",
+        title: "بدأ تنفيذ المهمة",
+        body: `بدأ الفريق تنفيذ المهمة "${task.title}".`,
+      },
+      [TaskStatus.IN_REVIEW]: {
+        eventType: "TASK_SUBMITTED",
+        title: "مهمة بانتظار المراجعة",
+        body: `تم إرسال المهمة "${task.title}" للمراجعة.`,
+      },
+      [TaskStatus.DONE]: {
+        eventType: "TASK_APPROVED",
+        title: "تم اعتماد المهمة",
+        body: `تم اعتماد المهمة "${task.title}".`,
+      },
+      [TaskStatus.REVISION]: {
+        eventType: "TASK_REJECTED",
+        title: "تم إرجاع المهمة للتعديل",
+        body: `تم إرجاع المهمة "${task.title}" للتعديل.`,
+      },
+      [TaskStatus.TODO]: {
+        eventType: "TASK_UPDATED",
+        title: "تم تحديث المهمة",
+        body: `تم تحديث المهمة "${task.title}".`,
+      },
+    };
+
+    const notificationConfig = statusNotificationByTarget[toStatus];
+    const notificationJobs: Array<Promise<any>> = recipients.map(
+      (recipientId) =>
         this.notificationsService.createNotification({
           entityId: id,
-          entityType: 'task',
-          eventType:
-            toStatus === TaskStatus.IN_PROGRESS ? 'TASK_STARTED' : 'TASK_SUBMITTED',
-          userId: projectManagerId,
-          title:
-            toStatus === TaskStatus.IN_PROGRESS
-              ? 'بدأ تنفيذ المهمة'
-              : 'مهمة بانتظار المراجعة',
-          body:
-            toStatus === TaskStatus.IN_PROGRESS
-              ? `بدأ الفريق تنفيذ المهمة "${task.title}".`
-              : `تم إرسال المهمة "${task.title}" للمراجعة.`,
+          entityType: "task",
+          eventType: notificationConfig.eventType,
+          userId: recipientId,
+          title: notificationConfig.title,
+          body: notificationConfig.body,
           metadata: {
             taskId: task.id,
             projectId: task.projectId,
             changedBy: userId,
+            status: toStatus,
           },
         }),
-      );
-    }
+    );
 
     if (notificationJobs.length > 0) {
       Promise.allSettled(notificationJobs).catch(() => undefined);
@@ -412,7 +476,10 @@ export class TasksService {
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
 
-    await this.resolveAssignableUser(dto.userId, existingTask.departmentId);
+    const assigneeInfo = await this.resolveAssignableUser(
+      dto.userId,
+      existingTask.departmentId,
+    );
 
     const updatedTask = await this.prisma.task.update({
       where: { id },
@@ -420,25 +487,43 @@ export class TasksService {
     });
 
     if (dto.userId !== existingTask.assignedTo) {
-      const departmentLabel = this.getDepartmentArabicLabel(existingTask.department.name);
-      this.notificationsService
-        .createNotification({
-          entityId: existingTask.id,
-          entityType: 'task',
-          eventType: 'TASK_ASSIGNED',
-          userId: dto.userId,
-          title: 'تم إسناد مهمة جديدة',
-          body: departmentLabel
-            ? `تم إسناد المهمة "${existingTask.title}" إليك في قسم ${departmentLabel}.`
-            : `تم إسناد المهمة "${existingTask.title}" إليك.`,
-          metadata: {
-            taskId: existingTask.id,
-            projectId: existingTask.projectId,
-            assignedBy: userId,
-            assigneeDepartment: existingTask.department.name,
-          },
-        })
-        .catch(() => undefined);
+      const departmentLabel = this.getDepartmentArabicLabel(
+        existingTask.department.name,
+      );
+      const project = await this.prisma.project.findUnique({
+        where: { id: existingTask.projectId },
+        select: { projectManagerId: true },
+      });
+      const recipients = this.toUniqueUserIds(
+        dto.userId,
+        project?.projectManagerId,
+      );
+
+      if (recipients.length > 0) {
+        const notificationJobs = recipients.map((recipientId) =>
+          this.notificationsService.createNotification({
+            entityId: existingTask.id,
+            entityType: "task",
+            eventType: "TASK_ASSIGNED",
+            userId: recipientId,
+            title: "تم إسناد مهمة جديدة",
+            body:
+              recipientId === dto.userId
+                ? departmentLabel
+                  ? `تم إسناد المهمة "${existingTask.title}" إليك في قسم ${departmentLabel}.`
+                  : `تم إسناد المهمة "${existingTask.title}" إليك.`
+                : `تم إسناد المهمة "${existingTask.title}" إلى ${assigneeInfo.name}.`,
+            metadata: {
+              taskId: existingTask.id,
+              projectId: existingTask.projectId,
+              assignedBy: userId,
+              assigneeDepartment: existingTask.department.name,
+            },
+          }),
+        );
+
+        Promise.allSettled(notificationJobs).catch(() => undefined);
+      }
     }
 
     return updatedTask;
@@ -467,7 +552,7 @@ export class TasksService {
     dto: UploadTaskFileDto,
   ) {
     if (!file) {
-      throw new BadRequestException('Task file is required');
+      throw new BadRequestException("Task file is required");
     }
 
     const task = await this.prisma.task.findUnique({
@@ -497,13 +582,16 @@ export class TasksService {
   async getFiles(id: string) {
     const files = await this.prisma.taskFile.findMany({
       where: { taskId: id },
-      orderBy: { uploadedAt: 'desc' },
+      orderBy: { uploadedAt: "desc" },
     });
 
     return files.map((file) => this.mapTaskFile(file));
   }
 
-  async downloadFile(taskId: string, fileId: string): Promise<{
+  async downloadFile(
+    taskId: string,
+    fileId: string,
+  ): Promise<{
     stream: ReadStream;
     fileName: string;
     mimeType: string;
@@ -518,14 +606,14 @@ export class TasksService {
     });
 
     if (!file) {
-      throw new NotFoundException('Task file not found');
+      throw new NotFoundException("Task file not found");
     }
 
-    const normalizedPath = file.filePath.replace(/^\//, '');
+    const normalizedPath = file.filePath.replace(/^\//, "");
     const absolutePath = join(process.cwd(), normalizedPath);
 
     if (!existsSync(absolutePath)) {
-      throw new NotFoundException('Task file is missing on disk');
+      throw new NotFoundException("Task file is missing on disk");
     }
 
     return {
@@ -557,21 +645,30 @@ export class TasksService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
-  async findMine(userId: string, filters: { status?: string; priority?: string; dept?: string; dueBefore?: string; dueAfter?: string }) {
+  async findMine(
+    userId: string,
+    filters: {
+      status?: string;
+      priority?: string;
+      dept?: string;
+      dueBefore?: string;
+      dueAfter?: string;
+    },
+  ) {
     const where: Record<string, unknown> = { assignedTo: userId };
-    if (filters.status) where['status'] = filters.status;
-    if (filters.priority) where['priority'] = filters.priority;
-    if (filters.dept) where['departmentId'] = filters.dept;
+    if (filters.status) where["status"] = filters.status;
+    if (filters.priority) where["priority"] = filters.priority;
+    if (filters.dept) where["departmentId"] = filters.dept;
 
     if (filters.dueBefore || filters.dueAfter) {
       const dueDateFilter: Record<string, Date> = {};
-      if (filters.dueBefore) dueDateFilter['lte'] = new Date(filters.dueBefore);
-      if (filters.dueAfter) dueDateFilter['gte'] = new Date(filters.dueAfter);
-      where['dueDate'] = dueDateFilter;
+      if (filters.dueBefore) dueDateFilter["lte"] = new Date(filters.dueBefore);
+      if (filters.dueAfter) dueDateFilter["gte"] = new Date(filters.dueAfter);
+      where["dueDate"] = dueDateFilter;
     }
 
     return this.prisma.task.findMany({
@@ -581,14 +678,14 @@ export class TasksService {
         assignee: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
   async myStats(userId: string) {
     const [grouped, overdue] = await Promise.all([
       this.prisma.task.groupBy({
-        by: ['status'],
+        by: ["status"],
         where: { assignedTo: userId },
         _count: { status: true },
       }),
@@ -613,7 +710,7 @@ export class TasksService {
       todo: counts[TaskStatus.TODO] ?? 0,
       inProgress: counts[TaskStatus.IN_PROGRESS] ?? 0,
       inReview: counts[TaskStatus.IN_REVIEW] ?? 0,
-      blocked: counts['BLOCKED'] ?? 0,
+      blocked: counts["BLOCKED"] ?? 0,
       done: counts[TaskStatus.DONE] ?? 0,
       overdue,
     };
@@ -625,7 +722,7 @@ export class TasksService {
       include: {
         user: { select: { id: true, name: true } },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     });
   }
 
@@ -656,6 +753,8 @@ export class TasksService {
   async toggleArchive(_taskId: string): Promise<{ message: string }> {
     // Task model does not have an archivedAt field in the current schema.
     // This is a placeholder that returns a not-implemented response.
-    return { message: 'Archive toggling is not supported in the current schema.' };
+    return {
+      message: "Archive toggling is not supported in the current schema.",
+    };
   }
 }

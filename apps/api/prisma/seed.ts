@@ -587,6 +587,7 @@ async function main() {
       "projects.update",
       "projects.manage_members",
       "tasks.read",
+      "tasks.create",
       "tasks.assign",
       "tasks.update",
       "tasks.approve",
@@ -641,7 +642,13 @@ async function main() {
       "finance.update_invoice",
       "finance.manage_tickets",
     ],
-    CLIENT: ["proposals.read_public", "notifications.read", "leads.create", "contracts.read_public", "contracts.sign_public"],
+    CLIENT: [
+      "proposals.read_public",
+      "notifications.read",
+      "leads.create",
+      "contracts.read_public",
+      "contracts.sign_public",
+    ],
   };
 
   for (const [roleName, permNames] of Object.entries(rolePermissionMapping)) {

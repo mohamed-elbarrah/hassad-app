@@ -1,24 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
-  private mapNotificationRow(
-    row: {
-      id: string;
-      userId: string;
-      title: string;
-      body: string;
-      isRead: boolean;
-      channel: string;
-      sentAt: Date | null;
-      readAt: Date | null;
-      event: { entityId: string; entityType: string; eventType: string };
-    },
-  ) {
+  private mapNotificationRow(row: {
+    id: string;
+    userId: string;
+    title: string;
+    body: string;
+    isRead: boolean;
+    channel: string;
+    sentAt: Date | null;
+    readAt: Date | null;
+    event: { entityId: string; entityType: string; eventType: string };
+  }) {
     const createdAt = row.sentAt ?? row.readAt ?? new Date();
 
     return {
@@ -61,7 +59,7 @@ export class NotificationsService {
         userId: params.userId,
         title: params.title,
         body: params.body,
-        channel: 'in-app',
+        channel: "in-app",
         sentAt: new Date(),
       },
     });
@@ -75,7 +73,8 @@ export class NotificationsService {
     const limit = Number(filters.limit) || 20;
     const where: any = { userId };
     if (filters.isRead !== undefined) {
-      where.isRead = filters.isRead === true || (filters.isRead as any) === 'true';
+      where.isRead =
+        filters.isRead === true || (filters.isRead as any) === "true";
     }
 
     const [data, total, unreadCount] = await Promise.all([
@@ -90,7 +89,7 @@ export class NotificationsService {
             },
           },
         },
-        orderBy: { sentAt: 'desc' },
+        orderBy: { sentAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -146,9 +145,18 @@ export class NotificationsService {
     departments?: string[];
   }) {
     // Find target users based on roles and/or departments
-    const where: any = { isActive: true };
+    const where: Prisma.UserWhereInput = { isActive: true };
     if (params.roles && params.roles.length > 0) {
       where.role = { name: { in: params.roles } };
+    }
+    if (params.departments && params.departments.length > 0) {
+      where.departments = {
+        some: {
+          department: {
+            name: { in: params.departments },
+          },
+        },
+      };
     }
 
     const users = await this.prisma.user.findMany({
@@ -156,12 +164,16 @@ export class NotificationsService {
       select: { id: true },
     });
 
+    if (users.length === 0) {
+      return { sent: 0 };
+    }
+
     // Create a shared event
     const event = await this.prisma.notificationEvent.create({
       data: {
-        entityId: 'broadcast',
-        entityType: 'system',
-        eventType: 'BROADCAST',
+        entityId: "broadcast",
+        entityType: "system",
+        eventType: "BROADCAST",
       },
     });
 
@@ -172,7 +184,7 @@ export class NotificationsService {
         userId: u.id,
         title: params.title,
         body: params.message,
-        channel: 'in-app',
+        channel: "in-app",
         sentAt: new Date(),
       })),
     });
