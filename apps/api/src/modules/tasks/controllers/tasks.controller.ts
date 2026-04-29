@@ -22,6 +22,7 @@ import {
   UploadTaskFileDto,
   CreateTaskCommentDto,
 } from '../dto/task.dto';
+import { TaskDepartment } from '@hassad/shared';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
@@ -42,6 +43,20 @@ export class TasksController {
   @RequirePermissions('tasks.read')
   getMyStats(@CurrentUser() user: any) {
     return this.tasksService.myStats(user.id);
+  }
+
+  @Get('assignees')
+  @RequirePermissions('tasks.assign')
+  getAssignableUsers(
+    @Query('dept') dept?: TaskDepartment,
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.tasksService.searchAssignableUsers({
+      dept,
+      search,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 
   @Post()

@@ -35,6 +35,12 @@ export interface UserSearchFilters {
   limit?: number;
 }
 
+export interface AssigneeSearchFilters {
+  dept?: TaskDepartment;
+  search?: string;
+  limit?: number;
+}
+
 // UserDetail is now the same shape as UserSearchResult (backend always returns full shape)
 export type UserDetail = UserSearchResult;
 
@@ -49,6 +55,13 @@ export const usersApi = createApi({
         params: filters,
       }),
       providesTags: [{ type: "User", id: "LIST" }],
+    }),
+
+    searchTaskAssignees: builder.query<PaginatedUsers, AssigneeSearchFilters>({
+      query: (filters = {}) => ({
+        url: "/tasks/assignees",
+        params: filters,
+      }),
     }),
 
     createUser: builder.mutation<UserDetail, CreateUserInput>({
@@ -92,6 +105,7 @@ export const usersApi = createApi({
 
 export const {
   useSearchUsersQuery,
+  useSearchTaskAssigneesQuery,
   useCreateUserMutation,
   useGetUserByIdQuery,
   useUpdateUserMutation,

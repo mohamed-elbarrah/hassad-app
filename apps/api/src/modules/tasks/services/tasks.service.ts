@@ -7,11 +7,19 @@ import {
   UploadTaskFileDto,
   CreateTaskCommentDto,
 } from '../dto/task.dto';
-import { TaskStatus } from '@hassad/shared';
+import { TaskDepartment, TaskStatus, UserRole } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { FilePurpose, Prisma } from '@prisma/client';
 import { createReadStream, existsSync, ReadStream } from 'fs';
 import { join } from 'path';
+
+const DEPARTMENT_ARABIC_LABELS: Record<TaskDepartment, string> = {
+  [TaskDepartment.DESIGN]: 'التصميم',
+  [TaskDepartment.CONTENT]: 'المحتوى',
+  [TaskDepartment.DEVELOPMENT]: 'التطوير',
+  [TaskDepartment.MARKETING]: 'التسويق',
+  [TaskDepartment.PRODUCTION]: 'المونتاج',
+};
 
 @Injectable()
 export class TasksService {
@@ -19,6 +27,13 @@ export class TasksService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
   ) {}
+
+  private getDepartmentArabicLabel(departmentName: string | null | undefined) {
+    if (!departmentName) return null;
+    return (
+      DEPARTMENT_ARABIC_LABELS[departmentName as TaskDepartment] ?? null
+    );
+  }
 
   private progressWeightByStatus(status: TaskStatus): number {
     if (status === TaskStatus.DONE) return 100;
@@ -78,14 +93,130 @@ export class TasksService {
     };
   }
 
+  async searchAssignableUsers(params: {
+    dept?: TaskDepartment;
+    search?: string;
+    limit?: number;
+  }) {
+    const { dept, search, limit = 20 } = params;
+
+    if (!dept) {
+      return {
+        items: [],
+        total: 0,
+        page: 1,
+        limit,
+        totalPages: 0,
+      };
+    }
+
+    const where: Prisma.UserWhereInput = {
+      isActive: true,
+      role: { name: { in: [UserRole.EMPLOYEE, UserRole.MARKETING] } },
+      departments: {
+        some: {
+          department: { name: dept },
+        },
+      },
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          role: true,
+          departments: { include: { department: true } },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    const items = users.map((u) => {
+      const deptEntry =
+        u.departments.find((entry) => entry.department?.name === dept) ??
+        u.departments[0];
+
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role.name,
+        isActive: u.isActive,
+        department: deptEntry?.department?.name ?? null,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+      };
+    });
+
+    return {
+      items,
+      total,
+      page: 1,
+      limit,
+      totalPages: total === 0 ? 0 : 1,
+    };
+  }
+
+  private async resolveAssignableUser(userId: string, departmentId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        role: { select: { name: true } },
+        departments: { select: { departmentId: true } },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Assignee with ID ${userId} not found`);
+    }
+
+    if (!user.isActive) {
+      throw new BadRequestException('Cannot assign task to an inactive user');
+    }
+
+    const allowedRoles = new Set<UserRole>([UserRole.EMPLOYEE, UserRole.MARKETING]);
+    const assigneeRole = user.role.name as UserRole;
+    if (!allowedRoles.has(assigneeRole)) {
+      throw new BadRequestException('Task assignee must be an executable team member');
+    }
+
+    const inDepartment = user.departments.some((d) => d.departmentId === departmentId);
+    if (!inDepartment) {
+      throw new BadRequestException('Assignee does not belong to the selected department');
+    }
+
+    return user;
+  }
+
   async create(userId: string, dto: CreateTaskDto) {
     const department = await this.prisma.department.findFirst({ where: { name: dto.dept } });
+    if (!department) {
+      throw new BadRequestException(`Department ${dto.dept} not found`);
+    }
+
+    if (dto.assignedTo) {
+      await this.resolveAssignableUser(dto.assignedTo, department.id);
+    }
+
     const { dept, ...rest } = dto;
     const createdTask = await this.prisma.$transaction(async (tx) => {
       const createdTask = await tx.task.create({
         data: {
           ...rest,
-          departmentId: department?.id ?? undefined,
+          departmentId: department.id,
           dueDate: new Date(dto.dueDate),
           createdBy: userId,
           status: TaskStatus.TODO,
@@ -98,6 +229,7 @@ export class TasksService {
     });
 
     if (createdTask.assignedTo) {
+      const departmentLabel = this.getDepartmentArabicLabel(department.name);
       this.notificationsService
         .createNotification({
           entityId: createdTask.id,
@@ -105,11 +237,14 @@ export class TasksService {
           eventType: 'TASK_ASSIGNED',
           userId: createdTask.assignedTo,
           title: 'تم إسناد مهمة جديدة',
-          body: `تم إسناد المهمة "${createdTask.title}" إليك.`,
+          body: departmentLabel
+            ? `تم إسناد المهمة "${createdTask.title}" إليك في قسم ${departmentLabel}.`
+            : `تم إسناد المهمة "${createdTask.title}" إليك.`,
           metadata: {
             taskId: createdTask.id,
             projectId: createdTask.projectId,
             assignedBy: userId,
+            assigneeDepartment: department.name,
           },
         })
         .catch(() => undefined);
@@ -267,6 +402,8 @@ export class TasksService {
         id: true,
         title: true,
         projectId: true,
+        departmentId: true,
+        department: { select: { name: true } },
         assignedTo: true,
       },
     });
@@ -275,12 +412,15 @@ export class TasksService {
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
 
+    await this.resolveAssignableUser(dto.userId, existingTask.departmentId);
+
     const updatedTask = await this.prisma.task.update({
       where: { id },
       data: { assignedTo: dto.userId },
     });
 
     if (dto.userId !== existingTask.assignedTo) {
+      const departmentLabel = this.getDepartmentArabicLabel(existingTask.department.name);
       this.notificationsService
         .createNotification({
           entityId: existingTask.id,
@@ -288,11 +428,14 @@ export class TasksService {
           eventType: 'TASK_ASSIGNED',
           userId: dto.userId,
           title: 'تم إسناد مهمة جديدة',
-          body: `تم إسناد المهمة "${existingTask.title}" إليك.`,
+          body: departmentLabel
+            ? `تم إسناد المهمة "${existingTask.title}" إليك في قسم ${departmentLabel}.`
+            : `تم إسناد المهمة "${existingTask.title}" إليك.`,
           metadata: {
             taskId: existingTask.id,
             projectId: existingTask.projectId,
             assignedBy: userId,
+            assigneeDepartment: existingTask.department.name,
           },
         })
         .catch(() => undefined);

@@ -71,7 +71,9 @@ async function main() {
   for (const u of userDefs) {
     const created = await prisma.user.upsert({
       where: { email: u.email },
-      update: { role: { connect: { name: u.role } } },
+      update: {
+        role: { connect: { name: u.role } },
+      },
       create: {
         email: u.email,
         name: u.name,
@@ -617,7 +619,14 @@ async function main() {
       "notifications.read",
       "notifications.update",
     ],
-    EMPLOYEE: ["tasks.read", "tasks.update", "tasks.comment", "projects.read"],
+    EMPLOYEE: [
+      "tasks.read",
+      "tasks.update",
+      "tasks.comment",
+      "projects.read",
+      "notifications.read",
+      "notifications.update",
+    ],
     MARKETING: [
       "marketing.create",
       "marketing.read",

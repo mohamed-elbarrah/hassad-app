@@ -51,7 +51,7 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "تسويق",
   [TaskDepartment.DEVELOPMENT]: "تطوير",
   [TaskDepartment.CONTENT]: "محتوى",
-  [TaskDepartment.PRODUCTION]: "إدارة",
+  [TaskDepartment.PRODUCTION]: "مونتاج",
 };
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -263,38 +263,40 @@ export function EmployeeForm({ mode, employee, onClose }: EmployeeFormProps) {
 
             {/* Department — only visible for EMPLOYEE role */}
             {showDepartment && (
-              <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>القسم</FormLabel>
-                    <Select
-                      onValueChange={(v) =>
-                        field.onChange(
-                          v === "none" ? undefined : (v as TaskDepartment),
-                        )
-                      }
-                      value={field.value ?? "none"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر القسم" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">بدون قسم</SelectItem>
-                        {Object.values(TaskDepartment).map((dept) => (
-                          <SelectItem key={dept} value={dept}>
-                            {DEPARTMENT_LABELS[dept]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <>
+                <FormField
+                  control={form.control}
+                  name="department"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>القسم</FormLabel>
+                      <Select
+                        onValueChange={(v) =>
+                          field.onChange(
+                            v === "none" ? undefined : (v as TaskDepartment),
+                          )
+                        }
+                        value={field.value ?? "none"}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر القسم" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">بدون قسم</SelectItem>
+                          {Object.values(TaskDepartment).map((dept) => (
+                            <SelectItem key={dept} value={dept}>
+                              {DEPARTMENT_LABELS[dept]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
             )}
 
             {/* Actions */}

@@ -64,7 +64,7 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "التسويق",
   [TaskDepartment.DEVELOPMENT]: "التطوير",
   [TaskDepartment.CONTENT]: "المحتوى",
-  [TaskDepartment.PRODUCTION]: "الإدارة",
+  [TaskDepartment.PRODUCTION]: "المونتاج",
 };
 
 const STATUS_VARIANT: Record<

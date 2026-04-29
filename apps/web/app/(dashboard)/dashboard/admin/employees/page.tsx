@@ -49,7 +49,7 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "تسويق",
   [TaskDepartment.DEVELOPMENT]: "تطوير",
   [TaskDepartment.CONTENT]: "محتوى",
-  [TaskDepartment.PRODUCTION]: "إدارة",
+  [TaskDepartment.PRODUCTION]: "مونتاج",
 };
 
 const ROLE_BADGE_VARIANTS: Record<

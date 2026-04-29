@@ -215,7 +215,7 @@ const DEPT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "مسوق",
   [TaskDepartment.DEVELOPMENT]: "مطور",
   [TaskDepartment.CONTENT]: "كاتب محتوى",
-  [TaskDepartment.PRODUCTION]: "مدير",
+  [TaskDepartment.PRODUCTION]: "مونتير",
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────

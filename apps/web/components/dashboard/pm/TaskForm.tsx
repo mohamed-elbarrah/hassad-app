@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateTaskMutation } from "@/features/tasks/tasksApi";
-import { useSearchUsersQuery } from "@/features/users/usersApi";
+import { useSearchTaskAssigneesQuery } from "@/features/users/usersApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
 import { TaskDepartment, TaskPriority } from "@hassad/shared";
 
@@ -42,7 +42,7 @@ const DEPT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.MARKETING]: "تسويق",
   [TaskDepartment.DEVELOPMENT]: "تطوير",
   [TaskDepartment.CONTENT]: "محتوى",
-  [TaskDepartment.PRODUCTION]: "إدارة",
+  [TaskDepartment.PRODUCTION]: "مونتاج",
 };
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
@@ -98,13 +98,16 @@ export function TaskForm({ projectId }: TaskFormProps) {
     setAssigneeSearch("");
   }, [watchedDept, form]);
 
-  const { data: usersData, isFetching: usersLoading } = useSearchUsersQuery(
-    { department: watchedDept, search: assigneeSearch, limit: 20 },
+  const { data: usersData, isFetching: usersLoading } = useSearchTaskAssigneesQuery(
+    { dept: watchedDept, search: assigneeSearch, limit: 20 },
     { skip: !open || !watchedDept },
   );
 
   const assigneeOptions =
-    usersData?.items.map((u) => ({ id: u.id, label: u.name })) ?? [];
+    usersData?.items.map((u) => ({
+      id: u.id,
+      label: u.name,
+    })) ?? [];
 
   async function onSubmit(values: TaskFormValues) {
     try {
