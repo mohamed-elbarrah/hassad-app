@@ -6,6 +6,20 @@ const prisma = new PrismaClient();
 async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
 
+  // Clear dynamic data
+  await prisma.notification.deleteMany();
+  await prisma.notificationEvent.deleteMany();
+  await prisma.paymentTicket.deleteMany();
+  await prisma.invoice.deleteMany();
+
+  await prisma.task.deleteMany();
+  await prisma.projectMember.deleteMany();
+  await prisma.project.deleteMany();
+  await prisma.contract.deleteMany();
+  await prisma.proposal.deleteMany();
+  await prisma.client.deleteMany();
+  await prisma.lead.deleteMany();
+
   // ── 1. Roles ─────────────────────────────────────────────────────────────────
   const roleNames = [
     "ADMIN",
@@ -279,123 +293,66 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // ── 9. Tasks ──────────────────────────────────────────────────────────────────
-  await prisma.task.createMany({
-    data: [
-      {
-        projectId: project1.id,
-        departmentId: designDept!.id,
-        assignedTo: users["EMPLOYEE"],
-        createdBy: users["PM"],
-        title: "Design brand logo variants",
-        description: "Create 3 logo variants for TechVentures new identity",
-        status: "IN_REVIEW",
-        priority: "HIGH",
-        dueDate: new Date("2024-02-10"),
-      },
-      {
-        projectId: project1.id,
-        departmentId: contentDept!.id,
-        assignedTo: users["EMPLOYEE"],
-        createdBy: users["PM"],
-        title: "Write brand voice guidelines",
-        description: "Document tone, voice, and messaging pillars",
-        status: "IN_PROGRESS",
-        priority: "NORMAL",
-        dueDate: new Date("2024-02-20"),
-      },
-      {
-        projectId: project2.id,
-        departmentId: contentDept!.id,
-        assignedTo: users["EMPLOYEE"],
-        createdBy: users["PM"],
-        title: "Create April content calendar",
-        description: "Plan and design 30 posts for Instagram and TikTok",
-        status: "TODO",
-        priority: "NORMAL",
-        dueDate: new Date("2024-03-25"),
-      },
-      {
-        projectId: project2.id,
-        departmentId: marketingDept!.id,
-        assignedTo: users["MARKETING"],
-        createdBy: users["PM"],
-        title: "Launch Ramadan campaign",
-        description: "Set up and launch Meta ads for the Ramadan promotion",
-        status: "DONE",
-        priority: "URGENT",
-        dueDate: new Date("2024-03-10"),
-        approvedBy: users["PM"],
-        approvedAt: new Date("2024-03-09"),
-      },
-    ],
-  });
+// ── 9. Tasks ──────────────────────────────────────────────────────────────────
+const task1 = await prisma.task.create({
+  data: {
+    projectId: project1.id,
+    departmentId: designDept!.id,
+    assignedTo: users["EMPLOYEE"],
+    createdBy: users["PM"],
+    title: "Design brand logo variants",
+    description: "Create 3 logo variants for TechVentures new identity",
+    status: "IN_REVIEW",
+    priority: "HIGH",
+    dueDate: new Date("2024-02-10"),
+  },
+});
 
-  // ── 10. Campaigns ─────────────────────────────────────────────────────────────
-  const campaign1 = await prisma.campaign.create({
-    data: {
-      clientId: client2.id,
-      projectId: project2.id,
-      managedBy: users["MARKETING"],
-      name: "Nova Eats Ramadan 2024",
-      platform: "META",
-      status: "COMPLETED",
-      startDate: new Date("2024-03-01"),
-      endDate: new Date("2024-04-10"),
-      budgetTotal: 3000,
-      budgetSpent: 2850,
-    },
-  });
+const task2 = await prisma.task.create({
+  data: {
+    projectId: project1.id,
+    departmentId: contentDept!.id,
+    assignedTo: users["EMPLOYEE"],
+    createdBy: users["PM"],
+    title: "Write brand voice guidelines",
+    description: "Document tone, voice, and messaging pillars",
+    status: "IN_PROGRESS",
+    priority: "NORMAL",
+    dueDate: new Date("2024-02-20"),
+  },
+});
 
-  const campaign2 = await prisma.campaign.create({
-    data: {
-      clientId: client1.id,
-      projectId: project1.id,
-      managedBy: users["MARKETING"],
-      name: "TechVentures Brand Awareness",
-      platform: "GOOGLE",
-      status: "ACTIVE",
-      startDate: new Date("2024-02-01"),
-      budgetTotal: 10000,
-      budgetSpent: 4200,
-    },
-  });
+const task3 = await prisma.task.create({
+  data: {
+    projectId: project2.id,
+    departmentId: contentDept!.id,
+    assignedTo: users["EMPLOYEE"],
+    createdBy: users["PM"],
+    title: "Create April content calendar",
+    description: "Plan and design 30 posts for Instagram and TikTok",
+    status: "TODO",
+    priority: "NORMAL",
+    dueDate: new Date("2024-03-25"),
+  },
+});
 
-  // KPI snapshots for campaign1
-  await prisma.campaignKpiSnapshot.createMany({
-    data: [
-      {
-        campaignId: campaign1.id,
-        recordedBy: users["MARKETING"],
-        snapshotDate: new Date("2024-03-15"),
-        impressions: 85000,
-        clicks: 3200,
-        messagesReceived: 240,
-        ordersCount: 45,
-        leadsCount: 88,
-        ctr: 3.76,
-        conversionRate: 2.75,
-        cac: 63.3,
-        dataSource: "API",
-        isApprovedByManager: true,
-      },
-      {
-        campaignId: campaign1.id,
-        recordedBy: users["MARKETING"],
-        snapshotDate: new Date("2024-04-01"),
-        impressions: 110000,
-        clicks: 4500,
-        messagesReceived: 380,
-        ordersCount: 72,
-        leadsCount: 130,
-        ctr: 4.09,
-        conversionRate: 2.89,
-        cac: 39.6,
-        dataSource: "API",
-        isApprovedByManager: true,
-      },
-    ],
-  });
+const task4 = await prisma.task.create({
+  data: {
+    projectId: project2.id,
+    departmentId: marketingDept!.id,
+    assignedTo: users["MARKETING"],
+    createdBy: users["PM"],
+    title: "Launch Ramadan campaign",
+    description: "Set up and launch Meta ads for the Ramadan promotion",
+    status: "DONE",
+    priority: "URGENT",
+    dueDate: new Date("2024-03-10"),
+    approvedBy: users["PM"],
+    approvedAt: new Date("2024-03-09"),
+  },
+});
+
+
 
   // ── 11. Invoices ──────────────────────────────────────────────────────────────
   const invoice1 = await prisma.invoice.create({
@@ -545,7 +502,14 @@ async function main() {
     "marketing.create",
     "marketing.read",
     "marketing.update",
+    "marketing.delete",
     "marketing.manage_kpis",
+    "marketing.flag_optimization",
+    "portal.read",
+    "portal.manage_deliverables",
+    "portal.approve_deliverables",
+    "portal.request_revisions",
+    "portal.manage_intake",
     "finance.create_invoice",
     "finance.read",
     "finance.update_invoice",
@@ -599,6 +563,8 @@ async function main() {
       "notifications.update",
       "finance.read",
       "finance.update_invoice",
+      "marketing.read",
+      "portal.read",
     ],
     SALES: [
       "leads.create",
@@ -632,8 +598,13 @@ async function main() {
       "marketing.create",
       "marketing.read",
       "marketing.update",
+      "marketing.delete",
       "marketing.manage_tests",
       "marketing.manage_kpis",
+      "marketing.flag_optimization",
+      "tasks.read",
+      "tasks.update",
+      "tasks.comment",
       "notifications.read",
     ],
     ACCOUNTANT: [
@@ -648,6 +619,7 @@ async function main() {
       "leads.create",
       "contracts.read_public",
       "contracts.sign_public",
+      "portal.read",
     ],
   };
 

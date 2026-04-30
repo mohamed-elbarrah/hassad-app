@@ -284,7 +284,11 @@ export class TasksService {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: {
-        project: true,
+        project: {
+          include: {
+            client: true,
+          },
+        },
         assignee: true,
         creator: true,
         approver: true,
@@ -698,7 +702,19 @@ export class TasksService {
     return this.prisma.task.findMany({
       where,
       include: {
-        project: { select: { id: true, name: true } },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            clientId: true,
+            client: {
+              select: {
+                companyName: true,
+                businessType: true,
+              },
+            },
+          },
+        },
         assignee: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
       },

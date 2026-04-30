@@ -8,6 +8,8 @@ import { randomBytes } from 'crypto';
 export class PortalService {
   constructor(private prisma: PrismaService) {}
 
+
+
   async createDeliverable(userId: string, dto: CreateDeliverableDto) {
     return this.prisma.deliverable.create({
       data: {
@@ -106,4 +108,6 @@ export class PortalService {
       where: { clientId },
     });
   }
+
+
 }

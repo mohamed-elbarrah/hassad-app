@@ -13,7 +13,7 @@ import { ContractsModule } from "./modules/contracts/contracts.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { PortalModule } from "./modules/portal/portal.module";
-import { MarketingModule } from "./modules/marketing/marketing.module";
+
 import { FinanceModule } from "./modules/finance/finance.module";
 import { ChatModule } from "./modules/chat/chat.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
@@ -42,7 +42,7 @@ import { SalesModule } from "./modules/sales/sales.module";
     ProjectsModule,
     TasksModule,
     PortalModule,
-    MarketingModule,
+
     FinanceModule,
     ChatModule,
     NotificationsModule,

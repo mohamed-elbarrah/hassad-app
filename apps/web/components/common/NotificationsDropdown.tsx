@@ -34,6 +34,8 @@ function resolveEntityUrl(
   if (entityType === "task") {
     if (role === UserRole.EMPLOYEE)
       return `/dashboard/employee/tasks/${entityId}`;
+    if (role === UserRole.MARKETING)
+      return `/dashboard/marketing/tasks/${entityId}`;
     if (role === UserRole.PM || role === UserRole.ADMIN)
       return `/dashboard/pm/tasks/${entityId}`;
     return `/dashboard/tasks/${entityId}`;

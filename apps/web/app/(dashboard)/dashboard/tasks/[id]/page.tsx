@@ -33,6 +33,8 @@ export default async function TaskRedirectPage({ params }: PageProps) {
 
   if (role === "EMPLOYEE") {
     redirect(`/dashboard/employee/tasks/${id}`);
+  } else if (role === "MARKETING") {
+    redirect(`/dashboard/marketing/tasks/${id}`);
   } else if (role === "PM" || role === "ADMIN") {
     redirect(`/dashboard/pm/tasks/${id}`);
   } else {

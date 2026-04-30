@@ -2,7 +2,7 @@
 export * from "./enums/roles";
 export * from "./enums/client";
 export * from "./enums/project";
-export * from "./enums/marketing";
+
 export * from "./enums/finance";
 export * from "./enums/ai";
 export * from "./enums/satisfaction";
@@ -34,6 +34,7 @@ import {
   TaskDepartment,
 } from "./enums/project";
 import { PaymentMethod, InvoiceStatus, TicketStatus } from "./enums/finance";
+
 
 export interface User {
   id: string;
@@ -231,6 +232,8 @@ export interface PaymentTicket {
   createdAt: Date | string;
   resolvedAt?: Date | string | null;
 }
+
+
 
 // ─── Input types for schemas (also re-exported via wildcard above) ───────────
 // Explicit re-exports for consumers that import by name

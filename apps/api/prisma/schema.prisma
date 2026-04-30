@@ -143,39 +143,7 @@ enum DelayAlertLevel {
   HIGH
 }
 
-enum CampaignPlatform {
-  META
-  GOOGLE
-  SNAPCHAT
-  TIKTOK
-  LINKEDIN
-}
 
-enum CampaignStatus {
-  PLANNING
-  ACTIVE
-  PAUSED
-  STOPPED
-  COMPLETED
-}
-
-enum DataSource {
-  API
-  MANUAL
-}
-
-enum AbTestElement {
-  HEADLINE
-  CREATIVE
-  AUDIENCE
-  OFFER
-}
-
-enum AbTestStatus {
-  ACTIVE
-  COMPLETED
-  CANCELLED
-}
 
 enum InvoiceStatus {
   DUE
@@ -224,7 +192,7 @@ enum AiEntityType {
   CLIENT
   PROJECT
   TASK
-  CAMPAIGN
+
 }
 
 enum AiAnalysisType {
@@ -283,10 +251,7 @@ model User {
   taskComments     TaskComment[]
   notifiedDelays   TaskDelayAlert[]
   approvedDelivs   Deliverable[]
-  managedCampaigns Campaign[]               @relation("CampaignManager")
-  kpiSnapshots     CampaignKpiSnapshot[]
-  auditLogs        CampaignKpiAuditLog[]
-  createdAbTests   AbTest[]
+
   createdInvoices  Invoice[]
   assignedTickets  PaymentTicket[]          @relation("TicketAssignee")
   internalRatings  InternalRating[]         @relation("RatedBy")
@@ -296,6 +261,7 @@ model User {
   triggeredAiLogs  AiAnalysisLog[]
   actionedAiSuggs  AiSuggestion[]
   notifications    Notification[]
+
 
   @@map("users")
   @@index([roleId])
@@ -493,8 +459,7 @@ model Client {
   projects     Project[]
   revisionReqs ClientRevisionRequest[]
   intakeForms  PortalIntakeForm[]
-  campaigns    Campaign[]
-  adPlatConns  AdPlatformConnection[]
+
   invoices     Invoice[]
   payTickets   PaymentTicket[]
   satRatings   SatisfactionRating[]
@@ -637,7 +602,7 @@ model Project {
   members        ProjectMember[]
   tasks          Task[]
   deliverables   Deliverable[]
-  campaigns      Campaign[]
+
   satRatings     SatisfactionRating[]
 
   @@map("projects")
@@ -692,7 +657,7 @@ model Task {
   delayAlerts    TaskDelayAlert[]
   deliverables Deliverable[]
   internalRating InternalRating?
-  campaigns    Campaign[]
+
 
   @@map("tasks")
   @@index([projectId])
@@ -823,121 +788,6 @@ model PortalIntakeForm {
   @@index([clientId])
 }
 
-// 🔴 MARKETING
-
-model Campaign {
-  id              String           @id @default(uuid())
-  clientId        String           @map("client_id")
-  taskId          String           @map("task_id")
-  projectId       String?          @map("project_id")
-  managedBy       String           @map("managed_by")
-  name            String
-  platform        CampaignPlatform
-  status          CampaignStatus   @default(PLANNING)
-  startDate       DateTime         @map("start_date")
-  endDate         DateTime?        @map("end_date")
-  budgetTotal     Float            @default(0) @map("budget_total")
-  budgetSpent     Float            @default(0) @map("budget_spent")
-  impressions     Int              @default(0)
-  clicks          Int              @default(0)
-  conversions     Int              @default(0)
-  revenue         Float?
-  cpcOverride     Float?           @map("cpc_override")
-  cpaOverride     Float?           @map("cpa_override")
-  needsOptimization Boolean        @default(false) @map("needs_optimization")
-  externalCampaignId String?       @map("external_campaign_id")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-
-  client        Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  task          Task                  @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  project       Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  manager       User                   @relation("CampaignManager", fields: [managedBy], references: [id], onDelete: Restrict)
-  kpiSnapshots  CampaignKpiSnapshot[]
-  abTests       AbTest[]
-
-  @@map("campaigns")
-  @@index([clientId])
-  @@index([taskId])
-  @@index([managedBy])
-}
-
-model CampaignKpiSnapshot {
-  id                  String     @id @default(uuid())
-  campaignId          String     @map("campaign_id")
-  recordedBy          String     @map("recorded_by")
-  snapshotDate        DateTime   @map("snapshot_date")
-  impressions         Int        @default(0)
-  clicks              Int        @default(0)
-  messagesReceived    Int        @default(0) @map("messages_received")
-  ordersCount         Int        @default(0) @map("orders_count")
-  leadsCount          Int        @default(0) @map("leads_count")
-  conversionRate      Float      @default(0) @map("conversion_rate")
-  cac                 Float      @default(0)
-  ctr                 Float      @default(0)
-  dataSource          DataSource @map("data_source")
-  isApprovedByManager Boolean    @default(false) @map("is_approved_by_manager")
-  createdAt           DateTime   @default(now()) @map("created_at")
-
-  campaign Campaign              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  recorder User                  @relation(fields: [recordedBy], references: [id], onDelete: Restrict)
-  auditLogs CampaignKpiAuditLog[]
-
-  @@map("campaign_kpi_snapshots")
-  @@index([campaignId])
-  @@index([snapshotDate])
-}
-
-model CampaignKpiAuditLog {
-  id         String   @id @default(uuid())
-  snapshotId String   @map("snapshot_id")
-  updatedBy  String   @map("updated_by")
-  changes    Json
-  updatedAt  DateTime @default(now()) @map("updated_at")
-
-  snapshot CampaignKpiSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  updater  User                @relation(fields: [updatedBy], references: [id], onDelete: Restrict)
-
-  @@map("campaign_kpi_audit_logs")
-  @@index([snapshotId])
-}
-
-model AdPlatformConnection {
-  id                   String           @id @default(uuid())
-  clientId             String           @map("client_id")
-  platform             CampaignPlatform
-  accessTokenEncrypted String           @map("access_token_encrypted")
-  accountId            String           @map("account_id")
-  tokenExpiresAt       DateTime?        @map("token_expires_at")
-  isActive             Boolean          @default(true) @map("is_active")
-  connectedAt          DateTime         @default(now()) @map("connected_at")
-  lastSyncedAt         DateTime?        @map("last_synced_at")
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  @@map("ad_platform_connections")
-  @@index([clientId])
-}
-
-model AbTest {
-  id               String        @id @default(uuid())
-  campaignId       String        @map("campaign_id")
-  createdBy        String        @map("created_by")
-  name             String
-  testElement      AbTestElement @map("test_element")
-  status           AbTestStatus
-  variants         Json
-  winningVariantId String?       @map("winning_variant_id")
-  startedAt        DateTime?     @map("started_at")
-  endedAt          DateTime?     @map("ended_at")
-  createdAt        DateTime      @default(now()) @map("created_at")
-
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  creator  User     @relation(fields: [createdBy], references: [id], onDelete: Restrict)
-
-  @@map("ab_tests")
-  @@index([campaignId])
-}
 
 // 🟡 FINANCE
 

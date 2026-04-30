@@ -24,7 +24,15 @@ interface MyTasksFilters {
 }
 
 export interface TaskWithProject extends Task {
-  project?: { id: string; name: string };
+  project?: {
+    id: string;
+    name: string;
+    clientId: string;
+    client?: {
+      companyName: string;
+      businessType: string;
+    };
+  };
   assignee?: { id: string; name: string };
 }
 

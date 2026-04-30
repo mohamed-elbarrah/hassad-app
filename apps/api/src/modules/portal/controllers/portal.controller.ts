@@ -82,4 +82,6 @@ export class PortalController {
   getIntakeForm(@Param('id') clientId: string) {
     return this.portalService.getIntakeForm(clientId);
   }
+
+
 }

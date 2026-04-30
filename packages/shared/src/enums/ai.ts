@@ -3,7 +3,7 @@ export enum AiEntityType {
   CLIENT = 'CLIENT',
   PROJECT = 'PROJECT',
   TASK = 'TASK',
-  CAMPAIGN = 'CAMPAIGN',
+
 }
 
 export enum AiAnalysisType {

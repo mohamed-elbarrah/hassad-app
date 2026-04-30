@@ -15,6 +15,7 @@ import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -50,8 +51,12 @@ export class ProjectsController {
 
   @Post(':id/members')
   @RequirePermissions('projects.manage_members')
-  addMember(@Param('id') id: string, @Body() addMemberDto: AddMemberDto) {
-    return this.projectsService.addMember(id, addMemberDto);
+  addMember(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() addMemberDto: AddMemberDto,
+  ) {
+    return this.projectsService.addMember(id, addMemberDto, user.id);
   }
 
   @Delete(':id/members/:userId')

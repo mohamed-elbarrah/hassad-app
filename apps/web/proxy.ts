@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Note: Simple check for token existence. Token validation occurs on the NestJS backend API.
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
 
   // Protected route prefixes

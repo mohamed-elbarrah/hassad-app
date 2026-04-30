@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
-import { ContractStatus } from '@hassad/shared';
+import { ContractStatus, TaskStatus, TaskPriority, UserRole } from '@hassad/shared';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async create(dto: CreateProjectDto) {
     if (!dto.contractId) {
@@ -74,14 +78,64 @@ export class ProjectsService {
     });
   }
 
-  async addMember(id: string, dto: AddMemberDto) {
-    return this.prisma.projectMember.create({
+  async addMember(id: string, dto: AddMemberDto, addedBy: string) {
+    const project = await this.prisma.project.findUnique({ where: { id } });
+    if (!project) throw new NotFoundException('Project not found');
+
+    const member = await this.prisma.projectMember.create({
       data: {
         projectId: id,
         userId: dto.userId,
         role: dto.role,
       },
     });
+
+    // Auto-create task for Marketing role
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+      include: { role: true },
+    });
+
+    if (user?.role.name === UserRole.MARKETING) {
+      const marketingDept = await this.prisma.department.findUnique({
+        where: { name: 'MARKETING' },
+      });
+
+      if (marketingDept) {
+        const task = await this.prisma.task.create({
+          data: {
+            projectId: id,
+            departmentId: marketingDept.id,
+            assignedTo: dto.userId,
+            createdBy: addedBy,
+            title: 'إدارة الحملات الإعلانية',
+            description: `تم إنشاء هذه المهمة تلقائياً عند إسناد المشروع إلى قسم التسويق. يرجى البدء في إعداد الحملات الإعلانية للمشروع: ${project.name}`,
+            status: TaskStatus.TODO,
+            priority: TaskPriority.NORMAL,
+            dueDate: project.endDate,
+          },
+        });
+
+        // Notify marketer
+        this.notificationsService
+          .createNotification({
+            entityId: task.id,
+            entityType: 'task',
+            eventType: 'TASK_ASSIGNED',
+            userId: dto.userId,
+            title: 'تم إسناد مهمة تسويق جديدة',
+            body: `تم إنشاء مهمة "إدارة الحملات الإعلانية" تلقائياً لك في مشروع ${project.name}.`,
+            metadata: {
+              taskId: task.id,
+              projectId: project.id,
+              assignedBy: addedBy,
+            },
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    return member;
   }
 
   async removeMember(id: string, userId: string) {

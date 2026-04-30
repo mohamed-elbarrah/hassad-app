@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { useGetDeliverablesByClientQuery } from "@/features/deliverables/deliverablesApi";
 import { useGetInvoicesByClientQuery } from "@/features/finance/financeApi";
-import { useGetCampaignsQuery } from "@/features/campaigns/campaignsApi";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,7 @@ export default function PortalPage() {
   const { data: invoices } = useGetInvoicesByClientQuery(clientId, {
     skip: !clientId,
   });
-  const { data: campaigns } = useGetCampaignsQuery(
-    { clientId, limit: 1 },
-    { skip: !clientId },
-  );
+
 
   const pendingDeliverables = deliverables?.filter(
     (d) => d.status !== "DONE",
@@ -36,7 +33,7 @@ export default function PortalPage() {
     ?.filter((inv) => inv.status === "DUE" || inv.status === "SENT")
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
 
-  const latestCampaign = campaigns?.items?.[0];
+
 
   const SUMMARY_CARDS = [
     {
@@ -46,17 +43,7 @@ export default function PortalPage() {
           ? null
           : deliverables.find((d) => d.status !== "DONE")?.title ?? "لا يوجد",
     },
-    {
-      title: "حالة الحملة",
-      value:
-        campaigns === undefined
-          ? null
-          : latestCampaign
-            ? latestCampaign.status === "ACTIVE"
-              ? "قيد الإطلاق"
-              : latestCampaign.name
-            : "لا يوجد",
-    },
+
     {
       title: "الفاتورة القادمة",
       value:
@@ -180,16 +167,7 @@ export default function PortalPage() {
                 </CardContent>
               </Card>
             </Link>
-            <Link href="/portal/reports">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="text-base">التقارير</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  تقارير الحملات الإعلانية.
-                </CardContent>
-              </Card>
-            </Link>
+
             <Link href="/portal/finance">
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardHeader>

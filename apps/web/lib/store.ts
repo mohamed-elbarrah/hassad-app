@@ -12,7 +12,7 @@ import { proposalsApi } from "@/features/proposals/proposalsApi";
 import { contractsApi } from "@/features/contracts/contractsApi";
 import { salesApi } from "@/features/sales/salesApi";
 import { financeApi } from "@/features/finance/financeApi";
-import { campaignsApi } from "@/features/campaigns/campaignsApi";
+
 import { deliverablesApi } from "@/features/deliverables/deliverablesApi";
 import { adminApi } from "@/features/admin/adminApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
@@ -32,12 +32,15 @@ export const store = configureStore({
     [contractsApi.reducerPath]: contractsApi.reducer,
     [salesApi.reducerPath]: salesApi.reducer,
     [financeApi.reducerPath]: financeApi.reducer,
-    [campaignsApi.reducerPath]: campaignsApi.reducer,
+
     [deliverablesApi.reducerPath]: deliverablesApi.reducer,
     [adminApi.reducerPath]: adminApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(
+    getDefaultMiddleware({
+      serializableCheck: false,
+      immutableCheck: false,
+    }).concat(
       authApi.middleware,
       clientsApi.middleware,
       leadsApi.middleware,
@@ -49,7 +52,7 @@ export const store = configureStore({
       contractsApi.middleware,
       salesApi.middleware,
       financeApi.middleware,
-      campaignsApi.middleware,
+
       deliverablesApi.middleware,
       adminApi.middleware,
     ),

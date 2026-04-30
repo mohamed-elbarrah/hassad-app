@@ -16,6 +16,7 @@ import {
   FileSignature,
   Ticket,
   ListChecks,
+  BarChart3,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -150,29 +151,17 @@ const navSections: NavSection[] = [
       },
     ],
   },
-  {
-    label: "التسويق",
-    items: [
-      {
-        title: "لوحة التسويق",
-        url: "/dashboard/marketing",
-        icon: Megaphone,
-        roles: ["ADMIN", "MARKETING"],
-      },
-      {
-        title: "عملاء التسويق",
-        url: "/dashboard/marketing/clients",
-        icon: Users,
-        roles: ["ADMIN", "MARKETING"],
-      },
-      {
-        title: "الحملات",
-        url: "/dashboard/marketing/campaigns",
-        icon: Megaphone,
-        roles: ["ADMIN", "MARKETING"],
-      },
-    ],
-  },
+    {
+      label: "التسويق",
+      items: [
+        {
+          title: "لوحة التسويق",
+          url: "/dashboard/marketing",
+          icon: BarChart3,
+          roles: ["ADMIN", "MARKETING"],
+        },
+      ],
+    },
   {
     label: "المالية",
     items: [
