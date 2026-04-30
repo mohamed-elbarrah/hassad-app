@@ -254,44 +254,27 @@ export class TasksService {
       return createdTask;
     });
 
-    if (createdTask.assignedTo) {
+  if (createdTask.assignedTo) {
       const departmentLabel = this.getDepartmentArabicLabel(department.name);
-      const project = await this.prisma.project.findUnique({
-        where: { id: createdTask.projectId },
-        select: { projectManagerId: true },
-      });
-      const recipients = this.toUniqueUserIds(
-        createdTask.assignedTo,
-        project?.projectManagerId,
-      );
 
-      if (recipients.length > 0) {
-        const notificationJobs = recipients.map((recipientId) =>
-          this.notificationsService.createNotification({
-            entityId: createdTask.id,
-            entityType: "task",
-            eventType: "TASK_ASSIGNED",
-            userId: recipientId,
-            title: "تم إسناد مهمة جديدة",
-            body:
-              recipientId === createdTask.assignedTo
-                ? departmentLabel
-                  ? `تم إسناد المهمة "${createdTask.title}" إليك في قسم ${departmentLabel}.`
-                  : `تم إسناد المهمة "${createdTask.title}" إليك.`
-                : assigneeInfo?.name
-                  ? `تم إسناد المهمة "${createdTask.title}" إلى ${assigneeInfo.name}.`
-                  : `تم إسناد المهمة "${createdTask.title}" إلى أحد أعضاء الفريق.`,
-            metadata: {
-              taskId: createdTask.id,
-              projectId: createdTask.projectId,
-              assignedBy: userId,
-              assigneeDepartment: department.name,
-            },
-          }),
-        );
-
-        Promise.allSettled(notificationJobs).catch(() => undefined);
-      }
+      this.notificationsService
+        .createNotification({
+          entityId: createdTask.id,
+          entityType: "task",
+          eventType: "TASK_ASSIGNED",
+          userId: createdTask.assignedTo,
+          title: "تم إسناد مهمة جديدة",
+          body: departmentLabel
+            ? `تم إسناد المهمة "${createdTask.title}" إليك في قسم ${departmentLabel}.`
+            : `تم إسناد المهمة "${createdTask.title}" إليك.`,
+          metadata: {
+            taskId: createdTask.id,
+            projectId: createdTask.projectId,
+            assignedBy: userId,
+            assigneeDepartment: department.name,
+          },
+        })
+        .catch(() => undefined);
     }
 
     return createdTask;
@@ -400,8 +383,16 @@ export class TasksService {
       return updated;
     });
 
-    const projectManagerId = task.project?.projectManagerId;
-    const recipients = this.toUniqueUserIds(task.assignedTo, projectManagerId);
+    const isApproveOrReject =
+      toStatus === TaskStatus.DONE || toStatus === TaskStatus.REVISION;
+    const isSubmittedForReview = toStatus === TaskStatus.IN_REVIEW;
+
+    const recipients = isApproveOrReject
+      ? this.toUniqueUserIds(task.assignedTo)
+      : isSubmittedForReview
+        ? this.toUniqueUserIds(task.assignedTo, task.createdBy)
+        : this.toUniqueUserIds(task.assignedTo);
+
     const statusNotificationByTarget: Record<
       TaskStatus,
       { eventType: string; title: string; body: string }
@@ -469,6 +460,7 @@ export class TasksService {
         departmentId: true,
         department: { select: { name: true } },
         assignedTo: true,
+        createdBy: true,
       },
     });
 
@@ -490,13 +482,9 @@ export class TasksService {
       const departmentLabel = this.getDepartmentArabicLabel(
         existingTask.department.name,
       );
-      const project = await this.prisma.project.findUnique({
-        where: { id: existingTask.projectId },
-        select: { projectManagerId: true },
-      });
       const recipients = this.toUniqueUserIds(
         dto.userId,
-        project?.projectManagerId,
+        existingTask.createdBy,
       );
 
       if (recipients.length > 0) {
@@ -624,13 +612,49 @@ export class TasksService {
   }
 
   async addComment(id: string, userId: string, dto: CreateTaskCommentDto) {
-    return this.prisma.taskComment.create({
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      select: { id: true, title: true, assignedTo: true, createdBy: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    }
+
+    const comment = await this.prisma.taskComment.create({
       data: {
         taskId: id,
         userId,
         ...dto,
       },
     });
+
+    const recipients = this.toUniqueUserIds(
+      task.assignedTo,
+      task.createdBy,
+    ).filter((recipientId) => recipientId !== userId);
+
+    if (recipients.length > 0) {
+      const notificationJobs = recipients.map((recipientId) =>
+        this.notificationsService.createNotification({
+          entityId: task.id,
+          entityType: "task",
+          eventType: "TASK_COMMENT_ADDED",
+          userId: recipientId,
+          title: "تعليق جديد على المهمة",
+          body: `تمت إضافة تعليق جديد على المهمة "${task.title}".`,
+          metadata: {
+            taskId: task.id,
+            commentId: comment.id,
+            commentedBy: userId,
+          },
+        }),
+      );
+
+      Promise.allSettled(notificationJobs).catch(() => undefined);
+    }
+
+    return comment;
   }
 
   async findByProject(projectId: string) {
