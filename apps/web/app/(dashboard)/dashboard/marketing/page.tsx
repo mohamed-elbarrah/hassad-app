@@ -16,12 +16,29 @@ import {
   Activity
 } from "lucide-react";
 import { AlertList } from "@/components/dashboard/marketing/AlertList";
-import { MOCK_MARKETING_DATA, getAggregatedMetrics } from "@/lib/marketing-mock";
+import { useGetMyTasksQuery } from "@/features/tasks/tasksApi";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+
 
 export default function MarketingDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
-  const metrics = getAggregatedMetrics(MOCK_MARKETING_DATA);
+  const { data: tasks = [], isLoading } = useGetMyTasksQuery({});
+  
+  // Filter for marketing department
+  const marketingTasks = tasks.filter(task => task.department?.name === "MARKETING");
+
+  // Simple aggregation for the dashboard summary
+  // In a real scenario, we might want a dedicated stats endpoint
+  const stats = {
+    totalActiveTasks: marketingTasks.filter(t => t.status === 'IN_PROGRESS').length,
+    totalActiveCampaigns: 0, // We don't have global campaigns list here, would need another query
+    totalBudgetUsed: 0,
+    avgRoas: "0.0"
+  };
+
+  if (isLoading) return <Skeleton className="h-screen w-full" />;
+
 
   return (
     <div className="flex flex-col gap-8 pb-10" dir="rtl">
@@ -44,32 +61,32 @@ export default function MarketingDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard 
           title="المهام النشطة" 
-          value={metrics.totalActiveTasks.toString()} 
+          value={stats.totalActiveTasks.toString()} 
           icon={<Zap className="w-4 h-4" />}
           color="bg-indigo-500"
         />
         <SummaryCard 
           title="الحملات النشطة" 
-          value={metrics.totalActiveCampaigns.toString()} 
+          value={stats.totalActiveCampaigns.toString()} 
           icon={<Activity className="w-4 h-4" />}
           color="bg-emerald-500"
         />
         <SummaryCard 
           title="إجمالي الإنفاق" 
-          value={`$${metrics.totalBudgetUsed.toLocaleString()}`} 
+          value={`$${stats.totalBudgetUsed.toLocaleString()}`} 
           icon={<Wallet className="w-4 h-4" />}
           color="bg-amber-500"
         />
         <SummaryCard 
           title="متوسط الـ ROAS" 
-          value={`${metrics.avgRoas}x`} 
+          value={`${stats.avgRoas}x`} 
           icon={<Target className="w-4 h-4" />}
           color="bg-rose-500"
         />
       </div>
 
       {/* Critical Alerts Section */}
-      <AlertList tasks={MOCK_MARKETING_DATA} />
+      <AlertList tasks={marketingTasks} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Task Progress Overview */}
@@ -79,25 +96,21 @@ export default function MarketingDashboardPage() {
             <CardDescription>المهام الحالية وحالة الحملات المرتبطة بها</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {MOCK_MARKETING_DATA.map(task => (
+            {marketingTasks.map(task => (
               <Link href={`/dashboard/marketing/tasks/${task.id}`} key={task.id}>
                 <div className="group p-4 rounded-xl border border-muted/50 hover:border-primary/40 hover:bg-muted/5 transition-all mb-3 cursor-pointer">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${task.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                      <div className={`w-2 h-2 rounded-full ${task.status === 'IN_PROGRESS' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
                       <h4 className="font-bold group-hover:text-primary transition-colors">{task.title}</h4>
                     </div>
-                    <Badge variant="secondary" className="text-[10px]">{task.client}</Badge>
+                    <Badge variant="secondary" className="text-[10px]">{task.project?.client?.companyName}</Badge>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center gap-4">
                       <span className="flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5" />
-                        {task.campaigns.length} حملات
-                      </span>
-                      <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
-                        تاريخ الاستحقاق: {task.dueDate}
+                        تاريخ الاستحقاق: {new Date(task.dueDate).toLocaleDateString('ar-EG')}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-primary font-medium">
@@ -109,6 +122,7 @@ export default function MarketingDashboardPage() {
             ))}
           </CardContent>
         </Card>
+
 
         {/* Recent Activity */}
         <Card className="shadow-sm border-muted/60">

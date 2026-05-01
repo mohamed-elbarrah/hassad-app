@@ -27,24 +27,69 @@ import {
   ArrowRightLeft
 } from "lucide-react";
 import { Campaign, computeMetrics } from "@/lib/marketing-mock";
+import { 
+  useUpdateCampaignMetricsMutation, 
+  useUpdateCampaignStatusMutation,
+  useFlagOptimizationMutation,
+  useDuplicateCampaignMutation 
+} from "@/features/marketing/marketingApi";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 interface CampaignDetailDrawerProps {
   campaign: Campaign | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (updated: Campaign) => void;
+  onUpdate?: (updated: any) => void;
 }
 
 export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: CampaignDetailDrawerProps) {
+  const [updateMetrics, { isLoading: isUpdatingMetrics }] = useUpdateCampaignMetricsMutation();
+  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateCampaignStatusMutation();
+  const [flagOptimization, { isLoading: isFlagging }] = useFlagOptimizationMutation();
+  const [duplicate, { isLoading: isDuplicating }] = useDuplicateCampaignMutation();
+
   if (!campaign) return null;
 
   const metrics = computeMetrics(campaign);
   const isProfitable = parseFloat(metrics.profit) > 0;
 
-  const handleInputChange = (field: keyof Campaign, value: any) => {
-    onUpdate({ ...campaign, [field]: value });
+  const handleStatusAction = async (action: 'start' | 'pause' | 'stop' | 'end') => {
+    try {
+      await updateStatus({ id: campaign.id, action }).unwrap();
+      toast.success("تم تحديث حالة الحملة");
+    } catch (err) {
+      toast.error("فشل تحديث الحالة");
+    }
   };
+
+  const handleFlagOptimization = async () => {
+    try {
+      await flagOptimization({ id: campaign.id, needsOptimization: !campaign.needsOptimization }).unwrap();
+      toast.success("تم تحديث حالة التحسين");
+    } catch (err) {
+      toast.error("فشل التحديث");
+    }
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      await duplicate(campaign.id).unwrap();
+      toast.success("تم تكرار الحملة بنجاح");
+      onClose();
+    } catch (err) {
+      toast.error("فشل تكرار الحملة");
+    }
+  };
+
+  const handleMetricChange = async (field: string, value: number) => {
+    try {
+      await updateMetrics({ id: campaign.id, body: { [field]: value } }).unwrap();
+    } catch (err) {
+      toast.error("فشل تحديث المقاييس");
+    }
+  };
+
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -77,15 +122,27 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant={campaign.status === 'ACTIVE' ? 'outline' : 'default'} className="gap-2 shadow-sm">
+              <Button 
+                size="sm" 
+                variant={campaign.status === 'ACTIVE' ? 'outline' : 'default'} 
+                className="gap-2 shadow-sm"
+                onClick={() => handleStatusAction(campaign.status === 'ACTIVE' ? 'pause' : 'start')}
+                disabled={isUpdatingStatus}
+              >
                 {campaign.status === 'ACTIVE' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 {campaign.status === 'ACTIVE' ? 'إيقاف مؤقت' : 'تفعيل'}
               </Button>
-              <Button size="sm" variant="outline" className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 shadow-sm">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 shadow-sm"
+                onClick={() => handleStatusAction('stop')}
+                disabled={isUpdatingStatus}
+              >
                 <Square className="w-4 h-4" />
                 إنهاء نهائي
               </Button>
-              <Button size="sm" variant="outline" className="gap-2 shadow-sm">
+              <Button size="sm" variant="outline" className="gap-2 shadow-sm" onClick={handleDuplicate} disabled={isDuplicating}>
                 <Copy className="w-4 h-4" />
                 تكرار
               </Button>
@@ -93,12 +150,14 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 size="sm" 
                 variant={campaign.needsOptimization ? 'destructive' : 'outline'} 
                 className="gap-2 shadow-sm"
-                onClick={() => handleInputChange('needsOptimization', !campaign.needsOptimization)}
+                onClick={handleFlagOptimization}
+                disabled={isFlagging}
               >
                 <AlertCircle className="w-4 h-4" />
                 {campaign.needsOptimization ? 'تم التحسين' : 'يحتاج تحسين'}
               </Button>
             </div>
+
           </div>
 
           {/* Deep Analytics Sections */}
@@ -166,7 +225,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                   <Input 
                     type="number" 
                     value={campaign.budgetSpent} 
-                    onChange={(e) => handleInputChange('budgetSpent', parseFloat(e.target.value))}
+                    onChange={(e) => handleMetricChange('budgetSpent', parseFloat(e.target.value))}
+                    disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
                   <DollarSign className="w-3 h-3 absolute left-3 top-3 text-muted-foreground opacity-50" />
@@ -177,8 +237,9 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 <div className="relative">
                   <Input 
                     type="number" 
-                    value={campaign.revenue} 
-                    onChange={(e) => handleInputChange('revenue', parseFloat(e.target.value))}
+                    value={campaign.revenue || 0} 
+                    onChange={(e) => handleMetricChange('revenue', parseFloat(e.target.value))}
+                    disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
                   <TrendingUp className="w-3 h-3 absolute left-3 top-3 text-muted-foreground opacity-50" />
@@ -190,7 +251,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                   <Input 
                     type="number" 
                     value={campaign.conversions} 
-                    onChange={(e) => handleInputChange('conversions', parseInt(e.target.value))}
+                    onChange={(e) => handleMetricChange('conversions', parseInt(e.target.value))}
+                    disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
                   <Target className="w-3 h-3 absolute left-3 top-3 text-muted-foreground opacity-50" />
@@ -202,7 +264,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                   <Input 
                     type="number" 
                     value={campaign.clicks} 
-                    onChange={(e) => handleInputChange('clicks', parseInt(e.target.value))}
+                    onChange={(e) => handleMetricChange('clicks', parseInt(e.target.value))}
+                    disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
                   <MousePointerClick className="w-3 h-3 absolute left-3 top-3 text-muted-foreground opacity-50" />
@@ -214,13 +277,15 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                   <Input 
                     type="number" 
                     value={campaign.impressions} 
-                    onChange={(e) => handleInputChange('impressions', parseInt(e.target.value))}
+                    onChange={(e) => handleMetricChange('impressions', parseInt(e.target.value))}
+                    disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
                   <ArrowRightLeft className="w-3 h-3 absolute left-3 top-3 text-muted-foreground opacity-50" />
                 </div>
               </div>
             </div>
+
             
             <Button className="w-full shadow-lg" onClick={onClose}>حفظ ومزامنة البيانات</Button>
           </div>

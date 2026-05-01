@@ -34,7 +34,9 @@ export interface TaskWithProject extends Task {
     };
   };
   assignee?: { id: string; name: string };
+  creator?: { id: string; name: string };
 }
+
 
 export interface TaskStats {
   total: number;

@@ -25,42 +25,42 @@ import {
 import { MOCK_MARKETING_DATA, Campaign, computeMetrics } from "@/lib/marketing-mock";
 import { CampaignDetailDrawer } from "@/components/dashboard/marketing/CampaignDetailDrawer";
 import { CampaignFormModal } from "@/components/dashboard/marketing/CampaignFormModal";
+import { useGetTaskByIdQuery, TaskWithProject } from "@/features/tasks/tasksApi";
+import { useGetCampaignsByTaskQuery } from "@/features/marketing/marketingApi";
 import Link from "next/link";
+
 import { useParams } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function MarketingTaskDetailPage() {
   const params = useParams();
   const taskId = params.taskId as string;
   
-  // Local state for mockup interaction
-  const [task, setTask] = useState(MOCK_MARKETING_DATA.find(t => t.id === taskId));
+  const { data: rawTask, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId);
+  const task = rawTask as unknown as TaskWithProject;
+  const { data: campaigns = [], isLoading: isCampaignsLoading } = useGetCampaignsByTaskQuery(taskId);
+
+
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  if (isTaskLoading) return (
+    <div className="space-y-6" dir="rtl">
+      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-40 w-full" />
+    </div>
+  );
   if (!task) return <div>Task not found</div>;
 
-  const handleUpdateCampaign = (updated: Campaign) => {
-    setTask({
-      ...task,
-      campaigns: task.campaigns.map(c => c.id === updated.id ? updated : c)
-    });
-    setSelectedCampaign(updated);
-  };
-
-  const handleAddCampaign = (newCamp: Campaign) => {
-    setTask({
-      ...task,
-      campaigns: [...task.campaigns, newCamp]
-    });
-  };
 
   const aggregated = {
-    spend: task.campaigns.reduce((acc, c) => acc + c.budgetSpent, 0),
-    conv: task.campaigns.reduce((acc, c) => acc + c.conversions, 0),
-    rev: task.campaigns.reduce((acc, c) => acc + c.revenue, 0),
+    spend: campaigns.reduce((acc, c) => acc + c.budgetSpent, 0),
+    conv: campaigns.reduce((acc, c) => acc + c.conversions, 0),
+    rev: campaigns.reduce((acc, c) => acc + (c.revenue || 0), 0),
   };
   const totalRoas = aggregated.spend > 0 ? (aggregated.rev / aggregated.spend).toFixed(2) : "0.00";
+
 
   return (
     <div className="flex flex-col gap-6 pb-10" dir="rtl">
@@ -72,9 +72,9 @@ export default function MarketingTaskDetailPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <Badge variant="secondary">{task.client}</Badge>
+              <Badge variant="secondary">{task.project?.client?.companyName}</Badge>
               <span className="text-muted-foreground text-sm">/</span>
-              <span className="text-muted-foreground text-sm font-medium">{task.project}</span>
+              <span className="text-muted-foreground text-sm font-medium">{task.project?.name}</span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight">{task.title}</h1>
           </div>
@@ -84,7 +84,7 @@ export default function MarketingTaskDetailPage() {
             </Badge>
             <div className="text-right">
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">أسندت بواسطة</p>
-              <p className="text-sm font-semibold">{task.assignedBy}</p>
+              <p className="text-sm font-semibold">{task.creator?.name}</p>
             </div>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function MarketingTaskDetailPage() {
         <TabsList className="bg-muted/50 p-1">
           <TabsTrigger value="campaigns" className="gap-2">
             <Target className="w-4 h-4" />
-            الحملات الإعلانية ({task.campaigns.length})
+            الحملات الإعلانية ({campaigns.length})
           </TabsTrigger>
           <TabsTrigger value="overview" className="gap-2">
             <Info className="w-4 h-4" />
@@ -116,7 +116,8 @@ export default function MarketingTaskDetailPage() {
             </Button>
           </div>
 
-          {task.campaigns.length === 0 ? (
+
+          {campaigns.length === 0 ? (
             <Card className="border-dashed border-2 py-12">
               <CardContent className="flex flex-col items-center justify-center text-center">
                 <Layout className="w-12 h-12 text-muted-foreground/40 mb-4" />
@@ -126,7 +127,7 @@ export default function MarketingTaskDetailPage() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {task.campaigns.map(campaign => (
+              {campaigns.map(campaign => (
                 <CampaignCard 
                   key={campaign.id} 
                   campaign={campaign} 
@@ -151,7 +152,8 @@ export default function MarketingTaskDetailPage() {
               <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <h5 className="text-[10px] uppercase font-bold text-muted-foreground mb-1">تاريخ الاستحقاق</h5>
-                  <p className="font-semibold text-sm">{task.dueDate}</p>
+                  <p className="font-semibold text-sm">{new Date(task.dueDate).toLocaleDateString('ar-EG')}</p>
+
                 </div>
                 <div>
                   <h5 className="text-[10px] uppercase font-bold text-muted-foreground mb-1">القسم</h5>
@@ -176,14 +178,16 @@ export default function MarketingTaskDetailPage() {
         campaign={selectedCampaign} 
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
-        onUpdate={handleUpdateCampaign}
       />
 
       <CampaignFormModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        onAdd={handleAddCampaign} 
+        taskId={taskId}
+        clientId={task.project?.clientId}
+        projectId={task.projectId}
       />
+
     </div>
   );
 }

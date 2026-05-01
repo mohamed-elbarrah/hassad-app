@@ -143,6 +143,22 @@ enum DelayAlertLevel {
   HIGH
 }
 
+enum CampaignStatus {
+  PLANNING
+  ACTIVE
+  PAUSED
+  STOPPED
+  COMPLETED
+}
+
+enum CampaignPlatform {
+  GOOGLE
+  META
+  TIKTOK
+  SNAPCHAT
+}
+
+
 
 
 enum InvoiceStatus {
@@ -261,6 +277,8 @@ model User {
   triggeredAiLogs  AiAnalysisLog[]
   actionedAiSuggs  AiSuggestion[]
   notifications    Notification[]
+  managedCampaigns Campaign[]               @relation("CampaignManager")
+
 
 
   @@map("users")
@@ -463,6 +481,8 @@ model Client {
   invoices     Invoice[]
   payTickets   PaymentTicket[]
   satRatings   SatisfactionRating[]
+  campaigns    Campaign[]
+
 
   @@map("clients")
   @@index([accountManager])
@@ -602,6 +622,8 @@ model Project {
   members        ProjectMember[]
   tasks          Task[]
   deliverables   Deliverable[]
+  campaigns      Campaign[]
+
 
   satRatings     SatisfactionRating[]
 
@@ -657,6 +679,8 @@ model Task {
   delayAlerts    TaskDelayAlert[]
   deliverables Deliverable[]
   internalRating InternalRating?
+  campaigns    Campaign[]
+
 
 
   @@map("tasks")
@@ -729,6 +753,41 @@ model TaskDelayAlert {
   @@map("task_delay_alerts")
   @@index([taskId])
 }
+
+model Campaign {
+  id                  String           @id @default(uuid())
+  clientId            String           @map("client_id")
+  taskId              String           @map("task_id")
+  projectId           String?          @map("project_id")
+  managedBy           String           @map("managed_by")
+  name                String
+  platform            CampaignPlatform
+  status              CampaignStatus   @default(PLANNING)
+  startDate           DateTime         @map("start_date")
+  endDate             DateTime?        @map("end_date")
+  budgetTotal         Float            @default(0) @map("budget_total")
+  budgetSpent         Float            @default(0) @map("budget_spent")
+  impressions         Int              @default(0)
+  clicks              Int              @default(0)
+  conversions         Int              @default(0)
+  revenue             Float?
+  cpcOverride         Float?           @map("cpc_override")
+  cpaOverride         Float?           @map("cpa_override")
+  needsOptimization   Boolean          @default(false) @map("needs_optimization")
+  externalCampaignId  String?          @map("external_campaign_id")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  task    Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  manager User     @relation("CampaignManager", fields: [managedBy], references: [id])
+
+  @@map("campaigns")
+  @@index([taskId])
+  @@index([clientId])
+}
+
 
 // 🟦 CLIENT PORTAL
 

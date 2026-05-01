@@ -12,37 +12,45 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Platform } from "@/lib/marketing-mock";
+import { 
+  CampaignPlatform 
+} from "@hassad/shared";
+import { useCreateCampaignMutation } from "@/features/marketing/marketingApi";
+import { toast } from "sonner";
 
 interface CampaignFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (campaign: any) => void;
+  taskId: string;
+  clientId: string;
+  projectId?: string;
 }
 
-export function CampaignFormModal({ isOpen, onClose, onAdd }: CampaignFormModalProps) {
+export function CampaignFormModal({ isOpen, onClose, taskId, clientId, projectId }: CampaignFormModalProps) {
+  const [createCampaign, { isLoading }] = useCreateCampaignMutation();
   const [formData, setFormData] = useState({
     name: "",
-    platform: "GOOGLE" as Platform,
+    platform: CampaignPlatform.GOOGLE,
     budgetTotal: 1000,
     startDate: new Date().toISOString().split('T')[0]
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
-      id: Math.random().toString(36).substr(2, 9),
-      ...formData,
-      status: "ACTIVE",
-      budgetSpent: 0,
-      impressions: 0,
-      clicks: 0,
-      conversions: 0,
-      revenue: 0,
-      needsOptimization: false
-    });
-    onClose();
+    try {
+      await createCampaign({
+        ...formData,
+        taskId,
+        clientId,
+        projectId,
+      }).unwrap();
+      toast.success("تم إنشاء الحملة بنجاح");
+      onClose();
+    } catch (err) {
+      toast.error("فشل إنشاء الحملة");
+    }
   };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -66,19 +74,20 @@ export function CampaignFormModal({ isOpen, onClose, onAdd }: CampaignFormModalP
             <Label htmlFor="platform">المنصة</Label>
             <Select 
               value={formData.platform} 
-              onValueChange={(v) => setFormData({ ...formData, platform: v as Platform })}
+              onValueChange={(v) => setFormData({ ...formData, platform: v as CampaignPlatform })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="اختر المنصة" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="GOOGLE">Google Ads</SelectItem>
-                <SelectItem value="META">Meta Ads</SelectItem>
-                <SelectItem value="TIKTOK">TikTok Ads</SelectItem>
-                <SelectItem value="SNAPCHAT">Snapchat Ads</SelectItem>
+                <SelectItem value={CampaignPlatform.GOOGLE}>Google Ads</SelectItem>
+                <SelectItem value={CampaignPlatform.META}>Meta Ads</SelectItem>
+                <SelectItem value={CampaignPlatform.TIKTOK}>TikTok Ads</SelectItem>
+                <SelectItem value={CampaignPlatform.SNAPCHAT}>Snapchat Ads</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="budget">الميزانية الكلية (USD)</Label>
             <Input 

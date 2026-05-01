@@ -5,14 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowRight, TrendingDown, Target, MousePointerClick } from "lucide-react";
 import Link from "next/link";
-import { MarketingTask, computeMetrics } from "@/lib/marketing-mock";
+import { computeMetrics } from "@/lib/marketing-mock";
 
-export function AlertList({ tasks }: { tasks: MarketingTask[] }) {
+export function AlertList({ tasks }: { tasks: any[] }) {
   const alerts = tasks.flatMap(task => 
-    task.campaigns
-      .filter(c => c.needsOptimization || c.status === "ACTIVE")
-      .map(c => {
+    (task.campaigns || [])
+      .filter((c: any) => c.needsOptimization || c.status === "ACTIVE")
+      .map((c: any) => {
         const metrics = computeMetrics(c);
+
         let reason = "";
         let type: "WARNING" | "CRITICAL" = "WARNING";
 
@@ -55,8 +56,9 @@ export function AlertList({ tasks }: { tasks: MarketingTask[] }) {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-bold text-sm">{alert.campaign.name}</h4>
-                  <Badge variant="outline" className="text-[10px] bg-slate-50">{alert.task.client}</Badge>
+                  <Badge variant="outline" className="text-[10px] bg-slate-50">{alert.task.project?.client?.companyName}</Badge>
                 </div>
+
                 <p className="text-xs text-rose-600 font-medium">{alert.reason}</p>
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">

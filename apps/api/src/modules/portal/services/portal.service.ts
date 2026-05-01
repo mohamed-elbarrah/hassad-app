@@ -109,5 +109,47 @@ export class PortalService {
     });
   }
 
+  async findCampaignsByClient(clientId: string) {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "desc" },
+    });
 
+    return campaigns.map((c) => ({
+      ...c,
+      analytics: this.computeCampaignAnalytics(c),
+    }));
+  }
+
+  async findCampaignOne(id: string, clientId: string) {
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { id, clientId },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException("الحملة غير موجودة");
+    }
+
+    return {
+      ...campaign,
+      analytics: this.computeCampaignAnalytics(campaign),
+    };
+  }
+
+  private computeCampaignAnalytics(c: any) {
+    const budgetSpent = c.budgetSpent || 0;
+    const clicks = c.clicks || 0;
+    const impressions = c.impressions || 0;
+    const conversions = c.conversions || 0;
+    const revenue = c.revenue || 0;
+
+    return {
+      cpc: clicks > 0 ? budgetSpent / clicks : 0,
+      cpa: conversions > 0 ? budgetSpent / conversions : 0,
+      ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+      conversionRate: clicks > 0 ? (conversions / clicks) * 100 : 0,
+      roas: budgetSpent > 0 ? revenue / budgetSpent : 0,
+    };
+  }
 }
+

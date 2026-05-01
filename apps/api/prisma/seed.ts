@@ -9,7 +9,9 @@ async function main() {
   // Clear dynamic data
   await prisma.notification.deleteMany();
   await prisma.notificationEvent.deleteMany();
+  await prisma.campaign.deleteMany();
   await prisma.paymentTicket.deleteMany();
+
   await prisma.invoice.deleteMany();
 
   await prisma.task.deleteMany();

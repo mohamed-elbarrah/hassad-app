@@ -83,5 +83,19 @@ export class PortalController {
     return this.portalService.getIntakeForm(clientId);
   }
 
+  @Get('portal/campaigns')
+  @RequirePermissions('portal.read')
+  getPortalCampaigns(@CurrentUser() user: any) {
+    // For clients, their clientId is stored in the user record
+    if (!user.clientId) return [];
+    return this.portalService.findCampaignsByClient(user.clientId);
+  }
 
+  @Get('portal/campaigns/:id')
+  @RequirePermissions('portal.read')
+  getPortalCampaignOne(@Param('id') id: string, @CurrentUser() user: any) {
+    if (!user.clientId) return null;
+    return this.portalService.findCampaignOne(id, user.clientId);
+  }
 }
+

@@ -1,22 +1,29 @@
 "use client";
 
-export type Platform = "GOOGLE" | "META" | "TIKTOK" | "SNAPCHAT";
+import { 
+  CampaignPlatform as Platform,
+  CampaignStatus,
+  TaskStatus,
+  Campaign as SharedCampaign
+} from "@hassad/shared";
 
-export interface Campaign {
-  id: string;
-  name: string;
+export type { Platform };
+
+export interface Campaign extends Omit<SharedCampaign, 'status' | 'platform'> {
   platform: Platform;
-  status: "ACTIVE" | "PAUSED" | "STOPPED";
+  status: string;
   budgetTotal: number;
   budgetSpent: number;
   impressions: number;
   clicks: number;
   conversions: number;
-  revenue: number;
+  revenue?: number | null;
   needsOptimization: boolean;
-  startDate: string;
-  endDate?: string;
+
+  startDate: string | Date;
+  endDate?: string | Date | null;
 }
+
 
 export interface MarketingTask {
   id: string;
@@ -46,7 +53,7 @@ export const MOCK_MARKETING_DATA: MarketingTask[] = [
       {
         id: "cmp1",
         name: "Snap Ramadan Offer",
-        platform: "SNAPCHAT",
+        platform: Platform.SNAPCHAT,
         status: "ACTIVE",
         budgetTotal: 10000,
         budgetSpent: 6000,
@@ -60,7 +67,7 @@ export const MOCK_MARKETING_DATA: MarketingTask[] = [
       {
         id: "cmp2",
         name: "Google Search Promo",
-        platform: "GOOGLE",
+        platform: Platform.GOOGLE,
         status: "ACTIVE",
         budgetTotal: 8000,
         budgetSpent: 7000,
@@ -99,7 +106,7 @@ export const MOCK_MARKETING_DATA: MarketingTask[] = [
       {
         id: "cmp3",
         name: "TikTok Challenge",
-        platform: "TIKTOK",
+        platform: Platform.TIKTOK,
         status: "PAUSED",
         budgetTotal: 5000,
         budgetSpent: 4800,
@@ -112,6 +119,7 @@ export const MOCK_MARKETING_DATA: MarketingTask[] = [
       }
     ]
   }
+
 ];
 
 // Analytics Logic
@@ -120,9 +128,10 @@ export const computeMetrics = (c: Campaign) => {
   const cpa = c.conversions > 0 ? c.budgetSpent / c.conversions : 0;
   const ctr = c.impressions > 0 ? (c.clicks / c.impressions) * 100 : 0;
   const convRate = c.clicks > 0 ? (c.conversions / c.clicks) * 100 : 0;
-  const roas = c.budgetSpent > 0 ? c.revenue / c.budgetSpent : 0;
-  const profit = c.revenue - c.budgetSpent;
+  const roas = c.budgetSpent > 0 ? (c.revenue || 0) / c.budgetSpent : 0;
+  const profit = (c.revenue || 0) - c.budgetSpent;
   const cpm = c.impressions > 0 ? (c.budgetSpent / c.impressions) * 1000 : 0;
+
 
   return {
     cpc: cpc.toFixed(2),

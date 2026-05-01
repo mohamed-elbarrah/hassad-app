@@ -191,4 +191,48 @@ export class NotificationsService {
 
     return { sent: users.length };
   }
+
+  async notifyUsers(params: {
+    userIds: string[];
+    excludeUserIds?: string[];
+    title: string;
+    message: string;
+    entityId?: string;
+    entityType?: string;
+    eventType?: string;
+    metadata?: Prisma.InputJsonValue;
+  }) {
+    const finalUserIds = params.excludeUserIds
+      ? params.userIds.filter((id) => !params.excludeUserIds.includes(id))
+      : params.userIds;
+
+    const uniqueUserIds = [...new Set(finalUserIds)];
+
+    if (uniqueUserIds.length === 0) {
+      return { sent: 0 };
+    }
+
+    const event = await this.prisma.notificationEvent.create({
+      data: {
+        entityId: params.entityId || "system",
+        entityType: params.entityType || "system",
+        eventType: params.eventType || "DIRECT_NOTIFICATION",
+        metadata: params.metadata ?? undefined,
+      },
+    });
+
+    await this.prisma.notification.createMany({
+      data: uniqueUserIds.map((userId) => ({
+        eventId: event.id,
+        userId,
+        title: params.title,
+        body: params.message,
+        channel: "in-app",
+        sentAt: new Date(),
+      })),
+    });
+
+    return { sent: uniqueUserIds.length };
+  }
 }
+

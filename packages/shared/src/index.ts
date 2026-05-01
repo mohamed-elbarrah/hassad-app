@@ -7,6 +7,8 @@ export * from "./enums/finance";
 export * from "./enums/ai";
 export * from "./enums/satisfaction";
 export * from "./enums/workload";
+export * from "./enums/campaign";
+
 
 // Schemas
 export * from "./schemas/auth.schema";
@@ -34,6 +36,8 @@ import {
   TaskDepartment,
 } from "./enums/project";
 import { PaymentMethod, InvoiceStatus, TicketStatus } from "./enums/finance";
+import { CampaignPlatform, CampaignStatus } from "./enums/campaign";
+
 
 
 export interface User {
@@ -235,8 +239,43 @@ export interface PaymentTicket {
 
 
 
+export interface Campaign {
+  id: string;
+  clientId: string;
+  taskId: string;
+  projectId?: string | null;
+  managedBy: string;
+  name: string;
+  platform: CampaignPlatform;
+  status: CampaignStatus;
+  startDate: Date | string;
+  endDate?: Date | string | null;
+  budgetTotal: number;
+  budgetSpent: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  revenue?: number | null;
+  cpcOverride?: number | null;
+  cpaOverride?: number | null;
+  needsOptimization: boolean;
+  externalCampaignId?: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface CampaignAnalytics {
+  cpc: number;
+  cpa: number;
+  ctr: number;
+  conversionRate: number;
+  roas: number;
+}
+
 // ─── Input types for schemas (also re-exported via wildcard above) ───────────
 // Explicit re-exports for consumers that import by name
+export * from "./schemas/campaign.schema";
 export type { CreateProposalInput, UpdateProposalInput, ProposalResponseInput } from "./schemas/proposal.schema";
+
 export type { CreateContractInput, UpdateContractInput, SignContractInput } from "./schemas/contract.schema";
 export type { CreateTaskInput, UpdateTaskInput, UpdateTaskStatusInput } from "./schemas/project.schema";

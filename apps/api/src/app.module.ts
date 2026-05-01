@@ -19,6 +19,8 @@ import { ChatModule } from "./modules/chat/chat.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { AiModule } from "./modules/ai/ai.module";
 import { SalesModule } from "./modules/sales/sales.module";
+import { MarketingModule } from "./modules/marketing/marketing.module";
+
 
 @Module({
   imports: [
@@ -42,6 +44,7 @@ import { SalesModule } from "./modules/sales/sales.module";
     ProjectsModule,
     TasksModule,
     PortalModule,
+    MarketingModule,
 
     FinanceModule,
     ChatModule,
