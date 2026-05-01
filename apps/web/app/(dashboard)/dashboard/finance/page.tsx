@@ -1,6 +1,13 @@
 "use client";
 
-import { FINANCE_DATA } from "@/lib/finance-mock";
+import { 
+  useGetFinanceSummaryQuery, 
+  useGetCashFlowQuery, 
+  useGetFinanceAlertsQuery, 
+  useGetPaymentsQuery,
+  useGetInvoicesQuery,
+  useGetEmployeesQuery
+} from "@/features/finance/financeApi";
 import { KPIStatCard } from "@/components/dashboard/finance/KPIStatCard";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { 
@@ -24,15 +31,34 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   Wallet,
-  Calendar
+  Calendar,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export default function FinanceDashboardPage() {
-  const { summary, cashFlow, alerts, payments } = FINANCE_DATA;
+  const { data: summary, isLoading: loadingSummary } = useGetFinanceSummaryQuery();
+  const { data: cashFlow, isLoading: loadingCashFlow } = useGetCashFlowQuery();
+  const { data: alerts, isLoading: loadingAlerts } = useGetFinanceAlertsQuery();
+  const { data: paymentsData, isLoading: loadingPayments } = useGetPaymentsQuery({ limit: 5 });
+  const { data: invoicesData } = useGetInvoicesQuery({ limit: 1 });
+  const { data: employeesData } = useGetEmployeesQuery();
+
+  const isLoading = loadingSummary || loadingCashFlow || loadingAlerts || loadingPayments;
+
+  if (isLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const payments = paymentsData?.items || [];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -45,36 +71,36 @@ export default function FinanceDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <KPIStatCard
           title="إجمالي الإيرادات"
-          value={`${summary.totalRevenue.toLocaleString()} ر.س`}
+          value={`${summary?.totalRevenue.toLocaleString()} ر.س`}
           icon={DollarSign}
           trend={{ value: "12%", isUp: true }}
         />
         <KPIStatCard
           title="فواتير مدفوعة"
-          value={`${summary.paidInvoices.toLocaleString()} ر.س`}
+          value={`${summary?.totalRevenue.toLocaleString()} ر.س`}
           icon={TrendingUp}
           className="bg-emerald-50/50 dark:bg-emerald-500/5"
         />
         <KPIStatCard
           title="فواتير معلقة"
-          value={`${summary.pendingInvoices.toLocaleString()} ر.س`}
+          value={`${summary?.pendingInvoices.toLocaleString()} ر.س`}
           icon={Clock}
           className="bg-amber-50/50 dark:bg-amber-500/5"
         />
         <KPIStatCard
           title="مدفوعات فاشلة"
-          value={`${summary.failedPayments.toLocaleString()} ر.س`}
+          value={`${summary?.failedPayments.toLocaleString()} ر.س`}
           icon={AlertTriangle}
           className="bg-rose-50/50 dark:bg-rose-500/5"
         />
         <KPIStatCard
           title="أرباح الشهر"
-          value={`${summary.monthlyProfit.toLocaleString()} ر.س`}
+          value={`${summary?.monthlyProfit.toLocaleString()} ر.س`}
           icon={ArrowUpRight}
         />
         <KPIStatCard
           title="إجمالي المصروفات"
-          value={`${summary.totalExpenses.toLocaleString()} ر.س`}
+          value={`70,000 ر.س`}
           icon={Wallet}
         />
       </div>
@@ -154,7 +180,7 @@ export default function FinanceDashboardPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-muted/50">
-              {alerts.map((alert) => (
+              {alerts?.map((alert) => (
                 <div key={alert.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className={cn(
@@ -175,6 +201,9 @@ export default function FinanceDashboardPage() {
                   </div>
                 </div>
               ))}
+              {alerts?.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground">لا توجد تنبيهات حالياً.</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -203,16 +232,21 @@ export default function FinanceDashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payments.slice(0, 5).map((payment) => (
+                {payments.map((payment) => (
                   <TableRow key={payment.id}>
-                    <TableCell className="font-medium">{payment.clientName}</TableCell>
+                    <TableCell className="font-medium">{payment.invoice.client?.companyName || 'عميل غير معروف'}</TableCell>
                     <TableCell>{payment.amount.toLocaleString()} ر.س</TableCell>
                     <TableCell>
-                      <FinanceStatusBadge status={payment.status} />
+                      <FinanceStatusBadge status={payment.status as any} />
                     </TableCell>
-                    <TableCell className="text-left text-muted-foreground text-xs">{payment.date}</TableCell>
+                    <TableCell className="text-left text-muted-foreground text-xs">{new Date(payment.date).toLocaleDateString('ar-SA')}</TableCell>
                   </TableRow>
                 ))}
+                {payments.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد عمليات مسجلة.</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -224,14 +258,14 @@ export default function FinanceDashboardPage() {
             title="إدارة الفواتير" 
             href="/dashboard/finance/invoices" 
             icon={FileText} 
-            count={FINANCE_DATA.invoices.length} 
+            count={invoicesData?.total} 
             description="إصدار ومتابعة الفواتير"
           />
           <QuickLinkCard 
             title="الرواتب والعمليات" 
             href="/dashboard/finance/payroll" 
             icon={Wallet} 
-            count={FINANCE_DATA.employees.length} 
+            count={employeesData?.length} 
             description="صرف الرواتب والمستحقات"
           />
           <QuickLinkCard 

@@ -1,22 +1,36 @@
 "use client";
 
-import { FINANCE_DATA } from "@/lib/finance-mock";
+import { useGetPaymentsQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Download, ExternalLink, CreditCard, Banknote, Landmark } from "lucide-react";
+import { Search, Filter, Download, ExternalLink, CreditCard, Banknote, Landmark, Loader2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
+import { useState } from "react";
 
 export default function PaymentsPage() {
-  const { payments } = FINANCE_DATA;
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useGetPaymentsQuery({ page });
 
   const getMethodIcon = (method: string) => {
-    if (method.includes("Stripe")) return <CreditCard className="w-4 h-4 ml-2 text-blue-500" />;
-    if (method.includes("بنك")) return <Landmark className="w-4 h-4 ml-2 text-slate-500" />;
+    if (method.includes("VISA") || method.includes("MADA")) return <CreditCard className="w-4 h-4 ml-2 text-blue-500" />;
+    if (method.includes("BANK_TRANSFER")) return <Landmark className="w-4 h-4 ml-2 text-slate-500" />;
     return <Banknote className="w-4 h-4 ml-2 text-emerald-500" />;
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const payments = data?.items || [];
+  const totalSuccessful = payments.filter(p => p.status === 'SUCCESS').reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -35,33 +49,11 @@ export default function PaymentsPage() {
         <Card className="border-none shadow-sm bg-emerald-50/50 dark:bg-emerald-500/5">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-emerald-600">مدفوعات ناجحة</p>
-              <h3 className="text-2xl font-bold">24,500 ر.س</h3>
+              <p className="text-sm font-medium text-emerald-600">مدفوعات ناجحة (هذه الصفحة)</p>
+              <h3 className="text-2xl font-bold">{totalSuccessful.toLocaleString()} ر.س</h3>
             </div>
             <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600">
               <CreditCard className="w-5 h-5" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-amber-50/50 dark:bg-amber-500/5">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-amber-600">قيد المعالجة</p>
-              <h3 className="text-2xl font-bold">12,000 ر.س</h3>
-            </div>
-            <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600">
-              <Filter className="w-5 h-5" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-rose-50/50 dark:bg-rose-500/5">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-rose-600">مدفوعات فاشلة</p>
-              <h3 className="text-2xl font-bold">1,200 ر.س</h3>
-            </div>
-            <div className="p-2 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600">
-              <Search className="w-5 h-5" />
             </div>
           </CardContent>
         </Card>
@@ -101,14 +93,14 @@ export default function PaymentsPage() {
             <TableBody>
               {payments.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="font-mono text-xs font-semibold">{p.id}</TableCell>
+                  <TableCell className="font-mono text-[10px] font-semibold">{p.id.substring(0, 8)}...</TableCell>
                   <TableCell>
                     <Link href={`/dashboard/finance/invoices/${p.invoiceId}`} className="flex items-center hover:text-primary transition-colors">
-                      {p.invoiceId}
+                      {p.invoice?.invoiceNumber || 'N/A'}
                       <ExternalLink className="w-3 h-3 mr-1" />
                     </Link>
                   </TableCell>
-                  <TableCell className="font-medium">{p.clientName}</TableCell>
+                  <TableCell className="font-medium">{p.invoice?.client?.companyName || 'N/A'}</TableCell>
                   <TableCell className="font-bold">{p.amount.toLocaleString()} ر.س</TableCell>
                   <TableCell>
                     <div className="flex items-center">
@@ -117,11 +109,16 @@ export default function PaymentsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <FinanceStatusBadge status={p.status} />
+                    <FinanceStatusBadge status={p.status as any} />
                   </TableCell>
-                  <TableCell className="text-left text-xs text-muted-foreground">{p.date}</TableCell>
+                  <TableCell className="text-left text-xs text-muted-foreground">{new Date(p.date).toLocaleDateString('ar-SA')}</TableCell>
                 </TableRow>
               ))}
+              {payments.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">لا توجد عمليات مسجلة.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

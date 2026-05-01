@@ -1,38 +1,55 @@
 "use client";
 
 import { use } from "react";
-import { FINANCE_DATA } from "@/lib/finance-mock";
+import { useGetInvoiceByIdQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { TimelineComponent, TimelineItem } from "@/components/dashboard/finance/TimelineComponent";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronRight, Download, Printer, Send, Plus, CreditCard, History, AlertCircle } from "lucide-react";
+import { ChevronRight, Download, Printer, Send, Plus, CreditCard, History, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { data: invoice, isLoading, error } = useGetInvoiceByIdQuery(id);
   
-  // Find invoice from mock data
-  const invoice = FINANCE_DATA.invoices.find(inv => inv.id === id) || FINANCE_DATA.invoices[0];
-  const payments = FINANCE_DATA.payments.filter(p => p.invoiceId === invoice.id);
-  
-  // Mock timeline for this invoice
-  const timeline: TimelineItem[] = [
-    { id: 't1', event: 'إنشاء الفاتورة', date: invoice.createdAt, user: 'نظام آلي', status: 'success' },
-    { id: 't2', event: 'إرسال الفاتورة للعميل', date: invoice.createdAt, user: 'أحمد الإداري', status: 'success' },
-    ...(payments.map(p => ({
-      id: p.id,
-      event: p.status === 'SUCCESS' ? 'عملية دفع ناجحة' : 'عملية دفع فاشلة',
-      date: p.date,
-      amount: p.amount,
-      user: 'بوابة الدفع',
-      status: p.status === 'SUCCESS' ? 'success' : 'error' as any
-    })))
-  ];
+  if (isLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  const remainingAmount = invoice.amount - invoice.paidAmount;
+  if (error || !invoice) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center gap-4 text-center">
+        <AlertCircle className="w-12 h-12 text-rose-500" />
+        <div>
+          <h2 className="text-2xl font-bold">عذراً، لم يتم العثور على الفاتورة</h2>
+          <p className="text-muted-foreground">قد يكون الرابط غير صحيح أو تم نقل الفاتورة.</p>
+        </div>
+        <Link href="/dashboard/finance/invoices">
+          <Button variant="outline">العودة لقائمة الفواتير</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const payments = invoice.payments || [];
+  const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+  const remainingAmount = invoice.amount - paidAmount;
+  
+  // Map ledger history to timeline
+  const timeline: TimelineItem[] = (invoice as any).history?.map((log: any) => ({
+    id: log.id,
+    event: log.action,
+    date: new Date(log.createdAt).toLocaleString('ar-SA'),
+    user: log.userId || 'النظام',
+    status: 'success'
+  })) || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -43,7 +60,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           <ChevronRight className="w-4 h-4 rotate-180" />
           <Link href="/dashboard/finance/invoices" className="hover:text-primary">الفواتير</Link>
           <ChevronRight className="w-4 h-4 rotate-180" />
-          <span className="text-foreground font-medium">{invoice.id}</span>
+          <span className="text-foreground font-medium">{invoice.invoiceNumber}</span>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
@@ -68,8 +85,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             <div className="bg-primary h-2 w-full" />
             <CardHeader className="flex flex-row items-start justify-between">
               <div>
-                <CardTitle className="text-2xl font-mono">{invoice.id}</CardTitle>
-                <CardDescription>بتاريخ: {invoice.createdAt}</CardDescription>
+                <CardTitle className="text-2xl font-mono">{invoice.invoiceNumber}</CardTitle>
+                <CardDescription>بتاريخ: {new Date(invoice.createdAt).toLocaleDateString('ar-SA')}</CardDescription>
               </div>
               <FinanceStatusBadge status={invoice.status} className="text-lg px-4 py-1" />
             </CardHeader>
@@ -77,12 +94,12 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               <div className="grid grid-cols-2 gap-8">
                 <div>
                   <h4 className="text-sm font-semibold text-muted-foreground mb-2">العميل</h4>
-                  <p className="text-lg font-bold">{invoice.clientName}</p>
-                  <p className="text-sm text-muted-foreground">مشروع: {invoice.contractName}</p>
+                  <p className="text-lg font-bold">{invoice.client?.companyName || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground">العقد: {invoice.contract?.title || 'N/A'}</p>
                 </div>
                 <div className="text-left">
                   <h4 className="text-sm font-semibold text-muted-foreground mb-2">تاريخ الاستحقاق</h4>
-                  <p className="text-lg font-bold text-rose-600">{invoice.dueDate}</p>
+                  <p className="text-lg font-bold text-rose-600">{new Date(invoice.dueDate).toLocaleDateString('ar-SA')}</p>
                 </div>
               </div>
 
@@ -100,7 +117,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                   <div className="text-center border-x border-muted-foreground/10">
                     <p className="text-xs text-muted-foreground mb-1">المدفوع</p>
-                    <p className="text-xl font-bold text-emerald-600">{invoice.paidAmount.toLocaleString()} ر.س</p>
+                    <p className="text-xl font-bold text-emerald-600">{paidAmount.toLocaleString()} ر.س</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground mb-1">المتبقي</p>
@@ -133,13 +150,13 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                   <TableBody>
                     {payments.length > 0 ? payments.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-mono text-xs">{p.id}</TableCell>
+                        <TableCell className="font-mono text-[10px]">{p.id.substring(0, 8)}...</TableCell>
                         <TableCell className="font-bold">{p.amount.toLocaleString()} ر.س</TableCell>
                         <TableCell>{p.method}</TableCell>
                         <TableCell>
-                          <FinanceStatusBadge status={p.status} />
+                          <FinanceStatusBadge status={p.status as any} />
                         </TableCell>
-                        <TableCell className="text-left text-xs text-muted-foreground">{p.date}</TableCell>
+                        <TableCell className="text-left text-xs text-muted-foreground">{new Date(p.date).toLocaleDateString('ar-SA')}</TableCell>
                       </TableRow>
                     )) : (
                       <TableRow>

@@ -1,17 +1,29 @@
 "use client";
 
-import { FINANCE_DATA } from "@/lib/finance-mock";
+import { useGetInvoicesQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, Eye, Download, MoreHorizontal } from "lucide-react";
+import { Search, Plus, Filter, Eye, Download, MoreHorizontal, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function InvoicesPage() {
-  const { invoices } = FINANCE_DATA;
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useGetInvoicesQuery({ page });
+
+  if (isLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const invoices = data?.items || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -62,46 +74,55 @@ export default function InvoicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id} className="group transition-colors">
-                  <TableCell className="font-mono text-sm font-semibold">{invoice.id}</TableCell>
-                  <TableCell className="font-medium">{invoice.clientName}</TableCell>
-                  <TableCell className="text-muted-foreground">{invoice.contractName}</TableCell>
-                  <TableCell className="font-bold">{invoice.amount.toLocaleString()} ر.س</TableCell>
-                  <TableCell className="text-emerald-600 dark:text-emerald-400 font-medium">
-                    {invoice.paidAmount.toLocaleString()} ر.س
-                  </TableCell>
-                  <TableCell>
-                    <FinanceStatusBadge status={invoice.status} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{invoice.dueDate}</TableCell>
-                  <TableCell className="text-left">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link href={`/dashboard/finance/invoices/${invoice.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </Link>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="w-4 h-4" />
+              {invoices.map((invoice) => {
+                const paidAmount = (invoice as any).payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0;
+                
+                return (
+                  <TableRow key={invoice.id} className="group transition-colors">
+                    <TableCell className="font-mono text-sm font-semibold">{invoice.invoiceNumber}</TableCell>
+                    <TableCell className="font-medium">{invoice.client?.companyName || 'N/A'}</TableCell>
+                    <TableCell className="text-muted-foreground">{(invoice as any).contract?.title || 'N/A'}</TableCell>
+                    <TableCell className="font-bold">{invoice.amount.toLocaleString()} ر.س</TableCell>
+                    <TableCell className="text-emerald-600 dark:text-emerald-400 font-medium">
+                      {paidAmount.toLocaleString()} ر.س
+                    </TableCell>
+                    <TableCell>
+                      <FinanceStatusBadge status={invoice.status} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{new Date(invoice.dueDate).toLocaleDateString('ar-SA')}</TableCell>
+                    <TableCell className="text-left">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link href={`/dashboard/finance/invoices/${invoice.id}`}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
+                            <Eye className="w-4 h-4" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="text-right">
-                          <DropdownMenuLabel>إجراءات الفاتورة</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="cursor-pointer flex justify-end">تسجيل دفعة</DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer flex justify-end">تحميل PDF</DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer flex justify-end">إرسال للعميل</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="cursor-pointer text-rose-500 flex justify-end">إلغاء الفاتورة</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
+                        </Link>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="text-right">
+                            <DropdownMenuLabel>إجراءات الفاتورة</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="cursor-pointer flex justify-end">تسجيل دفعة</DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer flex justify-end">تحميل PDF</DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer flex justify-end">إرسال للعميل</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="cursor-pointer text-rose-500 flex justify-end">إلغاء الفاتورة</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {invoices.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">لا توجد فواتير حالياً.</TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

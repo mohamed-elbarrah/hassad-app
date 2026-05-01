@@ -1,15 +1,28 @@
 "use client";
 
-import { FINANCE_DATA } from "@/lib/finance-mock";
+import { useGetLedgerQuery } from "@/features/finance/financeApi";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ShieldCheck, Download, Filter, User, Calendar, ArrowRightLeft } from "lucide-react";
+import { Search, ShieldCheck, Download, Filter, User, Calendar, ArrowRightLeft, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 export default function LedgerPage() {
-  const { ledger } = FINANCE_DATA;
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useGetLedgerQuery({ page });
+
+  if (isLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const ledger = data?.items || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -30,9 +43,9 @@ export default function LedgerPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        <StatCard title="إجمالي العمليات" value={ledger.length + 1240} icon={ArrowRightLeft} />
-        <StatCard title="عمليات اليوم" value={24} icon={Calendar} />
-        <StatCard title="تعديلات حساسة" value={3} icon={Filter} className="text-amber-600" />
+        <StatCard title="إجمالي العمليات" value={data?.total || 0} icon={ArrowRightLeft} />
+        <StatCard title="عمليات اليوم" value={ledger.filter(l => new Date(l.createdAt).toDateString() === new Date().toDateString()).length} icon={Calendar} />
+        <StatCard title="تعديلات حساسة" value={ledger.filter(l => l.action.includes('PAYROLL') || l.action.includes('PAYMENT')).length} icon={Filter} className="text-amber-600" />
         <StatCard title="تكامل النظام" value="نشط" icon={ShieldCheck} className="text-emerald-600" />
       </div>
 
@@ -78,16 +91,25 @@ export default function LedgerPage() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <User className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-sm">{log.user}</span>
+                      <span className="text-sm">{log.userId || 'System'}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{log.before}</TableCell>
-                  <TableCell className="font-semibold text-xs text-primary">{log.after}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">
+                    {log.before ? (typeof log.before === 'string' ? log.before : JSON.stringify(log.before).substring(0, 30) + '...') : '-'}
+                  </TableCell>
+                  <TableCell className="font-semibold text-xs text-primary">
+                    {log.after ? (typeof log.after === 'string' ? log.after : JSON.stringify(log.after).substring(0, 30) + '...') : '-'}
+                  </TableCell>
                   <TableCell className="text-left pl-6 text-muted-foreground text-xs font-mono">
-                    {log.date}
+                    {new Date(log.createdAt).toLocaleString('ar-SA')}
                   </TableCell>
                 </TableRow>
               ))}
+              {ledger.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">لا توجد سجلات حالياً.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -111,5 +133,3 @@ function StatCard({ title, value, icon: Icon, className }: { title: string, valu
     </Card>
   );
 }
-
-import { cn } from "@/lib/utils";

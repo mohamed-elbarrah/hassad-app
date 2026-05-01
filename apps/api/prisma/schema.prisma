@@ -165,7 +165,15 @@ enum InvoiceStatus {
   DUE
   SENT
   PAID
+  PARTIAL
+  PENDING
   LATE
+  CANCELLED
+}
+
+enum SalaryStatus {
+  PENDING
+  PAID
   CANCELLED
 }
 
@@ -278,6 +286,9 @@ model User {
   actionedAiSuggs  AiSuggestion[]
   notifications    Notification[]
   managedCampaigns Campaign[]               @relation("CampaignManager")
+  employee         Employee?
+
+  ledgerEntries    Ledger[]
 
 
 
@@ -872,11 +883,84 @@ model Invoice {
   contract Contract?       @relation(fields: [contractId], references: [id], onDelete: SetNull)
   creator  User            @relation(fields: [createdBy], references: [id], onDelete: Restrict)
   tickets  PaymentTicket[]
+  payments Payment[]
 
   @@map("invoices")
   @@index([clientId])
   @@index([invoiceNumber])
   @@index([status])
+}
+
+model Payment {
+  id        String           @id @default(uuid())
+  invoiceId String           @map("invoice_id")
+  amount    Float
+  method    PaymentMethod
+  status    AutomationStatus
+  date      DateTime         @default(now())
+  notes     String?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+  @@index([invoiceId])
+  @@index([status])
+}
+
+model Employee {
+  id         String   @id @default(uuid())
+  userId     String?  @unique @map("user_id")
+  name       String
+  role       String
+  baseSalary Float    @map("base_salary")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  salaries Salary[]
+
+  @@map("employees")
+}
+
+model Salary {
+  id          String       @id @default(uuid())
+  employeeId  String       @map("employee_id")
+  amount      Float
+  baseSalary  Float        @map("base_salary")
+  bonuses     Float        @default(0)
+  deductions  Float        @default(0)
+  status      SalaryStatus
+  paymentDate DateTime?    @map("payment_date")
+  month       Int
+  year        Int
+  notes       String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("salaries")
+  @@index([employeeId])
+  @@index([status])
+}
+
+model Ledger {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  userId    String?  @map("user_id")
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("ledger")
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model PaymentTicket {

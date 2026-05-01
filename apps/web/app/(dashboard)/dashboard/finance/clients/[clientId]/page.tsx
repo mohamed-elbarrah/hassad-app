@@ -1,25 +1,44 @@
 "use client";
 
 import { use } from "react";
-import { FINANCE_DATA } from "@/lib/finance-mock";
+import { useGetInvoicesQuery } from "@/features/finance/financeApi";
+import { useGetClientByIdQuery } from "@/features/clients/clientsApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronRight, FileText, CreditCard, Building2, TrendingUp, History, Download } from "lucide-react";
+import { ChevronRight, FileText, CreditCard, Building2, TrendingUp, History, Download, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function ClientFinanceDetailPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = use(params);
   
-  // Find client - in mock we have c1, c2
-  const client = FINANCE_DATA.clients.find(c => c.id === clientId) || FINANCE_DATA.clients[0];
-  const invoices = FINANCE_DATA.invoices.filter(inv => inv.clientName === client.name);
-  const payments = FINANCE_DATA.payments.filter(p => p.clientName === client.name);
+  const { data: client, isLoading: loadingClient } = useGetClientByIdQuery(clientId);
+  const { data: invoicesData, isLoading: loadingInvoices } = useGetInvoicesQuery({ clientId });
 
-  const collectionRate = (client.paid / client.totalValue) * 100;
+  if (loadingClient || loadingInvoices) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!client) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">العميل غير موجود</div>
+    );
+  }
+
+  const invoices = invoicesData?.items || [];
+  const payments = invoices.flatMap(inv => (inv as any).payments || []);
+
+  const totalValue = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+  const totalPaid = invoices.reduce((sum, inv) => sum + ((inv as any).payments?.reduce((s: number, p: any) => s + p.amount, 0) || 0), 0);
+  const remaining = totalValue - totalPaid;
+  const collectionRate = totalValue > 0 ? (totalPaid / totalValue) * 100 : 0;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -44,18 +63,18 @@ export default function ClientFinanceDetailPage({ params }: { params: Promise<{ 
                   <Building2 className="w-8 h-8" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold">{client.name}</h1>
+                  <h1 className="text-3xl font-bold">{client.companyName}</h1>
                   <p className="text-muted-foreground">معرف العميل: {client.id}</p>
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl shadow-sm border">
                   <p className="text-xs text-muted-foreground mb-1">إجمالي قيمة العقود</p>
-                  <p className="text-xl font-bold">{client.totalValue.toLocaleString()} ر.س</p>
+                  <p className="text-xl font-bold">{totalValue.toLocaleString()} ر.س</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl shadow-sm border">
                   <p className="text-xs text-muted-foreground mb-1">المبالغ المحصلة</p>
-                  <p className="text-xl font-bold text-emerald-600">{client.paid.toLocaleString()} ر.س</p>
+                  <p className="text-xl font-bold text-emerald-600">{totalPaid.toLocaleString()} ر.س</p>
                 </div>
               </div>
             </div>
@@ -71,7 +90,7 @@ export default function ClientFinanceDetailPage({ params }: { params: Promise<{ 
                 </div>
                 <Progress value={collectionRate} className="h-2" />
                 <p className="text-xs text-muted-foreground">
-                  المتبقي: {client.remaining.toLocaleString()} ر.س
+                  المتبقي: {remaining.toLocaleString()} ر.س
                 </p>
               </CardContent>
             </Card>
@@ -113,11 +132,13 @@ export default function ClientFinanceDetailPage({ params }: { params: Promise<{ 
                     <TableRow key={inv.id}>
                       <TableCell className="pr-6 font-mono font-bold text-xs">{inv.id}</TableCell>
                       <TableCell>{inv.amount.toLocaleString()} ر.س</TableCell>
-                      <TableCell className="text-emerald-600">{inv.paidAmount.toLocaleString()} ر.س</TableCell>
+                      <TableCell className="text-emerald-600">
+                        {((inv as any).payments?.reduce((s: number, p: any) => s + p.amount, 0) || 0).toLocaleString()} ر.س
+                      </TableCell>
                       <TableCell>
                         <FinanceStatusBadge status={inv.status} />
                       </TableCell>
-                      <TableCell className="text-left pl-6 text-sm text-muted-foreground">{inv.dueDate}</TableCell>
+                      <TableCell className="text-left pl-6 text-sm text-muted-foreground">{new Date(inv.dueDate).toLocaleDateString('ar-SA')}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -148,7 +169,7 @@ export default function ClientFinanceDetailPage({ params }: { params: Promise<{ 
                       <TableCell>
                         <FinanceStatusBadge status={p.status} />
                       </TableCell>
-                      <TableCell className="text-left pl-6 text-sm text-muted-foreground">{p.date}</TableCell>
+                      <TableCell className="text-left pl-6 text-sm text-muted-foreground">{new Date(p.date).toLocaleDateString('ar-SA')}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

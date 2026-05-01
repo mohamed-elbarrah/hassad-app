@@ -1,17 +1,39 @@
 "use client";
 
-import { FINANCE_DATA } from "@/lib/finance-mock";
+import { useGetEmployeesQuery, useRunPayrollMutation } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Wallet, CheckCircle, Clock, AlertCircle, ChevronLeft } from "lucide-react";
+import { Search, Wallet, CheckCircle, Clock, AlertCircle, ChevronLeft, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function PayrollPage() {
-  const { employees } = FINANCE_DATA;
+  const { data: employees = [], isLoading } = useGetEmployeesQuery();
+  const [runPayroll, { isLoading: isRunning }] = useRunPayrollMutation();
+
+  const handleRunPayroll = async () => {
+    try {
+      const now = new Date();
+      await runPayroll({ month: now.getMonth() + 1, year: now.getFullYear() }).unwrap();
+      toast.success("تم بدء عملية صرف الرواتب بنجاح");
+    } catch (error) {
+      toast.error("فشل في عملية صرف الرواتب");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const totalPayroll = employees.reduce((sum, emp) => sum + emp.baseSalary, 0);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -22,8 +44,12 @@ export default function PayrollPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline">إدارة الهيكل الوظيفي</Button>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Wallet className="w-4 h-4 ml-2" />
+          <Button 
+            className="bg-primary hover:bg-primary/90" 
+            onClick={handleRunPayroll}
+            disabled={isRunning}
+          >
+            {isRunning ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <Wallet className="w-4 h-4 ml-2" />}
             صرف الرواتب الجماعي
           </Button>
         </div>
@@ -33,20 +59,15 @@ export default function PayrollPage() {
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
             <CardDescription>إجمالي رواتب الشهر الحالي</CardDescription>
-            <CardTitle className="text-2xl font-bold">145,000 ر.س</CardTitle>
+            <CardTitle className="text-2xl font-bold">{totalPayroll.toLocaleString()} ر.س</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-4 pt-2">
             <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded">
               <CheckCircle className="w-3 h-3" />
-              تم صرف 80%
-            </div>
-            <div className="flex items-center gap-1 text-amber-600 text-xs font-bold bg-amber-50 px-2 py-1 rounded">
-              <Clock className="w-3 h-3" />
-              متبقي 20%
+              تكامل النظام: نشط
             </div>
           </CardContent>
         </Card>
-        {/* Add more stats if needed */}
       </div>
 
       <Card className="border-none shadow-md">
@@ -67,9 +88,6 @@ export default function PayrollPage() {
               <TableRow>
                 <TableHead>الموظف</TableHead>
                 <TableHead>الراتب الأساسي</TableHead>
-                <TableHead>البدلات / الحوافز</TableHead>
-                <TableHead>الاستقطاعات</TableHead>
-                <TableHead>صافي الراتب</TableHead>
                 <TableHead>آخر تاريخ صرف</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead className="text-left">الإجراءات</TableHead>
@@ -77,7 +95,7 @@ export default function PayrollPage() {
             </TableHeader>
             <TableBody>
               {employees.map((employee) => {
-                const netSalary = employee.baseSalary + (employee.bonuses || 0) - (employee.deductions || 0);
+                const latestSalary = (employee as any).salaries?.[0];
                 return (
                   <TableRow key={employee.id} className="group hover:bg-muted/50 transition-colors">
                     <TableCell>
@@ -94,12 +112,11 @@ export default function PayrollPage() {
                       </div>
                     </TableCell>
                     <TableCell>{employee.baseSalary.toLocaleString()} ر.س</TableCell>
-                    <TableCell className="text-emerald-600">+{employee.bonuses?.toLocaleString() || 0} ر.س</TableCell>
-                    <TableCell className="text-rose-600">-{employee.deductions?.toLocaleString() || 0} ر.س</TableCell>
-                    <TableCell className="font-bold text-primary">{netSalary.toLocaleString()} ر.س</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{employee.lastPayment}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {latestSalary?.paymentDate ? new Date(latestSalary.paymentDate).toLocaleDateString('ar-SA') : 'لم يتم الصرف'}
+                    </TableCell>
                     <TableCell>
-                      <FinanceStatusBadge status={employee.status} />
+                      <FinanceStatusBadge status={latestSalary?.status || 'PENDING'} />
                     </TableCell>
                     <TableCell className="text-left">
                       <Link href={`/dashboard/finance/payroll/${employee.id}`}>
@@ -111,6 +128,11 @@ export default function PayrollPage() {
                   </TableRow>
                 );
               })}
+              {employees.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">لا يوجد موظفون مسجلون.</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

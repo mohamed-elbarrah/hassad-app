@@ -2,7 +2,15 @@ export enum InvoiceStatus {
   DUE = 'DUE',
   SENT = 'SENT',
   PAID = 'PAID',
+  PARTIAL = 'PARTIAL',
+  PENDING = 'PENDING',
   LATE = 'LATE',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum SalaryStatus {
+  PENDING = 'PENDING',
+  PAID = 'PAID',
   CANCELLED = 'CANCELLED',
 }
 

@@ -412,67 +412,79 @@ const task4 = await prisma.task.create({
     },
   });
 
-  // ── 12. Notifications ─────────────────────────────────────────────────────────
-  const createNotif = async (
-    entityId: string,
-    entityType: string,
-    eventType: string,
-    userId: string,
-    title: string,
-    body: string,
-  ) => {
-    const event = await prisma.notificationEvent.create({
-      data: { entityId, entityType, eventType },
-    });
-    return prisma.notification.create({
-      data: {
-        eventId: event.id,
-        userId,
-        title,
-        body,
-        channel: "in-app",
-        sentAt: new Date(),
+  // ── 13. Finance Expansion (Payments, Employees, Salaries) ───────────────
+  const employee1 = await prisma.employee.create({
+    data: {
+      userId: users["EMPLOYEE"],
+      name: "Hana Designer",
+      role: "Designer",
+      baseSalary: 7000,
+    },
+  });
+
+  const employee2 = await prisma.employee.create({
+    data: {
+      userId: users["MARKETING"],
+      name: "Ziad Marketing",
+      role: "Marketing Specialist",
+      baseSalary: 8500,
+    },
+  });
+
+  // Payments for existing invoices
+  await prisma.payment.create({
+    data: {
+      invoiceId: invoice1.id,
+      amount: 8000,
+      method: "BANK_TRANSFER",
+      status: "SUCCESS",
+      date: new Date("2024-01-10"),
+    },
+  });
+
+  // Salaries
+  await prisma.salary.createMany({
+    data: [
+      {
+        employeeId: employee1.id,
+        amount: 7000,
+        baseSalary: 7000,
+        status: "PAID",
+        month: 1,
+        year: 2024,
+        paymentDate: new Date("2024-01-28"),
       },
-    });
-  };
+      {
+        employeeId: employee2.id,
+        amount: 8500,
+        baseSalary: 8500,
+        status: "PAID",
+        month: 1,
+        year: 2024,
+        paymentDate: new Date("2024-01-28"),
+      },
+    ],
+  });
 
-  await createNotif(
-    proposal1.id,
-    "proposal",
-    "PROPOSAL_SENT",
-    users["SALES"],
-    "Proposal Sent",
-    `Proposal "${proposal1.title}" was sent to the client`,
-  );
+  // Initial Ledger Entries
+  await prisma.ledger.createMany({
+    data: [
+      {
+        action: "CREATE_INVOICE",
+        entity: "INVOICE",
+        entityId: invoice1.id,
+        userId: users["ACCOUNTANT"],
+      },
+      {
+        action: "REGISTER_PAYMENT",
+        entity: "PAYMENT",
+        entityId: invoice1.id, // technically the payment ID but using invoice for demo
+        userId: users["ACCOUNTANT"],
+      },
+    ],
+  });
 
-  await createNotif(
-    invoice2.id,
-    "invoice",
-    "INVOICE_SENT",
-    users["ACCOUNTANT"],
-    "Invoice Sent",
-    "Invoice INV-20240201-0002 has been sent to TechVentures",
-  );
-
-  await createNotif(
-    invoice3.id,
-    "invoice",
-    "INVOICE_OVERDUE",
-    users["ACCOUNTANT"],
-    "Invoice Overdue",
-    "Invoice INV-20240301-0003 for Nova Eats is past due",
-  );
-
-  await createNotif(
-    project1.id,
-    "project",
-    "PROJECT_STARTED",
-    users["PM"],
-    "Project Activated",
-    `Project "${project1.name}" is now active`,
-  );
-
-  // ── 13. Permissions (seed default permission list + role mappings) ───────────
+  // ── 14. Permissions (seed default permission list + role mappings) ───────────
   const permissions = [
     "chat.create",
     "chat.read",
@@ -516,6 +528,8 @@ const task4 = await prisma.task.create({
     "finance.read",
     "finance.update_invoice",
     "finance.manage_tickets",
+    "finance.read_ledger",
+    "finance.manage_payroll",
     "leads.create",
     "leads.read",
     "leads.update",
@@ -614,6 +628,8 @@ const task4 = await prisma.task.create({
       "finance.read",
       "finance.update_invoice",
       "finance.manage_tickets",
+      "finance.read_ledger",
+      "finance.manage_payroll",
     ],
     CLIENT: [
       "proposals.read_public",
