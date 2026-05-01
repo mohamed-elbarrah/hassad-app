@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { PaymentModal } from "@/components/portal/PaymentModal";
+import { useState } from "react";
+import { CreditCard } from "lucide-react";
 
 const INVOICE_STATUS_LABELS: Record<string, string> = {
   DUE: "مستحقة",
@@ -45,6 +49,9 @@ function fmt(n: number) {
 }
 
 export default function PortalFinancePage() {
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
 
@@ -95,6 +102,7 @@ export default function PortalFinancePage() {
                       <TableHead className="text-right">المبلغ</TableHead>
                       <TableHead className="text-right">الحالة</TableHead>
                       <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
+                      <TableHead className="text-left">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -118,6 +126,21 @@ export default function PortalFinancePage() {
                         </TableCell>
                         <TableCell dir="ltr">
                           {new Date(invoice.dueDate).toLocaleDateString("ar-DZ")}
+                        </TableCell>
+                        <TableCell>
+                          {(invoice.status === 'DUE' || invoice.status === 'SENT' || invoice.status === 'PARTIAL') && (
+                            <Button 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => {
+                                setSelectedInvoice(invoice);
+                                setIsPaymentModalOpen(true);
+                              }}
+                            >
+                              <CreditCard className="w-3 h-3 ml-2" />
+                              دفع الآن
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -180,6 +203,14 @@ export default function PortalFinancePage() {
             </CardContent>
           </Card>
         </>
+      )}
+
+      {selectedInvoice && (
+        <PaymentModal 
+          invoice={selectedInvoice}
+          open={isPaymentModalOpen}
+          onOpenChange={setIsPaymentModalOpen}
+        />
       )}
     </div>
   );

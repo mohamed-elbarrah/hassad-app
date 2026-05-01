@@ -184,6 +184,8 @@ enum PaymentMethod {
   TABBY
   TAMARA
   BANK_TRANSFER
+  CARD
+  CASH
 }
 
 enum TicketStatus {
@@ -209,6 +211,25 @@ enum WorkloadStatus {
   AVAILABLE
   BUSY
   OVERLOADED
+}
+
+enum PaymentGatewayType {
+  ONLINE
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentEventType {
+  CREATED
+  SUCCESS
+  FAILED
+  REFUNDED
 }
 
 enum AiEntityType {
@@ -491,6 +512,7 @@ model Client {
 
   invoices     Invoice[]
   payTickets   PaymentTicket[]
+  payments     Payment[]
   satRatings   SatisfactionRating[]
   campaigns    Campaign[]
 
@@ -892,20 +914,84 @@ model Invoice {
 }
 
 model Payment {
-  id        String           @id @default(uuid())
-  invoiceId String           @map("invoice_id")
-  amount    Float
-  method    PaymentMethod
-  status    AutomationStatus
-  date      DateTime         @default(now())
-  notes     String?
-  createdAt DateTime         @default(now()) @map("created_at")
+  id                 String           @id @default(uuid())
+  invoiceId          String           @map("invoice_id")
+  clientId           String?          @map("client_id")
+  gatewayId          String?          @map("gateway_id")
+  amount             Float
+  currency           String           @default("SAR")
+  status             PaymentStatus
+  method             PaymentMethod
+  providerPaymentId  String?          @map("provider_payment_id")
+  metadataJson       Json?            @map("metadata_json")
+  notes              String?
+  date               DateTime         @default(now())
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
 
-  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice   Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  client    Client?         @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  gateway   PaymentGateway? @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
+  events    PaymentEvent[]
 
   @@map("payments")
   @@index([invoiceId])
+  @@index([clientId])
+  @@index([gatewayId])
   @@index([status])
+  @@index([providerPaymentId])
+}
+
+model PaymentGateway {
+  id          String             @id @default(uuid())
+  name        String             @unique // stripe, bank_transfer
+  type        PaymentGatewayType
+  isActive    Boolean            @default(true) @map("is_active")
+  configJson  Json?              @map("config_json") // Encrypted keys
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  payments    Payment[]
+
+  @@map("payment_gateways")
+}
+
+model BankAccount {
+  id           String   @id @default(uuid())
+  accountName  String   @map("account_name")
+  iban         String   @unique
+  bankName     String   @map("bank_name")
+  swiftCode    String?  @map("swift_code")
+  instructions String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("bank_accounts")
+}
+
+model PaymentEvent {
+  id          String           @id @default(uuid())
+  paymentId   String           @map("payment_id")
+  type        PaymentEventType
+  payloadJson Json?            @map("payload_json")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  payment     Payment          @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("payment_events")
+}
+
+model WebhookLog {
+  id          String   @id @default(uuid())
+  provider    String
+  eventType   String   @map("event_type")
+  payload     Json
+  processed   Boolean  @default(false)
+  error       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("webhook_logs")
 }
 
 model Employee {

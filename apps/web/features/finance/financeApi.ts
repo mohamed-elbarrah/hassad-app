@@ -91,7 +91,7 @@ export interface PaginatedLedger {
 export const financeApi = createApi({
   reducerPath: "financeApi",
   baseQuery,
-  tagTypes: ["Invoice", "PaymentTicket", "Payment", "Employee", "Salary", "Ledger", "FinanceSummary"],
+  tagTypes: ["Invoice", "PaymentTicket", "Payment", "Employee", "Salary", "Ledger", "FinanceSummary", "PaymentGateway", "BankAccount"],
   endpoints: (builder) => ({
     // Dashboard & Analytics
     getFinanceSummary: builder.query<FinanceSummary, void>({
@@ -184,6 +184,35 @@ export const financeApi = createApi({
       query: (id) => ({ url: `/payment-tickets/${id}/resolve`, method: "PATCH" }),
       invalidatesTags: ["PaymentTicket"],
     }),
+
+    // Payment Gateways
+    getPaymentGateways: builder.query<any[], void>({
+      query: () => "/payments/gateways",
+      providesTags: ["PaymentGateway"],
+    }),
+    updatePaymentGateway: builder.mutation<any, { name: string; body: any }>({
+      query: ({ name, body }) => ({ url: `/payments/gateways/${name}`, method: "POST", body }),
+      invalidatesTags: ["PaymentGateway"],
+    }),
+    getBankAccounts: builder.query<any[], void>({
+      query: () => "/payments/bank-accounts",
+      providesTags: ["BankAccount"],
+    }),
+    createBankAccount: builder.mutation<any, any>({
+      query: (body) => ({ url: "/payments/bank-accounts", method: "POST", body }),
+      invalidatesTags: ["BankAccount"],
+    }),
+    updateBankAccount: builder.mutation<any, { id: string; body: any }>({
+      query: ({ id, body }) => ({ url: `/payments/bank-accounts/${id}`, method: "PATCH", body }),
+      invalidatesTags: ["BankAccount"],
+    }),
+    deleteBankAccount: builder.mutation<any, string>({
+      query: (id) => ({ url: `/payments/bank-accounts/${id}`, method: "DELETE" }),
+      invalidatesTags: ["BankAccount"],
+    }),
+    createPaymentIntent: builder.mutation<any, { invoiceId: string; gatewayName: string; amount: number; currency?: string }>({
+      query: (body) => ({ url: "/payments/create-intent", method: "POST", body }),
+    }),
   }),
 });
 
@@ -207,4 +236,11 @@ export const {
   useCreatePaymentTicketMutation,
   useResolvePaymentTicketMutation,
   useGetInvoicesByClientQuery,
+  useGetPaymentGatewaysQuery,
+  useUpdatePaymentGatewayMutation,
+  useGetBankAccountsQuery,
+  useCreateBankAccountMutation,
+  useUpdateBankAccountMutation,
+  useDeleteBankAccountMutation,
+  useCreatePaymentIntentMutation,
 } = financeApi;

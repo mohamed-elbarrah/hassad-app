@@ -82,10 +82,13 @@ const navSections: NavSection[] = [
         ],
       },
       {
-        title: "الإعدادات والصلاحيات",
-        url: "/dashboard/admin/settings",
+        title: "إعدادات النظام",
         icon: Shield,
         roles: ["ADMIN"],
+        items: [
+          { title: "الصلاحيات", url: "/dashboard/admin/settings" },
+          { title: "بوابات الدفع", url: "/dashboard/admin/payments" },
+        ],
       },
     ],
   },

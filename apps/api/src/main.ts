@@ -8,7 +8,8 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import * as cookieParser from "cookie-parser";
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: new Logger(), // NestJS 11 ConsoleLogger with JSON support
+    logger: new Logger(),
+    rawBody: true,
   });
 
   app.setGlobalPrefix("v1");

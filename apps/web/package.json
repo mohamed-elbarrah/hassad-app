@@ -45,7 +45,8 @@
     "recharts": "^3.8.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.x",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@stripe/stripe-js": "^5.x"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
