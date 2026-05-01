@@ -39,6 +39,7 @@ export default function DashboardLayout({
     "/dashboard/account",
     "/dashboard/notifications",
     "/dashboard/tasks",
+    "/dashboard/finance",
   ];
 
   const rolePrefixes: Record<UserRole, string[]> = {
