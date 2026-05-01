@@ -36,7 +36,15 @@ import {
   TaskPriority,
   TaskDepartment,
 } from "./enums/project";
-import { PaymentMethod, InvoiceStatus, TicketStatus, SalaryStatus } from "./enums/finance";
+import {
+  PaymentMethod,
+  InvoiceStatus,
+  TicketStatus,
+  SalaryStatus,
+  PaymentGatewayType,
+  PaymentStatus,
+  PaymentEventType,
+} from "./enums/finance";
 import { CampaignPlatform, CampaignStatus } from "./enums/campaign";
 
 
@@ -233,11 +241,57 @@ export interface Invoice {
 export interface Payment {
   id: string;
   invoiceId: string;
+  clientId?: string | null;
+  gatewayId?: string | null;
   amount: number;
+  currency: string;
+  status: PaymentStatus;
   method: PaymentMethod;
-  status: AutomationStatus;
-  date: Date | string;
+  providerPaymentId?: string | null;
+  metadataJson?: any;
   notes?: string | null;
+  date: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface PaymentGateway {
+  id: string;
+  name: string;
+  type: PaymentGatewayType;
+  isActive: boolean;
+  configJson?: any;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface BankAccount {
+  id: string;
+  accountName: string;
+  iban: string;
+  bankName: string;
+  swiftCode?: string | null;
+  instructions?: string | null;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface PaymentEvent {
+  id: string;
+  paymentId: string;
+  type: PaymentEventType;
+  payloadJson?: any;
+  createdAt: Date | string;
+}
+
+export interface WebhookLog {
+  id: string;
+  provider: string;
+  eventType: string;
+  payload: any;
+  processed: boolean;
+  error?: string | null;
   createdAt: Date | string;
 }
 
@@ -327,6 +381,7 @@ export interface CampaignAnalytics {
 
 // ─── Input types for schemas (also re-exported via wildcard above) ───────────
 // Explicit re-exports for consumers that import by name
+export * from "./schemas/payment.schema";
 export * from "./schemas/campaign.schema";
 export type { CreateProposalInput, UpdateProposalInput, ProposalResponseInput } from "./schemas/proposal.schema";
 

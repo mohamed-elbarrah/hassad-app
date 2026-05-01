@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateInvoiceDto, CreateTicketDto, RegisterPaymentDto, CreateEmployeeDto, RunPayrollDto } from '../dto/finance.dto';
-import { InvoiceStatus, TicketStatus, AutomationStatus, SalaryStatus } from '@hassad/shared';
+import { InvoiceStatus, TicketStatus, PaymentStatus, SalaryStatus } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
@@ -107,7 +107,7 @@ export class FinanceService {
           invoiceId: dto.invoiceId,
           amount: dto.amount,
           method: dto.method,
-          status: AutomationStatus.SUCCESS,
+          status: PaymentStatus.SUCCESS,
           notes: dto.notes,
           date: dto.date ? new Date(dto.date) : new Date(),
         },
@@ -196,7 +196,7 @@ export class FinanceService {
 
   async getSummary() {
     const successfulPayments = await this.prisma.payment.aggregate({
-      where: { status: AutomationStatus.SUCCESS },
+      where: { status: PaymentStatus.SUCCESS },
       _sum: { amount: true },
     });
 
@@ -206,7 +206,7 @@ export class FinanceService {
     });
 
     const failedPaymentsCount = await this.prisma.payment.count({
-      where: { status: AutomationStatus.FAILED },
+      where: { status: PaymentStatus.FAILED },
     });
 
     const totalRevenue = successfulPayments._sum.amount || 0;
