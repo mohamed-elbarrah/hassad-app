@@ -17,6 +17,7 @@ import {
   Ticket,
   ListChecks,
   BarChart3,
+  TrendingUp,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -155,9 +156,15 @@ const navSections: NavSection[] = [
       label: "التسويق",
       items: [
         {
-          title: "لوحة التسويق",
+          title: "لوحة التحكم",
           url: "/dashboard/marketing",
           icon: BarChart3,
+          roles: ["ADMIN", "MARKETING"],
+        },
+        {
+          title: "المهام المسندة",
+          url: "/dashboard/marketing/tasks",
+          icon: ListChecks,
           roles: ["ADMIN", "MARKETING"],
         },
       ],
