@@ -29,7 +29,7 @@ export default function DashboardLayout({
     [UserRole.ADMIN]: "/dashboard/admin",
     [UserRole.PM]: "/dashboard/pm",
     [UserRole.SALES]: "/dashboard/sales",
-    [UserRole.ACCOUNTANT]: "/dashboard/accountant",
+    [UserRole.ACCOUNTANT]: "/dashboard/finance",
     [UserRole.MARKETING]: "/dashboard/marketing",
     [UserRole.EMPLOYEE]: "/dashboard/employee",
     [UserRole.CLIENT]: "/portal",
@@ -39,13 +39,14 @@ export default function DashboardLayout({
     "/dashboard/account",
     "/dashboard/notifications",
     "/dashboard/tasks",
+    "/dashboard/finance",
   ];
 
   const rolePrefixes: Record<UserRole, string[]> = {
     [UserRole.ADMIN]: ["/dashboard"],
     [UserRole.PM]: ["/dashboard/pm"],
     [UserRole.SALES]: ["/dashboard/sales"],
-    [UserRole.ACCOUNTANT]: ["/dashboard/accountant"],
+    [UserRole.ACCOUNTANT]: ["/dashboard/accountant", "/dashboard/finance"],
     [UserRole.MARKETING]: ["/dashboard/marketing"],
     [UserRole.EMPLOYEE]: ["/dashboard/employee", "/dashboard/designer"],
     [UserRole.CLIENT]: ["/portal"],

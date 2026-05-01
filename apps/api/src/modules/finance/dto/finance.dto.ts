@@ -9,7 +9,6 @@ export class CreateInvoiceDto {
   @IsUUID()
   contractId?: string;
 
-  // invoiceNumber is auto-generated on backend — do not require from frontend
   @IsOptional()
   @IsString()
   invoiceNumber?: string;
@@ -31,8 +30,48 @@ export class CreateInvoiceDto {
   notes?: string;
 }
 
-// DB PaymentTicket has: invoiceId (required), clientId, assignedTo?, status, notes?
-// No amount or description fields exist in the schema
+export class RegisterPaymentDto {
+  @IsUUID()
+  invoiceId: string;
+
+  @IsNumber()
+  amount: number;
+
+  @IsEnum(PaymentMethod)
+  method: PaymentMethod;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date?: string;
+}
+
+export class CreateEmployeeDto {
+  @IsString()
+  name: string;
+
+  @IsString()
+  role: string;
+
+  @IsNumber()
+  baseSalary: number;
+
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+}
+
+export class RunPayrollDto {
+  @IsNumber()
+  month: number;
+
+  @IsNumber()
+  year: number;
+}
+
 export class CreateTicketDto {
   @IsUUID()
   invoiceId: string;

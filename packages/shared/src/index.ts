@@ -28,6 +28,7 @@ import {
   ContractStatus,
   ContractType,
   PipelineStage,
+  AutomationStatus,
 } from "./enums/client";
 import {
   ProjectStatus,
@@ -35,7 +36,7 @@ import {
   TaskPriority,
   TaskDepartment,
 } from "./enums/project";
-import { PaymentMethod, InvoiceStatus, TicketStatus } from "./enums/finance";
+import { PaymentMethod, InvoiceStatus, TicketStatus, SalaryStatus } from "./enums/finance";
 import { CampaignPlatform, CampaignStatus } from "./enums/campaign";
 
 
@@ -223,7 +224,21 @@ export interface Invoice {
   paymentReference?: string | null;
   notes?: string | null;
   createdAt: Date | string;
+  client?: any; // To be refined if needed
+  contract?: any;
+  payments?: any[];
   updatedAt: Date | string;
+}
+
+export interface Payment {
+  id: string;
+  invoiceId: string;
+  amount: number;
+  method: PaymentMethod;
+  status: AutomationStatus;
+  date: Date | string;
+  notes?: string | null;
+  createdAt: Date | string;
 }
 
 export interface PaymentTicket {
@@ -237,14 +252,52 @@ export interface PaymentTicket {
   resolvedAt?: Date | string | null;
 }
 
+export interface Employee {
+  id: string;
+  userId?: string | null;
+  name: string;
+  role: string;
+  baseSalary: number;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  salaries?: Salary[];
+}
+
+export interface Salary {
+  id: string;
+  employeeId: string;
+  amount: number;
+  baseSalary: number;
+  bonuses: number;
+  deductions: number;
+  status: SalaryStatus;
+  paymentDate?: Date | string | null;
+  month: number;
+  year: number;
+  notes?: string | null;
+  createdAt: Date | string;
+}
+
+export interface Ledger {
+  id: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  userId?: string | null;
+  before?: any;
+  after?: any;
+  createdAt: Date | string;
+}
+
 
 
 export interface Campaign {
   id: string;
-  clientId: string;
-  taskId: string;
+  taskId?: string;
+  clientId?: string;
   projectId?: string | null;
-  managedBy: string;
+  managedBy?: string;
   name: string;
   platform: CampaignPlatform;
   status: CampaignStatus;
@@ -260,8 +313,8 @@ export interface Campaign {
   cpaOverride?: number | null;
   needsOptimization: boolean;
   externalCampaignId?: string | null;
-  createdAt: Date | string;
-  updatedAt: Date | string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface CampaignAnalytics {
