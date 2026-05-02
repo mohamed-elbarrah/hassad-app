@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 
 export default function PipelinePage() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" dir="rtl">
       {/* ── Page header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-semibold">لوحة خط المبيعات</h1>
+        <h1 className="text-3xl font-bold tracking-tight">لوحة خط المبيعات</h1>
         <div className="flex items-center gap-2 flex-wrap">
           <Button asChild variant="outline" size="sm">
             <Link href="/dashboard/sales/proposals">العروض الفنية</Link>

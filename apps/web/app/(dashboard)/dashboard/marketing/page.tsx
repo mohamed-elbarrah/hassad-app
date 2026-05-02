@@ -18,6 +18,8 @@ import {
 import { AlertList } from "@/components/dashboard/marketing/AlertList";
 import { useGetMyTasksQuery } from "@/features/tasks/tasksApi";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { EmptyState } from "@/components/common/EmptyState";
 import Link from "next/link";
 
 
@@ -37,7 +39,28 @@ export default function MarketingDashboardPage() {
     avgRoas: "0.0"
   };
 
-  if (isLoading) return <Skeleton className="h-screen w-full" />;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-8 pb-10" dir="rtl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-5 w-48 mt-2" />
+          </div>
+          <Skeleton className="h-10 w-44" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Skeleton className="lg:col-span-2 h-96 rounded-xl" />
+          <Skeleton className="h-96 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
 
   return (
@@ -73,7 +96,7 @@ export default function MarketingDashboardPage() {
         />
         <SummaryCard 
           title="إجمالي الإنفاق" 
-          value={`$${stats.totalBudgetUsed.toLocaleString()}`} 
+          value={formatCurrency(stats.totalBudgetUsed)} 
           icon={<Wallet className="w-4 h-4" />}
           color="bg-amber-500"
         />
@@ -96,7 +119,16 @@ export default function MarketingDashboardPage() {
             <CardDescription>المهام الحالية وحالة الحملات المرتبطة بها</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {marketingTasks.map(task => (
+            {marketingTasks.length === 0 ? (
+              <EmptyState
+                icon={ClipboardList}
+                title="لا توجد مهام تسويقية"
+                description="لم يتم إسناد أي مهمة تسويقية إليك بعد."
+                actionLabel="عرض كل المهام"
+                actionHref="/dashboard/marketing/tasks"
+              />
+            ) : (
+            marketingTasks.map(task => (
               <Link href={`/dashboard/marketing/tasks/${task.id}`} key={task.id}>
                 <div className="group p-4 rounded-xl border border-muted/50 hover:border-primary/40 hover:bg-muted/5 transition-all mb-3 cursor-pointer">
                   <div className="flex items-center justify-between mb-3">
@@ -110,7 +142,7 @@ export default function MarketingDashboardPage() {
                     <div className="flex items-center gap-4">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
-                        تاريخ الاستحقاق: {new Date(task.dueDate).toLocaleDateString('ar-EG')}
+                        تاريخ الاستحقاق: {formatDate(task.dueDate)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-primary font-medium">
@@ -119,7 +151,8 @@ export default function MarketingDashboardPage() {
                   </div>
                 </div>
               </Link>
-            ))}
+            ))
+            )}
           </CardContent>
         </Card>
 

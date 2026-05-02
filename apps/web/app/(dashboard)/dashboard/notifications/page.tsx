@@ -21,37 +21,8 @@ import {
 import type { NotificationItem } from "@/features/notifications/notificationsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { UserRole } from "@hassad/shared";
-
-// Role-aware task URL resolver
-function resolveEntityUrl(
-  entityType: string | null | undefined,
-  entityId: string | null | undefined,
-  role: UserRole | string | undefined,
-): string | null {
-  if (!entityType || !entityId) return null;
-  if (entityType === "task") {
-    if (role === UserRole.EMPLOYEE)
-      return `/dashboard/employee/tasks/${entityId}`;
-    if (role === UserRole.PM || role === UserRole.ADMIN)
-      return `/dashboard/pm/tasks/${entityId}`;
-    return `/dashboard/tasks/${entityId}`;
-  }
-  if (entityType === "project") {
-    return `/dashboard/pm/projects/${entityId}`;
-  }
-  return null;
-}
-
-function formatRelativeTime(dateString: string): string {
-  const diff = Date.now() - new Date(dateString).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "الآن";
-  if (minutes < 60) return `${minutes} دقيقة مضت`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ساعة مضت`;
-  const days = Math.floor(hours / 24);
-  return `${days} يوم مضى`;
-}
+import { formatRelativeTime } from "@/lib/format";
+import { resolveEntityUrl } from "@/components/common/NotificationsDropdown";
 
 const PAGE_SIZE = 20;
 
@@ -110,7 +81,7 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          <h1 className="text-xl font-semibold">الإشعارات</h1>
+          <h1 className="text-2xl font-semibold">الإشعارات</h1>
           {data?.unreadCount ? (
             <span className="text-sm text-muted-foreground">
               ({data.unreadCount} غير مقروء)

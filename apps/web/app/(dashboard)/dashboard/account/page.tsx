@@ -48,7 +48,7 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
-      <h1 className="text-2xl font-bold">الحساب الشخصي</h1>
+      <h1 className="text-3xl font-bold tracking-tight">الحساب الشخصي</h1>
 
       <Card>
         <CardHeader className="flex flex-row items-center gap-4 pb-4">

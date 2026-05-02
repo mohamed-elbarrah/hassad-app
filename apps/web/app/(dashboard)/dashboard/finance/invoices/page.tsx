@@ -4,9 +4,10 @@ import { useGetInvoicesQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Filter, Eye, Download, MoreHorizontal, Loader2 } from "lucide-react";
+import { Search, Plus, Filter, Eye, Download, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { useState } from "react";
@@ -17,8 +18,29 @@ export default function InvoicesPage() {
 
   if (isLoading) {
     return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-5 w-64 mt-1" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-10 w-36" />
+          </div>
+        </div>
+        <Card className="border-none shadow-md">
+          <CardHeader>
+            <Skeleton className="h-10 w-full" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
