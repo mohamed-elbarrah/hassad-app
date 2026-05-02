@@ -1,14 +1,15 @@
 # AGENTS.md — Hassad Platform
 
-## Existing agent specs (read these first)
+## Read first
 
 | File | What it covers |
 |---|---|
-| `.agent/NESTJS_API_V2.md` | Full API spec: module structure, all endpoints, permission keys, workflow rules. Treat as authoritative. |
-| `.agent/DATA_BASE_V2.md` | Complete 46-table Prisma schema spec with relationships and rules. Source of truth for DB changes. |
+| `ROADMAP.md` | Full 7-phase improvement plan. Check this before making any change — your task may be part of a phase. |
+| `.agent/NESTJS_API_V2.md` | Full API spec: module structure, all endpoints, permission keys, workflow rules. |
+| `.agent/DATA_BASE_V2.md` | Prisma schema spec. **Stale** — actual schema has 50 models with payments, payroll, ledger, and bank accounts not in this doc. |
 | `.agent/PROBLEM_SOLVING.md` | Required debugging protocol and commit message format. |
 
-Always read the relevant `.agent/` spec before touching API or DB code.
+Always read the relevant `.agent/` spec before touching API or DB code. Validate spec claims against actual code — some endpoints/paths/methods differ.
 
 ---
 
@@ -89,7 +90,7 @@ features/       Feature planning markdown docs
 
 ### API internals (`apps/api/src/`)
 - `main.ts` — bootstrap: global `/v1` prefix, cookie-parser, CORS, `ValidationPipe(whitelist:true, forbidNonWhitelisted:true)`
-- `app.module.ts` — wires all 13 modules
+- `app.module.ts` — wires all 14 modules
 - `common/` — global `ResponseInterceptor`, `HttpExceptionFilter`, `PermissionsGuard`, decorators
 - `modules/` — grouped: `core/`, `crm/`, `proposals/`, `contracts/`, `projects/`, `tasks/`, `portal/`, `marketing/`, `finance/`, `chat/`, `notifications/`, `ai/`, `sales/`
 
@@ -99,7 +100,7 @@ features/       Feature planning markdown docs
 - `app/contract/[token]` and `app/proposal/[token]` — public token-based share pages
 - `features/<domain>/` — RTK Query API slices (not in `lib/`)
 - `lib/store.ts` — Redux store; `lib/baseQuery.ts` — shared base query with envelope unwrap + auto token refresh
-- `middleware.ts` — edge auth guard: redirects unauthenticated from `/dashboard/*` and `/portal/*`
+- **No `middleware.ts` exists** — auth is handled client-side in layouts. Edge guard needs to be added (see ROADMAP Phase 0).
 - Path alias `@/*` maps to the root of `apps/web/` (not `src/`)
 
 ---
