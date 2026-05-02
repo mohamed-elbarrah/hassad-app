@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import "@/app/globals.css";
 import { Providers } from "@/providers/Providers";
 import { AuthInitializer } from "@/components/auth/AuthInitializer";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin", "latin-ext"] });
+const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic", "latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700"],
+  variable: "--font-ibm-plex-sans-arabic",
+});
 
 export const metadata: Metadata = {
   title: "Hassad Platform",
@@ -19,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={inter.className}>
+      <body className={ibmPlexSansArabic.className}>
         <Providers>
           <AuthInitializer>{children}</AuthInitializer>
         </Providers>

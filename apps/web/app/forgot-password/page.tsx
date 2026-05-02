@@ -1,7 +1,7 @@
-import { SignupForm } from "@/components/auth/SignupForm";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 
-export default function SignupPage() {
+export default function ForgotPasswordPage() {
   return (
     <AuthLayout>
       <div className="space-y-6">
@@ -29,15 +29,15 @@ export default function SignupPage() {
         {/* Title & Subtitle */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold text-secondary-500">
-            إنشاء حساب جديد
+            استعادة كلمة المرور
           </h1>
           <p className="text-sm text-neutral-300">
-            انضم إلى منصة حصاد وابدأ رحلة نمو نشاطك التجاري
+            أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة التعيين
           </p>
         </div>
 
         {/* Form */}
-        <SignupForm />
+        <ForgotPasswordForm />
       </div>
     </AuthLayout>
   );

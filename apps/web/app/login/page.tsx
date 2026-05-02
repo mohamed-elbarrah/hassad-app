@@ -1,38 +1,46 @@
-import Link from "next/link";
+"use client";
+
 import { LoginForm } from "@/components/auth/LoginForm";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md shadow-lg border-primary/10">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold tracking-tight text-primary">
-            Login
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Enter your email and password to access your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LoginForm />
-          <p className="text-center text-sm text-muted-foreground mt-4">
-            ليس لديك حساب؟{" "}
-            <Link
-              href="/signup"
-              className="text-primary font-medium hover:underline"
-            >
-              إنشاء حساب جديد
-            </Link>
+    <AuthLayout>
+      <div className="space-y-6">
+        {/* Logo */}
+        <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-1">
+            <svg width="80" height="40" viewBox="0 0 120 50" fill="none">
+              <text
+                x="10"
+                y="35"
+                fontFamily="Arial"
+                fontSize="28"
+                fontWeight="bold"
+                fill="#E7BE52"
+              >
+                مسار
+              </text>
+            </svg>
+            <span className="text-xs font-medium tracking-widest text-secondary-500 uppercase">
+              MSAR
+            </span>
+          </div>
+        </div>
+
+        {/* Title & Subtitle */}
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold text-secondary-500">
+            تسجيل الدخول
+          </h1>
+          <p className="text-sm text-neutral-300">
+            من فضلك قم بادخال معلومات لتسجيل الدخول
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        {/* Form */}
+        <LoginForm />
+      </div>
+    </AuthLayout>
   );
 }
