@@ -31,7 +31,7 @@ export default function AdminClientsPage() {
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">العملاء (CRM)</h1>
+        <h1 className="text-3xl font-bold tracking-tight">العملاء (CRM)</h1>
         <CreateClientDialog />
       </div>
 

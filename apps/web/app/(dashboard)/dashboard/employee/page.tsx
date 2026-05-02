@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/select";
 import { StatsCard } from "@/components/dashboard/employee/StatsCard";
 import { EmployeeTaskKanban } from "@/components/dashboard/employee/EmployeeTaskKanban";
+import { EmptyState } from "@/components/common/EmptyState";
+import { ClipboardList } from "lucide-react";
 import {
   useGetMyTasksQuery,
   useGetMyTaskStatsQuery,
@@ -46,7 +48,7 @@ export default function EmployeeDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <h1 className="text-2xl font-semibold">لوحة الموظف التنفيذي</h1>
+      <h1 className="text-3xl font-bold tracking-tight">لوحة الموظف التنفيذي</h1>
 
       {/* Stats */}
       {statsLoading ? (
@@ -93,7 +95,15 @@ export default function EmployeeDashboardPage() {
       </div>
 
       {/* Kanban board */}
-      <EmployeeTaskKanban tasks={tasks ?? []} isLoading={tasksLoading} />
+      {!tasksLoading && (!tasks || tasks.length === 0) ? (
+        <EmptyState
+          icon={ClipboardList}
+          title="لا توجد مهام مسندة"
+          description="لم يتم إسناد أي مهمة إليك بعد. سيتم عرض المهام هنا عند إسنادها."
+        />
+      ) : (
+        <EmployeeTaskKanban tasks={tasks ?? []} isLoading={tasksLoading} />
+      )}
     </div>
   );
 }

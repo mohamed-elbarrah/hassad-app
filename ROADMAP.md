@@ -29,18 +29,18 @@ Phase 7: Polish & edge cases
 
 ---
 
-## Phase 0: Foundation Fixes (must-do, prerequisite)
+## Phase 0: Foundation Fixes (must-do, prerequisite) — DONE
 
-| # | Area | Task | File(s) to touch | Why |
-|---|---|---|---|---|
-| 0.1 | UI | Add `middleware.ts` edge auth guard | `apps/web/middleware.ts` (new) | Auth is client-side only — flash of content on every page load. Middleware checks JWT cookie at edge before render. |
-| 0.2 | UI | Add global `error.tsx` in `(dashboard)/` + per-route `error.tsx` for all role subdirs | `apps/web/app/(dashboard)/error.tsx`, `dashboard/admin/error.tsx`, `dashboard/pm/error.tsx`, `dashboard/sales/error.tsx`, `dashboard/finance/error.tsx`, `dashboard/accountant/error.tsx`, `dashboard/marketing/error.tsx`, `dashboard/employee/error.tsx`, `(portal)/error.tsx` | Zero error boundaries today — any unhandled API exception crashes to white screen |
-| 0.3 | UI | Standardize loading pattern: adopt skeleton-grid-matching-content (PM project detail pattern) | All page.tsx files across `(dashboard)/dashboard/*/` and `(portal)/` | 4 different loading philosophies (spinner, full-screen skeleton, inline skeleton, nothing) |
-| 0.4 | UI | Create `@/lib/format.ts` — shared currency + date + locale utilities | `apps/web/lib/format.ts` (new), then replace inline formatting in all pages | 3 currencies (SAR/DZD/USD) and 4 date locales (`en-GB`, `ar-SA`, `ar-DZ`, `ar-EG`) across the app |
-| 0.5 | UI | Add empty states to all Kanban board pages (sales pipeline, employee, marketing) | `apps/web/app/(dashboard)/dashboard/sales/pipeline/page.tsx`, `dashboard/employee/page.tsx`, `dashboard/marketing/page.tsx` | Kanban pages show nothing when data is empty |
-| 0.6 | UI | Standardize page title to `text-3xl font-bold tracking-tight` everywhere | All page.tsx files | 3 different title sizes currently (`text-3xl font-bold tracking-tight`, `text-2xl font-semibold`, `text-xl font-semibold`) |
+| # | Area | Task | Status |
+|---|---|---|---|
+| 0.1 | UI | Upgrade `proxy.ts` edge auth guard with JWT verification via `jose` | DONE |
+| 0.2 | UI | Add global `error.tsx` + per-route `error.tsx` for all 8 role subdirs + portal | DONE |
+| 0.3 | UI | Standardize loading pattern to skeleton-grid-matching-content (PM project detail pattern) | DONE |
+| 0.4 | UI | Create `@/lib/format.ts` — shared currency + date + locale utilities, replace all inline formatting | DONE |
+| 0.5 | UI | Add `EmptyState` component + empty states to Kanban pages (employee, marketing) | DONE |
+| 0.6 | UI | Standardize page title to `text-3xl font-bold tracking-tight` everywhere | DONE |
 
-**Effort estimate:** ~9h total (0.1=1h, 0.2=2h, 0.3=3h, 0.4=1h, 0.5=1.5h, 0.6=0.5h)
+**Completed:** 2026-05-02. Build verified: `turbo build` passes (shared + api + web).
 
 ---
 

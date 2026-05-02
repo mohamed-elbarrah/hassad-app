@@ -54,7 +54,7 @@ export default function ProjectsPage() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">المشاريع</h1>
+        <h1 className="text-3xl font-bold tracking-tight">المشاريع</h1>
         <ProjectForm currentUserId={user.id} />
       </div>
 

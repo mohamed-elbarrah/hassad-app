@@ -10,6 +10,7 @@ import {
 } from "@/features/finance/financeApi";
 import { KPIStatCard } from "@/components/dashboard/finance/KPIStatCard";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   BarChart, 
   Bar, 
@@ -31,13 +32,13 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   Wallet,
-  Calendar,
-  Loader2
+  Calendar
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import Link from "next/link";
 
 export default function FinanceDashboardPage() {
@@ -52,8 +53,24 @@ export default function FinanceDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="space-y-8">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-5 w-48" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+          <Skeleton className="lg:col-span-4 h-[450px] rounded-xl" />
+          <Skeleton className="lg:col-span-3 h-[450px] rounded-xl" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-[300px] rounded-xl" />
+          <Skeleton className="h-[300px] rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -71,36 +88,36 @@ export default function FinanceDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <KPIStatCard
           title="إجمالي الإيرادات"
-          value={`${summary?.totalRevenue.toLocaleString()} ر.س`}
+          value={formatCurrency(summary?.totalRevenue)}
           icon={DollarSign}
           trend={{ value: "12%", isUp: true }}
         />
         <KPIStatCard
           title="فواتير مدفوعة"
-          value={`${summary?.totalRevenue.toLocaleString()} ر.س`}
+          value={formatCurrency(summary?.totalRevenue)}
           icon={TrendingUp}
           className="bg-emerald-50/50 dark:bg-emerald-500/5"
         />
         <KPIStatCard
           title="فواتير معلقة"
-          value={`${summary?.pendingInvoices.toLocaleString()} ر.س`}
+          value={formatCurrency(summary?.pendingInvoices)}
           icon={Clock}
           className="bg-amber-50/50 dark:bg-amber-500/5"
         />
         <KPIStatCard
           title="مدفوعات فاشلة"
-          value={`${summary?.failedPayments.toLocaleString()} ر.س`}
+          value={formatCurrency(summary?.failedPayments)}
           icon={AlertTriangle}
           className="bg-rose-50/50 dark:bg-rose-500/5"
         />
         <KPIStatCard
           title="أرباح الشهر"
-          value={`${summary?.monthlyProfit.toLocaleString()} ر.س`}
+          value={formatCurrency(summary?.monthlyProfit)}
           icon={ArrowUpRight}
         />
         <KPIStatCard
           title="إجمالي المصروفات"
-          value={`70,000 ر.س`}
+          value={formatCurrency(70000)}
           icon={Wallet}
         />
       </div>
@@ -141,7 +158,7 @@ export default function FinanceDashboardPage() {
                 />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  formatter={(value) => [`${value.toLocaleString()} ر.س`]}
+                  formatter={(value: number) => [`${value.toLocaleString("ar-SA")} ر.س`]}
                 />
                 <Legend verticalAlign="top" height={36}/>
                 <Area 
@@ -194,7 +211,7 @@ export default function FinanceDashboardPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-rose-600">{alert.amount.toLocaleString()} ر.س</p>
+                    <p className="text-sm font-bold text-rose-600">{formatCurrency(alert.amount)}</p>
                     <Link href={`/dashboard/finance/invoices/${alert.id}`}>
                       <Button variant="link" size="sm" className="h-auto p-0 text-xs">عرض التفاصيل</Button>
                     </Link>
@@ -235,11 +252,11 @@ export default function FinanceDashboardPage() {
                 {payments.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell className="font-medium">{payment.invoice.client?.companyName || 'عميل غير معروف'}</TableCell>
-                    <TableCell>{payment.amount.toLocaleString()} ر.س</TableCell>
+                    <TableCell>{formatCurrency(payment.amount)}</TableCell>
                     <TableCell>
                       <FinanceStatusBadge status={payment.status as any} />
                     </TableCell>
-                    <TableCell className="text-left text-muted-foreground text-xs">{new Date(payment.date).toLocaleDateString('ar-SA')}</TableCell>
+                    <TableCell className="text-left text-muted-foreground text-xs">{formatDate(payment.date)}</TableCell>
                   </TableRow>
                 ))}
                 {payments.length === 0 && (

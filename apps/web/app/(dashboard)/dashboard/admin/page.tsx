@@ -14,11 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InvoiceStatus } from "@hassad/shared";
-
-function fmt(n?: number) {
-  if (n == null) return "—";
-  return n.toLocaleString("ar-DZ");
-}
+import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 
 export default function AdminWorkspacePage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -31,9 +27,9 @@ export default function AdminWorkspacePage() {
   if (!user) return null;
 
   const KPI_ITEMS = [
-    { label: "العملاء النشطين", value: statsLoading ? null : fmt(stats?.activeClients) },
-    { label: "الإيرادات هذا الشهر", value: statsLoading ? null : `${fmt(stats?.monthlyRevenue)} دج` },
-    { label: "المشاريع الجارية", value: statsLoading ? null : fmt(stats?.activeProjects) },
+    { label: "العملاء النشطين", value: statsLoading ? null : formatNumber(stats?.activeClients) },
+    { label: "الإيرادات هذا الشهر", value: statsLoading ? null : formatCurrency(stats?.monthlyRevenue) },
+    { label: "المشاريع الجارية", value: statsLoading ? null : formatNumber(stats?.activeProjects) },
     { label: "رضا العملاء", value: statsLoading ? null : `${stats?.satisfactionRate ?? 0}%` },
   ];
 
@@ -85,13 +81,13 @@ export default function AdminWorkspacePage() {
                 <li className="flex justify-between">
                   <span className="text-muted-foreground">المهام المتأخرة</span>
                   <span className="font-semibold text-destructive">
-                    {fmt(stats?.overdueTasks)}
+                    {formatNumber(stats?.overdueTasks)}
                   </span>
                 </li>
                 <li className="flex justify-between">
                   <span className="text-muted-foreground">الفواتير غير المسددة</span>
                   <span className="font-semibold text-amber-600">
-                    {fmt(stats?.unpaidInvoicesCount)}
+                    {formatNumber(stats?.unpaidInvoicesCount)}
                   </span>
                 </li>
               </ul>
@@ -127,9 +123,9 @@ export default function AdminWorkspacePage() {
                       <TableCell className="font-medium">
                         {invoice.client?.companyName ?? "—"}
                       </TableCell>
-                      <TableCell dir="ltr">{fmt(invoice.amount)} دج</TableCell>
+                      <TableCell dir="ltr">{formatCurrency(invoice.amount)}</TableCell>
                       <TableCell dir="ltr">
-                        {new Date(invoice.dueDate).toLocaleDateString("ar-DZ")}
+                        {formatDate(invoice.dueDate)}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -100,7 +100,7 @@ features/       Feature planning markdown docs
 - `app/contract/[token]` and `app/proposal/[token]` — public token-based share pages
 - `features/<domain>/` — RTK Query API slices (not in `lib/`)
 - `lib/store.ts` — Redux store; `lib/baseQuery.ts` — shared base query with envelope unwrap + auto token refresh
-- **No `middleware.ts` exists** — auth is handled client-side in layouts. Edge guard needs to be added (see ROADMAP Phase 0).
+- **No `middleware.ts` exists** — Next.js 16 uses `apps/web/proxy.ts` instead. It verifies JWT at the Edge using `jose`, redirects unauthenticated users.
 - Path alias `@/*` maps to the root of `apps/web/` (not `src/`)
 
 ---

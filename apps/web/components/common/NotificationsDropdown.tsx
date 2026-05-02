@@ -23,9 +23,10 @@ import {
 import type { NotificationItem } from "@/features/notifications/notificationsApi";
 import Link from "next/link";
 import { UserRole } from "@hassad/shared";
+import { formatRelativeTime } from "@/lib/format";
 
 // Role-aware URL resolver — uses canonical redirect which handles EMPLOYEE/PM/ADMIN
-function resolveEntityUrl(
+export function resolveEntityUrl(
   entityType: string | null | undefined,
   entityId: string | null | undefined,
   role: UserRole | string | undefined,
@@ -52,17 +53,6 @@ function resolveEntityUrl(
     return `/dashboard/sales/contracts`;
   }
   return null;
-}
-
-function formatRelativeTime(dateString: string): string {
-  const diff = Date.now() - new Date(dateString).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "الآن";
-  if (minutes < 60) return `${minutes} دقيقة مضت`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ساعة مضت`;
-  const days = Math.floor(hours / 24);
-  return `${days} يوم مضى`;
 }
 
 function NotificationListItem({

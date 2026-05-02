@@ -13,6 +13,7 @@ import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
 import { useGetProjectByIdQuery } from "@/features/projects/projectsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus } from "@hassad/shared";
+import { formatDate } from "@/lib/format";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold">{project.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
           <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
         </div>
         <ProjectForm project={project} currentUserId={user.id} />
@@ -124,23 +125,13 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">البداية</span>
               <span>
-                {new Intl.DateTimeFormat("en-GB", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                  numberingSystem: "latn",
-                }).format(new Date(project.startDate))}
+                {formatDate(project.startDate)}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">النهاية</span>
               <span>
-                {new Intl.DateTimeFormat("en-GB", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                  numberingSystem: "latn",
-                }).format(new Date(project.endDate))}
+                {formatDate(project.endDate)}
               </span>
             </div>
           </CardContent>
