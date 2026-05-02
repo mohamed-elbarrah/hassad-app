@@ -2,6 +2,7 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, Logger } from "@nestjs/common";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import { IoAdapter } from "@nestjs/platform-socket.io";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
@@ -14,10 +15,8 @@ async function bootstrap() {
 
   app.setGlobalPrefix("v1");
 
-  // process.cwd() = apps/api/ (NestJS CLI runs from the package dir).
-  // Do NOT use __dirname here: the compiled output lives at dist/src/main.js,
-  // so __dirname = dist/src/ and join(__dirname, '..', 'uploads') would
-  // wrongly resolve to dist/uploads/ instead of the real uploads/ folder.
+  app.useWebSocketAdapter(new IoAdapter(app));
+
   app.useStaticAssets(process.cwd() + "/uploads", {
     prefix: "/uploads",
   });

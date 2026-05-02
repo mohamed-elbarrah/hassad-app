@@ -1,10 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { Prisma } from "@prisma/client";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   private mapNotificationRow(row: {
     id: string;
@@ -53,7 +57,7 @@ export class NotificationsService {
       },
     });
 
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         eventId: event.id,
         userId: params.userId,
@@ -63,6 +67,23 @@ export class NotificationsService {
         sentAt: new Date(),
       },
     });
+
+    this.eventEmitter.emit("notification.created", {
+      ...notification,
+      entityId: params.entityId,
+      entityType: params.entityType,
+      eventType: params.eventType,
+    });
+
+    const unreadCount = await this.prisma.notification.count({
+      where: { userId: params.userId, isRead: false },
+    });
+    this.eventEmitter.emit("notification.unreadCount", {
+      userId: params.userId,
+      count: unreadCount,
+    });
+
+    return notification;
   }
 
   async findAll(
@@ -168,28 +189,36 @@ export class NotificationsService {
       return { sent: 0 };
     }
 
-    // Create a shared event
-    const event = await this.prisma.notificationEvent.create({
-      data: {
-        entityId: "broadcast",
-        entityType: "system",
-        eventType: "BROADCAST",
-      },
+    // Create event + notifications in a single transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      const event = await tx.notificationEvent.create({
+        data: {
+          entityId: "broadcast",
+          entityType: "system",
+          eventType: "BROADCAST",
+        },
+      });
+
+      await tx.notification.createMany({
+        data: users.map((u) => ({
+          eventId: event.id,
+          userId: u.id,
+          title: params.title,
+          body: params.message,
+          channel: "in-app",
+          sentAt: new Date(),
+        })),
+      });
+
+      return { sent: users.length };
     });
 
-    // Create notifications for all target users
-    await this.prisma.notification.createMany({
-      data: users.map((u) => ({
-        eventId: event.id,
-        userId: u.id,
-        title: params.title,
-        body: params.message,
-        channel: "in-app",
-        sentAt: new Date(),
-      })),
+    this.eventEmitter.emit("notification.broadcast", {
+      title: params.title,
+      message: params.message,
     });
 
-    return { sent: users.length };
+    return result;
   }
 
   async notifyUsers(params: {
@@ -212,27 +241,48 @@ export class NotificationsService {
       return { sent: 0 };
     }
 
-    const event = await this.prisma.notificationEvent.create({
-      data: {
-        entityId: params.entityId || "system",
-        entityType: params.entityType || "system",
-        eventType: params.eventType || "DIRECT_NOTIFICATION",
-        metadata: params.metadata ?? undefined,
-      },
+    // Create event + notifications in a single transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      const event = await tx.notificationEvent.create({
+        data: {
+          entityId: params.entityId || "system",
+          entityType: params.entityType || "system",
+          eventType: params.eventType || "DIRECT_NOTIFICATION",
+          metadata: params.metadata ?? undefined,
+        },
+      });
+
+      await tx.notification.createMany({
+        data: uniqueUserIds.map((userId) => ({
+          eventId: event.id,
+          userId,
+          title: params.title,
+          body: params.message,
+          channel: "in-app",
+          sentAt: new Date(),
+        })),
+      });
+
+      return { sent: uniqueUserIds.length };
     });
 
-    await this.prisma.notification.createMany({
-      data: uniqueUserIds.map((userId) => ({
-        eventId: event.id,
+    for (const userId of uniqueUserIds) {
+      this.eventEmitter.emit("notification.created", {
         userId,
         title: params.title,
         body: params.message,
-        channel: "in-app",
-        sentAt: new Date(),
-      })),
-    });
+        entityId: params.entityId || "system",
+        entityType: params.entityType || "system",
+        eventType: params.eventType || "DIRECT_NOTIFICATION",
+      });
 
-    return { sent: uniqueUserIds.length };
+      const unreadCount = await this.prisma.notification.count({
+        where: { userId, isRead: false },
+      });
+      this.eventEmitter.emit("notification.unreadCount", { userId, count: unreadCount });
+    }
+
+    return result;
   }
 }
 

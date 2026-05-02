@@ -28,7 +28,9 @@
     "@nestjs/jwt": "^11.x",
     "@nestjs/passport": "^11.x",
     "@nestjs/platform-express": "^11.x",
+    "@nestjs/platform-socket.io": "^11.1.19",
     "@nestjs/schedule": "^5.x",
+    "@nestjs/websockets": "^11.1.19",
     "@prisma/client": "^6.x",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.x",
@@ -38,6 +40,7 @@
     "passport-jwt": "^4.x",
     "reflect-metadata": "^0.2.x",
     "rxjs": "^7.x",
+    "socket.io": "^4.8.3",
     "stripe": "^17.x"
   },
   "devDependencies": {

@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ChatService } from '../services/chat.service';
@@ -17,6 +18,15 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
+
+  @Get('conversations')
+  @RequirePermissions('chat.read')
+  findMyConversations(
+    @CurrentUser() user: any,
+    @Query() query: { page?: number; limit?: number },
+  ) {
+    return this.chatService.findMyConversations(user.id, query);
+  }
 
   @Post('conversations')
   @RequirePermissions('chat.create')

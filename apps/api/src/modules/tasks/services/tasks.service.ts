@@ -382,6 +382,28 @@ export class TasksService {
         },
       });
 
+      if (toStatus === TaskStatus.DONE) {
+        const portalDepts = [TaskDepartment.DESIGN, TaskDepartment.CONTENT, TaskDepartment.MARKETING];
+        const deptName = task.department?.name;
+        if (deptName && portalDepts.includes(deptName as TaskDepartment)) {
+          const existing = await tx.deliverable.findFirst({
+            where: { taskId: id },
+          });
+          if (!existing) {
+            await tx.deliverable.create({
+              data: {
+                projectId: task.projectId,
+                taskId: id,
+                title: task.title,
+                description: task.description || undefined,
+                filePath: "",
+                isVisibleToClient: task.isVisibleToClient,
+              },
+            });
+          }
+        }
+      }
+
       await this.recalculateProjectProgress(task.projectId, tx);
 
       return updated;
@@ -790,11 +812,21 @@ export class TasksService {
     });
   }
 
-  async toggleArchive(_taskId: string): Promise<{ message: string }> {
-    // Task model does not have an archivedAt field in the current schema.
-    // This is a placeholder that returns a not-implemented response.
+  async toggleArchive(taskId: string): Promise<{ message: string; archived: boolean }> {
+    const task = await this.prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      throw new NotFoundException("المهمة غير موجودة");
+    }
+
+    const isArchived = task.archivedAt !== null;
+    const updated = await this.prisma.task.update({
+      where: { id: taskId },
+      data: { archivedAt: isArchived ? null : new Date() },
+    });
+
     return {
-      message: "Archive toggling is not supported in the current schema.",
+      message: isArchived ? "تم إلغاء أرشفة المهمة" : "تم أرشفة المهمة",
+      archived: !isArchived,
     };
   }
 }

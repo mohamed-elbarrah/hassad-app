@@ -6,6 +6,14 @@ import { CreateConversationDto, AddParticipantDto, CreateMessageDto } from '../d
 export class ChatService {
   constructor(private prisma: PrismaService) {}
 
+  async getUserConversationIds(userId: string): Promise<string[]> {
+    const participants = await this.prisma.conversationParticipant.findMany({
+      where: { userId },
+      select: { conversationId: true },
+    });
+    return participants.map((p) => p.conversationId);
+  }
+
   async createConversation(dto: CreateConversationDto) {
     return this.prisma.conversation.create({
       data: {
@@ -23,6 +31,40 @@ export class ChatService {
         },
       },
     });
+  }
+
+  async findMyConversations(userId: string, query: { page?: number; limit?: number }) {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
+
+    const [data, total] = await Promise.all([
+      this.prisma.conversation.findMany({
+        where: {
+          participants: { some: { userId } },
+        },
+        include: {
+          participants: { include: { user: true } },
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            include: { sender: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.conversation.count({
+        where: { participants: { some: { userId } } },
+      }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findConversation(id: string) {

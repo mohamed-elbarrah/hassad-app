@@ -172,6 +172,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - end_date
 - monthly_value
 - total_value
+- currency (default "SAR")
 - file_path
 - version_number
 - e_signed
@@ -239,6 +240,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - approved_at
 - revision_count
 - is_visible_to_client
+- archived_at
 - created_at
 - updated_at
 
@@ -322,8 +324,9 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 ## campaigns
 - id (PK)
 - client_id (FK)
-- project_id (FK)
-- managed_by (FK)
+- task_id (FK)
+- project_id (FK?)
+- managed_by (FK → users.id)
 - name
 - platform ENUM
 - status ENUM
@@ -331,43 +334,47 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - end_date
 - budget_total
 - budget_spent
+- currency (default "SAR")
 - created_at
 - updated_at
 
 ## campaign_kpi_snapshots
 - id (PK)
 - campaign_id (FK)
-- recorded_by (FK)
-- snapshot_date
 - impressions
 - clicks
-- messages_received
-- orders_count
-- leads_count
-- conversion_rate
-- cac
+- conversions
+- revenue
+- cpc
+- cpa
 - ctr
-- data_source ENUM
-- is_approved_by_manager
+- conversion_rate
+- roas
+- source?
+- recorded_at
 - created_at
 
 ## campaign_kpi_audit_logs
 - id (PK)
-- snapshot_id (FK)
-- updated_by (FK)
-- changes (jsonb)
-- updated_at
+- campaign_id (FK)
+- snapshot_id? (FK)
+- field
+- old_value?
+- new_value?
+- changed_by? (FK → users.id)
+- created_at
 
 ## ad_platform_connections
 - id (PK)
-- client_id (FK)
+- campaign_id (FK)
 - platform ENUM
-- access_token_encrypted
-- account_id
-- token_expires_at
-- is_active
-- connected_at
-- last_synced_at
+- external_campaign_id?
+- access_token?
+- refresh_token?
+- sync_status
+- last_synced_at?
+- created_at
+- updated_at
 
 ## ab_tests
 - id (PK)
@@ -393,15 +400,79 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_by (FK)
 - invoice_number
 - amount
+- currency (default "SAR")
 - status ENUM
 - payment_method ENUM
 - issue_date
 - due_date
 - paid_at
+- sent_at
 - payment_reference
 - notes
 - created_at
 - updated_at
+
+## invoice_items
+- id (PK)
+- invoice_id (FK)
+- project_id? (FK)
+- task_id? (FK)
+- description
+- quantity
+- unit_price
+- total
+
+## payments
+- id (PK)
+- invoice_id (FK)
+- client_id? (FK)
+- gateway_id? (FK)
+- amount
+- currency (default "SAR")
+- status ENUM (PENDING, SUCCESS, FAILED, REFUNDED)
+- method ENUM
+- provider_payment_id?
+- metadata_json? (jsonb)
+- notes
+- date
+- created_at
+- updated_at
+
+## payment_gateways
+- id (PK)
+- name (unique)
+- type ENUM (ONLINE, MANUAL)
+- is_active
+- config_json? (jsonb)
+- created_at
+- updated_at
+
+## bank_accounts
+- id (PK)
+- account_name
+- iban (unique)
+- bank_name
+- swift_code?
+- instructions?
+- is_active
+- created_at
+- updated_at
+
+## payment_events
+- id (PK)
+- payment_id (FK)
+- type ENUM (CREATED, SUCCESS, FAILED, REFUNDED)
+- payload_json? (jsonb)
+- created_at
+
+## webhook_logs
+- id (PK)
+- provider
+- event_type
+- payload (jsonb)
+- processed
+- error?
+- created_at
 
 ## payment_tickets
 - id (PK)
@@ -414,6 +485,52 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - resolved_at
 
 ---
+
+# 🟤 PAYROLL & LEDGER
+
+## employees
+- id (PK)
+- user_id? (FK, unique)
+- name
+- role
+- base_salary
+- is_active
+- created_at
+- updated_at
+
+## salaries
+- id (PK)
+- employee_id (FK)
+- amount
+- base_salary
+- bonuses
+- deductions
+- status ENUM (PENDING, PAID, CANCELLED)
+- payment_date?
+- month
+- year
+- notes?
+- created_at
+
+## ledger
+- id (PK)
+- action
+- entity
+- entity_id
+- user_id? (FK)
+- before? (jsonb)
+- after? (jsonb)
+- created_at
+
+## currency_settings
+- id (PK)
+- code (unique)
+- name
+- symbol
+- is_default
+- exchange_rate (default 1)
+- created_at
+- updated_at
 
 # 🟣 RATINGS & PERFORMANCE
 

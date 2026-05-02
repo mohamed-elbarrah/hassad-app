@@ -42,6 +42,16 @@ export class ContractsService {
             accountManager: true,
           },
         },
+        proposal: {
+          select: {
+            id: true,
+            title: true,
+            serviceDescription: true,
+            servicesList: true,
+            totalPrice: true,
+            durationDays: true,
+          },
+        },
       },
     });
 
@@ -92,12 +102,22 @@ export class ContractsService {
       projectManagerId = fallbackPm.id;
     }
 
-    const projectName = `${contract.client.companyName} — ${contract.title}`;
-    const projectDescription = [
-      `Auto-created after signing contract: ${contract.title}`,
-      `Client contact: ${contract.client.contactName}`,
-      'Next step: PM creates and assigns tasks from the project board.',
-    ].join('\n');
+    const projectName = contract.proposal
+      ? `${contract.client.companyName} — ${contract.proposal.title}`
+      : `${contract.client.companyName} — ${contract.title}`;
+    const projectDescription = contract.proposal
+      ? [
+          `Auto-created from proposal: ${contract.proposal.title}`,
+          `Services: ${typeof contract.proposal.servicesList === 'string' ? contract.proposal.servicesList : JSON.stringify(contract.proposal.servicesList)}`,
+          `Budget: ${contract.proposal.totalPrice} SAR`,
+          `Duration: ${contract.proposal.durationDays} days`,
+          `Client contact: ${contract.client.contactName}`,
+        ].join('\n')
+      : [
+          `Auto-created after signing contract: ${contract.title}`,
+          `Client contact: ${contract.client.contactName}`,
+          'Next step: PM creates and assigns tasks from the project board.',
+        ].join('\n');
 
     const project = await this.prisma.$transaction(async (tx) => {
       const existingProject = await tx.project.findFirst({
@@ -383,14 +403,25 @@ export class ContractsService {
   }
 
   async send(id: string) {
-    await this.findOne(id);
+    const contract = await this.findOne(id);
 
-    return this.prisma.contract.update({
+    const updated = await this.prisma.contract.update({
       where: { id },
       data: {
         status: ContractStatus.SENT,
       },
     });
+
+    await this.notificationsService.notifyUsers({
+      userIds: [contract.client.accountManager].filter(Boolean) as string[],
+      title: 'تم إرسال العقد',
+      message: `تم إرسال العقد "${contract.title}" إلى ${contract.client.companyName}`,
+      entityId: id,
+      entityType: 'CONTRACT',
+      eventType: 'CONTRACT_SENT',
+    });
+
+    return updated;
   }
 
   async sign(id: string, userId: string, dto: SignContractDto) {
@@ -455,21 +486,55 @@ export class ContractsService {
         .catch(() => undefined);
     }
 
+    await this.notificationsService.notifyUsers({
+      userIds: [contract.createdBy, contract.client.accountManager].filter(Boolean) as string[],
+      excludeUserIds: [userId],
+      title: 'تم توقيع العقد',
+      message: `تم توقيع العقد "${contract.title}" مع ${contract.client.companyName}`,
+      entityId: id,
+      entityType: 'CONTRACT',
+      eventType: 'CONTRACT_SIGNED',
+    });
+
     return signedResult;
   }
 
   async activate(id: string) {
-    return this.prisma.contract.update({
+    const contract = await this.findOne(id);
+    const updated = await this.prisma.contract.update({
       where: { id },
       data: { status: ContractStatus.ACTIVE },
     });
+
+    await this.notificationsService.notifyUsers({
+      userIds: [contract.createdBy, contract.client.accountManager].filter(Boolean) as string[],
+      title: 'تم تفعيل العقد',
+      message: `تم تفعيل العقد "${contract.title}" مع ${contract.client.companyName}`,
+      entityId: id,
+      entityType: 'CONTRACT',
+      eventType: 'CONTRACT_ACTIVATED',
+    });
+
+    return updated;
   }
 
   async cancel(id: string) {
-    return this.prisma.contract.update({
+    const contract = await this.findOne(id);
+    const updated = await this.prisma.contract.update({
       where: { id },
       data: { status: ContractStatus.CANCELLED },
     });
+
+    await this.notificationsService.notifyUsers({
+      userIds: [contract.createdBy, contract.client.accountManager].filter(Boolean) as string[],
+      title: 'تم إلغاء العقد',
+      message: `تم إلغاء العقد "${contract.title}" مع ${contract.client.companyName}`,
+      entityId: id,
+      entityType: 'CONTRACT',
+      eventType: 'CONTRACT_CANCELLED',
+    });
+
+    return updated;
   }
 
   async findAll(filters: {

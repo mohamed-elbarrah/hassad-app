@@ -55,8 +55,9 @@ src/
  │    ├── marketing/
  │    ├── finance/
  │    ├── chat/
- │    ├── notifications/
- │    ├── ai/
+  │    ├── notifications/
+  │    ├── ai/
+  │    ├── sales/
  │
  ├── common/
  │    ├── guards/
@@ -162,6 +163,12 @@ GET /tasks/:id/files
 Comments
 POST /tasks/:id/comments
 🟦 PORTAL MODULE
+Dashboard
+GET /portal/dashboard → client dashboard summary (contracts, invoices, projects, campaigns)
+Contracts
+GET /portal/contracts → list client contracts (query: status, page, limit)
+Invoices
+GET /portal/invoices → list client invoices (query: status, page, limit)
 Deliverables
 POST /deliverables
 GET /deliverables/:id
@@ -175,8 +182,10 @@ POST /clients/:id/intake-form
 GET /clients/:id/intake-form
 🔴 MARKETING MODULE
 Campaigns
+GET /campaigns → campaigns.read (query: status, clientId, taskId, page, limit)
 POST /campaigns
 GET /campaigns/:id
+PATCH /campaigns/:id → campaigns.update (name, platform, budgetTotal, startDate, endDate)
 POST /campaigns/:id/start
 POST /campaigns/:id/pause
 POST /campaigns/:id/end
@@ -190,6 +199,7 @@ POST /ab-tests/:id/stop
 Invoices
 POST /invoices
 GET /invoices/:id
+Note: POST /invoices and GET /invoices/:id include `items` field (InvoiceItem array: description, quantity, unitPrice, total, projectId?, taskId?)
 POST /invoices/:id/send
 POST /invoices/:id/mark-paid
 Payment Tickets
@@ -198,6 +208,7 @@ GET /payment-tickets/:id
 POST /payment-tickets/:id/resolve
 ⚫ CHAT MODULE
 Conversations
+GET /conversations → list current user's conversations (query: page, limit; returns last message per conversation)
 POST /conversations
 GET /conversations/:id
 POST /conversations/:id/participants
@@ -208,6 +219,14 @@ GET /conversations/:id/messages
 GET /notifications
 POST /notifications/mark-read
 POST /notifications/mark-all-read
+
+⚪ SALES MODULE
+Metrics
+GET /sales/metrics → sales.read (aggregated sales KPIs)
+Performance
+GET /sales/performance → sales.read (query: period = week|month|quarter)
+Activity
+GET /sales/activity → sales.read (query: limit, default 20)
 🔵 AI MODULE
 POST /ai/analyze
 GET /ai/logs/:id
@@ -215,6 +234,23 @@ Suggestions
 GET /ai/suggestions
 POST /ai/suggestions/:id/accept
 POST /ai/suggestions/:id/reject
+
+🔴 WEBSOCKET ENDPOINTS
+Chat Gateway
+joinConversation — join a conversation room
+leaveConversation — leave a conversation room
+sendMessage — send message (payload: conversationId, content)
+typing — emit typing indicator (payload: conversationId)
+stopTyping — emit stop-typing indicator (payload: conversationId)
+Notifications Gateway
+notification — push notification to connected user
+unreadCount — push unread count to connected user
+broadcast — admin broadcast to all connected users
+
+📌 MARKETING KPI NOTE
+The old `PATCH /campaigns/:id/metrics` endpoint is REPLACED by `POST /campaigns/:id/kpis`.
+Campaign analytics are now queried from CampaignKpiSnapshot, not denormalized fields on the Campaign model.
+
 🔁 CRITICAL SYSTEM RULES
 RULE 1 — STATE CONTROL
 
@@ -250,6 +286,7 @@ Portal
 Marketing
 Finance
 Notifications + Chat
+Sales
 AI
 ✅ FINAL INSTRUCTION
 
