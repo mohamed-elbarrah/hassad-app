@@ -265,15 +265,19 @@ enum AiSuggestionStatus {
 // 🟣 CORE & PERMISSIONS
 
 model User {
-  id           String    @id @default(uuid())
-  name         String
-  email        String    @unique
-  passwordHash String    @map("password_hash")
-  roleId       String    @map("role_id")
-  role         Role      @relation(fields: [roleId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id                 String    @id @default(uuid())
+  name               String
+  email              String    @unique
+  passwordHash       String?   @map("password_hash")
+  roleId             String    @map("role_id")
+  role               Role      @relation(fields: [roleId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  isActive           Boolean   @default(true) @map("is_active")
+  resetToken         String?   @unique @map("reset_token")
+  resetTokenExpiresAt DateTime? @map("reset_token_expires_at")
+  provider           String    @default("local") @map("provider")
+  providerId         String?   @unique @map("provider_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   permissions      UserPermission[]
   departments      UserDepartment[]

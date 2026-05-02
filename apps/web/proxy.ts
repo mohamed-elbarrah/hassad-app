@@ -51,7 +51,10 @@ export default async function proxy(request: NextRequest) {
     pathname.startsWith("/contract/")
   ) {
     // If authenticated, redirect away from login/signup to role home
-    if (isAuthenticated && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
+    if (
+      isAuthenticated &&
+      (pathname.startsWith("/login") || pathname.startsWith("/signup"))
+    ) {
       const home = role === "CLIENT" ? "/portal" : "/dashboard";
       return NextResponse.redirect(new URL(home, request.url));
     }

@@ -58,6 +58,7 @@ function LoginFormInner() {
       const data = await login({
         email: values.email,
         password: values.password,
+        rememberMe: values.rememberMe,
       }).unwrap();
       dispatch(setCredentials({ user: data.user }));
 

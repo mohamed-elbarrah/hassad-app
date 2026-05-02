@@ -2,23 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { AuthInput } from "@/components/auth/AuthInput";
 import { AuthButton } from "@/components/auth/AuthButton";
 import { AuthFooter } from "@/components/auth/AuthFooter";
 import { Link } from "@/components/auth/AuthLink";
+import { useForgotPasswordMutation } from "@/features/auth/authApi";
 
 export function ForgotPasswordForm() {
+  const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    setSubmitted(true);
+    if (!email) return;
+
+    try {
+      await forgotPassword({ email }).unwrap();
+      setSubmitted(true);
+      toast.success("تم إرسال رابط إعادة التعيين!");
+    } catch {
+      toast.error("حدث خطأ. يرجى المحاولة لاحقاً.");
+    }
   }
 
   if (submitted) {
@@ -58,40 +65,22 @@ export function ForgotPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-secondary-500 text-right">
-          البريد الالكتروني
-        </label>
-        <div className="relative">
-          <input
-            type="email"
-            placeholder="ادخل البريد الالكتروني هنا"
-            required
-            className="w-full h-12 px-4 pr-12 text-sm text-secondary-500 bg-white border border-neutral-200 rounded-xl placeholder:text-neutral-200 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors duration-200 text-right"
-            disabled={isLoading}
-          />
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-            <svg
-              className="w-5 h-5 text-neutral-200"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="20" height="16" x="2" y="4" rx="2" />
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-            </svg>
-          </div>
-        </div>
-      </div>
+      <AuthInput
+        label="البريد الالكتروني"
+        icon="mail"
+        type="email"
+        placeholder="ادخل البريد الالكتروني هنا"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        disabled={isLoading}
+      />
 
       <AuthButton
         type="submit"
         variant="primary"
         fullWidth
-        disabled={isLoading}
+        disabled={isLoading || !email}
       >
         {isLoading ? "جارٍ الإرسال..." : "إرسال رابط إعادة التعيين"}
       </AuthButton>

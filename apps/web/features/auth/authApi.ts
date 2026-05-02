@@ -51,7 +51,7 @@ export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
-    login: builder.mutation<AuthResponse, LoginDto>({
+    login: builder.mutation<AuthResponse, LoginDto & { rememberMe?: boolean }>({
       query: (credentials) => ({
         url: "/login",
         method: "POST",
@@ -85,8 +85,37 @@ export const authApi = createApi({
       transformResponse: (response: { data: { message: string } }) =>
         response.data,
     }),
+    forgotPassword: builder.mutation<{ message: string }, { email: string }>({
+      query: (body) => ({
+        url: "/forgot-password",
+        method: "POST",
+        body,
+      }),
+    }),
+    resetPassword: builder.mutation<
+      { message: string },
+      { token: string; password: string }
+    >({
+      query: (body) => ({
+        url: "/reset-password",
+        method: "POST",
+        body,
+      }),
+    }),
+    logout: builder.mutation<{ message: string }, void>({
+      query: () => ({
+        url: "/logout",
+        method: "POST",
+      }),
+    }),
   }),
 });
 
-export const { useLoginMutation, useGetProfileQuery, useRegisterMutation } =
-  authApi;
+export const {
+  useLoginMutation,
+  useGetProfileQuery,
+  useRegisterMutation,
+  useLogoutMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+} = authApi;

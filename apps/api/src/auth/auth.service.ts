@@ -40,6 +40,13 @@ export class AuthService {
       throw new UnauthorizedException("User account is inactive");
     }
 
+    // OAuth users don't have passwordHash
+    if (!user.passwordHash) {
+      throw new UnauthorizedException(
+        "This account uses social login. Please sign in with your provider.",
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(
       dto.password,
       user.passwordHash,
@@ -119,7 +126,7 @@ export class AuthService {
     return {
       ...user,
       role: user.role.name,
-      departments: user.departments.map(ud => ud.department.name),
+      departments: user.departments.map((ud) => ud.department.name),
       ...(clientId !== undefined && { clientId }),
     };
   }
@@ -202,4 +209,55 @@ export class AuthService {
     };
   }
 
+  // ── Password Reset ──────────────────────────────────────────────────────────
+
+  async findByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true, email: true },
+    });
+  }
+
+  async generateResetToken(userId: string) {
+    const crypto = await import("crypto");
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        resetToken: token,
+        resetTokenExpiresAt: expiresAt,
+      },
+    });
+
+    return token;
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { resetToken: token },
+    });
+
+    if (
+      !user ||
+      !user.resetTokenExpiresAt ||
+      user.resetTokenExpiresAt < new Date()
+    ) {
+      throw new UnauthorizedException("Invalid or expired reset token");
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiresAt: null,
+      },
+    });
+
+    return { message: "Password reset successfully" };
+  }
 }
