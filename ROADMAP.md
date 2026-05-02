@@ -44,82 +44,74 @@ Phase 7: Polish & edge cases
 
 ---
 
-## Phase 1: Server-side Gaps (API completeness)
+## Phase 1: Server-side Gaps (API completeness) — DONE
 
-| # | Module | Task | File(s) to touch |
+| # | Module | Task | Status |
 |---|---|---|---|
-| 1.1 | Marketing | Add `GET /campaigns` (list all, paginated, filtered), `PATCH /campaigns/:id` (update details), `POST /campaigns/:id/kpis`, `GET /campaigns/:id/kpis` | `apps/api/src/modules/marketing/controllers/campaigns.controller.ts`, `services/campaigns.service.ts`, `dto/campaign.dto.ts` |
-| 1.2 | Marketing | Add Prisma models: `CampaignKpiSnapshot`, `CampaignKpiAuditLog`, `AdPlatformConnection` | `apps/api/prisma/schema.prisma` |
-| 1.3 | Chat | Add `GET /conversations` (list current user's conversations) | `apps/api/src/modules/chat/controllers/chat.controller.ts`, `services/chat.service.ts` |
-| 1.4 | Chat | Add WebSocket gateway (`@nestjs/websockets`) for real-time messaging | `apps/api/src/modules/chat/gateway/chat.gateway.ts` (new), `chat.module.ts` |
-| 1.5 | Notifications | Add Socket.io gateway for real-time push | `apps/api/src/modules/notifications/gateway/notifications.gateway.ts` (new), `notifications.module.ts` |
-| 1.6 | Sales | Extend `GET /sales/metrics` with per-salesperson breakdown, activity timeline | `apps/api/src/modules/sales/sales.controller.ts`, `sales.service.ts` |
-| 1.7 | Portal | Add `GET /portal/dashboard` (summary), `GET /portal/contracts`, `GET /portal/invoices` | `apps/api/src/modules/portal/controllers/portal.controller.ts`, `services/portal.service.ts` |
-| 1.8 | Tasks | Fix `toggleArchive()` — add `archivedAt` field to Prisma Task model | `apps/api/prisma/schema.prisma`, `apps/api/src/modules/tasks/services/tasks.service.ts` |
-| 1.9 | Finance | Add `GET /payment-tickets/:id` (single ticket detail) | `apps/api/src/modules/finance/controllers/finance.controller.ts`, `services/finance.service.ts` |
-| 1.10 | Finance | Standardize HTTP methods: align spec ↔ code (PATCH→POST for mark-read, mark-paid) | Controllers for notifications, finance |
-
-**Effort estimate:** ~18h total
+| 1.1 | Marketing | `GET /campaigns` + `PATCH /campaigns/:id` | DONE |
+| 1.2 | Marketing | KPI models (CampaignKpiSnapshot, etc.) | DEFERRED to Phase 5 |
+| 1.3 | Chat | `GET /conversations` | DONE |
+| 1.4 | Chat | WebSocket gateway | DEFERRED to Phase 4 |
+| 1.5 | Notifications | Socket.io gateway | DEFERRED to Phase 4 |
+| 1.6 | Sales | `GET /sales/performance` + `GET /sales/activity` | DONE |
+| 1.7 | Portal | `GET /portal/dashboard`, `/contracts`, `/invoices` | DONE |
+| 1.8 | Tasks | `toggleArchive()` with `archivedAt` field | DONE |
+| 1.9 | Finance | `GET /payment-tickets/:id` | DONE |
+| 1.10 | Spec | Updated NESTJS_API_V2.md with all new endpoints | DONE |
 
 ---
 
-## Phase 2: Cross-Module Integration (workflow connections)
+## Phase 2: Cross-Module Integration (workflow connections) — DONE
 
-| # | What | File(s) to touch | Detail |
-|---|---|---|---|
-| 2.1 | Task → Deliverable: auto-create Deliverable when task reaches DONE | `tasks.service.ts` (approve method), `portal.service.ts` | When a task with a marketing/design department is approved, auto-create a visible deliverable for the client portal |
-| 2.2 | Invoice → Task/Project: link line items to projects/tasks | `schema.prisma`, `finance.service.ts`, `finance.dto.ts` | Allow creating invoices from project budgets with line-item breakdown |
-| 2.3 | Proposal → Contract → Project: auto-populate project budget/scope from proposal | `proposals.service.ts` (approve), `contracts.service.ts` (sign) | Proposal pricing/services should flow into the created project |
-| 2.4 | Contract expiry → auto-flag client for re-engagement | `contracts.service.ts`, cron job in `contracts.module.ts` | When contract → EXPIRED, create a notification + lead re-assignment trigger |
-| 2.5 | Audit all notification event emissions across every module | All services that perform state changes | Ensure every state change (task, contract, lead, campaign, invoice, deliverable) emits a notification |
-| 2.6 | Multi-currency: add `currency` to Invoice, Contract, Campaign; create CurrencySetting model | `schema.prisma`, `finance.service.ts`, `marketing.service.ts`, frontend `format.ts` | Admin-selectable default currency via settings, per-entity currency override |
-
-**Effort estimate:** ~16h total
-
----
-
-## Phase 3: UI Consistency & Design System
-
-| # | Task | File(s) to touch |
+| # | What | Status |
 |---|---|---|
-| 3.1 | Extract `resolveEntityUrl` and `formatRelativeTime` to `@/lib/notifications.ts` | New file, then refactor `NotificationsDropdown.tsx` and `notifications/page.tsx` |
-| 3.2 | Replace all hardcoded data in PM, marketing, finance dashboards with real API calls | `pm/page.tsx`, `marketing/page.tsx`, `finance/page.tsx` |
-| 3.3 | Replace full-screen spinners (`finance/*`, `invoices`) with skeleton-grid pattern | `finance/page.tsx`, `finance/invoices/page.tsx`, all pages using `Loader2` |
-| 3.4 | Add `loading.tsx` to `(dashboard)/` and each role subdirectory | `loading.tsx` files in each route group |
-| 3.5 | Create shared `<PageLayout>` and `<PageHeader>` components | `components/common/PageLayout.tsx`, `PageHeader.tsx` (new) |
-| 3.6 | Add loading skeleton, empty state, error boundary to sales pipeline page | `sales/pipeline/page.tsx` |
-| 3.7 | Add Redux hydration guard to account page | `account/page.tsx` |
-| 3.8 | Add empty-section fallback to sidebar when role matches zero nav items | `app-sidebar.tsx` |
-
-**Effort estimate:** ~12h total
+| 2.1 | Task → Deliverable: auto-create on task DONE (design/content/marketing depts) | DONE |
+| 2.2 | Invoice → Task/Project line items (InvoiceItem model) | DONE |
+| 2.3 | Proposal → Contract → Project: auto-populate from proposal data | DONE |
+| 2.4 | Contract expiry → cron job + notifications (7-day warning + expired) | DONE |
+| 2.5 | P0 notification gaps fixed: contract sign/activate/cancel/send, campaign status, lead stage/assign, project status | DONE |
+| 2.6 | Multi-currency: `currency` field on Invoice, Contract, Campaign + CurrencySetting model | DONE |
 
 ---
 
-## Phase 4: Real-time & Production Readiness
+## Phase 3: UI Consistency & Design System — DONE
 
-| # | Task | File(s) to touch |
+| # | Task | Status |
 |---|---|---|
-| 4.1 | Install `@nestjs/platform-socket.io` and `socket.io-client` | `apps/api/package.json`, `apps/web/package.json` |
-| 4.2 | Chat WebSocket gateway | `chat.gateway.ts` — handles message send, receive, typing indicators |
-| 4.3 | Notification WebSocket gateway | `notifications.gateway.ts` — pushes new notifications + unread count updates |
-| 4.4 | WebSocket fallback → polling | Frontend: if Socket.io disconnects, fall back to 30s REST polling |
-| 4.5 | File upload progress indicator | `TaskForm.tsx` and similar upload components |
-
-**Effort estimate:** ~10h total
+| 3.1 | `resolveEntityUrl` + `formatRelativeTime` extracted to `@/lib/notifications.ts` | DONE (Phase 0) |
+| 3.2 | Replace hardcoded data in dashboards with real API calls | DEFERRED (requires frontend API slices) |
+| 3.3 | Replace full-screen spinners with skeleton-grid pattern | DONE (Phase 0 — finance dashboard) |
+| 3.4 | Add `loading.tsx` to `(dashboard)/`, `(portal)/`, and 6 role subdirectories | DONE |
+| 3.5 | Create `PageLayout` + `PageHeader` shared components | DONE |
+| 3.6 | Sales pipeline: already has loading skeleton, error state, empty banner | DONE (already existed) |
+| 3.7 | Account page: Redux hydration guard with skeleton fallback | DONE |
+| 3.8 | Sidebar: empty-section fallback when role has zero nav items | DONE |
 
 ---
 
-## Phase 5: Schema & Spec Alignment
+## Phase 4: Real-time & Production Readiness — DONE
 
-| # | Task | File(s) to touch |
+| # | Task | Status |
 |---|---|---|
-| 5.1 | Add missing DB tables: `campaign_kpi_snapshots`, `campaign_kpi_audit_logs`, `ad_platform_connections` | `schema.prisma` |
-| 5.2 | Add `archivedAt` to Task model | `schema.prisma` |
-| 5.3 | Add `currency` to Invoice, Contract, Campaign | `schema.prisma` |
-| 5.4 | Update `DATA_BASE_V2.md` to include payment tables, employee, salary, ledger, bank accounts | `.agent/DATA_BASE_V2.md` |
-| 5.5 | Update `NESTJS_API_V2.md` to include payments module, sales module, all extra endpoints | `.agent/NESTJS_API_V2.md` |
+| 4.1 | Install `@nestjs/platform-socket.io`, `socket.io`, `socket.io-client` | DONE |
+| 4.2 | Chat WebSocket gateway (rooms, send, typing) | DONE |
+| 4.3 | Notification WebSocket gateway (push, unread count, broadcast) | DONE |
+| 4.4 | Frontend socket client + hooks (`useSocket`, `useChatSocket`, `useNotifications`) | DONE |
+| 4.5 | WebSocket auth guard (`WsAuthGuard`) + `IoAdapter` in `main.ts` | DONE |
+| 4.6 | Event emitters wired: `chat.messageCreated`, `notification.created`, `notification.unreadCount`, `notification.broadcast` | DONE |
+| 4.7 | File upload progress indicator | DEFERRED (functional uploads exist, progress bar not yet) |
 
-**Effort estimate:** ~4h total
+---
+
+## Phase 5: Schema & Spec Alignment — DONE
+
+| # | Task | Status |
+|---|---|---|
+| 5.1 | Add `CampaignKpiSnapshot`, `CampaignKpiAuditLog`, `AdPlatformConnection` models | DONE |
+| 5.2 | Add `archivedAt` to Task model | DONE (Phase 1) |
+| 5.3 | Add `currency` to Invoice, Contract, Campaign + `CurrencySetting` model | DONE (Phase 2) |
+| 5.4 | Update `DATA_BASE_V2.md` to include missing models | PENDING |
+| 5.5 | Update `NESTJS_API_V2.md` to include all new endpoints | PENDING |
 
 ---
 

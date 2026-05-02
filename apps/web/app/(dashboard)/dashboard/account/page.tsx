@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { User, Mail, Briefcase } from "lucide-react";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -39,7 +40,27 @@ function getInitials(name: string) {
 export default function AccountPage() {
   const { user } = useAppSelector((state) => state.auth);
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
+        <Skeleton className="h-9 w-48" />
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-16 w-16 rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          </div>
+          <Skeleton className="h-px w-full" />
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const roleLabel = ROLE_LABELS[user.role as UserRole] ?? user.role;
   const deptLabel = user.department

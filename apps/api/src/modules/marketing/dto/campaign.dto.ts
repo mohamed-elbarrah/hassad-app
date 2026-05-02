@@ -39,6 +39,29 @@ export class CreateCampaignDto {
   budgetTotal: number;
 }
 
+export class UpdateCampaignDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsEnum(CampaignPlatform)
+  platform?: CampaignPlatform;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  budgetTotal?: number;
+}
+
 export class UpdateCampaignMetricsDto {
   @IsOptional()
   @IsNumber()
@@ -69,4 +92,24 @@ export class UpdateCampaignMetricsDto {
 export class UpdateCampaignStatusDto {
   @IsEnum(CampaignStatus)
   status: CampaignStatus;
+}
+
+export class CampaignQueryDto {
+  @IsOptional()
+  page?: number;
+
+  @IsOptional()
+  limit?: number;
+
+  @IsOptional()
+  @IsEnum(CampaignStatus)
+  status?: CampaignStatus;
+
+  @IsOptional()
+  @IsUUID()
+  clientId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  taskId?: string;
 }

@@ -189,9 +189,33 @@ export class ProjectsService {
   }
 
   async updateStatus(id: string, status: string) {
-    return this.prisma.project.update({
+    const project = await this.findOne(id);
+
+    const updated = await this.prisma.project.update({
       where: { id },
       data: { status: status as import('@prisma/client').ProjectStatus },
     });
+
+    const memberIds = await this.prisma.projectMember.findMany({
+      where: { projectId: id },
+      select: { userId: true },
+    });
+    const recipientIds = [
+      ...memberIds.map((m) => m.userId),
+      project.projectManagerId,
+    ].filter(Boolean) as string[];
+
+    if (recipientIds.length > 0) {
+      await this.notificationsService.notifyUsers({
+        userIds: recipientIds,
+        title: 'تحديث حالة المشروع',
+        message: `تم تغيير حالة المشروع "${project.name}" إلى ${status}`,
+        entityId: id,
+        entityType: 'PROJECT',
+        eventType: 'PROJECT_STATUS_CHANGED',
+      });
+    }
+
+    return updated;
   }
 }

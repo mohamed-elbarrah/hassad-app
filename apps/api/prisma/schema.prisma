@@ -265,15 +265,19 @@ enum AiSuggestionStatus {
 // 🟣 CORE & PERMISSIONS
 
 model User {
-  id           String    @id @default(uuid())
-  name         String
-  email        String    @unique
-  passwordHash String    @map("password_hash")
-  roleId       String    @map("role_id")
-  role         Role      @relation(fields: [roleId], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id                 String    @id @default(uuid())
+  name               String
+  email              String    @unique
+  passwordHash       String?   @map("password_hash")
+  roleId             String    @map("role_id")
+  role               Role      @relation(fields: [roleId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  isActive           Boolean   @default(true) @map("is_active")
+  resetToken         String?   @unique @map("reset_token")
+  resetTokenExpiresAt DateTime? @map("reset_token_expires_at")
+  provider           String    @default("local") @map("provider")
+  providerId         String?   @unique @map("provider_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   permissions      UserPermission[]
   departments      UserDepartment[]
@@ -307,6 +311,7 @@ model User {
   actionedAiSuggs  AiSuggestion[]
   notifications    Notification[]
   managedCampaigns Campaign[]               @relation("CampaignManager")
+  kpiAuditLogs     CampaignKpiAuditLog[]   @relation("KpiAuditChanger")
   employee         Employee?
 
   ledgerEntries    Ledger[]
@@ -581,6 +586,7 @@ model Contract {
   endDate      DateTime       @map("end_date")
   monthlyValue Float          @map("monthly_value")
   totalValue   Float          @map("total_value")
+  currency     String         @default("SAR") @map("currency")
   filePath        String?        @map("file_path")
   shareLinkToken  String?        @unique @map("share_link_token")
   versionNumber   Int            @default(1) @map("version_number")
@@ -656,6 +662,7 @@ model Project {
   tasks          Task[]
   deliverables   Deliverable[]
   campaigns      Campaign[]
+  invoiceItems   InvoiceItem[]
 
 
   satRatings     SatisfactionRating[]
@@ -698,6 +705,7 @@ model Task {
   approvedAt        DateTime?      @map("approved_at")
   revisionCount     Int            @default(0) @map("revision_count")
   isVisibleToClient Boolean        @default(false) @map("is_visible_to_client")
+  archivedAt        DateTime?      @map("archived_at")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
 
@@ -709,10 +717,11 @@ model Task {
   statusHistory  TaskStatusHistory[]
   files          TaskFile[]
   comments       TaskComment[]
-  delayAlerts    TaskDelayAlert[]
-  deliverables Deliverable[]
-  internalRating InternalRating?
-  campaigns    Campaign[]
+   delayAlerts    TaskDelayAlert[]
+   deliverables Deliverable[]
+   invoiceItems  InvoiceItem[]
+   internalRating InternalRating?
+   campaigns    Campaign[]
 
 
 
@@ -800,25 +809,82 @@ model Campaign {
   endDate             DateTime?        @map("end_date")
   budgetTotal         Float            @default(0) @map("budget_total")
   budgetSpent         Float            @default(0) @map("budget_spent")
-  impressions         Int              @default(0)
-  clicks              Int              @default(0)
-  conversions         Int              @default(0)
-  revenue             Float?
-  cpcOverride         Float?           @map("cpc_override")
-  cpaOverride         Float?           @map("cpa_override")
+  currency            String           @default("SAR") @map("currency")
   needsOptimization   Boolean          @default(false) @map("needs_optimization")
-  externalCampaignId  String?          @map("external_campaign_id")
   createdAt           DateTime         @default(now()) @map("created_at")
   updatedAt           DateTime         @updatedAt @map("updated_at")
 
-  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  task    Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  manager User     @relation("CampaignManager", fields: [managedBy], references: [id])
+  client             Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  task               Task                    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project            Project?                @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  manager            User                    @relation("CampaignManager", fields: [managedBy], references: [id])
+  kpiSnapshots       CampaignKpiSnapshot[]
+  auditLogs          CampaignKpiAuditLog[]
+  platformConnections AdPlatformConnection[]
 
   @@map("campaigns")
   @@index([taskId])
   @@index([clientId])
+}
+
+model CampaignKpiSnapshot {
+  id           String   @id @default(uuid())
+  campaignId   String   @map("campaign_id")
+  impressions  Int      @default(0)
+  clicks       Int      @default(0)
+  conversions  Int      @default(0)
+  revenue      Float    @default(0)
+  cpc          Float    @default(0) // cost per click
+  cpa          Float    @default(0) // cost per acquisition
+  ctr          Float    @default(0) // click-through rate (%)
+  conversionRate Float  @default(0) // conversion rate (%)
+  roas         Float    @default(0) // return on ad spend
+  source       String? // e.g. "manual", "meta_api", "google_api"
+  recordedAt   DateTime @default(now()) @map("recorded_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  auditLogs CampaignKpiAuditLog[]
+
+  @@map("campaign_kpi_snapshots")
+  @@index([campaignId])
+  @@index([recordedAt])
+}
+
+model CampaignKpiAuditLog {
+  id            String   @id @default(uuid())
+  campaignId    String   @map("campaign_id")
+  snapshotId    String?  @map("snapshot_id")
+  field         String
+  oldValue      String?
+  newValue      String?
+  changedBy     String?  @map("changed_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  campaign Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  snapshot CampaignKpiSnapshot?  @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  changer  User?                @relation("KpiAuditChanger", fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@map("campaign_kpi_audit_logs")
+  @@index([campaignId])
+}
+
+model AdPlatformConnection {
+  id                  String            @id @default(uuid())
+  campaignId          String            @map("campaign_id")
+  platform            CampaignPlatform
+  externalCampaignId  String?           @map("external_campaign_id")
+  accessToken         String?           @map("access_token")
+  refreshToken        String?           @map("refresh_token")
+  syncStatus          String            @default("PENDING") @map("sync_status")
+  lastSyncedAt        DateTime?         @map("last_synced_at")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("ad_platform_connections")
+  @@index([campaignId])
 }
 
 
@@ -890,6 +956,7 @@ model Invoice {
   createdBy        String        @map("created_by")
   invoiceNumber    String        @unique @map("invoice_number")
   amount           Float
+  currency         String           @default("SAR") @map("currency")
   status           InvoiceStatus
   paymentMethod    PaymentMethod @map("payment_method")
   issueDate        DateTime      @map("issue_date")
@@ -906,11 +973,32 @@ model Invoice {
   creator  User            @relation(fields: [createdBy], references: [id], onDelete: Restrict)
   tickets  PaymentTicket[]
   payments Payment[]
+  items    InvoiceItem[]
 
   @@map("invoices")
   @@index([clientId])
   @@index([invoiceNumber])
   @@index([status])
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String  @map("invoice_id")
+  projectId   String? @map("project_id")
+  taskId      String? @map("task_id")
+  description String
+  quantity     Int     @default(1)
+  unitPrice   Float   @map("unit_price")
+  total       Float
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  task    Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@map("invoice_items")
+  @@index([invoiceId])
+  @@index([projectId])
+  @@index([taskId])
 }
 
 model Payment {
@@ -1244,4 +1332,17 @@ model AiSuggestion {
   @@map("ai_suggestions")
   @@index([logId])
   @@index([status])
+}
+
+model CurrencySetting {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  symbol    String
+  isDefault Boolean @default(false) @map("is_default")
+  exchangeRate Float @default(1) @map("exchange_rate")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("currency_settings")
 }

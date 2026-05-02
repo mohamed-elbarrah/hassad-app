@@ -274,7 +274,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       {/* ── Nav sections ── */}
       <SidebarContent>
-        {visibleSections.map((section, sectionIdx) => (
+        {visibleSections.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <Shield className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">
+              لا توجد أقسام متاحة لدورك الحالي
+            </p>
+          </div>
+        ) : (
+          visibleSections.map((section, sectionIdx) => (
           <React.Fragment key={section.label}>
             <SidebarGroup>
               <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
@@ -339,7 +347,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroup>
             {sectionIdx < visibleSections.length - 1 && <SidebarSeparator />}
           </React.Fragment>
-        ))}
+          ))
+        )}
       </SidebarContent>
 
       <SidebarSeparator />

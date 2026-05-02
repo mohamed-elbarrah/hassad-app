@@ -2,17 +2,18 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Patch,
+  Body,
   Param,
-  UseGuards,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { CampaignsService } from "../services/campaigns.service";
 import {
   CreateCampaignDto,
+  UpdateCampaignDto,
   UpdateCampaignMetricsDto,
-  UpdateCampaignStatusDto,
+  CampaignQueryDto,
 } from "../dto/campaign.dto";
 import { CampaignStatus } from "@hassad/shared";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
@@ -31,20 +32,41 @@ export class CampaignsController {
     return this.campaignsService.create(dto, user.id);
   }
 
+  @Get()
+  @RequirePermissions("marketing.read")
+  findAll(@Query() query: CampaignQueryDto) {
+    return this.campaignsService.findAll(query);
+  }
+
   @Get(":id")
   @RequirePermissions("marketing.read")
   findOne(@Param("id") id: string) {
     return this.campaignsService.findOne(id);
   }
 
-  @Patch(":id/metrics")
+  @Patch(":id")
+  @RequirePermissions("marketing.update")
+  update(@Param("id") id: string, @Body() dto: UpdateCampaignDto) {
+    return this.campaignsService.update(id, dto);
+  }
+
+  @Post(":id/kpis")
   @RequirePermissions("marketing.manage_kpis")
-  updateMetrics(
+  createKpiSnapshot(
     @Param("id") id: string,
     @CurrentUser() user: any,
     @Body() dto: UpdateCampaignMetricsDto,
   ) {
-    return this.campaignsService.updateMetrics(id, dto, user.id);
+    return this.campaignsService.createKpiSnapshot(id, dto, user.id);
+  }
+
+  @Get(":id/kpis")
+  @RequirePermissions("marketing.read")
+  getKpiSnapshots(
+    @Param("id") id: string,
+    @Query() query: { from?: string; to?: string },
+  ) {
+    return this.campaignsService.getKpiSnapshots(id, query);
   }
 
   @Post(":id/start")

@@ -1,14 +1,97 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateDeliverableDto, CreateRevisionDto, CreateIntakeFormDto } from '../dto/portal.dto';
-import { TaskStatus } from '@hassad/shared';
+import { TaskStatus, ContractStatus, InvoiceStatus } from '@hassad/shared';
 import { randomBytes } from 'crypto';
 
 @Injectable()
 export class PortalService {
   constructor(private prisma: PrismaService) {}
 
+  async getDashboard(clientId: string) {
+    const [contracts, invoices, projects, campaigns] = await Promise.all([
+      this.prisma.contract.findMany({
+        where: { clientId, status: ContractStatus.SIGNED },
+        select: { id: true, title: true, status: true, totalValue: true, startDate: true, endDate: true },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      this.prisma.invoice.findMany({
+        where: { clientId },
+        select: {
+          id: true, invoiceNumber: true, amount: true, status: true, dueDate: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      this.prisma.project.findMany({
+        where: { clientId },
+        select: { id: true, name: true, status: true },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      this.prisma.campaign.findMany({
+        where: { clientId },
+        select: { id: true, name: true, status: true, platform: true },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
 
+    const totalContractValue = contracts.reduce((sum, c) => sum + c.totalValue, 0);
+    const unpaidInvoices = invoices.filter((i) => i.status !== InvoiceStatus.PAID && i.status !== InvoiceStatus.CANCELLED);
+    const totalOutstanding = unpaidInvoices.reduce((sum, i) => sum + i.amount, 0);
+
+    return {
+      summary: {
+        totalContracts: contracts.length,
+        totalContractValue,
+        totalOutstanding,
+        activeProjects: projects.filter((p) => p.status === 'ACTIVE').length,
+        activeCampaigns: campaigns.length,
+      },
+      recentContracts: contracts,
+      recentInvoices: invoices,
+      recentProjects: projects,
+      recentCampaigns: campaigns,
+    };
+  }
+
+  async getContracts(clientId: string, query: { status?: string; page: number; limit: number }) {
+    const where: any = { clientId };
+    if (query.status) where.status = query.status;
+
+    const [data, total] = await Promise.all([
+      this.prisma.contract.findMany({
+        where,
+        include: { proposal: { select: { id: true, title: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.contract.count({ where }),
+    ]);
+
+    return { data, total, page: query.page, limit: query.limit };
+  }
+
+  async getInvoices(clientId: string, query: { status?: string; page: number; limit: number }) {
+    const where: any = { clientId };
+    if (query.status) where.status = query.status;
+
+    const [data, total] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where,
+        include: { contract: { select: { id: true, title: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.invoice.count({ where }),
+    ]);
+
+    return { data, total, page: query.page, limit: query.limit };
+  }
 
   async createDeliverable(userId: string, dto: CreateDeliverableDto) {
     return this.prisma.deliverable.create({
@@ -115,9 +198,10 @@ export class PortalService {
       orderBy: { createdAt: "desc" },
     });
 
+    const snapshots = await this.getLatestSnapshots(campaigns.map((c) => c.id));
     return campaigns.map((c) => ({
       ...c,
-      analytics: this.computeCampaignAnalytics(c),
+      analytics: snapshots[c.id] ?? this.emptyAnalytics(),
     }));
   }
 
@@ -130,25 +214,52 @@ export class PortalService {
       throw new NotFoundException("الحملة غير موجودة");
     }
 
-    return {
-      ...campaign,
-      analytics: this.computeCampaignAnalytics(campaign),
-    };
+    const analytics = await this.getLatestAnalytics(id);
+    return { ...campaign, analytics };
   }
 
-  private computeCampaignAnalytics(c: any) {
-    const budgetSpent = c.budgetSpent || 0;
-    const clicks = c.clicks || 0;
-    const impressions = c.impressions || 0;
-    const conversions = c.conversions || 0;
-    const revenue = c.revenue || 0;
+  private async getLatestSnapshots(campaignIds: string[]): Promise<Record<string, any>> {
+    if (campaignIds.length === 0) return {};
 
+    const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
+      where: { campaignId: { in: campaignIds } },
+      orderBy: { recordedAt: "desc" },
+      distinct: ["campaignId"],
+    });
+
+    const map: Record<string, any> = {};
+    for (const s of snapshots) {
+      map[s.campaignId] = {
+        impressions: s.impressions,
+        clicks: s.clicks,
+        conversions: s.conversions,
+        revenue: s.revenue,
+        cpc: s.cpc,
+        cpa: s.cpa,
+        ctr: s.ctr,
+        conversionRate: s.conversionRate,
+        roas: s.roas,
+      };
+    }
+    return map;
+  }
+
+  private async getLatestAnalytics(campaignId: string): Promise<any> {
+    const snapshots = await this.getLatestSnapshots([campaignId]);
+    return snapshots[campaignId] ?? this.emptyAnalytics();
+  }
+
+  private emptyAnalytics() {
     return {
-      cpc: clicks > 0 ? budgetSpent / clicks : 0,
-      cpa: conversions > 0 ? budgetSpent / conversions : 0,
-      ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
-      conversionRate: clicks > 0 ? (conversions / clicks) * 100 : 0,
-      roas: budgetSpent > 0 ? revenue / budgetSpent : 0,
+      impressions: 0,
+      clicks: 0,
+      conversions: 0,
+      revenue: 0,
+      cpc: 0,
+      cpa: 0,
+      ctr: 0,
+      conversionRate: 0,
+      roas: 0,
     };
   }
 }

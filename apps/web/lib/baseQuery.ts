@@ -59,6 +59,12 @@ export const baseQuery: BaseQueryFn<
       );
     } else {
       api.dispatch(logout());
+      // Also call backend logout to clear HttpOnly cookies
+      await _rawBaseQuery(
+        { url: "/auth/logout", method: "POST" },
+        api,
+        extraOptions,
+      );
     }
   }
 

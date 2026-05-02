@@ -52,7 +52,20 @@ export class FinanceService {
         notes: dto.notes,
         createdBy: userId,
         status: InvoiceStatus.DUE,
+        items: dto.items?.length
+          ? {
+              create: dto.items.map((item) => ({
+                projectId: item.projectId,
+                taskId: item.taskId,
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                total: item.total,
+              })),
+            }
+          : undefined,
       },
+      include: { items: true },
     });
 
     await this.logToLedger({
@@ -83,8 +96,8 @@ export class FinanceService {
         contract: true,
         tickets: true,
         payments: true,
-      },
-    });
+        items: { include: { project: true, task: true } } },
+      });
 
     if (!invoice) {
       throw new NotFoundException(`Invoice with ID ${id} not found`);

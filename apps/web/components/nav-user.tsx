@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
+import { useLogoutMutation } from "@/features/auth/authApi";
 import { UserRole } from "@hassad/shared";
 
 /** Extract up-to-2 Arabic/Latin initials from a name */
@@ -39,12 +40,19 @@ export function NavUser() {
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const [logoutMutation] = useLogoutMutation();
 
   if (!user) return null;
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      await logoutMutation().unwrap();
+    } catch {
+      // Even if API fails, clear local state
+    }
     dispatch(logout());
-    router.push("/login");
+    // Force a full page reload to clear any cached state
+    window.location.href = "/login";
   }
 
   function handleAccount() {
@@ -101,7 +109,7 @@ export function NavUser() {
               <DropdownMenuItem
                 onClick={handleAccount}
                 className="cursor-pointer"
-              dir="rtl"
+                dir="rtl"
               >
                 <BadgeCheck className="size-4" />
                 إدارة الحساب

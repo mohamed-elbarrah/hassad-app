@@ -1,5 +1,31 @@
-import { IsString, IsNumber, IsUUID, IsDateString, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsUUID, IsDateString, IsEnum, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { PaymentMethod } from '@hassad/shared';
+
+export class InvoiceItemDto {
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  taskId?: string;
+
+  @IsString()
+  description: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  quantity: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  unitPrice: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  total: number;
+}
 
 export class CreateInvoiceDto {
   @IsUUID()
@@ -28,6 +54,12 @@ export class CreateInvoiceDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => InvoiceItemDto)
+  items?: InvoiceItemDto[];
 }
 
 export class RegisterPaymentDto {

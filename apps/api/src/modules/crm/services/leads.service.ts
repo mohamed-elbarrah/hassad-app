@@ -69,10 +69,23 @@ export class LeadsService {
   }
 
   async assign(id: string, dto: AssignLeadDto) {
-    return this.prisma.lead.update({
+    const lead = await this.findOne(id);
+
+    const updated = await this.prisma.lead.update({
       where: { id },
       data: { assignedTo: dto.userId },
     });
+
+    await this.notificationsService.notifyUsers({
+      userIds: [dto.userId],
+      title: 'تم إسناد عميل محتمل إليك',
+      message: `تم إسناد العميل المحتمل "${lead.companyName}" إليك`,
+      entityId: id,
+      entityType: 'LEAD',
+      eventType: 'LEAD_ASSIGNED',
+    });
+
+    return updated;
   }
 
   async addContactLog(id: string, userId: string, dto: CreateContactLogDto) {
@@ -114,7 +127,7 @@ export class LeadsService {
     }
 
     // Update Lead and Create History in a transaction
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updatedLead = await tx.lead.update({
         where: { id },
         data: { pipelineStage: dto.toStage },
@@ -131,6 +144,21 @@ export class LeadsService {
 
       return updatedLead;
     });
+
+    const recipientIds = [lead.assignedTo, lead.createdBy].filter(Boolean) as string[];
+    if (recipientIds.length > 0) {
+      await this.notificationsService.notifyUsers({
+        userIds: recipientIds,
+        excludeUserIds: [userId],
+        title: 'تحديث مرحلة العميل المحتمل',
+        message: `تم نقل "${lead.companyName}" من ${lead.pipelineStage} إلى ${dto.toStage}`,
+        entityId: id,
+        entityType: 'LEAD',
+        eventType: 'LEAD_STAGE_CHANGED',
+      });
+    }
+
+    return result;
   }
 
   async convertToClient(id: string, userId: string) {

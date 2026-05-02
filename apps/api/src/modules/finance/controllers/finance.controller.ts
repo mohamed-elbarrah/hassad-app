@@ -121,6 +121,13 @@ export class FinanceController {
   findAllTickets(@Query() filters: any) {
     return this.financeService.findAllTickets(filters);
   }
+
+  @Get('payment-tickets/:id')
+  @RequirePermissions('finance.read')
+  findOneTicket(@Param('id') id: string) {
+    return this.financeService.findTicket(id);
+  }
+
   @Patch('payment-tickets/:id/resolve')
   @RequirePermissions('finance.manage_tickets')
   resolveTicket(@Param('id') id: string) {

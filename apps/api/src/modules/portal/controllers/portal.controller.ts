@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { PortalService } from '../services/portal.service';
@@ -13,10 +14,49 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
-@Controller() // Using different paths for different entities
+@Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PortalController {
   constructor(private readonly portalService: PortalService) {}
+
+  @Get('portal/dashboard')
+  @RequirePermissions('portal.read')
+  getDashboard(@CurrentUser() user: any) {
+    if (!user.clientId) return { contracts: [], invoices: [], projects: [], campaigns: [] };
+    return this.portalService.getDashboard(user.clientId);
+  }
+
+  @Get('portal/contracts')
+  @RequirePermissions('portal.read')
+  getContracts(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    if (!user.clientId) return { data: [], total: 0, page: 1, limit: 20 };
+    return this.portalService.getContracts(user.clientId, {
+      status,
+      page: Number(page) || 1,
+      limit: Number(limit) || 20,
+    });
+  }
+
+  @Get('portal/invoices')
+  @RequirePermissions('portal.read')
+  getInvoices(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    if (!user.clientId) return { data: [], total: 0, page: 1, limit: 20 };
+    return this.portalService.getInvoices(user.clientId, {
+      status,
+      page: Number(page) || 1,
+      limit: Number(limit) || 20,
+    });
+  }
 
   @Post('deliverables')
   @RequirePermissions('portal.manage_deliverables')
