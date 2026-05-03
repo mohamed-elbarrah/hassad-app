@@ -76,13 +76,23 @@ export class AuthService {
       expiresIn: "7d",
     });
 
+    let clientId: string | undefined;
+    if (user.role.name === UserRole.CLIENT) {
+      const client = await this.prisma.client.findFirst({
+        where: { email: user.email },
+        select: { id: true },
+      });
+      clientId = client?.id ?? undefined;
+    }
+
     return {
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role.name,
-        department: null, // departments is now an array, returning null for legacy compat
+        department: null,
+        ...(clientId !== undefined && { clientId }),
       },
       accessToken,
       refreshToken,

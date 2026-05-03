@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from "react";
 import { UserRole } from "@hassad/shared";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { PortalHeader } from "@/components/portal/PortalHeader";
+import { BottomNav } from "@/components/portal/BottomNav";
 import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
 
 // ─── localStorage key helper ──────────────────────────────────────────────────
@@ -78,16 +79,22 @@ export default function PortalLayout({
 
   return (
     <div className="h-screen overflow-hidden flex w-full" dir="rtl" style={{ background: "#F9FAFB" }}>
-      {/* Right Sidebar — fixed, no scroll */}
-      <PortalSidebar />
+      {/* Right Sidebar — desktop only (lg = 1024px+) */}
+      <div className="hidden lg:block">
+        <PortalSidebar />
+      </div>
 
-      {/* Main Content Area — header fixed, only content scrolls */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <PortalHeader />
-        <main className="flex-1 overflow-y-auto p-5">
+        {/* Bottom padding on mobile/tablet to make room for bottom nav */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-5 pb-20 lg:pb-5">
           {children}
         </main>
       </div>
+
+      {/* Bottom Navigation — mobile + tablet only */}
+      <BottomNav />
 
       {/* First-login mandatory intake form */}
       {showIntakeForm && (

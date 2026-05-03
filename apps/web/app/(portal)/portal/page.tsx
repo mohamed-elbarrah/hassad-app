@@ -64,13 +64,11 @@ export default function PortalPage() {
 
   return (
     <div
-      className="grid gap-5"
+      className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5"
       dir="rtl"
       style={{
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        maxWidth: 1452,
+        maxWidth: "100%",
         margin: "0 auto",
-        direction: "rtl",
       }}
     >
       {/* ═══════════════════════════════════════════

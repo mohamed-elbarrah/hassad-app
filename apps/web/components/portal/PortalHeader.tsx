@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Moon, Bell, Command } from "lucide-react";
+import { Search, Moon, Bell } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -26,9 +26,7 @@ export function PortalHeader() {
         borderBottom: "1.5px solid #ECEEF2",
       }}
     >
-
-
-      {/* ── Right side: Welcome + Avatar ──────────────────────────── */}
+      {/* ── Left side: Search + Actions ──────────────────────────── */}
       <div className="flex items-center gap-4">
         <Avatar
           className="rounded-full shrink-0"
@@ -45,7 +43,7 @@ export function PortalHeader() {
             {user ? getInitials(user.name) : "--"}
           </AvatarFallback>
         </Avatar>
-        <div className="text-right">
+        <div className="text-right hidden md:block">
           <p
             style={{
               fontSize: 26,
@@ -67,16 +65,13 @@ export function PortalHeader() {
             مشروعك يسير بشكل جيد 🚀
           </p>
         </div>
-        
       </div>
 
-
-
-      {/* ── Left side: Search + Actions ──────────────────────────── */}
+      {/* ── Right side: Welcome + Avatar ──────────────────────────── */}
       <div className="flex items-center gap-3">
-        {/* Search */}
+        {/* Search — hidden on tablet & mobile */}
         <div
-          className="flex items-center gap-2 px-3 py-2 w-[373px]"
+          className="hidden lg:flex items-center gap-2 px-3 py-2 w-[373px]"
           style={{
             background: "#F9FAFB",
             border: "1px solid #E2E2E2",
@@ -95,7 +90,12 @@ export function PortalHeader() {
           >
             <span
               className="text-sm"
-              style={{ color: "#000000", fontWeight: 400, fontSize: 14, lineHeight: "120%" }}
+              style={{
+                color: "#000000",
+                fontWeight: 400,
+                fontSize: 14,
+                lineHeight: "120%",
+              }}
             >
               ⌘ K
             </span>
@@ -112,7 +112,9 @@ export function PortalHeader() {
             }}
             readOnly
           />
-          <Search style={{ width: 24, height: 24, color: "rgba(0, 0, 0, 0.6)" }} />
+          <Search
+            style={{ width: 24, height: 24, color: "rgba(0, 0, 0, 0.6)" }}
+          />
         </div>
 
         {/* Dark Mode Toggle */}
@@ -139,7 +141,6 @@ export function PortalHeader() {
           }}
         >
           <Bell style={{ width: 24, height: 24, color: "#000000" }} />
-          {/* Badge */}
           <span
             className="absolute flex items-center justify-center text-white font-semibold"
             style={{
@@ -159,7 +160,6 @@ export function PortalHeader() {
           </span>
         </button>
       </div>
-
     </header>
   );
 }
