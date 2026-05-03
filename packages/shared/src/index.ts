@@ -8,6 +8,7 @@ export * from "./enums/ai";
 export * from "./enums/satisfaction";
 export * from "./enums/workload";
 export * from "./enums/campaign";
+export * from "./enums/service";
 
 
 // Schemas
@@ -46,6 +47,7 @@ import {
   PaymentEventType,
 } from "./enums/finance";
 import { CampaignPlatform, CampaignStatus } from "./enums/campaign";
+import { ServiceCategory } from "./enums/service";
 
 
 
@@ -377,6 +379,64 @@ export interface CampaignAnalytics {
   ctr: number;
   conversionRate: number;
   roas: number;
+}
+
+export interface ServiceCatalog {
+  id: string;
+  name: string;
+  nameAr: string;
+  description?: string | null;
+  descriptionAr?: string | null;
+  category: ServiceCategory;
+  estimatedDays: number;
+  basePrice: number;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  deliverableTemplates?: DeliverableTemplate[];
+}
+
+export interface DeliverableTemplate {
+  id: string;
+  serviceId: string;
+  title: string;
+  titleAr: string;
+  description?: string | null;
+  descriptionAr?: string | null;
+  sortOrder: number;
+  createdAt: Date | string;
+}
+
+export interface LeadServiceItem {
+  serviceId: string;
+  quantity?: number;
+  notes?: string;
+}
+
+export interface ProjectProgress {
+  projectId: string;
+  projectName: string;
+  status: string;
+  progress: number;
+  currentPhase: string;
+  projectManager: {
+    id: string;
+    name: string;
+    isOnline: boolean;
+  } | null;
+  deliverables: DeliverableSummary[];
+  startDate: Date | string;
+  endDate: Date | string;
+}
+
+export interface DeliverableSummary {
+  id: string;
+  title: string;
+  titleAr?: string | null;
+  status: string;
+  statusAr: string;
+  createdAt: Date | string;
 }
 
 // ─── Input types for schemas (also re-exported via wildcard above) ───────────

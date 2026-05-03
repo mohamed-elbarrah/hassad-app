@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { LeadsService } from '../services/leads.service';
-import { CreateLeadDto, UpdateLeadDto, AssignLeadDto, CreateContactLogDto, ChangeLeadStageDto } from '../dto/lead.dto';
+import { CreateLeadDto, UpdateLeadDto, AssignLeadDto, CreateContactLogDto, ChangeLeadStageDto, AddLeadServiceDto, RemoveLeadServiceDto } from '../dto/lead.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
@@ -83,6 +83,24 @@ export class LeadsController {
     @CurrentUser() user: any,
   ) {
     return this.leadsService.convertToClient(id, user.id);
+  }
+
+  @Post(':id/services')
+  @RequirePermissions('leads.update')
+  addService(
+    @Param('id') id: string,
+    @Body() dto: AddLeadServiceDto,
+  ) {
+    return this.leadsService.addService(id, dto);
+  }
+
+  @Delete(':id/services/:serviceId')
+  @RequirePermissions('leads.update')
+  removeService(
+    @Param('id') id: string,
+    @Param('serviceId') serviceId: string,
+  ) {
+    return this.leadsService.removeService(id, serviceId);
   }
 
   @Delete(':id')

@@ -19,6 +19,7 @@ import {
 import { useAppSelector } from "@/lib/hooks";
 import { useGetDeliverablesByClientQuery } from "@/features/deliverables/deliverablesApi";
 import { useGetInvoicesByClientQuery } from "@/features/finance/financeApi";
+import { useGetProjectProgressQuery } from "@/features/portal/portalApi";
 
 import { DashboardCard } from "@/components/portal/DashboardCard";
 import { GaugeChart } from "@/components/portal/GaugeChart";
@@ -29,6 +30,7 @@ import { TimelineItem } from "@/components/portal/TimelineItem";
 import { DeliverableItem } from "@/components/portal/DeliverableItem";
 import { PmCard } from "@/components/portal/PmCard";
 import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
+import { mapTaskStatusToUI } from "@/lib/utils/statusMapping";
 
 export default function PortalPage() {
   const [showNewDeal, setShowNewDeal] = useState(false);
@@ -36,21 +38,23 @@ export default function PortalPage() {
   const router = useRouter();
   const clientId = user?.clientId ?? "";
 
-  // ── API hooks (linked to backend when ready) ─────────────────────────
   const { data: deliverables } = useGetDeliverablesByClientQuery(clientId, {
     skip: !clientId,
   });
   const { data: invoices } = useGetInvoicesByClientQuery(clientId, {
     skip: !clientId,
   });
+  const { data: projectProgress } = useGetProjectProgressQuery(undefined, {
+    skip: !clientId,
+  });
 
-  // Calculate gauge value from real deliverables if available
   const totalDeliverables = deliverables?.length ?? 0;
   const doneDeliverables = deliverables?.filter((d) => d.status === "DONE").length ?? 0;
   const gaugeValue =
-    totalDeliverables > 0
+    projectProgress?.progress ??
+    (totalDeliverables > 0
       ? Math.round((doneDeliverables / totalDeliverables) * 100)
-      : 70; // default demo value
+      : 0);
 
   if (!clientId) {
     return (
@@ -61,6 +65,12 @@ export default function PortalPage() {
       </div>
     );
   }
+
+  const displayDeliverables = projectProgress?.deliverables?.length
+    ? projectProgress.deliverables
+    : [];
+
+  const currentPhase = projectProgress?.currentPhase ?? "لا توجد مرحلة حالية";
 
   return (
     <div
@@ -82,96 +92,74 @@ export default function PortalPage() {
           icon={Activity}
           onShowAll={() => router.push("/portal/deliverables")}
         >
-          <div className="flex flex-col items-center gap-5">
-            <GaugeChart value={gaugeValue} max={100} />
+          {projectProgress ? (
+            <div className="flex flex-col items-center gap-5">
+              <GaugeChart value={gaugeValue} max={100} />
 
-            <div className="w-full space-y-3">
-              {/* الهوية البصرية - مكتمل */}
-              <div
-                className="flex items-center justify-between p-4 bg-white"
-                style={{ border: "1px solid #E1E4EA", borderRadius: 12 }}
-              >
-                <span
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 500,
-                    lineHeight: "33px",
-                    color: "#000000",
-                  }}
-                >
-                  الهوية البصرية
-                </span>
-                <StatusBadge status="completed" />
-              </div>
+              <div className="w-full space-y-3">
+                {displayDeliverables.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between p-4 bg-white"
+                    style={{ border: "1px solid #E1E4EA", borderRadius: 12 }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 22,
+                        fontWeight: 500,
+                        lineHeight: "33px",
+                        color: "#000000",
+                      }}
+                    >
+                      {d.title ?? d.titleAr}
+                    </span>
+                    <StatusBadge
+                      status={mapTaskStatusToUI(d.status)}
+                      label={d.statusAr}
+                    />
+                  </div>
+                ))}
 
-              {/* صفحة الهبوط - جاري */}
-              <div
-                className="flex items-center justify-between p-4 bg-white"
-                style={{ border: "1px solid #E1E4EA", borderRadius: 12 }}
-              >
-                <span
+                {/* المرحلة الحالية note */}
+                <div
+                  className="p-5 text-right"
                   style={{
-                    fontSize: 22,
-                    fontWeight: 500,
-                    lineHeight: "33px",
-                    color: "#000000",
+                    background: "#F9FAFB",
+                    borderRadius: 12,
                   }}
                 >
-                  صفحة الهبوط
-                </span>
-                <StatusBadge status="in-progress" />
-              </div>
-
-              {/* الحملة الاعلانية - لم يبدأ */}
-              <div
-                className="flex items-center justify-between p-4 bg-white"
-                style={{ border: "1px solid #E1E4EA", borderRadius: 12 }}
-              >
-                <span
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 500,
-                    lineHeight: "33px",
-                    color: "#000000",
-                  }}
-                >
-                  الحملة الاعلانية
-                </span>
-                <StatusBadge status="not-started" />
-              </div>
-
-              {/* المرحلة الحالية note */}
-              <div
-                className="p-5 text-right"
-                style={{
-                  background: "#F9FAFB",
-                  borderRadius: 12,
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 500,
-                    lineHeight: "33px",
-                    color: "#000000",
-                  }}
-                >
-                  المرحلة الحالية :
-                </p>
-                <p
-                  className="mt-1"
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 400,
-                    lineHeight: "27px",
-                    color: "rgba(0, 0, 0, 0.6)",
-                  }}
-                >
-                  تنفيذ الحملة الإعلانية على الإنستغرام و تيكتوك
-                </p>
+                  <p
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 500,
+                      lineHeight: "33px",
+                      color: "#000000",
+                    }}
+                  >
+                    المرحلة الحالية :
+                  </p>
+                  <p
+                    className="mt-1"
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 400,
+                      lineHeight: "27px",
+                      color: "rgba(0, 0, 0, 0.6)",
+                    }}
+                  >
+                    {currentPhase}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center gap-5 py-8">
+              <GaugeChart value={0} max={100} />
+              <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)" }}>
+                لا يوجد مشروع نشط حالياً
+              </p>
+            </div>
+          )}
         </DashboardCard>
 
         {/* ── آخر التحديثات ─────────────────────────── */}
@@ -381,9 +369,9 @@ export default function PortalPage() {
           showAll={false}
         >
           <PmCard
-            name="أحمد المحمد"
+            name={projectProgress?.projectManager?.name ?? "غير معين"}
             role="مدير المشروع المسؤول"
-            status="online"
+            status={projectProgress?.projectManager?.isOnline ? "online" : "offline"}
           />
         </DashboardCard>
       </div>

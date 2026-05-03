@@ -4,6 +4,14 @@ import { CreateDeliverableDto, CreateRevisionDto, CreateIntakeFormDto } from '..
 import { TaskStatus, ContractStatus, InvoiceStatus } from '@hassad/shared';
 import { randomBytes } from 'crypto';
 
+const TASK_STATUS_AR_MAP: Record<string, string> = {
+  TODO: 'لم يبدأ',
+  IN_PROGRESS: 'جاري العمل',
+  IN_REVIEW: 'قيد المراجعة',
+  DONE: 'مكتمل',
+  REVISION: 'تعديل مطلوب',
+};
+
 @Injectable()
 export class PortalService {
   constructor(private prisma: PrismaService) {}
@@ -42,6 +50,8 @@ export class PortalService {
     const unpaidInvoices = invoices.filter((i) => i.status !== InvoiceStatus.PAID && i.status !== InvoiceStatus.CANCELLED);
     const totalOutstanding = unpaidInvoices.reduce((sum, i) => sum + i.amount, 0);
 
+    const projectProgress = await this.getProjectProgress(clientId);
+
     return {
       summary: {
         totalContracts: contracts.length,
@@ -54,6 +64,75 @@ export class PortalService {
       recentInvoices: invoices,
       recentProjects: projects,
       recentCampaigns: campaigns,
+      projectProgress,
+    };
+  }
+
+  async getProjectProgress(clientId: string) {
+    const projects = await this.prisma.project.findMany({
+      where: { clientId, isArchived: false },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        projectManagerId: true,
+        manager: {
+          select: { id: true, name: true, isActive: true },
+        },
+        deliverables: {
+          where: { isVisibleToClient: true },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (projects.length === 0) return null;
+
+    const project = projects[0];
+
+    const totalDeliverables = project.deliverables.length;
+    const doneDeliverables = project.deliverables.filter((d) => d.status === TaskStatus.DONE).length;
+    const progress = totalDeliverables > 0
+      ? Math.round((doneDeliverables / totalDeliverables) * 100)
+      : 0;
+
+    const activeDeliverable = project.deliverables.find(
+      (d) => d.status === TaskStatus.IN_PROGRESS || d.status === TaskStatus.IN_REVIEW,
+    );
+    
+    const nextTodo = project.deliverables.find((d) => d.status === TaskStatus.TODO);
+    const currentPhase = activeDeliverable?.title
+      ?? (nextTodo?.title ?? 'لا توجد مرحلة حالية');
+
+    const deliverables = project.deliverables.map((d) => ({
+      id: d.id,
+      title: d.title,
+      status: d.status,
+      statusAr: TASK_STATUS_AR_MAP[d.status] ?? d.status,
+      createdAt: d.createdAt,
+    }));
+
+    return {
+      projectId: project.id,
+      projectName: project.name,
+      status: project.status,
+      progress,
+      currentPhase,
+      projectManager: project.manager
+        ? { id: project.manager.id, name: project.manager.name, isOnline: project.manager.isActive }
+        : null,
+      deliverables,
+      startDate: project.startDate,
+      endDate: project.endDate,
     };
   }
 

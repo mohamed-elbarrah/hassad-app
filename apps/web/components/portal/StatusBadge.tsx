@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckCircle2, Clock, Hourglass } from "lucide-react";
+import { CheckCircle2, Clock, Hourglass, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type StatusType = "completed" | "in-progress" | "not-started" | "pending";
+export type StatusType = "completed" | "in-progress" | "not-started" | "pending" | "revision";
 
 const STATUS_CONFIG: Record<
   StatusType,
@@ -32,6 +32,12 @@ const STATUS_CONFIG: Record<
     bg: "rgba(248, 175, 1, 0.1)",
     text: "#F8AF01",
     icon: Hourglass,
+  },
+  revision: {
+    label: "تعديل",
+    bg: "rgba(239, 68, 68, 0.1)",
+    text: "#EF4444",
+    icon: RotateCcw,
   },
 };
 

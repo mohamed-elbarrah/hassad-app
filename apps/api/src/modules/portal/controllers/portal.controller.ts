@@ -149,6 +149,14 @@ export class PortalController {
     return this.portalService.findCampaignsByClient(clientId);
   }
 
+  @Get('portal/project-progress')
+  @RequirePermissions('portal.read')
+  async getProjectProgress(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return null;
+    return this.portalService.getProjectProgress(clientId);
+  }
+
   @Get('portal/campaigns/:id')
   @RequirePermissions('portal.read')
   async getPortalCampaignOne(@Param('id') id: string, @CurrentUser() user: any) {

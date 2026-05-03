@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateLeadDto, UpdateLeadDto, AssignLeadDto, CreateContactLogDto, ChangeLeadStageDto } from '../dto/lead.dto';
+import { CreateLeadDto, UpdateLeadDto, AssignLeadDto, CreateContactLogDto, ChangeLeadStageDto, LeadServiceItemDto, AddLeadServiceDto, RemoveLeadServiceDto } from '../dto/lead.dto';
 import { PipelineStage, ClientStatus, ProposalStatus } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 
@@ -12,27 +12,42 @@ export class LeadsService {
   ) {}
 
   async create(userId: string, dto: CreateLeadDto) {
-    const lead = await this.prisma.lead.create({
-      data: {
-        ...dto,
-        pipelineStage: PipelineStage.NEW,
-        createdBy: userId,
-      },
+    const { services, ...leadData } = dto;
+
+    const lead = await this.prisma.$transaction(async (tx) => {
+      const newLead = await tx.lead.create({
+        data: {
+          ...leadData,
+          pipelineStage: PipelineStage.NEW,
+          createdBy: userId,
+        },
+      });
+
+      if (services && services.length > 0) {
+        await tx.leadService.createMany({
+          data: services.map((s) => ({
+            leadId: newLead.id,
+            serviceId: s.serviceId,
+            quantity: s.quantity ?? 1,
+            notes: s.notes,
+          })),
+        });
+      }
+
+      return newLead;
     });
 
-    // Notify all SALES users — fire-and-forget so a notification failure
-    // never blocks or rolls back lead creation.
+    const leadWithServices = await this.findOne(lead.id);
+
     this.notificationsService
       .broadcast({
         title: 'عميل محتمل جديد',
-        message: `طلب جديد من ${lead.contactName} — ${lead.companyName}`,
+        message: `طلب جديد من ${leadWithServices.contactName} — ${leadWithServices.companyName}`,
         roles: ['SALES'],
       })
-      .catch(() => {
-        // Non-critical: swallow notification errors silently
-      });
+      .catch(() => {});
 
-    return lead;
+    return leadWithServices;
   }
 
   async findAll() {
@@ -40,6 +55,7 @@ export class LeadsService {
       where: { isActive: true },
       include: {
         assignee: true,
+        services: { include: { service: true } },
       },
     });
   }
@@ -51,6 +67,7 @@ export class LeadsService {
         assignee: true,
         pipelineHistory: true,
         contactLogs: true,
+        services: { include: { service: { include: { deliverableTemplates: true } } } },
       },
     });
 
@@ -65,6 +82,31 @@ export class LeadsService {
     return this.prisma.lead.update({
       where: { id },
       data: dto,
+    });
+  }
+
+  async addService(id: string, dto: AddLeadServiceDto) {
+    const lead = await this.prisma.lead.findUnique({ where: { id } });
+    if (!lead) throw new NotFoundException(`Lead with ID ${id} not found`);
+
+    return this.prisma.leadService.upsert({
+      where: { leadId_serviceId: { leadId: id, serviceId: dto.serviceId } },
+      create: {
+        leadId: id,
+        serviceId: dto.serviceId,
+        quantity: dto.quantity ?? 1,
+        notes: dto.notes,
+      },
+      update: {
+        quantity: dto.quantity ?? 1,
+        notes: dto.notes,
+      },
+    });
+  }
+
+  async removeService(id: string, serviceId: string) {
+    return this.prisma.leadService.delete({
+      where: { leadId_serviceId: { leadId: id, serviceId } },
     });
   }
 

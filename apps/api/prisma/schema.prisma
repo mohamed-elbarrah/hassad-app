@@ -420,6 +420,7 @@ model Lead {
   automationLogs  LeadAutomationLog[]
   client          Client?
   proposals       Proposal[]
+  services        LeadService[]
 
   @@map("leads")
   @@index([assignedTo])
@@ -543,6 +544,75 @@ model ClientHistoryLog {
   @@map("client_history_log")
   @@index([clientId])
   @@index([occurredAt])
+}
+
+// 🟠 SERVICE CATALOG
+
+enum ServiceCategory {
+  BRANDING
+  WEB_DEVELOPMENT
+  SOCIAL_MEDIA
+  ADVERTISING
+  CONTENT_CREATION
+  PHOTOGRAPHY
+  VIDEO_PRODUCTION
+  SEO
+  OTHER
+}
+
+model ServiceCatalog {
+  id               String          @id @default(uuid())
+  name             String
+  nameAr           String          @map("name_ar")
+  description      String?
+  descriptionAr    String?         @map("description_ar")
+  category         ServiceCategory
+  estimatedDays    Int             @default(30) @map("estimated_days")
+  basePrice        Float           @default(0) @map("base_price")
+  isActive         Boolean         @default(true) @map("is_active")
+  sortOrder        Int             @default(0) @map("sort_order")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  leadServices     LeadService[]
+  deliverableTemplates DeliverableTemplate[]
+
+  @@map("service_catalog")
+  @@index([category])
+  @@index([isActive])
+}
+
+model DeliverableTemplate {
+  id               String   @id @default(uuid())
+  serviceId        String   @map("service_id")
+  title            String
+  titleAr          String   @map("title_ar")
+  description      String?
+  descriptionAr    String?  @map("description_ar")
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  service          ServiceCatalog @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("deliverable_templates")
+  @@index([serviceId])
+}
+
+model LeadService {
+  id          String   @id @default(uuid())
+  leadId      String   @map("lead_id")
+  serviceId   String   @map("service_id")
+  quantity     Int      @default(1)
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  lead    Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  service ServiceCatalog @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@unique([leadId, serviceId])
+  @@map("lead_services")
+  @@index([leadId])
+  @@index([serviceId])
 }
 
 // 🟠 PROPOSALS & CONTRACTS

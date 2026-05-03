@@ -13,6 +13,8 @@ async function main() {
   await prisma.paymentTicket.deleteMany();
 
   await prisma.invoice.deleteMany();
+  await prisma.deliverable.deleteMany();
+  await prisma.leadService.deleteMany();
 
   await prisma.task.deleteMany();
   await prisma.projectMember.deleteMany();
@@ -21,6 +23,79 @@ async function main() {
   await prisma.proposal.deleteMany();
   await prisma.client.deleteMany();
   await prisma.lead.deleteMany();
+
+  // ── 1a. Service Catalog ──────────────────────────────────────────────────────
+  const serviceBranding = await prisma.serviceCatalog.create({
+    data: {
+      name: "Brand Identity",
+      nameAr: "الهوية البصرية",
+      description: "Complete brand identity design including logo, colors, and guidelines",
+      descriptionAr: "تصميم هوية بصرية متكاملة تشمل الشعار والألوان والإرشادات",
+      category: "BRANDING",
+      estimatedDays: 14,
+      basePrice: 5000,
+      isActive: true,
+      sortOrder: 1,
+    },
+  });
+
+  const serviceLanding = await prisma.serviceCatalog.create({
+    data: {
+      name: "Landing Page",
+      nameAr: "صفحة الهبوط",
+      description: "Responsive landing page design and development",
+      descriptionAr: "تصميم وتطوير صفحة هبوط متجاوبة",
+      category: "WEB_DEVELOPMENT",
+      estimatedDays: 7,
+      basePrice: 3000,
+      isActive: true,
+      sortOrder: 2,
+    },
+  });
+
+  const serviceAdCampaign = await prisma.serviceCatalog.create({
+    data: {
+      name: "Ad Campaign Management",
+      nameAr: "إدارة الحملات الإعلانية",
+      description: "Social media ad campaign setup and management",
+      descriptionAr: "إعداد وإدارة حملات إعلانية على وسائل التواصل الاجتماعي",
+      category: "ADVERTISING",
+      estimatedDays: 30,
+      basePrice: 8000,
+      isActive: true,
+      sortOrder: 3,
+    },
+  });
+
+  const serviceContent = await prisma.serviceCatalog.create({
+    data: {
+      name: "Content Creation",
+      nameAr: "إنشاء المحتوى",
+      description: "Social media content creation and scheduling",
+      descriptionAr: "إنشاء وجدولة محتوى وسائل التواصل الاجتماعي",
+      category: "CONTENT_CREATION",
+      estimatedDays: 30,
+      basePrice: 4000,
+      isActive: true,
+      sortOrder: 4,
+    },
+  });
+
+  // ── 1b. Deliverable Templates per Service ────────────────────────────────────
+  await prisma.deliverableTemplate.createMany({
+    data: [
+      { serviceId: serviceBranding.id, title: "Brand Logo Design", titleAr: "تصميم شعار العلامة التجارية", description: "3 logo variants to choose from", descriptionAr: "3 خيارات للشعار", sortOrder: 1 },
+      { serviceId: serviceBranding.id, title: "Brand Guidelines", titleAr: "دليل الهوية البصرية", description: "Complete brand style guide", descriptionAr: "دليل.style شامل للهوية البصرية", sortOrder: 2 },
+      { serviceId: serviceBranding.id, title: "Business Card Design", titleAr: "تصميم بطاقة العمل", description: "Professional business card design", descriptionAr: "تصميم بطاقة عمل احترافية", sortOrder: 3 },
+      { serviceId: serviceLanding.id, title: "Landing Page Design", titleAr: "تصميم صفحة الهبوط", description: "UI/UX design for landing page", descriptionAr: "تصميم واجهة صفحة الهبوط", sortOrder: 1 },
+      { serviceId: serviceLanding.id, title: "Landing Page Development", titleAr: "تطوير صفحة الهبوط", description: "Front-end development of landing page", descriptionAr: "تطوير واجهة صفحة الهبوط", sortOrder: 2 },
+      { serviceId: serviceAdCampaign.id, title: "Campaign Strategy", titleAr: "استراتيجية الحملة الإعلانية", description: "Ad campaign strategy document", descriptionAr: "وثيقة استراتيجية الحملة الإعلانية", sortOrder: 1 },
+      { serviceId: serviceAdCampaign.id, title: "Ad Creative Design", titleAr: "تصميم الإعلانات", description: "Creative assets for the ad campaign", descriptionAr: "تصميم الأصول الإبداعية للحملة", sortOrder: 2 },
+      { serviceId: serviceAdCampaign.id, title: "Campaign Launch & Management", titleAr: "إطلاق وإدارة الحملة", description: "Launching and managing the ad campaign", descriptionAr: "إطلاق وإدارة الحملة الإعلانية", sortOrder: 3 },
+      { serviceId: serviceContent.id, title: "Content Calendar", titleAr: "تقويم المحتوى", description: "Monthly content calendar", descriptionAr: "تقويم المحتوى الشهري", sortOrder: 1 },
+      { serviceId: serviceContent.id, title: "Social Media Posts", titleAr: "منشورات وسائل التواصل", description: "Design and copy for social media posts", descriptionAr: "تصميم ونصوص المنشورات", sortOrder: 2 },
+    ],
+  });
 
   // ── 1. Roles ─────────────────────────────────────────────────────────────────
   const roleNames = [
@@ -254,6 +329,15 @@ async function main() {
     where: { name: "MARKETING" },
   });
 
+  // Link services to lead3 (TechVentures)
+  await prisma.leadService.createMany({
+    data: [
+      { leadId: lead3.id, serviceId: serviceBranding.id, quantity: 1 },
+      { leadId: lead3.id, serviceId: serviceLanding.id, quantity: 1 },
+      { leadId: lead3.id, serviceId: serviceAdCampaign.id, quantity: 1 },
+    ],
+  });
+
   const project1 = await prisma.project.create({
     data: {
       clientId: client1.id,
@@ -293,6 +377,38 @@ async function main() {
       { projectId: project2.id, userId: users["MARKETING"], role: "MEMBER" },
     ],
     skipDuplicates: true,
+  });
+
+  // ── 8b. Deliverables for project1 (client portal progress) ──────────────────
+  await prisma.deliverable.createMany({
+    data: [
+      {
+        projectId: project1.id,
+        title: "تصميم شعار العلامة التجارية",
+        description: "3 خيارات للشعار للاختيار من betweenها",
+        filePath: "",
+        status: "DONE",
+        isVisibleToClient: true,
+        approvedBy: users["PM"],
+        approvedAt: new Date("2024-02-01"),
+      },
+      {
+        projectId: project1.id,
+        title: "تصميم صفحة الهبوط",
+        description: "تصميم واجهة صفحة الهبوط",
+        filePath: "",
+        status: "IN_PROGRESS",
+        isVisibleToClient: true,
+      },
+      {
+        projectId: project1.id,
+        title: "إطلاق وإدارة الحملة الإعلانية",
+        description: "إطلاق وإدارة الحملة الإعلانية على الانستغرام وتيكتوك",
+        filePath: "",
+        status: "TODO",
+        isVisibleToClient: true,
+      },
+    ],
   });
 
 // ── 9. Tasks ──────────────────────────────────────────────────────────────────
@@ -549,6 +665,10 @@ const task4 = await prisma.task.create({
     "contracts.manage_versions",
     "contracts.read_public",
     "contracts.sign_public",
+    "services.create",
+    "services.read",
+    "services.update",
+    "services.delete",
   ];
 
   for (const name of permissions) {
@@ -581,6 +701,7 @@ const task4 = await prisma.task.create({
       "finance.update_invoice",
       "marketing.read",
       "portal.read",
+      "services.read",
     ],
     SALES: [
       "leads.create",
@@ -601,6 +722,7 @@ const task4 = await prisma.task.create({
       "contracts.manage_versions",
       "notifications.read",
       "notifications.update",
+      "services.read",
     ],
     EMPLOYEE: [
       "tasks.read",
@@ -638,6 +760,7 @@ const task4 = await prisma.task.create({
       "contracts.read_public",
       "contracts.sign_public",
       "portal.read",
+      "services.read",
     ],
   };
 

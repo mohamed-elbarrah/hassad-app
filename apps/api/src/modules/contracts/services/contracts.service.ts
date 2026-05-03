@@ -19,6 +19,7 @@ import {
   PipelineStage,
   ProjectStatus,
   TaskPriority,
+  TaskStatus,
 } from '@hassad/shared';
 import { LeadsService } from '../../crm/services/leads.service';
 
@@ -40,6 +41,7 @@ export class ContractsService {
             companyName: true,
             contactName: true,
             accountManager: true,
+            leadId: true,
           },
         },
         proposal: {
@@ -50,6 +52,7 @@ export class ContractsService {
             servicesList: true,
             totalPrice: true,
             durationDays: true,
+            leadId: true,
           },
         },
       },
@@ -150,6 +153,38 @@ export class ContractsService {
           role: 'MANAGER',
         },
       });
+
+      // Auto-create deliverables from lead services → deliverable templates
+      let leadId: string | null | undefined = contract.client.leadId;
+      if (!leadId && contract.proposal?.leadId) {
+        leadId = contract.proposal.leadId;
+      }
+
+      if (leadId) {
+        const leadServices = await tx.leadService.findMany({
+          where: { leadId },
+          include: {
+            service: {
+              include: { deliverableTemplates: true },
+            },
+          },
+        });
+
+        for (const ls of leadServices) {
+          for (const tmpl of ls.service.deliverableTemplates) {
+            await tx.deliverable.create({
+              data: {
+                projectId: createdProject.id,
+                title: tmpl.titleAr || tmpl.title,
+                description: tmpl.descriptionAr || tmpl.description,
+                filePath: '',
+                status: TaskStatus.TODO,
+                isVisibleToClient: true,
+              },
+            });
+          }
+        }
+      }
 
       return createdProject;
     });
