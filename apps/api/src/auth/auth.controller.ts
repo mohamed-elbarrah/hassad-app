@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "./auth.service";
+import { JwtService } from "@nestjs/jwt";
 import { LoginDto, UserRole } from "@hassad/shared";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { RolesGuard } from "./guards/roles.guard";
@@ -31,6 +32,7 @@ import { EmailService } from "../common/services/email.service";
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
   ) {}
@@ -43,8 +45,7 @@ export class AuthController {
     const { user, accessToken, refreshToken } =
       await this.authService.login(dto);
 
-    // Check rememberMe from body (not part of LoginDto, but passed optionally)
-    const rememberMe = (dto as LoginDto & { rememberMe?: boolean }).rememberMe;
+    const rememberMe = dto.rememberMe ?? false;
 
     const refreshMaxAge = rememberMe
       ? 30 * 24 * 60 * 60 * 1000 // 30 days
@@ -166,5 +167,75 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   registerInternal(@Body() dto: RegisterInternalDto) {
     return this.authService.registerInternal(dto);
+  }
+
+  // ── Google OAuth ───────────────────────────────────────────────────────────
+
+  /** GET /auth/google — initiates Google OAuth flow */
+  @Get("google")
+  @UseGuards(AuthGuard("google"))
+  googleAuth() {
+    // Guard redirects to Google
+  }
+
+  /** GET /auth/google/callback — handles Google OAuth callback */
+  @Get("google/callback")
+  @UseGuards(AuthGuard("google"))
+  async googleAuthRedirect(
+    @Request() req: ExpressRequest & { user: any },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = req.user;
+    const frontendUrl =
+      this.configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000";
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.redirect(`${frontendUrl}/login?error=oauth_not_configured`);
+    }
+
+    if (!user) {
+      return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
+    }
+
+    const payload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
+    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
+    const refreshToken = refreshSecret
+      ? this.jwtService.sign(payload, {
+          secret: refreshSecret,
+          expiresIn: "7d",
+        })
+      : "";
+
+    res.cookie("token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge:
+        Number(this.configService.get<number>("COOKIE_TOKEN_MAX_AGE")) ||
+        60 * 60 * 1000,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge:
+        Number(
+          this.configService.get<number>("COOKIE_REFRESH_TOKEN_MAX_AGE"),
+        ) || 7 * 24 * 60 * 60 * 1000,
+    });
+
+    const redirectUrl = user.role === "CLIENT" ? "/portal" : "/dashboard";
+    return res.redirect(`${frontendUrl}${redirectUrl}`);
   }
 }

@@ -7,6 +7,7 @@ import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { JwtRefreshStrategy } from "./strategies/jwt-refresh.strategy";
+import { GoogleStrategy } from "./strategies/google.strategy";
 import { RolesGuard } from "./guards/roles.guard";
 import { EmailService } from "../common/services/email.service";
 
@@ -33,6 +34,7 @@ import { EmailService } from "../common/services/email.service";
     JwtRefreshStrategy,
     RolesGuard,
     Reflector,
+    ...(process.env.GOOGLE_CLIENT_ID ? [GoogleStrategy] : []),
   ],
   exports: [AuthService, EmailService],
 })

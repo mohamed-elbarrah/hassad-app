@@ -12,6 +12,7 @@ import {
   ClientSource,
   ClientStatus,
   PipelineStage,
+  BusinessType,
 } from "@hassad/shared";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
@@ -206,6 +207,86 @@ export class AuthService {
       name: user.name,
       email: user.email,
       role: user.role.name,
+    };
+  }
+
+  // ── OAuth (Google, Snapchat, etc.) ─────────────────────────────────────────
+
+  async validateOAuthUser(data: {
+    email: string;
+    name: string;
+    provider: string;
+    providerId: string;
+  }) {
+    // 1. Try to find by providerId
+    let user = await this.prisma.user.findUnique({
+      where: { providerId: data.providerId },
+      include: { role: true },
+    });
+
+    if (user) {
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role.name,
+      };
+    }
+
+    // 2. Try to find by email (auto-link)
+    user = await this.prisma.user.findUnique({
+      where: { email: data.email },
+      include: { role: true },
+    });
+
+    if (user) {
+      // Auto-link: update provider info
+      const updated = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          provider: data.provider,
+          providerId: data.providerId,
+        },
+        include: { role: true },
+      });
+      return {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role.name,
+      };
+    }
+
+    // 3. Create new user
+    const newUser = await this.prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        provider: data.provider,
+        providerId: data.providerId,
+        role: { connect: { name: UserRole.CLIENT } },
+      },
+      include: { role: true },
+    });
+
+    // Create client record for new OAuth user
+    await this.prisma.client.create({
+      data: {
+        companyName: data.name,
+        contactName: data.name,
+        phoneWhatsapp: "00000000000",
+        email: data.email,
+        businessName: data.name,
+        businessType: BusinessType.OTHER,
+        status: ClientStatus.ACTIVE,
+      },
+    });
+
+    return {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role.name,
     };
   }
 
