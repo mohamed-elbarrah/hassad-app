@@ -2,6 +2,13 @@
 
 import { AuthButton } from "./AuthButton";
 
+function getGoogleOAuthUrl() {
+  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/v1";
+  // Ensure no trailing slash on base
+  const cleanBase = base.replace(/\/$/, "");
+  return `${cleanBase}/auth/google`;
+}
+
 export function AuthSocialRow() {
   return (
     <div className="flex items-center gap-3 justify-center">
@@ -10,7 +17,7 @@ export function AuthSocialRow() {
         variant="social"
         aria-label="تسجيل الدخول بواسطة Google"
         onClick={() => {
-          window.location.href = `${process.env.NEXT_PUBLIC_API_URL?.replace("/v1", "")}/auth/google`;
+          window.location.href = getGoogleOAuthUrl();
         }}
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">

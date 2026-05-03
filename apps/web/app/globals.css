@@ -63,15 +63,15 @@
   --color-success-900: #032b1b;
 
   /* ── Danger (Red) ─────────────────────────────────────────────────────── */
-  --color-danger-100: #cff7e7;
-  --color-danger-200: #9feed0;
-  --color-danger-300: #6ee6b8;
-  --color-danger-400: #3edda1;
-  --color-danger-500: #0ed589;
-  --color-danger-600: #0baa6e;
-  --color-danger-700: #088052;
-  --color-danger-800: #065537;
-  --color-danger-900: #032b1b;
+  --color-danger-100: #fef2f2;
+  --color-danger-200: #fecaca;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+  --color-danger-900: #7f1d1d;
 
   /* ── Neutral (Gray) ──────────────────────────────────────────────────── */
   --color-neutral-100: #cfd0d6;
@@ -102,7 +102,7 @@
   --color-muted-foreground: #6f7485;
   --color-accent: #f5f5f7;
   --color-accent-foreground: #000000;
-  --color-destructive: #0ed589;
+  --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
   --color-popover: #ffffff;
   --color-popover-foreground: #000000;
@@ -160,7 +160,7 @@
     --muted-foreground: 225 9% 48%;
     --accent: 240 7% 97%;
     --accent-foreground: 0 0% 0%;
-    --destructive: 155 89% 45%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 228 8% 83%;
     --input: 228 8% 83%;
@@ -183,7 +183,7 @@
     --muted-foreground: 225 9% 65%;
     --accent: 228 20% 18%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 155 60% 30%;
+    --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 98%;
     --border: 228 20% 18%;
     --input: 228 20% 18%;

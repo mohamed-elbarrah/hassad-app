@@ -1,39 +1,51 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useGetProfileQuery } from "@/features/auth/authApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setCredentials, setInitialized } from "@/features/auth/authSlice";
 
-/**
- * AuthInitializer component hydrates the Redux auth state from the HttpOnly
- * session cookies on the first load.
- */
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/proposal/",
+  "/contract/",
+];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p),
+  );
+}
+
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const { isInitialized } = useAppSelector((state) => state.auth);
+  const pathname = usePathname();
+  const isPublic = isPublicPath(pathname);
 
-  // Skip if already initialized (e.g. after login)
   const {
     data: user,
     isSuccess,
     isError,
-    isLoading,
   } = useGetProfileQuery(undefined, {
-    skip: isInitialized,
+    skip: isInitialized || isPublic,
   });
 
   useEffect(() => {
+    if (isPublic) {
+      if (!isInitialized) dispatch(setInitialized(true));
+      return;
+    }
     if (isSuccess && user) {
-      // Hydrate state from the successful profile fetch (uses cookies)
       dispatch(setCredentials({ user }));
     } else if (isError) {
       dispatch(setInitialized(true));
     }
-  }, [isSuccess, user, isError, dispatch]);
-
-  // Optional: You could return a global loader here if isLoading is true
-  // but usually it's better to let layouts handle it.
+  }, [isSuccess, user, isError, dispatch, isPublic, isInitialized]);
 
   return <>{children}</>;
 }
