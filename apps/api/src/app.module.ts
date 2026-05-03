@@ -21,6 +21,7 @@ import { AiModule } from "./modules/ai/ai.module";
 import { SalesModule } from "./modules/sales/sales.module";
 import { MarketingModule } from "./modules/marketing/marketing.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
+import { ServicesModule } from "./modules/services/services.module";
 
 
 @Module({
@@ -47,6 +48,7 @@ import { PaymentsModule } from "./modules/payments/payments.module";
     PortalModule,
     MarketingModule,
     PaymentsModule,
+    ServicesModule,
 
     FinanceModule,
     ChatModule,

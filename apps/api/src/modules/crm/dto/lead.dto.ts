@@ -1,5 +1,19 @@
-import { IsString, IsEmail, IsOptional, IsEnum, IsUUID, IsJSON } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsEnum, IsUUID, IsJSON, IsArray, IsInt, Min } from 'class-validator';
 import { PipelineStage, BusinessType, ClientSource, ContactLogType, ContactLogResult } from '@hassad/shared';
+
+export class LeadServiceItemDto {
+  @IsUUID()
+  serviceId: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  quantity?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
 
 export class CreateLeadDto {
   @IsString()
@@ -27,6 +41,10 @@ export class CreateLeadDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  services?: LeadServiceItemDto[];
 }
 
 export class UpdateLeadDto {
@@ -71,4 +89,23 @@ export class CreateContactLogDto {
 export class ChangeLeadStageDto {
   @IsEnum(PipelineStage)
   toStage: PipelineStage;
+}
+
+export class AddLeadServiceDto {
+  @IsUUID()
+  serviceId: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  quantity?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class RemoveLeadServiceDto {
+  @IsUUID()
+  serviceId: string;
 }

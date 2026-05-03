@@ -1,20 +1,41 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ClipboardList,
+  Settings,
+  TrendingUp,
+  Users,
+  Filter,
+  DollarSign,
+  Palette,
+  FileText,
+  Clock,
+  Activity,
+  Receipt,
+} from "lucide-react";
+
 import { useAppSelector } from "@/lib/hooks";
 import { useGetDeliverablesByClientQuery } from "@/features/deliverables/deliverablesApi";
 import { useGetInvoicesByClientQuery } from "@/features/finance/financeApi";
+import { useGetProjectProgressQuery } from "@/features/portal/portalApi";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { DashboardCard } from "@/components/portal/DashboardCard";
+import { GaugeChart } from "@/components/portal/GaugeChart";
+import { StatusBadge } from "@/components/portal/StatusBadge";
+import { ActionItemCard } from "@/components/portal/ActionItemCard";
+import { KpiRow } from "@/components/portal/KpiRow";
+import { TimelineItem } from "@/components/portal/TimelineItem";
+import { DeliverableItem } from "@/components/portal/DeliverableItem";
+import { PmCard } from "@/components/portal/PmCard";
 import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
+import { mapTaskStatusToUI } from "@/lib/utils/statusMapping";
 
 export default function PortalPage() {
   const [showNewDeal, setShowNewDeal] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
+  const router = useRouter();
   const clientId = user?.clientId ?? "";
 
   const { data: deliverables } = useGetDeliverablesByClientQuery(clientId, {
@@ -23,164 +44,337 @@ export default function PortalPage() {
   const { data: invoices } = useGetInvoicesByClientQuery(clientId, {
     skip: !clientId,
   });
-
-
-  const pendingDeliverables = deliverables?.filter(
-    (d) => d.status !== "DONE",
-  ).length ?? 0;
-
-  const nextInvoice = invoices
-    ?.filter((inv) => inv.status === "DUE" || inv.status === "SENT")
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
-
-
-
-  const SUMMARY_CARDS = [
-    {
-      title: "آخر تسليم معلّق",
-      value:
-        deliverables === undefined
-          ? null
-          : deliverables.find((d) => d.status !== "DONE")?.title ?? "لا يوجد",
-    },
-
-    {
-      title: "الفاتورة القادمة",
-      value:
-        invoices === undefined
-          ? null
-          : nextInvoice
-            ? new Date(nextInvoice.dueDate).toLocaleDateString("ar-DZ")
-            : "لا يوجد",
-    },
-  ];
+  const { data: projectProgress } = useGetProjectProgressQuery(undefined, {
+    skip: !clientId,
+  });
 
   const totalDeliverables = deliverables?.length ?? 0;
   const doneDeliverables = deliverables?.filter((d) => d.status === "DONE").length ?? 0;
-  const progress =
-    totalDeliverables > 0
+  const gaugeValue =
+    projectProgress?.progress ??
+    (totalDeliverables > 0
       ? Math.round((doneDeliverables / totalDeliverables) * 100)
-      : 0;
+      : 0);
+
+  if (!clientId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <p style={{ fontSize: 18, color: "rgba(0,0,0,0.6)" }}>
+          لم يتم ربط حسابك بملف عميل. يرجى التواصل مع الإدارة.
+        </p>
+      </div>
+    );
+  }
+
+  const displayDeliverables = projectProgress?.deliverables?.length
+    ? projectProgress.deliverables
+    : [];
+
+  const currentPhase = projectProgress?.currentPhase ?? "لا توجد مرحلة حالية";
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">مرحباً، {user?.name} 👋</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            هذه نظرة سريعة على تقدم مشروعك.
-          </p>
-        </div>
-        <Button
-          size="sm"
-          className="gap-2"
-          onClick={() => setShowNewDeal(true)}
+    <div
+      className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5"
+      dir="rtl"
+      style={{
+        maxWidth: "100%",
+        margin: "0 auto",
+      }}
+    >
+      {/* ═══════════════════════════════════════════
+          COLUMN 1 (RIGHT in RTL = original RIGHT side)
+          تقدم المشروع + آخر التحديثات
+         ═══════════════════════════════════════════ */}
+      <div className="flex flex-col gap-5">
+        {/* ── تقدم المشروع ──────────────────────────── */}
+        <DashboardCard
+          title="تقدم المشروع"
+          icon={Activity}
+          onShowAll={() => router.push("/portal/deliverables")}
         >
-          <Plus className="w-4 h-4" />
-          طلب خدمة جديدة
-        </Button>
-      </div>
+          {projectProgress ? (
+            <div className="flex flex-col items-center gap-5">
+              <GaugeChart value={gaugeValue} max={100} />
 
-      {!clientId && (
-        <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">
-            لم يتم ربط حسابك بملف عميل. يرجى التواصل مع الإدارة.
-          </CardContent>
-        </Card>
-      )}
-
-      {clientId && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">تقدم التسليمات</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {deliverables === undefined ? (
-                <Skeleton className="h-6 w-full" />
-              ) : (
-                <>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-                    <span>
-                      {doneDeliverables} من {totalDeliverables} تسليم مكتمل
+              <div className="w-full space-y-3">
+                {displayDeliverables.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between p-4 bg-white"
+                    style={{ border: "1px solid #E1E4EA", borderRadius: 12 }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 22,
+                        fontWeight: 500,
+                        lineHeight: "33px",
+                        color: "#000000",
+                      }}
+                    >
+                      {d.title ?? d.titleAr}
                     </span>
-                    <span>{progress}%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${progress}%` }}
+                    <StatusBadge
+                      status={mapTaskStatusToUI(d.status)}
+                      label={d.statusAr}
                     />
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                ))}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {SUMMARY_CARDS.map((card) => (
-              <Card key={card.title}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-muted-foreground">
-                    {card.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {card.value == null ? (
-                    <Skeleton className="h-6 w-32" />
-                  ) : (
-                    <p className="text-lg font-semibold">{card.value}</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                {/* المرحلة الحالية note */}
+                <div
+                  className="p-5 text-right"
+                  style={{
+                    background: "#F9FAFB",
+                    borderRadius: 12,
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 500,
+                      lineHeight: "33px",
+                      color: "#000000",
+                    }}
+                  >
+                    المرحلة الحالية :
+                  </p>
+                  <p
+                    className="mt-1"
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 400,
+                      lineHeight: "27px",
+                      color: "rgba(0, 0, 0, 0.6)",
+                    }}
+                  >
+                    {currentPhase}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-5 py-8">
+              <GaugeChart value={0} max={100} />
+              <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)" }}>
+                لا يوجد مشروع نشط حالياً
+              </p>
+            </div>
+          )}
+        </DashboardCard>
+
+        {/* ── آخر التحديثات ─────────────────────────── */}
+        <DashboardCard
+          title="آخر التحديثات"
+          icon={Clock}
+          onShowAll={() => {}}
+        >
+          <div className="space-y-3">
+            <TimelineItem
+              date="اليوم - 24 افريل 2026"
+              text="تم رفع تصميم إعلان جديد"
+              icon={
+                <Palette
+                  style={{ width: 26, height: 26, color: "#121936" }}
+                />
+              }
+            />
+            <TimelineItem
+              date="أمس - 23 افريل 2026"
+              text="تم إرسال تقرير الحملة"
+              icon={
+                <FileText
+                  style={{ width: 20, height: 23, color: "#121936" }}
+                />
+              }
+            />
+            <TimelineItem
+              date="قبل 3 أيام - 20 افريل 2026"
+              text="تم إطلاق حملة Google Ads"
+              icon={
+                <TrendingUp
+                  style={{ width: 24, height: 24, color: "#121936" }}
+                />
+              }
+            />
           </div>
+        </DashboardCard>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/portal/deliverables">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="text-base">التسليمات</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  استعرض الأعمال واعتمدها.
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/portal/proposals">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="text-base">العروض الفنية</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  راجع العروض المقدّمة ووافق عليها.
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/portal/contracts">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="text-base">العقود</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  استعرض عقودك ووقّع إلكترونياً.
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/portal/finance">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="text-base">المالية</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  الفواتير والمدفوعات والعقود.
-                </CardContent>
-              </Card>
-            </Link>
+      {/* ═══════════════════════════════════════════
+          COLUMN 2 (MIDDLE)
+          إجراءات تحتاج تدخلك + أداء الحملة
+         ═══════════════════════════════════════════ */}
+      <div className="flex flex-col gap-5">
+        {/* ── إجراءات تحتاج تدخلك ─────────────────── */}
+        <DashboardCard
+          title="إجراءات تحتاج تدخلك"
+          icon={Settings}
+          onShowAll={() => router.push("/portal/deliverables")}
+        >
+          <div className="space-y-3">
+            <ActionItemCard
+              title="موافقة على تصميم إعلان"
+              subtitle="تم رفع 3 تصاميم جديدة"
+              icon={
+                <Palette
+                  style={{ width: 26, height: 26, color: "#121936" }}
+                />
+              }
+              secondaryAction="ذكرني لاحقًا"
+              primaryAction="مراجعة الآن"
+              primaryColor="purple"
+              onPrimary={() => router.push("/portal/deliverables")}
+            />
+            <ActionItemCard
+              title="فاتورة مستحقة"
+              subtitle="هذه الفاتوة تستحق خلال 3 أيام"
+              icon={
+                <Receipt
+                  style={{ width: 20, height: 23, color: "#121936" }}
+                />
+              }
+              secondaryAction="ذكرني لاحقًا"
+              primaryAction="أدفع الان"
+              primaryColor="blue"
+              onPrimary={() => router.push("/portal/finance")}
+            />
           </div>
-        </>
-      )}
+        </DashboardCard>
+
+        {/* ── أداء الحملة ───────────────────────────── */}
+        <DashboardCard
+          title="أداء الحملة"
+          icon={TrendingUp}
+          onShowAll={() => router.push("/portal/reports")}
+        >
+          <div className="space-y-3">
+            <KpiRow
+              label="الزيارات"
+              value="12,450 زيارة"
+              icon={
+                <Users
+                  style={{ width: 29, height: 22, color: "#121936" }}
+                />
+              }
+            />
+            <KpiRow
+              label="التحويلات"
+              value="320 تحويل"
+              icon={
+                <Filter
+                  style={{ width: 23, height: 23, color: "#121936" }}
+                />
+              }
+            />
+            <KpiRow
+              label="العائد على الإنفاق الإعلاني"
+              value="2.8x"
+              icon={
+                <DollarSign
+                  style={{ width: 28, height: 28, color: "#121936" }}
+                />
+              }
+            />
+            <KpiRow
+              label="العائد على الإنفاق الإعلاني"
+              value="2.8x"
+              icon={
+                <DollarSign
+                  style={{ width: 28, height: 28, color: "#121936" }}
+                />
+              }
+            />
+
+            {/* Green note banner */}
+            <div
+              className="p-5 text-right"
+              style={{
+                background: "rgba(74, 233, 152, 0.15)",
+                borderRadius: 12,
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 22,
+                  fontWeight: 500,
+                  lineHeight: "33px",
+                  color: "#000000",
+                }}
+              >
+                ملاحظة:
+              </p>
+              <p
+                className="mt-1"
+                style={{
+                  fontSize: 18,
+                  fontWeight: 400,
+                  lineHeight: "27px",
+                  color: "rgba(0, 0, 0, 0.6)",
+                }}
+              >
+                الأداء تحسن بنسبة 18% مقارنة بالأسبوع الماضي
+              </p>
+            </div>
+          </div>
+        </DashboardCard>
+      </div>
+
+      {/* ═══════════════════════════════════════════
+          COLUMN 3 (LEFT in RTL = original LEFT side)
+          ملخص سريع + مدير المشروع
+         ═══════════════════════════════════════════ */}
+      <div className="flex flex-col gap-5">
+        {/* ── ملخص سريع ────────────────────────────── */}
+        <DashboardCard
+          title="ملخص سريع"
+          icon={ClipboardList}
+          onShowAll={() => router.push("/portal/deliverables")}
+        >
+          <div className="space-y-3">
+            <DeliverableItem
+              title="تصميم صفحة الهبوط"
+              description="هذا النص هو مثال لنص يمكن استبداله"
+              date="18 افريل"
+              status="completed"
+              statusLabel="تم التسليم"
+            />
+            <DeliverableItem
+              title="إعلانات الفايسبوك"
+              description="هذا النص هو مثال لنص يمكن استبداله"
+              date="CTR 3.2%"
+              status="in-progress"
+              statusLabel="نشط"
+            />
+            <DeliverableItem
+              title="الفاتورة القادمة : 1,200 رس"
+              description="هذا النص هو مثال لنص يمكن استبداله"
+              date="25 أبريل"
+              status="pending"
+              statusLabel="قادمة"
+            />
+            <DeliverableItem
+              title="تسليم فيديو إعلاني"
+              description="هذا النص هو مثال لنص يمكن استبداله"
+              date="28 أبريل"
+              status="pending"
+              statusLabel="قادمة"
+            />
+          </div>
+        </DashboardCard>
+
+        {/* ── مدير المشروع ──────────────────────────── */}
+        <DashboardCard
+          title="مدير المشروع"
+          icon={ClipboardList}
+          showAll={false}
+        >
+          <PmCard
+            name={projectProgress?.projectManager?.name ?? "غير معين"}
+            role="مدير المشروع المسؤول"
+            status={projectProgress?.projectManager?.isOnline ? "online" : "offline"}
+          />
+        </DashboardCard>
+      </div>
 
       {/* New service request modal */}
       {showNewDeal && (

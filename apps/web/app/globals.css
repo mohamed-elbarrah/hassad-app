@@ -122,6 +122,44 @@
   --spacing-space-16: 80px;
   --spacing-space-20: 96px;
 
+  /* ── Portal Exact Colors (from design source) ───────────────────────── */
+  --color-portal-bg: #f9fafb;
+  --color-portal-card-border: #e1e4ea;
+  --color-portal-divider: #eceef2;
+  --color-portal-nav-inactive: #a8abb2;
+  --color-portal-icon: #525866;
+  --color-portal-date: #585d5b;
+  --color-portal-note-text: rgba(0, 0, 0, 0.6);
+  --color-portal-note-title: #000000;
+
+  /* ── Action Colors ───────────────────────────────────────────────────── */
+  --color-action-purple: #7a13e8;
+  --color-action-purple-hover: #6b11d1;
+  --color-action-blue: #2684fc;
+  --color-action-blue-hover: #1a74e6;
+  --color-action-gray-text: #6c6f75;
+  --color-pm-button-bg: rgba(28, 39, 77, 0.1);
+  --color-pm-button-text: #1c274d;
+
+  /* ── Badge Colors (exact from source) ────────────────────────────────── */
+  --color-badge-green-bg: rgba(14, 213, 137, 0.1);
+  --color-badge-green-text: #0ed589;
+  --color-badge-yellow-bg: rgba(248, 175, 1, 0.1);
+  --color-badge-yellow-text: #f8af01;
+  --color-badge-gray-bg: rgba(18, 25, 54, 0.05);
+  --color-badge-gray-text: #121936;
+  --color-badge-orange-bg: rgba(248, 175, 1, 0.1);
+  --color-badge-orange-text: #f8af01;
+
+  /* ── Notification / Logout ────────────────────────────────────────────── */
+  --color-notification-badge: #fb3748;
+  --color-logout-text: #ff6161;
+  --color-verified-badge: #00aeff;
+
+  /* ── Gauge Chart ──────────────────────────────────────────────────────── */
+  --color-gauge-track: #f5f7fa;
+  --color-gauge-fill: #121936;
+
   /* ── Animations ───────────────────────────────────────────────────────── */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;

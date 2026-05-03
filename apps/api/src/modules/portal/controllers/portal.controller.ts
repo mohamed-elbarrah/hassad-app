@@ -13,29 +13,46 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PortalController {
-  constructor(private readonly portalService: PortalService) {}
+  constructor(
+    private readonly portalService: PortalService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  /** Resolve clientId from JWT payload or DB lookup for CLIENT users */
+  private async resolveClientId(user: any): Promise<string | null> {
+    if (user.clientId) return user.clientId;
+    if (user.role !== 'CLIENT') return null;
+    const client = await this.prisma.client.findFirst({
+      where: { email: user.email },
+      select: { id: true },
+    });
+    return client?.id ?? null;
+  }
 
   @Get('portal/dashboard')
   @RequirePermissions('portal.read')
-  getDashboard(@CurrentUser() user: any) {
-    if (!user.clientId) return { contracts: [], invoices: [], projects: [], campaigns: [] };
-    return this.portalService.getDashboard(user.clientId);
+  async getDashboard(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { contracts: [], invoices: [], projects: [], campaigns: [] };
+    return this.portalService.getDashboard(clientId);
   }
 
   @Get('portal/contracts')
   @RequirePermissions('portal.read')
-  getContracts(
+  async getContracts(
     @CurrentUser() user: any,
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    if (!user.clientId) return { data: [], total: 0, page: 1, limit: 20 };
-    return this.portalService.getContracts(user.clientId, {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { data: [], total: 0, page: 1, limit: 20 };
+    return this.portalService.getContracts(clientId, {
       status,
       page: Number(page) || 1,
       limit: Number(limit) || 20,
@@ -44,14 +61,15 @@ export class PortalController {
 
   @Get('portal/invoices')
   @RequirePermissions('portal.read')
-  getInvoices(
+  async getInvoices(
     @CurrentUser() user: any,
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    if (!user.clientId) return { data: [], total: 0, page: 1, limit: 20 };
-    return this.portalService.getInvoices(user.clientId, {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { data: [], total: 0, page: 1, limit: 20 };
+    return this.portalService.getInvoices(clientId, {
       status,
       page: Number(page) || 1,
       limit: Number(limit) || 20,
@@ -125,17 +143,26 @@ export class PortalController {
 
   @Get('portal/campaigns')
   @RequirePermissions('portal.read')
-  getPortalCampaigns(@CurrentUser() user: any) {
-    // For clients, their clientId is stored in the user record
-    if (!user.clientId) return [];
-    return this.portalService.findCampaignsByClient(user.clientId);
+  async getPortalCampaigns(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return [];
+    return this.portalService.findCampaignsByClient(clientId);
+  }
+
+  @Get('portal/project-progress')
+  @RequirePermissions('portal.read')
+  async getProjectProgress(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return null;
+    return this.portalService.getProjectProgress(clientId);
   }
 
   @Get('portal/campaigns/:id')
   @RequirePermissions('portal.read')
-  getPortalCampaignOne(@Param('id') id: string, @CurrentUser() user: any) {
-    if (!user.clientId) return null;
-    return this.portalService.findCampaignOne(id, user.clientId);
+  async getPortalCampaignOne(@Param('id') id: string, @CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return null;
+    return this.portalService.findCampaignOne(id, clientId);
   }
 }
 
