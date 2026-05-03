@@ -4,10 +4,9 @@ import { useAppSelector } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { UserRole } from "@hassad/shared";
-import { NavUser } from "@/components/nav-user";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { PortalSidebar } from "@/components/portal/PortalSidebar";
+import { PortalHeader } from "@/components/portal/PortalHeader";
 import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
-import { NotificationBell } from "@/components/common/NotificationBell";
 
 // ─── localStorage key helper ──────────────────────────────────────────────────
 function intakeStorageKey(userId: string) {
@@ -43,8 +42,6 @@ export default function PortalLayout({
   }, [isAuthenticated, user, router, mounted, isInitialized]);
 
   // First-login intake gate:
-  // Show the mandatory intake form if the CLIENT hasn't submitted it yet.
-  // Detection: localStorage flag `intake_done_{userId}`.
   useEffect(() => {
     if (!mounted || !isInitialized || !isAuthenticated) return;
     if (user?.role !== UserRole.CLIENT || !user?.id) return;
@@ -80,22 +77,22 @@ export default function PortalLayout({
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen bg-white flex flex-col w-full">
-        <header className="bg-blue-600 text-white p-4 shadow-md flex items-center justify-between">
-          <span className="font-semibold text-lg">بوابة العميل</span>
-          <div className="flex items-center gap-2 [&_button]:text-white [&_button]:bg-transparent [&_button:hover]:bg-white/10">
-            <NotificationBell />
-            <NavUser />
-          </div>
-        </header>
-        <main className="flex-1 p-6">{children}</main>
+    <div className="h-screen overflow-hidden flex w-full" dir="rtl" style={{ background: "#F9FAFB" }}>
+      {/* Right Sidebar — fixed, no scroll */}
+      <PortalSidebar />
+
+      {/* Main Content Area — header fixed, only content scrolls */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        <PortalHeader />
+        <main className="flex-1 overflow-y-auto p-5">
+          {children}
+        </main>
       </div>
 
-      {/* First-login mandatory intake form — rendered outside <main> to overlay everything */}
+      {/* First-login mandatory intake form */}
       {showIntakeForm && (
         <IntakeFormModal mandatory onSuccess={handleIntakeSuccess} />
       )}
-    </SidebarProvider>
+    </div>
   );
 }
