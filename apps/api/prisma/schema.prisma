@@ -521,6 +521,7 @@ model Client {
   payments     Payment[]
   satRatings   SatisfactionRating[]
   campaigns    Campaign[]
+  snoozedItems ClientSnoozedItem[]
 
 
   @@map("clients")
@@ -1013,6 +1014,20 @@ model PortalIntakeForm {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("portal_intake_forms")
+  @@index([clientId])
+}
+
+model ClientSnoozedItem {
+  id           String   @id @default(uuid())
+  clientId     String   @map("client_id")
+  itemType     String   @map("item_type")
+  itemId       String   @map("item_id")
+  snoozedUntil DateTime @map("snoozed_until")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, itemType, itemId], name: "clientId_itemType_itemId")
+  @@map("client_snoozed_items")
   @@index([clientId])
 }
 

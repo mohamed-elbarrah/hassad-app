@@ -61,6 +61,12 @@ export interface LeadFilters {
   limit?: number;
 }
 
+export interface LeadServiceItem {
+  serviceId: string;
+  quantity?: number;
+  notes?: string;
+}
+
 export interface CreateLeadPayload {
   contactName: string;
   companyName: string;
@@ -70,6 +76,7 @@ export interface CreateLeadPayload {
   businessType: BusinessType;
   source: ClientSource;
   notes?: string;
+  services?: LeadServiceItem[];
 }
 
 export const leadsApi = createApi({

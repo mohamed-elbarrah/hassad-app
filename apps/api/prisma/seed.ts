@@ -385,7 +385,7 @@ async function main() {
       {
         projectId: project1.id,
         title: "تصميم شعار العلامة التجارية",
-        description: "3 خيارات للشعار للاختيار من betweenها",
+        description: "3 خيارات للشعار",
         filePath: "",
         status: "DONE",
         isVisibleToClient: true,
@@ -409,6 +409,201 @@ async function main() {
         isVisibleToClient: true,
       },
     ],
+  });
+
+  // ── 8c. Project 3: TechVentures E-commerce (COMPLETED) ──────────────────────
+  const contract3 = await prisma.contract.create({
+    data: {
+      clientId: client1.id,
+      createdBy: users["PM"],
+      title: "TechVentures E-Commerce Platform Contract",
+      type: "FIXED_PROJECT",
+      status: "ACTIVE",
+      startDate: new Date("2023-06-01"),
+      endDate: new Date("2023-12-31"),
+      monthlyValue: 0,
+      totalValue: 45000,
+      eSigned: true,
+      signedAt: new Date("2023-06-01"),
+    },
+  });
+
+  const project3 = await prisma.project.create({
+    data: {
+      clientId: client1.id,
+      contractId: contract3.id,
+      projectManagerId: users["PM"],
+      name: "TechVentures متجر إلكتروني",
+      description: "تصميم وتطوير متجر إلكتروني متكامل مع بوابات الدفع وتكامل الشحن",
+      status: "COMPLETED",
+      priority: "HIGH",
+      startDate: new Date("2023-06-15"),
+      endDate: new Date("2023-12-15"),
+      completionPercentage: 100,
+    },
+  });
+
+  await prisma.projectMember.createMany({
+    data: [
+      { projectId: project3.id, userId: users["EMPLOYEE"], role: "MEMBER" },
+      { projectId: project3.id, userId: users["MARKETING"], role: "MEMBER" },
+    ],
+    skipDuplicates: true,
+  });
+
+  await prisma.deliverable.createMany({
+    data: [
+      {
+        projectId: project3.id,
+        title: "متجر إلكتروني متكامل",
+        description: "تصميم وتطوير واجهة المتجر",
+        filePath: "",
+        status: "DONE",
+        isVisibleToClient: true,
+        approvedBy: users["PM"],
+        approvedAt: new Date("2023-09-15"),
+      },
+      {
+        projectId: project3.id,
+        title: "بوابات الدفع الإلكتروني",
+        description: "تكامل مدقات واعتماد الدفع",
+        filePath: "",
+        status: "DONE",
+        isVisibleToClient: true,
+        approvedBy: users["PM"],
+        approvedAt: new Date("2023-10-20"),
+      },
+      {
+        projectId: project3.id,
+        title: "تكامل الشحن والتوصيل",
+        description: "ربط مع شركات الشحن المحلية",
+        filePath: "",
+        status: "DONE",
+        isVisibleToClient: true,
+        approvedBy: users["PM"],
+        approvedAt: new Date("2023-11-10"),
+      },
+    ],
+  });
+
+  // ── 8d. Project 4: TechVentures Mobile App (PLANNING) ──────────────────────
+  const contract4 = await prisma.contract.create({
+    data: {
+      clientId: client1.id,
+      createdBy: users["PM"],
+      title: "TechVentures Mobile App Contract",
+      type: "FIXED_PROJECT",
+      status: "SENT",
+      startDate: new Date("2026-06-01"),
+      endDate: new Date("2026-12-31"),
+      monthlyValue: 0,
+      totalValue: 60000,
+      shareLinkToken: "demo-mobile-app-contract-token",
+    },
+  });
+
+  const project4 = await prisma.project.create({
+    data: {
+      clientId: client1.id,
+      contractId: contract4.id,
+      projectManagerId: users["PM"],
+      name: "TechVentures تطبيق جوال",
+      description: "تصميم وتطوير تطبيق جوال لنظامي iOS و Android",
+      status: "PLANNING",
+      priority: "NORMAL",
+      startDate: new Date("2026-06-01"),
+      endDate: new Date("2026-12-31"),
+    },
+  });
+
+  await prisma.projectMember.createMany({
+    data: [
+      { projectId: project4.id, userId: users["EMPLOYEE"], role: "MEMBER" },
+    ],
+    skipDuplicates: true,
+  });
+
+  await prisma.deliverable.createMany({
+    data: [
+      {
+        projectId: project4.id,
+        title: "تصميم واجهات التطبيق",
+        description: "تصميم UI/UX للتطبيق",
+        filePath: "",
+        status: "TODO",
+        isVisibleToClient: true,
+      },
+      {
+        projectId: project4.id,
+        title: "تطوير التطبيق iOS",
+        description: "تطوير تطبيق iPhone",
+        filePath: "",
+        status: "TODO",
+        isVisibleToClient: true,
+      },
+      {
+        projectId: project4.id,
+        title: "تطوير التطبيق Android",
+        description: "تطوير تطبيق Android",
+        filePath: "",
+        status: "TODO",
+        isVisibleToClient: true,
+      },
+    ],
+  });
+
+  // ── 8e. IN_REVIEW deliverable for action items demo ──────────────────────
+  await prisma.deliverable.create({
+    data: {
+      projectId: project1.id,
+      title: "تصميم إعلان إنستغرام",
+      description: "3 تصاميم إعلانية جديدة",
+      filePath: "/uploads/ad-design-v2.pdf",
+      status: "IN_REVIEW",
+      isVisibleToClient: true,
+    },
+  });
+
+  // ── 8f. More invoices for TechVentures (action items) ─────────────────────
+  const invoice4 = await prisma.invoice.create({
+    data: {
+      clientId: client1.id,
+      contractId: contract1.id,
+      createdBy: users["ACCOUNTANT"],
+      invoiceNumber: "INV-20260501-0004",
+      amount: 8000,
+      status: "DUE",
+      paymentMethod: "MADA",
+      issueDate: new Date("2026-05-01"),
+      dueDate: new Date("2026-05-15"),
+    },
+  });
+
+  const invoice5 = await prisma.invoice.create({
+    data: {
+      clientId: client1.id,
+      contractId: contract1.id,
+      createdBy: users["ACCOUNTANT"],
+      invoiceNumber: "INV-20260401-0005",
+      amount: 8000,
+      status: "PAID",
+      paymentMethod: "BANK_TRANSFER",
+      issueDate: new Date("2026-04-01"),
+      dueDate: new Date("2026-04-15"),
+      paidAt: new Date("2026-04-10"),
+      paymentReference: "TXN-2026-040",
+    },
+  });
+
+  await prisma.payment.create({
+    data: {
+      invoiceId: invoice5.id,
+      clientId: client1.id,
+      amount: 8000,
+      method: "BANK_TRANSFER",
+      status: "SUCCESS",
+      date: new Date("2026-04-10"),
+    },
   });
 
 // ── 9. Tasks ──────────────────────────────────────────────────────────────────
@@ -472,6 +667,209 @@ const task4 = await prisma.task.create({
 
 
 
+  // ── 10. Tasks for new projects + Campaign tasks ──────────────────────────────
+  const task5 = await prisma.task.create({
+    data: {
+      projectId: project1.id,
+      departmentId: marketingDept!.id,
+      assignedTo: users["MARKETING"],
+      createdBy: users["PM"],
+      title: "Run Instagram ad campaign",
+      description: "Launch and manage Instagram ads",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+      dueDate: new Date("2026-06-30"),
+    },
+  });
+
+  const task6 = await prisma.task.create({
+    data: {
+      projectId: project1.id,
+      departmentId: marketingDept!.id,
+      assignedTo: users["MARKETING"],
+      createdBy: users["PM"],
+      title: "Run Google Ads campaign",
+      description: "Set up Google Ads for brand awareness",
+      status: "DONE",
+      priority: "NORMAL",
+      dueDate: new Date("2026-04-01"),
+      approvedBy: users["PM"],
+      approvedAt: new Date("2026-03-30"),
+    },
+  });
+
+  const taskEcom = await prisma.task.create({
+    data: {
+      projectId: project3.id,
+      departmentId: marketingDept!.id,
+      assignedTo: users["MARKETING"],
+      createdBy: users["PM"],
+      title: "E-commerce launch campaign",
+      description: "Meta launch campaign for e-commerce store",
+      status: "DONE",
+      priority: "HIGH",
+      dueDate: new Date("2023-12-01"),
+      approvedBy: users["PM"],
+      approvedAt: new Date("2023-11-30"),
+    },
+  });
+
+  // ── 10b. Campaigns for TechVentures (client1) ──────────────────────────────────
+  const campaign1 = await prisma.campaign.create({
+    data: {
+      clientId: client1.id,
+      taskId: task5.id,
+      projectId: project1.id,
+      managedBy: users["MARKETING"],
+      name: "حملة رمضان",
+      platform: "META",
+      status: "COMPLETED",
+      startDate: new Date("2026-03-01"),
+      endDate: new Date("2026-04-10"),
+      budgetTotal: 15000,
+      budgetSpent: 14200,
+    },
+  });
+
+  const campaign2 = await prisma.campaign.create({
+    data: {
+      clientId: client1.id,
+      taskId: task5.id,
+      projectId: project1.id,
+      managedBy: users["MARKETING"],
+      name: "حملة العيد",
+      platform: "META",
+      status: "ACTIVE",
+      startDate: new Date("2026-04-15"),
+      endDate: new Date("2026-06-15"),
+      budgetTotal: 20000,
+      budgetSpent: 8500,
+    },
+  });
+
+  const campaign3 = await prisma.campaign.create({
+    data: {
+      clientId: client1.id,
+      taskId: task6.id,
+      projectId: project1.id,
+      managedBy: users["MARKETING"],
+      name: "Google Ads Q1",
+      platform: "GOOGLE",
+      status: "COMPLETED",
+      startDate: new Date("2026-01-01"),
+      endDate: new Date("2026-03-31"),
+      budgetTotal: 25000,
+      budgetSpent: 24000,
+    },
+  });
+
+  const campaign4 = await prisma.campaign.create({
+    data: {
+      clientId: client1.id,
+      taskId: task5.id,
+      projectId: project1.id,
+      managedBy: users["MARKETING"],
+      name: "Meta Retargeting",
+      platform: "META",
+      status: "ACTIVE",
+      startDate: new Date("2026-04-01"),
+      endDate: new Date("2026-07-01"),
+      budgetTotal: 12000,
+      budgetSpent: 4200,
+    },
+  });
+
+  const campaign5 = await prisma.campaign.create({
+    data: {
+      clientId: client1.id,
+      taskId: taskEcom.id,
+      projectId: project3.id,
+      managedBy: users["MARKETING"],
+      name: "حملة إطلاق المتجر",
+      platform: "TIKTOK",
+      status: "COMPLETED",
+      startDate: new Date("2023-12-01"),
+      endDate: new Date("2024-01-15"),
+      budgetTotal: 10000,
+      budgetSpent: 9800,
+    },
+  });
+
+  // ── 10c. KPI Snapshots (latest per campaign + older for comparison) ──────────
+  await prisma.campaignKpiSnapshot.createMany({
+    data: [
+      // Campaign 1 - Ramadan (latest + older)
+      { campaignId: campaign1.id, impressions: 45000, clicks: 2800, conversions: 320, revenue: 22400, cpc: 0.51, cpa: 44.38, ctr: 6.22, conversionRate: 11.43, roas: 1.58, source: "meta_api", recordedAt: new Date("2026-04-10"), createdAt: new Date("2026-04-10") },
+      { campaignId: campaign1.id, impressions: 22000, clicks: 1200, conversions: 140, revenue: 9800, cpc: 0.55, cpa: 45.71, ctr: 5.45, conversionRate: 11.67, roas: 1.45, source: "meta_api", recordedAt: new Date("2026-03-20"), createdAt: new Date("2026-03-20") },
+      // Campaign 2 - Eid (latest)
+      { campaignId: campaign2.id, impressions: 23000, clicks: 1500, conversions: 180, revenue: 16200, cpc: 0.43, cpa: 47.22, ctr: 6.52, conversionRate: 12.0, roas: 3.2, source: "meta_api", recordedAt: new Date("2026-05-01"), createdAt: new Date("2026-05-01") },
+      // Campaign 3 - Google Q1 (latest + older)
+      { campaignId: campaign3.id, impressions: 67000, clicks: 4200, conversions: 450, revenue: 49500, cpc: 0.60, cpa: 55.56, ctr: 6.27, conversionRate: 10.71, roas: 2.1, source: "google_api", recordedAt: new Date("2026-03-31"), createdAt: new Date("2026-03-31") },
+      { campaignId: campaign3.id, impressions: 30000, clicks: 1800, conversions: 180, revenue: 19800, cpc: 0.65, cpa: 60.0, ctr: 6.0, conversionRate: 10.0, roas: 1.8, source: "google_api", recordedAt: new Date("2026-02-15"), createdAt: new Date("2026-02-15") },
+      // Campaign 4 - Meta Retargeting (latest)
+      { campaignId: campaign4.id, impressions: 12000, clicks: 950, conversions: 95, revenue: 13300, cpc: 0.35, cpa: 42.11, ctr: 7.92, conversionRate: 10.0, roas: 4.2, source: "meta_api", recordedAt: new Date("2026-05-02"), createdAt: new Date("2026-05-02") },
+      // Campaign 5 - Store Launch (latest)
+      { campaignId: campaign5.id, impressions: 38000, clicks: 2100, conversions: 260, revenue: 18200, cpc: 0.48, cpa: 38.46, ctr: 5.53, conversionRate: 12.38, roas: 1.86, source: "tiktok_api", recordedAt: new Date("2024-01-15"), createdAt: new Date("2024-01-15") },
+    ],
+  });
+
+  // ── 10d. Revision request for action item ──────────────────────────────────
+  const reviewDeliverable = await prisma.deliverable.findFirst({
+    where: { projectId: project1.id, status: "IN_REVIEW" },
+  });
+  if (reviewDeliverable) {
+    await prisma.clientRevisionRequest.create({
+      data: {
+        deliverableId: reviewDeliverable.id,
+        clientId: client1.id,
+        requestDescription: "أرجو تعديل الألوان لتتناسب مع هوية العلامة التجارية",
+        status: "TODO",
+      },
+    });
+  }
+
+  // ── 10e. Client History Logs (activity feed) ───────────────────────────────
+  await prisma.clientHistoryLog.createMany({
+    data: [
+      {
+        clientId: client1.id,
+        userId: users["PM"],
+        eventType: "DELIVERABLE_APPROVED",
+        description: "تم اعتماد تصميم شعار العلامة التجارية",
+        occurredAt: new Date("2026-04-28"),
+      },
+      {
+        clientId: client1.id,
+        userId: users["PM"],
+        eventType: "DELIVERABLE_UPLOADED",
+        description: "تم رفع تصميم إعلان جديد",
+        occurredAt: new Date("2026-05-03"),
+      },
+      {
+        clientId: client1.id,
+        userId: users["MARKETING"],
+        eventType: "CAMPAIGN_LAUNCHED",
+        description: "تم إطلاق حملة العيد",
+        occurredAt: new Date("2026-04-15"),
+      },
+      {
+        clientId: client1.id,
+        userId: users["ACCOUNTANT"],
+        eventType: "INVOICE_PAID",
+        description: "تم دفع فاتورة INV-20260401-0005",
+        occurredAt: new Date("2026-04-10"),
+      },
+      {
+        clientId: client1.id,
+        userId: users["MARKETING"],
+        eventType: "CAMPAIGN_LAUNCHED",
+        description: "تم إطلاق حملة Google Ads",
+        occurredAt: new Date("2026-01-01"),
+      },
+    ],
+  });
+
+
   // ── 11. Invoices ──────────────────────────────────────────────────────────────
   const invoice1 = await prisma.invoice.create({
     data: {
@@ -528,9 +926,23 @@ const task4 = await prisma.task.create({
     },
   });
 
+  // ── 12b. Snoozed action item (demo) ────────────────────────────────────────
+  await prisma.clientSnoozedItem.upsert({
+    where: { clientId_itemType_itemId: { clientId: client1.id, itemType: "INVOICE_PAYMENT", itemId: invoice4.id } },
+    update: {},
+    create: {
+      clientId: client1.id,
+      itemType: "INVOICE_PAYMENT",
+      itemId: invoice4.id,
+      snoozedUntil: new Date(Date.now() + 12 * 60 * 60 * 1000),
+    },
+  });
+
   // ── 13. Finance Expansion (Payments, Employees, Salaries) ───────────────
-  const employee1 = await prisma.employee.create({
-    data: {
+  const employee1 = await prisma.employee.upsert({
+    where: { userId: users["EMPLOYEE"] },
+    update: {},
+    create: {
       userId: users["EMPLOYEE"],
       name: "Hana Designer",
       role: "Designer",
@@ -538,8 +950,10 @@ const task4 = await prisma.task.create({
     },
   });
 
-  const employee2 = await prisma.employee.create({
-    data: {
+  const employee2 = await prisma.employee.upsert({
+    where: { userId: users["MARKETING"] },
+    update: {},
+    create: {
       userId: users["MARKETING"],
       name: "Ziad Marketing",
       role: "Marketing Specialist",

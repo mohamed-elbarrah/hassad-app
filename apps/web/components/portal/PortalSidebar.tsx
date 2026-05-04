@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   CheckCircle2,
+  PlusCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
@@ -21,6 +22,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 /* ── Sidebar navigation items ─────────────────────────────────────────── */
 const NAV_ITEMS = [
   { label: "الرئيسية", href: "/portal", icon: Home },
+  { label: "إنشاء طلب جديد", href: "/portal/new-order", icon: PlusCircle },
   { label: "التسليمات", href: "/portal/deliverables", icon: Inbox },
   { label: "العقود", href: "/portal/contracts", icon: FileText },
   { label: "الفواتير", href: "/portal/finance", icon: Receipt },

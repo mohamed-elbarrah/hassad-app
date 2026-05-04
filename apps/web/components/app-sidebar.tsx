@@ -18,6 +18,7 @@ import {
   ListChecks,
   BarChart3,
   TrendingUp,
+  PlusCircle,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -124,6 +125,12 @@ const navSections: NavSection[] = [
   {
     label: "المبيعات",
     items: [
+      {
+        title: "إنشاء طلب جديد",
+        url: "/dashboard/sales/leads/new",
+        icon: PlusCircle,
+        roles: ["ADMIN", "SALES", "CLIENT"],
+      },
       {
         title: "لوحة المبيعات",
         url: "/dashboard/sales/pipeline",

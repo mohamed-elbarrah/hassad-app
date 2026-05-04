@@ -43,10 +43,61 @@ export interface PortalDashboard {
   projectProgress: ProjectProgress | null;
 }
 
+export interface ActionItem {
+  id: string;
+  type: "DELIVERABLE_APPROVAL" | "INVOICE_PAYMENT" | "PROPOSAL_REVIEW" | "CONTRACT_SIGN";
+  title: string;
+  subtitle: string;
+  actionUrl: string;
+  dueDate?: string;
+  priority: "high" | "normal" | "low";
+  createdAt: string;
+}
+
+export interface ActivityFeedItem {
+  id: string;
+  date: string;
+  text: string;
+  icon: "palette" | "file" | "trending" | "check" | "dollar";
+}
+
+export interface CampaignSummary {
+  totalVisits: number;
+  totalConversions: number;
+  avgRoas: number;
+  improvementPercent: number;
+}
+
+export interface CampaignAnalytics {
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  revenue: number;
+  cpc: number;
+  cpa: number;
+  ctr: number;
+  conversionRate: number;
+  roas: number;
+}
+
+export interface PortalCampaign {
+  id: string;
+  name: string;
+  platform: string;
+  status: string;
+  startDate: string;
+  endDate?: string;
+  budgetTotal: number;
+  budgetSpent: number;
+  analytics: CampaignAnalytics;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const portalApi = createApi({
   reducerPath: "portalApi",
   baseQuery,
-  tagTypes: ["PortalDashboard", "ProjectProgress", "PortalCampaigns"],
+  tagTypes: ["PortalDashboard", "ProjectProgress", "PortalCampaigns", "ActionItems", "ActivityFeed", "CampaignSummary"],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
       query: () => "/portal/dashboard",
@@ -56,9 +107,29 @@ export const portalApi = createApi({
       query: () => "/portal/project-progress",
       providesTags: ["ProjectProgress"],
     }),
-    getPortalCampaigns: builder.query<any[], void>({
+    getPortalCampaigns: builder.query<PortalCampaign[], void>({
       query: () => "/portal/campaigns",
       providesTags: ["PortalCampaigns"],
+    }),
+    getActionItems: builder.query<{ items: ActionItem[] }, void>({
+      query: () => "/portal/action-items",
+      providesTags: ["ActionItems"],
+    }),
+    getActivityFeed: builder.query<{ items: ActivityFeedItem[] }, void>({
+      query: () => "/portal/activity-feed",
+      providesTags: ["ActivityFeed"],
+    }),
+    getCampaignSummary: builder.query<CampaignSummary, void>({
+      query: () => "/portal/campaigns/summary",
+      providesTags: ["CampaignSummary"],
+    }),
+    snoozeActionItem: builder.mutation<{ id: string; snoozedUntil: string }, { itemType: string; itemId: string; hours?: number }>({
+      query: (body) => ({ url: "/portal/action-items/snooze", method: "POST", body }),
+      invalidatesTags: ["ActionItems"],
+    }),
+    unsnoozeActionItem: builder.mutation<{ success: boolean }, { itemType: string; itemId: string }>({
+      query: ({ itemType, itemId }) => ({ url: `/portal/action-items/snooze/${itemType}/${itemId}`, method: "DELETE" }),
+      invalidatesTags: ["ActionItems"],
     }),
   }),
 });
@@ -67,4 +138,9 @@ export const {
   useGetPortalDashboardQuery,
   useGetProjectProgressQuery,
   useGetPortalCampaignsQuery,
+  useGetActionItemsQuery,
+  useGetActivityFeedQuery,
+  useGetCampaignSummaryQuery,
+  useSnoozeActionItemMutation,
+  useUnsnoozeActionItemMutation,
 } = portalApi;

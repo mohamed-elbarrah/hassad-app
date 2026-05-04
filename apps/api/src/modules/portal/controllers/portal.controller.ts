@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -155,6 +156,58 @@ export class PortalController {
     const clientId = await this.resolveClientId(user);
     if (!clientId) return null;
     return this.portalService.getProjectProgress(clientId);
+  }
+
+  @Get('portal/action-items')
+  @RequirePermissions('portal.read')
+  async getActionItems(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { items: [] };
+    return this.portalService.getActionItems(clientId);
+  }
+
+  @Get('portal/activity-feed')
+  @RequirePermissions('portal.read')
+  async getActivityFeed(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { items: [] };
+    return this.portalService.getActivityFeed(clientId);
+  }
+
+  @Get('portal/campaigns/summary')
+  @RequirePermissions('portal.read')
+  async getCampaignSummary(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { totalVisits: 0, totalConversions: 0, avgRoas: 0, improvementPercent: 0 };
+    return this.portalService.getCampaignSummary(clientId);
+  }
+
+  @Post('portal/action-items/snooze')
+  @RequirePermissions('portal.read')
+  async snoozeActionItem(
+    @CurrentUser() user: any,
+    @Body() body: { itemType: string; itemId: string; hours?: number },
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { success: false };
+    return this.portalService.snoozeActionItem(
+      clientId,
+      body.itemType,
+      body.itemId,
+      body.hours ?? 24,
+    );
+  }
+
+  @Delete('portal/action-items/snooze/:itemType/:itemId')
+  @RequirePermissions('portal.read')
+  async unsnoozeActionItem(
+    @CurrentUser() user: any,
+    @Param('itemType') itemType: string,
+    @Param('itemId') itemId: string,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { success: false };
+    return this.portalService.unsnoozeActionItem(clientId, itemType, itemId);
   }
 
   @Get('portal/campaigns/:id')
