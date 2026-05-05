@@ -12,6 +12,9 @@ import {
   LogOut,
   CheckCircle2,
   PlusCircle,
+  FolderOpen,
+  Bell,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
@@ -22,11 +25,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 /* ── Sidebar navigation items ─────────────────────────────────────────── */
 const NAV_ITEMS = [
   { label: "الرئيسية", href: "/portal", icon: Home },
+  { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
+  { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
+  { label: "إجراءاتي", href: "/portal/actions", icon: Bell },
   { label: "إنشاء طلب جديد", href: "/portal/new-order", icon: PlusCircle },
   { label: "التسليمات", href: "/portal/deliverables", icon: Inbox },
   { label: "العقود", href: "/portal/contracts", icon: FileText },
   { label: "الفواتير", href: "/portal/finance", icon: Receipt },
-  { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
+  { label: "الحملات", href: "/portal/campaigns", icon: BarChart3 },
 ];
 
 function getInitials(name: string) {
@@ -89,7 +95,8 @@ export function PortalSidebar() {
       <nav className="flex-1 px-8 space-y-2">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
@@ -97,7 +104,7 @@ export function PortalSidebar() {
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-[rgba(18,25,54,0.05)] text-[#121936] font-bold"
+                  ? "bg-badge-gray-bg text-[#121936] font-bold"
                   : "text-[#A8ABB2] hover:text-[#121936]",
               )}
               style={{
@@ -127,8 +134,9 @@ export function PortalSidebar() {
           href="/portal/account"
           className={cn(
             "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
-            pathname === "/portal/account"
-              ? "bg-[rgba(18,25,54,0.05)] text-[#121936]"
+            pathname === "/portal/account" ||
+              pathname.startsWith("/portal/account/")
+              ? "bg-badge-gray-bg text-[#121936]"
               : "text-[#A8ABB2] hover:text-[#121936]",
           )}
           style={{ fontSize: 20, fontWeight: 500, lineHeight: "30px" }}
@@ -138,7 +146,11 @@ export function PortalSidebar() {
             style={{
               width: 20,
               height: 20,
-              color: pathname === "/portal/account" ? "#121936" : "#A8ABB2",
+              color:
+                pathname === "/portal/account" ||
+                pathname.startsWith("/portal/account/")
+                  ? "#121936"
+                  : "#A8ABB2",
             }}
           />
           <span>الاعدادات</span>

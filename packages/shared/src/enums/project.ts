@@ -6,6 +6,14 @@ export enum ProjectStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export const PROJECT_STATUS_AR: Record<ProjectStatus, string> = {
+  PLANNING: 'تخطيط',
+  ACTIVE: 'نشط',
+  ON_HOLD: 'معلق',
+  COMPLETED: 'مكتمل',
+  CANCELLED: 'ملغى',
+};
+
 export enum TaskStatus {
   TODO = 'TODO',
   IN_PROGRESS = 'IN_PROGRESS',

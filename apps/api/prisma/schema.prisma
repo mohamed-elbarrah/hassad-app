@@ -39,6 +39,19 @@ enum PipelineStage {
   CONTRACT_SIGNED
 }
 
+enum RequestStatus {
+  SUBMITTED
+  QUALIFYING
+  PROPOSAL_IN_PROGRESS
+  PROPOSAL_SENT
+  NEGOTIATION
+  CONTRACT_PREPARATION
+  CONTRACT_SENT
+  SIGNED
+  PROJECT_CREATED
+  CANCELLED
+}
+
 enum ClientStatus {
   LEAD
   ACTIVE
@@ -283,9 +296,13 @@ model User {
   departments      UserDepartment[]
   assignedLeads    Lead[]                   @relation("LeadAssignee")
   createdLeads     Lead[]                   @relation("LeadCreator")
+  submittedRequests Request[]               @relation("RequestSubmitter")
+  assignedRequests  Request[]               @relation("RequestAssignee")
+  requestHistory    RequestStatusHistory[]  @relation("RequestStatusChangedBy")
   leadHistory      LeadPipelineHistory[]
   contactLogs      LeadContactLog[]
   managedClients   Client[]                 @relation("AccountManager")
+  clientProfile    Client?                  @relation("ClientUser")
   clientHistory    ClientHistoryLog[]
   createdProposals Proposal[]
   createdContracts Contract[]               @relation("ContractCreator")
@@ -396,6 +413,7 @@ model UserDepartment {
 
 model Lead {
   id                  String        @id @default(uuid())
+  requestId           String?       @unique @map("request_id")
   companyName         String        @map("company_name")
   contactName         String        @map("contact_name")
   phoneWhatsapp       String        @map("phone_whatsapp")
@@ -413,6 +431,7 @@ model Lead {
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
+  request         Request?               @relation(fields: [requestId], references: [id], onDelete: SetNull)
   assignee        User?                  @relation("LeadAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
   creator         User?                  @relation("LeadCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   pipelineHistory LeadPipelineHistory[]
@@ -495,6 +514,7 @@ model LeadAutomationLog {
 model Client {
   id                   String       @id @default(uuid())
   leadId               String?      @unique @map("lead_id")
+  userId               String?      @unique @map("user_id")
   companyName          String       @map("company_name")
   contactName          String       @map("contact_name")
   phoneWhatsapp        String       @map("phone_whatsapp")
@@ -509,8 +529,11 @@ model Client {
   updatedAt            DateTime     @updatedAt @map("updated_at")
 
   lead         Lead?                @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  user         User?                @relation("ClientUser", fields: [userId], references: [id], onDelete: SetNull)
   manager      User?                @relation("AccountManager", fields: [accountManager], references: [id], onDelete: SetNull)
+  requests     Request[]
   historyLogs  ClientHistoryLog[]
+  proposals    Proposal[]
   contracts    Contract[]
   projects     Project[]
   revisionReqs ClientRevisionRequest[]
@@ -525,6 +548,7 @@ model Client {
 
 
   @@map("clients")
+  @@index([userId])
   @@index([accountManager])
   @@index([status])
   @@index([createdAt])
@@ -576,6 +600,7 @@ model ServiceCatalog {
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
   leadServices     LeadService[]
+  requestServices  RequestService[]
   deliverableTemplates DeliverableTemplate[]
 
   @@map("service_catalog")
@@ -599,6 +624,75 @@ model DeliverableTemplate {
   @@index([serviceId])
 }
 
+model Request {
+  id              String        @id @default(uuid())
+  clientId        String        @map("client_id")
+  submittedBy     String?       @map("submitted_by")
+  assignedSalesId String?       @map("assigned_sales_id")
+  companyName     String        @map("company_name")
+  contactName     String        @map("contact_name")
+  phoneWhatsapp   String        @map("phone_whatsapp")
+  email           String?
+  businessName    String        @map("business_name")
+  businessType    BusinessType  @map("business_type")
+  source          ClientSource
+  notes           String?
+  status          RequestStatus @default(SUBMITTED)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  client        Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  submitter     User?                  @relation("RequestSubmitter", fields: [submittedBy], references: [id], onDelete: SetNull)
+  assignee      User?                  @relation("RequestAssignee", fields: [assignedSalesId], references: [id], onDelete: SetNull)
+  lead          Lead?
+  services      RequestService[]
+  statusHistory RequestStatusHistory[]
+  proposals     Proposal[]
+  contracts     Contract[]
+  project       Project?
+
+  @@map("requests")
+  @@index([clientId])
+  @@index([submittedBy])
+  @@index([assignedSalesId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RequestService {
+  id        String   @id @default(uuid())
+  requestId String   @map("request_id")
+  serviceId String   @map("service_id")
+  quantity  Int      @default(1)
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  request Request        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  service ServiceCatalog @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@unique([requestId, serviceId])
+  @@map("request_services")
+  @@index([requestId])
+  @@index([serviceId])
+}
+
+model RequestStatusHistory {
+  id        String        @id @default(uuid())
+  requestId String        @map("request_id")
+  fromStatus RequestStatus? @map("from_status")
+  toStatus  RequestStatus @map("to_status")
+  changedBy String?       @map("changed_by")
+  note      String?
+  changedAt DateTime      @default(now()) @map("changed_at")
+
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  changer User?   @relation("RequestStatusChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@map("request_status_history")
+  @@index([requestId])
+  @@index([changedAt])
+}
+
 model LeadService {
   id          String   @id @default(uuid())
   leadId      String   @map("lead_id")
@@ -620,7 +714,9 @@ model LeadService {
 
 model Proposal {
   id                 String         @id @default(uuid())
+  requestId          String?        @map("request_id")
   leadId             String?        @map("lead_id")
+  clientId           String?        @map("client_id")
   createdBy          String         @map("created_by")
   title              String
   serviceDescription String         @map("service_description")
@@ -635,18 +731,23 @@ model Proposal {
   approvedAt         DateTime?      @map("approved_at")
   createdAt          DateTime       @default(now()) @map("created_at")
 
+  request  Request?   @relation(fields: [requestId], references: [id], onDelete: SetNull)
   lead     Lead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  client   Client?    @relation(fields: [clientId], references: [id], onDelete: SetNull)
   creator  User       @relation(fields: [createdBy], references: [id], onDelete: Restrict)
   contract Contract?
 
   @@map("proposals")
+  @@index([requestId])
   @@index([leadId])
+  @@index([clientId])
   @@index([createdBy])
   @@index([status])
 }
 
 model Contract {
   id           String         @id @default(uuid())
+  requestId     String?        @map("request_id")
   clientId     String         @map("client_id")
   proposalId   String?        @unique @map("proposal_id")
   createdBy    String         @map("created_by")
@@ -665,6 +766,7 @@ model Contract {
   signedAt        DateTime?      @map("signed_at")
   createdAt       DateTime       @default(now()) @map("created_at")
 
+  request      Request?                 @relation(fields: [requestId], references: [id], onDelete: SetNull)
   client       Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   proposal     Proposal?               @relation(fields: [proposalId], references: [id], onDelete: SetNull)
   creator      User                    @relation("ContractCreator", fields: [createdBy], references: [id], onDelete: Restrict)
@@ -674,6 +776,7 @@ model Contract {
   invoices     Invoice[]
 
   @@map("contracts")
+  @@index([requestId])
   @@index([clientId])
   @@index([status])
 }
@@ -711,6 +814,7 @@ model ContractRenewalAlert {
 
 model Project {
   id                 String        @id @default(uuid())
+  requestId          String?       @unique @map("request_id")
   clientId           String        @map("client_id")
   contractId         String?       @map("contract_id")
   projectManagerId   String?       @map("project_manager_id")
@@ -726,6 +830,7 @@ model Project {
   createdAt          DateTime      @default(now()) @map("created_at")
   updatedAt          DateTime      @updatedAt @map("updated_at")
 
+  request        Request?              @relation(fields: [requestId], references: [id], onDelete: SetNull)
   client         Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contract       Contract?            @relation(fields: [contractId], references: [id], onDelete: SetNull)
   manager        User?                @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
@@ -739,6 +844,7 @@ model Project {
   satRatings     SatisfactionRating[]
 
   @@map("projects")
+  @@index([requestId])
   @@index([clientId])
   @@index([projectManagerId])
   @@index([status])

@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckCircle2, Clock, Hourglass, RotateCcw } from "lucide-react";
+import { CheckCircle2, Clock, Hourglass, RotateCcw, PauseCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type StatusType = "completed" | "in-progress" | "not-started" | "pending" | "revision";
+export type StatusType = "completed" | "in-progress" | "not-started" | "pending" | "revision" | "active" | "on-hold" | "planning" | "cancelled";
 
 const STATUS_CONFIG: Record<
   StatusType,
@@ -38,6 +38,30 @@ const STATUS_CONFIG: Record<
     bg: "rgba(239, 68, 68, 0.1)",
     text: "#EF4444",
     icon: RotateCcw,
+  },
+  active: {
+    label: "نشط",
+    bg: "rgba(14, 213, 137, 0.1)",
+    text: "#0ED589",
+    icon: CheckCircle2,
+  },
+  "on-hold": {
+    label: "معلق",
+    bg: "rgba(248, 175, 1, 0.1)",
+    text: "#F8AF01",
+    icon: PauseCircle,
+  },
+  planning: {
+    label: "تخطيط",
+    bg: "rgba(18, 25, 54, 0.05)",
+    text: "#121936",
+    icon: Clock,
+  },
+  cancelled: {
+    label: "ملغى",
+    bg: "rgba(239, 68, 68, 0.1)",
+    text: "#EF4444",
+    icon: XCircle,
   },
 };
 

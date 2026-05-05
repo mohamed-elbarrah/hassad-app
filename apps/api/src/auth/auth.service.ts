@@ -17,6 +17,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { JwtPayload } from "../common/decorators/current-user.decorator";
+import { CanonicalClientService } from "../modules/requests/canonical-client.service";
 import { RegisterClientDto } from "./dto/register-client.dto";
 import { RegisterInternalDto } from "./dto/register-internal.dto";
 
@@ -26,6 +27,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly canonicalClientService: CanonicalClientService,
   ) {}
 
   async login(dto: LoginDto) {
@@ -79,7 +81,9 @@ export class AuthService {
     let clientId: string | undefined;
     if (user.role.name === UserRole.CLIENT) {
       const client = await this.prisma.client.findFirst({
-        where: { email: user.email },
+        where: {
+          OR: [{ userId: user.id }, { email: user.email }],
+        },
         select: { id: true },
       });
       clientId = client?.id ?? undefined;
@@ -114,11 +118,22 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        role: true,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isActive: true,
+        provider: true,
+        createdAt: true,
+        updatedAt: true,
+        role: {
+          select: { name: true },
+        },
         departments: {
-          include: {
-            department: true,
+          select: {
+            department: {
+              select: { name: true },
+            },
           },
         },
       },
@@ -128,14 +143,22 @@ export class AuthService {
     let clientId: string | undefined;
     if (user.role.name === UserRole.CLIENT) {
       const client = await this.prisma.client.findFirst({
-        where: { email: user.email },
+        where: {
+          OR: [{ userId: user.id }, { email: user.email }],
+        },
         select: { id: true },
       });
       clientId = client?.id ?? undefined;
     }
 
     return {
-      ...user,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isActive: user.isActive,
+      provider: user.provider,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
       role: user.role.name,
       departments: user.departments.map((ud) => ud.department.name),
       ...(clientId !== undefined && { clientId }),
@@ -162,30 +185,15 @@ export class AuthService {
         },
       });
 
-      const salesUser = await tx.user.findFirst({
-        where: { role: { name: UserRole.SALES }, isActive: true },
-        select: { id: true },
-      });
-      const adminUser = !salesUser
-        ? await tx.user.findFirst({
-            where: { role: { name: UserRole.ADMIN } },
-            select: { id: true },
-          })
-        : null;
-      const assignedToId = salesUser?.id ?? adminUser?.id ?? user.id;
-
-      await tx.client.create({
-        data: {
-          companyName: dto.name, // Using name as companyName for now
-          contactName: dto.name,
-          phoneWhatsapp: dto.phone,
-          email: dto.email,
-          businessName: dto.name,
-          businessType: dto.businessType,
-          accountManager: assignedToId,
-          status: ClientStatus.ACTIVE,
-          leadId: null, // Self-registered client
-        },
+      await this.canonicalClientService.upsertCanonicalClient(tx, {
+        userId: user.id,
+        email: dto.email,
+        companyName: dto.name,
+        contactName: dto.name,
+        phoneWhatsapp: dto.phone,
+        businessName: dto.name,
+        businessType: dto.businessType,
+        status: ClientStatus.ACTIVE,
       });
 
       return { message: "Registration successful. Please log in." };
@@ -267,29 +275,31 @@ export class AuthService {
       };
     }
 
-    // 3. Create new user
-    const newUser = await this.prisma.user.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        provider: data.provider,
-        providerId: data.providerId,
-        role: { connect: { name: UserRole.CLIENT } },
-      },
-      include: { role: true },
-    });
+    // 3. Create new user and attach it to the canonical client profile
+    const newUser = await this.prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          provider: data.provider,
+          providerId: data.providerId,
+          role: { connect: { name: UserRole.CLIENT } },
+        },
+        include: { role: true },
+      });
 
-    // Create client record for new OAuth user
-    await this.prisma.client.create({
-      data: {
+      await this.canonicalClientService.upsertCanonicalClient(tx, {
+        userId: createdUser.id,
+        email: data.email,
         companyName: data.name,
         contactName: data.name,
         phoneWhatsapp: "00000000000",
-        email: data.email,
         businessName: data.name,
         businessType: BusinessType.OTHER,
         status: ClientStatus.ACTIVE,
-      },
+      });
+
+      return createdUser;
     });
 
     return {

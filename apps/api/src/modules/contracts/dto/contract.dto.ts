@@ -5,14 +5,13 @@ import {
   IsNumber,
   IsDateString,
   IsOptional,
-} from 'class-validator';
-import { Transform } from 'class-transformer';
-import { ContractType } from '@hassad/shared';
+} from "class-validator";
+import { Transform } from "class-transformer";
+import { ContractType } from "@hassad/shared";
 
 export class CreateContractDto {
-  /** Lead whose associated Client will own this contract */
   @IsUUID()
-  leadId: string;
+  requestId: string;
 
   @IsOptional()
   @IsUUID()

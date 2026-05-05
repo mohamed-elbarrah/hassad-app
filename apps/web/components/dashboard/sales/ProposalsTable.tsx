@@ -29,6 +29,22 @@ interface ProposalsTableProps {
 export function ProposalsTable({ proposals }: ProposalsTableProps) {
   const [sendProposal, { isLoading }] = useSendProposalMutation();
 
+  function getProposalDisplayName(proposal: ProposalListItem) {
+    if (proposal.request?.companyName) {
+      return proposal.request.contactName
+        ? `${proposal.request.companyName} — ${proposal.request.contactName}`
+        : proposal.request.companyName;
+    }
+
+    if (proposal.lead?.companyName) {
+      return proposal.lead.contactName
+        ? `${proposal.lead.companyName} — ${proposal.lead.contactName}`
+        : proposal.lead.companyName;
+    }
+
+    return proposal.leadId ?? proposal.requestId ?? "—";
+  }
+
   async function handleSend(id: string) {
     try {
       const result = await sendProposal(id).unwrap();
@@ -80,10 +96,10 @@ export function ProposalsTable({ proposals }: ProposalsTableProps) {
           ) : (
             proposals.map((proposal) => (
               <TableRow key={proposal.id}>
+                <TableCell>{getProposalDisplayName(proposal)}</TableCell>
                 <TableCell>
-                  {proposal.lead?.companyName ?? proposal.leadId ?? "—"}
+                  {proposal.totalPrice.toLocaleString("en-US")}
                 </TableCell>
-                <TableCell>{proposal.totalPrice.toLocaleString("en-US")}</TableCell>
                 <TableCell>
                   {new Intl.DateTimeFormat("en-GB", {
                     day: "2-digit",

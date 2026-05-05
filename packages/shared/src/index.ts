@@ -10,7 +10,6 @@ export * from "./enums/workload";
 export * from "./enums/campaign";
 export * from "./enums/service";
 
-
 // Schemas
 export * from "./schemas/auth.schema";
 export * from "./schemas/client.schema";
@@ -25,12 +24,15 @@ import { UserRole } from "./enums/roles";
 import {
   ClientStatus,
   BusinessType,
+  ClientSource,
   ProposalStatus,
   ContractStatus,
   ContractType,
   PipelineStage,
+  RequestStatus,
   AutomationStatus,
 } from "./enums/client";
+
 import {
   ProjectStatus,
   TaskStatus,
@@ -48,8 +50,6 @@ import {
 } from "./enums/finance";
 import { CampaignPlatform, CampaignStatus } from "./enums/campaign";
 import { ServiceCategory } from "./enums/service";
-
-
 
 export interface User {
   id: string;
@@ -75,6 +75,24 @@ export interface Client {
   status: ClientStatus;
   portalAccessToken?: string | null;
   portalTokenExpiresAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface Request {
+  id: string;
+  clientId: string;
+  submittedBy?: string | null;
+  assignedSalesId?: string | null;
+  companyName: string;
+  contactName: string;
+  phoneWhatsapp: string;
+  email?: string | null;
+  businessName: string;
+  businessType: BusinessType;
+  source: ClientSource;
+  notes?: string | null;
+  status: RequestStatus;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -113,6 +131,7 @@ export interface HandoverClientInput {
 /** Matches the DB `Proposal` model exactly */
 export interface Proposal {
   id: string;
+  requestId?: string | null;
   leadId?: string | null;
   createdBy: string;
   title: string;
@@ -131,6 +150,7 @@ export interface Proposal {
 /** Matches the DB `Contract` model exactly */
 export interface Contract {
   id: string;
+  requestId?: string | null;
   clientId: string;
   proposalId?: string | null;
   createdBy: string;
@@ -152,6 +172,7 @@ export interface Project {
   id: string;
   name: string;
   description?: string | null;
+  requestId?: string | null;
   clientId: string;
   contractId?: string | null;
   projectManagerId?: string | null;
@@ -346,8 +367,6 @@ export interface Ledger {
   createdAt: Date | string;
 }
 
-
-
 export interface Campaign {
   id: string;
   taskId?: string;
@@ -443,7 +462,19 @@ export interface DeliverableSummary {
 // Explicit re-exports for consumers that import by name
 export * from "./schemas/payment.schema";
 export * from "./schemas/campaign.schema";
-export type { CreateProposalInput, UpdateProposalInput, ProposalResponseInput } from "./schemas/proposal.schema";
+export type {
+  CreateProposalInput,
+  UpdateProposalInput,
+  ProposalResponseInput,
+} from "./schemas/proposal.schema";
 
-export type { CreateContractInput, UpdateContractInput, SignContractInput } from "./schemas/contract.schema";
-export type { CreateTaskInput, UpdateTaskInput, UpdateTaskStatusInput } from "./schemas/project.schema";
+export type {
+  CreateContractInput,
+  UpdateContractInput,
+  SignContractInput,
+} from "./schemas/contract.schema";
+export type {
+  CreateTaskInput,
+  UpdateTaskInput,
+  UpdateTaskStatusInput,
+} from "./schemas/project.schema";

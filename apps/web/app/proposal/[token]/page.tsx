@@ -11,7 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { FileText, Download, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import {
+  FileText,
+  Download,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
 
 interface PageProps {
   params: Promise<{ token: string }>;
@@ -61,17 +67,23 @@ export default function ProposalSharePage({ params }: PageProps) {
   if (isError || !data) {
     return (
       <div className="min-h-screen bg-muted/40 flex items-center justify-center">
-        <p className="text-destructive">العرض غير متوفر أو انتهت صلاحية الرابط.</p>
+        <p className="text-destructive">
+          العرض غير متوفر أو انتهت صلاحية الرابط.
+        </p>
       </div>
     );
   }
 
   const canRespond = data.status === ProposalStatus.SENT;
-  const statusLabel = STATUS_LABELS[data.status as ProposalStatus] ?? data.status;
+  const statusLabel =
+    STATUS_LABELS[data.status as ProposalStatus] ?? data.status;
   const statusColor =
-    STATUS_COLORS[data.status as ProposalStatus] ?? "bg-muted text-muted-foreground";
+    STATUS_COLORS[data.status as ProposalStatus] ??
+    "bg-muted text-muted-foreground";
 
   const fileUrl = data.filePath ? buildFileUrl(data.filePath as string) : null;
+  const companyLabel = data.request?.companyName ?? data.lead?.companyName;
+  const contactLabel = data.request?.contactName ?? data.lead?.contactName;
 
   async function handleApprove() {
     try {
@@ -102,10 +114,10 @@ export default function ProposalSharePage({ params }: PageProps) {
           <div className="flex items-start justify-between flex-wrap gap-3">
             <div>
               <CardTitle className="text-xl">{data.title}</CardTitle>
-              {data.lead?.companyName && (
+              {companyLabel && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  {data.lead.companyName}
-                  {data.lead.contactName ? ` — ${data.lead.contactName}` : ""}
+                  {companyLabel}
+                  {contactLabel ? ` — ${contactLabel}` : ""}
                 </p>
               )}
             </div>
@@ -143,7 +155,9 @@ export default function ProposalSharePage({ params }: PageProps) {
           ) : (
             <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
               <AlertCircle className="w-5 h-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">لا يوجد ملف مرفق لهذا العرض.</p>
+              <p className="text-sm text-muted-foreground">
+                لا يوجد ملف مرفق لهذا العرض.
+              </p>
             </div>
           )}
 
@@ -151,21 +165,27 @@ export default function ProposalSharePage({ params }: PageProps) {
           {data.status === ProposalStatus.APPROVED && (
             <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
               <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-              <p className="text-sm text-emerald-700 font-medium">لقد اعتمدت هذا العرض الفني.</p>
+              <p className="text-sm text-emerald-700 font-medium">
+                لقد اعتمدت هذا العرض الفني.
+              </p>
             </div>
           )}
 
           {data.status === ProposalStatus.REVISION_REQUESTED && (
             <div className="flex items-center gap-2 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
               <AlertCircle className="w-5 h-5 text-orange-600 shrink-0" />
-              <p className="text-sm text-orange-700 font-medium">طلبت تعديلاً على هذا العرض.</p>
+              <p className="text-sm text-orange-700 font-medium">
+                طلبت تعديلاً على هذا العرض.
+              </p>
             </div>
           )}
 
           {data.status === ProposalStatus.REJECTED && (
             <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
               <XCircle className="w-5 h-5 text-red-600 shrink-0" />
-              <p className="text-sm text-red-700 font-medium">تم رفض هذا العرض.</p>
+              <p className="text-sm text-red-700 font-medium">
+                تم رفض هذا العرض.
+              </p>
             </div>
           )}
 
@@ -173,7 +193,9 @@ export default function ProposalSharePage({ params }: PageProps) {
           {canRespond && (
             <>
               <div>
-                <p className="text-sm font-medium mb-2">ملاحظاتك (اختياري عند الموافقة — مطلوبة عند طلب التعديل)</p>
+                <p className="text-sm font-medium mb-2">
+                  ملاحظاتك (اختياري عند الموافقة — مطلوبة عند طلب التعديل)
+                </p>
                 <Textarea
                   rows={3}
                   placeholder="اكتب ملاحظاتك هنا..."

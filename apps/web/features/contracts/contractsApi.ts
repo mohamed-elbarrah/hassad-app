@@ -51,7 +51,7 @@ export interface ContractFilters {
 
 /** Input for the FormData POST /contracts mutation */
 export interface CreateContractFormInput {
-  leadId: string;
+  requestId: string;
   title: string;
   type: ContractType;
   monthlyValue: number;
@@ -93,11 +93,20 @@ export const contractsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Contract", id }],
     }),
 
-    /** One-step: multipart/form-data upload (file + leadId + title + …) */
+    /** One-step: multipart/form-data upload anchored to the request. */
     createContract: builder.mutation<ContractItem, CreateContractFormInput>({
       queryFn: async (input, _api, _extraOptions) => {
+        if (!input.requestId) {
+          return {
+            error: {
+              status: 400,
+              data: { message: "requestId is required" },
+            },
+          };
+        }
+
         const formData = new FormData();
-        formData.append("leadId", input.leadId);
+        formData.append("requestId", input.requestId);
         formData.append("title", input.title);
         formData.append("type", input.type);
         formData.append("monthlyValue", String(input.monthlyValue));

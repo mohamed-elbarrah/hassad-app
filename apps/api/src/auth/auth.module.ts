@@ -10,10 +10,12 @@ import { JwtRefreshStrategy } from "./strategies/jwt-refresh.strategy";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { RolesGuard } from "./guards/roles.guard";
 import { EmailService } from "../common/services/email.service";
+import { RequestsModule } from "../modules/requests/requests.module";
 
 @Module({
   imports: [
     PassportModule,
+    RequestsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

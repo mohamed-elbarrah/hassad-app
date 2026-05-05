@@ -1,41 +1,71 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateClientDto, UpdateClientDto, HandoverClientDto } from '../dto/client.dto';
-import { ClientStatus, ProjectStatus, TaskPriority } from '@hassad/shared';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import {
+  CreateClientDto,
+  UpdateClientDto,
+  HandoverClientDto,
+} from "../dto/client.dto";
+import { ClientStatus } from "@hassad/shared";
+import { CanonicalClientService } from "../../requests/canonical-client.service";
 
 @Injectable()
 export class ClientsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly canonicalClientService: CanonicalClientService,
+  ) {}
 
   async create(userId: string, dto: CreateClientDto) {
-    const client = await this.prisma.client.create({
-      data: {
-        ...dto,
-        status: ClientStatus.ACTIVE,
-      },
-    });
+    const { client } = await this.prisma.$transaction(async (tx) => {
+      const result = await this.canonicalClientService.upsertCanonicalClient(
+        tx,
+        {
+          email: dto.email ?? null,
+          companyName: dto.companyName,
+          contactName: dto.contactName,
+          phoneWhatsapp: dto.phoneWhatsapp,
+          businessName: dto.businessName,
+          businessType: dto.businessType,
+          preferredManagerId: dto.accountManager ?? null,
+          status: ClientStatus.ACTIVE,
+        },
+      );
 
-    await this.prisma.clientHistoryLog.create({
-      data: {
-        clientId: client.id,
-        userId,
-        eventType: 'CLIENT_CREATED',
-        description: 'Client created directly (no lead conversion)',
-      },
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId: result.client.id,
+          userId,
+          eventType: result.created ? "CLIENT_CREATED" : "CLIENT_UPDATED",
+          description: result.created
+            ? "Client created through the canonical client workflow"
+            : "Existing canonical client profile refreshed through direct client creation",
+        },
+      });
+
+      return result;
     });
 
     return client;
   }
 
-  async findAll(filters: { status?: string; search?: string; page?: number; limit?: number }) {
+  async findAll(filters: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
     const where: any = {};
     if (filters.status) where.status = filters.status;
     if (filters.search) {
       where.OR = [
-        { companyName: { contains: filters.search, mode: 'insensitive' } },
-        { contactName: { contains: filters.search, mode: 'insensitive' } },
+        { companyName: { contains: filters.search, mode: "insensitive" } },
+        { contactName: { contains: filters.search, mode: "insensitive" } },
       ];
     }
 
@@ -43,7 +73,7 @@ export class ClientsService {
       this.prisma.client.findMany({
         where,
         include: { manager: { select: { id: true, name: true } } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -80,8 +110,8 @@ export class ClientsService {
       data: {
         clientId: id,
         userId,
-        eventType: 'CLIENT_UPDATED',
-        description: 'Client record updated',
+        eventType: "CLIENT_UPDATED",
+        description: "Client record updated",
       },
     });
 
@@ -94,39 +124,13 @@ export class ClientsService {
       include: {
         user: true,
       },
-      orderBy: { occurredAt: 'desc' },
+      orderBy: { occurredAt: "desc" },
     });
   }
 
   async handover(id: string, userId: string, dto: HandoverClientDto) {
-    const client = await this.findOne(id);
-
-    const project = await this.prisma.$transaction(async (tx) => {
-      const project = await tx.project.create({
-        data: {
-          clientId: id,
-          projectManagerId: dto.managerId,
-          name: dto.projectName,
-          status: ProjectStatus.PLANNING,
-          priority: TaskPriority.NORMAL,
-          startDate: new Date(dto.startDate),
-          endDate: new Date(dto.endDate),
-        },
-      });
-
-      await tx.clientHistoryLog.create({
-        data: {
-          clientId: id,
-          userId,
-          eventType: 'CLIENT_HANDOVER',
-          description: `Client handed over to PM. Project "${dto.projectName}" created.`,
-          metadata: { projectId: project.id },
-        },
-      });
-
-      return project;
-    });
-
-    return { client, project };
+    throw new BadRequestException(
+      "Direct client handover is disabled. Create projects from signed contracts so the request workflow remains canonical.",
+    );
   }
 }

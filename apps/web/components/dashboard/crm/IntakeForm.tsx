@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateLeadMutation } from "@/features/leads/leadsApi";
+import { useCreateRequestMutation } from "@/features/requests/requestsApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
@@ -72,9 +72,7 @@ const step2Schema = z.object({
     message: "اختر نوع النشاط التجاري",
   }),
   description: z.string().max(500, "الوصف طويل جداً").optional(),
-  services: z
-    .array(z.string())
-    .min(1, "اختر خدمة واحدة على الأقل"),
+  services: z.array(z.string()).min(1, "اختر خدمة واحدة على الأقل"),
 });
 
 const intakeSchema = step1Schema.merge(step2Schema);
@@ -88,9 +86,12 @@ interface IntakeFormProps {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function IntakeForm({ onSuccess, submitLabel = "إرسال" }: IntakeFormProps) {
+export function IntakeForm({
+  onSuccess,
+  submitLabel = "إرسال",
+}: IntakeFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
-  const [createLead, { isLoading }] = useCreateLeadMutation();
+  const [createRequest, { isLoading }] = useCreateRequestMutation();
 
   const form = useForm<IntakeFormValues>({
     resolver: zodResolver(intakeSchema),
@@ -107,7 +108,11 @@ export function IntakeForm({ onSuccess, submitLabel = "إرسال" }: IntakeForm
 
   // Validate only step 1 fields before advancing
   async function handleNext() {
-    const valid = await form.trigger(["contactName", "phoneWhatsapp", "companyName"]);
+    const valid = await form.trigger([
+      "contactName",
+      "phoneWhatsapp",
+      "companyName",
+    ]);
     if (valid) setStep(2);
   }
 
@@ -118,7 +123,7 @@ export function IntakeForm({ onSuccess, submitLabel = "إرسال" }: IntakeForm
         services: values.services,
       });
 
-      await createLead({
+      await createRequest({
         contactName: values.contactName,
         companyName: values.companyName,
         businessName: values.companyName,
@@ -126,9 +131,15 @@ export function IntakeForm({ onSuccess, submitLabel = "إرسال" }: IntakeForm
         businessType: values.businessType,
         source: ClientSource.PLATFORM,
         notes,
+        services: values.services.map((serviceId) => ({
+          serviceId,
+          quantity: 1,
+        })),
       }).unwrap();
 
-      toast.success("تم إرسال بياناتك بنجاح! سيتواصل معك فريق المبيعات قريباً.");
+      toast.success(
+        "تم إرسال بياناتك بنجاح! سيتواصل معك فريق المبيعات قريباً.",
+      );
       onSuccess();
     } catch (err: unknown) {
       const error = err as { data?: { message?: string } };
@@ -138,7 +149,10 @@ export function IntakeForm({ onSuccess, submitLabel = "إرسال" }: IntakeForm
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex flex-col gap-6"
+      >
         {/* ── Stepper ──────────────────────────────────────────────────────── */}
         <div className="flex items-center gap-3">
           {[1, 2].map((s) => (
@@ -204,7 +218,8 @@ export function IntakeForm({ onSuccess, submitLabel = "إرسال" }: IntakeForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    رقم الهاتف (واتساب) <span className="text-destructive">*</span>
+                    رقم الهاتف (واتساب){" "}
+                    <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -225,7 +240,8 @@ export function IntakeForm({ onSuccess, submitLabel = "إرسال" }: IntakeForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    اسم الشركة / المشروع <span className="text-destructive">*</span>
+                    اسم الشركة / المشروع{" "}
+                    <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input placeholder="مثال: مطعم النخيل" {...field} />
@@ -246,9 +262,13 @@ export function IntakeForm({ onSuccess, submitLabel = "إرسال" }: IntakeForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    نوع النشاط التجاري <span className="text-destructive">*</span>
+                    نوع النشاط التجاري{" "}
+                    <span className="text-destructive">*</span>
                   </FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="اختر نوع نشاطك التجاري" />

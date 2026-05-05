@@ -1,8 +1,14 @@
-import { IsString, IsNumber, IsUUID, IsArray, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsUUID,
+  IsArray,
+  IsOptional,
+} from "class-validator";
 
 export class CreateProposalDto {
   @IsUUID()
-  leadId: string;
+  requestId: string;
 
   @IsString()
   title: string;

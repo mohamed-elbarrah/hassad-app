@@ -238,6 +238,7 @@ async function main() {
   const client1 = await prisma.client.create({
     data: {
       leadId: lead3.id,
+      userId: users["CLIENT"],
       companyName: "TechVentures",
       contactName: "Tech Ventures CEO",
       phoneWhatsapp: "+966509990011",
@@ -267,6 +268,7 @@ async function main() {
   const proposal1 = await prisma.proposal.create({
     data: {
       leadId: lead1.id,
+      clientId: client2.id,
       createdBy: users["SALES"],
       title: "Social Media Management Package",
       serviceDescription:
@@ -281,6 +283,27 @@ async function main() {
       platforms: ["Instagram", "TikTok", "Snapchat"],
       status: "SENT",
       shareLinkToken: "demo-share-token-abc123",
+      sentAt: new Date(),
+    },
+  });
+
+  const proposal2 = await prisma.proposal.create({
+    data: {
+      leadId: lead3.id,
+      clientId: client1.id,
+      createdBy: users["SALES"],
+      title: "TechVentures Mobile App Proposal",
+      serviceDescription:
+        "Design and develop a mobile application for iOS and Android platforms with push notifications and analytics.",
+      servicesList: [
+        { name: "UI/UX Design", sessions: 20 },
+        { name: "iOS Development", sessions: 40 },
+        { name: "Android Development", sessions: 40 },
+      ],
+      totalPrice: 60000,
+      durationDays: 180,
+      platforms: ["iOS", "Android"],
+      status: "SENT",
       sentAt: new Date(),
     },
   });

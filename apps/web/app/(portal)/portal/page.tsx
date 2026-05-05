@@ -14,14 +14,13 @@ import {
   Activity,
   Receipt,
   CheckCircle,
-  CreditCard,
   PenTool,
 } from "lucide-react";
 
 import { useAppSelector } from "@/lib/hooks";
 import { useGetDeliverablesByClientQuery } from "@/features/deliverables/deliverablesApi";
-import { useGetInvoicesByClientQuery } from "@/features/finance/financeApi";
 import {
+  useGetPortalRequestsQuery,
   useGetProjectProgressQuery,
   useGetActionItemsQuery,
   useGetActivityFeedQuery,
@@ -37,13 +36,35 @@ import { KpiRow } from "@/components/portal/KpiRow";
 import { TimelineItem } from "@/components/portal/TimelineItem";
 import { DeliverableItem } from "@/components/portal/DeliverableItem";
 import { PmCard } from "@/components/portal/PmCard";
-import { mapTaskStatusToUI } from "@/lib/utils/statusMapping";
+import {
+  mapTaskStatusToUI,
+  mapProjectStatusToUI,
+} from "@/lib/utils/statusMapping";
 
-const ACTION_TYPE_CONFIG: Record<string, { primaryAction: string; primaryColor: string; icon: typeof Palette }> = {
-  DELIVERABLE_APPROVAL: { primaryAction: "مراجعة الآن", primaryColor: "purple", icon: Palette },
-  INVOICE_PAYMENT: { primaryAction: "أدفع الان", primaryColor: "blue", icon: Receipt },
-  PROPOSAL_REVIEW: { primaryAction: "مراجعة العرض", primaryColor: "purple", icon: FileText },
-  CONTRACT_SIGN: { primaryAction: "توقيع العقد", primaryColor: "blue", icon: PenTool },
+const ACTION_TYPE_CONFIG: Record<
+  string,
+  { primaryAction: string; primaryColor: string; icon: typeof Palette }
+> = {
+  DELIVERABLE_APPROVAL: {
+    primaryAction: "مراجعة الآن",
+    primaryColor: "purple",
+    icon: Palette,
+  },
+  INVOICE_PAYMENT: {
+    primaryAction: "أدفع الان",
+    primaryColor: "blue",
+    icon: Receipt,
+  },
+  PROPOSAL_REVIEW: {
+    primaryAction: "مراجعة العرض",
+    primaryColor: "purple",
+    icon: FileText,
+  },
+  CONTRACT_SIGN: {
+    primaryAction: "توقيع العقد",
+    primaryColor: "blue",
+    icon: PenTool,
+  },
 };
 
 const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
@@ -64,28 +85,42 @@ export default function PortalPage() {
   const { data: deliverables } = useGetDeliverablesByClientQuery(clientId, {
     skip: !clientId,
   });
-  const { data: invoices } = useGetInvoicesByClientQuery(clientId, {
-    skip: !clientId,
-  });
-  const { data: projectProgress, error: projectError } = useGetProjectProgressQuery(undefined, {
-    skip: !clientId,
-  });
-  const { data: actionItemsData, error: actionItemsError } = useGetActionItemsQuery(undefined, {
-    skip: !clientId,
-  });
-  const { data: activityFeedData, error: activityError } = useGetActivityFeedQuery(undefined, {
-    skip: !clientId,
-  });
-  const { data: campaignSummary, error: campaignError } = useGetCampaignSummaryQuery(undefined, {
-    skip: !clientId,
-  });
+  const { data: pendingRequestsData, error: pendingRequestsError } =
+    useGetPortalRequestsQuery(
+      { page: 1, limit: 3 },
+      {
+        skip: !clientId,
+      },
+    );
+  const { data: projectProgress, error: projectError } =
+    useGetProjectProgressQuery(undefined, {
+      skip: !clientId,
+    });
+  const { data: actionItemsData, error: actionItemsError } =
+    useGetActionItemsQuery(undefined, {
+      skip: !clientId,
+    });
+  const { data: activityFeedData, error: activityError } =
+    useGetActivityFeedQuery(undefined, {
+      skip: !clientId,
+    });
+  const { data: campaignSummary, error: campaignError } =
+    useGetCampaignSummaryQuery(undefined, {
+      skip: !clientId,
+    });
 
-  const gaugeValue = projectProgress?.progress ?? 0;
-  const currentPhase = projectProgress?.currentPhase ?? "لا توجد مرحلة حالية";
+  const projects = projectProgress?.projects ?? [];
+  const pendingRequests = pendingRequestsData?.data ?? [];
+  const gaugeValue = projectProgress?.overallProgress ?? 0;
   const actionItems = actionItemsData?.items ?? [];
   const activityItems = activityFeedData?.items ?? [];
 
   const totalDeliverables = deliverables?.length ?? 0;
+
+  const activePm =
+    projects.find((p) => p.status === "ACTIVE")?.projectManager ??
+    projects[0]?.projectManager ??
+    null;
 
   const handleSnooze = async (item: { id: string; type: string }) => {
     const itemId = item.id.replace(/^(del|inv|prop|con)-/, "");
@@ -117,26 +152,113 @@ export default function PortalPage() {
     >
       {/* COLUMN 1 */}
       <div className="flex flex-col gap-5">
-        {/* ── تقدم المشروع ──────────────────────────── */}
         <DashboardCard
-          title="تقدم المشروع"
+          title="الطلبات قيد الانتظار"
+          icon={ClipboardList}
+          onShowAll={() => router.push("/portal/requests")}
+        >
+          {pendingRequestsError ? (
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
+              تعذر تحميل الطلبات الحالية
+            </p>
+          ) : pendingRequests.length > 0 ? (
+            <div className="space-y-3">
+              {pendingRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="rounded-2xl border p-4"
+                  style={{ borderColor: "#E1E4EA", background: "#FFFFFF" }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p
+                        className="truncate"
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 600,
+                          lineHeight: "30px",
+                          color: "#000000",
+                        }}
+                      >
+                        {request.companyName}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: 15,
+                          lineHeight: "22px",
+                          color: "rgba(0, 0, 0, 0.6)",
+                        }}
+                      >
+                        {request.contactName}
+                      </p>
+                    </div>
+                    <StatusBadge status="pending" label={request.statusLabel} />
+                  </div>
+                  <p
+                    className="mt-3"
+                    style={{
+                      fontSize: 15,
+                      lineHeight: "24px",
+                      color: "rgba(0, 0, 0, 0.7)",
+                    }}
+                  >
+                    {request.stageLabel}
+                  </p>
+                  <p
+                    className="mt-2"
+                    style={{
+                      fontSize: 14,
+                      lineHeight: "21px",
+                      color: "rgba(0, 0, 0, 0.5)",
+                    }}
+                  >
+                    تاريخ الطلب:{" "}
+                    {new Date(request.createdAt).toLocaleDateString("ar-SA")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
+              لا توجد طلبات بانتظار المتابعة حالياً
+            </p>
+          )}
+        </DashboardCard>
+
+        {/* ── تتبع المشاريع ──────────────────────────── */}
+        <DashboardCard
+          title="تتبع المشاريع"
           icon={Activity}
-          onShowAll={() => router.push("/portal/deliverables")}
+          onShowAll={() => router.push("/portal/projects")}
         >
           {projectError ? (
             <div className="flex flex-col items-center gap-5 py-8">
               <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)" }}>
-                تعذر تحميل بيانات المشروع
+                تعذر تحميل بيانات المشاريع
               </p>
             </div>
-          ) : projectProgress ? (
+          ) : projectProgress && projects.length > 0 ? (
             <div className="flex flex-col items-center gap-5">
               <GaugeChart value={gaugeValue} max={100} />
 
               <div className="w-full space-y-3">
-                {projectProgress.deliverables.map((d) => (
+                {projects.map((p) => (
                   <div
-                    key={d.id}
+                    key={p.id}
                     className="flex items-center justify-between p-4 bg-white"
                     style={{ border: "1px solid #E1E4EA", borderRadius: 12 }}
                   >
@@ -148,11 +270,11 @@ export default function PortalPage() {
                         color: "#000000",
                       }}
                     >
-                      {d.title ?? d.titleAr}
+                      {p.name}
                     </span>
                     <StatusBadge
-                      status={mapTaskStatusToUI(d.status)}
-                      label={d.statusAr}
+                      status={mapProjectStatusToUI(p.status)}
+                      label={p.statusAr}
                     />
                   </div>
                 ))}
@@ -161,14 +283,27 @@ export default function PortalPage() {
                   className="p-5 text-right"
                   style={{ background: "#F9FAFB", borderRadius: 12 }}
                 >
-                  <p style={{ fontSize: 22, fontWeight: 500, lineHeight: "33px", color: "#000000" }}>
-                    المرحلة الحالية :
+                  <p
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 500,
+                      lineHeight: "33px",
+                      color: "#000000",
+                    }}
+                  >
+                    المشاريع النشطة :
                   </p>
                   <p
                     className="mt-1"
-                    style={{ fontSize: 18, fontWeight: 400, lineHeight: "27px", color: "rgba(0, 0, 0, 0.6)" }}
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 400,
+                      lineHeight: "27px",
+                      color: "rgba(0, 0, 0, 0.6)",
+                    }}
                   >
-                    {currentPhase}
+                    {projectProgress.activeProjects} من{" "}
+                    {projectProgress.totalProjects}
                   </p>
                 </div>
               </div>
@@ -184,35 +319,54 @@ export default function PortalPage() {
         </DashboardCard>
 
         {/* ── آخر التحديثات ─────────────────────────── */}
-        <DashboardCard
-          title="آخر التحديثات"
-          icon={Clock}
-          onShowAll={() => router.push("/portal/deliverables")}
-        >
+        <DashboardCard title="آخر التحديثات" icon={Clock} showAll={false}>
           {activityError ? (
-            <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)", textAlign: "center", padding: 16 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               تعذر تحميل التحديثات
             </p>
           ) : activityItems.length > 0 ? (
             <div className="space-y-3">
               {activityItems.slice(0, 5).map((item) => {
-                const dateStr = new Date(item.date).toLocaleDateString("ar-SA", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                });
+                const dateStr = new Date(item.date).toLocaleDateString(
+                  "ar-SA",
+                  {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  },
+                );
                 return (
                   <TimelineItem
                     key={item.id}
                     date={dateStr}
                     text={item.text}
-                    icon={ACTIVITY_ICON_MAP[item.icon] ?? <FileText style={{ width: 20, height: 23, color: "#121936" }} />}
+                    icon={
+                      ACTIVITY_ICON_MAP[item.icon] ?? (
+                        <FileText
+                          style={{ width: 20, height: 23, color: "#121936" }}
+                        />
+                      )
+                    }
                   />
                 );
               })}
             </div>
           ) : (
-            <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)", textAlign: "center", padding: 16 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               لا توجد تحديثات حالياً
             </p>
           )}
@@ -225,22 +379,41 @@ export default function PortalPage() {
         <DashboardCard
           title="إجراءات تحتاج تدخلك"
           icon={Settings}
-          onShowAll={() => router.push("/portal/deliverables")}
+          onShowAll={() => router.push("/portal/actions")}
         >
           {actionItemsError ? (
-            <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)", textAlign: "center", padding: 16 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               تعذر تحميل الإجراءات
             </p>
           ) : actionItems.length > 0 ? (
             <div className="space-y-3">
               {actionItems.slice(0, 4).map((item) => {
-                const config = ACTION_TYPE_CONFIG[item.type] ?? ACTION_TYPE_CONFIG.DELIVERABLE_APPROVAL;
+                const config =
+                  ACTION_TYPE_CONFIG[item.type] ??
+                  ACTION_TYPE_CONFIG.DELIVERABLE_APPROVAL;
                 return (
                   <ActionItemCard
                     key={item.id}
                     title={item.title}
                     subtitle={item.subtitle}
-                    icon={config.icon ? <config.icon style={{ width: 26, height: 26, color: "#121936" }} /> : <Settings style={{ width: 26, height: 26, color: "#121936" }} />}
+                    icon={
+                      config.icon ? (
+                        <config.icon
+                          style={{ width: 26, height: 26, color: "#121936" }}
+                        />
+                      ) : (
+                        <Settings
+                          style={{ width: 26, height: 26, color: "#121936" }}
+                        />
+                      )
+                    }
                     secondaryAction="ذكرني لاحقًا"
                     primaryAction={config.primaryAction}
                     primaryColor={config.primaryColor as "purple" | "blue"}
@@ -251,7 +424,14 @@ export default function PortalPage() {
               })}
             </div>
           ) : (
-            <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)", textAlign: "center", padding: 16 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               لا توجد إجراءات معلقة
             </p>
           )}
@@ -264,38 +444,63 @@ export default function PortalPage() {
           onShowAll={() => router.push("/portal/campaigns")}
         >
           {campaignError ? (
-            <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)", textAlign: "center", padding: 16 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               تعذر تحميل بيانات الحملة
             </p>
-          ) : campaignSummary && (campaignSummary.totalVisits > 0 || campaignSummary.totalConversions > 0) ? (
+          ) : campaignSummary &&
+            (campaignSummary.totalVisits > 0 ||
+              campaignSummary.totalConversions > 0) ? (
             <div className="space-y-3">
               <KpiRow
                 label="الزيارات"
                 value={`${campaignSummary.totalVisits.toLocaleString("ar-SA")} زيارة`}
-                icon={<Users style={{ width: 29, height: 22, color: "#121936" }} />}
+                icon={
+                  <Users style={{ width: 29, height: 22, color: "#121936" }} />
+                }
               />
               <KpiRow
                 label="التحويلات"
                 value={`${campaignSummary.totalConversions.toLocaleString("ar-SA")} تحويل`}
-                icon={<Filter style={{ width: 23, height: 23, color: "#121936" }} />}
+                icon={
+                  <Filter style={{ width: 23, height: 23, color: "#121936" }} />
+                }
               />
               <KpiRow
                 label="العائد على الإنفاق الإعلاني"
                 value={`${campaignSummary.avgRoas}x`}
-                icon={<DollarSign style={{ width: 28, height: 28, color: "#121936" }} />}
+                icon={
+                  <DollarSign
+                    style={{ width: 28, height: 28, color: "#121936" }}
+                  />
+                }
               />
 
               {campaignSummary.improvementPercent !== 0 && (
                 <div
                   className="p-5 text-right"
                   style={{
-                    background: campaignSummary.improvementPercent > 0
-                      ? "rgba(74, 233, 152, 0.15)"
-                      : "rgba(239, 68, 68, 0.1)",
+                    background:
+                      campaignSummary.improvementPercent > 0
+                        ? "rgba(74, 233, 152, 0.15)"
+                        : "rgba(239, 68, 68, 0.1)",
                     borderRadius: 12,
                   }}
                 >
-                  <p style={{ fontSize: 22, fontWeight: 500, lineHeight: "33px", color: "#000000" }}>
+                  <p
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 500,
+                      lineHeight: "33px",
+                      color: "#000000",
+                    }}
+                  >
                     ملاحظة:
                   </p>
                   <p
@@ -307,13 +512,23 @@ export default function PortalPage() {
                       color: "rgba(0, 0, 0, 0.6)",
                     }}
                   >
-                    الأداء {campaignSummary.improvementPercent > 0 ? "تحسن" : "انخفض"} بنسبة {Math.abs(campaignSummary.improvementPercent)}% مقارنة بالأسبوع الماضي
+                    الأداء{" "}
+                    {campaignSummary.improvementPercent > 0 ? "تحسن" : "انخفض"}{" "}
+                    بنسبة {Math.abs(campaignSummary.improvementPercent)}% مقارنة
+                    بالأسبوع الماضي
                   </p>
                 </div>
               )}
             </div>
           ) : (
-            <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)", textAlign: "center", padding: 16 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               لا توجد حملات نشطة حالياً
             </p>
           )}
@@ -355,7 +570,14 @@ export default function PortalPage() {
               })}
             </div>
           ) : (
-            <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)", textAlign: "center", padding: 16 }}>
+            <p
+              style={{
+                fontSize: 16,
+                color: "rgba(0,0,0,0.5)",
+                textAlign: "center",
+                padding: 16,
+              }}
+            >
               لا توجد تسليمات حالياً
             </p>
           )}
@@ -368,9 +590,9 @@ export default function PortalPage() {
           showAll={false}
         >
           <PmCard
-            name={projectProgress?.projectManager?.name ?? "غير معين"}
+            name={activePm?.name ?? "غير معين"}
             role="مدير المشروع المسؤول"
-            status={projectProgress?.projectManager?.isOnline ? "online" : "offline"}
+            status={activePm?.isOnline ? "online" : "offline"}
           />
         </DashboardCard>
       </div>

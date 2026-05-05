@@ -1,13 +1,34 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateLeadDto, UpdateLeadDto, AssignLeadDto, CreateContactLogDto, ChangeLeadStageDto, LeadServiceItemDto, AddLeadServiceDto, RemoveLeadServiceDto } from '../dto/lead.dto';
-import { PipelineStage, ClientStatus, ProposalStatus } from '@hassad/shared';
-import { NotificationsService } from '../../notifications/services/notifications.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import {
+  CreateLeadDto,
+  UpdateLeadDto,
+  AssignLeadDto,
+  CreateContactLogDto,
+  ChangeLeadStageDto,
+  LeadServiceItemDto,
+  AddLeadServiceDto,
+  RemoveLeadServiceDto,
+} from "../dto/lead.dto";
+import { PipelineStage, ClientStatus, ProposalStatus } from "@hassad/shared";
+import { CanonicalClientService } from "../../requests/canonical-client.service";
+import { NotificationsService } from "../../notifications/services/notifications.service";
+
+const USER_SUMMARY_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+} as const;
 
 @Injectable()
 export class LeadsService {
   constructor(
     private prisma: PrismaService,
+    private readonly canonicalClientService: CanonicalClientService,
     private notificationsService: NotificationsService,
   ) {}
 
@@ -41,9 +62,9 @@ export class LeadsService {
 
     this.notificationsService
       .broadcast({
-        title: 'عميل محتمل جديد',
+        title: "عميل محتمل جديد",
         message: `طلب جديد من ${leadWithServices.contactName} — ${leadWithServices.companyName}`,
-        roles: ['SALES'],
+        roles: ["SALES"],
       })
       .catch(() => {});
 
@@ -54,7 +75,7 @@ export class LeadsService {
     return this.prisma.lead.findMany({
       where: { isActive: true },
       include: {
-        assignee: true,
+        assignee: { select: USER_SUMMARY_SELECT },
         services: { include: { service: true } },
       },
     });
@@ -64,10 +85,12 @@ export class LeadsService {
     const lead = await this.prisma.lead.findUnique({
       where: { id },
       include: {
-        assignee: true,
+        assignee: { select: USER_SUMMARY_SELECT },
         pipelineHistory: true,
         contactLogs: true,
-        services: { include: { service: { include: { deliverableTemplates: true } } } },
+        services: {
+          include: { service: { include: { deliverableTemplates: true } } },
+        },
       },
     });
 
@@ -120,11 +143,11 @@ export class LeadsService {
 
     await this.notificationsService.notifyUsers({
       userIds: [dto.userId],
-      title: 'تم إسناد عميل محتمل إليك',
+      title: "تم إسناد عميل محتمل إليك",
       message: `تم إسناد العميل المحتمل "${lead.companyName}" إليك`,
       entityId: id,
-      entityType: 'LEAD',
-      eventType: 'LEAD_ASSIGNED',
+      entityType: "LEAD",
+      eventType: "LEAD_ASSIGNED",
     });
 
     return updated;
@@ -143,8 +166,8 @@ export class LeadsService {
   async getContactLogs(id: string) {
     return this.prisma.leadContactLog.findMany({
       where: { leadId: id },
-      include: { user: true },
-      orderBy: { contactedAt: 'desc' },
+      include: { user: { select: USER_SUMMARY_SELECT } },
+      orderBy: { contactedAt: "desc" },
     });
   }
 
@@ -152,7 +175,7 @@ export class LeadsService {
     const lead = await this.findOne(id);
 
     if (lead.pipelineStage === dto.toStage) {
-      throw new BadRequestException('Lead is already in this stage');
+      throw new BadRequestException("Lead is already in this stage");
     }
 
     // ── Stage gate: moving to APPROVED requires an APPROVED proposal ──────────
@@ -163,7 +186,7 @@ export class LeadsService {
 
       if (!approvedProposal) {
         throw new BadRequestException(
-          'لا يمكن الانتقال إلى مرحلة الموافقة قبل اعتماد عرض فني من قِبَل العميل',
+          "لا يمكن الانتقال إلى مرحلة الموافقة قبل اعتماد عرض فني من قِبَل العميل",
         );
       }
     }
@@ -187,16 +210,18 @@ export class LeadsService {
       return updatedLead;
     });
 
-    const recipientIds = [lead.assignedTo, lead.createdBy].filter(Boolean) as string[];
+    const recipientIds = [lead.assignedTo, lead.createdBy].filter(
+      Boolean,
+    ) as string[];
     if (recipientIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: recipientIds,
         excludeUserIds: [userId],
-        title: 'تحديث مرحلة العميل المحتمل',
+        title: "تحديث مرحلة العميل المحتمل",
         message: `تم نقل "${lead.companyName}" من ${lead.pipelineStage} إلى ${dto.toStage}`,
         entityId: id,
-        entityType: 'LEAD',
-        eventType: 'LEAD_STAGE_CHANGED',
+        entityType: "LEAD",
+        eventType: "LEAD_STAGE_CHANGED",
       });
     }
 
@@ -204,61 +229,63 @@ export class LeadsService {
   }
 
   async convertToClient(id: string, userId: string) {
-    const lead = await this.findOne(id);
+    const lead = await this.prisma.lead.findUnique({
+      where: { id },
+      include: { request: true },
+    });
+
+    if (!lead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
 
     if (lead.pipelineStage !== PipelineStage.CONTRACT_SIGNED) {
-      throw new BadRequestException('Lead must be in CONTRACT_SIGNED stage to convert');
+      throw new BadRequestException(
+        "Lead must be in CONTRACT_SIGNED stage to convert",
+      );
     }
 
     const client = await this.prisma.$transaction(async (tx) => {
-      // Guard: prevent double conversion
-      const existing = await tx.client.findFirst({ where: { leadId: id } });
-      if (existing) {
-        throw new BadRequestException('Lead has already been converted to a client');
-      }
-
-      // Create Client
-      const client = await tx.client.create({
-        data: {
+      const { client, created } =
+        await this.canonicalClientService.upsertCanonicalClient(tx, {
           leadId: lead.id,
+          email: lead.email ?? null,
           companyName: lead.companyName,
           contactName: lead.contactName,
           phoneWhatsapp: lead.phoneWhatsapp,
-          email: lead.email,
           businessName: lead.businessName,
           businessType: lead.businessType,
-          accountManager: lead.assignedTo,
+          preferredManagerId: lead.assignedTo ?? null,
           status: ClientStatus.ACTIVE,
-        },
-      });
+        });
 
-      // Update Lead
       await tx.lead.update({
         where: { id },
         data: { isActive: false },
       });
 
-      // Write CLIENT_CREATED history log
       await tx.clientHistoryLog.create({
         data: {
           clientId: client.id,
           userId,
-          eventType: 'CLIENT_CREATED',
-          description: 'Client created from lead conversion',
+          eventType: created ? "CLIENT_CREATED" : "CLIENT_UPDATED",
+          description: lead.requestId
+            ? "Canonical client activated from signed request"
+            : created
+              ? "Client created from legacy lead conversion"
+              : "Existing canonical client activated from legacy lead conversion",
         },
       });
 
       return client;
     });
 
-    // Notify the assigned user after the transaction succeeds
     if (lead.assignedTo) {
       await this.notificationsService.createNotification({
         entityId: client.id,
-        entityType: 'lead',
-        eventType: 'LEAD_CONVERTED',
+        entityType: "lead",
+        eventType: "LEAD_CONVERTED",
         userId: lead.assignedTo,
-        title: 'Lead Converted',
+        title: "Lead Converted",
         body: `Lead "${lead.contactName}" has been successfully converted to a client`,
       });
     }

@@ -6,11 +6,18 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { BusinessType, ClientSource } from "@hassad/shared";
-import { useCreateLeadMutation } from "@/features/leads/leadsApi";
+import { useCreateRequestMutation } from "@/features/requests/requestsApi";
 import { useGetServicesQuery } from "@/features/services/servicesApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, ChevronRight, ChevronLeft, Loader2, PlusCircle, ArrowRight } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+  PlusCircle,
+  ArrowRight,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,14 +47,30 @@ const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
 };
 
 const step1Schema = z.object({
-  contactName: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(80, "الاسم طويل جداً"),
-  phoneWhatsapp: z.string().min(8, "رقم الهاتف غير صحيح").max(20, "رقم الهاتف غير صحيح").regex(/^[+\d\s\-()]+$/, "أدخل رقماً صحيحاً"),
-  email: z.string().email("بريد إلكتروني غير صحيح").optional().or(z.literal("")),
-  companyName: z.string().min(2, "اسم الشركة يجب أن يكون حرفين على الأقل").max(100, "الاسم طويل جداً"),
+  contactName: z
+    .string()
+    .min(2, "الاسم يجب أن يكون حرفين على الأقل")
+    .max(80, "الاسم طويل جداً"),
+  phoneWhatsapp: z
+    .string()
+    .min(8, "رقم الهاتف غير صحيح")
+    .max(20, "رقم الهاتف غير صحيح")
+    .regex(/^[+\d\s\-()]+$/, "أدخل رقماً صحيحاً"),
+  email: z
+    .string()
+    .email("بريد إلكتروني غير صحيح")
+    .optional()
+    .or(z.literal("")),
+  companyName: z
+    .string()
+    .min(2, "اسم الشركة يجب أن يكون حرفين على الأقل")
+    .max(100, "الاسم طويل جداً"),
 });
 
 const step2Schema = z.object({
-  businessType: z.nativeEnum(BusinessType, { message: "اختر نوع النشاط التجاري" }),
+  businessType: z.nativeEnum(BusinessType, {
+    message: "اختر نوع النشاط التجاري",
+  }),
   description: z.string().max(500, "الوصف طويل جداً").optional(),
   serviceIds: z.array(z.string()).min(1, "اختر خدمة واحدة على الأقل"),
 });
@@ -58,7 +81,7 @@ type OrderFormValues = z.infer<typeof orderSchema>;
 export default function PortalNewOrderPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const router = useRouter();
-  const [createLead, { isLoading }] = useCreateLeadMutation();
+  const [createRequest, { isLoading }] = useCreateRequestMutation();
   const { data: services } = useGetServicesQuery(undefined);
 
   const form = useForm<OrderFormValues>({
@@ -76,7 +99,11 @@ export default function PortalNewOrderPage() {
   });
 
   async function handleNext() {
-    const valid = await form.trigger(["contactName", "phoneWhatsapp", "companyName"]);
+    const valid = await form.trigger([
+      "contactName",
+      "phoneWhatsapp",
+      "companyName",
+    ]);
     if (valid) setStep(2);
   }
 
@@ -87,7 +114,7 @@ export default function PortalNewOrderPage() {
         services: values.serviceIds,
       });
 
-      const result = await createLead({
+      await createRequest({
         contactName: values.contactName,
         companyName: values.companyName,
         businessName: values.companyName,
@@ -96,7 +123,10 @@ export default function PortalNewOrderPage() {
         businessType: values.businessType,
         source: ClientSource.PLATFORM,
         notes,
-        services: values.serviceIds.map((id) => ({ serviceId: id, quantity: 1 })),
+        services: values.serviceIds.map((id) => ({
+          serviceId: id,
+          quantity: 1,
+        })),
       }).unwrap();
 
       toast.success("تم إنشاء الطلب بنجاح! سيتواصل معك فريق المبيعات قريباً.");
@@ -118,18 +148,27 @@ export default function PortalNewOrderPage() {
     { id: "branding", label: "إدارة العلامة التجارية" },
     { id: "email_marketing", label: "التسويق بالبريد الإلكتروني" },
   ];
-  const serviceOptions = activeServices.length > 0
-    ? activeServices.map((s) => ({ id: s.id, label: s.nameAr || s.name }))
-    : fallbackServices;
+  const serviceOptions =
+    activeServices.length > 0
+      ? activeServices.map((s) => ({ id: s.id, label: s.nameAr || s.name }))
+      : fallbackServices;
 
   return (
-    <div dir="rtl" style={{ maxWidth: 640, margin: "0 auto", padding: "32px 16px" }}>
+    <div
+      dir="rtl"
+      style={{ maxWidth: 640, margin: "0 auto", padding: "32px 16px" }}
+    >
       <div className="flex items-center gap-3 mb-8">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "rgba(18,25,54,0.05)" }}>
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-full"
+          style={{ background: "rgba(18,25,54,0.05)" }}
+        >
           <PlusCircle style={{ width: 22, height: 22, color: "#121936" }} />
         </div>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#000000" }}>إنشاء طلب جديد</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#000000" }}>
+            إنشاء طلب جديد
+          </h1>
           <p style={{ fontSize: 16, color: "rgba(0,0,0,0.6)" }}>
             أنشئ طلباً جديداً لمتابعته عبر مراحل خط المبيعات
           </p>
@@ -137,7 +176,10 @@ export default function PortalNewOrderPage() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-6"
+        >
           {/* Stepper */}
           <div className="flex items-center gap-3">
             {[1, 2].map((s) => (
@@ -145,15 +187,31 @@ export default function PortalNewOrderPage() {
                 <div
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors",
-                    step === s ? "bg-[#121936] text-white" : step > s ? "bg-emerald-500 text-white" : "bg-gray-200 text-gray-500",
+                    step === s
+                      ? "bg-[#121936] text-white"
+                      : step > s
+                        ? "bg-emerald-500 text-white"
+                        : "bg-gray-200 text-gray-500",
                   )}
                 >
                   {step > s ? <CheckCircle2 className="w-4 h-4" /> : s}
                 </div>
-                <span className={cn("text-sm font-medium", step >= s ? "text-[#121936]" : "text-gray-400")}>
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    step >= s ? "text-[#121936]" : "text-gray-400",
+                  )}
+                >
                   {s === 1 ? "المعلومات الأساسية" : "تفاصيل المشروع"}
                 </span>
-                {s < 2 && <div className={cn("flex-1 h-0.5 rounded", step > s ? "bg-emerald-400" : "bg-gray-200")} />}
+                {s < 2 && (
+                  <div
+                    className={cn(
+                      "flex-1 h-0.5 rounded",
+                      step > s ? "bg-emerald-400" : "bg-gray-200",
+                    )}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -166,8 +224,16 @@ export default function PortalNewOrderPage() {
                 name="contactName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الاسم الكامل <span className="text-red-500">*</span></FormLabel>
-                    <FormControl><Input placeholder="مثال: أحمد محمد العمري" autoFocus {...field} /></FormControl>
+                    <FormLabel>
+                      الاسم الكامل <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="مثال: أحمد محمد العمري"
+                        autoFocus
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -177,8 +243,18 @@ export default function PortalNewOrderPage() {
                 name="phoneWhatsapp"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>رقم الهاتف (واتساب) <span className="text-red-500">*</span></FormLabel>
-                    <FormControl><Input placeholder="+966 5X XXX XXXX" type="tel" dir="ltr" {...field} /></FormControl>
+                    <FormLabel>
+                      رقم الهاتف (واتساب){" "}
+                      <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="+966 5X XXX XXXX"
+                        type="tel"
+                        dir="ltr"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -189,7 +265,14 @@ export default function PortalNewOrderPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>البريد الإلكتروني (اختياري)</FormLabel>
-                    <FormControl><Input placeholder="example@company.com" type="email" dir="ltr" {...field} /></FormControl>
+                    <FormControl>
+                      <Input
+                        placeholder="example@company.com"
+                        type="email"
+                        dir="ltr"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -199,8 +282,13 @@ export default function PortalNewOrderPage() {
                 name="companyName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>اسم الشركة / المشروع <span className="text-red-500">*</span></FormLabel>
-                    <FormControl><Input placeholder="مثال: مطعم النخيل" {...field} /></FormControl>
+                    <FormLabel>
+                      اسم الشركة / المشروع{" "}
+                      <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="مثال: مطعم النخيل" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -216,12 +304,23 @@ export default function PortalNewOrderPage() {
                 name="businessType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>نوع النشاط التجاري <span className="text-red-500">*</span></FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="اختر نوع نشاطك التجاري" /></SelectTrigger></FormControl>
+                    <FormLabel>
+                      نوع النشاط التجاري <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر نوع نشاطك التجاري" />
+                        </SelectTrigger>
+                      </FormControl>
                       <SelectContent>
                         {Object.values(BusinessType).map((type) => (
-                          <SelectItem key={type} value={type}>{BUSINESS_TYPE_LABELS[type]}</SelectItem>
+                          <SelectItem key={type} value={type}>
+                            {BUSINESS_TYPE_LABELS[type]}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -235,7 +334,13 @@ export default function PortalNewOrderPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>وصف المشروع (اختياري)</FormLabel>
-                    <FormControl><Textarea placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..." className="resize-none h-24" {...field} /></FormControl>
+                    <FormControl>
+                      <Textarea
+                        placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
+                        className="resize-none h-24"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -245,7 +350,9 @@ export default function PortalNewOrderPage() {
                 name="serviceIds"
                 render={() => (
                   <FormItem>
-                    <FormLabel>الخدمات المطلوبة <span className="text-red-500">*</span></FormLabel>
+                    <FormLabel>
+                      الخدمات المطلوبة <span className="text-red-500">*</span>
+                    </FormLabel>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
                       {serviceOptions.map((service) => (
                         <FormField
@@ -253,17 +360,28 @@ export default function PortalNewOrderPage() {
                           control={form.control}
                           name="serviceIds"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-gray-50 transition-colors cursor-pointer" style={{ borderColor: "#E1E4EA" }}>
+                            <FormItem
+                              className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                              style={{ borderColor: "#E1E4EA" }}
+                            >
                               <FormControl>
                                 <Checkbox
                                   checked={field.value?.includes(service.id)}
                                   onCheckedChange={(checked) => {
                                     const current = field.value ?? [];
-                                    field.onChange(checked ? [...current, service.id] : current.filter((v) => v !== service.id));
+                                    field.onChange(
+                                      checked
+                                        ? [...current, service.id]
+                                        : current.filter(
+                                            (v) => v !== service.id,
+                                          ),
+                                    );
                                   }}
                                 />
                               </FormControl>
-                              <FormLabel className="font-normal cursor-pointer text-sm leading-tight">{service.label}</FormLabel>
+                              <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
+                                {service.label}
+                              </FormLabel>
                             </FormItem>
                           )}
                         />
@@ -277,21 +395,50 @@ export default function PortalNewOrderPage() {
           )}
 
           {/* Navigation */}
-          <div className="flex items-center justify-between pt-4" style={{ borderTop: "1.5px solid #E1E4EA" }}>
+          <div
+            className="flex items-center justify-between pt-4"
+            style={{ borderTop: "1.5px solid #E1E4EA" }}
+          >
             {step === 2 ? (
-              <Button type="button" variant="outline" onClick={() => setStep(1)} disabled={isLoading} className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep(1)}
+                disabled={isLoading}
+                className="gap-2"
+              >
                 <ChevronRight className="w-4 h-4" />
                 السابق
               </Button>
-            ) : <div />}
+            ) : (
+              <div />
+            )}
             {step === 1 ? (
-              <Button type="button" onClick={handleNext} className="gap-2 mr-auto" style={{ background: "#121936" }}>
+              <Button
+                type="button"
+                onClick={handleNext}
+                className="gap-2 mr-auto"
+                style={{ background: "#121936" }}
+              >
                 التالي
                 <ChevronLeft className="w-4 h-4" />
               </Button>
             ) : (
-              <Button type="submit" disabled={isLoading} className="gap-2" style={{ background: "#121936" }}>
-                {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري الإنشاء...</> : <>إنشاء الطلب <ArrowRight className="w-4 h-4" /></>}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="gap-2"
+                style={{ background: "#121936" }}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> جاري الإنشاء...
+                  </>
+                ) : (
+                  <>
+                    إنشاء الطلب <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </Button>
             )}
           </div>

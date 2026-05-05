@@ -29,9 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useGetLeadsQuery } from "@/features/leads/leadsApi";
+import { useGetRequestsQuery } from "@/features/requests/requestsApi";
 import { useCreateContractMutation } from "@/features/contracts/contractsApi";
-import { ContractType, PipelineStage } from "@hassad/shared";
+import { ContractType, RequestStatus } from "@hassad/shared";
 import { FileText, Upload, Copy, CheckCheck } from "lucide-react";
 
 // ── Labels ─────────────────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ const TYPE_LABELS: Record<ContractType, string> = {
 // ── Schema ─────────────────────────────────────────────────────────────────────
 
 const contractFormSchema = z.object({
-  leadId: z.string().min(1, "اختر العميل المحتمل"),
+  requestId: z.string().min(1, "اختر الطلب"),
   title: z.string().min(2, "اكتب عنوان العقد"),
   type: z.nativeEnum(ContractType, { message: "اختر نوع العقد" }),
   monthlyValue: z.number().nonnegative("القيمة الشهرية مطلوبة"),
@@ -55,6 +55,11 @@ const contractFormSchema = z.object({
 });
 
 type ContractFormValues = z.infer<typeof contractFormSchema>;
+
+const CONTRACT_READY_STATUSES = new Set<RequestStatus>([
+  RequestStatus.CONTRACT_PREPARATION,
+  RequestStatus.CONTRACT_SENT,
+]);
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -66,20 +71,17 @@ export function CreateContractDialog() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [createContract, { isLoading }] = useCreateContractMutation();
 
-  const { data: leadsData, isFetching: leadsFetching } = useGetLeadsQuery(
-    { limit: 100 },
-    { skip: !open },
-  );
+  const { data: requestsData, isFetching: requestsFetching } =
+    useGetRequestsQuery({ limit: 100 }, { skip: !open });
 
-  // Only show leads in APPROVED stage (ready for contract)
-  const approvedLeads = (leadsData ?? []).filter(
-    (l) => l.pipelineStage === PipelineStage.APPROVED,
+  const contractRequests = (requestsData ?? []).filter((request) =>
+    CONTRACT_READY_STATUSES.has(request.status),
   );
 
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
     defaultValues: {
-      leadId: "",
+      requestId: "",
       title: "",
       type: undefined,
       monthlyValue: 0,
@@ -106,9 +108,10 @@ export function CreateContractDialog() {
       toast.error("يرجى رفع ملف العقد (PDF)");
       return;
     }
+
     try {
       const result = await createContract({
-        leadId: values.leadId,
+        requestId: values.requestId,
         title: values.title,
         type: values.type,
         monthlyValue: values.monthlyValue,
@@ -119,7 +122,8 @@ export function CreateContractDialog() {
       }).unwrap();
 
       // Build shareable link
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
       const token = result.shareLinkToken;
       if (token) setShareLink(`${origin}/contract/${token}`);
 
@@ -127,7 +131,9 @@ export function CreateContractDialog() {
       form.reset();
       setFile(null);
     } catch (err: unknown) {
-      const msg = (err as { data?: { message?: string } })?.data?.message ?? "فشل إنشاء العقد";
+      const msg =
+        (err as { data?: { message?: string } })?.data?.message ??
+        "فشل إنشاء العقد";
       console.error("createContract error:", err);
       toast.error(msg);
     }
@@ -169,7 +175,9 @@ export function CreateContractDialog() {
                 <CheckCheck className="h-7 w-7 text-emerald-600" />
               </div>
               <div>
-                <p className="font-semibold text-base">تم إنشاء العقد وإرساله</p>
+                <p className="font-semibold text-base">
+                  تم إنشاء العقد وإرساله
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   شارك رابط التوقيع مع العميل ليوقّع إلكترونياً
                 </p>
@@ -208,43 +216,53 @@ export function CreateContractDialog() {
               </div>
             </div>
 
-            <Button className="w-full" variant="outline" onClick={() => handleClose(false)}>
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => handleClose(false)}
+            >
               إغلاق
             </Button>
           </div>
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Lead picker (APPROVED only) */}
+              {/* Request picker */}
               <FormField
                 control={form.control}
-                name="leadId"
+                name="requestId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>العميل المحتمل (مرحلة موافقة)</FormLabel>
+                    <FormLabel>الطلب (مرحلة إعداد العقد)</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue
                             placeholder={
-                              leadsFetching
+                              requestsFetching
                                 ? "جارٍ التحميل..."
-                                : approvedLeads.length === 0
-                                  ? "لا يوجد عملاء في مرحلة الموافقة"
-                                  : "اختر العميل"
+                                : contractRequests.length === 0
+                                  ? "لا توجد طلبات في مرحلة العقد"
+                                  : "اختر الطلب"
                             }
                           />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {approvedLeads.map((lead) => (
-                          <SelectItem key={lead.id} value={lead.id}>
-                            {lead.companyName}
-                            {lead.contactName ? ` — ${lead.contactName}` : ""}
+                        {contractRequests.map((request) => (
+                          <SelectItem key={request.id} value={request.id}>
+                            {request.companyName}
+                            {request.contactName
+                              ? ` — ${request.contactName}`
+                              : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      يعرض هذا الحقل الطلبات الموجودة حالياً في مسار إعداد العقد
+                      أو المرسلة للتوقيع
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
