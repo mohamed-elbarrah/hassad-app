@@ -43,13 +43,13 @@ flowchart LR
 
 ## Current Web and API Surfaces
 
-| Area | Primary surface | Notes |
-| --- | --- | --- |
-| Sales UI | `/dashboard/sales/requests/new`, `/dashboard/sales/requests/[id]` | These are the owning pages for intake and detail views. |
-| Legacy sales aliases | `/dashboard/sales/leads/new`, `/dashboard/sales/leads/[id]` | These routes remain only as compatibility re-exports to the request pages. New work should target request routes. |
-| Portal UI | `/portal/requests`, `/portal/projects`, `/portal/actions` | Pending requests, live projects, and client action items are separate first-class portal surfaces. |
-| Public client flows | `/proposal/[token]`, `/contract/[token]` | Token-based proposal review and contract signing. |
-| API | `/v1/requests`, `/v1/proposals`, `/v1/contracts`, `/v1/portal/*` | Responses are wrapped as `{ success, data, error }`; the frontend base query unwraps `data`. |
+| Area                 | Primary surface                                                   | Notes                                                                                                             |
+| -------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Sales UI             | `/dashboard/sales/requests/new`, `/dashboard/sales/requests/[id]` | These are the owning pages for intake and detail views.                                                           |
+| Legacy sales aliases | `/dashboard/sales/leads/new`, `/dashboard/sales/leads/[id]`       | These routes remain only as compatibility re-exports to the request pages. New work should target request routes. |
+| Portal UI            | `/portal/requests`, `/portal/projects`, `/portal/actions`         | Pending requests, live projects, and client action items are separate first-class portal surfaces.                |
+| Public client flows  | `/proposal/[token]`, `/contract/[token]`                          | Token-based proposal review and contract signing.                                                                 |
+| API                  | `/v1/requests`, `/v1/proposals`, `/v1/contracts`, `/v1/portal/*`  | Responses are wrapped as `{ success, data, error }`; the frontend base query unwraps `data`.                      |
 
 ## Monorepo Layout
 
@@ -69,16 +69,16 @@ hassad-platform/
 
 ## Tech Stack
 
-| Layer | Technology |
-| --- | --- |
-| Monorepo | npm workspaces + Turborepo |
-| API | NestJS 11, TypeScript 5, Prisma 6 |
-| Web | Next.js 16 App Router, React 19, Tailwind CSS 4, shadcn/ui |
-| State | Redux Toolkit + RTK Query |
-| Database | PostgreSQL 17 |
-| Auth | JWT access token + refresh token in HttpOnly cookies |
-| Real-time | Socket.IO for chat and notifications |
-| Shared package | `@hassad/shared` |
+| Layer          | Technology                                                 |
+| -------------- | ---------------------------------------------------------- |
+| Monorepo       | npm workspaces + Turborepo                                 |
+| API            | NestJS 11, TypeScript 5, Prisma 6                          |
+| Web            | Next.js 16 App Router, React 19, Tailwind CSS 4, shadcn/ui |
+| State          | Redux Toolkit + RTK Query                                  |
+| Database       | PostgreSQL 17                                              |
+| Auth           | JWT access token + refresh token in HttpOnly cookies       |
+| Real-time      | Socket.IO for chat and notifications                       |
+| Shared package | `@hassad/shared`                                           |
 
 ## Local Setup
 
