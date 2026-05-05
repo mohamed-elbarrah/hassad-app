@@ -1,13 +1,13 @@
 "use client";
 
 import { Calendar } from "lucide-react";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge, type StatusType } from "./StatusBadge";
 
 interface DeliverableItemProps {
   title: string;
   description: string;
   date: string;
-  status: "completed" | "in-progress" | "not-started" | "pending";
+  status: StatusType;
   statusLabel?: string;
 }
 

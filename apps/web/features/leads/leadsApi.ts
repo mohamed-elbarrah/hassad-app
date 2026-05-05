@@ -5,6 +5,7 @@ import { ClientSource } from "@hassad/shared";
 
 export interface LeadListItem {
   id: string;
+  requestId?: string | null;
   companyName: string;
   contactName: string;
   phoneWhatsapp: string;
@@ -33,7 +34,7 @@ export interface LeadPipelineHistoryItem {
 export interface LeadContactLogItem {
   id: string;
   userId: string;
-  type: string;   // CALL | WHATSAPP | MEETING | EMAIL
+  type: string; // CALL | WHATSAPP | MEETING | EMAIL
   result: string; // NO_RESPONSE | RESPONDED | BUSY | WRONG_NUMBER
   notes?: string | null;
   contactedAt: string;
@@ -61,6 +62,12 @@ export interface LeadFilters {
   limit?: number;
 }
 
+export interface LeadServiceItem {
+  serviceId: string;
+  quantity?: number;
+  notes?: string;
+}
+
 export interface CreateLeadPayload {
   contactName: string;
   companyName: string;
@@ -70,6 +77,7 @@ export interface CreateLeadPayload {
   businessType: BusinessType;
   source: ClientSource;
   notes?: string;
+  services?: LeadServiceItem[];
 }
 
 export const leadsApi = createApi({
@@ -113,17 +121,13 @@ export const leadsApi = createApi({
       // Optimistic update: move the card immediately, roll back on error
       async onQueryStarted({ id, toStage }, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
-          leadsApi.util.updateQueryData(
-            "getLeads",
-            { limit: 100 },
-            (draft) => {
-              const lead = draft.find((l) => l.id === id);
-              if (lead) {
-                lead.pipelineStage = toStage;
-                lead.updatedAt = new Date().toISOString();
-              }
-            },
-          ),
+          leadsApi.util.updateQueryData("getLeads", { limit: 100 }, (draft) => {
+            const lead = draft.find((l) => l.id === id);
+            if (lead) {
+              lead.pipelineStage = toStage;
+              lead.updatedAt = new Date().toISOString();
+            }
+          }),
         );
         try {
           await queryFulfilled;

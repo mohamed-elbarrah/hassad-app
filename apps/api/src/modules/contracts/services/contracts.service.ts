@@ -2,33 +2,32 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationsService } from '../../notifications/services/notifications.service';
+} from "@nestjs/common";
+import { randomUUID } from "crypto";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   CreateContractDto,
   UpdateContractDto,
   SignContractDto,
   SignByTokenDto,
   CreateVersionDto,
-} from '../dto/contract.dto';
+} from "../dto/contract.dto";
 import {
-  ClientStatus,
   ContractStatus,
-  PipelineStage,
   ProjectStatus,
+  RequestStatus,
   TaskPriority,
   TaskStatus,
-} from '@hassad/shared';
-import { LeadsService } from '../../crm/services/leads.service';
+} from "@hassad/shared";
+import { RequestsService } from "../../requests/requests.service";
 
 @Injectable()
 export class ContractsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
-    private leadsService: LeadsService,
+    private requestsService: RequestsService,
   ) {}
 
   private async createProjectFromSignedContract(contractId: string) {
@@ -41,7 +40,6 @@ export class ContractsService {
             companyName: true,
             contactName: true,
             accountManager: true,
-            leadId: true,
           },
         },
         proposal: {
@@ -52,14 +50,25 @@ export class ContractsService {
             servicesList: true,
             totalPrice: true,
             durationDays: true,
-            leadId: true,
+          },
+        },
+        request: {
+          include: {
+            lead: { select: { id: true } },
+            services: {
+              include: {
+                service: {
+                  include: { deliverableTemplates: true },
+                },
+              },
+            },
           },
         },
       },
     });
 
     if (!contract) {
-      throw new NotFoundException('Contract not found for project handover');
+      throw new NotFoundException("Contract not found for project handover");
     }
 
     const managerCandidates = [
@@ -74,14 +83,17 @@ export class ContractsService {
             where: {
               id: { in: managerCandidates },
               isActive: true,
-              role: { name: 'PM' },
+              role: { name: "PM" },
             },
             select: { id: true },
           });
 
     let projectManagerId =
-      preferredManagers.find((candidate) => candidate.id === contract.client.accountManager)?.id ??
-      preferredManagers.find((candidate) => candidate.id === contract.createdBy)?.id;
+      preferredManagers.find(
+        (candidate) => candidate.id === contract.client.accountManager,
+      )?.id ??
+      preferredManagers.find((candidate) => candidate.id === contract.createdBy)
+        ?.id;
 
     let fallbackUsed = false;
 
@@ -89,15 +101,15 @@ export class ContractsService {
       const fallbackPm = await this.prisma.user.findFirst({
         where: {
           isActive: true,
-          role: { name: 'PM' },
+          role: { name: "PM" },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
         select: { id: true },
       });
 
       if (!fallbackPm) {
         throw new BadRequestException(
-          'Cannot auto-create project without an active PM account',
+          "Cannot auto-create project without an active PM account",
         );
       }
 
@@ -111,16 +123,16 @@ export class ContractsService {
     const projectDescription = contract.proposal
       ? [
           `Auto-created from proposal: ${contract.proposal.title}`,
-          `Services: ${typeof contract.proposal.servicesList === 'string' ? contract.proposal.servicesList : JSON.stringify(contract.proposal.servicesList)}`,
+          `Services: ${typeof contract.proposal.servicesList === "string" ? contract.proposal.servicesList : JSON.stringify(contract.proposal.servicesList)}`,
           `Budget: ${contract.proposal.totalPrice} SAR`,
           `Duration: ${contract.proposal.durationDays} days`,
           `Client contact: ${contract.client.contactName}`,
-        ].join('\n')
+        ].join("\n")
       : [
           `Auto-created after signing contract: ${contract.title}`,
           `Client contact: ${contract.client.contactName}`,
-          'Next step: PM creates and assigns tasks from the project board.',
-        ].join('\n');
+          "Next step: PM creates and assigns tasks from the project board.",
+        ].join("\n");
 
     const project = await this.prisma.$transaction(async (tx) => {
       const existingProject = await tx.project.findFirst({
@@ -134,6 +146,7 @@ export class ContractsService {
 
       const createdProject = await tx.project.create({
         data: {
+          requestId: contract.requestId ?? undefined,
           clientId: contract.clientId,
           contractId: contract.id,
           projectManagerId,
@@ -150,19 +163,30 @@ export class ContractsService {
         data: {
           projectId: createdProject.id,
           userId: projectManagerId,
-          role: 'MANAGER',
+          role: "MANAGER",
         },
       });
 
-      // Auto-create deliverables from lead services → deliverable templates
-      let leadId: string | null | undefined = contract.client.leadId;
-      if (!leadId && contract.proposal?.leadId) {
-        leadId = contract.proposal.leadId;
-      }
+      const requestServices = contract.request?.services ?? [];
 
-      if (leadId) {
+      if (requestServices.length > 0) {
+        for (const requestService of requestServices) {
+          for (const tmpl of requestService.service.deliverableTemplates) {
+            await tx.deliverable.create({
+              data: {
+                projectId: createdProject.id,
+                title: tmpl.titleAr || tmpl.title,
+                description: tmpl.descriptionAr || tmpl.description,
+                filePath: "",
+                status: TaskStatus.TODO,
+                isVisibleToClient: true,
+              },
+            });
+          }
+        }
+      } else if (contract.request?.lead?.id) {
         const leadServices = await tx.leadService.findMany({
-          where: { leadId },
+          where: { leadId: contract.request.lead.id },
           include: {
             service: {
               include: { deliverableTemplates: true },
@@ -170,20 +194,30 @@ export class ContractsService {
           },
         });
 
-        for (const ls of leadServices) {
-          for (const tmpl of ls.service.deliverableTemplates) {
+        for (const leadService of leadServices) {
+          for (const tmpl of leadService.service.deliverableTemplates) {
             await tx.deliverable.create({
               data: {
                 projectId: createdProject.id,
                 title: tmpl.titleAr || tmpl.title,
                 description: tmpl.descriptionAr || tmpl.description,
-                filePath: '',
+                filePath: "",
                 status: TaskStatus.TODO,
                 isVisibleToClient: true,
               },
             });
           }
         }
+      }
+
+      if (contract.requestId) {
+        await this.requestsService.updateStatus(
+          contract.requestId,
+          RequestStatus.PROJECT_CREATED,
+          contract.createdBy,
+          "Project auto-created from signed contract",
+          tx,
+        );
       }
 
       return createdProject;
@@ -196,10 +230,10 @@ export class ContractsService {
     await this.notificationsService
       .createNotification({
         entityId: project.id,
-        entityType: 'project',
-        eventType: 'PROJECT_CREATED_FROM_CONTRACT',
+        entityType: "project",
+        eventType: "PROJECT_CREATED_FROM_CONTRACT",
         userId: projectManagerId,
-        title: 'تم إنشاء مشروع جديد تلقائياً',
+        title: "تم إنشاء مشروع جديد تلقائياً",
         body: `تم إنشاء مشروع "${project.name}" بعد توقيع العقد. يمكنك الآن توزيع المهام على الفريق.`,
         metadata: {
           contractId: contract.id,
@@ -212,9 +246,9 @@ export class ContractsService {
     if (fallbackUsed) {
       this.notificationsService
         .broadcast({
-          title: 'تعيين مدير مشروع احتياطي',
+          title: "تعيين مدير مشروع احتياطي",
           message: `تم إنشاء مشروع تلقائياً من العقد "${contract.title}" وتم تعيين مدير مشروع احتياطي بسبب عدم توفر PM مرتبط بالعميل.`,
-          roles: ['ADMIN', 'SALES'],
+          roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
     }
@@ -224,78 +258,66 @@ export class ContractsService {
 
   /**
    * One-step: create contract + immediately set SENT + generate shareLinkToken.
-   * Auto-creates a Client record from the Lead if one doesn't exist yet.
-   * Notifies the CLIENT user (lead.createdBy) fire-and-forget.
+   * Notifies the CLIENT user linked to the originating request.
    */
   async create(userId: string, filePath: string, dto: CreateContractDto) {
-    // 1. Fetch lead — needed both for auto-create Client and for notification
-    const lead = await this.prisma.lead.findUnique({
-      where: { id: dto.leadId },
-      select: {
-        createdBy: true,
-        companyName: true,
-        contactName: true,
-        phoneWhatsapp: true,
-        email: true,
-        businessName: true,
-        businessType: true,
-      },
-    });
-    if (!lead) {
-      throw new BadRequestException('العميل المحتمل غير موجود');
-    }
-
-    // 2. Resolve clientId — auto-create a Client from Lead data if none exists yet
-    const client = await this.prisma.client.upsert({
-      where: { leadId: dto.leadId },
-      create: {
-        leadId: dto.leadId,
-        companyName: lead.companyName,
-        contactName: lead.contactName,
-        phoneWhatsapp: lead.phoneWhatsapp,
-        email: lead.email,
-        businessName: lead.businessName,
-        businessType: lead.businessType,
-        status: ClientStatus.LEAD,
-      },
-      update: {},
-    });
-
     const shareLinkToken = randomUUID();
 
-    // 3. Create contract as SENT in one step
-    const contract = await this.prisma.contract.create({
-      data: {
-        clientId: client.id,
-        proposalId: dto.proposalId,
-        createdBy: userId,
-        title: dto.title,
-        type: dto.type,
-        status: ContractStatus.SENT,
-        startDate: new Date(dto.startDate),
-        endDate: new Date(dto.endDate),
-        monthlyValue: dto.monthlyValue,
-        totalValue: dto.totalValue,
-        filePath,
-        shareLinkToken,
-      },
+    const created = await this.prisma.$transaction(async (tx) => {
+      const request = await this.requestsService.resolveRequestContext(
+        {
+          requestId: dto.requestId,
+          proposalId: dto.proposalId,
+        },
+        userId,
+        tx,
+      );
+
+      const contract = await tx.contract.create({
+        data: {
+          requestId: request.id,
+          clientId: request.clientId,
+          proposalId: dto.proposalId,
+          createdBy: userId,
+          title: dto.title,
+          type: dto.type,
+          status: ContractStatus.SENT,
+          startDate: new Date(dto.startDate),
+          endDate: new Date(dto.endDate),
+          monthlyValue: dto.monthlyValue,
+          totalValue: dto.totalValue,
+          filePath,
+          shareLinkToken,
+        },
+      });
+
+      await this.requestsService.updateStatus(
+        request.id,
+        RequestStatus.CONTRACT_SENT,
+        userId,
+        undefined,
+        tx,
+      );
+
+      return { contract, request };
     });
 
-    // 4. Notify CLIENT (fire-and-forget)
-    if (lead?.createdBy) {
+    const recipientId =
+      created.request.client.userId ?? created.request.submittedBy;
+    if (recipientId) {
       this.notificationsService
         .createNotification({
           entityId: shareLinkToken, // token so client can navigate directly to detail
-          entityType: 'contract',
-          eventType: 'CONTRACT_SENT',
-          userId: lead.createdBy,
-          title: 'عقد جديد بانتظار توقيعك',
-          body: `العقد "${contract.title}" جاهز لمراجعته وتوقيعه`,
+          entityType: "contract",
+          eventType: "CONTRACT_SENT",
+          userId: recipientId,
+          title: "عقد جديد بانتظار توقيعك",
+          body: `العقد "${created.contract.title}" جاهز لمراجعته وتوقيعه`,
         })
         .catch(() => undefined);
     }
 
-    return { ...contract, shareLinkToken };
+    return { ...created.contract, shareLinkToken };
   }
 
   async findOne(id: string) {
@@ -304,6 +326,11 @@ export class ContractsService {
       include: {
         client: true,
         versions: true,
+        request: {
+          include: {
+            lead: { select: { id: true, pipelineStage: true } },
+          },
+        },
       },
     });
 
@@ -324,14 +351,19 @@ export class ContractsService {
             id: true,
             companyName: true,
             contactName: true,
-            leadId: true,
+          },
+        },
+        request: {
+          select: {
+            id: true,
+            status: true,
           },
         },
       },
     });
 
     if (!contract) {
-      throw new NotFoundException('العقد غير موجود أو انتهت صلاحية الرابط');
+      throw new NotFoundException("العقد غير موجود أو انتهت صلاحية الرابط");
     }
 
     return contract;
@@ -342,22 +374,24 @@ export class ContractsService {
     const contract = await this.prisma.contract.findUnique({
       where: { shareLinkToken: token },
       include: {
-        client: { select: { leadId: true } },
+        request: {
+          include: {
+            client: { select: { userId: true } },
+            lead: { select: { id: true, pipelineStage: true } },
+          },
+        },
       },
     });
 
     if (!contract) {
-      throw new NotFoundException('العقد غير موجود');
+      throw new NotFoundException("العقد غير موجود");
     }
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException(
-        'لا يمكن توقيع هذا العقد في وضعه الحالي',
-      );
+      throw new BadRequestException("لا يمكن توقيع هذا العقد في وضعه الحالي");
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
-      // 1. Sign the contract
       const signed = await tx.contract.update({
         where: { id: contract.id },
         data: {
@@ -367,38 +401,23 @@ export class ContractsService {
         },
       });
 
-      // 2. Advance lead stage to CONTRACT_SIGNED
-      if (contract.client.leadId) {
-        const lead = await tx.lead.findUnique({
-          where: { id: contract.client.leadId },
-          select: { pipelineStage: true },
-        });
-
-        await tx.lead.update({
-          where: { id: contract.client.leadId },
-          data: { pipelineStage: PipelineStage.CONTRACT_SIGNED },
-        });
-
-        if (lead) {
-          await tx.leadPipelineHistory.create({
-            data: {
-              leadId: contract.client.leadId,
-              fromStage: lead.pipelineStage,
-              toStage: PipelineStage.CONTRACT_SIGNED,
-              changedBy: contract.createdBy, // creator as proxy
-            },
-          });
-        }
+      if (contract.requestId) {
+        await this.requestsService.updateStatus(
+          contract.requestId,
+          RequestStatus.SIGNED,
+          contract.createdBy,
+          undefined,
+          tx,
+        );
       }
 
-      // 3. Notify SALES creator (fire-and-forget)
       this.notificationsService
         .createNotification({
           entityId: signed.id,
-          entityType: 'contract',
-          eventType: 'CONTRACT_SIGNED',
+          entityType: "contract",
+          eventType: "CONTRACT_SIGNED",
           userId: contract.createdBy,
-          title: 'تم توقيع العقد',
+          title: "تم توقيع العقد",
           body: `العميل وقّع على العقد "${contract.title}"`,
         })
         .catch(() => undefined);
@@ -409,19 +428,12 @@ export class ContractsService {
     await this.createProjectFromSignedContract(contract.id).catch(() => {
       this.notificationsService
         .broadcast({
-          title: 'فشل إنشاء مشروع تلقائي',
+          title: "فشل إنشاء مشروع تلقائي",
           message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع تلقائياً. يرجى مراجعة الحالة يدوياً.`,
-          roles: ['ADMIN', 'SALES'],
+          roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
     });
-
-    if (contract.client.leadId) {
-      await this.leadsService.convertToClient(
-        contract.client.leadId,
-        contract.createdBy,
-      ).catch(() => undefined);
-    }
 
     return signedResult;
   }
@@ -449,12 +461,20 @@ export class ContractsService {
 
     await this.notificationsService.notifyUsers({
       userIds: [contract.client.accountManager].filter(Boolean) as string[],
-      title: 'تم إرسال العقد',
+      title: "تم إرسال العقد",
       message: `تم إرسال العقد "${contract.title}" إلى ${contract.client.companyName}`,
       entityId: id,
-      entityType: 'CONTRACT',
-      eventType: 'CONTRACT_SENT',
+      entityType: "CONTRACT",
+      eventType: "CONTRACT_SENT",
     });
+
+    if (contract.requestId) {
+      await this.requestsService.updateStatus(
+        contract.requestId,
+        RequestStatus.CONTRACT_SENT,
+        contract.createdBy,
+      );
+    }
 
     return updated;
   }
@@ -463,9 +483,7 @@ export class ContractsService {
     const contract = await this.findOne(id);
 
     if (contract.status !== ContractStatus.SENT) {
-      throw new BadRequestException(
-        'لا يمكن توقيع هذا العقد في وضعه الحالي',
-      );
+      throw new BadRequestException("لا يمكن توقيع هذا العقد في وضعه الحالي");
     }
 
     const signedResult = await this.prisma.$transaction(async (tx) => {
@@ -478,28 +496,14 @@ export class ContractsService {
         },
       });
 
-      // Update lead stage to CONTRACT_SIGNED and record history
-      if (contract.client.leadId) {
-        const lead = await tx.lead.findUnique({
-          where: { id: contract.client.leadId },
-          select: { pipelineStage: true },
-        });
-
-        await tx.lead.update({
-          where: { id: contract.client.leadId },
-          data: { pipelineStage: PipelineStage.CONTRACT_SIGNED },
-        });
-
-        if (lead) {
-          await tx.leadPipelineHistory.create({
-            data: {
-              leadId: contract.client.leadId,
-              fromStage: lead.pipelineStage,
-              toStage: PipelineStage.CONTRACT_SIGNED,
-              changedBy: userId,
-            },
-          });
-        }
+      if (contract.requestId) {
+        await this.requestsService.updateStatus(
+          contract.requestId,
+          RequestStatus.SIGNED,
+          userId,
+          undefined,
+          tx,
+        );
       }
 
       return { ...updatedContract, signedByName: dto.signedByName };
@@ -508,27 +512,23 @@ export class ContractsService {
     await this.createProjectFromSignedContract(id).catch(() => {
       this.notificationsService
         .broadcast({
-          title: 'فشل إنشاء مشروع تلقائي',
+          title: "فشل إنشاء مشروع تلقائي",
           message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع تلقائياً. يرجى مراجعة الحالة يدوياً.`,
-          roles: ['ADMIN', 'SALES'],
+          roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
     });
 
-    if (contract.client.leadId) {
-      await this.leadsService
-        .convertToClient(contract.client.leadId, userId)
-        .catch(() => undefined);
-    }
-
     await this.notificationsService.notifyUsers({
-      userIds: [contract.createdBy, contract.client.accountManager].filter(Boolean) as string[],
+      userIds: [contract.createdBy, contract.client.accountManager].filter(
+        Boolean,
+      ) as string[],
       excludeUserIds: [userId],
-      title: 'تم توقيع العقد',
+      title: "تم توقيع العقد",
       message: `تم توقيع العقد "${contract.title}" مع ${contract.client.companyName}`,
       entityId: id,
-      entityType: 'CONTRACT',
-      eventType: 'CONTRACT_SIGNED',
+      entityType: "CONTRACT",
+      eventType: "CONTRACT_SIGNED",
     });
 
     return signedResult;
@@ -542,12 +542,14 @@ export class ContractsService {
     });
 
     await this.notificationsService.notifyUsers({
-      userIds: [contract.createdBy, contract.client.accountManager].filter(Boolean) as string[],
-      title: 'تم تفعيل العقد',
+      userIds: [contract.createdBy, contract.client.accountManager].filter(
+        Boolean,
+      ) as string[],
+      title: "تم تفعيل العقد",
       message: `تم تفعيل العقد "${contract.title}" مع ${contract.client.companyName}`,
       entityId: id,
-      entityType: 'CONTRACT',
-      eventType: 'CONTRACT_ACTIVATED',
+      entityType: "CONTRACT",
+      eventType: "CONTRACT_ACTIVATED",
     });
 
     return updated;
@@ -561,13 +563,23 @@ export class ContractsService {
     });
 
     await this.notificationsService.notifyUsers({
-      userIds: [contract.createdBy, contract.client.accountManager].filter(Boolean) as string[],
-      title: 'تم إلغاء العقد',
+      userIds: [contract.createdBy, contract.client.accountManager].filter(
+        Boolean,
+      ) as string[],
+      title: "تم إلغاء العقد",
       message: `تم إلغاء العقد "${contract.title}" مع ${contract.client.companyName}`,
       entityId: id,
-      entityType: 'CONTRACT',
-      eventType: 'CONTRACT_CANCELLED',
+      entityType: "CONTRACT",
+      eventType: "CONTRACT_CANCELLED",
     });
+
+    if (contract.requestId) {
+      await this.requestsService.updateStatus(
+        contract.requestId,
+        RequestStatus.CANCELLED,
+        contract.createdBy,
+      );
+    }
 
     return updated;
   }
@@ -585,12 +597,12 @@ export class ContractsService {
     if (filters.status) where.status = filters.status;
     if (filters.clientId) where.clientId = filters.clientId;
     if (filters.search)
-      where.title = { contains: filters.search, mode: 'insensitive' };
+      where.title = { contains: filters.search, mode: "insensitive" };
     const [items, total] = await Promise.all([
       this.prisma.contract.findMany({
         where,
         include: { client: { select: { id: true, companyName: true } } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -605,16 +617,15 @@ export class ContractsService {
   async getMyContracts(userId: string) {
     return this.prisma.contract.findMany({
       where: {
-        client: {
-          lead: { createdBy: userId },
-        },
+        OR: [{ request: { submittedBy: userId } }, { client: { userId } }],
       },
       include: {
         client: {
-          select: { id: true, companyName: true, contactName: true, leadId: true },
+          select: { id: true, companyName: true, contactName: true },
         },
+        request: { select: { id: true, status: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 

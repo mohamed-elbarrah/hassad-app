@@ -1,19 +1,19 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import { PipelineStage } from "@hassad/shared";
-import type { LeadListItem } from "@/features/leads/leadsApi";
+import { RequestStatus } from "@hassad/shared";
+import type { RequestItem } from "@/features/requests/requestsApi";
 import { cn } from "@/lib/utils";
 import { KanbanCard } from "./KanbanCard";
 
 interface KanbanColumnProps {
-  stage: PipelineStage;
+  stage: RequestStatus;
   label: string;
   /** Header bg + border color classes (e.g. "bg-blue-50 border-blue-200") */
   colorClass: string;
   /** Dot/badge color class (e.g. "bg-blue-400") */
   dotClass: string;
-  clients: LeadListItem[];
+  clients: RequestItem[];
 }
 
 export function KanbanColumn({

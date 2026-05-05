@@ -4,17 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  Inbox,
+  ClipboardList,
+  FolderOpen,
   FileText,
   Receipt,
-  BarChart3,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "الرئيسية", href: "/portal", icon: Home },
-  { label: "التسليمات", href: "/portal/deliverables", icon: Inbox },
+  { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
+  { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
   { label: "العقود", href: "/portal/contracts", icon: FileText },
   { label: "الفواتير", href: "/portal/finance", icon: Receipt },
   { label: "الإعدادات", href: "/portal/account", icon: Settings },
@@ -32,14 +33,15 @@ export function BottomNav() {
       <div className="flex items-center justify-around">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
                 "flex flex-col items-center gap-1 py-1 px-2 rounded-lg transition-colors min-w-[56px]",
-                isActive ? "text-[#121936]" : "text-[#A8ABB2]"
+                isActive ? "text-[#121936]" : "text-[#A8ABB2]",
               )}
             >
               <Icon

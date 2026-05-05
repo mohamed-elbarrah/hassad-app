@@ -10,6 +10,7 @@ import { usersApi } from "@/features/users/usersApi";
 import { notificationsApi } from "@/features/notifications/notificationsApi";
 import { proposalsApi } from "@/features/proposals/proposalsApi";
 import { contractsApi } from "@/features/contracts/contractsApi";
+import { requestsApi } from "@/features/requests/requestsApi";
 import { salesApi } from "@/features/sales/salesApi";
 import { financeApi } from "@/features/finance/financeApi";
 
@@ -33,6 +34,7 @@ export const store = configureStore({
     [notificationsApi.reducerPath]: notificationsApi.reducer,
     [proposalsApi.reducerPath]: proposalsApi.reducer,
     [contractsApi.reducerPath]: contractsApi.reducer,
+    [requestsApi.reducerPath]: requestsApi.reducer,
     [salesApi.reducerPath]: salesApi.reducer,
     [financeApi.reducerPath]: financeApi.reducer,
 
@@ -56,6 +58,7 @@ export const store = configureStore({
       notificationsApi.middleware,
       proposalsApi.middleware,
       contractsApi.middleware,
+      requestsApi.middleware,
       salesApi.middleware,
       financeApi.middleware,
 
@@ -66,7 +69,6 @@ export const store = configureStore({
       servicesApi.middleware,
     ),
 });
-
 
 setupListeners(store.dispatch);
 

@@ -10,6 +10,12 @@ import type {
 
 export interface ProposalListItem extends Proposal {
   filePath?: string | null;
+  request?: {
+    id: string;
+    companyName: string;
+    contactName?: string;
+    status?: string;
+  } | null;
   lead?: { id: string; contactName: string; companyName: string };
   creator?: { id: string; name: string };
 }
@@ -32,7 +38,7 @@ export interface ProposalFilters {
 
 /** Input for one-step create+send via multipart/form-data */
 export interface CreateProposalFormInput {
-  leadId: string;
+  requestId: string;
   title: string;
   file: File;
 }
@@ -61,42 +67,50 @@ export const proposalsApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "Proposal", id }],
     }),
 
-    /**
-     * One-step: multipart/form-data upload (file + leadId + title).
-     * Returns a SENT proposal with shareLinkToken populated.
-     */
-    createProposal: builder.mutation<ProposalListItem, CreateProposalFormInput>({
-      queryFn: async (input) => {
-        const formData = new FormData();
-        formData.append("leadId", input.leadId);
-        formData.append("title", input.title);
-        formData.append("file", input.file, input.file.name);
+    /** One-step: multipart/form-data upload anchored to the request. */
+    createProposal: builder.mutation<ProposalListItem, CreateProposalFormInput>(
+      {
+        queryFn: async (input) => {
+          if (!input.requestId) {
+            return {
+              error: {
+                status: 400,
+                data: { message: "requestId is required" },
+              },
+            };
+          }
 
-        // Ensure we have a usable API base URL. In dev this may be missing
-        // from env during client runtime, so fall back to window origin.
-        const apiBase =
-          getApiBaseUrl() ||
-          (typeof window !== "undefined"
-            ? `${window.location.origin.replace(/\/+$/, "")}/v1`
-            : "");
+          const formData = new FormData();
+          formData.append("requestId", input.requestId);
+          formData.append("title", input.title);
+          formData.append("file", input.file, input.file.name);
 
-        const res = await fetch(`${apiBase}/proposals`, {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        });
+          // Ensure we have a usable API base URL. In dev this may be missing
+          // from env during client runtime, so fall back to window origin.
+          const apiBase =
+            getApiBaseUrl() ||
+            (typeof window !== "undefined"
+              ? `${window.location.origin.replace(/\/+$/, "")}/v1`
+              : "");
 
-        const json = await res.json();
-        if (!res.ok) {
-          return { error: { status: res.status, data: json } };
-        }
-        // Unwrap the { success, data, timestamp } envelope
-        const data: ProposalListItem =
-          json?.data !== undefined ? json.data : json;
-        return { data };
+          const res = await fetch(`${apiBase}/proposals`, {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          });
+
+          const json = await res.json();
+          if (!res.ok) {
+            return { error: { status: res.status, data: json } };
+          }
+          // Unwrap the { success, data, timestamp } envelope
+          const data: ProposalListItem =
+            json?.data !== undefined ? json.data : json;
+          return { data };
+        },
+        invalidatesTags: [{ type: "Proposal", id: "LIST" }],
       },
-      invalidatesTags: [{ type: "Proposal", id: "LIST" }],
-    }),
+    ),
 
     updateProposal: builder.mutation<
       ProposalListItem,

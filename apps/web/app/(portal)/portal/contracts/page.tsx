@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FileSignature, ExternalLink } from "lucide-react";
-import { useGetMyContractsQuery } from "@/features/contracts/contractsApi";
+import { useGetPortalContractsQuery } from "@/features/portal/portalApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,8 +43,17 @@ const TYPE_LABELS: Record<string, string> = {
   ONE_TIME_SERVICE: "خدمة مرة واحدة",
 };
 
+function fmt(n: number) {
+  return n.toLocaleString("ar-SA");
+}
+
 export default function PortalContractsPage() {
-  const { data: contracts, isLoading, isError } = useGetMyContractsQuery();
+  const { data: contractsData, isLoading, isError } = useGetPortalContractsQuery({
+    page: 1,
+    limit: 20,
+  });
+
+  const contracts = contractsData?.data ?? [];
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -86,7 +95,7 @@ export default function PortalContractsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(!contracts || contracts.length === 0) && (
+                {contracts.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={7}
@@ -99,7 +108,7 @@ export default function PortalContractsPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {contracts?.map((contract) => (
+                {contracts.map((contract: any) => (
                   <TableRow key={contract.id}>
                     <TableCell className="font-medium">
                       {contract.title}
@@ -108,13 +117,13 @@ export default function PortalContractsPage() {
                       {TYPE_LABELS[contract.type] ?? contract.type}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {new Date(contract.startDate).toLocaleDateString("ar-DZ")}
+                      {new Date(contract.startDate).toLocaleDateString("ar-SA")}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {new Date(contract.endDate).toLocaleDateString("ar-DZ")}
+                      {new Date(contract.endDate).toLocaleDateString("ar-SA")}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {contract.totalValue.toLocaleString("ar-DZ")} د.ج
+                      {fmt(contract.totalValue)} ر.س
                     </TableCell>
                     <TableCell>
                       <Badge

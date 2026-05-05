@@ -2,12 +2,12 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { useRouter } from "next/navigation";
-import type { LeadListItem } from "@/features/leads/leadsApi";
+import type { RequestItem } from "@/features/requests/requestsApi";
 import { cn } from "@/lib/utils";
 import { Building2, Clock, GripVertical, Phone } from "lucide-react";
 
 interface KanbanCardProps {
-  client: LeadListItem;
+  client: RequestItem;
   isOverlay?: boolean;
 }
 
@@ -41,19 +41,22 @@ function formatRelativeTime(dateStr: string): string {
   }).format(new Date(dateStr));
 }
 
-export function KanbanCard({ client: lead, isOverlay = false }: KanbanCardProps) {
+export function KanbanCard({
+  client: request,
+  isOverlay = false,
+}: KanbanCardProps) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: lead.id,
-    data: { stage: lead.pipelineStage },
+    id: request.id,
+    data: { status: request.status },
   });
 
-  const description = parseDescription(lead.notes);
+  const description = parseDescription(request.notes);
 
   function handleClick(e: React.MouseEvent) {
     if (isDragging) return;
     e.stopPropagation();
-    router.push(`/dashboard/sales/leads/${lead.id}`);
+    router.push(`/dashboard/sales/requests/${request.id}`);
   }
 
   return (
@@ -72,13 +75,13 @@ export function KanbanCard({ client: lead, isOverlay = false }: KanbanCardProps)
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold leading-tight truncate">
-            {lead.contactName}
+            {request.contactName}
           </p>
-          {lead.companyName && (
+          {request.companyName && (
             <div className="flex items-center gap-1 mt-1">
               <Building2 className="w-3 h-3 text-muted-foreground shrink-0" />
               <p className="text-xs text-muted-foreground truncate">
-                {lead.companyName}
+                {request.companyName}
               </p>
             </div>
           )}
@@ -98,12 +101,12 @@ export function KanbanCard({ client: lead, isOverlay = false }: KanbanCardProps)
         <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
           <Phone className="w-3 h-3 shrink-0" />
           <span dir="ltr" className="truncate">
-            {lead.phoneWhatsapp}
+            {request.phoneWhatsapp}
           </span>
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
           <Clock className="w-3 h-3" />
-          <span>{formatRelativeTime(lead.updatedAt)}</span>
+          <span>{formatRelativeTime(request.updatedAt)}</span>
         </div>
       </div>
     </div>

@@ -13,6 +13,7 @@ import { ContractsModule } from "./modules/contracts/contracts.module";
 import { ProjectsModule } from "./modules/projects/projects.module";
 import { TasksModule } from "./modules/tasks/tasks.module";
 import { PortalModule } from "./modules/portal/portal.module";
+import { RequestsModule } from "./modules/requests/requests.module";
 
 import { FinanceModule } from "./modules/finance/finance.module";
 import { ChatModule } from "./modules/chat/chat.module";
@@ -22,7 +23,6 @@ import { SalesModule } from "./modules/sales/sales.module";
 import { MarketingModule } from "./modules/marketing/marketing.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { ServicesModule } from "./modules/services/services.module";
-
 
 @Module({
   imports: [
@@ -37,7 +37,7 @@ import { ServicesModule } from "./modules/services/services.module";
     ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
-    
+
     // V2 Modules
     CoreModule,
     CrmModule,
@@ -46,6 +46,7 @@ import { ServicesModule } from "./modules/services/services.module";
     ProjectsModule,
     TasksModule,
     PortalModule,
+    RequestsModule,
     MarketingModule,
     PaymentsModule,
     ServicesModule,

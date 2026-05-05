@@ -2,7 +2,14 @@
 
 import { useState, use } from "react";
 import Link from "next/link";
-import { ArrowRight, FileText, Download, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import {
+  ArrowRight,
+  FileText,
+  Download,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+} from "lucide-react";
 import {
   useGetProposalByTokenQuery,
   useApproveProposalByTokenMutation,
@@ -84,6 +91,8 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
 
   const canRespond = data.status === ProposalStatus.SENT;
   const fileUrl = data.filePath ? buildFileUrl(data.filePath as string) : null;
+  const companyLabel = data.request?.companyName ?? data.lead?.companyName;
+  const contactLabel = data.request?.contactName ?? data.lead?.contactName;
 
   async function handleApprove() {
     try {
@@ -112,13 +121,19 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link href="/portal/proposals">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+          >
             <ArrowRight className="h-4 w-4" />
             العروض الفنية
           </Button>
         </Link>
         <span className="text-muted-foreground">/</span>
-        <span className="text-sm font-medium truncate max-w-xs">{data.title}</span>
+        <span className="text-sm font-medium truncate max-w-xs">
+          {data.title}
+        </span>
       </div>
 
       <Card>
@@ -126,10 +141,10 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
           <div className="flex items-start justify-between flex-wrap gap-3">
             <div>
               <CardTitle className="text-xl">{data.title}</CardTitle>
-              {data.lead?.companyName && (
+              {companyLabel && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  {data.lead.companyName}
-                  {data.lead.contactName ? ` — ${data.lead.contactName}` : ""}
+                  {companyLabel}
+                  {contactLabel ? ` — ${contactLabel}` : ""}
                 </p>
               )}
             </div>
@@ -150,7 +165,12 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                   راجع تفاصيل العرض قبل الرد
                 </p>
               </div>
-              <a href={fileUrl} target="_blank" rel="noopener noreferrer" download>
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+              >
                 <Button variant="outline" size="sm" className="gap-2 shrink-0">
                   <Download className="w-4 h-4" />
                   تحميل العرض
@@ -160,7 +180,9 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
           ) : (
             <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
               <AlertCircle className="w-5 h-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">لا يوجد ملف مرفق لهذا العرض.</p>
+              <p className="text-sm text-muted-foreground">
+                لا يوجد ملف مرفق لهذا العرض.
+              </p>
             </div>
           )}
 
@@ -186,7 +208,9 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
           {data.status === ProposalStatus.REJECTED && (
             <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
               <XCircle className="w-5 h-5 text-red-600 shrink-0" />
-              <p className="text-sm text-red-700 font-medium">تم رفض هذا العرض.</p>
+              <p className="text-sm text-red-700 font-medium">
+                تم رفض هذا العرض.
+              </p>
             </div>
           )}
 

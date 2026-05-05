@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Paperclip, X, Copy, CheckCheck } from "lucide-react";
-import { PipelineStage } from "@hassad/shared";
+import { RequestStatus } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,13 +25,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useCreateProposalMutation } from "@/features/proposals/proposalsApi";
-import { useGetLeadsQuery } from "@/features/leads/leadsApi";
+import { useGetRequestsQuery } from "@/features/requests/requestsApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const proposalFormSchema = z.object({
-  leadId: z.string().min(1, "اختر العميل المحتمل"),
+  requestId: z.string().min(1, "اختر الطلب"),
   title: z.string().min(2, "أدخل عنوان العرض"),
   file: z
     .instanceof(File, { message: "يرجى رفع ملف PDF للعرض الفني" })
@@ -44,39 +44,59 @@ const proposalFormSchema = z.object({
 
 type ProposalFormValues = z.infer<typeof proposalFormSchema>;
 
+const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
+  [RequestStatus.SUBMITTED]: "طلب جديد",
+  [RequestStatus.QUALIFYING]: "مراجعة المبيعات",
+  [RequestStatus.PROPOSAL_IN_PROGRESS]: "إعداد العرض",
+  [RequestStatus.PROPOSAL_SENT]: "تم إرسال العرض",
+  [RequestStatus.NEGOTIATION]: "تفاوض",
+  [RequestStatus.CONTRACT_PREPARATION]: "إعداد العقد",
+  [RequestStatus.CONTRACT_SENT]: "العقد مرسل",
+  [RequestStatus.SIGNED]: "تم التوقيع",
+  [RequestStatus.PROJECT_CREATED]: "تحول إلى مشروع",
+  [RequestStatus.CANCELLED]: "ملغي",
+};
+
+const PROPOSAL_READY_STATUSES = new Set<RequestStatus>([
+  RequestStatus.QUALIFYING,
+  RequestStatus.PROPOSAL_IN_PROGRESS,
+  RequestStatus.PROPOSAL_SENT,
+  RequestStatus.NEGOTIATION,
+]);
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function CreateProposalDialog() {
   const [open, setOpen] = useState(false);
-  const [leadSearch, setLeadSearch] = useState("");
+  const [requestSearch, setRequestSearch] = useState("");
   const [sentLink, setSentLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [createProposal, { isLoading }] = useCreateProposalMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: leadsData, isFetching: leadsFetching } = useGetLeadsQuery(
-    { limit: 100 },
-    { skip: !open },
+  const { data: requestsData, isFetching: requestsFetching } =
+    useGetRequestsQuery({ limit: 100 }, { skip: !open });
+
+  const proposalRequests = (requestsData ?? []).filter((request) =>
+    PROPOSAL_READY_STATUSES.has(request.status),
   );
 
-  // Filter to only MEETING_DONE leads
-  const filteredLeads = (leadsData ?? []).filter(
-    (l) =>
-      l.pipelineStage === PipelineStage.MEETING_DONE &&
-      (!leadSearch ||
-        l.companyName.toLowerCase().includes(leadSearch.toLowerCase()) ||
-        l.contactName.toLowerCase().includes(leadSearch.toLowerCase())),
+  const filteredRequests = proposalRequests.filter(
+    (request) =>
+      !requestSearch ||
+      request.companyName.toLowerCase().includes(requestSearch.toLowerCase()) ||
+      request.contactName.toLowerCase().includes(requestSearch.toLowerCase()),
   );
 
-  const leadOptions = filteredLeads.map((l) => ({
-    id: l.id,
-    label: `${l.companyName} — ${l.contactName}`,
+  const requestOptions = filteredRequests.map((request) => ({
+    id: request.id,
+    label: `${request.companyName} — ${request.contactName} (${REQUEST_STATUS_LABELS[request.status]})`,
   }));
 
   const form = useForm<ProposalFormValues>({
     resolver: zodResolver(proposalFormSchema),
     defaultValues: {
-      leadId: "",
+      requestId: "",
       title: "",
     },
   });
@@ -96,7 +116,7 @@ export function CreateProposalDialog() {
   async function onSubmit(values: ProposalFormValues) {
     try {
       const result = await createProposal({
-        leadId: values.leadId,
+        requestId: values.requestId,
         title: values.title,
         file: values.file,
       }).unwrap();
@@ -107,7 +127,8 @@ export function CreateProposalDialog() {
       }
       toast.success("تم إنشاء العرض الفني وإرساله بنجاح");
     } catch (err: unknown) {
-      const msg = (err as { data?: { message?: string } })?.data?.message ??
+      const msg =
+        (err as { data?: { message?: string } })?.data?.message ??
         "فشل إنشاء العرض الفني";
       console.error("createProposal error:", err);
       toast.error(msg);
@@ -141,7 +162,9 @@ export function CreateProposalDialog() {
                 <CheckCheck className="h-7 w-7 text-emerald-600" />
               </div>
               <div>
-                <p className="font-semibold text-base">تم إنشاء العرض وإرساله</p>
+                <p className="font-semibold text-base">
+                  تم إنشاء العرض وإرساله
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   شارك الرابط مع العميل لمراجعة العرض والرد عليه
                 </p>
@@ -180,7 +203,11 @@ export function CreateProposalDialog() {
               </div>
             </div>
 
-            <Button className="w-full" variant="outline" onClick={() => handleOpenChange(false)}>
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
               إغلاق
             </Button>
           </div>
@@ -188,26 +215,27 @@ export function CreateProposalDialog() {
           /* ── Form ─────────────────────────────────────────────────── */
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Lead — filtered to MEETING_DONE */}
+              {/* Request picker */}
               <FormField
                 control={form.control}
-                name="leadId"
+                name="requestId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>العميل المحتمل</FormLabel>
+                    <FormLabel>الطلب</FormLabel>
                     <FormControl>
                       <SearchCombobox
                         value={field.value}
                         onChange={field.onChange}
-                        options={leadOptions}
-                        onSearchChange={setLeadSearch}
-                        placeholder="ابحث عن عميل أنهى اجتماعه..."
+                        options={requestOptions}
+                        onSearchChange={setRequestSearch}
+                        placeholder="ابحث عن طلب جاهز للعرض..."
                         searchPlaceholder="اكتب اسم الشركة أو العميل"
-                        isLoading={leadsFetching}
+                        isLoading={requestsFetching}
                       />
                     </FormControl>
                     <p className="text-xs text-muted-foreground">
-                      يظهر فقط العملاء الذين أكملوا مرحلة «تم الاجتماع»
+                      يعرض هذا الحقل الطلبات المؤهلة أو الموجودة بالفعل داخل
+                      مسار العرض والتفاوض
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -236,7 +264,9 @@ export function CreateProposalDialog() {
               <FormField
                 control={form.control}
                 name="file"
-                render={({ field: { onChange, value: _value, ref, ...rest } }) => (
+                render={({
+                  field: { onChange, value: _value, ref, ...rest },
+                }) => (
                   <FormItem>
                     <FormLabel>ملف العرض الفني (PDF)</FormLabel>
                     <FormControl>
@@ -247,7 +277,9 @@ export function CreateProposalDialog() {
                         >
                           <Paperclip className="w-4 h-4 text-muted-foreground shrink-0" />
                           <span className="text-sm text-muted-foreground flex-1 truncate">
-                            {watchedFile ? watchedFile.name : "انقر لاختيار ملف PDF..."}
+                            {watchedFile
+                              ? watchedFile.name
+                              : "انقر لاختيار ملف PDF..."}
                           </span>
                           {watchedFile && (
                             <button
@@ -255,7 +287,8 @@ export function CreateProposalDialog() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onChange(undefined);
-                                if (fileInputRef.current) fileInputRef.current.value = "";
+                                if (fileInputRef.current)
+                                  fileInputRef.current.value = "";
                               }}
                               className="shrink-0 text-muted-foreground hover:text-destructive"
                             >
@@ -266,10 +299,12 @@ export function CreateProposalDialog() {
                         <input
                           ref={(el) => {
                             // Assign to local ref used by the click target
-                            fileInputRef.current = el as HTMLInputElement | null;
+                            fileInputRef.current =
+                              el as HTMLInputElement | null;
                             // Preserve RHF's ref (which may be a function or RefObject)
                             if (typeof ref === "function") ref(el);
-                            else if (ref && typeof (ref as any) === "object") (ref as any).current = el;
+                            else if (ref && typeof (ref as any) === "object")
+                              (ref as any).current = el;
                           }}
                           type="file"
                           accept="application/pdf,.pdf"
