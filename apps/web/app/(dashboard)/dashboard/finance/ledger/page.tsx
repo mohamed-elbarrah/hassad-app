@@ -1,12 +1,34 @@
 "use client";
 
 import { useGetLedgerQuery } from "@/features/finance/financeApi";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ShieldCheck, Download, Filter, User, Calendar, ArrowRightLeft, Loader2 } from "lucide-react";
+import {
+  Search,
+  ShieldCheck,
+  Download,
+  Filter,
+  User,
+  Calendar,
+  ArrowRightLeft,
+  Loader2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -32,8 +54,12 @@ export default function LedgerPage() {
             <ShieldCheck className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">سجل التدقيق المالي</h1>
-            <p className="text-muted-foreground">تتبع جميع التغييرات والعمليات المالية بدقة (نظام غير قابل للحذف).</p>
+            <h1 className="text-3xl font-bold tracking-tight">
+              سجل التدقيق المالي
+            </h1>
+            <p className="text-muted-foreground">
+              تتبع جميع التغييرات والعمليات المالية بدقة (نظام غير قابل للحذف).
+            </p>
           </div>
         </div>
         <Button variant="outline">
@@ -43,10 +69,39 @@ export default function LedgerPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        <StatCard title="إجمالي العمليات" value={data?.total || 0} icon={ArrowRightLeft} />
-        <StatCard title="عمليات اليوم" value={ledger.filter(l => new Date(l.createdAt).toDateString() === new Date().toDateString()).length} icon={Calendar} />
-        <StatCard title="تعديلات حساسة" value={ledger.filter(l => l.action.includes('PAYROLL') || l.action.includes('PAYMENT')).length} icon={Filter} className="text-amber-600" />
-        <StatCard title="تكامل النظام" value="نشط" icon={ShieldCheck} className="text-emerald-600" />
+        <StatCard
+          title="إجمالي العمليات"
+          value={data?.total || 0}
+          icon={ArrowRightLeft}
+        />
+        <StatCard
+          title="عمليات اليوم"
+          value={
+            ledger.filter(
+              (l) =>
+                new Date(l.createdAt).toDateString() ===
+                new Date().toDateString(),
+            ).length
+          }
+          icon={Calendar}
+        />
+        <StatCard
+          title="تعديلات حساسة"
+          value={
+            ledger.filter(
+              (l) =>
+                l.action.includes("PAYROLL") || l.action.includes("PAYMENT"),
+            ).length
+          }
+          icon={Filter}
+          className="text-amber-600"
+        />
+        <StatCard
+          title="تكامل النظام"
+          value="نشط"
+          icon={ShieldCheck}
+          className="text-emerald-600"
+        />
       </div>
 
       <Card className="border-none shadow-md overflow-hidden">
@@ -57,8 +112,12 @@ export default function LedgerPage() {
               <Input placeholder="بحث في السجلات..." className="pr-10" />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">تصفية حسب المستخدم</Button>
-              <Button variant="outline" size="sm">تصفية حسب التاريخ</Button>
+              <Button variant="outline" size="sm">
+                تصفية حسب المستخدم
+              </Button>
+              <Button variant="outline" size="sm">
+                تصفية حسب التاريخ
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -76,7 +135,10 @@ export default function LedgerPage() {
             </TableHeader>
             <TableBody>
               {ledger.map((log) => (
-                <TableRow key={log.id} className="group transition-colors border-b last:border-0">
+                <TableRow
+                  key={log.id}
+                  className="group transition-colors border-b last:border-0"
+                >
                   <TableCell className="pr-6">
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -84,30 +146,46 @@ export default function LedgerPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                    <Badge
+                      variant="outline"
+                      className="font-mono text-[10px] uppercase"
+                    >
                       {log.entity}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <User className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-sm">{log.userId || 'System'}</span>
+                      <span className="text-sm">{log.userId || "System"}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-xs">
-                    {log.before ? (typeof log.before === 'string' ? log.before : JSON.stringify(log.before).substring(0, 30) + '...') : '-'}
+                    {log.before
+                      ? typeof log.before === "string"
+                        ? log.before
+                        : JSON.stringify(log.before).substring(0, 30) + "..."
+                      : "-"}
                   </TableCell>
                   <TableCell className="font-semibold text-xs text-primary">
-                    {log.after ? (typeof log.after === 'string' ? log.after : JSON.stringify(log.after).substring(0, 30) + '...') : '-'}
+                    {log.after
+                      ? typeof log.after === "string"
+                        ? log.after
+                        : JSON.stringify(log.after).substring(0, 30) + "..."
+                      : "-"}
                   </TableCell>
                   <TableCell className="text-left pl-6 text-muted-foreground text-xs font-mono">
-                    {new Date(log.createdAt).toLocaleString('ar-SA')}
+                    {new Date(log.createdAt).toLocaleString("ar-SA-u-nu-latn")}
                   </TableCell>
                 </TableRow>
               ))}
               {ledger.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">لا توجد سجلات حالياً.</TableCell>
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-10 text-muted-foreground"
+                  >
+                    لا توجد سجلات حالياً.
+                  </TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -118,7 +196,17 @@ export default function LedgerPage() {
   );
 }
 
-function StatCard({ title, value, icon: Icon, className }: { title: string, value: string | number, icon: any, className?: string }) {
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  className,
+}: {
+  title: string;
+  value: string | number;
+  icon: any;
+  className?: string;
+}) {
   return (
     <Card className="border-none shadow-sm">
       <CardContent className="p-4 flex items-center justify-between">

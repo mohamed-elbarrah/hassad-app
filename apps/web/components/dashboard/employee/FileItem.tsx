@@ -59,7 +59,7 @@ export function FileItem({
           <p className="text-xs text-muted-foreground">
             {formatFileSize(file.fileSize)}
             {file.purpose ? ` · ${file.purpose}` : ""} ·{" "}
-            {new Date(file.createdAt).toLocaleDateString("ar-SA")}
+            {new Date(file.createdAt).toLocaleDateString("ar-SA-u-nu-latn")}
           </p>
         </div>
       </div>

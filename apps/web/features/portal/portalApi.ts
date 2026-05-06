@@ -144,9 +144,21 @@ export interface PortalInvoiceSummary {
   id: string;
   invoiceNumber: string;
   amount: number;
+  paidAmount?: number;
+  remainingAmount?: number;
   status: string;
   dueDate: string;
+  issueDate?: string;
   contract?: { id: string; title: string } | null;
+  payments?: { amount: number; status: string }[];
+}
+
+export interface PortalFinanceSummary {
+  totalInvoiced: number;
+  totalPaid: number;
+  totalRemaining: number;
+  nextInvoiceDueDate: string | null;
+  nextInvoiceAmount: number;
 }
 
 export interface PortalContractSummary {
@@ -178,6 +190,10 @@ export const portalApi = createApi({
     getPortalDashboard: builder.query<PortalDashboard, void>({
       query: () => "/portal/dashboard",
       providesTags: ["PortalDashboard"],
+    }),
+    getPortalFinanceSummary: builder.query<PortalFinanceSummary, void>({
+      query: () => "/portal/finance/summary",
+      providesTags: ["PortalInvoices"],
     }),
     getProjectProgress: builder.query<ProjectProgress | null, void>({
       query: () => "/portal/project-progress",
@@ -269,6 +285,7 @@ export const portalApi = createApi({
 
 export const {
   useGetPortalDashboardQuery,
+  useGetPortalFinanceSummaryQuery,
   useGetProjectProgressQuery,
   useGetPortalProjectsQuery,
   useGetPortalRequestsQuery,

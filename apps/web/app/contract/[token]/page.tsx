@@ -132,7 +132,7 @@ export default function ContractSharePage({ params }: PageProps) {
                 القيمة الإجمالية
               </p>
               <p className="font-semibold">
-                {data.totalValue.toLocaleString("ar-SA")} ر.س
+                {data.totalValue.toLocaleString("ar-SA-u-nu-latn")} ر.س
               </p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
@@ -140,7 +140,7 @@ export default function ContractSharePage({ params }: PageProps) {
                 القيمة الشهرية
               </p>
               <p className="font-semibold">
-                {data.monthlyValue.toLocaleString("ar-SA")} ر.س
+                {data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س
               </p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
@@ -148,7 +148,7 @@ export default function ContractSharePage({ params }: PageProps) {
                 تاريخ البداية
               </p>
               <p className="font-semibold">
-                {new Date(data.startDate).toLocaleDateString("ar-SA")}
+                {new Date(data.startDate).toLocaleDateString("ar-SA-u-nu-latn")}
               </p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
@@ -156,7 +156,7 @@ export default function ContractSharePage({ params }: PageProps) {
                 تاريخ النهاية
               </p>
               <p className="font-semibold">
-                {new Date(data.endDate).toLocaleDateString("ar-SA")}
+                {new Date(data.endDate).toLocaleDateString("ar-SA-u-nu-latn")}
               </p>
             </div>
           </div>
@@ -202,7 +202,7 @@ export default function ContractSharePage({ params }: PageProps) {
                 </p>
                 {data.signedAt && (
                   <p className="text-xs text-emerald-600 mt-0.5">
-                    {new Date(data.signedAt).toLocaleString("ar-SA")}
+                    {new Date(data.signedAt).toLocaleString("ar-SA-u-nu-latn")}
                   </p>
                 )}
               </div>

@@ -1,7 +1,8 @@
-"use client";
-
 import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface DashboardCardProps {
   title: string;
@@ -12,13 +13,6 @@ interface DashboardCardProps {
   className?: string;
 }
 
-/* ── Dashboard Card Wrapper ─────────────────────────────────────────────
-   Exact from source:
-   - width: 466px, border: 1.5px solid #E1E4EA, radius: 30px, bg: #FFFFFF
-   - header divider: border: 1.5px solid #ECEEF2
-   - "عرض الكل" button: border: 1.5px solid #E1E4EA, radius: 10px
-   - title: 24px weight 500, icon color: #525866
-─────────────────────────────────────────────────────────────────────────── */
 export function DashboardCard({
   title,
   icon: Icon,
@@ -28,60 +22,35 @@ export function DashboardCard({
   className = "",
 }: DashboardCardProps) {
   return (
-    <div
-      className={`bg-white overflow-hidden ${className}`}
-      style={{
-        border: "1.5px solid #E1E4EA",
-        borderRadius: 30,
-      }}
+    <Card
+      className={cn(
+        "overflow-hidden border-[1.5px] border-portal-card-border rounded-[30px] bg-white shadow-none",
+        className
+      )}
     >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: "1.5px solid #ECEEF2" }}
-      >
+      <CardHeader className="flex flex-row items-center justify-between px-5 py-4 border-b-[1.5px] border-portal-divider space-y-0">
         <div className="flex items-center gap-2">
           {Icon && (
             <Icon
-              style={{
-                width: 29,
-                height: 29,
-                color: "#525866",
-              }}
+              className="w-[29px] h-[29px] text-portal-icon"
             />
           )}
-          <h3
-            style={{
-              fontSize: 24,
-              fontWeight: 500,
-              lineHeight: "36px",
-              color: "#000000",
-            }}
-          >
+          <h3 className="text-[24px] font-medium leading-[36px] text-natural-100">
             {title}
           </h3>
         </div>
         {showAll && (
-          <button
+          <Button
+            variant="outline"
             onClick={onShowAll}
-            className="bg-white"
-            style={{
-              fontSize: 18,
-              fontWeight: 500,
-              lineHeight: "27px",
-              color: "#525866",
-              border: "1.5px solid #E1E4EA",
-              borderRadius: 10,
-              padding: "8px 20px",
-            }}
+            className="h-auto text-[18px] font-medium leading-[27px] text-portal-icon border-[1.5px] border-portal-card-border rounded-[10px] px-5 py-2 hover:bg-neutral-100"
           >
             عرض الكل
-          </button>
+          </Button>
         )}
-      </div>
+      </CardHeader>
 
-      {/* Content */}
-      <div className="p-5">{children}</div>
-    </div>
+      <CardContent className="p-5">{children}</CardContent>
+    </Card>
   );
 }

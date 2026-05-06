@@ -1,7 +1,10 @@
 "use client";
 
 import { useAppSelector } from "@/lib/hooks";
-import { useGetPortalCampaignsQuery, type PortalCampaign } from "@/features/portal/portalApi";
+import {
+  useGetPortalCampaignsQuery,
+  type PortalCampaign,
+} from "@/features/portal/portalApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +17,10 @@ const STATUS_LABELS: Record<string, string> = {
   COMPLETED: "مكتملة",
 };
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+const STATUS_VARIANT: Record<
+  string,
+  "default" | "secondary" | "outline" | "destructive"
+> = {
   PLANNING: "outline",
   ACTIVE: "default",
   PAUSED: "secondary",
@@ -30,7 +36,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 function fmt(n: number) {
-  return n.toLocaleString("ar-SA");
+  return n.toLocaleString("ar-SA-u-nu-latn");
 }
 
 export default function PortalCampaignsPage() {
@@ -84,7 +90,9 @@ export default function PortalCampaignsPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{campaign.name}</CardTitle>
-                    <Badge variant={STATUS_VARIANT[campaign.status] ?? "outline"}>
+                    <Badge
+                      variant={STATUS_VARIANT[campaign.status] ?? "outline"}
+                    >
                       {STATUS_LABELS[campaign.status] ?? campaign.status}
                     </Badge>
                   </div>
@@ -96,32 +104,45 @@ export default function PortalCampaignsPage() {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <p className="text-muted-foreground">الانطباعات</p>
-                      <p className="font-medium">{fmt(campaign.analytics?.impressions ?? 0)}</p>
+                      <p className="font-medium">
+                        {fmt(campaign.analytics?.impressions ?? 0)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">النقرات</p>
-                      <p className="font-medium">{fmt(campaign.analytics?.clicks ?? 0)}</p>
+                      <p className="font-medium">
+                        {fmt(campaign.analytics?.clicks ?? 0)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">التحويلات</p>
-                      <p className="font-medium">{fmt(campaign.analytics?.conversions ?? 0)}</p>
+                      <p className="font-medium">
+                        {fmt(campaign.analytics?.conversions ?? 0)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">العائد ROAS</p>
-                      <p className="font-medium">{campaign.analytics?.roas?.toFixed(1) ?? "0"}x</p>
+                      <p className="font-medium">
+                        {campaign.analytics?.roas?.toFixed(1) ?? "0"}x
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">نسبة النقر CTR</p>
-                      <p className="font-medium">{campaign.analytics?.ctr?.toFixed(2) ?? "0"}%</p>
+                      <p className="font-medium">
+                        {campaign.analytics?.ctr?.toFixed(2) ?? "0"}%
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">تكلفة النقرة CPC</p>
-                      <p className="font-medium">{campaign.analytics?.cpc?.toFixed(2) ?? "0"} ر.س</p>
+                      <p className="font-medium">
+                        {campaign.analytics?.cpc?.toFixed(2) ?? "0"} ر.س
+                      </p>
                     </div>
                   </div>
 
                   <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                    الميزانية: {fmt(campaign.budgetTotal)} ر.س | المنفق: {fmt(campaign.budgetSpent)} ر.س
+                    الميزانية: {fmt(campaign.budgetTotal)} ر.س | المنفق:{" "}
+                    {fmt(campaign.budgetSpent)} ر.س
                   </div>
                 </CardContent>
               </Card>

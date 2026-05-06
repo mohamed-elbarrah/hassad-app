@@ -1,20 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Palette, Receipt, FileText, PenTool, Clock } from "lucide-react";
+import {
+  Settings,
+  Palette,
+  Receipt,
+  FileText,
+  PenTool,
+  Clock,
+} from "lucide-react";
 import { useGetActionItemsQuery } from "@/features/portal/portalApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
-const TYPE_FILTERS: { label: string; value: string; icon: typeof Settings }[] = [
-  { label: "الكل", value: "", icon: Settings },
-  { label: "مراجعة تسليمات", value: "DELIVERABLE_APPROVAL", icon: Palette },
-  { label: "دفع فواتير", value: "INVOICE_PAYMENT", icon: Receipt },
-  { label: "مراجعة عروض", value: "PROPOSAL_REVIEW", icon: FileText },
-  { label: "توقيع عقود", value: "CONTRACT_SIGN", icon: PenTool },
-];
+const TYPE_FILTERS: { label: string; value: string; icon: typeof Settings }[] =
+  [
+    { label: "الكل", value: "", icon: Settings },
+    { label: "مراجعة تسليمات", value: "DELIVERABLE_APPROVAL", icon: Palette },
+    { label: "دفع فواتير", value: "INVOICE_PAYMENT", icon: Receipt },
+    { label: "مراجعة عروض", value: "PROPOSAL_REVIEW", icon: FileText },
+    { label: "توقيع عقود", value: "CONTRACT_SIGN", icon: PenTool },
+  ];
 
 const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   DELIVERABLE_APPROVAL: { label: "مراجعة تسليم", color: "purple" },
@@ -23,7 +31,13 @@ const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   CONTRACT_SIGN: { label: "توقيع عقد", color: "blue" },
 };
 
-const PRIORITY_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+const PRIORITY_CONFIG: Record<
+  string,
+  {
+    label: string;
+    variant: "default" | "secondary" | "outline" | "destructive";
+  }
+> = {
   high: { label: "عاجل", variant: "destructive" },
   normal: { label: "عادي", variant: "default" },
   low: { label: "منخفض", variant: "outline" },
@@ -85,7 +99,10 @@ export default function PortalActionsPage() {
           {isLoading && (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />
+                <div
+                  key={i}
+                  className="h-20 bg-muted animate-pulse rounded-xl"
+                />
               ))}
             </div>
           )}
@@ -97,14 +114,18 @@ export default function PortalActionsPage() {
           {!isLoading && !isError && items.length === 0 && (
             <div className="flex flex-col items-center gap-3 py-10">
               <Settings className="h-8 w-8 opacity-30" />
-              <p className="text-sm text-muted-foreground">لا توجد إجراءات معلقة.</p>
+              <p className="text-sm text-muted-foreground">
+                لا توجد إجراءات معلقة.
+              </p>
             </div>
           )}
           {!isLoading && !isError && items.length > 0 && (
             <div className="space-y-3">
               {items.map((item) => {
-                const config = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
-                const priorityConfig = PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.normal;
+                const config =
+                  TYPE_CONFIG[item.type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
+                const priorityConfig =
+                  PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.normal;
                 return (
                   <div
                     key={item.id}
@@ -113,8 +134,13 @@ export default function PortalActionsPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm truncate">{item.title}</span>
-                        <Badge variant={priorityConfig.variant} className="text-xs shrink-0">
+                        <span className="font-medium text-sm truncate">
+                          {item.title}
+                        </span>
+                        <Badge
+                          variant={priorityConfig.variant}
+                          className="text-xs shrink-0"
+                        >
                           {priorityConfig.label}
                         </Badge>
                       </div>
@@ -125,7 +151,10 @@ export default function PortalActionsPage() {
                         <div className="flex items-center gap-1 mt-1">
                           <Clock className="h-3 w-3 text-muted-foreground" />
                           <span className="text-xs text-muted-foreground">
-                            مستحق: {new Date(item.dueDate).toLocaleDateString("ar-SA")}
+                            مستحق:{" "}
+                            {new Date(item.dueDate).toLocaleDateString(
+                              "ar-SA-u-nu-latn",
+                            )}
                           </span>
                         </div>
                       )}

@@ -14,11 +14,7 @@ import { GripVertical, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import {
-  TaskStatus,
-  TaskPriority,
-  UserRole,
-} from "@hassad/shared";
+import { TaskStatus, TaskPriority, UserRole } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
 import {
   useStartTaskMutation,
@@ -29,7 +25,9 @@ import {
 import { useAppSelector } from "@/lib/hooks";
 
 // Allowed status transitions per role (mirrors API workflow)
-const TASK_STATUS_TRANSITIONS: Partial<Record<TaskStatus, Partial<Record<string, TaskStatus[]>>>> = {
+const TASK_STATUS_TRANSITIONS: Partial<
+  Record<TaskStatus, Partial<Record<string, TaskStatus[]>>>
+> = {
   [TaskStatus.TODO]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
   [TaskStatus.IN_PROGRESS]: { EMPLOYEE: [TaskStatus.IN_REVIEW] },
   [TaskStatus.IN_REVIEW]: { PM: [TaskStatus.DONE, TaskStatus.REVISION] },
@@ -131,7 +129,7 @@ function DraggableCard({
     new Date(task.dueDate) < new Date();
 
   const dueDateFormatted = task.dueDate
-    ? new Intl.DateTimeFormat("ar-SA", {
+    ? new Intl.DateTimeFormat("ar-SA-u-nu-latn", {
         day: "numeric",
         month: "short",
       }).format(new Date(task.dueDate))
@@ -390,8 +388,11 @@ export function EmployeeTaskKanban({
     } catch (err: unknown) {
       // Revert optimistic update on error
       setLocalTasks(prevTasks);
-      const msg = (err as { data?: { message?: string }; error?: string })?.data?.message ??
-        (err as { error?: string })?.error ?? "فشل تحديث الحالة";
+      const msg =
+        (err as { data?: { message?: string }; error?: string })?.data
+          ?.message ??
+        (err as { error?: string })?.error ??
+        "فشل تحديث الحالة";
       toast.error(msg);
     }
   }
