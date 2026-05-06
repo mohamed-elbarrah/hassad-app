@@ -56,7 +56,7 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 
 const TaskFormSchema = z.object({
   title: z.string().min(2, "عنوان المهمة يجب أن يكون حرفين على الأقل"),
-  assignedTo: z.string().min(1, "المُكلَّف مطلوب"),
+  assignedTo: z.string().min(1, "المسند إليه مطلوب"),
   dept: z.nativeEnum(TaskDepartment, { message: "القسم مطلوب" }),
   priority: z.nativeEnum(TaskPriority).optional(),
   dueDate: z.string().min(1, "تاريخ الاستحقاق مطلوب"),
@@ -221,7 +221,7 @@ export function TaskForm({ projectId }: TaskFormProps) {
               name="assignedTo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>المُكلَّف</FormLabel>
+                  <FormLabel>المسند إليه</FormLabel>
                   <FormControl>
                     <SearchCombobox
                       value={field.value}
@@ -229,7 +229,7 @@ export function TaskForm({ projectId }: TaskFormProps) {
                       options={assigneeOptions}
                       onSearchChange={setAssigneeSearch}
                       placeholder={
-                        watchedDept ? "اختر المُكلَّف" : "اختر القسم أولاً"
+                        watchedDept ? "اختر المسند إليه" : "اختر القسم أولاً"
                       }
                       searchPlaceholder="ابحث بالاسم..."
                       isLoading={usersLoading}

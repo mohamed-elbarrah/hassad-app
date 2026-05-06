@@ -84,6 +84,8 @@ export const tasksApi = createApi({
         body,
       }),
       invalidatesTags: (_result, _error, body) => [
+        { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "MY_STATS" },
         { type: "Task", id: `PROJECT_${"projectId" in body ? (body as any).projectId : ""}` },
       ],
     }),
@@ -217,6 +219,20 @@ export const tasksApi = createApi({
       query: (id) => ({ url: `/tasks/${id}/reject`, method: "POST" }),
       invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
     }),
+
+    /** POST /v1/tasks/:id/assign — assign a task to a user (PM only) */
+    assignTask: builder.mutation<Task, { id: string; userId: string }>({
+      query: ({ id, userId }) => ({
+        url: `/tasks/${id}/assign`,
+        method: "POST",
+        body: { userId },
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Task", id },
+        { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "MY_STATS" },
+      ],
+    }),
   }),
 });
 
@@ -238,4 +254,5 @@ export const {
   useSubmitTaskMutation,
   useApproveTaskMutation,
   useRejectTaskMutation,
+  useAssignTaskMutation,
 } = tasksApi;

@@ -25,8 +25,7 @@ import Link from "next/link";
 
 export default function MarketingDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
-  const { data: tasks = [], isLoading } = useGetMyTasksQuery({});
-  
+  const { data: tasks = [], isLoading } = useGetMyTasksQuery({}, { pollingInterval: 30000 });
   // Filter for marketing department
   const marketingTasks = tasks.filter(task => task.department?.name === "MARKETING");
 

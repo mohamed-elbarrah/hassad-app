@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function MarketingTasksListPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
-  const { data: tasks = [], isLoading } = useGetMyTasksQuery({});
+  const { data: tasks = [], isLoading } = useGetMyTasksQuery({}, { pollingInterval: 30000 });
 
   // Filter tasks to only show Marketing ones
   const marketingTasks = tasks.filter(task => 

@@ -41,7 +41,7 @@ export default function EmployeeDashboardPage() {
   const { data: stats, isLoading: statsLoading } = useGetMyTaskStatsQuery();
   const { data: tasks, isLoading: tasksLoading } = useGetMyTasksQuery({
     priority: priorityFilter === "all" ? undefined : priorityFilter,
-  });
+  }, { pollingInterval: 30000 });
 
   if (!user) return null;
 
