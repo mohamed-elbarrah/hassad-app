@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   CreateDeliverableDto,
   CreateRevisionDto,
@@ -26,7 +27,10 @@ const TASK_STATUS_AR_MAP: Record<string, string> = {
 
 @Injectable()
 export class PortalService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   private getPendingRequestStageLabel(status: string) {
     switch (status) {
@@ -877,7 +881,12 @@ export class PortalService {
   }
 
   async approveDeliverable(id: string, userId: string) {
-    return this.prisma.deliverable.update({
+    const deliverable = await this.prisma.deliverable.findUnique({
+      where: { id },
+      include: { project: { select: { clientId: true, name: true } } },
+    });
+
+    const updated = await this.prisma.deliverable.update({
       where: { id },
       data: {
         status: TaskStatus.DONE,
@@ -885,13 +894,60 @@ export class PortalService {
         approvedAt: new Date(),
       },
     });
+
+    if (deliverable?.project?.clientId) {
+      const clientUser = await this.prisma.client.findUnique({
+        where: { id: deliverable.project.clientId },
+        select: { userId: true },
+      });
+      if (clientUser?.userId) {
+        this.notificationsService
+          .createNotification({
+            entityId: id,
+            entityType: "deliverable",
+            eventType: "DELIVERABLE_APPROVED",
+            userId: clientUser.userId,
+            title: "تم اعتماد التسليمة",
+            body: `تم اعتماد التسليمة "${deliverable.title}" في مشروع ${deliverable.project.name}`,
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    return updated;
   }
 
   async rejectDeliverable(id: string) {
-    return this.prisma.deliverable.update({
+    const deliverable = await this.prisma.deliverable.findUnique({
+      where: { id },
+      include: { project: { select: { clientId: true, name: true } } },
+    });
+
+    const updated = await this.prisma.deliverable.update({
       where: { id },
       data: { status: TaskStatus.REVISION },
     });
+
+    if (deliverable?.project?.clientId) {
+      const clientUser = await this.prisma.client.findUnique({
+        where: { id: deliverable.project.clientId },
+        select: { userId: true },
+      });
+      if (clientUser?.userId) {
+        this.notificationsService
+          .createNotification({
+            entityId: id,
+            entityType: "deliverable",
+            eventType: "DELIVERABLE_REVISION",
+            userId: clientUser.userId,
+            title: "تم طلب تعديل على التسليمة",
+            body: `تم طلب تعديلات على التسليمة "${deliverable.title}" في مشروع ${deliverable.project.name}`,
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    return updated;
   }
 
   async createRevision(id: string, clientId: string, dto: CreateRevisionDto) {

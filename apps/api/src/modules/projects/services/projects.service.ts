@@ -216,6 +216,23 @@ export class ProjectsService {
       });
     }
 
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: project.clientId },
+      select: { userId: true },
+    });
+    if (clientUser?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: id,
+          entityType: 'project',
+          eventType: 'PROJECT_STATUS_CHANGED',
+          userId: clientUser.userId,
+          title: 'تحديث حالة مشروعك',
+          body: `تم تغيير حالة مشروع "${project.name}" إلى ${status}`,
+        })
+        .catch(() => undefined);
+    }
+
     return updated;
   }
 }

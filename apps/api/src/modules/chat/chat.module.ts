@@ -3,6 +3,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { ChatController } from "./controllers/chat.controller";
 import { ChatService } from "./services/chat.service";
 import { ChatGateway } from "./gateway/chat.gateway";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { ChatGateway } from "./gateway/chat.gateway";
       secret: process.env.JWT_SECRET || "dev-secret",
       signOptions: { expiresIn: "1h" },
     }),
+    NotificationsModule,
   ],
   controllers: [ChatController],
   providers: [ChatService, ChatGateway],

@@ -411,6 +411,11 @@ export class ContractsService {
         );
       }
 
+      const clientUser = await this.prisma.client.findUnique({
+        where: { id: contract.clientId },
+        select: { userId: true },
+      });
+
       this.notificationsService
         .createNotification({
           entityId: signed.id,
@@ -421,6 +426,19 @@ export class ContractsService {
           body: `العميل وقّع على العقد "${contract.title}"`,
         })
         .catch(() => undefined);
+
+      if (clientUser?.userId) {
+        this.notificationsService
+          .createNotification({
+            entityId: signed.id,
+            entityType: "contract",
+            eventType: "CONTRACT_SIGNED",
+            userId: clientUser.userId,
+            title: "تم توقيع العقد بنجاح",
+            body: `تم توقيع العقد "${contract.title}" بنجاح. سيتم بدء العمل على مشروعك قريباً.`,
+          })
+          .catch(() => undefined);
+      }
 
       return { ...signed, signedByName: dto.signedByName };
     });
@@ -459,14 +477,34 @@ export class ContractsService {
       },
     });
 
-    await this.notificationsService.notifyUsers({
-      userIds: [contract.client.accountManager].filter(Boolean) as string[],
-      title: "تم إرسال العقد",
-      message: `تم إرسال العقد "${contract.title}" إلى ${contract.client.companyName}`,
-      entityId: id,
-      entityType: "CONTRACT",
-      eventType: "CONTRACT_SENT",
+    const notifyUserIds = [contract.client.accountManager].filter(Boolean) as string[];
+    if (notifyUserIds.length > 0) {
+      await this.notificationsService.notifyUsers({
+        userIds: notifyUserIds,
+        title: "تم إرسال العقد",
+        message: `تم إرسال العقد "${contract.title}" إلى ${contract.client.companyName}`,
+        entityId: id,
+        entityType: "CONTRACT",
+        eventType: "CONTRACT_SENT",
+      });
+    }
+
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: contract.clientId },
+      select: { userId: true },
     });
+    if (clientUser?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: id,
+          entityType: "contract",
+          eventType: "CONTRACT_SENT",
+          userId: clientUser.userId,
+          title: "عقد جديد بانتظار توقيعك",
+          body: `العقد "${contract.title}" جاهز لمراجعته وتوقيعه`,
+        })
+        .catch(() => undefined);
+    }
 
     if (contract.requestId) {
       await this.requestsService.updateStatus(
@@ -552,6 +590,23 @@ export class ContractsService {
       eventType: "CONTRACT_ACTIVATED",
     });
 
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: contract.clientId },
+      select: { userId: true },
+    });
+    if (clientUser?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: id,
+          entityType: "contract",
+          eventType: "CONTRACT_ACTIVATED",
+          userId: clientUser.userId,
+          title: "تم تفعيل العقد",
+          body: `تم تفعيل العقد "${contract.title}". فريق العمل جاهز لبدء مشروعك.`,
+        })
+        .catch(() => undefined);
+    }
+
     return updated;
   }
 
@@ -572,6 +627,23 @@ export class ContractsService {
       entityType: "CONTRACT",
       eventType: "CONTRACT_CANCELLED",
     });
+
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: contract.clientId },
+      select: { userId: true },
+    });
+    if (clientUser?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: id,
+          entityType: "contract",
+          eventType: "CONTRACT_CANCELLED",
+          userId: clientUser.userId,
+          title: "تم إلغاء العقد",
+          body: `تم إلغاء العقد "${contract.title}". يرجى التواصل معنا لمزيد من التفاصيل.`,
+        })
+        .catch(() => undefined);
+    }
 
     if (contract.requestId) {
       await this.requestsService.updateStatus(

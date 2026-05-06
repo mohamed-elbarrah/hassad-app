@@ -1,8 +1,9 @@
 "use client";
 
-import { Search, Moon, Bell } from "lucide-react";
+import { Search, Moon } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PortalNotificationBell } from "./PortalNotificationBell";
 
 function getInitials(name: string) {
   return name
@@ -130,35 +131,8 @@ export function PortalHeader() {
           <Moon style={{ width: 24, height: 24, color: "#000000" }} />
         </button>
 
-        {/* Notification Bell */}
-        <button
-          className="relative flex items-center justify-center shrink-0 bg-white"
-          style={{
-            width: 56,
-            height: 56,
-            border: "1.5px solid #E2E2E2",
-            borderRadius: 9999,
-          }}
-        >
-          <Bell style={{ width: 24, height: 24, color: "#000000" }} />
-          <span
-            className="absolute flex items-center justify-center text-white font-semibold"
-            style={{
-              width: 27,
-              height: 27,
-              background: "#FB3748",
-              borderRadius: 9999,
-              fontSize: 14,
-              fontWeight: 600,
-              lineHeight: "21px",
-              top: -3,
-              right: -3,
-              border: "2px solid #fff",
-            }}
-          >
-            1
-          </span>
-        </button>
+        {/* Notification Bell — real component */}
+        <PortalNotificationBell />
       </div>
     </header>
   );

@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 import { CreateConversationDto, AddParticipantDto, CreateMessageDto } from '../dto/chat.dto';
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async getUserConversationIds(userId: string): Promise<string[]> {
     const participants = await this.prisma.conversationParticipant.findMany({
@@ -96,7 +100,7 @@ export class ChatService {
   }
 
   async createMessage(senderId: string, dto: CreateMessageDto) {
-    return this.prisma.message.create({
+    const message = await this.prisma.message.create({
       data: {
         conversationId: dto.conversationId,
         senderId,
@@ -106,6 +110,31 @@ export class ChatService {
         sender: true,
       },
     });
+
+    const participants = await this.prisma.conversationParticipant.findMany({
+      where: {
+        conversationId: dto.conversationId,
+        userId: { not: senderId },
+      },
+      select: { userId: true },
+    });
+
+    if (participants.length > 0) {
+      const truncatedContent = dto.content.length > 100
+        ? dto.content.substring(0, 97) + '...'
+        : dto.content;
+
+      this.notificationsService.notifyUsers({
+        userIds: participants.map((p) => p.userId),
+        title: `رسالة جديدة من ${message.sender.name}`,
+        message: truncatedContent,
+        entityId: dto.conversationId,
+        entityType: "conversation",
+        eventType: "NEW_MESSAGE",
+      }).catch(() => undefined);
+    }
+
+    return message;
   }
 
   async getMessages(conversationId: string) {
