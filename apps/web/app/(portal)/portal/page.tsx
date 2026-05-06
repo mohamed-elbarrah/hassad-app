@@ -40,10 +40,12 @@ import {
   mapTaskStatusToUI,
   mapProjectStatusToUI,
 } from "@/lib/utils/statusMapping";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 const ACTION_TYPE_CONFIG: Record<
   string,
-  { primaryAction: string; primaryColor: string; icon: typeof Palette }
+  { primaryAction: string; primaryColor: "purple" | "blue"; icon: typeof Palette }
 > = {
   DELIVERABLE_APPROVAL: {
     primaryAction: "مراجعة الآن",
@@ -68,11 +70,11 @@ const ACTION_TYPE_CONFIG: Record<
 };
 
 const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
-  palette: <Palette style={{ width: 26, height: 26, color: "#121936" }} />,
-  file: <FileText style={{ width: 20, height: 23, color: "#121936" }} />,
-  trending: <TrendingUp style={{ width: 24, height: 24, color: "#121936" }} />,
-  check: <CheckCircle style={{ width: 24, height: 24, color: "#121936" }} />,
-  dollar: <DollarSign style={{ width: 28, height: 28, color: "#121936" }} />,
+  palette: <Palette className="w-[26px] h-[26px] text-secondary-500" />,
+  file: <FileText className="w-5 h-[23px] text-secondary-500" />,
+  trending: <TrendingUp className="w-6 h-6 text-secondary-500" />,
+  check: <CheckCircle className="w-6 h-6 text-secondary-500" />,
+  dollar: <DollarSign className="w-7 h-7 text-secondary-500" />,
 };
 
 export default function PortalPage() {
@@ -134,7 +136,7 @@ export default function PortalPage() {
   if (!clientId) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p style={{ fontSize: 18, color: "rgba(0,0,0,0.6)" }}>
+        <p className="text-[18px] text-portal-note-text">
           لم يتم ربط حسابك بملف عميل. يرجى التواصل مع الإدارة.
         </p>
       </div>
@@ -143,12 +145,8 @@ export default function PortalPage() {
 
   return (
     <div
-      className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5"
+      className="grid grid-cols-1 lg:grid-cols-3 gap-5 w-full mx-auto"
       dir="rtl"
-      style={{
-        maxWidth: "100%",
-        margin: "0 auto",
-      }}
     >
       {/* COLUMN 1 */}
       <div className="flex flex-col gap-5">
@@ -158,82 +156,41 @@ export default function PortalPage() {
           onShowAll={() => router.push("/portal/requests")}
         >
           {pendingRequestsError ? (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               تعذر تحميل الطلبات الحالية
             </p>
           ) : pendingRequests.length > 0 ? (
             <div className="space-y-3">
               {pendingRequests.map((request) => (
-                <div
+                <Card
                   key={request.id}
-                  className="rounded-2xl border p-4"
-                  style={{ borderColor: "#E1E4EA", background: "#FFFFFF" }}
+                  className="rounded-2xl border-portal-card-border p-4 bg-white shadow-none"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p
-                        className="truncate"
-                        style={{
-                          fontSize: 20,
-                          fontWeight: 600,
-                          lineHeight: "30px",
-                          color: "#000000",
-                        }}
-                      >
+                      <p className="text-[20px] font-semibold leading-[30px] text-natural-100 truncate">
                         {request.companyName}
                       </p>
-                      <p
-                        style={{
-                          fontSize: 15,
-                          lineHeight: "22px",
-                          color: "rgba(0, 0, 0, 0.6)",
-                        }}
-                      >
+                      <p className="text-[15px] leading-[22px] text-portal-note-text">
                         {request.contactName}
                       </p>
                     </div>
                     <StatusBadge status="pending" label={request.statusLabel} />
                   </div>
-                  <p
-                    className="mt-3"
-                    style={{
-                      fontSize: 15,
-                      lineHeight: "24px",
-                      color: "rgba(0, 0, 0, 0.7)",
-                    }}
-                  >
+                  <p className="mt-3 text-[15px] leading-[24px] text-portal-note-text/90">
                     {request.stageLabel}
                   </p>
-                  <p
-                    className="mt-2"
-                    style={{
-                      fontSize: 14,
-                      lineHeight: "21px",
-                      color: "rgba(0, 0, 0, 0.5)",
-                    }}
-                  >
+                  <p className="mt-2 text-[14px] leading-[21px] text-portal-note-text/80">
                     تاريخ الطلب:{" "}
-                    {new Date(request.createdAt).toLocaleDateString("ar-SA")}
+                    {new Date(request.createdAt).toLocaleDateString(
+                      "ar-SA-u-nu-latn",
+                    )}
                   </p>
-                </div>
+                </Card>
               ))}
             </div>
           ) : (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               لا توجد طلبات بانتظار المتابعة حالياً
             </p>
           )}
@@ -247,7 +204,7 @@ export default function PortalPage() {
         >
           {projectError ? (
             <div className="flex flex-col items-center gap-5 py-8">
-              <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)" }}>
+              <p className="text-[16px] text-portal-note-text">
                 تعذر تحميل بيانات المشاريع
               </p>
             </div>
@@ -259,17 +216,9 @@ export default function PortalPage() {
                 {projects.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between p-4 bg-white"
-                    style={{ border: "1px solid #E1E4EA", borderRadius: 12 }}
+                    className="flex items-center justify-between p-4 bg-white border-portal-card-border border rounded-xl"
                   >
-                    <span
-                      style={{
-                        fontSize: 22,
-                        fontWeight: 500,
-                        lineHeight: "33px",
-                        color: "#000000",
-                      }}
-                    >
+                    <span className="text-[22px] font-medium leading-[33px] text-natural-100">
                       {p.name}
                     </span>
                     <StatusBadge
@@ -279,29 +228,11 @@ export default function PortalPage() {
                   </div>
                 ))}
 
-                <div
-                  className="p-5 text-right"
-                  style={{ background: "#F9FAFB", borderRadius: 12 }}
-                >
-                  <p
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 500,
-                      lineHeight: "33px",
-                      color: "#000000",
-                    }}
-                  >
+                <div className="p-5 text-right bg-portal-bg rounded-xl">
+                  <p className="text-[22px] font-medium leading-[33px] text-natural-100">
                     المشاريع النشطة :
                   </p>
-                  <p
-                    className="mt-1"
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 400,
-                      lineHeight: "27px",
-                      color: "rgba(0, 0, 0, 0.6)",
-                    }}
-                  >
+                  <p className="mt-1 text-[18px] font-normal leading-[27px] text-portal-note-text">
                     {projectProgress.activeProjects} من{" "}
                     {projectProgress.totalProjects}
                   </p>
@@ -311,7 +242,7 @@ export default function PortalPage() {
           ) : (
             <div className="flex flex-col items-center gap-5 py-8">
               <GaugeChart value={0} max={100} />
-              <p style={{ fontSize: 16, color: "rgba(0,0,0,0.5)" }}>
+              <p className="text-[16px] text-portal-note-text">
                 لا يوجد مشروع نشط حالياً
               </p>
             </div>
@@ -321,21 +252,14 @@ export default function PortalPage() {
         {/* ── آخر التحديثات ─────────────────────────── */}
         <DashboardCard title="آخر التحديثات" icon={Clock} showAll={false}>
           {activityError ? (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               تعذر تحميل التحديثات
             </p>
           ) : activityItems.length > 0 ? (
             <div className="space-y-3">
               {activityItems.slice(0, 5).map((item) => {
                 const dateStr = new Date(item.date).toLocaleDateString(
-                  "ar-SA",
+                  "ar-SA-u-nu-latn",
                   {
                     day: "numeric",
                     month: "long",
@@ -349,9 +273,7 @@ export default function PortalPage() {
                     text={item.text}
                     icon={
                       ACTIVITY_ICON_MAP[item.icon] ?? (
-                        <FileText
-                          style={{ width: 20, height: 23, color: "#121936" }}
-                        />
+                        <FileText className="w-5 h-[23px] text-secondary-500" />
                       )
                     }
                   />
@@ -359,14 +281,7 @@ export default function PortalPage() {
               })}
             </div>
           ) : (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               لا توجد تحديثات حالياً
             </p>
           )}
@@ -382,14 +297,7 @@ export default function PortalPage() {
           onShowAll={() => router.push("/portal/actions")}
         >
           {actionItemsError ? (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               تعذر تحميل الإجراءات
             </p>
           ) : actionItems.length > 0 ? (
@@ -405,18 +313,14 @@ export default function PortalPage() {
                     subtitle={item.subtitle}
                     icon={
                       config.icon ? (
-                        <config.icon
-                          style={{ width: 26, height: 26, color: "#121936" }}
-                        />
+                        <config.icon className="w-[26px] h-[26px] text-secondary-500" />
                       ) : (
-                        <Settings
-                          style={{ width: 26, height: 26, color: "#121936" }}
-                        />
+                        <Settings className="w-[26px] h-[26px] text-secondary-500" />
                       )
                     }
                     secondaryAction="ذكرني لاحقًا"
                     primaryAction={config.primaryAction}
-                    primaryColor={config.primaryColor as "purple" | "blue"}
+                    primaryColor={config.primaryColor}
                     onPrimary={() => router.push(item.actionUrl)}
                     onSecondary={() => handleSnooze(item)}
                   />
@@ -424,14 +328,7 @@ export default function PortalPage() {
               })}
             </div>
           ) : (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               لا توجد إجراءات معلقة
             </p>
           )}
@@ -444,14 +341,7 @@ export default function PortalPage() {
           onShowAll={() => router.push("/portal/campaigns")}
         >
           {campaignError ? (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               تعذر تحميل بيانات الحملة
             </p>
           ) : campaignSummary &&
@@ -460,58 +350,33 @@ export default function PortalPage() {
             <div className="space-y-3">
               <KpiRow
                 label="الزيارات"
-                value={`${campaignSummary.totalVisits.toLocaleString("ar-SA")} زيارة`}
-                icon={
-                  <Users style={{ width: 29, height: 22, color: "#121936" }} />
-                }
+                value={`${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`}
+                icon={<Users className="w-[29px] h-[22px] text-secondary-500" />}
               />
               <KpiRow
                 label="التحويلات"
-                value={`${campaignSummary.totalConversions.toLocaleString("ar-SA")} تحويل`}
-                icon={
-                  <Filter style={{ width: 23, height: 23, color: "#121936" }} />
-                }
+                value={`${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`}
+                icon={<Filter className="w-[23px] h-[23px] text-secondary-500" />}
               />
               <KpiRow
                 label="العائد على الإنفاق الإعلاني"
                 value={`${campaignSummary.avgRoas}x`}
-                icon={
-                  <DollarSign
-                    style={{ width: 28, height: 28, color: "#121936" }}
-                  />
-                }
+                icon={<DollarSign className="w-7 h-7 text-secondary-500" />}
               />
 
               {campaignSummary.improvementPercent !== 0 && (
                 <div
-                  className="p-5 text-right"
-                  style={{
-                    background:
-                      campaignSummary.improvementPercent > 0
-                        ? "rgba(74, 233, 152, 0.15)"
-                        : "rgba(239, 68, 68, 0.1)",
-                    borderRadius: 12,
-                  }}
+                  className={cn(
+                    "p-5 text-right rounded-xl",
+                    campaignSummary.improvementPercent > 0
+                      ? "bg-success-100/15"
+                      : "bg-danger-100/10"
+                  )}
                 >
-                  <p
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 500,
-                      lineHeight: "33px",
-                      color: "#000000",
-                    }}
-                  >
+                  <p className="text-[22px] font-medium leading-[33px] text-natural-100">
                     ملاحظة:
                   </p>
-                  <p
-                    className="mt-1"
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 400,
-                      lineHeight: "27px",
-                      color: "rgba(0, 0, 0, 0.6)",
-                    }}
-                  >
+                  <p className="mt-1 text-[18px] font-normal leading-[27px] text-portal-note-text">
                     الأداء{" "}
                     {campaignSummary.improvementPercent > 0 ? "تحسن" : "انخفض"}{" "}
                     بنسبة {Math.abs(campaignSummary.improvementPercent)}% مقارنة
@@ -521,14 +386,7 @@ export default function PortalPage() {
               )}
             </div>
           ) : (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               لا توجد حملات نشطة حالياً
             </p>
           )}
@@ -559,10 +417,13 @@ export default function PortalPage() {
                     key={d.id}
                     title={d.title}
                     description={d.description ?? ""}
-                    date={new Date(d.createdAt).toLocaleDateString("ar-SA", {
-                      day: "numeric",
-                      month: "short",
-                    })}
+                    date={new Date(d.createdAt).toLocaleDateString(
+                      "ar-SA-u-nu-latn",
+                      {
+                        day: "numeric",
+                        month: "short",
+                      },
+                    )}
                     status={uiStatus}
                     statusLabel={statusLabels[uiStatus] ?? d.status}
                   />
@@ -570,14 +431,7 @@ export default function PortalPage() {
               })}
             </div>
           ) : (
-            <p
-              style={{
-                fontSize: 16,
-                color: "rgba(0,0,0,0.5)",
-                textAlign: "center",
-                padding: 16,
-              }}
-            >
+            <p className="text-[16px] text-portal-note-text text-center py-4">
               لا توجد تسليمات حالياً
             </p>
           )}

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   CreateDeliverableDto,
   CreateRevisionDto,
@@ -26,7 +27,10 @@ const TASK_STATUS_AR_MAP: Record<string, string> = {
 
 @Injectable()
 export class PortalService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   private getPendingRequestStageLabel(status: string) {
     switch (status) {
@@ -462,7 +466,7 @@ export class PortalService {
           id: `inv-${inv.id}`,
           type: "INVOICE_PAYMENT",
           title: `فاتورة ${inv.invoiceNumber}`,
-          subtitle: `المبلغ: ${inv.amount.toLocaleString("ar-SA")} ر.س${daysUntilDue <= 3 ? " — مستحقة قريباً" : ""}`,
+          subtitle: `المبلغ: ${inv.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س${daysUntilDue <= 3 ? " — مستحقة قريباً" : ""}`,
           actionUrl: `/portal/invoices/${inv.id}`,
           dueDate: inv.dueDate,
           priority,
@@ -639,7 +643,7 @@ export class PortalService {
       items.push({
         id: `pay-${p.id}`,
         date: p.date,
-        text: `تم دفع ${p.amount.toLocaleString("ar-SA")} ر.س`,
+        text: `تم دفع ${p.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س`,
         icon: "dollar",
       });
     }
@@ -774,6 +778,47 @@ export class PortalService {
     return { data, total, page: query.page, limit: query.limit };
   }
 
+  async getFinanceSummary(clientId: string) {
+    const invoices = await this.prisma.invoice.findMany({
+      where: { clientId },
+      include: { payments: { select: { amount: true, status: true } } },
+      orderBy: { dueDate: "asc" },
+    });
+
+    let totalInvoiced = 0;
+    let totalPaid = 0;
+    let nextInvoiceDueDate: Date | null = null;
+    let nextInvoiceAmount = 0;
+
+    for (const inv of invoices) {
+      totalInvoiced += inv.amount;
+      const paid = inv.payments
+        .filter((p) => p.status === "SUCCESS")
+        .reduce((sum, p) => sum + p.amount, 0);
+      totalPaid += paid;
+
+      if (
+        !nextInvoiceDueDate &&
+        inv.dueDate &&
+        inv.status !== "PAID" &&
+        inv.status !== "CANCELLED"
+      ) {
+        nextInvoiceDueDate = inv.dueDate;
+        nextInvoiceAmount = Math.max(0, inv.amount - paid);
+      }
+    }
+
+    const totalRemaining = Math.max(0, totalInvoiced - totalPaid);
+
+    return {
+      totalInvoiced,
+      totalPaid,
+      totalRemaining,
+      nextInvoiceDueDate: nextInvoiceDueDate?.toISOString() ?? null,
+      nextInvoiceAmount,
+    };
+  }
+
   async getInvoices(
     clientId: string,
     query: { status?: string; page: number; limit: number },
@@ -784,7 +829,10 @@ export class PortalService {
     const [data, total] = await Promise.all([
       this.prisma.invoice.findMany({
         where,
-        include: { contract: { select: { id: true, title: true } } },
+        include: {
+          contract: { select: { id: true, title: true } },
+          payments: { select: { amount: true, status: true } },
+        },
         orderBy: { createdAt: "desc" },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
@@ -792,7 +840,18 @@ export class PortalService {
       this.prisma.invoice.count({ where }),
     ]);
 
-    return { data, total, page: query.page, limit: query.limit };
+    const items = data.map((inv) => {
+      const paidAmount = inv.payments
+        .filter((p) => p.status === "SUCCESS")
+        .reduce((sum, p) => sum + p.amount, 0);
+      return {
+        ...inv,
+        paidAmount,
+        remainingAmount: Math.max(0, inv.amount - paidAmount),
+      };
+    });
+
+    return { data: items, total, page: query.page, limit: query.limit };
   }
 
   async createDeliverable(userId: string, dto: CreateDeliverableDto) {
@@ -822,7 +881,12 @@ export class PortalService {
   }
 
   async approveDeliverable(id: string, userId: string) {
-    return this.prisma.deliverable.update({
+    const deliverable = await this.prisma.deliverable.findUnique({
+      where: { id },
+      include: { project: { select: { clientId: true, name: true } } },
+    });
+
+    const updated = await this.prisma.deliverable.update({
       where: { id },
       data: {
         status: TaskStatus.DONE,
@@ -830,13 +894,60 @@ export class PortalService {
         approvedAt: new Date(),
       },
     });
+
+    if (deliverable?.project?.clientId) {
+      const clientUser = await this.prisma.client.findUnique({
+        where: { id: deliverable.project.clientId },
+        select: { userId: true },
+      });
+      if (clientUser?.userId) {
+        this.notificationsService
+          .createNotification({
+            entityId: id,
+            entityType: "deliverable",
+            eventType: "DELIVERABLE_APPROVED",
+            userId: clientUser.userId,
+            title: "تم اعتماد التسليمة",
+            body: `تم اعتماد التسليمة "${deliverable.title}" في مشروع ${deliverable.project.name}`,
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    return updated;
   }
 
   async rejectDeliverable(id: string) {
-    return this.prisma.deliverable.update({
+    const deliverable = await this.prisma.deliverable.findUnique({
+      where: { id },
+      include: { project: { select: { clientId: true, name: true } } },
+    });
+
+    const updated = await this.prisma.deliverable.update({
       where: { id },
       data: { status: TaskStatus.REVISION },
     });
+
+    if (deliverable?.project?.clientId) {
+      const clientUser = await this.prisma.client.findUnique({
+        where: { id: deliverable.project.clientId },
+        select: { userId: true },
+      });
+      if (clientUser?.userId) {
+        this.notificationsService
+          .createNotification({
+            entityId: id,
+            entityType: "deliverable",
+            eventType: "DELIVERABLE_REVISION",
+            userId: clientUser.userId,
+            title: "تم طلب تعديل على التسليمة",
+            body: `تم طلب تعديلات على التسليمة "${deliverable.title}" في مشروع ${deliverable.project.name}`,
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    return updated;
   }
 
   async createRevision(id: string, clientId: string, dto: CreateRevisionDto) {

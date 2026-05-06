@@ -90,6 +90,20 @@ export class PortalController {
     });
   }
 
+  @Get("portal/finance/summary")
+  @RequirePermissions("portal.read")
+  async getFinanceSummary(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return {
+      totalInvoiced: 0,
+      totalPaid: 0,
+      totalRemaining: 0,
+      nextInvoiceDueDate: null,
+      nextInvoiceAmount: 0,
+    };
+    return this.portalService.getFinanceSummary(clientId);
+  }
+
   @Get("portal/invoices")
   @RequirePermissions("portal.read")
   async getInvoices(

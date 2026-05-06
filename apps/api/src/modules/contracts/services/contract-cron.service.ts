@@ -26,7 +26,7 @@ export class ContractCronService {
         endDate: { lte: sevenDaysFromNow, gte: new Date() },
       },
       include: {
-        client: { select: { id: true, companyName: true, accountManager: true } },
+        client: { select: { id: true, companyName: true, accountManager: true, userId: true } },
       },
     });
 
@@ -49,7 +49,7 @@ export class ContractCronService {
         },
       });
 
-      const recipientIds = [contract.createdBy, contract.client.accountManager].filter(Boolean) as string[];
+      const recipientIds = [contract.createdBy, contract.client.accountManager, contract.client.userId].filter(Boolean) as string[];
       if (recipientIds.length > 0) {
         await this.notificationsService.notifyUsers({
           userIds: recipientIds,
@@ -68,7 +68,7 @@ export class ContractCronService {
         endDate: { lt: new Date() },
       },
       include: {
-        client: { select: { id: true, companyName: true, accountManager: true } },
+        client: { select: { id: true, companyName: true, accountManager: true, userId: true } },
       },
     });
 
@@ -78,7 +78,7 @@ export class ContractCronService {
         data: { status: ContractStatus.EXPIRED },
       });
 
-      const recipientIds = [contract.createdBy, contract.client.accountManager].filter(Boolean) as string[];
+      const recipientIds = [contract.createdBy, contract.client.accountManager, contract.client.userId].filter(Boolean) as string[];
       if (recipientIds.length > 0) {
         await this.notificationsService.notifyUsers({
           userIds: recipientIds,

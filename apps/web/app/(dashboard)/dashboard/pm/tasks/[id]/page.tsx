@@ -33,7 +33,9 @@ import {
 import { toast } from "sonner";
 
 // Allowed status transitions per role (mirrors API workflow)
-const TASK_STATUS_TRANSITIONS: Partial<Record<TaskStatus, Partial<Record<UserRole, TaskStatus[]>>>> = {
+const TASK_STATUS_TRANSITIONS: Partial<
+  Record<TaskStatus, Partial<Record<UserRole, TaskStatus[]>>>
+> = {
   [TaskStatus.TODO]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
   [TaskStatus.IN_PROGRESS]: { EMPLOYEE: [TaskStatus.IN_REVIEW] },
   [TaskStatus.IN_REVIEW]: {
@@ -104,11 +106,7 @@ function getAllowedTransitions(
     return Object.values(TaskStatus).filter((s) => s !== currentStatus);
   }
   if (role === UserRole.PM || role === UserRole.EMPLOYEE) {
-    return (
-      TASK_STATUS_TRANSITIONS[currentStatus]?.[
-        role as string
-      ] ?? []
-    );
+    return TASK_STATUS_TRANSITIONS[currentStatus]?.[role as string] ?? [];
   }
   return [];
 }
@@ -132,7 +130,8 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
   const [submitTask, { isLoading: isSubmitting }] = useSubmitTaskMutation();
   const [approveTask, { isLoading: isApproving }] = useApproveTaskMutation();
   const [rejectTask, { isLoading: isRejecting }] = useRejectTaskMutation();
-  const isUpdatingStatus = isStarting || isSubmitting || isApproving || isRejecting;
+  const isUpdatingStatus =
+    isStarting || isSubmitting || isApproving || isRejecting;
   const [uploadFile, { isLoading: isUploading }] = useUploadTaskFileMutation();
   const [deleteFile, { isLoading: isDeletingFile }] =
     useDeleteTaskFileMutation();
@@ -276,7 +275,9 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
             {PRIORITY_LABELS[task.priority]}
           </Badge>
           {typeof task.revisionCount === "number" && task.revisionCount > 0 && (
-            <Badge variant="destructive">طلبات تعديل: {task.revisionCount}</Badge>
+            <Badge variant="destructive">
+              طلبات تعديل: {task.revisionCount}
+            </Badge>
           )}
         </div>
       </div>
@@ -301,7 +302,9 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
           )}
           <div>
             <p className="text-muted-foreground text-xs mb-1">القسم</p>
-            <p className="font-medium">{DEPARTMENT_LABELS[task.department?.name as TaskDepartment]}</p>
+            <p className="font-medium">
+              {DEPARTMENT_LABELS[task.department?.name as TaskDepartment]}
+            </p>
           </div>
           {taskWithRelations.assignee && (
             <div>
@@ -314,7 +317,7 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
               تاريخ الاستحقاق
             </p>
             <p className="font-medium">
-              {new Date(task.dueDate).toLocaleDateString("ar-SA")}
+              {new Date(task.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}
             </p>
           </div>
         </CardContent>
@@ -328,7 +331,9 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
         <CardContent>
           {!taskWithRelations.statusHistory ||
           taskWithRelations.statusHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground">لا توجد انتقالات بعد.</p>
+            <p className="text-sm text-muted-foreground">
+              لا توجد انتقالات بعد.
+            </p>
           ) : (
             <div className="flex flex-col gap-2 text-sm">
               {[...taskWithRelations.statusHistory]
@@ -343,10 +348,13 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
                     className="rounded-md border px-3 py-2 flex items-center justify-between"
                   >
                     <p className="font-medium">
-                      {STATUS_LABELS[entry.fromStatus]} ← {STATUS_LABELS[entry.toStatus]}
+                      {STATUS_LABELS[entry.fromStatus]} ←{" "}
+                      {STATUS_LABELS[entry.toStatus]}
                     </p>
                     <p className="text-xs text-muted-foreground" dir="ltr">
-                      {new Date(entry.changedAt).toLocaleString("ar-SA")}
+                      {new Date(entry.changedAt).toLocaleString(
+                        "ar-SA-u-nu-latn",
+                      )}
                     </p>
                   </div>
                 ))}

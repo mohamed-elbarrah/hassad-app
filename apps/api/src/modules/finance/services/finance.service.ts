@@ -76,14 +76,21 @@ export class FinanceService {
       after: invoice,
     });
 
-    await this.notificationsService.createNotification({
-      entityId: invoice.id,
-      entityType: 'INVOICE',
-      eventType: 'INVOICE_CREATED',
-      userId,
-      title: 'فاتورة جديدة',
-      body: `تم إنشاء فاتورة جديدة بمبلغ ${invoice.amount} ر.س`,
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: dto.clientId },
+      select: { userId: true },
     });
+
+    if (clientUser?.userId) {
+      await this.notificationsService.createNotification({
+        entityId: invoice.id,
+        entityType: 'INVOICE',
+        eventType: 'INVOICE_CREATED',
+        userId: clientUser.userId,
+        title: 'فاتورة جديدة',
+        body: `تم إنشاء فاتورة جديدة بمبلغ ${invoice.amount} ر.س`,
+      });
+    }
 
     return invoice;
   }
@@ -151,14 +158,21 @@ export class FinanceService {
       after: payment,
     });
 
-    await this.notificationsService.createNotification({
-      entityId: payment.id,
-      entityType: 'PAYMENT',
-      eventType: 'PAYMENT_RECEIVED',
-      userId,
-      title: 'تم استلام دفع',
-      body: `تم تسجيل دفعة بقيمة ${payment.amount} ر.س للفاتورة ${invoice.invoiceNumber}`,
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: invoice.clientId },
+      select: { userId: true },
     });
+
+    if (clientUser?.userId) {
+      await this.notificationsService.createNotification({
+        entityId: payment.id,
+        entityType: 'PAYMENT',
+        eventType: 'PAYMENT_RECEIVED',
+        userId: clientUser.userId,
+        title: 'تم استلام دفع',
+        body: `تم تسجيل دفعة بقيمة ${payment.amount} ر.س للفاتورة ${invoice.invoiceNumber}`,
+      });
+    }
 
     return payment;
   }
@@ -379,14 +393,21 @@ export class FinanceService {
       after: updated,
     });
 
-    await this.notificationsService.createNotification({
-      entityId: invoice.id,
-      entityType: 'invoice',
-      eventType: 'INVOICE_SENT',
-      userId: invoice.createdBy,
-      title: 'Invoice Sent',
-      body: `Invoice has been sent to the client`,
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: invoice.clientId },
+      select: { userId: true },
     });
+
+    if (clientUser?.userId) {
+      await this.notificationsService.createNotification({
+        entityId: invoice.id,
+        entityType: 'invoice',
+        eventType: 'INVOICE_SENT',
+        userId: clientUser.userId,
+        title: 'تم إرسال فاتورة',
+        body: `تم إرسال الفاتورة "${invoice.invoiceNumber}" إليك للمراجعة والدفع`,
+      });
+    }
 
     return updated;
   }

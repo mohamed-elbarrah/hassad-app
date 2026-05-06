@@ -85,7 +85,7 @@ function parseNotes(notes?: string | null): {
 }
 
 function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat("ar-SA", {
+  return new Intl.DateTimeFormat("ar-SA-u-nu-latn", {
     year: "numeric",
     month: "long",
     day: "numeric",

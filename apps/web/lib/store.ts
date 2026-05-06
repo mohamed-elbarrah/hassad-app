@@ -18,6 +18,7 @@ import { deliverablesApi } from "@/features/deliverables/deliverablesApi";
 import { adminApi } from "@/features/admin/adminApi";
 import { marketingApi } from "@/features/marketing/marketingApi";
 import { portalApi } from "@/features/portal/portalApi";
+import { portalNotificationsApi } from "@/features/portal-notifications/portalNotificationsApi";
 import { servicesApi } from "@/features/services/servicesApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
 
@@ -42,6 +43,7 @@ export const store = configureStore({
     [adminApi.reducerPath]: adminApi.reducer,
     [marketingApi.reducerPath]: marketingApi.reducer,
     [portalApi.reducerPath]: portalApi.reducer,
+    [portalNotificationsApi.reducerPath]: portalNotificationsApi.reducer,
     [servicesApi.reducerPath]: servicesApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -66,6 +68,7 @@ export const store = configureStore({
       adminApi.middleware,
       marketingApi.middleware,
       portalApi.middleware,
+      portalNotificationsApi.middleware,
       servicesApi.middleware,
     ),
 });

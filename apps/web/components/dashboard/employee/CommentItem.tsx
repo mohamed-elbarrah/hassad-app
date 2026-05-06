@@ -8,7 +8,7 @@ interface CommentItemProps {
 export function CommentItem({ comment }: CommentItemProps) {
   const authorName = comment.user?.name ?? "مستخدم";
   const date = new Date(comment.createdAt);
-  const formattedDate = date.toLocaleString("ar-SA", {
+  const formattedDate = date.toLocaleString("ar-SA-u-nu-latn", {
     year: "numeric",
     month: "short",
     day: "numeric",

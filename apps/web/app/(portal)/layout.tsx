@@ -8,6 +8,7 @@ import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { PortalHeader } from "@/components/portal/PortalHeader";
 import { BottomNav } from "@/components/portal/BottomNav";
 import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
 // ─── localStorage key helper ──────────────────────────────────────────────────
 function intakeStorageKey(userId: string) {
@@ -26,6 +27,8 @@ export default function PortalLayout({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showIntakeForm, setShowIntakeForm] = useState(false);
+
+  useNotificationSocket();
 
   useEffect(() => {
     setMounted(true);

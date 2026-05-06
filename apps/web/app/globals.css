@@ -134,8 +134,10 @@
 
   /* ── Action Colors ───────────────────────────────────────────────────── */
   --color-action-purple: #7a13e8;
+  --color-action-purple-soft: rgba(122, 19, 232, 0.12);
   --color-action-purple-hover: #6b11d1;
   --color-action-blue: #2684fc;
+  --color-action-blue-soft: rgba(38, 132, 252, 0.12);
   --color-action-blue-hover: #1a74e6;
   --color-action-gray-text: #6c6f75;
   --color-pm-button-bg: rgba(28, 39, 77, 0.1);

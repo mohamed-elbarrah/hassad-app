@@ -2,7 +2,7 @@
 // Shared currency, date, and locale formatting utilities.
 
 export const DEFAULT_CURRENCY = "SAR";
-export const DEFAULT_LOCALE = "ar-SA";
+export const DEFAULT_LOCALE = "ar-SA-u-nu-latn";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   SAR: "ر.س",
@@ -12,14 +12,17 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 const CURRENCY_LOCALES: Record<string, string> = {
-  SAR: "ar-SA",
+  SAR: "ar-SA-u-nu-latn",
   DZD: "ar-DZ",
   USD: "en-US",
   EUR: "en-EU",
 };
 
 export function getCurrencySymbol(currency?: string): string {
-  return CURRENCY_SYMBOLS[currency || DEFAULT_CURRENCY] || CURRENCY_SYMBOLS[DEFAULT_CURRENCY];
+  return (
+    CURRENCY_SYMBOLS[currency || DEFAULT_CURRENCY] ||
+    CURRENCY_SYMBOLS[DEFAULT_CURRENCY]
+  );
 }
 
 export function formatCurrency(
@@ -74,7 +77,9 @@ export function formatDateTime(
   }
 }
 
-export function formatRelativeTime(dateString: string | undefined | null): string {
+export function formatRelativeTime(
+  dateString: string | undefined | null,
+): string {
   if (!dateString) return "";
   const diff = Date.now() - new Date(dateString).getTime();
   const minutes = Math.floor(diff / 60000);

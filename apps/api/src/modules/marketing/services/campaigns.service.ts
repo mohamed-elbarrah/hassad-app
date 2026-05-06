@@ -64,6 +64,10 @@ export class CampaignsService {
       eventType: "MARKETING_CAMPAIGN_CREATED",
     });
 
+    this.notifyClientAboutCampaign(campaign.id, "MARKETING_CAMPAIGN_CREATED",
+      "تم إطلاق حملة جديدة",
+      `تم إطلاق حملة "${campaign.name}" لمشروعك`).catch(() => undefined);
+
     return campaign;
   }
 
@@ -211,6 +215,10 @@ export class CampaignsService {
       });
     }
 
+    this.notifyClientAboutCampaign(campaign.id, "MARKETING_METRICS_UPDATED",
+      "تحديث أداء الحملة",
+      `تم تحديث نتائج الحملة "${campaign.name}"`).catch(() => undefined);
+
     return snapshot;
   }
 
@@ -258,6 +266,10 @@ export class CampaignsService {
       });
     }
 
+    this.notifyClientAboutCampaign(id, "MARKETING_CAMPAIGN_STATUS_CHANGED",
+      "تحديث حالة الحملة",
+      `تم تغيير حالة حملة "${campaign.name}" إلى ${status}`).catch(() => undefined);
+
     return updated;
   }
 
@@ -287,6 +299,10 @@ export class CampaignsService {
         entityType: "CAMPAIGN",
         eventType: "MARKETING_OPTIMIZATION_REQUIRED",
       });
+
+      this.notifyClientAboutCampaign(id, "MARKETING_OPTIMIZATION_REQUIRED",
+        "حملة تحتاج تحسين",
+        `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`).catch(() => undefined);
     }
 
     return updated;
@@ -396,5 +412,33 @@ export class CampaignsService {
         `لا يمكن الانتقال من حالة ${current} إلى ${next}`,
       );
     }
+  }
+
+  private async notifyClientAboutCampaign(
+    campaignId: string,
+    eventType: string,
+    title: string,
+    body: string,
+  ) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { name: true, clientId: true },
+    });
+    if (!campaign?.clientId) return;
+
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: campaign.clientId },
+      select: { userId: true },
+    });
+    if (!clientUser?.userId) return;
+
+    await this.notifications.createNotification({
+      entityId: campaignId,
+      entityType: "campaign",
+      eventType,
+      userId: clientUser.userId,
+      title,
+      body,
+    });
   }
 }

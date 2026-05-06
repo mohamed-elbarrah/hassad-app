@@ -44,11 +44,15 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function fmt(n: number) {
-  return n.toLocaleString("ar-SA");
+  return n.toLocaleString("ar-SA-u-nu-latn");
 }
 
 export default function PortalContractsPage() {
-  const { data: contractsData, isLoading, isError } = useGetPortalContractsQuery({
+  const {
+    data: contractsData,
+    isLoading,
+    isError,
+  } = useGetPortalContractsQuery({
     page: 1,
     limit: 20,
   });
@@ -117,10 +121,14 @@ export default function PortalContractsPage() {
                       {TYPE_LABELS[contract.type] ?? contract.type}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {new Date(contract.startDate).toLocaleDateString("ar-SA")}
+                      {new Date(contract.startDate).toLocaleDateString(
+                        "ar-SA-u-nu-latn",
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {new Date(contract.endDate).toLocaleDateString("ar-SA")}
+                      {new Date(contract.endDate).toLocaleDateString(
+                        "ar-SA-u-nu-latn",
+                      )}
                     </TableCell>
                     <TableCell className="text-sm">
                       {fmt(contract.totalValue)} ر.س
