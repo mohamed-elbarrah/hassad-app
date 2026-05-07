@@ -35,12 +35,17 @@ import {
 } from "@/features/marketing/marketingApi";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useState } from "react";
 
 interface CampaignDetailDrawerProps {
   campaign: Campaign | null;
   isOpen: boolean;
   onClose: () => void;
   onUpdate?: (updated: any) => void;
+}
+
+function safeNum(n: any): number {
+  return typeof n === "number" ? n : 0;
 }
 
 export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: CampaignDetailDrawerProps) {
@@ -51,13 +56,22 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
 
   if (!campaign) return null;
 
-  const metrics = computeMetrics(campaign);
+  const normalized = {
+    ...campaign,
+    impressions: safeNum(campaign.impressions),
+    clicks: safeNum(campaign.clicks),
+    conversions: safeNum(campaign.conversions),
+    revenue: safeNum(campaign.revenue),
+    budgetSpent: safeNum(campaign.budgetSpent),
+  };
+  const metrics = computeMetrics(normalized);
   const isProfitable = parseFloat(metrics.profit) > 0;
 
   const handleStatusAction = async (action: 'start' | 'pause' | 'stop' | 'end') => {
     try {
       await updateStatus({ id: campaign.id, action }).unwrap();
       toast.success("تم تحديث حالة الحملة");
+      onClose();
     } catch (err) {
       toast.error("فشل تحديث الحالة");
     }
@@ -170,8 +184,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <AnalyticsMetric label="الربح الصافي" value={`$${metrics.profit}`} isGood={isProfitable} />
                 <AnalyticsMetric label="الـ ROAS" value={`${metrics.roas}x`} isGood={parseFloat(metrics.roas) >= 2} />
-                <AnalyticsMetric label="الإنفاق الكلي" value={`$${campaign.budgetSpent}`} />
-                <AnalyticsMetric label="إجمالي العائد" value={`$${campaign.revenue}`} />
+                <AnalyticsMetric label="الإنفاق الكلي" value={`$${normalized.budgetSpent}`} />
+                <AnalyticsMetric label="إجمالي العائد" value={`$${normalized.revenue}`} />
               </div>
             </div>
 
@@ -183,7 +197,7 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 <Target className="w-3.5 h-3.5" /> التحويلات والاستحواذ
               </h5>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <AnalyticsMetric label="التحويلات" value={campaign.conversions.toString()} />
+                <AnalyticsMetric label="التحويلات" value={normalized.conversions.toString()} />
                 <AnalyticsMetric label="الـ CPA" value={`$${metrics.cpa}`} isGood={parseFloat(metrics.cpa) < 50} />
                 <AnalyticsMetric label="معدل التحويل" value={`${metrics.convRate}%`} isGood={parseFloat(metrics.convRate) > 1} />
                 <AnalyticsMetric label="تكلفة العميل" value={`$${metrics.cpa}`} />
@@ -198,8 +212,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 <Activity className="w-3.5 h-3.5" /> التفاعل والوصول
               </h5>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <AnalyticsMetric label="الظهور" value={campaign.impressions.toLocaleString()} />
-                <AnalyticsMetric label="النقرات" value={campaign.clicks.toLocaleString()} />
+                <AnalyticsMetric label="الظهور" value={normalized.impressions.toLocaleString()} />
+                <AnalyticsMetric label="النقرات" value={normalized.clicks.toLocaleString()} />
                 <AnalyticsMetric label="الـ CTR" value={`${metrics.ctr}%`} isGood={parseFloat(metrics.ctr) > 0.8} />
                 <AnalyticsMetric label="الـ CPM" value={`$${metrics.cpm}`} />
               </div>
@@ -224,8 +238,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 <div className="relative">
                   <Input 
                     type="number" 
-                    value={campaign.budgetSpent} 
-                    onChange={(e) => handleMetricChange('budgetSpent', parseFloat(e.target.value))}
+                    defaultValue={normalized.budgetSpent} 
+                    onBlur={(e) => handleMetricChange('budgetSpent', parseFloat(e.target.value))}
                     disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
@@ -237,8 +251,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 <div className="relative">
                   <Input 
                     type="number" 
-                    value={campaign.revenue || 0} 
-                    onChange={(e) => handleMetricChange('revenue', parseFloat(e.target.value))}
+                    defaultValue={normalized.revenue} 
+                    onBlur={(e) => handleMetricChange('revenue', parseFloat(e.target.value))}
                     disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
@@ -250,8 +264,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 <div className="relative">
                   <Input 
                     type="number" 
-                    value={campaign.conversions} 
-                    onChange={(e) => handleMetricChange('conversions', parseInt(e.target.value))}
+                    defaultValue={normalized.conversions} 
+                    onBlur={(e) => handleMetricChange('conversions', parseInt(e.target.value))}
                     disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
@@ -263,8 +277,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 <div className="relative">
                   <Input 
                     type="number" 
-                    value={campaign.clicks} 
-                    onChange={(e) => handleMetricChange('clicks', parseInt(e.target.value))}
+                    defaultValue={normalized.clicks} 
+                    onBlur={(e) => handleMetricChange('clicks', parseInt(e.target.value))}
                     disabled={isUpdatingMetrics}
                     className="pl-8"
                   />
@@ -276,8 +290,8 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
                 <div className="relative">
                   <Input 
                     type="number" 
-                    value={campaign.impressions} 
-                    onChange={(e) => handleMetricChange('impressions', parseInt(e.target.value))}
+                    defaultValue={normalized.impressions} 
+                    onBlur={(e) => handleMetricChange('impressions', parseInt(e.target.value))}
                     disabled={isUpdatingMetrics}
                     className="pl-8"
                   />

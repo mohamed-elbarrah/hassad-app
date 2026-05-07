@@ -38,6 +38,12 @@ export class CampaignsController {
     return this.campaignsService.findAll(query);
   }
 
+  @Get("my-stats")
+  @RequirePermissions("marketing.read")
+  getMyStats(@CurrentUser() user: any) {
+    return this.campaignsService.myStats(user.id);
+  }
+
   @Get(":id")
   @RequirePermissions("marketing.read")
   findOne(@Param("id") id: string) {

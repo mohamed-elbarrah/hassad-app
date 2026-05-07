@@ -593,6 +593,32 @@ export class TasksService {
     return this.updateStatus(id, userId, TaskStatus.REVISION);
   }
 
+  async changeStatus(id: string, userId: string, toStatus: TaskStatus) {
+    const validStatuses = Object.values(TaskStatus);
+    if (!validStatuses.includes(toStatus)) {
+      throw new BadRequestException(
+        `Invalid status: ${toStatus}. Valid statuses: ${validStatuses.join(", ")}`,
+      );
+    }
+
+    switch (toStatus) {
+      case TaskStatus.TODO:
+        throw new BadRequestException(
+          "Cannot revert a task to TODO. Use start to move to IN_PROGRESS.",
+        );
+      case TaskStatus.IN_PROGRESS:
+        return this.start(id, userId);
+      case TaskStatus.IN_REVIEW:
+        return this.submit(id, userId);
+      case TaskStatus.DONE:
+        return this.approve(id, userId);
+      case TaskStatus.REVISION:
+        return this.reject(id, userId);
+      default:
+        throw new BadRequestException(`Unhandled status: ${toStatus}`);
+    }
+  }
+
   async addFile(
     id: string,
     userId: string,
@@ -744,14 +770,19 @@ export class TasksService {
       status?: string;
       priority?: string;
       dept?: string;
+      deptName?: string;
       dueBefore?: string;
       dueAfter?: string;
     },
+    includeCampaigns: boolean = false,
   ) {
     const where: Record<string, unknown> = { assignedTo: userId };
     if (filters.status) where["status"] = filters.status;
     if (filters.priority) where["priority"] = filters.priority;
     if (filters.dept) where["departmentId"] = filters.dept;
+    if (filters.deptName) {
+      where["department"] = { name: filters.deptName };
+    }
 
     if (filters.dueBefore || filters.dueAfter) {
       const dueDateFilter: Record<string, Date> = {};
@@ -760,25 +791,38 @@ export class TasksService {
       where["dueDate"] = dueDateFilter;
     }
 
-    return this.prisma.task.findMany({
-      where,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            clientId: true,
-            client: {
-              select: {
-                companyName: true,
-                businessType: true,
-              },
+    const include: any = {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          clientId: true,
+          client: {
+            select: {
+              companyName: true,
+              businessType: true,
             },
           },
         },
-        assignee: { select: { id: true, name: true } },
-        department: { select: { id: true, name: true } },
       },
+      assignee: { select: { id: true, name: true } },
+      department: { select: { id: true, name: true } },
+    };
+
+    if (includeCampaigns) {
+      include.campaigns = {
+        include: {
+          kpiSnapshots: {
+            orderBy: { recordedAt: "desc" },
+            take: 1,
+          },
+        },
+      };
+    }
+
+    return this.prisma.task.findMany({
+      where,
+      include,
       orderBy: { createdAt: "desc" },
     });
   }

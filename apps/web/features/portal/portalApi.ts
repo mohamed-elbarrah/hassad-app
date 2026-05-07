@@ -95,6 +95,25 @@ export interface PortalCampaign {
   updatedAt: string;
 }
 
+export interface PortalCampaignKpiSnapshot {
+  id: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  revenue: number;
+  cpc: number;
+  cpa: number;
+  ctr: number;
+  conversionRate: number;
+  roas: number;
+  source: string | null;
+  recordedAt: string;
+}
+
+export interface PortalCampaignDetail extends PortalCampaign {
+  kpiSnapshots: PortalCampaignKpiSnapshot[];
+}
+
 export interface PortalProjectList {
   data: ProjectSummary[];
   total: number;
@@ -181,6 +200,7 @@ export const portalApi = createApi({
     "ActionItems",
     "ActivityFeed",
     "CampaignSummary",
+    "PortalCampaign",
     "PortalProjects",
     "PortalRequests",
     "PortalInvoices",
@@ -219,6 +239,10 @@ export const portalApi = createApi({
     getPortalCampaigns: builder.query<PortalCampaign[], void>({
       query: () => "/portal/campaigns",
       providesTags: ["PortalCampaigns"],
+    }),
+    getPortalCampaign: builder.query<PortalCampaignDetail, string>({
+      query: (id) => `/portal/campaigns/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "PortalCampaign", id }],
     }),
     getActionItems: builder.query<
       { items: ActionItem[]; total: number; page: number; limit: number },
@@ -290,6 +314,7 @@ export const {
   useGetPortalProjectsQuery,
   useGetPortalRequestsQuery,
   useGetPortalCampaignsQuery,
+  useGetPortalCampaignQuery,
   useGetActionItemsQuery,
   useGetActivityFeedQuery,
   useGetCampaignSummaryQuery,

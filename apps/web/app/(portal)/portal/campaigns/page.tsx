@@ -8,6 +8,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const STATUS_LABELS: Record<string, string> = {
   PLANNING: "تخطيط",
@@ -43,7 +45,7 @@ export default function PortalCampaignsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
 
-  const { data: campaigns, isLoading } = useGetPortalCampaignsQuery(undefined, {
+  const { data: campaigns, isLoading, isError, refetch } = useGetPortalCampaignsQuery(undefined, {
     skip: !clientId,
   });
 
@@ -62,7 +64,22 @@ export default function PortalCampaignsPage() {
         </p>
       )}
 
-      {clientId && (
+      {clientId && isError && !isLoading && (
+        <div className="flex flex-col items-center gap-4 py-12">
+          <Card className="max-w-md w-full">
+            <CardContent className="py-8 text-center flex flex-col items-center gap-4">
+              <p className="text-muted-foreground text-sm">
+                تعذر تحميل الحملات. يرجى المحاولة مرة أخرى.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {clientId && !isError && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {isLoading &&
             Array.from({ length: 4 }).map((_, i) => (
@@ -86,7 +103,8 @@ export default function PortalCampaignsPage() {
           {!isLoading &&
             campaigns &&
             campaigns.map((campaign: PortalCampaign) => (
-              <Card key={campaign.id}>
+              <Link key={campaign.id} href={`/portal/campaigns/${campaign.id}`} className="block">
+                <Card className="hover:border-primary/50 transition-colors cursor-pointer">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{campaign.name}</CardTitle>
@@ -146,6 +164,7 @@ export default function PortalCampaignsPage() {
                   </div>
                 </CardContent>
               </Card>
+              </Link>
             ))}
         </div>
       )}

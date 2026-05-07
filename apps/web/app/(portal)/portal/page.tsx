@@ -41,6 +41,7 @@ import {
   mapProjectStatusToUI,
 } from "@/lib/utils/statusMapping";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const ACTION_TYPE_CONFIG: Record<
@@ -106,7 +107,7 @@ export default function PortalPage() {
     useGetActivityFeedQuery(undefined, {
       skip: !clientId,
     });
-  const { data: campaignSummary, error: campaignError } =
+  const { data: campaignSummary, error: campaignError, isLoading: campaignLoading } =
     useGetCampaignSummaryQuery(undefined, {
       skip: !clientId,
     });
@@ -340,7 +341,13 @@ export default function PortalPage() {
           icon={TrendingUp}
           onShowAll={() => router.push("/portal/campaigns")}
         >
-          {campaignError ? (
+          {campaignLoading ? (
+            <div className="space-y-3 px-1">
+              <Skeleton className="h-[30px] w-full rounded-lg" />
+              <Skeleton className="h-[30px] w-full rounded-lg" />
+              <Skeleton className="h-[30px] w-3/4 rounded-lg" />
+            </div>
+          ) : campaignError ? (
             <p className="text-[16px] text-portal-note-text text-center py-4">
               تعذر تحميل بيانات الحملة
             </p>

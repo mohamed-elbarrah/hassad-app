@@ -17,28 +17,27 @@ import {
 } from "lucide-react";
 import { AlertList } from "@/components/dashboard/marketing/AlertList";
 import { useGetMyTasksQuery } from "@/features/tasks/tasksApi";
+import { useGetMyCampaignStatsQuery } from "@/features/marketing/marketingApi";
+import { useGetMyNotificationsQuery } from "@/features/notifications/notificationsApi";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/format";
 import { EmptyState } from "@/components/common/EmptyState";
 import Link from "next/link";
 
 
 export default function MarketingDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
-  const { data: tasks = [], isLoading } = useGetMyTasksQuery({}, { pollingInterval: 30000 });
-  // Filter for marketing department
-  const marketingTasks = tasks.filter(task => task.department?.name === "MARKETING");
+  const { data: tasks = [], isLoading } = useGetMyTasksQuery(
+    { deptName: "MARKETING", includeCampaigns: true },
+    { pollingInterval: 30000 },
+  );
+  const { data: campaignStats, isLoading: statsLoading } = useGetMyCampaignStatsQuery(undefined, { pollingInterval: 30000 });
+  const { data: notificationsData, isLoading: notifsLoading } = useGetMyNotificationsQuery({ limit: 10, page: 1 });
 
-  // Simple aggregation for the dashboard summary
-  // In a real scenario, we might want a dedicated stats endpoint
-  const stats = {
-    totalActiveTasks: marketingTasks.filter(t => t.status === 'IN_PROGRESS').length,
-    totalActiveCampaigns: 0, // We don't have global campaigns list here, would need another query
-    totalBudgetUsed: 0,
-    avgRoas: "0.0"
-  };
+  const marketingTasks = tasks;
+  const totalActiveTasks = marketingTasks.filter(t => t.status === 'IN_PROGRESS').length;
 
-  if (isLoading) {
+  if (isLoading || statsLoading) {
     return (
       <div className="flex flex-col gap-8 pb-10" dir="rtl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -83,25 +82,25 @@ export default function MarketingDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard 
           title="المهام النشطة" 
-          value={stats.totalActiveTasks.toString()} 
+          value={totalActiveTasks.toString()} 
           icon={<Zap className="w-4 h-4" />}
           color="bg-indigo-500"
         />
         <SummaryCard 
           title="الحملات النشطة" 
-          value={stats.totalActiveCampaigns.toString()} 
+          value={campaignStats?.activeCampaigns?.toString() ?? "—"} 
           icon={<Activity className="w-4 h-4" />}
           color="bg-emerald-500"
         />
         <SummaryCard 
           title="إجمالي الإنفاق" 
-          value={formatCurrency(stats.totalBudgetUsed)} 
+          value={formatCurrency(campaignStats?.totalBudgetUsed)} 
           icon={<Wallet className="w-4 h-4" />}
           color="bg-amber-500"
         />
         <SummaryCard 
           title="متوسط الـ ROAS" 
-          value={`${stats.avgRoas}x`} 
+          value={campaignStats?.avgRoas != null ? `${Number(campaignStats.avgRoas).toFixed(1)}x` : "—x"} 
           icon={<Target className="w-4 h-4" />}
           color="bg-rose-500"
         />
@@ -162,26 +161,36 @@ export default function MarketingDashboardPage() {
             <CardTitle>آخر النشاطات</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {[
-                { user: "PM", action: "قام بتعديل", target: "مهمة رمضان", time: "قبل ساعة" },
-                { user: "System", action: "تحديث المقاييس", target: "Snapchat Ads", time: "قبل ساعتين" },
-                { user: "PM", action: "أسند إليك", target: "حملة تيك توك", time: "قبل 5 ساعات" },
-              ].map((act, i) => (
-                <div key={i} className="flex gap-3 relative">
-                  {i !== 2 && <div className="absolute left-[17px] top-8 bottom-0 w-px bg-muted" />}
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Activity className="w-4 h-4 text-primary" />
+            {notifsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : notificationsData?.data?.length ? (
+              <div className="space-y-6">
+                {notificationsData.data.slice(0, 10).map((notif, i) => (
+                  <div key={notif.id || i} className="flex gap-3 relative">
+                    {i < Math.min(notificationsData.data.length, 10) - 1 && (
+                      <div className="absolute left-[17px] top-8 bottom-0 w-px bg-muted" />
+                    )}
+                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Activity className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm">
+                        <span className="font-medium">{notif.title}</span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {formatRelativeTime(notif.createdAt as string)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm">
-                      <span className="font-bold">{act.user}</span> {act.action} <span className="font-medium text-primary">{act.target}</span>
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{act.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                لا توجد نشاطات حديثة
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
