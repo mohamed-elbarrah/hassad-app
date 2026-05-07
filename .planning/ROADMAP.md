@@ -55,7 +55,11 @@ Plans:
   3. Client portal dashboard campaign summary shows a loading skeleton during fetch instead of a misleading "no campaigns" empty message
   4. Client can click any campaign card in the list to navigate to its detail page via a clearly identifiable link
   5. Campaign detail page data is fetched via a dedicated RTK Query hook (`useGetPortalCampaignQuery`) and renders all KPI snapshots chronologically
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Add error state + nav links to campaigns list, single-campaign RTK hook, dashboard campaign skeleton, and backend KPI history enrichment
+- [ ] 03-02-PLAN.md — Create /portal/campaigns/[id] detail page with KPI history table, status timeline, and budget breakdown
 **UI hint**: yes
 
 ## Progress
@@ -67,4 +71,4 @@ Phases execute in numeric order: 1 → 2 → 3. Phase 2 and 3 both depend on Pha
 |-------|----------------|--------|-----------|
 | 1. Data Integrity & API Safety | 0/1 | Not started | - |
 | 2. Marketer Dashboard UX | 0/3 | Planned | - |
-| 3. Client Portal UX | 0/0 | Not started | - |
+| 3. Client Portal UX | 0/2 | Planned | - |
