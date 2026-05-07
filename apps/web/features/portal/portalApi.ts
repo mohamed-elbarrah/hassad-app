@@ -361,7 +361,7 @@ export const portalApi = createApi({
     }),
     getReportTimeline: builder.query<
       ReportTimeline,
-      { dateFrom?: string; dateTo?: string; granularity?: "week" | "month" } | void
+      { dateFrom?: string; dateTo?: string; granularity?: "day" | "week" | "month" } | void
     >({
       query: (params) =>
         params

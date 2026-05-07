@@ -48,7 +48,6 @@ export function SpendDistributionDonutChart({ data }: SpendDistributionDonutChar
               nameKey="platform"
               paddingAngle={3}
               strokeWidth={0}
-              cornerRadius={4}
             >
               {data.map((entry, i) => (
                 <Cell

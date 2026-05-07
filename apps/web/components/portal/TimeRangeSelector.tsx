@@ -2,40 +2,54 @@
 
 import { Button } from "@/components/ui/button";
 
-export type TimeRange = "last30" | "thisMonth" | "last3Months";
+export type TimeRange = "last7days" | "last30days" | "last12months";
 
-const RANGES: { key: TimeRange; label: string }[] = [
-  { key: "last30", label: "آخر 30 يوم" },
-  { key: "thisMonth", label: "هذا الشهر" },
-  { key: "last3Months", label: "آخر 3 أشهر" },
+export type TimelineGranularity = "day" | "week" | "month";
+
+interface RangeConfig {
+  key: TimeRange;
+  label: string;
+  granularity: TimelineGranularity;
+}
+
+const RANGES: RangeConfig[] = [
+  { key: "last7days", label: "آخر 7 أيام", granularity: "day" },
+  { key: "last30days", label: "آخر 30 يوم", granularity: "day" },
+  { key: "last12months", label: "آخر 12 شهر", granularity: "month" },
 ];
 
-export function getTimeRangeDates(range: TimeRange): { dateFrom: string; dateTo: string } {
+export function getTimeRangeParams(range: TimeRange): {
+  dateFrom: string;
+  dateTo: string;
+  granularity: TimelineGranularity;
+} {
   const now = new Date();
   const dateTo = now.toISOString().slice(0, 10);
   let dateFrom: string;
 
   switch (range) {
-    case "thisMonth": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      dateFrom = start.toISOString().slice(0, 10);
+    case "last7days": {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      dateFrom = d.toISOString().slice(0, 10);
       break;
     }
-    case "last3Months": {
-      const start = new Date(now);
-      start.setMonth(start.getMonth() - 3);
-      dateFrom = start.toISOString().slice(0, 10);
+    case "last30days": {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      dateFrom = d.toISOString().slice(0, 10);
       break;
     }
-    default: {
-      const start = new Date(now);
-      start.setDate(start.getDate() - 30);
-      dateFrom = start.toISOString().slice(0, 10);
+    case "last12months": {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 12);
+      dateFrom = d.toISOString().slice(0, 10);
       break;
     }
   }
 
-  return { dateFrom, dateTo };
+  const config = RANGES.find((r) => r.key === range) || RANGES[0];
+  return { dateFrom, dateTo, granularity: config.granularity };
 }
 
 interface TimeRangeSelectorProps {

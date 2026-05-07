@@ -1194,11 +1194,91 @@ export class PortalService {
     };
   }
 
+  private generateDateRangeKeys(
+    dateFrom: Date,
+    dateTo: Date,
+    granularity: 'day' | 'week' | 'month',
+  ): string[] {
+    const keys: string[] = [];
+
+    switch (granularity) {
+      case 'day': {
+        const cursor = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
+        const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+        while (cursor <= end) {
+          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+          keys.push(key);
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        break;
+      }
+      case 'month': {
+        const cursor = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 1);
+        const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), 1);
+        while (cursor <= end) {
+          keys.push(
+            `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`,
+          );
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+        break;
+      }
+      case 'week':
+      default: {
+        const startOfWeek = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+        const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+        const cursor = new Date(startOfWeek);
+        while (cursor <= end) {
+          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+          keys.push(key);
+          cursor.setDate(cursor.getDate() + 7);
+        }
+        break;
+      }
+    }
+    return keys;
+  }
+
+  private formatTimelineLabel(key: string, granularity: 'day' | 'week' | 'month'): string {
+    switch (granularity) {
+      case 'day': {
+        const [y, m, d] = key.split('-');
+        const date = new Date(Number(y), Number(m) - 1, Number(d));
+        return new Intl.DateTimeFormat('ar-SA', {
+          day: 'numeric',
+          month: 'short',
+        }).format(date);
+      }
+      case 'month': {
+        const [y, m] = key.split('-');
+        const d = new Date(Number(y), Number(m) - 1, 1);
+        return new Intl.DateTimeFormat('ar-SA', { month: 'short' }).format(d);
+      }
+      case 'week':
+      default: {
+        const [y, m, d] = key.split('-');
+        const date = new Date(Number(y), Number(m) - 1, Number(d));
+        return new Intl.DateTimeFormat('ar-SA', {
+          day: 'numeric',
+          month: 'short',
+        }).format(date);
+      }
+    }
+  }
+
+  private readonly ZERO_BUCKET = {
+    impressions: 0,
+    clicks: 0,
+    conversions: 0,
+    spend: 0,
+  };
+
   async getReportTimeline(
     clientId: string,
     dateFrom: Date,
     dateTo: Date,
-    granularity: 'week' | 'month',
+    granularity: 'day' | 'week' | 'month',
   ): Promise<any> {
     const campaigns = await this.prisma.campaign.findMany({
       where: { clientId },
@@ -1210,6 +1290,8 @@ export class PortalService {
 
     const campaignIds = campaigns.map((c) => c.id);
 
+    const allKeys = this.generateDateRangeKeys(dateFrom, dateTo, granularity);
+
     const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
       where: {
         campaignId: { in: campaignIds },
@@ -1218,75 +1300,67 @@ export class PortalService {
       orderBy: { recordedAt: 'asc' },
     });
 
-    if (snapshots.length === 0) {
-      return { labels: [], datasets: [] };
-    }
-
     const buckets: Record<
       string,
       { impressions: number; clicks: number; conversions: number; spend: number }
     > = {};
 
+    for (const key of allKeys) {
+      buckets[key] = { ...this.ZERO_BUCKET };
+    }
+
     for (const s of snapshots) {
       const d = new Date(s.recordedAt);
       let key: string;
-      if (granularity === 'month') {
-        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      } else {
-        const weekStart = new Date(d);
-        weekStart.setDate(d.getDate() - d.getDay());
-        key = weekStart.toISOString().slice(0, 10);
+
+      switch (granularity) {
+        case 'day':
+          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          break;
+        case 'month':
+          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          break;
+        case 'week':
+        default:
+          const weekStart = new Date(d);
+          weekStart.setDate(d.getDate() - d.getDay());
+          key = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+          break;
       }
 
-      if (!buckets[key]) {
-        buckets[key] = {
-          impressions: 0,
-          clicks: 0,
-          conversions: 0,
-          spend: 0,
-        };
+      if (buckets[key]) {
+        buckets[key].impressions += s.impressions;
+        buckets[key].clicks += s.clicks;
+        buckets[key].conversions += s.conversions;
+        buckets[key].spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
       }
-      buckets[key].impressions += s.impressions;
-      buckets[key].clicks += s.clicks;
-      buckets[key].conversions += s.conversions;
-      buckets[key].spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
     }
 
-    const sortedKeys = Object.keys(buckets).sort();
-    const labels = sortedKeys.map((key) => {
-      if (granularity === 'month') {
-        const [y, m] = key.split('-');
-        const d = new Date(Number(y), Number(m) - 1, 1);
-        return new Intl.DateTimeFormat('ar-SA', { month: 'short' }).format(d);
-      }
-      const d = new Date(key);
-      return new Intl.DateTimeFormat('ar-SA', {
-        day: 'numeric',
-        month: 'short',
-      }).format(d);
-    });
+    const labels = allKeys.map((key) =>
+      this.formatTimelineLabel(key, granularity),
+    );
 
     return {
       labels,
       datasets: [
         {
           label: 'عدد مرات الظهور',
-          data: sortedKeys.map((k) => buckets[k].impressions),
+          data: allKeys.map((k) => buckets[k].impressions),
           metric: 'impressions',
         },
         {
           label: 'عدد النقرات',
-          data: sortedKeys.map((k) => buckets[k].clicks),
+          data: allKeys.map((k) => buckets[k].clicks),
           metric: 'clicks',
         },
         {
           label: 'عدد التحويلات',
-          data: sortedKeys.map((k) => buckets[k].conversions),
+          data: allKeys.map((k) => buckets[k].conversions),
           metric: 'conversions',
         },
         {
           label: 'إجمالي الإنفاق',
-          data: sortedKeys.map((k) => buckets[k].spend),
+          data: allKeys.map((k) => buckets[k].spend),
           metric: 'spend',
         },
       ],

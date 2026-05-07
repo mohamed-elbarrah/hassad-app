@@ -6,18 +6,17 @@ import {
   useGetPortalReportsQuery,
   useGetReportTimelineQuery,
   type ReportSummary,
-  type ReportTimeline,
 } from "@/features/portal/portalApi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { BarChart3, TrendingUp, Lightbulb, BarChart2, PieChart } from "lucide-react";
-import { MonthlyComparisonBarChart, type BarGranularity } from "@/components/portal/MonthlyComparisonBarChart";
+import { MonthlyComparisonBarChart } from "@/components/portal/MonthlyComparisonBarChart";
 import { PerformanceTrendLineChart } from "@/components/portal/PerformanceTrendLineChart";
 import { SpendDistributionDonutChart } from "@/components/portal/SpendDistributionDonutChart";
 import { SmartTips } from "@/components/portal/SmartTips";
 import { TopCampaignsTable } from "@/components/portal/TopCampaignsTable";
-import { TimeRangeSelector, getTimeRangeDates, type TimeRange } from "@/components/portal/TimeRangeSelector";
+import { TimeRangeSelector, getTimeRangeParams, type TimeRange } from "@/components/portal/TimeRangeSelector";
 
 function fmtCompact(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
@@ -58,7 +57,7 @@ function KpiCard({ card }: KpiCardProps) {
   const isNegative = (card.trendPercent ?? 0) < 0;
 
   return (
-    <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100 text-center" dir="rtl">
+    <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100 text-center" >
       <p className="text-xs text-muted-foreground mb-2">{card.label}</p>
       <div className="flex items-center justify-center gap-2">
         <span
@@ -94,11 +93,9 @@ export default function PortalReportsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
 
-  const [timeRange, setTimeRange] = useState<TimeRange>("last30");
-  const [barGranularity, setBarGranularity] = useState<BarGranularity>("week");
+  const [timeRange, setTimeRange] = useState<TimeRange>("last7days");
 
-  const rangeDates = useMemo(() => getTimeRangeDates(timeRange), [timeRange]);
-  const timelineGranularity = timeRange === "last3Months" ? "month" : "week";
+  const rangeParams = useMemo(() => getTimeRangeParams(timeRange), [timeRange]);
 
   const { data: report, isLoading, isError, refetch } = useGetPortalReportsQuery(
     undefined,
@@ -106,7 +103,7 @@ export default function PortalReportsPage() {
   );
 
   const { data: timeline } = useGetReportTimelineQuery(
-    { dateFrom: rangeDates.dateFrom, dateTo: rangeDates.dateTo, granularity: timelineGranularity },
+    { dateFrom: rangeParams.dateFrom, dateTo: rangeParams.dateTo, granularity: rangeParams.granularity },
     { skip: !clientId },
   );
 
@@ -168,6 +165,18 @@ export default function PortalReportsPage() {
 
               {/* Charts Row */}
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="md:col-span-3 bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-end mb-3">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                      تطور الأداء
+                      <TrendingUp size={16} style={{ color: "#9CA3AF" }} />
+                    </h3>
+                  </div>
+                  <div className="h-[220px] md:h-[260px]">
+                    <PerformanceTrendLineChart timeline={timeline} />
+                  </div>
+                </div>
+                
                 <div className="md:col-span-2 bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5">
@@ -178,21 +187,7 @@ export default function PortalReportsPage() {
                   <div className="h-[220px] md:h-[260px]">
                     <MonthlyComparisonBarChart
                       timeline={timeline}
-                      granularity={barGranularity}
-                      onGranularityChange={setBarGranularity}
                     />
-                  </div>
-                </div>
-
-                <div className="md:col-span-3 bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100">
-                  <div className="flex items-center justify-end mb-3">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                      تطور الأداء
-                      <TrendingUp size={16} style={{ color: "#9CA3AF" }} />
-                    </h3>
-                  </div>
-                  <div className="h-[220px] md:h-[260px]">
-                    <PerformanceTrendLineChart timeline={timeline} />
                   </div>
                 </div>
               </div>

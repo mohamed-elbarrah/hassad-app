@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 
 export enum ReportGranularity {
+  DAY = 'day',
   WEEK = 'week',
   MONTH = 'month',
 }
@@ -24,7 +25,7 @@ export class ReportTimelineQueryDto {
 
   @IsOptional()
   @IsEnum(ReportGranularity)
-  granularity?: 'week' | 'month';
+  granularity?: 'day' | 'week' | 'month';
 }
 
 export class ReportKpiCardDto {
