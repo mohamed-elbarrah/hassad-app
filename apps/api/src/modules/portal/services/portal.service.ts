@@ -1115,4 +1115,468 @@ export class PortalService {
       roas: 0,
     };
   }
+
+  async getReportSummary(clientId: string): Promise<any> {
+    const now = new Date();
+    const dateFrom = new Date(now);
+    dateFrom.setDate(dateFrom.getDate() - 30);
+
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true },
+    });
+
+    if (campaigns.length === 0) {
+      return {
+        kpiCards: [],
+        smartTips: [],
+        topCampaigns: [],
+        platformDistribution: [],
+        period: { dateFrom: dateFrom.toISOString(), dateTo: now.toISOString() },
+      };
+    }
+
+    const aggregates = await this.getReportKpiAggregates(
+      clientId,
+      dateFrom,
+      now,
+    );
+
+    const kpiCards = [
+      {
+        metric: 'conversionRate',
+        label: 'معدل التحويل',
+        value: aggregates.current.conversionRate,
+        previousValue: aggregates.previous?.conversionRate ?? 0,
+        trendPercent: aggregates.trends.conversionRate,
+      },
+      {
+        metric: 'clicks',
+        label: 'عدد النقرات',
+        value: aggregates.current.clicks,
+        previousValue: aggregates.previous?.clicks ?? 0,
+        trendPercent: aggregates.trends.clicks,
+      },
+      {
+        metric: 'impressions',
+        label: 'عدد مرات الظهور',
+        value: aggregates.current.impressions,
+        previousValue: aggregates.previous?.impressions ?? 0,
+        trendPercent: aggregates.trends.impressions,
+      },
+      {
+        metric: 'spend',
+        label: 'إجمالي الإنفاق',
+        value: aggregates.current.spend,
+        previousValue: aggregates.previous?.spend ?? 0,
+        trendPercent: aggregates.trends.spend,
+      },
+    ];
+
+    const smartTips = this.generateSmartTips(aggregates);
+    const topCampaigns = await this.getTopPerformingCampaigns(
+      clientId,
+      dateFrom,
+      now,
+    );
+    const platformDistribution = await this.getPlatformDistribution(
+      clientId,
+      dateFrom,
+      now,
+    );
+
+    return {
+      kpiCards,
+      smartTips,
+      topCampaigns,
+      platformDistribution,
+      period: { dateFrom: dateFrom.toISOString(), dateTo: now.toISOString() },
+    };
+  }
+
+  async getReportTimeline(
+    clientId: string,
+    dateFrom: Date,
+    dateTo: Date,
+    granularity: 'week' | 'month',
+  ): Promise<any> {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true },
+    });
+    if (campaigns.length === 0) {
+      return { labels: [], datasets: [] };
+    }
+
+    const campaignIds = campaigns.map((c) => c.id);
+
+    const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
+      where: {
+        campaignId: { in: campaignIds },
+        recordedAt: { gte: dateFrom, lte: dateTo },
+      },
+      orderBy: { recordedAt: 'asc' },
+    });
+
+    if (snapshots.length === 0) {
+      return { labels: [], datasets: [] };
+    }
+
+    const buckets: Record<
+      string,
+      { impressions: number; clicks: number; conversions: number; spend: number }
+    > = {};
+
+    for (const s of snapshots) {
+      const d = new Date(s.recordedAt);
+      let key: string;
+      if (granularity === 'month') {
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      } else {
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - d.getDay());
+        key = weekStart.toISOString().slice(0, 10);
+      }
+
+      if (!buckets[key]) {
+        buckets[key] = {
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          spend: 0,
+        };
+      }
+      buckets[key].impressions += s.impressions;
+      buckets[key].clicks += s.clicks;
+      buckets[key].conversions += s.conversions;
+      buckets[key].spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
+    }
+
+    const sortedKeys = Object.keys(buckets).sort();
+    const labels = sortedKeys.map((key) => {
+      if (granularity === 'month') {
+        const [y, m] = key.split('-');
+        const d = new Date(Number(y), Number(m) - 1, 1);
+        return new Intl.DateTimeFormat('ar-SA', { month: 'short' }).format(d);
+      }
+      const d = new Date(key);
+      return new Intl.DateTimeFormat('ar-SA', {
+        day: 'numeric',
+        month: 'short',
+      }).format(d);
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'عدد مرات الظهور',
+          data: sortedKeys.map((k) => buckets[k].impressions),
+          metric: 'impressions',
+        },
+        {
+          label: 'عدد النقرات',
+          data: sortedKeys.map((k) => buckets[k].clicks),
+          metric: 'clicks',
+        },
+        {
+          label: 'عدد التحويلات',
+          data: sortedKeys.map((k) => buckets[k].conversions),
+          metric: 'conversions',
+        },
+        {
+          label: 'إجمالي الإنفاق',
+          data: sortedKeys.map((k) => buckets[k].spend),
+          metric: 'spend',
+        },
+      ],
+    };
+  }
+
+  private async getReportKpiAggregates(
+    clientId: string,
+    dateFrom: Date,
+    dateTo: Date,
+  ): Promise<any> {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true },
+    });
+
+    if (campaigns.length === 0) {
+      const zero = {
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        spend: 0,
+        conversionRate: 0,
+        ctr: 0,
+      };
+      return {
+        current: zero,
+        previous: null,
+        trends: {
+          impressions: null,
+          clicks: null,
+          conversions: null,
+          spend: null,
+          conversionRate: null,
+          ctr: null,
+        },
+      };
+    }
+
+    const campaignIds = campaigns.map((c) => c.id);
+    const durationMs = dateTo.getTime() - dateFrom.getTime();
+    const prevDateTo = new Date(dateFrom);
+    const prevDateFrom = new Date(dateFrom.getTime() - durationMs);
+
+    const [currentSnapshots, previousSnapshots] = await Promise.all([
+      this.prisma.campaignKpiSnapshot.findMany({
+        where: {
+          campaignId: { in: campaignIds },
+          recordedAt: { gte: dateFrom, lte: dateTo },
+        },
+        orderBy: { recordedAt: 'desc' },
+        distinct: ['campaignId'],
+      }),
+      this.prisma.campaignKpiSnapshot.findMany({
+        where: {
+          campaignId: { in: campaignIds },
+          recordedAt: { gte: prevDateFrom, lte: prevDateTo },
+        },
+        orderBy: { recordedAt: 'desc' },
+        distinct: ['campaignId'],
+      }),
+    ]);
+
+    const aggregate = (snaps: any[]) => {
+      let impressions = 0,
+        clicks = 0,
+        conversions = 0,
+        spend = 0,
+        totalCtr = 0,
+        totalConvRate = 0,
+        count = snaps.length;
+      for (const s of snaps) {
+        impressions += s.impressions;
+        clicks += s.clicks;
+        conversions += s.conversions;
+        spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
+        totalCtr += s.ctr;
+        totalConvRate += s.conversionRate;
+      }
+      return {
+        impressions,
+        clicks,
+        conversions,
+        spend,
+        conversionRate: count > 0 ? totalConvRate / count : 0,
+        ctr: count > 0 ? totalCtr / count : 0,
+      };
+    };
+
+    const current = aggregate(currentSnapshots);
+    const previous =
+      previousSnapshots.length > 0 ? aggregate(previousSnapshots) : null;
+
+    const trend = (curr: number, prev: number | undefined) =>
+      prev != null && prev > 0
+        ? Math.round(((curr - prev) / prev) * 100 * 10) / 10
+        : null;
+
+    return {
+      current,
+      previous,
+      trends: {
+        impressions: trend(current.impressions, previous?.impressions),
+        clicks: trend(current.clicks, previous?.clicks),
+        conversions: trend(current.conversions, previous?.conversions),
+        spend: trend(current.spend, previous?.spend),
+        conversionRate: trend(current.conversionRate, previous?.conversionRate),
+        ctr: trend(current.ctr, previous?.ctr),
+      },
+    };
+  }
+
+  private async getTopPerformingCampaigns(
+    clientId: string,
+    dateFrom: Date,
+    dateTo: Date,
+    sortBy: string = 'conversions',
+    limit: number = 10,
+  ): Promise<any[]> {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true, name: true, platform: true },
+    });
+
+    if (campaigns.length === 0) return [];
+
+    const campaignIds = campaigns.map((c) => c.id);
+
+    const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
+      where: {
+        campaignId: { in: campaignIds },
+        recordedAt: { gte: dateFrom, lte: dateTo },
+      },
+    });
+
+    const campaignMetrics: Record<string, any> = {};
+    for (const c of campaigns) {
+      campaignMetrics[c.id] = {
+        id: c.id,
+        name: c.name,
+        platform: c.platform,
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        spend: 0,
+        conversionRate: 0,
+      };
+    }
+
+    for (const s of snapshots) {
+      const cm = campaignMetrics[s.campaignId];
+      if (!cm) continue;
+      cm.impressions += s.impressions;
+      cm.clicks += s.clicks;
+      cm.conversions += s.conversions;
+      cm.spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
+    }
+
+    for (const id of Object.keys(campaignMetrics)) {
+      const cm = campaignMetrics[id];
+      cm.conversionRate =
+        cm.clicks > 0
+          ? Math.round((cm.conversions / cm.clicks) * 100 * 10) / 10
+          : 0;
+    }
+
+    const validSortKeys = [
+      'impressions',
+      'clicks',
+      'conversions',
+      'spend',
+      'conversionRate',
+    ];
+    const sortKey = validSortKeys.includes(sortBy) ? sortBy : 'conversions';
+
+    return Object.values(campaignMetrics)
+      .sort((a: any, b: any) => (b[sortKey] > a[sortKey] ? 1 : -1))
+      .slice(0, limit);
+  }
+
+  private async getPlatformDistribution(
+    clientId: string,
+    dateFrom: Date,
+    dateTo: Date,
+  ): Promise<any[]> {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true, platform: true },
+    });
+
+    if (campaigns.length === 0) return [];
+
+    const byPlatform: Record<
+      string,
+      { campaignIds: string[]; spend: number }
+    > = {};
+    for (const c of campaigns) {
+      if (!byPlatform[c.platform]) {
+        byPlatform[c.platform] = { campaignIds: [], spend: 0 };
+      }
+      byPlatform[c.platform].campaignIds.push(c.id);
+    }
+
+    for (const platform of Object.keys(byPlatform)) {
+      const ids = byPlatform[platform].campaignIds;
+      if (ids.length === 0) continue;
+
+      const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
+        where: {
+          campaignId: { in: ids },
+          recordedAt: { gte: dateFrom, lte: dateTo },
+        },
+      });
+
+      let spend = 0;
+      for (const s of snapshots) {
+        spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
+      }
+      byPlatform[platform].spend = spend;
+    }
+
+    const totalSpend = Object.values(byPlatform).reduce(
+      (sum, p) => sum + p.spend,
+      0,
+    );
+
+    const platformAr: Record<string, string> = {
+      GOOGLE: 'جوجل',
+      META: 'ميتا',
+      TIKTOK: 'تيكتوك',
+      SNAPCHAT: 'سناب شات',
+    };
+
+    return Object.entries(byPlatform)
+      .filter(([, p]) => p.spend > 0)
+      .map(([platform, p]) => ({
+        platform: platformAr[platform] || platform,
+        spend: p.spend,
+        percent:
+          totalSpend > 0
+            ? Math.round((p.spend / totalSpend) * 100 * 10) / 10
+            : 0,
+      }))
+      .sort((a, b) => b.spend - a.spend);
+  }
+
+  private generateSmartTips(aggregates: any): any[] {
+    const tips: any[] = [];
+    const { current, trends } = aggregates;
+
+    if (current.conversionRate > 5) {
+      tips.push({
+        type: 'budget',
+        title: 'الميزانية',
+        description: 'زيادة الميزانية على ميتا بنسبة 20%',
+      });
+    }
+
+    if (trends.conversionRate != null && trends.conversionRate < 0) {
+      tips.push({
+        type: 'warning',
+        title: 'تنبيه',
+        description: 'تقليل الإنفاق على تيكتوك',
+      });
+    }
+
+    if (current.clicks < 100) {
+      tips.push({
+        type: 'insight',
+        title: 'نصيحة',
+        description: 'الاستثمار أكثر في محتوى الفيديو',
+      });
+    }
+
+    if (current.ctr < 1) {
+      tips.push({
+        type: 'insight',
+        title: 'تحذير',
+        description: 'الاستثمار أكثر في محتوى الفيديو',
+      });
+    }
+
+    const priorityOrder: Record<string, number> = {
+      warning: 0,
+      budget: 1,
+      insight: 2,
+    };
+
+    return tips
+      .sort((a, b) => (priorityOrder[a.type] ?? 3) - (priorityOrder[b.type] ?? 3))
+      .slice(0, 4);
+  }
 }

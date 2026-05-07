@@ -1,74 +1,79 @@
-# Roadmap: Hassad Platform — Marketing System Readiness
+# Roadmap: Hassad Platform
 
-## Overview
+## Milestones
 
-A targeted 3-phase refactoring of the existing marketing subsystem to fix 14 bugs and gaps. Phase 1 secures data integrity (atomic transactions, enforced clientId derivation, observable error logging). Phase 2 makes the marketer dashboard functional with real data. Phase 3 completes the client portal campaign experience — error states, detail pages, and navigation.
+- ✅ **v1.0 Marketing System Readiness** — Phases 1-3 (shipped 2026-05-07)
+- ○ **v1.1 Client Reports Dashboard (التقارير)** — Phases 4-6 (planned)
 
 ## Phases
 
-- [ ] **Phase 1: Data Integrity & API Safety** — Atomic transactions, enforced clientId derivation, and observable notification failures
-- [ ] **Phase 2: Marketer Dashboard UX** — Real KPI data, working task management, live alerts, and actual activity feed
-- [ ] **Phase 3: Client Portal UX** — Error states, campaign detail page with KPI history, loading skeletons, and navigation links
+<details>
+<summary>✅ v1.0 Marketing System Readiness (Phases 1-3) — SHIPPED 2026-05-07</summary>
 
-## Phase Details
+- [x] Phase 1: Data Integrity & API Safety (1/1 plan) — completed 2026-05-07
+- [x] Phase 2: Marketer Dashboard UX (3/3 plans) — completed 2026-05-07
+- [x] Phase 3: Client Portal UX (2/2 plans) — completed 2026-05-07
 
-### Phase 1: Data Integrity & API Safety
-**Goal**: Campaign data is consistent and auditable; client notification failures are observable in production logs.
-**Depends on**: Nothing (first phase)
-**Requirements**: API-01, API-02, API-03, API-04
-**Success Criteria** (what must be TRUE):
-  1. Campaign creation always links to the correct client derived from the task's project — no mismatched campaign-client pairs can occur regardless of what the frontend sends
-  2. KPI snapshot creation is atomic — budget updates, snapshot rows, and audit log entries all succeed or none do; no partial state is observable
-  3. Notification dispatch is atomic — notification events and notification rows are created together; no orphaned event rows exist in the database
-   4. Failed client notifications produce observable `logger.error` entries with stack traces, making every silent failure traceable in production logs
-**Plans**: 1 plan
+</details>
 
-Plans:
-- [ ] 01-01-PLAN.md — Enforce clientId from task.project in create(), wrap KPI snapshot and notification creation in prisma.$transaction, add logger.error to all 4 notification catch blocks
-
-### Phase 2: Marketer Dashboard UX
-**Goal**: Marketers see real data on their dashboard — actual KPIs, campaign alerts, working task management, and live activity feed.
-**Depends on**: Phase 1
-**Requirements**: WEB-01, WEB-02, WEB-03, WEB-04, WEB-05
-**Success Criteria** (what must be TRUE):
-  1. Marketer dashboard KPI cards display live data — active campaigns count, budget used, average ROAS — reflecting actual database values, not hardcoded zeros
-  2. AlertList shows real campaign alerts (deadline warnings, budget thresholds) derived from actual campaign data in the API response
-  3. Marketer can change a task's status from the dashboard dropdown and the change persists across page reloads (actual `PATCH /tasks/:id/status` call)
-  4. Activity feed shows actual notification events (campaign started, paused, completed, KPI updated) fetched from the notifications API
-  5. Marketing tasks page shows only MARKETING-department tasks via server-side `dept=MARKETING` filter, not client-side JS filtering
-**Plans**: 3 plans
-
-Plans:
-- [ ] 02-01-PLAN.md — Create `GET /campaigns/my-stats` endpoint for KPI cards + enrich `GET /tasks/my` with campaign data and `deptName` filter
-- [ ] 02-02-PLAN.md — Wire dashboard KPI cards to `useGetMyCampaignStatsQuery`, AlertList to kpiSnapshot data, and activity feed to notifications API
-- [ ] 02-03-PLAN.md — Add `PATCH /tasks/:id/status` endpoint + wire tasks page to server-side dept filter and API status mutation
-
-**UI hint**: yes
-
-### Phase 3: Client Portal UX
-**Goal**: Clients have a complete campaign experience — reliable error handling, detailed campaign pages with KPI history, loading states, and seamless navigation.
-**Depends on**: Phase 1
-**Requirements**: WEB-06, WEB-07, WEB-08, WEB-09, WEB-10
-**Success Criteria** (what must be TRUE):
-  1. Client sees an error message (not a blank screen) when the campaigns API fails, with a visible retry affordance
-  2. Client can navigate from the campaign list to a dedicated campaign detail page showing full KPI history in chronological order, status timeline, and budget breakdown using existing card/table patterns
-  3. Client portal dashboard campaign summary shows a loading skeleton during fetch instead of a misleading "no campaigns" empty message
-  4. Client can click any campaign card in the list to navigate to its detail page via a clearly identifiable link
-  5. Campaign detail page data is fetched via a dedicated RTK Query hook (`useGetPortalCampaignQuery`) and renders all KPI snapshots chronologically
-**Plans**: 2 plans
-
-Plans:
-- [ ] 03-01-PLAN.md — Add error state + nav links to campaigns list, single-campaign RTK hook, dashboard campaign skeleton, and backend KPI history enrichment
-- [ ] 03-02-PLAN.md — Create /portal/campaigns/[id] detail page with KPI history table, status timeline, and budget breakdown
-**UI hint**: yes
+- [ ] **Phase 4: Backend Aggregates** — NestJS aggregate endpoints for multi-campaign KPI reporting
+- [ ] **Phase 5: Frontend API + Navigation** — RTK Query wiring, sidebar nav, page shell with states
+- [ ] **Phase 6: Charts & Widgets + QA** — Recharts components, smart tips, responsive layout, build verification
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3. Phase 2 and 3 both depend on Phase 1 but are independent of each other.
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Data Integrity & API Safety | v1.0 | 1/1 | Complete | 2026-05-07 |
+| 2. Marketer Dashboard UX | v1.0 | 3/3 | Complete | 2026-05-07 |
+| 3. Client Portal UX | v1.0 | 2/2 | Complete | 2026-05-07 |
+| 4. Backend Aggregates | v1.1 | 0/? | Not started | - |
+| 5. Frontend API + Navigation | v1.1 | 0/? | Not started | - |
+| 6. Charts & Widgets + QA | v1.1 | 0/? | Not started | - |
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Data Integrity & API Safety | 0/1 | Not started | - |
-| 2. Marketer Dashboard UX | 0/3 | Planned | - |
-| 3. Client Portal UX | 0/2 | Planned | - |
+---
+
+## Phase Details
+
+### Phase 4: Backend Aggregates
+**Goal:** Client reports data endpoints return accurate, scoped, secure aggregate data for all dashboard widgets
+**Depends on:** Phase 3 (client portal UX foundation)
+**Requirements:** API-01, API-02, API-03, API-04, API-05, API-06, API-07, API-08, API-09, API-10, API-11, API-12, NAV-03
+**Success Criteria** (what must be TRUE):
+  1. `GET /portal/reports` returns composite summary with KPI totals, smart tips, top campaigns, and platform distribution
+  2. `GET /portal/reports/timeline` returns time-series data grouped by month/week/day with Arabic labels
+  3. All aggregate queries are strictly scoped to the authenticated client's `clientId` — no cross-client leakage
+  4. Empty-state response returns well-formed zero-value shapes (not 404) when client has no campaigns
+**Plans:** TBD
+
+### Phase 5: Frontend API + Navigation
+**Goal:** `/portal/reports` page is reachable, loads data via RTK Query, and handles all UI states
+**Depends on:** Phase 4 (stable API shapes)
+**Requirements:** NAV-01, NAV-02, NAV-03, INT-01, INT-02, INT-03, INT-04, INT-05
+**Success Criteria** (what must be TRUE):
+  1. "التقارير" link appears in PortalSidebar between "العقود" and "الفواتير"
+  2. "التقارير" appears in BottomNav (mobile) with BarChart3 icon
+  3. Clicking the link navigates to `/portal/reports` which loads and displays report data
+  4. Page shows loading skeletons, error cards, and empty states (copied from `/portal/campaigns` patterns)
+  5. RTK Query endpoints fetch and cache report data correctly with proper TypeScript types
+**Plans:** TBD
+**UI hint**: yes
+
+### Phase 6: Charts & Widgets + QA
+**Goal:** All dashboard visual components render with real data, matching the designer's UI exactly
+**Depends on:** Phase 5 (page shell + API wired)
+**Requirements:** UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07, UI-08, UI-09, UI-10, UI-11, UI-12, UI-13, INT-06
+**Success Criteria** (what must be TRUE):
+  1. 4 KPI summary cards show values with ↑/↓ trend arrows and Arabic compact formatting (1.2M, 45K)
+  2. Monthly comparison bar chart (مقارنة الأداء) renders with Arabic month labels and metric switcher
+  3. Performance trend line chart (تطور الأداء) renders with RTL-friendly time axis and area fill
+  4. Spend distribution donut chart (توزيع الإنفاق الإعلاني) shows platform breakdown with center total
+  5. Top-performing campaigns table (أفضل الإعلانات أداءً) is sortable by any metric with row navigation to campaign detail
+  6. 4 smart tips cards (توصيات ذكية) display rule-based actionable insights with icons
+  7. `turbo build --filter=api --filter=web` passes with zero errors
+**Plans:** TBD
+**UI hint**: yes
+
+---
+*Roadmap created: 2026-05-07*
+*Last updated: 2026-05-07 after v1.1 milestone planning*

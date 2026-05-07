@@ -32,6 +32,7 @@ const NAV_ITEMS = [
   { label: "إنشاء طلب جديد", href: "/portal/new-order", icon: PlusCircle },
   { label: "التسليمات", href: "/portal/deliverables", icon: Inbox },
   { label: "العقود", href: "/portal/contracts", icon: FileText },
+  { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
   { label: "الفواتير", href: "/portal/finance", icon: Receipt },
   { label: "الحملات", href: "/portal/campaigns", icon: BarChart3 },
 ];
