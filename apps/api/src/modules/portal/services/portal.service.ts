@@ -1024,14 +1024,49 @@ export class PortalService {
   async findCampaignOne(id: string, clientId: string) {
     const campaign = await this.prisma.campaign.findFirst({
       where: { id, clientId },
+      include: {
+        kpiSnapshots: {
+          orderBy: { recordedAt: "desc" },
+          select: {
+            id: true,
+            impressions: true,
+            clicks: true,
+            conversions: true,
+            revenue: true,
+            cpc: true,
+            cpa: true,
+            ctr: true,
+            conversionRate: true,
+            roas: true,
+            source: true,
+            recordedAt: true,
+          },
+        },
+      },
     });
 
     if (!campaign) {
       throw new NotFoundException("الحملة غير موجودة");
     }
 
-    const analytics = await this.getLatestAnalytics(id);
-    return { ...campaign, analytics };
+    const analytics = this.kpiSnapshotsToAnalytics(campaign.kpiSnapshots);
+    return { ...campaign, analytics, kpiSnapshots: campaign.kpiSnapshots };
+  }
+
+  private kpiSnapshotsToAnalytics(snapshots: any[]) {
+    if (snapshots.length === 0) return this.emptyAnalytics();
+    const latest = snapshots[0];
+    return {
+      impressions: latest.impressions,
+      clicks: latest.clicks,
+      conversions: latest.conversions,
+      revenue: latest.revenue,
+      cpc: latest.cpc,
+      cpa: latest.cpa,
+      ctr: latest.ctr,
+      conversionRate: latest.conversionRate,
+      roas: latest.roas,
+    };
   }
 
   private async getLatestSnapshots(

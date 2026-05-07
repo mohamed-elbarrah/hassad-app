@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import {
@@ -27,6 +28,8 @@ const DEPARTMENT_ARABIC_LABELS: Record<TaskDepartment, string> = {
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
+
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
@@ -120,22 +123,30 @@ export class TasksService {
       };
     }
 
+    const searchFilter: Prisma.UserWhereInput = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {};
+
+    const roleAndDeptFilter: Prisma.UserWhereInput =
+      dept === TaskDepartment.MARKETING
+        ? { role: { name: { in: [UserRole.EMPLOYEE, UserRole.MARKETING] } } }
+        : {
+            role: { name: UserRole.EMPLOYEE },
+            departments: {
+              some: {
+                department: { name: dept },
+              },
+            },
+          };
+
     const where: Prisma.UserWhereInput = {
       isActive: true,
-      role: { name: { in: [UserRole.EMPLOYEE, UserRole.MARKETING] } },
-      departments: {
-        some: {
-          department: { name: dept },
-        },
-      },
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-            ],
-          }
-        : {}),
+      AND: [roleAndDeptFilter, searchFilter],
     };
 
     const [users, total] = await Promise.all([
@@ -177,7 +188,7 @@ export class TasksService {
     };
   }
 
-  private async resolveAssignableUser(userId: string, departmentId: string) {
+  private async resolveAssignableUser(userId: string, departmentId: string, departmentName?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -197,23 +208,32 @@ export class TasksService {
       throw new BadRequestException("Cannot assign task to an inactive user");
     }
 
-    const allowedRoles = new Set<UserRole>([
-      UserRole.EMPLOYEE,
-      UserRole.MARKETING,
-    ]);
     const assigneeRole = user.role.name as UserRole;
-    if (!allowedRoles.has(assigneeRole)) {
+
+    if (assigneeRole === UserRole.EMPLOYEE) {
+      const inDepartment = user.departments.some(
+        (d) => d.departmentId === departmentId,
+      );
+      if (!inDepartment) {
+        throw new BadRequestException(
+          "Assignee does not belong to the selected department",
+        );
+      }
+    } else if (assigneeRole === UserRole.MARKETING) {
+      const deptName =
+        departmentName ??
+        (await this.prisma.department.findUnique({
+          where: { id: departmentId },
+          select: { name: true },
+        }))?.name;
+      if (deptName !== TaskDepartment.MARKETING) {
+        throw new BadRequestException(
+          "Marketing users can only be assigned to marketing department tasks",
+        );
+      }
+    } else {
       throw new BadRequestException(
         "Task assignee must be an executable team member",
-      );
-    }
-
-    const inDepartment = user.departments.some(
-      (d) => d.departmentId === departmentId,
-    );
-    if (!inDepartment) {
-      throw new BadRequestException(
-        "Assignee does not belong to the selected department",
       );
     }
 
@@ -234,6 +254,7 @@ export class TasksService {
       assigneeInfo = await this.resolveAssignableUser(
         dto.assignedTo,
         department.id,
+        dto.dept,
       );
     }
 
@@ -274,7 +295,12 @@ export class TasksService {
             assigneeDepartment: department.name,
           },
         })
-        .catch(() => undefined);
+        .catch((err) =>
+          this.logger.error(
+            `Failed to create TASK_ASSIGNED notification for task=${createdTask.id} assignee=${createdTask.assignedTo}`,
+            err,
+          ),
+        );
     }
 
     return createdTask;
@@ -470,7 +496,9 @@ export class TasksService {
     );
 
     if (notificationJobs.length > 0) {
-      Promise.allSettled(notificationJobs).catch(() => undefined);
+      Promise.allSettled(notificationJobs).catch((err) =>
+        this.logger.error(`Failed to create some status-change notifications for task=${id}`, err),
+      );
     }
 
     return updatedTask;
@@ -497,6 +525,7 @@ export class TasksService {
     const assigneeInfo = await this.resolveAssignableUser(
       dto.userId,
       existingTask.departmentId,
+      existingTask.department.name,
     );
 
     const updatedTask = await this.prisma.task.update({
@@ -536,7 +565,12 @@ export class TasksService {
           }),
         );
 
-        Promise.allSettled(notificationJobs).catch(() => undefined);
+        Promise.allSettled(notificationJobs).catch((err) =>
+          this.logger.error(
+            `Failed to create some TASK_ASSIGNED notifications for task=${existingTask.id}`,
+            err,
+          ),
+        );
       }
     }
 
@@ -557,6 +591,32 @@ export class TasksService {
 
   async reject(id: string, userId: string) {
     return this.updateStatus(id, userId, TaskStatus.REVISION);
+  }
+
+  async changeStatus(id: string, userId: string, toStatus: TaskStatus) {
+    const validStatuses = Object.values(TaskStatus);
+    if (!validStatuses.includes(toStatus)) {
+      throw new BadRequestException(
+        `Invalid status: ${toStatus}. Valid statuses: ${validStatuses.join(", ")}`,
+      );
+    }
+
+    switch (toStatus) {
+      case TaskStatus.TODO:
+        throw new BadRequestException(
+          "Cannot revert a task to TODO. Use start to move to IN_PROGRESS.",
+        );
+      case TaskStatus.IN_PROGRESS:
+        return this.start(id, userId);
+      case TaskStatus.IN_REVIEW:
+        return this.submit(id, userId);
+      case TaskStatus.DONE:
+        return this.approve(id, userId);
+      case TaskStatus.REVISION:
+        return this.reject(id, userId);
+      default:
+        throw new BadRequestException(`Unhandled status: ${toStatus}`);
+    }
   }
 
   async addFile(
@@ -677,7 +737,12 @@ export class TasksService {
         }),
       );
 
-      Promise.allSettled(notificationJobs).catch(() => undefined);
+      Promise.allSettled(notificationJobs).catch((err) =>
+        this.logger.error(
+          `Failed to create some TASK_COMMENT_ADDED notifications for task=${task.id}`,
+          err,
+        ),
+      );
     }
 
     return comment;
@@ -705,14 +770,19 @@ export class TasksService {
       status?: string;
       priority?: string;
       dept?: string;
+      deptName?: string;
       dueBefore?: string;
       dueAfter?: string;
     },
+    includeCampaigns: boolean = false,
   ) {
     const where: Record<string, unknown> = { assignedTo: userId };
     if (filters.status) where["status"] = filters.status;
     if (filters.priority) where["priority"] = filters.priority;
     if (filters.dept) where["departmentId"] = filters.dept;
+    if (filters.deptName) {
+      where["department"] = { name: filters.deptName };
+    }
 
     if (filters.dueBefore || filters.dueAfter) {
       const dueDateFilter: Record<string, Date> = {};
@@ -721,25 +791,38 @@ export class TasksService {
       where["dueDate"] = dueDateFilter;
     }
 
-    return this.prisma.task.findMany({
-      where,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            clientId: true,
-            client: {
-              select: {
-                companyName: true,
-                businessType: true,
-              },
+    const include: any = {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          clientId: true,
+          client: {
+            select: {
+              companyName: true,
+              businessType: true,
             },
           },
         },
-        assignee: { select: { id: true, name: true } },
-        department: { select: { id: true, name: true } },
       },
+      assignee: { select: { id: true, name: true } },
+      department: { select: { id: true, name: true } },
+    };
+
+    if (includeCampaigns) {
+      include.campaigns = {
+        include: {
+          kpiSnapshots: {
+            orderBy: { recordedAt: "desc" },
+            take: 1,
+          },
+        },
+      };
+    }
+
+    return this.prisma.task.findMany({
+      where,
+      include,
       orderBy: { createdAt: "desc" },
     });
   }

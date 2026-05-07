@@ -19,17 +19,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { useGetMyTasksQuery } from "@/features/tasks/tasksApi";
+import { useGetMyTasksQuery, useChangeTaskStatusMutation } from "@/features/tasks/tasksApi";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function MarketingTasksListPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
-  const { data: tasks = [], isLoading } = useGetMyTasksQuery({});
-
-  // Filter tasks to only show Marketing ones
-  const marketingTasks = tasks.filter(task => 
-    task.department?.name === "MARKETING"
+  const { data: tasks = [], isLoading } = useGetMyTasksQuery(
+    { deptName: "MARKETING" },
+    { pollingInterval: 30000 },
   );
 
   return (
@@ -67,7 +65,7 @@ export default function MarketingTasksListPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {marketingTasks.map((task) => (
+          {tasks.map((task) => (
             <TaskCard key={task.id} task={task} />
           ))}
         </div>
@@ -78,7 +76,7 @@ export default function MarketingTasksListPage() {
 
 
 function TaskCard({ task }: { task: any }) {
-  const [status, setStatus] = useState(task.status);
+  const [changeTaskStatus, { isLoading: isChanging }] = useChangeTaskStatusMutation();
 
   const statusOptions = [
     { label: "قيد الانتظار", value: "TODO" },
@@ -87,14 +85,20 @@ function TaskCard({ task }: { task: any }) {
     { label: "مكتمل", value: "DONE" },
   ];
 
+  const handleStatusChange = (newStatus: string) => {
+    if (newStatus !== task.status) {
+      changeTaskStatus({ id: task.id, status: newStatus as any });
+    }
+  };
+
   return (
     <Card className="group overflow-hidden shadow-sm border-muted/60 hover:border-primary/40 transition-all flex flex-col">
       <CardHeader className="pb-3 border-b border-muted/40 bg-muted/5">
         <div className="flex justify-between items-start gap-2 mb-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className={`h-6 px-2 text-[10px] font-bold gap-1 ${getStatusColor(status)}`}>
-                {status}
+              <Button variant="outline" size="sm" className={`h-6 px-2 text-[10px] font-bold gap-1 ${getStatusColor(task.status)}`}>
+                {getStatusLabel(task.status)}
                 <ChevronDown className="w-3 h-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
@@ -102,10 +106,14 @@ function TaskCard({ task }: { task: any }) {
               {statusOptions.map((opt) => (
                 <DropdownMenuItem 
                   key={opt.value} 
-                  onClick={() => setStatus(opt.value)}
+                  onClick={() => handleStatusChange(opt.value)}
+                  disabled={isChanging || opt.value === task.status}
                   className="text-xs"
                 >
                   {opt.label}
+                  {opt.value === task.status && (
+                    <span className="mr-auto text-[10px] opacity-60">✓</span>
+                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -152,6 +160,17 @@ function TaskCard({ task }: { task: any }) {
 }
 
 
+function getStatusLabel(status: string) {
+  switch (status) {
+    case "TODO": return "TODO";
+    case "IN_PROGRESS": return "IN_PROGRESS";
+    case "IN_REVIEW": return "IN_REVIEW";
+    case "DONE": return "DONE";
+    default: return status;
+  }
+}
+
+
 function getStatusColor(status: string) {
   switch (status) {
     case "TODO": return "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-100";
@@ -161,4 +180,3 @@ function getStatusColor(status: string) {
     default: return "bg-slate-100 text-slate-600";
   }
 }
-

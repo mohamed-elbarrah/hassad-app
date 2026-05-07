@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
@@ -24,10 +25,17 @@ export class CampaignsService {
     private notifications: NotificationsService,
   ) {}
 
+  private readonly logger = new Logger(CampaignsService.name);
+
   async create(data: CreateCampaignDto, creatorId: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: data.taskId },
-      include: { department: true },
+      include: {
+        department: true,
+        project: {
+          select: { clientId: true },
+        },
+      },
     });
 
     if (!task) {
@@ -42,9 +50,12 @@ export class CampaignsService {
       throw new BadRequestException("يجب إسناد المهمة لمسوق أولاً");
     }
 
+    const { clientId: _, ...campaignData } = data as any;
+
     const campaign = await this.prisma.campaign.create({
       data: {
-        ...data,
+        ...campaignData,
+        clientId: task.project.clientId,
         managedBy: task.assignedTo,
         startDate: new Date(data.startDate),
         endDate: data.endDate ? new Date(data.endDate) : null,
@@ -66,7 +77,12 @@ export class CampaignsService {
 
     this.notifyClientAboutCampaign(campaign.id, "MARKETING_CAMPAIGN_CREATED",
       "تم إطلاق حملة جديدة",
-      `تم إطلاق حملة "${campaign.name}" لمشروعك`).catch(() => undefined);
+      `تم إطلاق حملة "${campaign.name}" لمشروعك`).catch((error) => {
+        this.logger.error(
+          `Failed to notify client about campaign creation: campaignId=${campaign.id}, eventType=MARKETING_CAMPAIGN_CREATED`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      });
 
     return campaign;
   }
@@ -161,46 +177,98 @@ export class CampaignsService {
     return { ...campaign, analytics };
   }
 
+  async myStats(userId: string) {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: {
+        task: {
+          assignedTo: userId,
+        },
+      },
+      include: {
+        kpiSnapshots: {
+          orderBy: { recordedAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+
+    const activeCampaigns = campaigns.filter(
+      (c) => c.status === CampaignStatus.ACTIVE,
+    ).length;
+    const totalBudgetUsed = campaigns.reduce(
+      (sum, c) => sum + c.budgetSpent,
+      0,
+    );
+    const campaignsWithRoas = campaigns.filter(
+      (c) => c.kpiSnapshots.length > 0,
+    );
+    const avgRoas =
+      campaignsWithRoas.length > 0
+        ? campaignsWithRoas.reduce(
+            (sum, c) => sum + c.kpiSnapshots[0].roas,
+            0,
+          ) / campaignsWithRoas.length
+        : 0;
+
+    return { activeCampaigns, totalBudgetUsed, avgRoas };
+  }
+
   async createKpiSnapshot(id: string, data: UpdateCampaignMetricsDto, userId: string) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id },
-      include: { task: true },
+      include: {
+        task: true,
+        kpiSnapshots: { orderBy: { recordedAt: "desc" }, take: 1 },
+      },
     });
 
     if (!campaign) {
       throw new NotFoundException("الحملة غير موجودة");
     }
 
-    const impressions = data.impressions ?? 0;
-    const clicks = data.clicks ?? 0;
-    const conversions = data.conversions ?? 0;
-    const revenue = data.revenue ?? 0;
+    const latest: any = campaign.kpiSnapshots[0] ?? {};
+    const impressions = data.impressions ?? latest.impressions ?? 0;
+    const clicks = data.clicks ?? latest.clicks ?? 0;
+    const conversions = data.conversions ?? latest.conversions ?? 0;
+    const revenue = data.revenue ?? latest.revenue ?? 0;
     const budgetSpent = data.budgetSpent ?? campaign.budgetSpent;
 
-    const snapshot = await this.prisma.campaignKpiSnapshot.create({
-      data: {
-        campaignId: id,
-        impressions,
-        clicks,
-        conversions,
-        revenue,
-        cpc: clicks > 0 ? budgetSpent / clicks : 0,
-        cpa: conversions > 0 ? budgetSpent / conversions : 0,
-        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
-        conversionRate: clicks > 0 ? (conversions / clicks) * 100 : 0,
-        roas: budgetSpent > 0 ? revenue / budgetSpent : 0,
-        source: "manual",
-      },
-    });
-
-    if (data.budgetSpent !== undefined) {
-      await this.prisma.campaign.update({
-        where: { id },
-        data: { budgetSpent: data.budgetSpent },
+    const [snapshot] = await this.prisma.$transaction(async (tx) => {
+      const snap = await tx.campaignKpiSnapshot.create({
+        data: {
+          campaignId: id,
+          impressions,
+          clicks,
+          conversions,
+          revenue,
+          cpc: clicks > 0 ? budgetSpent / clicks : 0,
+          cpa: conversions > 0 ? budgetSpent / conversions : 0,
+          ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+          conversionRate: clicks > 0 ? (conversions / clicks) * 100 : 0,
+          roas: budgetSpent > 0 ? revenue / budgetSpent : 0,
+          source: "manual",
+        },
       });
-    }
 
-    await this.createAuditLog(id, snapshot.id, data, userId);
+      if (data.budgetSpent !== undefined) {
+        await tx.campaign.update({
+          where: { id },
+          data: { budgetSpent: data.budgetSpent },
+        });
+      }
+
+      await tx.campaignKpiAuditLog.createMany({
+        data: [
+          { campaignId: id, snapshotId: snap.id, field: "impressions", newValue: String(impressions), changedBy: userId },
+          { campaignId: id, snapshotId: snap.id, field: "clicks", newValue: String(clicks), changedBy: userId },
+          { campaignId: id, snapshotId: snap.id, field: "conversions", newValue: String(conversions), changedBy: userId },
+          { campaignId: id, snapshotId: snap.id, field: "revenue", newValue: String(revenue), changedBy: userId },
+          { campaignId: id, snapshotId: snap.id, field: "budgetSpent", newValue: String(budgetSpent), changedBy: userId },
+        ],
+      });
+
+      return [snap];
+    });
 
     const pmId = campaign.task?.createdBy;
     if (pmId) {
@@ -217,7 +285,12 @@ export class CampaignsService {
 
     this.notifyClientAboutCampaign(campaign.id, "MARKETING_METRICS_UPDATED",
       "تحديث أداء الحملة",
-      `تم تحديث نتائج الحملة "${campaign.name}"`).catch(() => undefined);
+      `تم تحديث نتائج الحملة "${campaign.name}"`).catch((error) => {
+        this.logger.error(
+          `Failed to notify client about metrics update: campaignId=${campaign.id}, eventType=MARKETING_METRICS_UPDATED`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      });
 
     return snapshot;
   }
@@ -268,7 +341,12 @@ export class CampaignsService {
 
     this.notifyClientAboutCampaign(id, "MARKETING_CAMPAIGN_STATUS_CHANGED",
       "تحديث حالة الحملة",
-      `تم تغيير حالة حملة "${campaign.name}" إلى ${status}`).catch(() => undefined);
+      `تم تغيير حالة حملة "${campaign.name}" إلى ${status}`).catch((error) => {
+        this.logger.error(
+          `Failed to notify client about status change: campaignId=${id}, eventType=MARKETING_CAMPAIGN_STATUS_CHANGED`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      });
 
     return updated;
   }
@@ -302,7 +380,12 @@ export class CampaignsService {
 
       this.notifyClientAboutCampaign(id, "MARKETING_OPTIMIZATION_REQUIRED",
         "حملة تحتاج تحسين",
-        `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`).catch(() => undefined);
+        `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`).catch((error) => {
+          this.logger.error(
+            `Failed to notify client about optimization flag: campaignId=${id}, eventType=MARKETING_OPTIMIZATION_REQUIRED`,
+            error instanceof Error ? error.stack : String(error),
+          );
+        });
     }
 
     return updated;
@@ -372,26 +455,6 @@ export class CampaignsService {
       conversionRate: 0,
       roas: 0,
     };
-  }
-
-  private async createAuditLog(campaignId: string, snapshotId: string, data: UpdateCampaignMetricsDto, userId: string | null) {
-    const fields = [
-      { field: "impressions", newValue: String(data.impressions ?? 0) },
-      { field: "clicks", newValue: String(data.clicks ?? 0) },
-      { field: "conversions", newValue: String(data.conversions ?? 0) },
-      { field: "revenue", newValue: String(data.revenue ?? 0) },
-      { field: "budgetSpent", newValue: String(data.budgetSpent ?? 0) },
-    ];
-
-    await this.prisma.campaignKpiAuditLog.createMany({
-      data: fields.map((f) => ({
-        campaignId,
-        snapshotId,
-        field: f.field,
-        newValue: f.newValue,
-        changedBy: userId,
-      })),
-    });
   }
 
   private validateStatusTransition(current: CampaignStatus, next: CampaignStatus) {

@@ -55,9 +55,9 @@ export default function MarketingTaskDetailPage() {
 
 
   const aggregated = {
-    spend: campaigns.reduce((acc, c) => acc + c.budgetSpent, 0),
-    conv: campaigns.reduce((acc, c) => acc + c.conversions, 0),
-    rev: campaigns.reduce((acc, c) => acc + (c.revenue || 0), 0),
+    spend: campaigns.reduce((acc, c) => acc + (c.budgetSpent ?? 0), 0),
+    conv: campaigns.reduce((acc, c) => acc + (c.conversions ?? 0), 0),
+    rev: campaigns.reduce((acc, c) => acc + (c.revenue ?? 0), 0),
   };
   const totalRoas = aggregated.spend > 0 ? (aggregated.rev / aggregated.spend).toFixed(2) : "0.00";
 

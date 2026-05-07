@@ -48,24 +48,28 @@ export class NotificationsService {
     body: string;
     metadata?: Prisma.InputJsonValue;
   }) {
-    const event = await this.prisma.notificationEvent.create({
-      data: {
-        entityId: params.entityId,
-        entityType: params.entityType,
-        eventType: params.eventType,
-        metadata: params.metadata ?? undefined,
-      },
-    });
+    const notification = await this.prisma.$transaction(async (tx) => {
+      const event = await tx.notificationEvent.create({
+        data: {
+          entityId: params.entityId,
+          entityType: params.entityType,
+          eventType: params.eventType,
+          metadata: params.metadata ?? undefined,
+        },
+      });
 
-    const notification = await this.prisma.notification.create({
-      data: {
-        eventId: event.id,
-        userId: params.userId,
-        title: params.title,
-        body: params.body,
-        channel: "in-app",
-        sentAt: new Date(),
-      },
+      const notif = await tx.notification.create({
+        data: {
+          eventId: event.id,
+          userId: params.userId,
+          title: params.title,
+          body: params.body,
+          channel: "in-app",
+          sentAt: new Date(),
+        },
+      });
+
+      return notif;
     });
 
     this.eventEmitter.emit("notification.created", {

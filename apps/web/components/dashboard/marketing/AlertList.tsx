@@ -12,7 +12,16 @@ export function AlertList({ tasks }: { tasks: any[] }) {
     (task.campaigns || [])
       .filter((c: any) => c.needsOptimization || c.status === "ACTIVE")
       .map((c: any) => {
-        const metrics = computeMetrics(c);
+        const snapshot = c.kpiSnapshots?.[0] || {};
+        const campaignWithMetrics = {
+          ...c,
+          impressions: snapshot.impressions ?? c.impressions ?? 0,
+          clicks: snapshot.clicks ?? c.clicks ?? 0,
+          conversions: snapshot.conversions ?? c.conversions ?? 0,
+          revenue: snapshot.revenue ?? c.revenue ?? 0,
+          budgetSpent: c.budgetSpent ?? 0,
+        };
+        const metrics = computeMetrics(campaignWithMetrics);
 
         let reason = "";
         let type: "WARNING" | "CRITICAL" = "WARNING";
@@ -20,13 +29,13 @@ export function AlertList({ tasks }: { tasks: any[] }) {
         if (c.needsOptimization) {
           reason = "تم تحديدها يدوياً كـ 'تحتاج تحسين'";
           type = "WARNING";
-        } else if (parseFloat(metrics.roas) < 1 && c.budgetSpent > 500) {
+        } else if (parseFloat(metrics.roas) < 1 && campaignWithMetrics.budgetSpent > 500) {
           reason = "عائد منخفض جداً (ROAS < 1.0)";
           type = "CRITICAL";
-        } else if (c.clicks > 100 && c.conversions === 0) {
+        } else if (campaignWithMetrics.clicks > 100 && campaignWithMetrics.conversions === 0) {
           reason = "لا توجد تحويلات رغم وجود نقرات عالية";
           type = "CRITICAL";
-        } else if (parseFloat(metrics.ctr) < 0.5 && c.impressions > 1000) {
+        } else if (parseFloat(metrics.ctr) < 0.5 && campaignWithMetrics.impressions > 1000) {
           reason = "معدل نقر منخفض جداً (CTR < 0.5%)";
           type = "WARNING";
         }

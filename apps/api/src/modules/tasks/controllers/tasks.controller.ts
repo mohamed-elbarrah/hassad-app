@@ -22,7 +22,7 @@ import {
   UploadTaskFileDto,
   CreateTaskCommentDto,
 } from '../dto/task.dto';
-import { TaskDepartment } from '@hassad/shared';
+import { TaskDepartment, TaskStatus } from '@hassad/shared';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
@@ -36,7 +36,8 @@ export class TasksController {
   @Get('my')
   @RequirePermissions('tasks.read')
   getMyTasks(@CurrentUser() user: any, @Query() filters: any) {
-    return this.tasksService.findMine(user.id, filters);
+    const includeCampaigns = filters.includeCampaigns === 'true' || filters.includeCampaigns === true;
+    return this.tasksService.findMine(user.id, filters, includeCampaigns);
   }
 
   @Get('my/stats')
@@ -165,6 +166,16 @@ export class TasksController {
   @RequirePermissions('tasks.update')
   archive(@Param('id') id: string) {
     return this.tasksService.toggleArchive(id);
+  }
+
+  @Patch(':id/status')
+  @RequirePermissions('tasks.update')
+  changeStatus(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body('status') status: TaskStatus,
+  ) {
+    return this.tasksService.changeStatus(id, user.id, status);
   }
 
   @Delete(':id/files/:fileId')

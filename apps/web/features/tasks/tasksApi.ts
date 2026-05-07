@@ -19,8 +19,12 @@ interface MyTasksFilters {
   priority?: TaskPriority;
   /** departmentId UUID filter */
   dept?: string;
+  /** department name filter (e.g. "MARKETING") */
+  deptName?: string;
   dueBefore?: string;
   dueAfter?: string;
+  /** include campaigns with latest KPI snapshot */
+  includeCampaigns?: boolean;
 }
 
 export interface TaskWithProject extends Task {
@@ -84,6 +88,8 @@ export const tasksApi = createApi({
         body,
       }),
       invalidatesTags: (_result, _error, body) => [
+        { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "MY_STATS" },
         { type: "Task", id: `PROJECT_${"projectId" in body ? (body as any).projectId : ""}` },
       ],
     }),
@@ -212,10 +218,41 @@ export const tasksApi = createApi({
       invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
     }),
 
+    /** PATCH /v1/tasks/:id/status — change task status to any valid state */
+    changeTaskStatus: builder.mutation<
+      Task,
+      { id: string; status: TaskStatus }
+    >({
+      query: ({ id, status }) => ({
+        url: `/tasks/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Task", id },
+        { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "MY_STATS" },
+      ],
+    }),
+
     /** POST /v1/tasks/:id/reject — move IN_REVIEW→REVISION */
     rejectTask: builder.mutation<Task, string>({
       query: (id) => ({ url: `/tasks/${id}/reject`, method: "POST" }),
       invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+    }),
+
+    /** POST /v1/tasks/:id/assign — assign a task to a user (PM only) */
+    assignTask: builder.mutation<Task, { id: string; userId: string }>({
+      query: ({ id, userId }) => ({
+        url: `/tasks/${id}/assign`,
+        method: "POST",
+        body: { userId },
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Task", id },
+        { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "MY_STATS" },
+      ],
     }),
   }),
 });
@@ -237,5 +274,7 @@ export const {
   useStartTaskMutation,
   useSubmitTaskMutation,
   useApproveTaskMutation,
+  useChangeTaskStatusMutation,
   useRejectTaskMutation,
+  useAssignTaskMutation,
 } = tasksApi;
