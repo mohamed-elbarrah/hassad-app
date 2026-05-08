@@ -57,7 +57,7 @@ export function PerformanceTrendLineChart({
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+      <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
         <XAxis
           dataKey="name"
           tick={{ fontSize: 11, fill: "#9CA3AF" }}
@@ -70,7 +70,9 @@ export function PerformanceTrendLineChart({
           tick={{ fontSize: 11, fill: "#9CA3AF" }}
           axisLine={false}
           tickLine={false}
-          orientation="left"
+          orientation="right"
+          width={50}
+          tickMargin={30}
         />
         <Tooltip
           formatter={(value: number) => [

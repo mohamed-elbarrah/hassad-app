@@ -56,7 +56,7 @@ export function MonthlyComparisonBarChart({
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+      <BarChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
         <XAxis
           dataKey="name"
           tick={{ fontSize: 11, fill: "#9CA3AF" }}
@@ -70,6 +70,8 @@ export function MonthlyComparisonBarChart({
           axisLine={false}
           tickLine={false}
           orientation="right"
+          width={50}
+          tickMargin={30}
         />
         <Tooltip
           formatter={(value: number) => [
