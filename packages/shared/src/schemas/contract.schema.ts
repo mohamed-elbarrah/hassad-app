@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ContractType } from "../enums/client";
+import { ServiceItemSchema } from "./proposal.schema";
 
 export const CreateContractSchema = z.object({
   clientId: z.string().uuid("Invalid client ID format"),
@@ -11,6 +12,7 @@ export const CreateContractSchema = z.object({
   monthlyValue: z.number().nonnegative("Monthly value must be zero or greater"),
   totalValue: z.number().positive("Total value must be greater than zero"),
   filePath: z.string().optional().nullable(),
+  servicesList: z.array(ServiceItemSchema).optional(),
 });
 
 export type CreateContractInput = z.infer<typeof CreateContractSchema>;

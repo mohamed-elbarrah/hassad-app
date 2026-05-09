@@ -18,6 +18,8 @@ export * from "./schemas/proposal.schema";
 export * from "./schemas/project.schema";
 export * from "./schemas/user.schema";
 
+import type { ServiceItem } from "./schemas/proposal.schema";
+
 // ─── Interfaces (aligned to DB model) ─────────────────────────────────────────
 
 import { UserRole } from "./enums/roles";
@@ -137,7 +139,7 @@ export interface Proposal {
   createdBy: string;
   title: string;
   serviceDescription: string;
-  servicesList: unknown[];
+  servicesList: ServiceItem[];
   totalPrice: number;
   durationDays: number;
   durationUnit: string;
@@ -173,6 +175,9 @@ export interface Contract {
   eSigned: boolean;
   signedAt?: Date | string | null;
   createdAt: Date | string;
+  servicesList?: ServiceItem[];
+  invoices?: Invoice[];
+  proposal?: Proposal;
 }
 
 export interface Project {
