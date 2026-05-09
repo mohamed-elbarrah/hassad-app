@@ -116,17 +116,7 @@ export default function PortalRequestsPage() {
         title="الطلبات قيد الانتظار"
         description="قبل توقيع العقد ستظهر طلباتك هنا بالحالة المبسطة. بعد التوقيع ينتقل الطلب تلقائياً إلى صفحة المشاريع كتنفيذ فعلي ضمن نفس تجربة العميل الموحدة."
         icon={ClipboardList}
-        actions={
-          <>
-            <RequestSummaryPill label="إجمالي الطلبات" value={total} />
-            <Link href="/portal/new-order">
-              <Button className="h-12 rounded-2xl px-5 text-base font-medium shadow-none">
-                <PlusCircle className="ml-2 h-4 w-4" />
-                إنشاء طلب جديد
-              </Button>
-            </Link>
-          </>
-        }
+        
       />
 
       <PortalSurfaceCard

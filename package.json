@@ -9,8 +9,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "^3.x"
+    "prettier": "^3.x",
+    "turbo": "latest"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -19,5 +19,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "date-fns": "^4.1.0"
+  }
 }

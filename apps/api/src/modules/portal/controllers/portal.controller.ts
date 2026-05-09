@@ -14,6 +14,7 @@ import {
   CreateDeliverableDto,
   CreateRevisionDto,
   CreateIntakeFormDto,
+  ReportTimelineQueryDto,
 } from "../dto/portal.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -78,6 +79,11 @@ export class PortalController {
   async getContracts(
     @CurrentUser() user: any,
     @Query("status") status?: string,
+    @Query("search") search?: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: string,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
@@ -85,6 +91,11 @@ export class PortalController {
     if (!clientId) return { data: [], total: 0, page: 1, limit: 20 };
     return this.portalService.getContracts(clientId, {
       status,
+      search,
+      dateFrom,
+      dateTo,
+      sortBy,
+      sortOrder: sortOrder === "asc" ? "asc" : "desc",
       page: Number(page) || 1,
       limit: Number(limit) || 20,
     });
@@ -325,6 +336,45 @@ export class PortalController {
         improvementPercent: 0,
       };
     return this.portalService.getCampaignSummary(clientId);
+  }
+
+  @Get("portal/reports")
+  @RequirePermissions("portal.read")
+  async getReports(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      return {
+        kpiCards: [],
+        smartTips: [],
+        topCampaigns: [],
+        platformDistribution: [],
+        period: { dateFrom: null, dateTo: null },
+      };
+    }
+    return this.portalService.getReportSummary(clientId);
+  }
+
+  @Get("portal/reports/timeline")
+  @RequirePermissions("portal.read")
+  async getReportTimeline(
+    @CurrentUser() user: any,
+    @Query() query: ReportTimelineQueryDto,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      return { labels: [], datasets: [] };
+    }
+    const dateFrom = query.dateFrom
+      ? new Date(query.dateFrom)
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dateTo = query.dateTo ? new Date(query.dateTo) : new Date();
+    const granularity = query.granularity || 'month';
+    return this.portalService.getReportTimeline(
+      clientId,
+      dateFrom,
+      dateTo,
+      granularity,
+    );
   }
 
   @Post("portal/action-items/snooze")

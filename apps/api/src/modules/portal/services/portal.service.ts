@@ -759,23 +759,56 @@ export class PortalService {
 
   async getContracts(
     clientId: string,
-    query: { status?: string; page: number; limit: number },
+    query: { 
+      status?: string; 
+      search?: string; 
+      dateFrom?: string; 
+      dateTo?: string; 
+      sortBy?: string; 
+      sortOrder?: "asc" | "desc"; 
+      page: number; 
+      limit: number 
+    },
   ) {
     const where: any = { clientId };
     if (query.status) where.status = query.status;
+    if (query.search) {
+      where.title = { contains: query.search, mode: "insensitive" };
+    }
+    if (query.dateFrom || query.dateTo) {
+      where.startDate = {};
+      if (query.dateFrom) where.startDate.gte = new Date(query.dateFrom);
+      if (query.dateTo) where.startDate.lte = new Date(query.dateTo);
+    }
+
+    const sortField = query.sortBy || "createdAt";
+    const sortOrder = query.sortOrder || "desc";
 
     const [data, total] = await Promise.all([
       this.prisma.contract.findMany({
         where,
-        include: { proposal: { select: { id: true, title: true } } },
-        orderBy: { createdAt: "desc" },
+        include: { 
+          proposal: { select: { id: true, title: true } },
+          projects: {
+            select: {
+              manager: { select: { name: true } }
+            },
+            take: 1
+          }
+        },
+        orderBy: { [sortField]: sortOrder },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
       this.prisma.contract.count({ where }),
     ]);
 
-    return { data, total, page: query.page, limit: query.limit };
+    const items = data.map(c => ({
+      ...c,
+      projectManager: c.projects[0]?.manager?.name ?? null
+    }));
+
+    return { data: items, total, page: query.page, limit: query.limit };
   }
 
   async getFinanceSummary(clientId: string) {
@@ -1114,5 +1147,543 @@ export class PortalService {
       conversionRate: 0,
       roas: 0,
     };
+  }
+
+  async getReportSummary(clientId: string): Promise<any> {
+    const now = new Date();
+    const dateFrom = new Date(now);
+    dateFrom.setDate(dateFrom.getDate() - 30);
+
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true },
+    });
+
+    if (campaigns.length === 0) {
+      return {
+        kpiCards: [],
+        smartTips: [],
+        topCampaigns: [],
+        platformDistribution: [],
+        period: { dateFrom: dateFrom.toISOString(), dateTo: now.toISOString() },
+      };
+    }
+
+    const aggregates = await this.getReportKpiAggregates(
+      clientId,
+      dateFrom,
+      now,
+    );
+
+    const kpiCards = [
+      {
+        metric: 'conversionRate',
+        label: 'معدل التحويل',
+        value: aggregates.current.conversionRate,
+        previousValue: aggregates.previous?.conversionRate ?? 0,
+        trendPercent: aggregates.trends.conversionRate,
+      },
+      {
+        metric: 'clicks',
+        label: 'عدد النقرات',
+        value: aggregates.current.clicks,
+        previousValue: aggregates.previous?.clicks ?? 0,
+        trendPercent: aggregates.trends.clicks,
+      },
+      {
+        metric: 'impressions',
+        label: 'عدد مرات الظهور',
+        value: aggregates.current.impressions,
+        previousValue: aggregates.previous?.impressions ?? 0,
+        trendPercent: aggregates.trends.impressions,
+      },
+      {
+        metric: 'spend',
+        label: 'إجمالي الإنفاق',
+        value: aggregates.current.spend,
+        previousValue: aggregates.previous?.spend ?? 0,
+        trendPercent: aggregates.trends.spend,
+      },
+    ];
+
+    const smartTips = this.generateSmartTips(aggregates);
+    const topCampaigns = await this.getTopPerformingCampaigns(
+      clientId,
+      dateFrom,
+      now,
+    );
+    const platformDistribution = await this.getPlatformDistribution(
+      clientId,
+      dateFrom,
+      now,
+    );
+
+    return {
+      kpiCards,
+      smartTips,
+      topCampaigns,
+      platformDistribution,
+      period: { dateFrom: dateFrom.toISOString(), dateTo: now.toISOString() },
+    };
+  }
+
+  private generateDateRangeKeys(
+    dateFrom: Date,
+    dateTo: Date,
+    granularity: 'day' | 'week' | 'month',
+  ): string[] {
+    const keys: string[] = [];
+
+    switch (granularity) {
+      case 'day': {
+        const cursor = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
+        const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+        while (cursor <= end) {
+          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+          keys.push(key);
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        break;
+      }
+      case 'month': {
+        const cursor = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 1);
+        const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), 1);
+        while (cursor <= end) {
+          keys.push(
+            `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`,
+          );
+          cursor.setMonth(cursor.getMonth() + 1);
+        }
+        break;
+      }
+      case 'week':
+      default: {
+        const startOfWeek = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+        const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+        const cursor = new Date(startOfWeek);
+        while (cursor <= end) {
+          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+          keys.push(key);
+          cursor.setDate(cursor.getDate() + 7);
+        }
+        break;
+      }
+    }
+    return keys;
+  }
+
+  private formatTimelineLabel(key: string, granularity: 'day' | 'week' | 'month'): string {
+    switch (granularity) {
+      case 'day': {
+        const [y, m, d] = key.split('-');
+        const date = new Date(Number(y), Number(m) - 1, Number(d));
+        return new Intl.DateTimeFormat('ar-SA', {
+          day: 'numeric',
+          month: 'short',
+        }).format(date);
+      }
+      case 'month': {
+        const [y, m] = key.split('-');
+        const d = new Date(Number(y), Number(m) - 1, 1);
+        return new Intl.DateTimeFormat('ar-SA', { month: 'short' }).format(d);
+      }
+      case 'week':
+      default: {
+        const [y, m, d] = key.split('-');
+        const date = new Date(Number(y), Number(m) - 1, Number(d));
+        return new Intl.DateTimeFormat('ar-SA', {
+          day: 'numeric',
+          month: 'short',
+        }).format(date);
+      }
+    }
+  }
+
+  private readonly ZERO_BUCKET = {
+    impressions: 0,
+    clicks: 0,
+    conversions: 0,
+    spend: 0,
+  };
+
+  async getReportTimeline(
+    clientId: string,
+    dateFrom: Date,
+    dateTo: Date,
+    granularity: 'day' | 'week' | 'month',
+  ): Promise<any> {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true },
+    });
+    if (campaigns.length === 0) {
+      return { labels: [], datasets: [] };
+    }
+
+    const campaignIds = campaigns.map((c) => c.id);
+
+    const allKeys = this.generateDateRangeKeys(dateFrom, dateTo, granularity);
+
+    const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
+      where: {
+        campaignId: { in: campaignIds },
+        recordedAt: { gte: dateFrom, lte: dateTo },
+      },
+      orderBy: { recordedAt: 'asc' },
+    });
+
+    const buckets: Record<
+      string,
+      { impressions: number; clicks: number; conversions: number; spend: number }
+    > = {};
+
+    for (const key of allKeys) {
+      buckets[key] = { ...this.ZERO_BUCKET };
+    }
+
+    for (const s of snapshots) {
+      const d = new Date(s.recordedAt);
+      let key: string;
+
+      switch (granularity) {
+        case 'day':
+          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          break;
+        case 'month':
+          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          break;
+        case 'week':
+        default:
+          const weekStart = new Date(d);
+          weekStart.setDate(d.getDate() - d.getDay());
+          key = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+          break;
+      }
+
+      if (buckets[key]) {
+        buckets[key].impressions += s.impressions;
+        buckets[key].clicks += s.clicks;
+        buckets[key].conversions += s.conversions;
+        buckets[key].spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
+      }
+    }
+
+    const labels = allKeys.map((key) =>
+      this.formatTimelineLabel(key, granularity),
+    );
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'عدد مرات الظهور',
+          data: allKeys.map((k) => buckets[k].impressions),
+          metric: 'impressions',
+        },
+        {
+          label: 'عدد النقرات',
+          data: allKeys.map((k) => buckets[k].clicks),
+          metric: 'clicks',
+        },
+        {
+          label: 'عدد التحويلات',
+          data: allKeys.map((k) => buckets[k].conversions),
+          metric: 'conversions',
+        },
+        {
+          label: 'إجمالي الإنفاق',
+          data: allKeys.map((k) => buckets[k].spend),
+          metric: 'spend',
+        },
+      ],
+    };
+  }
+
+  private async getReportKpiAggregates(
+    clientId: string,
+    dateFrom: Date,
+    dateTo: Date,
+  ): Promise<any> {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true },
+    });
+
+    if (campaigns.length === 0) {
+      const zero = {
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        spend: 0,
+        conversionRate: 0,
+        ctr: 0,
+      };
+      return {
+        current: zero,
+        previous: null,
+        trends: {
+          impressions: null,
+          clicks: null,
+          conversions: null,
+          spend: null,
+          conversionRate: null,
+          ctr: null,
+        },
+      };
+    }
+
+    const campaignIds = campaigns.map((c) => c.id);
+    const durationMs = dateTo.getTime() - dateFrom.getTime();
+    const prevDateTo = new Date(dateFrom);
+    const prevDateFrom = new Date(dateFrom.getTime() - durationMs);
+
+    const [currentSnapshots, previousSnapshots] = await Promise.all([
+      this.prisma.campaignKpiSnapshot.findMany({
+        where: {
+          campaignId: { in: campaignIds },
+          recordedAt: { gte: dateFrom, lte: dateTo },
+        },
+        orderBy: { recordedAt: 'desc' },
+        distinct: ['campaignId'],
+      }),
+      this.prisma.campaignKpiSnapshot.findMany({
+        where: {
+          campaignId: { in: campaignIds },
+          recordedAt: { gte: prevDateFrom, lte: prevDateTo },
+        },
+        orderBy: { recordedAt: 'desc' },
+        distinct: ['campaignId'],
+      }),
+    ]);
+
+    const aggregate = (snaps: any[]) => {
+      let impressions = 0,
+        clicks = 0,
+        conversions = 0,
+        spend = 0,
+        totalCtr = 0,
+        totalConvRate = 0,
+        count = snaps.length;
+      for (const s of snaps) {
+        impressions += s.impressions;
+        clicks += s.clicks;
+        conversions += s.conversions;
+        spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
+        totalCtr += s.ctr;
+        totalConvRate += s.conversionRate;
+      }
+      return {
+        impressions,
+        clicks,
+        conversions,
+        spend,
+        conversionRate: count > 0 ? totalConvRate / count : 0,
+        ctr: count > 0 ? totalCtr / count : 0,
+      };
+    };
+
+    const current = aggregate(currentSnapshots);
+    const previous =
+      previousSnapshots.length > 0 ? aggregate(previousSnapshots) : null;
+
+    const trend = (curr: number, prev: number | undefined) =>
+      prev != null && prev > 0
+        ? Math.round(((curr - prev) / prev) * 100 * 10) / 10
+        : null;
+
+    return {
+      current,
+      previous,
+      trends: {
+        impressions: trend(current.impressions, previous?.impressions),
+        clicks: trend(current.clicks, previous?.clicks),
+        conversions: trend(current.conversions, previous?.conversions),
+        spend: trend(current.spend, previous?.spend),
+        conversionRate: trend(current.conversionRate, previous?.conversionRate),
+        ctr: trend(current.ctr, previous?.ctr),
+      },
+    };
+  }
+
+  private async getTopPerformingCampaigns(
+    clientId: string,
+    dateFrom: Date,
+    dateTo: Date,
+    sortBy: string = 'conversions',
+    limit: number = 10,
+  ): Promise<any[]> {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true, name: true, platform: true },
+    });
+
+    if (campaigns.length === 0) return [];
+
+    const campaignIds = campaigns.map((c) => c.id);
+
+    const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
+      where: {
+        campaignId: { in: campaignIds },
+        recordedAt: { gte: dateFrom, lte: dateTo },
+      },
+    });
+
+    const campaignMetrics: Record<string, any> = {};
+    for (const c of campaigns) {
+      campaignMetrics[c.id] = {
+        id: c.id,
+        name: c.name,
+        platform: c.platform,
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        spend: 0,
+        conversionRate: 0,
+      };
+    }
+
+    for (const s of snapshots) {
+      const cm = campaignMetrics[s.campaignId];
+      if (!cm) continue;
+      cm.impressions += s.impressions;
+      cm.clicks += s.clicks;
+      cm.conversions += s.conversions;
+      cm.spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
+    }
+
+    for (const id of Object.keys(campaignMetrics)) {
+      const cm = campaignMetrics[id];
+      cm.conversionRate =
+        cm.clicks > 0
+          ? Math.round((cm.conversions / cm.clicks) * 100 * 10) / 10
+          : 0;
+    }
+
+    const validSortKeys = [
+      'impressions',
+      'clicks',
+      'conversions',
+      'spend',
+      'conversionRate',
+    ];
+    const sortKey = validSortKeys.includes(sortBy) ? sortBy : 'conversions';
+
+    return Object.values(campaignMetrics)
+      .sort((a: any, b: any) => (b[sortKey] > a[sortKey] ? 1 : -1))
+      .slice(0, limit);
+  }
+
+  private async getPlatformDistribution(
+    clientId: string,
+    dateFrom: Date,
+    dateTo: Date,
+  ): Promise<any[]> {
+    const campaigns = await this.prisma.campaign.findMany({
+      where: { clientId },
+      select: { id: true, platform: true },
+    });
+
+    if (campaigns.length === 0) return [];
+
+    const byPlatform: Record<
+      string,
+      { campaignIds: string[]; spend: number }
+    > = {};
+    for (const c of campaigns) {
+      if (!byPlatform[c.platform]) {
+        byPlatform[c.platform] = { campaignIds: [], spend: 0 };
+      }
+      byPlatform[c.platform].campaignIds.push(c.id);
+    }
+
+    for (const platform of Object.keys(byPlatform)) {
+      const ids = byPlatform[platform].campaignIds;
+      if (ids.length === 0) continue;
+
+      const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
+        where: {
+          campaignId: { in: ids },
+          recordedAt: { gte: dateFrom, lte: dateTo },
+        },
+      });
+
+      let spend = 0;
+      for (const s of snapshots) {
+        spend += s.cpc > 0 ? s.cpc * s.clicks : s.revenue;
+      }
+      byPlatform[platform].spend = spend;
+    }
+
+    const totalSpend = Object.values(byPlatform).reduce(
+      (sum, p) => sum + p.spend,
+      0,
+    );
+
+    const platformAr: Record<string, string> = {
+      GOOGLE: 'جوجل',
+      META: 'ميتا',
+      TIKTOK: 'تيكتوك',
+      SNAPCHAT: 'سناب شات',
+    };
+
+    return Object.entries(byPlatform)
+      .filter(([, p]) => p.spend > 0)
+      .map(([platform, p]) => ({
+        platform: platformAr[platform] || platform,
+        spend: p.spend,
+        percent:
+          totalSpend > 0
+            ? Math.round((p.spend / totalSpend) * 100 * 10) / 10
+            : 0,
+      }))
+      .sort((a, b) => b.spend - a.spend);
+  }
+
+  private generateSmartTips(aggregates: any): any[] {
+    const tips: any[] = [];
+    const { current, trends } = aggregates;
+
+    if (current.conversionRate > 5) {
+      tips.push({
+        type: 'budget',
+        title: 'الميزانية',
+        description: 'زيادة الميزانية على ميتا بنسبة 20%',
+      });
+    }
+
+    if (trends.conversionRate != null && trends.conversionRate < 0) {
+      tips.push({
+        type: 'warning',
+        title: 'تنبيه',
+        description: 'تقليل الإنفاق على تيكتوك',
+      });
+    }
+
+    if (current.clicks < 100) {
+      tips.push({
+        type: 'insight',
+        title: 'نصيحة',
+        description: 'الاستثمار أكثر في محتوى الفيديو',
+      });
+    }
+
+    if (current.ctr < 1) {
+      tips.push({
+        type: 'insight',
+        title: 'تحذير',
+        description: 'الاستثمار أكثر في محتوى الفيديو',
+      });
+    }
+
+    const priorityOrder: Record<string, number> = {
+      warning: 0,
+      budget: 1,
+      insight: 2,
+    };
+
+    return tips
+      .sort((a, b) => (priorityOrder[a.type] ?? 3) - (priorityOrder[b.type] ?? 3))
+      .slice(0, 4);
   }
 }

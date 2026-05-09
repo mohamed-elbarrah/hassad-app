@@ -71,15 +71,7 @@ export default function PortalProjectsPage() {
         title="مشاريعي"
         description="تتبع جميع مشاريعك، راقب الحالة الحالية، واستعرض نسبة التقدم لكل مشروع ضمن نفس الهوية البصرية للبوابة."
         icon={FolderOpen}
-        actions={
-          <>
-            <ProjectSummaryPill label="إجمالي المشاريع" value={total} />
-            <ProjectSummaryPill
-              label="العرض الحالي"
-              value={activeFilterLabel}
-            />
-          </>
-        }
+        
       />
 
       <PortalSurfaceCard

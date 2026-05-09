@@ -9,6 +9,7 @@ import {
   FileText,
   Receipt,
   Settings,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
   { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
   { label: "العقود", href: "/portal/contracts", icon: FileText },
+  { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
   { label: "الفواتير", href: "/portal/finance", icon: Receipt },
   { label: "الإعدادات", href: "/portal/account", icon: Settings },
 ];

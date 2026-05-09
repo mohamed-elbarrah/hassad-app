@@ -725,6 +725,11 @@ model Proposal {
   durationDays       Int            @map("duration_days")
   platforms          Json
   filePath           String?        @map("file_path")
+  contactName        String?        @map("contact_name")
+  contactEmail       String?        @map("contact_email")
+  startDate          DateTime?      @map("start_date")
+  durationUnit       String         @default("DAYS") @map("duration_unit")
+  offerValidityDays  Int            @default(30) @map("offer_validity_days")
   status             ProposalStatus
   shareLinkToken     String?        @unique @map("share_link_token")
   sentAt             DateTime?      @map("sent_at")

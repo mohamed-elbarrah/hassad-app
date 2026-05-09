@@ -151,52 +151,7 @@ export default function PortalPage() {
     >
       {/* COLUMN 1 */}
       <div className="flex flex-col gap-5">
-        <DashboardCard
-          title="الطلبات قيد الانتظار"
-          icon={ClipboardList}
-          onShowAll={() => router.push("/portal/requests")}
-        >
-          {pendingRequestsError ? (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
-              تعذر تحميل الطلبات الحالية
-            </p>
-          ) : pendingRequests.length > 0 ? (
-            <div className="space-y-3">
-              {pendingRequests.map((request) => (
-                <Card
-                  key={request.id}
-                  className="rounded-2xl border-portal-card-border p-4 bg-white shadow-none"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[20px] font-semibold leading-[30px] text-natural-100 truncate">
-                        {request.companyName}
-                      </p>
-                      <p className="text-[15px] leading-[22px] text-portal-note-text">
-                        {request.contactName}
-                      </p>
-                    </div>
-                    <StatusBadge status="pending" label={request.statusLabel} />
-                  </div>
-                  <p className="mt-3 text-[15px] leading-[24px] text-portal-note-text/90">
-                    {request.stageLabel}
-                  </p>
-                  <p className="mt-2 text-[14px] leading-[21px] text-portal-note-text/80">
-                    تاريخ الطلب:{" "}
-                    {new Date(request.createdAt).toLocaleDateString(
-                      "ar-SA-u-nu-latn",
-                    )}
-                  </p>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
-              لا توجد طلبات بانتظار المتابعة حالياً
-            </p>
-          )}
-        </DashboardCard>
-
+      
         {/* ── تتبع المشاريع ──────────────────────────── */}
         <DashboardCard
           title="تتبع المشاريع"
@@ -402,8 +357,54 @@ export default function PortalPage() {
 
       {/* COLUMN 3 */}
       <div className="flex flex-col gap-5">
-        {/* ── ملخص سريع ────────────────────────────── */}
+
         <DashboardCard
+          title="الطلبات قيد الانتظار"
+          icon={ClipboardList}
+          onShowAll={() => router.push("/portal/requests")}
+        >
+          {pendingRequestsError ? (
+            <p className="text-[16px] text-portal-note-text text-center py-4">
+              تعذر تحميل الطلبات الحالية
+            </p>
+          ) : pendingRequests.length > 0 ? (
+            <div className="space-y-3">
+              {pendingRequests.map((request) => (
+                <Card
+                  key={request.id}
+                  className="rounded-2xl border-portal-card-border p-4 bg-white shadow-none"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[20px] font-semibold leading-[30px] text-natural-100 truncate">
+                        {request.companyName}
+                      </p>
+                      <p className="text-[15px] leading-[22px] text-portal-note-text">
+                        {request.contactName}
+                      </p>
+                    </div>
+                    <StatusBadge status="pending" label={request.statusLabel} />
+                  </div>
+                  <p className="mt-3 text-[15px] leading-[24px] text-portal-note-text/90">
+                    {request.stageLabel}
+                  </p>
+                  <p className="mt-2 text-[14px] leading-[21px] text-portal-note-text/80">
+                    تاريخ الطلب:{" "}
+                    {new Date(request.createdAt).toLocaleDateString(
+                      "ar-SA-u-nu-latn",
+                    )}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[16px] text-portal-note-text text-center py-4">
+              لا توجد طلبات بانتظار المتابعة حالياً
+            </p>
+          )}
+        </DashboardCard>
+        {/* ── ملخص سريع ────────────────────────────── */}
+        {/* <DashboardCard
           title="ملخص سريع"
           icon={ClipboardList}
           onShowAll={() => router.push("/portal/deliverables")}
@@ -442,7 +443,7 @@ export default function PortalPage() {
               لا توجد تسليمات حالياً
             </p>
           )}
-        </DashboardCard>
+        </DashboardCard> */}
 
         {/* ── مدير المشروع ──────────────────────────── */}
         <DashboardCard

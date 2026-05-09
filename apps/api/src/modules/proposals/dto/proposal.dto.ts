@@ -4,7 +4,10 @@ import {
   IsUUID,
   IsArray,
   IsOptional,
+  IsEnum,
+  IsDateString,
 } from "class-validator";
+import { DurationUnit } from "@hassad/shared";
 
 export class CreateProposalDto {
   @IsUUID()
@@ -30,12 +33,32 @@ export class CreateProposalDto {
   durationDays?: number;
 
   @IsOptional()
+  @IsString()
+  durationUnit?: string;
+
+  @IsOptional()
   @IsArray()
   platforms?: string[];
 
   @IsOptional()
   @IsString()
   filePath?: string;
+
+  @IsOptional()
+  @IsString()
+  contactName?: string;
+
+  @IsOptional()
+  @IsString()
+  contactEmail?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  offerValidityDays?: number;
 }
 
 export class UpdateProposalDto {
@@ -60,12 +83,32 @@ export class UpdateProposalDto {
   durationDays?: number;
 
   @IsOptional()
+  @IsString()
+  durationUnit?: string;
+
+  @IsOptional()
   @IsArray()
   platforms?: string[];
 
   @IsOptional()
   @IsString()
   filePath?: string;
+
+  @IsOptional()
+  @IsString()
+  contactName?: string;
+
+  @IsOptional()
+  @IsString()
+  contactEmail?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  offerValidityDays?: number;
 }
 
 export class ProposalResponseDto {

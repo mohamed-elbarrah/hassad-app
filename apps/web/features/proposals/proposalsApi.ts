@@ -6,6 +6,7 @@ import type {
   UpdateProposalInput,
   ProposalResponseInput,
   ProposalStatus,
+  DurationUnit,
 } from "@hassad/shared";
 
 export interface ProposalListItem extends Proposal {
@@ -36,11 +37,23 @@ export interface ProposalFilters {
   limit?: number;
 }
 
-/** Input for one-step create+send via multipart/form-data */
+export interface ServiceItem {
+  name: string;
+  price: number;
+}
+
 export interface CreateProposalFormInput {
   requestId: string;
   title: string;
   file: File;
+  servicesList: ServiceItem[];
+  totalPrice: number;
+  durationDays: number;
+  durationUnit: DurationUnit;
+  contactName: string;
+  contactEmail: string;
+  startDate: string;
+  offerValidityDays: number;
 }
 
 export const proposalsApi = createApi({
@@ -85,8 +98,37 @@ export const proposalsApi = createApi({
           formData.append("title", input.title);
           formData.append("file", input.file, input.file.name);
 
-          // Ensure we have a usable API base URL. In dev this may be missing
-          // from env during client runtime, so fall back to window origin.
+          if (input.servicesList && input.servicesList.length > 0) {
+            formData.append(
+              "servicesList",
+              JSON.stringify(input.servicesList),
+            );
+          }
+          if (input.totalPrice !== undefined) {
+            formData.append("totalPrice", String(input.totalPrice));
+          }
+          if (input.durationDays !== undefined) {
+            formData.append("durationDays", String(input.durationDays));
+          }
+          if (input.durationUnit) {
+            formData.append("durationUnit", input.durationUnit);
+          }
+          if (input.contactName) {
+            formData.append("contactName", input.contactName);
+          }
+          if (input.contactEmail) {
+            formData.append("contactEmail", input.contactEmail);
+          }
+          if (input.startDate) {
+            formData.append("startDate", input.startDate);
+          }
+          if (input.offerValidityDays !== undefined) {
+            formData.append(
+              "offerValidityDays",
+              String(input.offerValidityDays),
+            );
+          }
+
           const apiBase =
             getApiBaseUrl() ||
             (typeof window !== "undefined"
@@ -103,7 +145,6 @@ export const proposalsApi = createApi({
           if (!res.ok) {
             return { error: { status: res.status, data: json } };
           }
-          // Unwrap the { success, data, timestamp } envelope
           const data: ProposalListItem =
             json?.data !== undefined ? json.data : json;
           return { data };

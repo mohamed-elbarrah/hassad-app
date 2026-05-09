@@ -188,6 +188,57 @@ export interface PortalContractSummary {
   startDate: string;
   endDate: string;
   proposal?: { id: string; title: string } | null;
+  projectManager?: string | null;
+}
+
+export interface ReportKpiCard {
+  metric: string;
+  label: string;
+  value: number;
+  previousValue: number;
+  trendPercent: number | null;
+}
+
+export interface ReportSmartTip {
+  type: "budget" | "warning" | "insight";
+  title: string;
+  description: string;
+}
+
+export interface ReportTopCampaign {
+  id: string;
+  name: string;
+  platform: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  conversionRate: number;
+  spend: number;
+}
+
+export interface ReportPlatformDistribution {
+  platform: string;
+  spend: number;
+  percent: number;
+}
+
+export interface ReportSummary {
+  kpiCards: ReportKpiCard[];
+  smartTips: ReportSmartTip[];
+  topCampaigns: ReportTopCampaign[];
+  platformDistribution: ReportPlatformDistribution[];
+  period: { dateFrom: string | null; dateTo: string | null };
+}
+
+export interface ReportTimelineDataset {
+  label: string;
+  data: number[];
+  metric: string;
+}
+
+export interface ReportTimeline {
+  labels: string[];
+  datasets: ReportTimelineDataset[];
 }
 
 export const portalApi = createApi({
@@ -205,6 +256,7 @@ export const portalApi = createApi({
     "PortalRequests",
     "PortalInvoices",
     "PortalContracts",
+    "PortalReports",
   ],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
@@ -278,7 +330,7 @@ export const portalApi = createApi({
         page: number;
         limit: number;
       },
-      { status?: string; page?: number; limit?: number }
+      { status?: string; search?: string; dateFrom?: string; dateTo?: string; sortBy?: string; sortOrder?: string; page?: number; limit?: number }
     >({
       query: (params) => ({ url: "/portal/contracts", params }),
       providesTags: ["PortalContracts"],
@@ -304,6 +356,20 @@ export const portalApi = createApi({
       }),
       invalidatesTags: ["ActionItems"],
     }),
+    getPortalReports: builder.query<ReportSummary, void>({
+      query: () => "/portal/reports",
+      providesTags: ["PortalReports"],
+    }),
+    getReportTimeline: builder.query<
+      ReportTimeline,
+      { dateFrom?: string; dateTo?: string; granularity?: "day" | "week" | "month" } | void
+    >({
+      query: (params) =>
+        params
+          ? { url: "/portal/reports/timeline", params }
+          : { url: "/portal/reports/timeline" },
+      providesTags: ["PortalReports"],
+    }),
   }),
 });
 
@@ -322,4 +388,6 @@ export const {
   useGetPortalContractsQuery,
   useSnoozeActionItemMutation,
   useUnsnoozeActionItemMutation,
+  useGetPortalReportsQuery,
+  useGetReportTimelineQuery,
 } = portalApi;
