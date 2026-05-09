@@ -188,6 +188,7 @@ export interface PortalContractSummary {
   startDate: string;
   endDate: string;
   proposal?: { id: string; title: string } | null;
+  projectManager?: string | null;
 }
 
 export interface ReportKpiCard {
@@ -329,7 +330,7 @@ export const portalApi = createApi({
         page: number;
         limit: number;
       },
-      { status?: string; page?: number; limit?: number }
+      { status?: string; search?: string; dateFrom?: string; dateTo?: string; sortBy?: string; sortOrder?: string; page?: number; limit?: number }
     >({
       query: (params) => ({ url: "/portal/contracts", params }),
       providesTags: ["PortalContracts"],

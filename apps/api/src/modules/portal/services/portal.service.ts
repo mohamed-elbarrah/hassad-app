@@ -759,23 +759,56 @@ export class PortalService {
 
   async getContracts(
     clientId: string,
-    query: { status?: string; page: number; limit: number },
+    query: { 
+      status?: string; 
+      search?: string; 
+      dateFrom?: string; 
+      dateTo?: string; 
+      sortBy?: string; 
+      sortOrder?: "asc" | "desc"; 
+      page: number; 
+      limit: number 
+    },
   ) {
     const where: any = { clientId };
     if (query.status) where.status = query.status;
+    if (query.search) {
+      where.title = { contains: query.search, mode: "insensitive" };
+    }
+    if (query.dateFrom || query.dateTo) {
+      where.startDate = {};
+      if (query.dateFrom) where.startDate.gte = new Date(query.dateFrom);
+      if (query.dateTo) where.startDate.lte = new Date(query.dateTo);
+    }
+
+    const sortField = query.sortBy || "createdAt";
+    const sortOrder = query.sortOrder || "desc";
 
     const [data, total] = await Promise.all([
       this.prisma.contract.findMany({
         where,
-        include: { proposal: { select: { id: true, title: true } } },
-        orderBy: { createdAt: "desc" },
+        include: { 
+          proposal: { select: { id: true, title: true } },
+          projects: {
+            select: {
+              manager: { select: { name: true } }
+            },
+            take: 1
+          }
+        },
+        orderBy: { [sortField]: sortOrder },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
       this.prisma.contract.count({ where }),
     ]);
 
-    return { data, total, page: query.page, limit: query.limit };
+    const items = data.map(c => ({
+      ...c,
+      projectManager: c.projects[0]?.manager?.name ?? null
+    }));
+
+    return { data: items, total, page: query.page, limit: query.limit };
   }
 
   async getFinanceSummary(clientId: string) {

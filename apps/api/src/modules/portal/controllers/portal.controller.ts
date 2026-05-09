@@ -79,6 +79,11 @@ export class PortalController {
   async getContracts(
     @CurrentUser() user: any,
     @Query("status") status?: string,
+    @Query("search") search?: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortOrder") sortOrder?: string,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
@@ -86,6 +91,11 @@ export class PortalController {
     if (!clientId) return { data: [], total: 0, page: 1, limit: 20 };
     return this.portalService.getContracts(clientId, {
       status,
+      search,
+      dateFrom,
+      dateTo,
+      sortBy,
+      sortOrder: sortOrder === "asc" ? "asc" : "desc",
       page: Number(page) || 1,
       limit: Number(limit) || 20,
     });
