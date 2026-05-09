@@ -195,7 +195,7 @@ export default function PortalDeliverablesPage() {
           </div>
 
           <PortalProgressCard
-            title="تقدم المشروع"
+            title="تقدم المشاريع"
             value={metrics.progressValue}
             max={100}
             summary={`${metrics.completed} من ${metrics.total || 0} تسليم مكتمل`}
