@@ -307,7 +307,7 @@ export class ContractsService {
     if (recipientId) {
       this.notificationsService
         .createNotification({
-          entityId: shareLinkToken, // token so client can navigate directly to detail
+          entityId: shareLinkToken,
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: recipientId,
@@ -317,7 +317,92 @@ export class ContractsService {
         .catch(() => undefined);
     }
 
+    // Auto-generate invoice from proposal services if linked
+    if (dto.proposalId && created.contract.clientId) {
+      this.generateInvoiceFromProposal(
+        created.contract.id,
+        created.contract.clientId,
+        dto.proposalId,
+        userId,
+      ).catch((err) => {
+        console.error("Failed to auto-generate invoice from proposal:", err);
+      });
+    }
+
     return { ...created.contract, shareLinkToken };
+  }
+
+  /**
+   * Auto-generate an Invoice + InvoiceItems from a proposal's servicesList
+   * when a contract is created from an approved proposal.
+   */
+  private async generateInvoiceFromProposal(
+    contractId: string,
+    clientId: string,
+    proposalId: string,
+    userId: string,
+  ) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      select: {
+        servicesList: true,
+        totalPrice: true,
+        startDate: true,
+        durationDays: true,
+        title: true,
+      },
+    });
+
+    if (!proposal) return null;
+
+    const servicesList = Array.isArray(proposal.servicesList)
+      ? (proposal.servicesList as { name: string; price: number }[])
+      : [];
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const invoiceNumber = `INV-${dateStr}-${randomUUID().slice(0, 6).toUpperCase()}`;
+
+    const dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + (proposal.durationDays || 30));
+
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        clientId,
+        contractId,
+        createdBy: userId,
+        invoiceNumber,
+        amount: proposal.totalPrice,
+        currency: "SAR",
+        status: "PENDING",
+        paymentMethod: "BANK_TRANSFER",
+        issueDate: now,
+        dueDate,
+        notes: `فاتورة تلقائية من العرض: ${proposal.title}`,
+        items: {
+          create: servicesList.map((service) => ({
+            description: service.name,
+            quantity: 1,
+            unitPrice: service.price,
+            total: service.price,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+
+    await this.notificationsService
+      .createNotification({
+        entityId: invoice.id,
+        entityType: "invoice",
+        eventType: "CONTRACT_SENT",
+        userId,
+        title: "تم إنشاء فاتورة تلقائية",
+        body: `تم إنشاء فاتورة تلقائية رقم ${invoiceNumber} من العرض الفني "${proposal.title}"`,
+      })
+      .catch(() => undefined);
+
+    return invoice;
   }
 
   async findOne(id: string) {

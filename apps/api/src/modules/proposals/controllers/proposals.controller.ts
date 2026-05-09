@@ -78,8 +78,8 @@ export class ProposalsController {
 
   @Patch(':id')
   @RequirePermissions('proposals.update')
-  update(@Param('id') id: string, @Body() dto: UpdateProposalDto) {
-    return this.proposalsService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateProposalDto, @CurrentUser() user: any) {
+    return this.proposalsService.update(id, dto, user.id);
   }
 
   @Post(':id/send')

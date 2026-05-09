@@ -31,6 +31,7 @@ import {
   PipelineStage,
   RequestStatus,
   AutomationStatus,
+  DurationUnit,
 } from "./enums/client";
 
 import {
@@ -139,7 +140,13 @@ export interface Proposal {
   servicesList: unknown[];
   totalPrice: number;
   durationDays: number;
+  durationUnit: string;
   platforms: string[];
+  contactName?: string | null;
+  contactEmail?: string | null;
+  startDate?: Date | string | null;
+  offerValidityDays: number;
+  filePath?: string | null;
   status: ProposalStatus;
   shareLinkToken?: string | null;
   sentAt?: Date | string | null;

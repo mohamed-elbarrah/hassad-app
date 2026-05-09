@@ -1,6 +1,6 @@
 "use client";
 
-import { CreateProposalDialog } from "@/components/dashboard/sales/CreateProposalDialog";
+import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
 import { ProposalsTable } from "@/components/dashboard/sales/ProposalsTable";
 import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
@@ -27,7 +27,7 @@ export default function ProposalsPage() {
     <div className="flex flex-col gap-6" dir="rtl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">العروض الفنية</h1>
-        <CreateProposalDialog />
+        <ProposalFormDialog mode="create" />
       </div>
 
       {isLoading && (

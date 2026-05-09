@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { CreateProposalDto, UpdateProposalDto } from "../dto/proposal.dto";
@@ -19,11 +20,20 @@ export class ProposalsService {
   ) {}
 
   /**
-   * One-step: create proposal as DRAFT then immediately send it.
-   * Notifies the CLIENT linked to the originating request.
+   * One-step: create proposal as SENT + generate shareLinkToken.
+   * Auto-populates contactName and contactEmail from the creator user if not provided.
    */
   async create(userId: string, dto: CreateProposalDto) {
     const token = randomBytes(32).toString("hex");
+
+    // Fetch creator user to auto-fill contact info
+    const creator = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
+
+    const contactName = dto.contactName || creator?.name || "";
+    const contactEmail = dto.contactEmail || creator?.email || "";
 
     const created = await this.prisma.$transaction(async (tx) => {
       const request = await this.requestsService.resolveRequestContext(
@@ -44,8 +54,13 @@ export class ProposalsService {
           servicesList: dto.servicesList ?? [],
           totalPrice: dto.totalPrice ?? 0,
           durationDays: dto.durationDays ?? 0,
+          durationUnit: dto.durationUnit ?? "DAYS",
           platforms: dto.platforms ?? [],
           filePath: dto.filePath ?? null,
+          contactName,
+          contactEmail,
+          startDate: dto.startDate ? new Date(dto.startDate) : null,
+          offerValidityDays: dto.offerValidityDays ?? 30,
           status: ProposalStatus.SENT,
           shareLinkToken: token,
           sentAt: new Date(),
@@ -110,7 +125,6 @@ export class ProposalsService {
       }),
       this.prisma.proposal.count({ where }),
     ]);
-
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
@@ -131,10 +145,32 @@ export class ProposalsService {
     return proposal;
   }
 
-  async update(id: string, dto: UpdateProposalDto) {
+  async update(id: string, dto: UpdateProposalDto, userId: string) {
+    const proposal = await this.findOne(id);
+
+    // Owner guard: only creator or ADMIN can update
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: { select: { name: true } } },
+    });
+
+    const isAdmin = user?.role?.name === "ADMIN";
+    const isOwner = proposal.createdBy === userId;
+
+    if (!isAdmin && !isOwner) {
+      throw new ForbiddenException(
+        "You can only edit proposals you created",
+      );
+    }
+
+    const updateData: any = { ...dto };
+    if (dto.startDate) {
+      updateData.startDate = new Date(dto.startDate);
+    }
+
     return this.prisma.proposal.update({
       where: { id },
-      data: dto,
+      data: updateData,
     });
   }
 

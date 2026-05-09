@@ -69,6 +69,12 @@ export enum ClientStatus {
   STOPPED = "STOPPED",
 }
 
+export enum DurationUnit {
+  DAYS = "DAYS",
+  WEEKS = "WEEKS",
+  MONTHS = "MONTHS",
+}
+
 export enum ProposalStatus {
   DRAFT = "DRAFT",
   SENT = "SENT",

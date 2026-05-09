@@ -130,6 +130,46 @@ export default function ProposalSharePage({ params }: PageProps) {
         </CardHeader>
 
         <CardContent className="space-y-5">
+          {/* ── Services List ───────────────────────────────────────────── */}
+          {Array.isArray(data.servicesList) && (data.servicesList as { name: string; price: number }[]).length > 0 && (
+            <div className="rounded-xl border p-4 space-y-3">
+              <p className="text-sm font-semibold">الخدمات المطلوبة</p>
+              {(data.servicesList as { name: string; price: number }[]).map((service, idx) => (
+                <div key={idx} className="flex items-center justify-between text-sm">
+                  <span className="text-foreground">{service.name}</span>
+                  <span className="text-muted-foreground font-medium">
+                    {service.price.toLocaleString("en-US")} رس
+                  </span>
+                </div>
+              ))}
+              <div className="border-t pt-2 flex items-center justify-between text-sm font-bold">
+                <span>الإجمالي الكلي</span>
+                <span>{data.totalPrice.toLocaleString("en-US")} رس</span>
+              </div>
+            </div>
+          )}
+
+          {/* ── Sales Contact (خدمة العملاء) ──────────────────────────── */}
+          {(data.contactName || data.contactEmail) && (
+            <div className="rounded-xl border bg-slate-50 p-4 space-y-2">
+              <p className="text-sm font-semibold">خدمة العملاء</p>
+              {data.contactName && (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="font-medium text-foreground">مسؤول التواصل:</span>
+                  {data.contactName}
+                </p>
+              )}
+              {data.contactEmail && (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="font-medium text-foreground">البريد الإلكتروني:</span>
+                  <a href={`mailto:${data.contactEmail}`} className="text-blue-600 hover:underline">
+                    {data.contactEmail}
+                  </a>
+                </p>
+              )}
+            </div>
+          )}
+
           {/* ── PDF Download ────────────────────────────────────────────── */}
           {fileUrl ? (
             <div className="flex items-center gap-3 rounded-xl border bg-slate-50 p-4">
