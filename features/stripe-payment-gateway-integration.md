@@ -435,10 +435,16 @@ Check query params for `?success=true` or `?canceled=true` on mount, show approp
 - ✅ Task 5.2 — Sidebar link already existed under "إعدادات النظام" → "بوابات الدفع"
 - ✅ Task 5.3 — `GET payments/public-config` endpoint added (auth-guarded with `invoices.pay_public`). Returns decrypted Stripe publishable key for client-side use, with `isActive: false` when gateway not configured
 - ✅ Build: `nest build` ✓
-| Phase 6 — Frontend redirect flow | ⬜ Pending | — |
+| Phase 6 — Frontend redirect flow | ✅ Done | 2026-05-10 |
 
-### Phase 1 Details
-- ✅ Task 1.1 — `POST payments/create-intent` now has `@UseGuards(JwtAuthGuard, PermissionsGuard)` + `@RequirePermissions('invoices.pay_public')`
-- ✅ Task 1.2 — `ContractInvoicesList` routes card methods (CARD/MADA/VISA_MC/APPLE_PAY) through `useCreatePaymentIntentMutation` → Stripe Checkout redirect; bank_transfer/cash through `usePayInvoicePublicMutation` for manual processing
-- ✅ Task 1.3 — Existing `createPaymentIntent` endpoint already had `useCreatePaymentIntentMutation` hook; updated with `invalidatesTags: ["Payment", "Invoice"]`
+### Phase 6 Details
+- ✅ Task 6.1 — `ContractInvoicesList` now sends dynamic `successUrl`/`cancelUrl` pointing back to contract page. Saves payment context to sessionStorage before Stripe redirect
+- ✅ Task 6.2 — Both public + portal contract pages handle `?success=true` and `?canceled=true` with toast notifications + clean URL via `history.replaceState`. Wrapped in `Suspense` boundary for `useSearchParams`
+
+### Phase 7 — Dynamic gateway filtering ✅ Done | 2026-05-10
+- ✅ `GET payments/gateways-public` endpoint (client-accessible, returns active gateway names only)
+- ✅ `ContractInvoicesList` fetches active gateways via `useGetPublicGatewaysQuery`, builds payment method dropdown dynamically
+- ✅ Only 2 payment methods shown when both active: بطاقة (Stripe) + تحويل بنكي
+- ✅ Dropdown hidden when only 1 method available
+- ✅ Whole invoices section hidden when no gateway active
 - ✅ Build: `nest build` ✓, `next build` ✓

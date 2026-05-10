@@ -339,6 +339,15 @@ export class PaymentsService implements OnModuleInit {
     };
   }
 
+  async getPublicGateways() {
+    const gateways = await this.prisma.paymentGateway.findMany({
+      where: { isActive: true },
+      select: { name: true },
+    });
+
+    return gateways.map((g) => g.name);
+  }
+
   async createBankAccount(dto: any) {
     return this.prisma.bankAccount.create({ data: dto });
   }

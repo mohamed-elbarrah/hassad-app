@@ -203,6 +203,9 @@ export const financeApi = createApi({
       query: ({ name, body }) => ({ url: `/payments/gateways/${name}`, method: "POST", body }),
       invalidatesTags: ["PaymentGateway"],
     }),
+    getPublicGateways: builder.query<string[], void>({
+      query: () => "/payments/gateways-public",
+    }),
     getBankAccounts: builder.query<any[], void>({
       query: () => "/payments/bank-accounts",
       providesTags: ["BankAccount"],
@@ -261,6 +264,7 @@ export const {
   useGetInvoicesByContractIdQuery,
   useGetPaymentGatewaysQuery,
   useUpdatePaymentGatewayMutation,
+  useGetPublicGatewaysQuery,
   useGetBankAccountsQuery,
   useCreateBankAccountMutation,
   useUpdateBankAccountMutation,

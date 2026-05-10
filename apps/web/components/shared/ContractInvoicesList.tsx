@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
   CheckCircle,
@@ -24,6 +24,7 @@ import type { InvoiceSummary } from "@/features/contracts/contractsApi";
 import {
   usePayInvoicePublicMutation,
   useCreatePaymentIntentMutation,
+  useGetPublicGatewaysQuery,
 } from "@/features/finance/financeApi";
 import { PaymentMethod } from "@hassad/shared";
 
@@ -42,23 +43,30 @@ const STATUS_CONFIG: Record<
 
 const PAYABLE_STATUSES = new Set(["PENDING", "SENT", "DUE", "PARTIAL", "LATE"]);
 
-const METHOD_LABELS: Record<string, string> = {
-  [PaymentMethod.BANK_TRANSFER]: "تحويل بنكي",
-  [PaymentMethod.CARD]: "بطاقة",
-  [PaymentMethod.MADA]: "مدى",
-  [PaymentMethod.VISA_MC]: "فيزا / ماستركارد",
-  [PaymentMethod.APPLE_PAY]: "Apple Pay",
-  [PaymentMethod.TABBY]: "تابي",
-  [PaymentMethod.TAMARA]: "تمارا",
-  [PaymentMethod.CASH]: "نقدي",
-};
+const CARD_METHODS = new Set<PaymentMethod>([PaymentMethod.CARD]);
 
-const CARD_METHODS = new Set<PaymentMethod>([
-  PaymentMethod.CARD,
-  PaymentMethod.MADA,
-  PaymentMethod.VISA_MC,
-  PaymentMethod.APPLE_PAY,
-]);
+interface PaymentMethodOption {
+  key: PaymentMethod;
+  label: string;
+}
+
+/**
+ * Map admin-configured gateway names → PaymentMethod options shown to clients.
+ * Only gateways the admin has activated appear in the dropdown.
+ */
+function buildAvailableMethods(activeGateways: string[]): PaymentMethodOption[] {
+  const methods: PaymentMethodOption[] = [];
+
+  if (activeGateways.includes("stripe")) {
+    methods.push({ key: PaymentMethod.CARD, label: "بطاقة" });
+  }
+
+  if (activeGateways.includes("bank_transfer")) {
+    methods.push({ key: PaymentMethod.BANK_TRANSFER, label: "تحويل بنكي" });
+  }
+
+  return methods;
+}
 
 function getReturnUrls() {
   if (typeof window === "undefined") return { successUrl: "", cancelUrl: "" };
@@ -86,14 +94,38 @@ export function ContractInvoicesList({
   const [payingId, setPayingId] = useState<string | null>(null);
   const [methods, setMethods] = useState<Record<string, PaymentMethod>>({});
 
+  const { data: activeGateways = [] } = useGetPublicGatewaysQuery(undefined, {
+    skip: !showPayButton,
+  });
+
+  const availableMethods = useMemo(
+    () => buildAvailableMethods(activeGateways),
+    [activeGateways],
+  );
+
+  useEffect(() => {
+    if (availableMethods.length > 0) {
+      setMethods((prev) => {
+        const next = { ...prev };
+        invoices.forEach((inv) => {
+          if (!next[inv.id]) {
+            next[inv.id] = availableMethods[0].key;
+          }
+        });
+        return next;
+      });
+    }
+  }, [availableMethods, invoices]);
+
   if (!invoices || invoices.length === 0) return null;
+  if (availableMethods.length === 0 && showPayButton) return null;
 
   function setMethod(invoiceId: string, method: PaymentMethod) {
     setMethods((prev) => ({ ...prev, [invoiceId]: method }));
   }
 
   function getMethod(invoiceId: string): PaymentMethod {
-    return methods[invoiceId] ?? PaymentMethod.BANK_TRANSFER;
+    return methods[invoiceId] ?? availableMethods[0]?.key ?? PaymentMethod.BANK_TRANSFER;
   }
 
   async function handlePay(invoice: InvoiceSummary) {
@@ -188,25 +220,27 @@ export function ContractInvoicesList({
               <span className="font-medium">
                 {invoice.amount.toLocaleString("en-US")} ر.س
               </span>
-              {isPayable && (
+              {isPayable && availableMethods.length > 0 && (
                 <>
-                  <Select
-                    value={selectedMethod}
-                    onValueChange={(v) =>
-                      setMethod(invoice.id, v as PaymentMethod)
-                    }
-                  >
-                    <SelectTrigger className="h-7 w-[130px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(METHOD_LABELS).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {availableMethods.length > 1 ? (
+                    <Select
+                      value={selectedMethod}
+                      onValueChange={(v) =>
+                        setMethod(invoice.id, v as PaymentMethod)
+                      }
+                    >
+                      <SelectTrigger className="h-7 w-[130px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableMethods.map((opt) => (
+                          <SelectItem key={opt.key} value={opt.key}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
                   <Button
                     size="sm"
                     variant="default"

@@ -50,6 +50,13 @@ export class PaymentsController {
     return this.paymentsService.getPublicConfig();
   }
 
+  @Get('gateways-public')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('invoices.pay_public')
+  async getPublicGateways() {
+    return this.paymentsService.getPublicGateways();
+  }
+
   @Post('bank-accounts')
   @RequirePermissions('finance.admin')
   async createBankAccount(@Body() dto: any) {
