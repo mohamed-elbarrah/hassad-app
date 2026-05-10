@@ -17,8 +17,18 @@ export interface CreatePaymentIntentParams {
   metadata?: any;
 }
 
+export interface ElementPaymentIntentParams {
+  invoiceId: string;
+  amount: number;
+  currency: string;
+  clientId: string;
+  metadata?: any;
+}
+
 export interface PaymentProvider {
   createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResponse>;
+
+  createElementPaymentIntent?(params: ElementPaymentIntentParams): Promise<PaymentIntentResponse>;
 
   verifyWebhook(payload: any, signature: string): Promise<any>;
 

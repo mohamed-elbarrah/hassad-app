@@ -236,6 +236,46 @@ export const financeApi = createApi({
       query: (body) => ({ url: "/payments/create-intent", method: "POST", body }),
       invalidatesTags: ["Payment", "Invoice"],
     }),
+
+    createElementPaymentIntent: builder.mutation<
+      { clientSecret: string; id: string },
+      { invoiceId: string; amount: number; currency?: string }
+    >({
+      query: (body) => ({ url: "/payments/create-element-intent", method: "POST", body }),
+      invalidatesTags: ["Payment", "Invoice"],
+    }),
+
+    uploadPaymentReceipt: builder.mutation<
+      any,
+      { paymentId: string; file: File }
+    >({
+      queryFn: async ({ paymentId, file }, _api, _extraOptions) => {
+        const formData = new FormData();
+        formData.append("receipt", file);
+        formData.append("paymentId", paymentId);
+        const apiBase =
+          (typeof window !== "undefined"
+            ? `${window.location.origin.replace(/\/+$/, "")}/v1`
+            : "");
+        const res = await fetch(`${apiBase}/payments/upload-receipt`, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+        const json = await res.json();
+        if (!res.ok) return { error: { status: res.status, data: json } };
+        const data = json?.data !== undefined ? json.data : json;
+        return { data };
+      },
+      invalidatesTags: ["Payment", "Invoice"],
+    }),
+
+    getStripePublishableKey: builder.query<
+      { publishableKey: string | null; isActive: boolean },
+      void
+    >({
+      query: () => "/payments/public-config",
+    }),
   }),
 });
 
@@ -252,6 +292,9 @@ export const {
   usePayInvoiceMutation,
   usePayInvoicePublicMutation,
   useCreatePaymentIntentMutation,
+  useCreateElementPaymentIntentMutation,
+  useUploadPaymentReceiptMutation,
+  useGetStripePublishableKeyQuery,
   useGetEmployeesQuery,
   useGetEmployeeByIdQuery,
   useRunPayrollMutation,

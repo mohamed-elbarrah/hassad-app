@@ -57,6 +57,31 @@ export class StripeProvider implements PaymentProvider {
     };
   }
 
+  async createElementPaymentIntent(params: {
+    invoiceId: string;
+    amount: number;
+    currency: string;
+    clientId: string;
+    metadata?: any;
+  }): Promise<PaymentIntentResponse> {
+    const paymentIntent = await this.stripe.paymentIntents.create({
+      amount: Math.round(params.amount * 100),
+      currency: params.currency.toLowerCase(),
+      metadata: {
+        invoiceId: params.invoiceId,
+        clientId: params.clientId,
+        ...params.metadata,
+      },
+      payment_method_types: ['card'],
+    });
+
+    return {
+      providerPaymentId: paymentIntent.id,
+      clientSecret: paymentIntent.client_secret ?? '',
+      status: PaymentStatus.PENDING,
+    };
+  }
+
   async verifyWebhook(payload: any, signature: string): Promise<any> {
     return this.stripe.webhooks.constructEvent(
       payload,

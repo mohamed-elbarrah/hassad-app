@@ -21,8 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ContractServicesTable } from "@/components/shared/ContractServicesTable";
-import { ContractInvoicesList } from "@/components/shared/ContractInvoicesList";
+import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { toast } from "sonner";
 
 interface PageProps {
@@ -87,16 +86,9 @@ function PortalContractDetailInner({ token }: { token: string }) {
   const [signedByEmail, setSignedByEmail] = useState("");
 
   useEffect(() => {
-    if (searchParams.get("success") === "true") {
-      sessionStorage.removeItem("pending_payment");
+    if (searchParams.get("stripe_success") === "true") {
       toast.success("تم دفع الفاتورة بنجاح! يمكنك الآن توقيع العقد.", {
         duration: 6000,
-      });
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
-    } else if (searchParams.get("canceled") === "true") {
-      toast.error("تم إلغاء الدفع. يمكنك المحاولة مرة أخرى.", {
-        duration: 5000,
       });
       const cleanUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, "", cleanUrl);
@@ -272,12 +264,9 @@ function PortalContractDetailInner({ token }: { token: string }) {
             </div>
           )}
 
-          <ContractServicesTable
+          <ContractPaymentSummary
             services={data.servicesList ?? []}
             totalValue={data.totalValue}
-          />
-
-          <ContractInvoicesList
             invoices={invoices}
             showPayButton={canSign}
             onPaymentComplete={() => window.location.reload()}

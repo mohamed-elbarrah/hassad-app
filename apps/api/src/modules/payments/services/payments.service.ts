@@ -92,6 +92,59 @@ export class PaymentsService implements OnModuleInit {
     }
   }
 
+  async createElementPayment(dto: {
+    invoiceId: string;
+    amount: number;
+    currency?: string;
+  }) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: dto.invoiceId },
+    });
+
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    const provider = await this.getProvider('stripe');
+    const gateway = await this.prisma.paymentGateway.findUnique({ where: { name: 'stripe' } });
+
+    if (!provider.createElementPaymentIntent) {
+      throw new BadRequestException('Gateway does not support element payment');
+    }
+
+    const intent = await provider.createElementPaymentIntent({
+      invoiceId: invoice.id,
+      amount: dto.amount,
+      currency: dto.currency || 'SAR',
+      clientId: invoice.clientId,
+    });
+
+    const payment = await this.prisma.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        clientId: invoice.clientId,
+        gatewayId: gateway!.id,
+        amount: dto.amount,
+        currency: dto.currency || 'SAR',
+        status: intent.status,
+        method: PaymentMethod.CARD,
+        providerPaymentId: intent.providerPaymentId,
+        metadataJson: intent.metadata as any,
+      },
+    });
+
+    await this.prisma.paymentEvent.create({
+      data: {
+        paymentId: payment.id,
+        type: PaymentEventType.CREATED,
+        payloadJson: intent as any,
+      },
+    });
+
+    return {
+      ...payment,
+      clientSecret: intent.clientSecret,
+    };
+  }
+
   async createPayment(dto: {
     invoiceId: string;
     gatewayName: string;
@@ -278,6 +331,13 @@ export class PaymentsService implements OnModuleInit {
       case PaymentStatus.REFUNDED: return PaymentEventType.REFUNDED;
       default: return PaymentEventType.CREATED;
     }
+  }
+
+  async attachReceipt(paymentId: string, receiptPath: string) {
+    return this.prisma.payment.update({
+      where: { id: paymentId },
+      data: { receiptImage: receiptPath },
+    });
   }
 
   async getGateways() {

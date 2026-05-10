@@ -1208,6 +1208,7 @@ model Payment {
   status             PaymentStatus
   method             PaymentMethod
   providerPaymentId  String?          @map("provider_payment_id")
+  receiptImage       String?          @map("receipt_image")
   metadataJson       Json?            @map("metadata_json")
   notes              String?
   date               DateTime         @default(now())
