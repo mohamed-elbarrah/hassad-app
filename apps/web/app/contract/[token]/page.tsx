@@ -78,6 +78,12 @@ export default function ContractSharePage({ params }: PageProps) {
   }
 
   const canSign = data.status === "SENT";
+  const invoices = data.invoices ?? [];
+
+  const allInvoicesPaid = invoices.length > 0 && invoices.every(
+    (inv) => inv.status === "PAID",
+  );
+  const canSignNow = canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
   const statusLabel = STATUS_LABELS[data.status] ?? data.status;
   const statusColor =
     STATUS_COLORS[data.status] ?? "bg-muted text-muted-foreground";
@@ -201,7 +207,11 @@ export default function ContractSharePage({ params }: PageProps) {
           />
 
           {/* ── Invoices ──────────────────────────────────────────────── */}
-          <ContractInvoicesList invoices={data.invoices ?? []} />
+          <ContractInvoicesList
+            invoices={invoices}
+            showPayButton={canSign}
+            onPaymentComplete={() => window.location.reload()}
+          />
 
           {/* ── Signed confirmation ──────────────────────────────────────── */}
           {data.status === "SIGNED" && (
@@ -228,6 +238,15 @@ export default function ContractSharePage({ params }: PageProps) {
                 <p className="text-sm font-semibold">توقيع العقد</p>
               </div>
 
+              {!allInvoicesPaid && (
+                <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <p className="text-xs text-amber-700">
+                    يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر &quot;ادفع&quot; بجانب كل فاتورة.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="signedByName" className="text-sm">
@@ -239,11 +258,12 @@ export default function ContractSharePage({ params }: PageProps) {
                     value={signedByName}
                     onChange={(e) => setSignedByName(e.target.value)}
                     className="mt-1"
+                    disabled={!allInvoicesPaid}
                   />
                 </div>
                 <div>
                   <Label htmlFor="signedByEmail" className="text-sm">
-                    البريد الإلكتروني (اختياري)
+                    البريد الإلكتروني <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="signedByEmail"
@@ -252,17 +272,22 @@ export default function ContractSharePage({ params }: PageProps) {
                     value={signedByEmail}
                     onChange={(e) => setSignedByEmail(e.target.value)}
                     className="mt-1"
+                    disabled={!allInvoicesPaid}
                   />
                 </div>
               </div>
 
               <Button
                 onClick={handleSign}
-                disabled={signing || !signedByName.trim()}
+                disabled={signing || !canSignNow}
                 className="w-full gap-2"
               >
                 <CheckCircle className="w-4 h-4" />
-                {signing ? "جارٍ التوقيع..." : "أوافق وأوقّع العقد"}
+                {!allInvoicesPaid
+                  ? "يجب دفع الفواتير أولاً"
+                  : signing
+                    ? "جارٍ التوقيع..."
+                    : "أوافق وأوقّع العقد"}
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">

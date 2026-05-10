@@ -65,7 +65,17 @@ export class FinanceController {
   @Patch('invoices/:id/pay')
   @RequirePermissions('finance.update_invoice')
   payInvoice(@CurrentUser() user: any, @Param('id') id: string, @Body() dto: any) {
-    // Wrap to registerPayment
+    return this.financeService.registerPayment(user.id, {
+      invoiceId: id,
+      amount: dto.amount,
+      method: dto.method,
+      notes: dto.notes,
+    });
+  }
+
+  @Post('invoices/:id/pay-public')
+  @RequirePermissions('invoices.pay_public')
+  payInvoicePublic(@CurrentUser() user: any, @Param('id') id: string, @Body() dto: any) {
     return this.financeService.registerPayment(user.id, {
       invoiceId: id,
       amount: dto.amount,

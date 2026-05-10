@@ -149,6 +149,10 @@ export const financeApi = createApi({
       query: ({ id, ...body }) => ({ url: `/invoices/${id}/pay`, method: "PATCH", body }),
       invalidatesTags: ["Payment", "Invoice", "FinanceSummary", "Ledger"],
     }),
+    payInvoicePublic: builder.mutation<Payment, { id: string; amount: number; method: PaymentMethod; notes?: string }>({
+      query: ({ id, ...body }) => ({ url: `/invoices/${id}/pay-public`, method: "POST", body }),
+      invalidatesTags: ["Payment", "Invoice"],
+    }),
 
     // Payroll
     getEmployees: builder.query<Employee[], void>({
@@ -232,6 +236,7 @@ export const {
   useGetPaymentsQuery,
   useRegisterPaymentMutation,
   usePayInvoiceMutation,
+  usePayInvoicePublicMutation,
   useGetEmployeesQuery,
   useGetEmployeeByIdQuery,
   useRunPayrollMutation,
