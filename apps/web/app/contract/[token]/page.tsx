@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   useGetContractByTokenQuery,
   useSignContractByTokenMutation,
@@ -24,7 +25,6 @@ interface PageProps {
   params: Promise<{ token: string }>;
 }
 
-// Build a full URL for a file path served from the API
 function buildFileUrl(filePath: string): string {
   const apiBase =
     process.env.NEXT_PUBLIC_API_URL?.replace("/v1", "") ??
@@ -52,12 +52,42 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ContractSharePage({ params }: PageProps) {
   const { token } = use(params);
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-muted/40 flex items-center justify-center">
+        <p className="text-muted-foreground">جارٍ تحميل العقد...</p>
+      </div>
+    }>
+      <ContractSharePageInner token={token} />
+    </Suspense>
+  );
+}
+
+function ContractSharePageInner({ token }: { token: string }) {
+  const searchParams = useSearchParams();
   const { data, isLoading, isError } = useGetContractByTokenQuery(token);
   const [signContract, { isLoading: signing }] =
     useSignContractByTokenMutation();
 
   const [signedByName, setSignedByName] = useState("");
   const [signedByEmail, setSignedByEmail] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      sessionStorage.removeItem("pending_payment");
+      toast.success("تم دفع الفاتورة بنجاح! يمكنك الآن توقيع العقد.", {
+        duration: 6000,
+      });
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    } else if (searchParams.get("canceled") === "true") {
+      toast.error("تم إلغاء الدفع. يمكنك المحاولة مرة أخرى.", {
+        duration: 5000,
+      });
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }, [searchParams]);
 
   if (isLoading) {
     return (
@@ -80,10 +110,10 @@ export default function ContractSharePage({ params }: PageProps) {
   const canSign = data.status === "SENT";
   const invoices = data.invoices ?? [];
 
-  const allInvoicesPaid = invoices.length > 0 && invoices.every(
-    (inv) => inv.status === "PAID",
-  );
-  const canSignNow = canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
+  const allInvoicesPaid =
+    invoices.length > 0 && invoices.every((inv) => inv.status === "PAID");
+  const canSignNow =
+    canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
   const statusLabel = STATUS_LABELS[data.status] ?? data.status;
   const statusColor =
     STATUS_COLORS[data.status] ?? "bg-muted text-muted-foreground";
@@ -133,7 +163,6 @@ export default function ContractSharePage({ params }: PageProps) {
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {/* ── Contract details ─────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground mb-0.5">
@@ -156,7 +185,9 @@ export default function ContractSharePage({ params }: PageProps) {
                 تاريخ البداية
               </p>
               <p className="font-semibold">
-                {new Date(data.startDate).toLocaleDateString("ar-SA-u-nu-latn")}
+                {new Date(data.startDate).toLocaleDateString(
+                  "ar-SA-u-nu-latn",
+                )}
               </p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
@@ -169,7 +200,6 @@ export default function ContractSharePage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* ── PDF Download ─────────────────────────────────────────────── */}
           {fileUrl ? (
             <div className="flex items-center gap-3 rounded-xl border bg-slate-50 p-4">
               <FileText className="w-8 h-8 text-blue-600 shrink-0" />
@@ -185,7 +215,11 @@ export default function ContractSharePage({ params }: PageProps) {
                 rel="noopener noreferrer"
                 download
               >
-                <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 shrink-0"
+                >
                   <Download className="w-4 h-4" />
                   تحميل العقد
                 </Button>
@@ -200,20 +234,17 @@ export default function ContractSharePage({ params }: PageProps) {
             </div>
           )}
 
-          {/* ── Services ──────────────────────────────────────────────── */}
           <ContractServicesTable
             services={data.servicesList ?? []}
             totalValue={data.totalValue}
           />
 
-          {/* ── Invoices ──────────────────────────────────────────────── */}
           <ContractInvoicesList
             invoices={invoices}
             showPayButton={canSign}
             onPaymentComplete={() => window.location.reload()}
           />
 
-          {/* ── Signed confirmation ──────────────────────────────────────── */}
           {data.status === "SIGNED" && (
             <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
               <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -223,14 +254,15 @@ export default function ContractSharePage({ params }: PageProps) {
                 </p>
                 {data.signedAt && (
                   <p className="text-xs text-emerald-600 mt-0.5">
-                    {new Date(data.signedAt).toLocaleString("ar-SA-u-nu-latn")}
+                    {new Date(data.signedAt).toLocaleString(
+                      "ar-SA-u-nu-latn",
+                    )}
                   </p>
                 )}
               </div>
             </div>
           )}
 
-          {/* ── Sign form (only when SENT) ──────────────────────────────── */}
           {canSign && (
             <div className="space-y-4 rounded-xl border p-4">
               <div className="flex items-center gap-2">
@@ -242,7 +274,8 @@ export default function ContractSharePage({ params }: PageProps) {
                 <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                   <p className="text-xs text-amber-700">
-                    يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر &quot;ادفع&quot; بجانب كل فاتورة.
+                    يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر
+                    &quot;ادفع&quot; بجانب كل فاتورة.
                   </p>
                 </div>
               )}
@@ -263,7 +296,8 @@ export default function ContractSharePage({ params }: PageProps) {
                 </div>
                 <div>
                   <Label htmlFor="signedByEmail" className="text-sm">
-                    البريد الإلكتروني <span className="text-destructive">*</span>
+                    البريد الإلكتروني{" "}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="signedByEmail"

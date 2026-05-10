@@ -219,8 +219,19 @@ export const financeApi = createApi({
       query: (id) => ({ url: `/payments/bank-accounts/${id}`, method: "DELETE" }),
       invalidatesTags: ["BankAccount"],
     }),
-    createPaymentIntent: builder.mutation<any, { invoiceId: string; gatewayName: string; amount: number; currency?: string }>({
+    createPaymentIntent: builder.mutation<
+      any,
+      {
+        invoiceId: string;
+        gatewayName: string;
+        amount: number;
+        currency?: string;
+        successUrl?: string;
+        cancelUrl?: string;
+      }
+    >({
       query: (body) => ({ url: "/payments/create-intent", method: "POST", body }),
+      invalidatesTags: ["Payment", "Invoice"],
     }),
   }),
 });
@@ -237,6 +248,7 @@ export const {
   useRegisterPaymentMutation,
   usePayInvoiceMutation,
   usePayInvoicePublicMutation,
+  useCreatePaymentIntentMutation,
   useGetEmployeesQuery,
   useGetEmployeeByIdQuery,
   useRunPayrollMutation,
@@ -253,5 +265,4 @@ export const {
   useCreateBankAccountMutation,
   useUpdateBankAccountMutation,
   useDeleteBankAccountMutation,
-  useCreatePaymentIntentMutation,
 } = financeApi;

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   FileText,
@@ -64,12 +65,43 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function PortalContractDetailPage({ params }: PageProps) {
   const { token } = use(params);
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col gap-4" dir="rtl">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-80 w-full" />
+      </div>
+    }>
+      <PortalContractDetailInner token={token} />
+    </Suspense>
+  );
+}
+
+function PortalContractDetailInner({ token }: { token: string }) {
+  const searchParams = useSearchParams();
   const { data, isLoading, isError } = useGetContractByTokenQuery(token);
   const [signContract, { isLoading: signing }] =
     useSignContractByTokenMutation();
 
   const [signedByName, setSignedByName] = useState("");
   const [signedByEmail, setSignedByEmail] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      sessionStorage.removeItem("pending_payment");
+      toast.success("تم دفع الفاتورة بنجاح! يمكنك الآن توقيع العقد.", {
+        duration: 6000,
+      });
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    } else if (searchParams.get("canceled") === "true") {
+      toast.error("تم إلغاء الدفع. يمكنك المحاولة مرة أخرى.", {
+        duration: 5000,
+      });
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }, [searchParams]);
 
   if (isLoading) {
     return (
@@ -101,10 +133,10 @@ export default function PortalContractDetailPage({ params }: PageProps) {
   const canSign = data.status === "SENT";
   const invoices = data.invoices ?? [];
 
-  const allInvoicesPaid = invoices.length > 0 && invoices.every(
-    (inv) => inv.status === "PAID",
-  );
-  const canSignNow = canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
+  const allInvoicesPaid =
+    invoices.length > 0 && invoices.every((inv) => inv.status === "PAID");
+  const canSignNow =
+    canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
   const fileUrl = data.filePath ? buildFileUrl(data.filePath) : null;
 
   async function handleSign() {
@@ -128,7 +160,6 @@ export default function PortalContractDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link href="/portal/contracts">
           <Button
@@ -172,7 +203,6 @@ export default function PortalContractDetailPage({ params }: PageProps) {
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {/* Contract financial details */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground mb-0.5">
@@ -208,7 +238,6 @@ export default function PortalContractDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* PDF Download */}
           {fileUrl ? (
             <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
               <FileText className="w-8 h-8 text-blue-600 shrink-0" />
@@ -224,7 +253,11 @@ export default function PortalContractDetailPage({ params }: PageProps) {
                 rel="noopener noreferrer"
                 download
               >
-                <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 shrink-0"
+                >
                   <Download className="w-4 h-4" />
                   تحميل العقد
                 </Button>
@@ -239,20 +272,17 @@ export default function PortalContractDetailPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Services */}
           <ContractServicesTable
             services={data.servicesList ?? []}
             totalValue={data.totalValue}
           />
 
-          {/* Invoices */}
           <ContractInvoicesList
             invoices={invoices}
             showPayButton={canSign}
             onPaymentComplete={() => window.location.reload()}
           />
 
-          {/* Signed confirmation */}
           {data.status === "SIGNED" && (
             <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
               <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -269,7 +299,6 @@ export default function PortalContractDetailPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Sign form — only when SENT */}
           {canSign && (
             <div className="space-y-4 rounded-xl border p-4">
               <div className="flex items-center gap-2">
@@ -281,7 +310,8 @@ export default function PortalContractDetailPage({ params }: PageProps) {
                 <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                   <p className="text-xs text-amber-700">
-                    يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر &quot;ادفع&quot; بجانب كل فاتورة.
+                    يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر
+                    &quot;ادفع&quot; بجانب كل فاتورة.
                   </p>
                 </div>
               )}
@@ -303,7 +333,8 @@ export default function PortalContractDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <Label htmlFor="signedByEmail" className="text-sm">
-                    البريد الإلكتروني <span className="text-destructive">*</span>
+                    البريد الإلكتروني{" "}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="signedByEmail"

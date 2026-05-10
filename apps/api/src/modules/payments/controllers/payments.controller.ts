@@ -1,13 +1,28 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards } from '@nestjs/common';
 import { PaymentsService } from '../services/payments.service';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post('create-intent')
-  async createIntent(@Body() dto: { invoiceId: string; gatewayName: string; amount: number; currency?: string }) {
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('invoices.pay_public')
+  async createIntent(
+    @CurrentUser() user: any,
+    @Body() dto: {
+      invoiceId: string;
+      gatewayName: string;
+      amount: number;
+      currency?: string;
+      successUrl?: string;
+      cancelUrl?: string;
+    },
+  ) {
     return this.paymentsService.createPayment(dto);
   }
 
@@ -26,6 +41,13 @@ export class PaymentsController {
   @Get('bank-accounts')
   async getBankAccounts() {
     return this.paymentsService.getBankAccounts();
+  }
+
+  @Get('public-config')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('invoices.pay_public')
+  async getPublicConfig() {
+    return this.paymentsService.getPublicConfig();
   }
 
   @Post('bank-accounts')

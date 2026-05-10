@@ -10,6 +10,7 @@ import {
   Ban,
   CreditCard,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { InvoiceSummary } from "@/features/contracts/contractsApi";
-import { usePayInvoicePublicMutation } from "@/features/finance/financeApi";
+import {
+  usePayInvoicePublicMutation,
+  useCreatePaymentIntentMutation,
+} from "@/features/finance/financeApi";
 import { PaymentMethod } from "@hassad/shared";
 
 const STATUS_CONFIG: Record<
@@ -49,6 +53,22 @@ const METHOD_LABELS: Record<string, string> = {
   [PaymentMethod.CASH]: "نقدي",
 };
 
+const CARD_METHODS = new Set<PaymentMethod>([
+  PaymentMethod.CARD,
+  PaymentMethod.MADA,
+  PaymentMethod.VISA_MC,
+  PaymentMethod.APPLE_PAY,
+]);
+
+function getReturnUrls() {
+  if (typeof window === "undefined") return { successUrl: "", cancelUrl: "" };
+  const base = window.location.origin + window.location.pathname;
+  return {
+    successUrl: `${base}?success=true`,
+    cancelUrl: `${base}?canceled=true`,
+  };
+}
+
 interface ContractInvoicesListProps {
   invoices: InvoiceSummary[];
   showPayButton?: boolean;
@@ -60,7 +80,9 @@ export function ContractInvoicesList({
   showPayButton = false,
   onPaymentComplete,
 }: ContractInvoicesListProps) {
-  const [payInvoice, { isLoading: paying }] = usePayInvoicePublicMutation();
+  const [payInvoiceManual] = usePayInvoicePublicMutation();
+  const [createPaymentIntent, { isLoading: creatingIntent }] =
+    useCreatePaymentIntentMutation();
   const [payingId, setPayingId] = useState<string | null>(null);
   const [methods, setMethods] = useState<Record<string, PaymentMethod>>({});
 
@@ -75,22 +97,56 @@ export function ContractInvoicesList({
   }
 
   async function handlePay(invoice: InvoiceSummary) {
+    const method = getMethod(invoice.id);
     setPayingId(invoice.id);
-    try {
-      await payInvoice({
-        id: invoice.id,
-        amount: invoice.amount,
-        method: getMethod(invoice.id),
-      }).unwrap();
-      toast.success("تم دفع الفاتورة بنجاح");
-      onPaymentComplete?.();
-    } catch (err: unknown) {
-      const msg =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "فشل دفع الفاتورة";
-      toast.error(msg);
-    } finally {
-      setPayingId(null);
+
+    if (CARD_METHODS.has(method)) {
+      try {
+        const { successUrl, cancelUrl } = getReturnUrls();
+        const result = await createPaymentIntent({
+          invoiceId: invoice.id,
+          gatewayName: "stripe",
+          amount: invoice.amount,
+          successUrl,
+          cancelUrl,
+        }).unwrap();
+
+        if (result.clientSecret) {
+          sessionStorage.setItem(
+            "pending_payment",
+            JSON.stringify({
+              paymentId: result.id,
+              invoiceId: invoice.id,
+            }),
+          );
+          window.location.href = result.clientSecret;
+        } else {
+          toast.error("لم يتم استلام رابط الدفع");
+        }
+      } catch (err: unknown) {
+        const msg =
+          (err as { data?: { message?: string } })?.data?.message ??
+          "فشل إنشاء جلسة الدفع";
+        toast.error(msg);
+        setPayingId(null);
+      }
+    } else {
+      try {
+        await payInvoiceManual({
+          id: invoice.id,
+          amount: invoice.amount,
+          method,
+        }).unwrap();
+        toast.success("تم دفع الفاتورة بنجاح");
+        onPaymentComplete?.();
+      } catch (err: unknown) {
+        const msg =
+          (err as { data?: { message?: string } })?.data?.message ??
+          "فشل دفع الفاتورة";
+        toast.error(msg);
+      } finally {
+        setPayingId(null);
+      }
     }
   }
 
@@ -106,6 +162,7 @@ export function ContractInvoicesList({
         const Icon = config.icon;
         const isPayable = showPayButton && PAYABLE_STATUSES.has(invoice.status);
         const isThisPaying = payingId === invoice.id;
+        const selectedMethod = getMethod(invoice.id);
 
         return (
           <div
@@ -134,8 +191,10 @@ export function ContractInvoicesList({
               {isPayable && (
                 <>
                   <Select
-                    value={getMethod(invoice.id)}
-                    onValueChange={(v) => setMethod(invoice.id, v as PaymentMethod)}
+                    value={selectedMethod}
+                    onValueChange={(v) =>
+                      setMethod(invoice.id, v as PaymentMethod)
+                    }
                   >
                     <SelectTrigger className="h-7 w-[130px] text-xs">
                       <SelectValue />
@@ -153,14 +212,20 @@ export function ContractInvoicesList({
                     variant="default"
                     className="gap-1.5 h-7 text-xs"
                     onClick={() => handlePay(invoice)}
-                    disabled={paying}
+                    disabled={creatingIntent || isThisPaying}
                   >
                     {isThisPaying ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : CARD_METHODS.has(selectedMethod) ? (
+                      <ExternalLink className="w-3 h-3" />
                     ) : (
                       <CreditCard className="w-3 h-3" />
                     )}
-                    {isThisPaying ? "جارٍ..." : "ادفع"}
+                    {isThisPaying
+                      ? "جارٍ..."
+                      : CARD_METHODS.has(selectedMethod)
+                        ? "ادفع عبر سترايب"
+                        : "ادفع"}
                   </Button>
                 </>
               )}
