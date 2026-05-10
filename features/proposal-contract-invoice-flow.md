@@ -17,10 +17,49 @@
 - ✅ Task 3.6 — Removed old `generateInvoiceFromProposal` + its fire-and-forget call
 - ✅ Task 3.7 — `contractId` query filter added to `GET /invoices`
 - ✅ Build verification: `nest build` ✓
-| Phase 4 — Frontend API Slices | ⬜ Pending | — |
-| Phase 5 — Proposal→Contract Bridge | ⬜ Pending | — |
-| Phase 6 — Contract Detail Pages | ⬜ Pending | — |
-| Phase 7 — Finance Dashboard | ⬜ Pending | — |
+| Phase 4 — Frontend API Slices | ✅ Done | 2026-05-10 |
+
+### Phase 4 Details
+- ✅ Task 4.1 — `ContractItem` extended with `servicesList`, `proposal`, `invoices`; added `InvoiceSummary`, `PaymentSummary`, `InvoiceItemSummary` types
+- ✅ Task 4.2 — `getInvoicesByContractId` query added to financeApi with `contractId` filter in `InvoiceFilters`
+- ✅ Task 4.3 — `generateInvoice` mutation added to contractsApi
+- ✅ Build verification: `next build` ✓
+| Phase 5 — Proposal→Contract Bridge | ✅ Done | 2026-05-10 |
+
+### Phase 5 Details
+- ✅ Task 5.1 — "إنشاء عقد" button on APPROVED proposals in `ProposalsTable` (with `FileText` icon)
+- ✅ Task 5.2 — `CreateContractDialog` accepts `proposalId` prop, fetches proposal via `useGetProposalByIdQuery`, pre-fills title/totalValue/dates, sends `proposalId` on submit. Supports controlled open state + auto-opens when `proposalId` is set
+- ✅ Wire-up in `/dashboard/sales/proposals/page.tsx` — state management for `contractDialogProposalId`, passes `onCreateContract` callback to table, renders `CreateContractDialog` with `key` prop for clean re-mount
+- ✅ Build verification: `next build` ✓
+| Phase 6 — Contract Detail Pages | ✅ Done | 2026-05-10 |
+
+### Phase 6 Details
+- ✅ Task 6.1 — `ContractServicesTable` component created (service name | price, bold total footer)
+- ✅ Task 6.2 — `ContractInvoicesList` component created (invoice number, status icon+badge, due date, amount)
+- ✅ Task 6.3 — Public contract share page updated with services + invoices sections
+- ✅ Task 6.4 — Portal contract detail page updated with services + invoices sections
+- ✅ Backend: `findByToken` now includes `proposal` + `invoices` (with `items` + `payments`)
+- ✅ Build verification: `nest build` ✓, `next build` ✓
+| Phase 7 — Finance Dashboard | ✅ Done | 2026-05-10 |
+
+### Phase 7 Details
+- ✅ Task 7.1 — Finance contract detail page created (`/dashboard/finance/contracts/[id]`) with: breadcrumb nav, title + type + status header, 4 KPI cards (total, paid, remaining, collection rate %), progress bar, services table, invoices list, payments history table, PDF download
+- ✅ Task 7.2 — Already existed: finance list rows link to `/dashboard/finance/contracts/${contract.id}`
+- ✅ Build verification: `next build` ✓
+
+---
+
+## All Phases Complete 🎉
+
+| Phase | Status | Completed |
+|-------|--------|-----------|
+| Phase 1 — Shared Types | ✅ | 2026-05-10 |
+| Phase 2 — Database | ✅ | 2026-05-10 |
+| Phase 3 — Backend API | ✅ | 2026-05-10 |
+| Phase 4 — Frontend API Slices | ✅ | 2026-05-10 |
+| Phase 5 — Proposal→Contract Bridge | ✅ | 2026-05-10 |
+| Phase 6 — Contract Detail Pages | ✅ | 2026-05-10 |
+| Phase 7 — Finance Dashboard | ✅ | 2026-05-10 |
 
 ### Phase 1 Details
 - ✅ Task 1.1 — `ServiceItemSchema` + typed `servicesList` in proposal schemas

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { useGetRequestsQuery } from "@/features/requests/requestsApi";
 import { useCreateContractMutation } from "@/features/contracts/contractsApi";
+import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
 import { ContractType, RequestStatus } from "@hassad/shared";
 import { FileText, Upload, Copy, CheckCheck } from "lucide-react";
 
@@ -63,20 +64,28 @@ const CONTRACT_READY_STATUSES = new Set<RequestStatus>([
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function CreateContractDialog() {
-  const [open, setOpen] = useState(false);
+interface CreateContractDialogProps {
+  proposalId?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function CreateContractDialog({ proposalId, open: controlledOpen, onOpenChange: controlledOnOpenChange }: CreateContractDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [createContract, { isLoading }] = useCreateContractMutation();
 
-  const { data: requestsData, isFetching: requestsFetching } =
-    useGetRequestsQuery({ limit: 100 }, { skip: !open });
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
 
-  const contractRequests = (requestsData ?? []).filter((request) =>
-    CONTRACT_READY_STATUSES.has(request.status),
-  );
+  useEffect(() => {
+    if (proposalId && !isControlled) {
+      setInternalOpen(true);
+    }
+  }, [proposalId, isControlled]);
 
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
@@ -90,6 +99,49 @@ export function CreateContractDialog() {
       endDate: "",
     },
   });
+
+  function handleOpenChange(val: boolean) {
+    if (isControlled) {
+      controlledOnOpenChange?.(val);
+    } else {
+      setInternalOpen(val);
+    }
+    if (!val) {
+      setShareLink(null);
+      setCopied(false);
+      form.reset();
+      setFile(null);
+    }
+  }
+
+  const { data: requestsData, isFetching: requestsFetching } =
+    useGetRequestsQuery({ limit: 100 }, { skip: !open });
+
+  const { data: proposalData } = useGetProposalByIdQuery(
+    proposalId ?? "",
+    { skip: !proposalId || !open },
+  );
+
+  const contractRequests = (requestsData ?? []).filter((request) =>
+    CONTRACT_READY_STATUSES.has(request.status),
+  );
+
+  useEffect(() => {
+    if (!proposalData || !open) return;
+
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + (proposalData.durationDays || 30));
+
+    form.reset({
+      requestId: proposalData.requestId ?? "",
+      title: proposalData.title ?? "",
+      type: ContractType.ONE_TIME_SERVICE,
+      monthlyValue: 0,
+      totalValue: proposalData.totalPrice ?? 0,
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: endDate.toISOString().split("T")[0],
+    });
+  }, [proposalData, open, form]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
@@ -119,6 +171,7 @@ export function CreateContractDialog() {
         startDate: values.startDate,
         endDate: values.endDate,
         file,
+        ...(proposalId ? { proposalId } : {}),
       }).unwrap();
 
       // Build shareable link
@@ -139,16 +192,6 @@ export function CreateContractDialog() {
     }
   }
 
-  function handleClose(val: boolean) {
-    if (!val) {
-      setShareLink(null);
-      setCopied(false);
-      form.reset();
-      setFile(null);
-    }
-    setOpen(val);
-  }
-
   async function copyLink() {
     if (!shareLink) return;
     await navigator.clipboard.writeText(shareLink);
@@ -157,7 +200,7 @@ export function CreateContractDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>إنشاء عقد</Button>
       </DialogTrigger>
@@ -219,7 +262,7 @@ export function CreateContractDialog() {
             <Button
               className="w-full"
               variant="outline"
-              onClick={() => handleClose(false)}
+              onClick={() => handleOpenChange(false)}
             >
               إغلاق
             </Button>
@@ -439,7 +482,7 @@ export function CreateContractDialog() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleClose(false)}
+                  onClick={() => handleOpenChange(false)}
                   disabled={isLoading}
                 >
                   إلغاء

@@ -1,7 +1,14 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import { getApiBaseUrl } from "@/lib/utils";
-import type { ContractStatus, ContractType } from "@hassad/shared";
+import type {
+  ContractStatus,
+  ContractType,
+  InvoiceStatus,
+  PaymentStatus,
+  PaymentMethod,
+  ServiceItem,
+} from "@hassad/shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -10,6 +17,35 @@ export interface ContractClient {
   companyName: string;
   contactName: string;
   leadId?: string | null;
+}
+
+export interface InvoiceItemSummary {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface PaymentSummary {
+  id: string;
+  amount: number;
+  status: string;
+  date: string;
+}
+
+export interface InvoiceSummary {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  status: InvoiceStatus;
+  paymentMethod: PaymentMethod;
+  issueDate: string;
+  dueDate: string;
+  paidAt?: string | null;
+  paymentReference?: string | null;
+  payments?: PaymentSummary[];
+  items?: InvoiceItemSummary[];
 }
 
 export interface ContractItem {
@@ -31,6 +67,14 @@ export interface ContractItem {
   signedAt?: string | null;
   createdAt: string;
   client?: ContractClient;
+  servicesList?: ServiceItem[];
+  proposal?: {
+    id: string;
+    title: string;
+    servicesList?: ServiceItem[];
+    totalPrice?: number;
+  } | null;
+  invoices?: InvoiceSummary[];
 }
 
 export interface PaginatedContracts {
@@ -206,6 +250,17 @@ export const contractsApi = createApi({
         { type: "Contract", id: "LIST" },
       ],
     }),
+
+    generateInvoice: builder.mutation<InvoiceSummary, string>({
+      query: (contractId) => ({
+        url: `/contracts/${contractId}/generate-invoice`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, contractId) => [
+        { type: "Contract", id: contractId },
+        { type: "Contract", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -219,4 +274,5 @@ export const {
   useGetContractByTokenQuery,
   useGetMyContractsQuery,
   useSignContractByTokenMutation,
+  useGenerateInvoiceMutation,
 } = contractsApi;

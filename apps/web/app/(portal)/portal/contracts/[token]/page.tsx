@@ -20,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ContractServicesTable } from "@/components/shared/ContractServicesTable";
+import { ContractInvoicesList } from "@/components/shared/ContractInvoicesList";
 import { toast } from "sonner";
 
 interface PageProps {
@@ -230,6 +232,15 @@ export default function PortalContractDetailPage({ params }: PageProps) {
               </p>
             </div>
           )}
+
+          {/* Services */}
+          <ContractServicesTable
+            services={data.servicesList ?? []}
+            totalValue={data.totalValue}
+          />
+
+          {/* Invoices */}
+          <ContractInvoicesList invoices={data.invoices ?? []} />
 
           {/* Signed confirmation */}
           {data.status === "SIGNED" && (

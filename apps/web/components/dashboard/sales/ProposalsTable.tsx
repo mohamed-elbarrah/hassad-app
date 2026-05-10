@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -28,9 +28,10 @@ const STATUS_LABELS: Record<ProposalStatus, string> = {
 
 interface ProposalsTableProps {
   proposals: ProposalListItem[];
+  onCreateContract?: (proposalId: string) => void;
 }
 
-export function ProposalsTable({ proposals }: ProposalsTableProps) {
+export function ProposalsTable({ proposals, onCreateContract }: ProposalsTableProps) {
   const [sendProposal, { isLoading }] = useSendProposalMutation();
   const { data: currentUser } = useGetProfileQuery();
   const [editProposal, setEditProposal] =
@@ -143,7 +144,15 @@ export function ProposalsTable({ proposals }: ProposalsTableProps) {
                           <Pencil className="w-4 h-4" />
                         </Button>
                       )}
-                      {proposal.status === ProposalStatus.DRAFT ||
+                      {proposal.status === ProposalStatus.APPROVED && onCreateContract ? (
+                        <Button
+                          size="sm"
+                          onClick={() => onCreateContract(proposal.id)}
+                        >
+                          <FileText className="w-4 h-4 ml-1" />
+                          إنشاء عقد
+                        </Button>
+                      ) : proposal.status === ProposalStatus.DRAFT ||
                       proposal.status === ProposalStatus.REVISION_REQUESTED ? (
                         <Button
                           size="sm"

@@ -25,6 +25,7 @@ export interface PaginatedInvoices {
 export interface InvoiceFilters {
   status?: InvoiceStatus;
   clientId?: string;
+  contractId?: string;
   page?: number;
   limit?: number;
 }
@@ -128,6 +129,10 @@ export const financeApi = createApi({
     }),
     getInvoicesByClient: builder.query<Invoice[], string>({
       query: (clientId) => `/invoices/client/${clientId}`,
+      providesTags: ["Invoice"],
+    }),
+    getInvoicesByContractId: builder.query<Invoice[], string>({
+      query: (contractId) => ({ url: "/invoices", params: { contractId } }),
       providesTags: ["Invoice"],
     }),
 
@@ -236,6 +241,7 @@ export const {
   useCreatePaymentTicketMutation,
   useResolvePaymentTicketMutation,
   useGetInvoicesByClientQuery,
+  useGetInvoicesByContractIdQuery,
   useGetPaymentGatewaysQuery,
   useUpdatePaymentGatewayMutation,
   useGetBankAccountsQuery,

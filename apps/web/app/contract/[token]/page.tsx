@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ContractServicesTable } from "@/components/shared/ContractServicesTable";
+import { ContractInvoicesList } from "@/components/shared/ContractInvoicesList";
 import { toast } from "sonner";
 import {
   FileText,
@@ -191,6 +193,15 @@ export default function ContractSharePage({ params }: PageProps) {
               </p>
             </div>
           )}
+
+          {/* ── Services ──────────────────────────────────────────────── */}
+          <ContractServicesTable
+            services={data.servicesList ?? []}
+            totalValue={data.totalValue}
+          />
+
+          {/* ── Invoices ──────────────────────────────────────────────── */}
+          <ContractInvoicesList invoices={data.invoices ?? []} />
 
           {/* ── Signed confirmation ──────────────────────────────────────── */}
           {data.status === "SIGNED" && (

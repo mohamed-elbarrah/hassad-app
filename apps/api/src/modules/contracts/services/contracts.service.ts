@@ -369,6 +369,10 @@ export class ContractsService {
             contactName: true,
           },
         },
+        proposal: true,
+        invoices: {
+          include: { items: true, payments: true },
+        },
         request: {
           select: {
             id: true,
