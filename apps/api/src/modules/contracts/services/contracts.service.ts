@@ -264,13 +264,31 @@ export class ContractsService {
     const shareLinkToken = randomUUID();
 
     let servicesList: any = undefined;
+    let startDate = dto.startDate ? new Date(dto.startDate) : new Date();
+    let endDate = dto.endDate ? new Date(dto.endDate) : new Date();
+    let monthlyValue = dto.monthlyValue ?? 0;
+    let totalValue = dto.totalValue ?? 0;
+
     if (dto.proposalId) {
       const proposal = await this.prisma.proposal.findUnique({
         where: { id: dto.proposalId },
-        select: { servicesList: true },
+        select: {
+          servicesList: true,
+          totalPrice: true,
+          startDate: true,
+          durationDays: true,
+          title: true,
+        },
       });
-      if (proposal?.servicesList) {
-        servicesList = proposal.servicesList;
+      if (proposal) {
+        if (proposal.servicesList) {
+          servicesList = proposal.servicesList;
+        }
+        if (!dto.totalValue) totalValue = proposal.totalPrice;
+        if (proposal.durationDays) {
+          endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + proposal.durationDays);
+        }
       }
     }
 
@@ -293,10 +311,10 @@ export class ContractsService {
           title: dto.title,
           type: dto.type,
           status: ContractStatus.SENT,
-          startDate: new Date(dto.startDate),
-          endDate: new Date(dto.endDate),
-          monthlyValue: dto.monthlyValue,
-          totalValue: dto.totalValue,
+          startDate,
+          endDate,
+          monthlyValue,
+          totalValue,
           filePath,
           shareLinkToken,
           servicesList,

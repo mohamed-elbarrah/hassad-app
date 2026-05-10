@@ -98,10 +98,10 @@ export interface CreateContractFormInput {
   requestId: string;
   title: string;
   type: ContractType;
-  monthlyValue: number;
-  totalValue: number;
-  startDate: string; // ISO date string e.g. "2026-05-01"
-  endDate: string;
+  monthlyValue?: number;
+  totalValue?: number;
+  startDate?: string;
+  endDate?: string;
   file: File;
   proposalId?: string;
 }
@@ -153,10 +153,10 @@ export const contractsApi = createApi({
         formData.append("requestId", input.requestId);
         formData.append("title", input.title);
         formData.append("type", input.type);
-        formData.append("monthlyValue", String(input.monthlyValue));
-        formData.append("totalValue", String(input.totalValue));
-        formData.append("startDate", input.startDate);
-        formData.append("endDate", input.endDate);
+        if (input.monthlyValue !== undefined) formData.append("monthlyValue", String(input.monthlyValue));
+        if (input.totalValue !== undefined) formData.append("totalValue", String(input.totalValue));
+        if (input.startDate) formData.append("startDate", input.startDate);
+        if (input.endDate) formData.append("endDate", input.endDate);
         formData.append("file", input.file, input.file.name);
         if (input.proposalId) formData.append("proposalId", input.proposalId);
 
