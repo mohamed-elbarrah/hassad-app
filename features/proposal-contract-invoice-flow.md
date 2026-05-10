@@ -5,8 +5,18 @@
 | Phase | Status | Completed |
 |-------|--------|-----------|
 | Phase 1 — Shared Types | ✅ Done | 2026-05-10 |
-| Phase 2 — Database | ⬜ Pending | — |
-| Phase 3 — Backend API | ⬜ Pending | — |
+| Phase 2 — Database | ✅ Done | 2026-05-10 |
+| Phase 3 — Backend API | ✅ Done | 2026-05-10 |
+
+### Phase 3 Details
+- ✅ Task 3.1 — `findOne` now includes `proposal`, `invoices` (with `items` + `payments`)
+- ✅ Task 3.2 — `servicesList` copied from proposal during contract creation
+- ✅ Task 3.3 — `FinanceService.generateInvoiceFromContract()` replaces old private method
+- ✅ Task 3.4 — Contract controller calls `FinanceService` after creation (try/catch)
+- ✅ Task 3.5 — `POST :id/generate-invoice` endpoint added
+- ✅ Task 3.6 — Removed old `generateInvoiceFromProposal` + its fire-and-forget call
+- ✅ Task 3.7 — `contractId` query filter added to `GET /invoices`
+- ✅ Build verification: `nest build` ✓
 | Phase 4 — Frontend API Slices | ⬜ Pending | — |
 | Phase 5 — Proposal→Contract Bridge | ⬜ Pending | — |
 | Phase 6 — Contract Detail Pages | ⬜ Pending | — |

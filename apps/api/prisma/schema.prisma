@@ -764,6 +764,7 @@ model Contract {
   monthlyValue Float          @map("monthly_value")
   totalValue   Float          @map("total_value")
   currency     String         @default("SAR") @map("currency")
+  servicesList   Json?          @map("services_list")
   filePath        String?        @map("file_path")
   shareLinkToken  String?        @unique @map("share_link_token")
   versionNumber   Int            @default(1) @map("version_number")
