@@ -10,6 +10,7 @@ import {
   Receipt,
   Settings,
   BarChart3,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { label: "الرئيسية", href: "/portal", icon: Home },
   { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
   { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
+  { label: "المحادثات", href: "/portal/chat", icon: MessageSquare },
   { label: "العقود", href: "/portal/contracts", icon: FileText },
   { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
   { label: "الفواتير", href: "/portal/finance", icon: Receipt },

@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsDateString,
 } from "class-validator";
+import { Transform } from "class-transformer";
 import { DurationUnit } from "@hassad/shared";
 
 export class CreateProposalDto {
@@ -22,6 +23,12 @@ export class CreateProposalDto {
 
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => {
+    if (value == null) return undefined;
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") return JSON.parse(value);
+    return value;
+  })
   servicesList?: any[];
 
   @IsOptional()
@@ -38,6 +45,12 @@ export class CreateProposalDto {
 
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => {
+    if (value == null) return undefined;
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") return JSON.parse(value);
+    return value;
+  })
   platforms?: string[];
 
   @IsOptional()
@@ -72,6 +85,12 @@ export class UpdateProposalDto {
 
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => {
+    if (value == null) return undefined;
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") return JSON.parse(value);
+    return value;
+  })
   servicesList?: any[];
 
   @IsOptional()
@@ -88,6 +107,12 @@ export class UpdateProposalDto {
 
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => {
+    if (value == null) return undefined;
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string") return JSON.parse(value);
+    return value;
+  })
   platforms?: string[];
 
   @IsOptional()

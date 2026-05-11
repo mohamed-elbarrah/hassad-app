@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateInvoiceDto, CreateTicketDto, RegisterPaymentDto, CreateEmployeeDto, RunPayrollDto } from '../dto/finance.dto';
-import { InvoiceStatus, TicketStatus, PaymentStatus, SalaryStatus } from '@hassad/shared';
+import { InvoiceStatus, TicketStatus, PaymentStatus, SalaryStatus, PaymentMethod } from '@hassad/shared';
+import type { ServiceItem } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 
 @Injectable()
@@ -90,6 +91,117 @@ export class FinanceService {
         title: 'فاتورة جديدة',
         body: `تم إنشاء فاتورة جديدة بمبلغ ${invoice.amount} ر.س`,
       });
+    }
+
+    return invoice;
+  }
+
+  async generateInvoiceFromContract(contractId: string, userId: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      select: {
+        id: true,
+        clientId: true,
+        title: true,
+        totalValue: true,
+        servicesList: true,
+        proposal: { select: { durationDays: true } },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found');
+    }
+
+    const services = (contract.servicesList as ServiceItem[]) || [];
+    const invoiceNumber = this.generateInvoiceNumber();
+    const durationDays = contract.proposal?.durationDays ?? 30;
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + durationDays);
+
+    if (services.length === 0) {
+      const invoice = await this.prisma.invoice.create({
+        data: {
+          clientId: contract.clientId,
+          contractId: contract.id,
+          createdBy: userId,
+          invoiceNumber,
+          amount: contract.totalValue,
+          status: InvoiceStatus.PENDING,
+          paymentMethod: PaymentMethod.BANK_TRANSFER,
+          issueDate: new Date(),
+          dueDate,
+          items: {
+            create: {
+              description: contract.title,
+              quantity: 1,
+              unitPrice: contract.totalValue,
+              total: contract.totalValue,
+            },
+          },
+        },
+        include: { items: true },
+      });
+
+      await this.logToLedger({
+        action: 'AUTO_GENERATE_INVOICE',
+        entity: 'INVOICE',
+        entityId: invoice.id,
+        userId,
+        after: invoice,
+      });
+
+      return invoice;
+    }
+
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        clientId: contract.clientId,
+        contractId: contract.id,
+        createdBy: userId,
+        invoiceNumber,
+        amount: contract.totalValue,
+        status: InvoiceStatus.PENDING,
+        paymentMethod: PaymentMethod.BANK_TRANSFER,
+        issueDate: new Date(),
+        dueDate,
+        notes: `فاتورة تلقائية من العقد: ${contract.title}`,
+        items: {
+          create: services.map((svc) => ({
+            description: svc.name,
+            quantity: 1,
+            unitPrice: svc.price,
+            total: svc.price,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+
+    await this.logToLedger({
+      action: 'AUTO_GENERATE_INVOICE',
+      entity: 'INVOICE',
+      entityId: invoice.id,
+      userId,
+      after: invoice,
+    });
+
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: contract.clientId },
+      select: { userId: true },
+    });
+
+    if (clientUser?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: invoice.id,
+          entityType: 'invoice',
+          eventType: 'INVOICE_CREATED',
+          userId: clientUser.userId,
+          title: 'تم إنشاء فاتورة تلقائية',
+          body: `تم إنشاء فاتورة تلقائية رقم ${invoiceNumber} للعقد "${contract.title}"`,
+        })
+        .catch(() => undefined);
     }
 
     return invoice;
@@ -276,12 +388,13 @@ export class FinanceService {
     }));
   }
 
-  async findAllInvoices(filters: { status?: string; clientId?: string; page?: number; limit?: number }) {
+  async findAllInvoices(filters: { status?: string; clientId?: string; contractId?: string; page?: number; limit?: number }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
     const where: any = {};
     if (filters.status) where.status = filters.status;
     if (filters.clientId) where.clientId = filters.clientId;
+    if (filters.contractId) where.contractId = filters.contractId;
     const [items, total] = await Promise.all([
       this.prisma.invoice.findMany({
         where,

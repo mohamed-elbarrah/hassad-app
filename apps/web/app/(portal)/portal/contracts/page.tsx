@@ -244,7 +244,7 @@ export default function PortalContractsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild className="gap-2">
                         <Link 
-                          href={`/portal/contracts/${contract.shareLinkToken}`}
+                          href={`/portal/contracts/${contract.id}`}
                           className="flex items-center gap-2"
                         >
                           <ExternalLink className="h-4 w-4" />

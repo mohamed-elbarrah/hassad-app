@@ -16,6 +16,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomBytes } from 'crypto';
 import { ContractsService } from '../services/contracts.service';
+import { FinanceService } from '../../finance/services/finance.service';
 import {
   CreateContractDto,
   UpdateContractDto,
@@ -42,7 +43,10 @@ const contractStorage = diskStorage({
 // placed in this same controller without guards.
 @Controller('contracts')
 export class ContractsController {
-  constructor(private readonly contractsService: ContractsService) {}
+  constructor(
+    private readonly contractsService: ContractsService,
+    private readonly financeService: FinanceService,
+  ) {}
 
   // ─── Protected endpoints ───────────────────────────────────────────────────
 
@@ -59,7 +63,15 @@ export class ContractsController {
       throw new BadRequestException('PDF file is required');
     }
     const filePath = `/uploads/contracts/${file.filename}`;
-    return this.contractsService.create(user.id, filePath, createContractDto);
+    const contract = await this.contractsService.create(user.id, filePath, createContractDto);
+
+    try {
+      await this.financeService.generateInvoiceFromContract(contract.id, user.id);
+    } catch (error) {
+      console.error(`Failed to auto-generate invoice for contract ${contract.id}:`, error);
+    }
+
+    return contract;
   }
 
   @Get('my')
@@ -131,6 +143,16 @@ export class ContractsController {
     @Body() dto: CreateVersionDto,
   ) {
     return this.contractsService.createVersion(id, user.id, dto);
+  }
+
+  @Post(':id/generate-invoice')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('finance.create_invoice')
+  generateInvoice(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.financeService.generateInvoiceFromContract(id, user.id);
   }
 
   // ─── Public share-link endpoints (CLIENT token-based) ─────────────────────

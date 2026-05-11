@@ -335,6 +335,11 @@ export const portalApi = createApi({
       query: (params) => ({ url: "/portal/contracts", params }),
       providesTags: ["PortalContracts"],
     }),
+
+    getPortalContractById: builder.query<any, string>({
+      query: (id) => `/portal/contracts/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "PortalContracts", id }],
+    }),
     snoozeActionItem: builder.mutation<
       { id: string; snoozedUntil: string },
       { itemType: string; itemId: string; hours?: number }
@@ -386,6 +391,7 @@ export const {
   useGetCampaignSummaryQuery,
   useGetPortalInvoicesQuery,
   useGetPortalContractsQuery,
+  useGetPortalContractByIdQuery,
   useSnoozeActionItemMutation,
   useUnsnoozeActionItemMutation,
   useGetPortalReportsQuery,

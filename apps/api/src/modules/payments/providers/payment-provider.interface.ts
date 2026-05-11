@@ -7,14 +7,28 @@ export interface PaymentIntentResponse {
   metadata?: any;
 }
 
+export interface CreatePaymentIntentParams {
+  invoiceId: string;
+  amount: number;
+  currency: string;
+  clientId: string;
+  successUrl?: string;
+  cancelUrl?: string;
+  metadata?: any;
+}
+
+export interface ElementPaymentIntentParams {
+  invoiceId: string;
+  amount: number;
+  currency: string;
+  clientId: string;
+  metadata?: any;
+}
+
 export interface PaymentProvider {
-  createPaymentIntent(params: {
-    invoiceId: string;
-    amount: number;
-    currency: string;
-    clientId: string;
-    metadata?: any;
-  }): Promise<PaymentIntentResponse>;
+  createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResponse>;
+
+  createElementPaymentIntent?(params: ElementPaymentIntentParams): Promise<PaymentIntentResponse>;
 
   verifyWebhook(payload: any, signature: string): Promise<any>;
 

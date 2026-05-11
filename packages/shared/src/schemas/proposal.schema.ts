@@ -1,11 +1,21 @@
 import { z } from "zod";
 import { ProposalStatus, DurationUnit } from "../enums/client";
 
+export const ServiceItemSchema = z.object({
+  name: z.string().min(1, "Service name is required"),
+  price: z.number().positive("Price must be positive"),
+  description: z.string().optional(),
+});
+
+export type ServiceItem = z.infer<typeof ServiceItemSchema>;
+
 export const CreateProposalSchema = z.object({
   leadId: z.string().uuid("Invalid lead ID format"),
   title: z.string().min(1, "Title is required"),
   serviceDescription: z.string().min(1, "Service description is required"),
-  servicesList: z.array(z.unknown()).min(1, "At least one service is required"),
+  servicesList: z
+    .array(ServiceItemSchema)
+    .min(1, "At least one service is required"),
   totalPrice: z.number().positive("Price must be greater than zero"),
   durationDays: z.number().int().positive("Duration must be a positive integer"),
   durationUnit: z.nativeEnum(DurationUnit).default(DurationUnit.DAYS),
@@ -22,7 +32,7 @@ export const UpdateProposalSchema = z
   .object({
     title: z.string().min(1).optional(),
     serviceDescription: z.string().min(1).optional(),
-    servicesList: z.array(z.unknown()).min(1).optional(),
+    servicesList: z.array(ServiceItemSchema).min(1).optional(),
     totalPrice: z.number().positive().optional(),
     durationDays: z.number().int().positive().optional(),
     durationUnit: z.nativeEnum(DurationUnit).optional(),

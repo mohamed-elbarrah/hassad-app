@@ -25,6 +25,7 @@ export interface PaginatedInvoices {
 export interface InvoiceFilters {
   status?: InvoiceStatus;
   clientId?: string;
+  contractId?: string;
   page?: number;
   limit?: number;
 }
@@ -130,6 +131,10 @@ export const financeApi = createApi({
       query: (clientId) => `/invoices/client/${clientId}`,
       providesTags: ["Invoice"],
     }),
+    getInvoicesByContractId: builder.query<Invoice[], string>({
+      query: (contractId) => ({ url: "/invoices", params: { contractId } }),
+      providesTags: ["Invoice"],
+    }),
 
     // Payments
     getPayments: builder.query<PaginatedPayments, { page?: number; limit?: number }>({
@@ -143,6 +148,10 @@ export const financeApi = createApi({
     payInvoice: builder.mutation<Payment, { id: string; amount: number; method: PaymentMethod; notes?: string }>({
       query: ({ id, ...body }) => ({ url: `/invoices/${id}/pay`, method: "PATCH", body }),
       invalidatesTags: ["Payment", "Invoice", "FinanceSummary", "Ledger"],
+    }),
+    payInvoicePublic: builder.mutation<Payment, { id: string; amount: number; method: PaymentMethod; notes?: string }>({
+      query: ({ id, ...body }) => ({ url: `/invoices/${id}/pay-public`, method: "POST", body }),
+      invalidatesTags: ["Payment", "Invoice"],
     }),
 
     // Payroll
@@ -194,6 +203,9 @@ export const financeApi = createApi({
       query: ({ name, body }) => ({ url: `/payments/gateways/${name}`, method: "POST", body }),
       invalidatesTags: ["PaymentGateway"],
     }),
+    getPublicGateways: builder.query<string[], void>({
+      query: () => "/payments/gateways-public",
+    }),
     getBankAccounts: builder.query<any[], void>({
       query: () => "/payments/bank-accounts",
       providesTags: ["BankAccount"],
@@ -210,8 +222,59 @@ export const financeApi = createApi({
       query: (id) => ({ url: `/payments/bank-accounts/${id}`, method: "DELETE" }),
       invalidatesTags: ["BankAccount"],
     }),
-    createPaymentIntent: builder.mutation<any, { invoiceId: string; gatewayName: string; amount: number; currency?: string }>({
+    createPaymentIntent: builder.mutation<
+      any,
+      {
+        invoiceId: string;
+        gatewayName: string;
+        amount: number;
+        currency?: string;
+        successUrl?: string;
+        cancelUrl?: string;
+      }
+    >({
       query: (body) => ({ url: "/payments/create-intent", method: "POST", body }),
+      invalidatesTags: ["Payment", "Invoice"],
+    }),
+
+    createElementPaymentIntent: builder.mutation<
+      { clientSecret: string; id: string },
+      { invoiceId: string; amount: number; currency?: string }
+    >({
+      query: (body) => ({ url: "/payments/create-element-intent", method: "POST", body }),
+      invalidatesTags: ["Payment", "Invoice"],
+    }),
+
+    uploadPaymentReceipt: builder.mutation<
+      any,
+      { paymentId: string; file: File }
+    >({
+      queryFn: async ({ paymentId, file }, _api, _extraOptions) => {
+        const formData = new FormData();
+        formData.append("receipt", file);
+        formData.append("paymentId", paymentId);
+        const apiBase =
+          (typeof window !== "undefined"
+            ? `${window.location.origin.replace(/\/+$/, "")}/v1`
+            : "");
+        const res = await fetch(`${apiBase}/payments/upload-receipt`, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+        const json = await res.json();
+        if (!res.ok) return { error: { status: res.status, data: json } };
+        const data = json?.data !== undefined ? json.data : json;
+        return { data };
+      },
+      invalidatesTags: ["Payment", "Invoice"],
+    }),
+
+    getStripePublishableKey: builder.query<
+      { publishableKey: string | null; isActive: boolean },
+      void
+    >({
+      query: () => "/payments/public-config",
     }),
   }),
 });
@@ -227,6 +290,11 @@ export const {
   useGetPaymentsQuery,
   useRegisterPaymentMutation,
   usePayInvoiceMutation,
+  usePayInvoicePublicMutation,
+  useCreatePaymentIntentMutation,
+  useCreateElementPaymentIntentMutation,
+  useUploadPaymentReceiptMutation,
+  useGetStripePublishableKeyQuery,
   useGetEmployeesQuery,
   useGetEmployeeByIdQuery,
   useRunPayrollMutation,
@@ -236,11 +304,12 @@ export const {
   useCreatePaymentTicketMutation,
   useResolvePaymentTicketMutation,
   useGetInvoicesByClientQuery,
+  useGetInvoicesByContractIdQuery,
   useGetPaymentGatewaysQuery,
   useUpdatePaymentGatewayMutation,
+  useGetPublicGatewaysQuery,
   useGetBankAccountsQuery,
   useCreateBankAccountMutation,
   useUpdateBankAccountMutation,
   useDeleteBankAccountMutation,
-  useCreatePaymentIntentMutation,
 } = financeApi;

@@ -38,6 +38,7 @@ export default function DashboardLayout({
   const commonPrefixes = [
     "/dashboard/account",
     "/dashboard/notifications",
+    "/dashboard/messages",
     "/dashboard/tasks",
     "/dashboard/finance",
   ];

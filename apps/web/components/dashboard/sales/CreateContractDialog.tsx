@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,10 +29,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useGetRequestsQuery } from "@/features/requests/requestsApi";
 import { useCreateContractMutation } from "@/features/contracts/contractsApi";
+import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
+import { ContractServicesTable } from "@/components/shared/ContractServicesTable";
 import { ContractType, RequestStatus } from "@hassad/shared";
-import { FileText, Upload, Copy, CheckCheck } from "lucide-react";
+import {
+  FileText,
+  Upload,
+  Copy,
+  CheckCheck,
+  Calculator,
+  Calendar,
+  Clock,
+} from "lucide-react";
 
 // ── Labels ─────────────────────────────────────────────────────────────────────
 
@@ -48,10 +60,10 @@ const contractFormSchema = z.object({
   requestId: z.string().min(1, "اختر الطلب"),
   title: z.string().min(2, "اكتب عنوان العقد"),
   type: z.nativeEnum(ContractType, { message: "اختر نوع العقد" }),
-  monthlyValue: z.number().nonnegative("القيمة الشهرية مطلوبة"),
-  totalValue: z.number().positive("إجمالي القيمة مطلوب"),
-  startDate: z.string().min(1, "تاريخ البداية مطلوب"),
-  endDate: z.string().min(1, "تاريخ النهاية مطلوب"),
+  monthlyValue: z.number().optional(),
+  totalValue: z.number().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 type ContractFormValues = z.infer<typeof contractFormSchema>;
@@ -63,20 +75,32 @@ const CONTRACT_READY_STATUSES = new Set<RequestStatus>([
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function CreateContractDialog() {
-  const [open, setOpen] = useState(false);
+interface CreateContractDialogProps {
+  proposalId?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function CreateContractDialog({
+  proposalId,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: CreateContractDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [createContract, { isLoading }] = useCreateContractMutation();
 
-  const { data: requestsData, isFetching: requestsFetching } =
-    useGetRequestsQuery({ limit: 100 }, { skip: !open });
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
 
-  const contractRequests = (requestsData ?? []).filter((request) =>
-    CONTRACT_READY_STATUSES.has(request.status),
-  );
+  useEffect(() => {
+    if (proposalId && !isControlled) {
+      setInternalOpen(true);
+    }
+  }, [proposalId, isControlled]);
 
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
@@ -84,12 +108,57 @@ export function CreateContractDialog() {
       requestId: "",
       title: "",
       type: undefined,
-      monthlyValue: 0,
-      totalValue: 0,
+      monthlyValue: undefined,
+      totalValue: undefined,
       startDate: "",
       endDate: "",
     },
   });
+
+  function handleOpenChange(val: boolean) {
+    if (isControlled) {
+      controlledOnOpenChange?.(val);
+    } else {
+      setInternalOpen(val);
+    }
+    if (!val) {
+      setShareLink(null);
+      setCopied(false);
+      form.reset();
+      setFile(null);
+    }
+  }
+
+  const { data: requestsData, isFetching: requestsFetching } =
+    useGetRequestsQuery({ limit: 100 }, { skip: !open });
+
+  const { data: proposalData, isLoading: proposalLoading } =
+    useGetProposalByIdQuery(proposalId ?? "", {
+      skip: !proposalId || !open,
+    });
+
+  const contractRequests = (requestsData ?? []).filter((request) =>
+    CONTRACT_READY_STATUSES.has(request.status),
+  );
+
+  const isFromProposal = !!proposalId;
+
+  useEffect(() => {
+    if (!proposalData || !open) return;
+
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + (proposalData.durationDays || 30));
+
+    form.reset({
+      requestId: proposalData.requestId ?? "",
+      title: proposalData.title ?? "",
+      type: ContractType.ONE_TIME_SERVICE,
+      monthlyValue: undefined,
+      totalValue: proposalData.totalPrice ?? 0,
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: endDate.toISOString().split("T")[0],
+    });
+  }, [proposalData, open, form]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;
@@ -110,18 +179,26 @@ export function CreateContractDialog() {
     }
 
     try {
-      const result = await createContract({
+      const payload: any = {
         requestId: values.requestId,
         title: values.title,
         type: values.type,
-        monthlyValue: values.monthlyValue,
-        totalValue: values.totalValue,
-        startDate: values.startDate,
-        endDate: values.endDate,
         file,
-      }).unwrap();
+      };
 
-      // Build shareable link
+      if (!isFromProposal) {
+        payload.monthlyValue = values.monthlyValue ?? 0;
+        payload.totalValue = values.totalValue ?? 0;
+        payload.startDate = values.startDate ?? "";
+        payload.endDate = values.endDate ?? "";
+      }
+
+      if (proposalId) {
+        payload.proposalId = proposalId;
+      }
+
+      const result = await createContract(payload).unwrap();
+
       const origin =
         typeof window !== "undefined" ? window.location.origin : "";
       const token = result.shareLinkToken;
@@ -139,16 +216,6 @@ export function CreateContractDialog() {
     }
   }
 
-  function handleClose(val: boolean) {
-    if (!val) {
-      setShareLink(null);
-      setCopied(false);
-      form.reset();
-      setFile(null);
-    }
-    setOpen(val);
-  }
-
   async function copyLink() {
     if (!shareLink) return;
     await navigator.clipboard.writeText(shareLink);
@@ -157,19 +224,19 @@ export function CreateContractDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>إنشاء عقد</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg" dir="rtl">
         <DialogHeader>
-          <DialogTitle>عقد جديد</DialogTitle>
+          <DialogTitle>
+            {isFromProposal ? "إنشاء عقد من العرض الفني" : "عقد جديد"}
+          </DialogTitle>
         </DialogHeader>
 
-        {/* ── Success: show share link ── */}
         {shareLink ? (
           <div className="space-y-5 py-2">
-            {/* Success banner */}
             <div className="flex flex-col items-center gap-3 py-4 text-center">
               <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center">
                 <CheckCheck className="h-7 w-7 text-emerald-600" />
@@ -184,7 +251,6 @@ export function CreateContractDialog() {
               </div>
             </div>
 
-            {/* Copy row — show link inside a full-width read-only input with internal copy button */}
             <div className="min-w-0">
               <div className="relative w-full">
                 <Input
@@ -219,15 +285,175 @@ export function CreateContractDialog() {
             <Button
               className="w-full"
               variant="outline"
-              onClick={() => handleClose(false)}
+              onClick={() => handleOpenChange(false)}
             >
               إغلاق
             </Button>
           </div>
+        ) : isFromProposal ? (
+          <div className="space-y-4">
+            {proposalLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-5 w-40" />
+              </div>
+            ) : (
+              <>
+                <div className="rounded-xl border p-4 space-y-2 bg-muted/20">
+                  <p className="text-sm font-semibold">معلومات العرض الفني</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>
+                      <span className="font-medium text-foreground">
+                        العميل:{" "}
+                      </span>
+                      {proposalData?.request?.companyName ??
+                        proposalData?.lead?.companyName ??
+                        "—"}
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">
+                        العنوان:{" "}
+                      </span>
+                      {proposalData?.title}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Calculator className="w-4 h-4" />
+                      <span>
+                        إجمالي القيمة:{" "}
+                        <span className="font-bold text-foreground">
+                          {proposalData?.totalPrice?.toLocaleString("en-US")} ر.س
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>
+                        المدة: {proposalData?.durationDays} يوم
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        تاريخ البداية:{" "}
+                        {new Date().toLocaleDateString("ar-SA-u-nu-latn")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {proposalData?.servicesList &&
+                  proposalData.servicesList.length > 0 && (
+                    <ContractServicesTable
+                      services={proposalData.servicesList}
+                      totalValue={proposalData.totalPrice}
+                    />
+                  )}
+
+                <p className="text-xs text-muted-foreground text-center">
+                  تم اعتماد هذه القيم من قبل العميل في العرض الفني. لا يمكنك
+                  تعديلها من هنا.
+                </p>
+              </>
+            )}
+
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4 pt-2"
+              >
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع العقد</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر النوع" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(Object.values(ContractType) as ContractType[]).map(
+                            (t) => (
+                              <SelectItem key={t} value={t}>
+                                {TYPE_LABELS[t]}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div>
+                  <p className="text-sm font-medium mb-1.5">
+                    ملف العقد (PDF)
+                  </p>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ")
+                        fileInputRef.current?.click();
+                    }}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                  >
+                    {file ? (
+                      <>
+                        <FileText className="w-8 h-8 text-blue-600" />
+                        <p className="text-sm font-medium">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(file.size / 1024).toFixed(0)} KB
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-7 h-7 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          اسحب الملف هنا أو انقر للاختيار
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleOpenChange(false)}
+                    disabled={isLoading}
+                  >
+                    إلغاء
+                  </Button>
+                  <Button type="submit" disabled={isLoading || !file}>
+                    {isLoading ? "جارٍ الإرسال..." : "إنشاء وإرسال"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Request picker */}
               <FormField
                 control={form.control}
                 name="requestId"
@@ -268,7 +494,6 @@ export function CreateContractDialog() {
                 )}
               />
 
-              {/* Title */}
               <FormField
                 control={form.control}
                 name="title"
@@ -286,7 +511,6 @@ export function CreateContractDialog() {
                 )}
               />
 
-              {/* Type */}
               <FormField
                 control={form.control}
                 name="type"
@@ -314,7 +538,6 @@ export function CreateContractDialog() {
                 )}
               />
 
-              {/* Financial values */}
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
@@ -364,7 +587,6 @@ export function CreateContractDialog() {
                 />
               </div>
 
-              {/* Dates */}
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
@@ -394,7 +616,6 @@ export function CreateContractDialog() {
                 />
               </div>
 
-              {/* PDF Upload */}
               <div>
                 <p className="text-sm font-medium mb-1.5">ملف العقد (PDF)</p>
                 <div
@@ -439,7 +660,7 @@ export function CreateContractDialog() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleClose(false)}
+                  onClick={() => handleOpenChange(false)}
                   disabled={isLoading}
                 >
                   إلغاء

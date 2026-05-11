@@ -1,7 +1,14 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import { getApiBaseUrl } from "@/lib/utils";
-import type { ContractStatus, ContractType } from "@hassad/shared";
+import type {
+  ContractStatus,
+  ContractType,
+  InvoiceStatus,
+  PaymentStatus,
+  PaymentMethod,
+  ServiceItem,
+} from "@hassad/shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -10,6 +17,35 @@ export interface ContractClient {
   companyName: string;
   contactName: string;
   leadId?: string | null;
+}
+
+export interface InvoiceItemSummary {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface PaymentSummary {
+  id: string;
+  amount: number;
+  status: string;
+  date: string;
+}
+
+export interface InvoiceSummary {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  status: InvoiceStatus;
+  paymentMethod: PaymentMethod;
+  issueDate: string;
+  dueDate: string;
+  paidAt?: string | null;
+  paymentReference?: string | null;
+  payments?: PaymentSummary[];
+  items?: InvoiceItemSummary[];
 }
 
 export interface ContractItem {
@@ -31,6 +67,14 @@ export interface ContractItem {
   signedAt?: string | null;
   createdAt: string;
   client?: ContractClient;
+  servicesList?: ServiceItem[];
+  proposal?: {
+    id: string;
+    title: string;
+    servicesList?: ServiceItem[];
+    totalPrice?: number;
+  } | null;
+  invoices?: InvoiceSummary[];
 }
 
 export interface PaginatedContracts {
@@ -54,10 +98,10 @@ export interface CreateContractFormInput {
   requestId: string;
   title: string;
   type: ContractType;
-  monthlyValue: number;
-  totalValue: number;
-  startDate: string; // ISO date string e.g. "2026-05-01"
-  endDate: string;
+  monthlyValue?: number;
+  totalValue?: number;
+  startDate?: string;
+  endDate?: string;
   file: File;
   proposalId?: string;
 }
@@ -109,10 +153,10 @@ export const contractsApi = createApi({
         formData.append("requestId", input.requestId);
         formData.append("title", input.title);
         formData.append("type", input.type);
-        formData.append("monthlyValue", String(input.monthlyValue));
-        formData.append("totalValue", String(input.totalValue));
-        formData.append("startDate", input.startDate);
-        formData.append("endDate", input.endDate);
+        if (input.monthlyValue !== undefined) formData.append("monthlyValue", String(input.monthlyValue));
+        if (input.totalValue !== undefined) formData.append("totalValue", String(input.totalValue));
+        if (input.startDate) formData.append("startDate", input.startDate);
+        if (input.endDate) formData.append("endDate", input.endDate);
         formData.append("file", input.file, input.file.name);
         if (input.proposalId) formData.append("proposalId", input.proposalId);
 
@@ -206,6 +250,17 @@ export const contractsApi = createApi({
         { type: "Contract", id: "LIST" },
       ],
     }),
+
+    generateInvoice: builder.mutation<InvoiceSummary, string>({
+      query: (contractId) => ({
+        url: `/contracts/${contractId}/generate-invoice`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, contractId) => [
+        { type: "Contract", id: contractId },
+        { type: "Contract", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -219,4 +274,5 @@ export const {
   useGetContractByTokenQuery,
   useGetMyContractsQuery,
   useSignContractByTokenMutation,
+  useGenerateInvoiceMutation,
 } = contractsApi;

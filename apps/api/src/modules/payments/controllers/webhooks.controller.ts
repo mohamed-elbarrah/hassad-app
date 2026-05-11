@@ -11,13 +11,12 @@ export class WebhooksController {
     @Headers('stripe-signature') stripeSignature: string,
     @Req() req: RawBodyRequest<any>,
   ) {
-    const payload = req.rawBody || req.body;
-    
     if (provider === 'stripe') {
       if (!stripeSignature) throw new BadRequestException('Missing stripe signature');
+      const payload = req.rawBody ?? Buffer.from(JSON.stringify(req.body));
       await this.paymentsService.processWebhook('stripe', payload, stripeSignature);
     }
-    
+
     return { received: true };
   }
 }

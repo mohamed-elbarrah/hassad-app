@@ -16,6 +16,10 @@ async function main() {
   await prisma.deliverable.deleteMany();
   await prisma.leadService.deleteMany();
 
+  await prisma.message.deleteMany();
+  await prisma.conversationParticipant.deleteMany();
+  await prisma.conversation.deleteMany();
+
   await prisma.task.deleteMany();
   await prisma.projectMember.deleteMany();
   await prisma.project.deleteMany();
@@ -156,6 +160,7 @@ async function main() {
       role: "ACCOUNTANT",
     },
     { email: "client@hassad.com", name: "Tech Ventures CEO", role: "CLIENT" },
+    { email: "client2@hassad.com", name: "Ahmad Saleh", role: "CLIENT" },
   ];
 
   const users: Record<string, string> = {};
@@ -173,6 +178,13 @@ async function main() {
       },
     });
     users[u.role] = created.id;
+
+    if (u.email === "client@hassad.com") {
+      users["CLIENT1"] = created.id;
+    }
+    if (u.email === "client2@hassad.com") {
+      users["CLIENT2"] = created.id;
+    }
 
     if (u.dept) {
       const dept = await prisma.department.findUnique({
@@ -238,14 +250,14 @@ async function main() {
   const client1 = await prisma.client.create({
     data: {
       leadId: lead3.id,
-      userId: users["CLIENT"],
+      userId: users["CLIENT1"],
       companyName: "TechVentures",
       contactName: "Tech Ventures CEO",
       phoneWhatsapp: "+966509990011",
       email: "client@hassad.com",
       businessName: "TechVentures Co.",
       businessType: "OTHER",
-      accountManager: users["PM"],
+      accountManager: users["SALES"],
       status: "ACTIVE",
     },
   });
@@ -253,13 +265,14 @@ async function main() {
   const client2 = await prisma.client.create({
     data: {
       leadId: lead1.id,
+      userId: users["CLIENT2"],
       companyName: "Nova Eats",
       contactName: "Ahmad Saleh",
       phoneWhatsapp: "+966501112233",
       email: "ahmad@novaeats.sa",
       businessName: "Nova Eats Restaurant",
       businessType: "RESTAURANT",
-      accountManager: users["PM"],
+      accountManager: users["SALES"],
       status: "ACTIVE",
     },
   });
@@ -1102,6 +1115,7 @@ const task4 = await prisma.task.create({
     "contracts.manage_versions",
     "contracts.read_public",
     "contracts.sign_public",
+    "invoices.pay_public",
     "services.create",
     "services.read",
     "services.update",
@@ -1139,6 +1153,9 @@ const task4 = await prisma.task.create({
       "marketing.read",
       "portal.read",
       "services.read",
+      "chat.create",
+      "chat.read",
+      "chat.message",
     ],
     SALES: [
       "leads.create",
@@ -1160,6 +1177,9 @@ const task4 = await prisma.task.create({
       "notifications.read",
       "notifications.update",
       "services.read",
+      "chat.create",
+      "chat.read",
+      "chat.message",
     ],
     EMPLOYEE: [
       "tasks.read",
@@ -1196,8 +1216,11 @@ const task4 = await prisma.task.create({
       "leads.create",
       "contracts.read_public",
       "contracts.sign_public",
+      "invoices.pay_public",
       "portal.read",
       "services.read",
+      "chat.read",
+      "chat.message",
     ],
   };
 

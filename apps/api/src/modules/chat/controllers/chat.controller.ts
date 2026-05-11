@@ -8,7 +8,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ChatService } from '../services/chat.service';
-import { CreateConversationDto, AddParticipantDto, CreateMessageDto } from '../dto/chat.dto';
+import {
+  CreateConversationDto,
+  AddParticipantDto,
+  CreateMessageDto,
+  GetConversationsQueryDto,
+} from '../dto/chat.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
@@ -23,7 +28,7 @@ export class ChatController {
   @RequirePermissions('chat.read')
   findMyConversations(
     @CurrentUser() user: any,
-    @Query() query: { page?: number; limit?: number },
+    @Query() query: GetConversationsQueryDto,
   ) {
     return this.chatService.findMyConversations(user.id, query);
   }
@@ -32,6 +37,15 @@ export class ChatController {
   @RequirePermissions('chat.create')
   createConversation(@Body() dto: CreateConversationDto) {
     return this.chatService.createConversation(dto);
+  }
+
+  @Get('conversations/by-client/:clientId/:type')
+  @RequirePermissions('chat.read')
+  getOrCreateConversation(
+    @Param('clientId') clientId: string,
+    @Param('type') type: 'SALES' | 'PM',
+  ) {
+    return this.chatService.getOrCreateConversation(clientId, type);
   }
 
   @Get('conversations/:id')
@@ -54,7 +68,10 @@ export class ChatController {
 
   @Get('conversations/:id/messages')
   @RequirePermissions('chat.read')
-  getMessages(@Param('id') id: string) {
-    return this.chatService.getMessages(id);
+  getMessages(
+    @Param('id') id: string,
+    @Query() query: { page?: number; limit?: number },
+  ) {
+    return this.chatService.getMessages(id, query);
   }
 }

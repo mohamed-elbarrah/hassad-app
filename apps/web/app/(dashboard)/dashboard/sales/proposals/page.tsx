@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
 import { ProposalsTable } from "@/components/dashboard/sales/ProposalsTable";
+import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
 import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
@@ -23,6 +25,8 @@ export default function ProposalsPage() {
     limit: 20,
   });
 
+  const [contractDialogProposalId, setContractDialogProposalId] = useState<string | null>(null);
+
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       <div className="flex items-center justify-between">
@@ -41,7 +45,17 @@ export default function ProposalsPage() {
       )}
 
       {!isLoading && !isError && (
-        <ProposalsTable proposals={data?.items ?? []} />
+        <ProposalsTable
+          proposals={data?.items ?? []}
+          onCreateContract={(proposalId) => setContractDialogProposalId(proposalId)}
+        />
+      )}
+
+      {contractDialogProposalId && (
+        <CreateContractDialog
+          key={contractDialogProposalId}
+          proposalId={contractDialogProposalId}
+        />
       )}
     </div>
   );

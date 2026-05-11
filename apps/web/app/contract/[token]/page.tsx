@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   useGetContractByTokenQuery,
   useSignContractByTokenMutation,
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { toast } from "sonner";
 import {
   FileText,
@@ -22,7 +24,6 @@ interface PageProps {
   params: Promise<{ token: string }>;
 }
 
-// Build a full URL for a file path served from the API
 function buildFileUrl(filePath: string): string {
   const apiBase =
     process.env.NEXT_PUBLIC_API_URL?.replace("/v1", "") ??
@@ -50,12 +51,35 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ContractSharePage({ params }: PageProps) {
   const { token } = use(params);
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-muted/40 flex items-center justify-center">
+        <p className="text-muted-foreground">جارٍ تحميل العقد...</p>
+      </div>
+    }>
+      <ContractSharePageInner token={token} />
+    </Suspense>
+  );
+}
+
+function ContractSharePageInner({ token }: { token: string }) {
+  const searchParams = useSearchParams();
   const { data, isLoading, isError } = useGetContractByTokenQuery(token);
   const [signContract, { isLoading: signing }] =
     useSignContractByTokenMutation();
 
   const [signedByName, setSignedByName] = useState("");
   const [signedByEmail, setSignedByEmail] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("stripe_success") === "true") {
+      toast.success("تم دفع الفاتورة بنجاح! يمكنك الآن توقيع العقد.", {
+        duration: 6000,
+      });
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }, [searchParams]);
 
   if (isLoading) {
     return (
@@ -76,6 +100,12 @@ export default function ContractSharePage({ params }: PageProps) {
   }
 
   const canSign = data.status === "SENT";
+  const invoices = data.invoices ?? [];
+
+  const allInvoicesPaid =
+    invoices.length > 0 && invoices.every((inv) => inv.status === "PAID");
+  const canSignNow =
+    canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
   const statusLabel = STATUS_LABELS[data.status] ?? data.status;
   const statusColor =
     STATUS_COLORS[data.status] ?? "bg-muted text-muted-foreground";
@@ -125,7 +155,6 @@ export default function ContractSharePage({ params }: PageProps) {
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {/* ── Contract details ─────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-xs text-muted-foreground mb-0.5">
@@ -148,7 +177,9 @@ export default function ContractSharePage({ params }: PageProps) {
                 تاريخ البداية
               </p>
               <p className="font-semibold">
-                {new Date(data.startDate).toLocaleDateString("ar-SA-u-nu-latn")}
+                {new Date(data.startDate).toLocaleDateString(
+                  "ar-SA-u-nu-latn",
+                )}
               </p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
@@ -161,7 +192,6 @@ export default function ContractSharePage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* ── PDF Download ─────────────────────────────────────────────── */}
           {fileUrl ? (
             <div className="flex items-center gap-3 rounded-xl border bg-slate-50 p-4">
               <FileText className="w-8 h-8 text-blue-600 shrink-0" />
@@ -177,7 +207,11 @@ export default function ContractSharePage({ params }: PageProps) {
                 rel="noopener noreferrer"
                 download
               >
-                <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 shrink-0"
+                >
                   <Download className="w-4 h-4" />
                   تحميل العقد
                 </Button>
@@ -192,7 +226,14 @@ export default function ContractSharePage({ params }: PageProps) {
             </div>
           )}
 
-          {/* ── Signed confirmation ──────────────────────────────────────── */}
+          <ContractPaymentSummary
+            services={data.servicesList ?? []}
+            totalValue={data.totalValue}
+            invoices={invoices}
+            showPayButton={canSign}
+            onPaymentComplete={() => window.location.reload()}
+          />
+
           {data.status === "SIGNED" && (
             <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
               <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -202,20 +243,31 @@ export default function ContractSharePage({ params }: PageProps) {
                 </p>
                 {data.signedAt && (
                   <p className="text-xs text-emerald-600 mt-0.5">
-                    {new Date(data.signedAt).toLocaleString("ar-SA-u-nu-latn")}
+                    {new Date(data.signedAt).toLocaleString(
+                      "ar-SA-u-nu-latn",
+                    )}
                   </p>
                 )}
               </div>
             </div>
           )}
 
-          {/* ── Sign form (only when SENT) ──────────────────────────────── */}
           {canSign && (
             <div className="space-y-4 rounded-xl border p-4">
               <div className="flex items-center gap-2">
                 <PenLine className="w-4 h-4 text-primary" />
                 <p className="text-sm font-semibold">توقيع العقد</p>
               </div>
+
+              {!allInvoicesPaid && (
+                <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <p className="text-xs text-amber-700">
+                    يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر
+                    &quot;ادفع&quot; بجانب كل فاتورة.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div>
@@ -228,11 +280,13 @@ export default function ContractSharePage({ params }: PageProps) {
                     value={signedByName}
                     onChange={(e) => setSignedByName(e.target.value)}
                     className="mt-1"
+                    disabled={!allInvoicesPaid}
                   />
                 </div>
                 <div>
                   <Label htmlFor="signedByEmail" className="text-sm">
-                    البريد الإلكتروني (اختياري)
+                    البريد الإلكتروني{" "}
+                    <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="signedByEmail"
@@ -241,17 +295,22 @@ export default function ContractSharePage({ params }: PageProps) {
                     value={signedByEmail}
                     onChange={(e) => setSignedByEmail(e.target.value)}
                     className="mt-1"
+                    disabled={!allInvoicesPaid}
                   />
                 </div>
               </div>
 
               <Button
                 onClick={handleSign}
-                disabled={signing || !signedByName.trim()}
+                disabled={signing || !canSignNow}
                 className="w-full gap-2"
               >
                 <CheckCircle className="w-4 h-4" />
-                {signing ? "جارٍ التوقيع..." : "أوافق وأوقّع العقد"}
+                {!allInvoicesPaid
+                  ? "يجب دفع الفواتير أولاً"
+                  : signing
+                    ? "جارٍ التوقيع..."
+                    : "أوافق وأوقّع العقد"}
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">

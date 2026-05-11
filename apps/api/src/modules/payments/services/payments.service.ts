@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-import { 
-  PaymentStatus, 
-  PaymentGatewayType, 
-  PaymentMethod, 
+import {
+  PaymentStatus,
+  PaymentGatewayType,
+  PaymentMethod,
   PaymentEventType,
   InvoiceStatus,
+  ContractStatus,
 } from '@hassad/shared';
 import { StripeProvider } from '../providers/stripe.provider';
 import { BankTransferProvider } from '../providers/bank-transfer.provider';
@@ -14,15 +15,33 @@ import { PaymentProvider } from '../providers/payment-provider.interface';
 import * as crypto from 'crypto';
 
 @Injectable()
-export class PaymentsService {
+export class PaymentsService implements OnModuleInit {
   private readonly ALGORITHM = 'aes-256-cbc';
-  private readonly ENCRYPTION_KEY = process.env.PAYMENT_ENCRYPTION_KEY || 'hassad-platform-secret-key-32chars';
+  private readonly ENCRYPTION_KEY: string;
   private readonly IV_LENGTH = 16;
 
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
-  ) {}
+  ) {
+    const key = process.env.PAYMENT_ENCRYPTION_KEY;
+    if (!key) {
+      throw new Error(
+        'PAYMENT_ENCRYPTION_KEY environment variable is required. ' +
+        'Generate a random 32-character key: openssl rand -base64 32',
+      );
+    }
+    this.ENCRYPTION_KEY = key;
+  }
+
+  onModuleInit() {
+    if (this.ENCRYPTION_KEY.length < 32) {
+      console.warn(
+        'PAYMENT_ENCRYPTION_KEY is shorter than 32 characters. ' +
+        'Consider using a longer key for AES-256-CBC.',
+      );
+    }
+  }
 
   private encrypt(text: string): string {
     const iv = crypto.randomBytes(this.IV_LENGTH);
@@ -73,11 +92,66 @@ export class PaymentsService {
     }
   }
 
+  async createElementPayment(dto: {
+    invoiceId: string;
+    amount: number;
+    currency?: string;
+  }) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: dto.invoiceId },
+    });
+
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    const provider = await this.getProvider('stripe');
+    const gateway = await this.prisma.paymentGateway.findUnique({ where: { name: 'stripe' } });
+
+    if (!provider.createElementPaymentIntent) {
+      throw new BadRequestException('Gateway does not support element payment');
+    }
+
+    const intent = await provider.createElementPaymentIntent({
+      invoiceId: invoice.id,
+      amount: dto.amount,
+      currency: dto.currency || 'SAR',
+      clientId: invoice.clientId,
+    });
+
+    const payment = await this.prisma.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        clientId: invoice.clientId,
+        gatewayId: gateway!.id,
+        amount: dto.amount,
+        currency: dto.currency || 'SAR',
+        status: intent.status,
+        method: PaymentMethod.CARD,
+        providerPaymentId: intent.providerPaymentId,
+        metadataJson: intent.metadata as any,
+      },
+    });
+
+    await this.prisma.paymentEvent.create({
+      data: {
+        paymentId: payment.id,
+        type: PaymentEventType.CREATED,
+        payloadJson: intent as any,
+      },
+    });
+
+    return {
+      ...payment,
+      clientSecret: intent.clientSecret,
+    };
+  }
+
   async createPayment(dto: {
     invoiceId: string;
     gatewayName: string;
     amount: number;
     currency?: string;
+    successUrl?: string;
+    cancelUrl?: string;
   }) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: dto.invoiceId },
@@ -93,6 +167,8 @@ export class PaymentsService {
       amount: dto.amount,
       currency: dto.currency || 'SAR',
       clientId: invoice.clientId,
+      successUrl: dto.successUrl,
+      cancelUrl: dto.cancelUrl,
     });
 
     const payment = await this.prisma.payment.create({
@@ -123,19 +199,28 @@ export class PaymentsService {
     };
   }
 
-  async processWebhook(provider: string, payload: any, signature: string) {
+  async processWebhook(provider: string, rawBody: any, signature: string) {
     const providerInstance = await this.getProvider(provider);
-    
+
+    let parsedBody: any = rawBody;
+    if (Buffer.isBuffer(rawBody)) {
+      try {
+        parsedBody = JSON.parse(rawBody.toString('utf-8'));
+      } catch {
+        parsedBody = { type: 'unknown' };
+      }
+    }
+
     const log = await this.prisma.webhookLog.create({
       data: {
         provider,
-        eventType: payload.type || 'unknown',
-        payload: payload as any,
+        eventType: parsedBody.type || 'unknown',
+        payload: parsedBody,
       },
     });
 
     try {
-      const event = await providerInstance.verifyWebhook(payload, signature);
+      const event = await providerInstance.verifyWebhook(rawBody, signature);
       const result = await providerInstance.handleWebhookEvent(event);
 
       if (result) {
@@ -202,6 +287,29 @@ export class PaymentsService {
             title: 'تم دفع الفاتورة',
             body: `تم دفع الفاتورة ${payment.invoice.invoiceNumber} بالكامل`,
           });
+
+          if (payment.invoice.contractId) {
+            const contract = await tx.contract.findUnique({
+              where: { id: payment.invoice.contractId },
+              select: { id: true, status: true, title: true },
+            });
+
+            if (contract && contract.status === ContractStatus.SIGNED) {
+              await tx.contract.update({
+                where: { id: contract.id },
+                data: { status: ContractStatus.ACTIVE },
+              });
+
+              await this.notifications.createNotification({
+                entityId: contract.id,
+                entityType: 'CONTRACT',
+                eventType: 'CONTRACT_ACTIVATED',
+                userId: payment.invoice.createdBy,
+                title: 'تم تفعيل العقد تلقائياً',
+                body: `تم تفعيل العقد "${contract.title}" بعد دفع الفاتورة`,
+              });
+            }
+          }
         } else if (totalPaid > 0) {
           await tx.invoice.update({
             where: { id: payment.invoiceId },
@@ -223,6 +331,13 @@ export class PaymentsService {
       case PaymentStatus.REFUNDED: return PaymentEventType.REFUNDED;
       default: return PaymentEventType.CREATED;
     }
+  }
+
+  async attachReceipt(paymentId: string, receiptPath: string) {
+    return this.prisma.payment.update({
+      where: { id: paymentId },
+      data: { receiptImage: receiptPath },
+    });
   }
 
   async getGateways() {
@@ -255,7 +370,42 @@ export class PaymentsService {
   }
 
   async getBankAccounts() {
-    return this.prisma.bankAccount.findMany();
+    return this.prisma.bankAccount.findMany({
+      where: { isActive: true },
+    });
+  }
+
+  async getPublicConfig() {
+    const gateway = await this.prisma.paymentGateway.findUnique({
+      where: { name: 'stripe' },
+    });
+
+    if (!gateway || !gateway.isActive) {
+      return { publishableKey: null, isActive: false };
+    }
+
+    let config: any = gateway.configJson;
+    if (typeof config === 'string') {
+      try {
+        config = JSON.parse(this.decrypt(config));
+      } catch {
+        config = {};
+      }
+    }
+
+    return {
+      publishableKey: config.publishableKey ?? null,
+      isActive: gateway.isActive,
+    };
+  }
+
+  async getPublicGateways() {
+    const gateways = await this.prisma.paymentGateway.findMany({
+      where: { isActive: true },
+      select: { name: true },
+    });
+
+    return gateways.map((g) => g.name);
   }
 
   async createBankAccount(dto: any) {
@@ -267,6 +417,9 @@ export class PaymentsService {
   }
 
   async deleteBankAccount(id: string) {
-    return this.prisma.bankAccount.delete({ where: { id } });
+    return this.prisma.bankAccount.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 }

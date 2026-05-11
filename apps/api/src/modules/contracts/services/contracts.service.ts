@@ -21,6 +21,7 @@ import {
   TaskStatus,
 } from "@hassad/shared";
 import { RequestsService } from "../../requests/requests.service";
+import { AutoConversationService } from "../../chat/services/auto-conversation.service";
 
 @Injectable()
 export class ContractsService {
@@ -28,6 +29,7 @@ export class ContractsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private requestsService: RequestsService,
+    private autoConversationService: AutoConversationService,
   ) {}
 
   private async createProjectFromSignedContract(contractId: string) {
@@ -253,6 +255,10 @@ export class ContractsService {
         .catch(() => undefined);
     }
 
+    this.autoConversationService
+      .ensurePmConversation(contract.clientId, projectManagerId)
+      .catch(() => undefined);
+
     return project;
   }
 
@@ -262,6 +268,35 @@ export class ContractsService {
    */
   async create(userId: string, filePath: string, dto: CreateContractDto) {
     const shareLinkToken = randomUUID();
+
+    let servicesList: any = undefined;
+    let startDate = dto.startDate ? new Date(dto.startDate) : new Date();
+    let endDate = dto.endDate ? new Date(dto.endDate) : new Date();
+    let monthlyValue = dto.monthlyValue ?? 0;
+    let totalValue = dto.totalValue ?? 0;
+
+    if (dto.proposalId) {
+      const proposal = await this.prisma.proposal.findUnique({
+        where: { id: dto.proposalId },
+        select: {
+          servicesList: true,
+          totalPrice: true,
+          startDate: true,
+          durationDays: true,
+          title: true,
+        },
+      });
+      if (proposal) {
+        if (proposal.servicesList) {
+          servicesList = proposal.servicesList;
+        }
+        if (!dto.totalValue) totalValue = proposal.totalPrice;
+        if (proposal.durationDays) {
+          endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + proposal.durationDays);
+        }
+      }
+    }
 
     const created = await this.prisma.$transaction(async (tx) => {
       const request = await this.requestsService.resolveRequestContext(
@@ -282,12 +317,13 @@ export class ContractsService {
           title: dto.title,
           type: dto.type,
           status: ContractStatus.SENT,
-          startDate: new Date(dto.startDate),
-          endDate: new Date(dto.endDate),
-          monthlyValue: dto.monthlyValue,
-          totalValue: dto.totalValue,
+          startDate,
+          endDate,
+          monthlyValue,
+          totalValue,
           filePath,
           shareLinkToken,
+          servicesList,
         },
       });
 
@@ -317,92 +353,7 @@ export class ContractsService {
         .catch(() => undefined);
     }
 
-    // Auto-generate invoice from proposal services if linked
-    if (dto.proposalId && created.contract.clientId) {
-      this.generateInvoiceFromProposal(
-        created.contract.id,
-        created.contract.clientId,
-        dto.proposalId,
-        userId,
-      ).catch((err) => {
-        console.error("Failed to auto-generate invoice from proposal:", err);
-      });
-    }
-
     return { ...created.contract, shareLinkToken };
-  }
-
-  /**
-   * Auto-generate an Invoice + InvoiceItems from a proposal's servicesList
-   * when a contract is created from an approved proposal.
-   */
-  private async generateInvoiceFromProposal(
-    contractId: string,
-    clientId: string,
-    proposalId: string,
-    userId: string,
-  ) {
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id: proposalId },
-      select: {
-        servicesList: true,
-        totalPrice: true,
-        startDate: true,
-        durationDays: true,
-        title: true,
-      },
-    });
-
-    if (!proposal) return null;
-
-    const servicesList = Array.isArray(proposal.servicesList)
-      ? (proposal.servicesList as { name: string; price: number }[])
-      : [];
-
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
-    const invoiceNumber = `INV-${dateStr}-${randomUUID().slice(0, 6).toUpperCase()}`;
-
-    const dueDate = new Date(now);
-    dueDate.setDate(dueDate.getDate() + (proposal.durationDays || 30));
-
-    const invoice = await this.prisma.invoice.create({
-      data: {
-        clientId,
-        contractId,
-        createdBy: userId,
-        invoiceNumber,
-        amount: proposal.totalPrice,
-        currency: "SAR",
-        status: "PENDING",
-        paymentMethod: "BANK_TRANSFER",
-        issueDate: now,
-        dueDate,
-        notes: `فاتورة تلقائية من العرض: ${proposal.title}`,
-        items: {
-          create: servicesList.map((service) => ({
-            description: service.name,
-            quantity: 1,
-            unitPrice: service.price,
-            total: service.price,
-          })),
-        },
-      },
-      include: { items: true },
-    });
-
-    await this.notificationsService
-      .createNotification({
-        entityId: invoice.id,
-        entityType: "invoice",
-        eventType: "CONTRACT_SENT",
-        userId,
-        title: "تم إنشاء فاتورة تلقائية",
-        body: `تم إنشاء فاتورة تلقائية رقم ${invoiceNumber} من العرض الفني "${proposal.title}"`,
-      })
-      .catch(() => undefined);
-
-    return invoice;
   }
 
   async findOne(id: string) {
@@ -411,6 +362,10 @@ export class ContractsService {
       include: {
         client: true,
         versions: true,
+        proposal: true,
+        invoices: {
+          include: { items: true, payments: true },
+        },
         request: {
           include: {
             lead: { select: { id: true, pipelineStage: true } },
@@ -437,6 +392,10 @@ export class ContractsService {
             companyName: true,
             contactName: true,
           },
+        },
+        proposal: true,
+        invoices: {
+          include: { items: true, payments: true },
         },
         request: {
           select: {

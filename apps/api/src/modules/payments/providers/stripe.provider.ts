@@ -2,12 +2,15 @@ import { Stripe } from 'stripe';
 import { PaymentProvider, PaymentIntentResponse } from './payment-provider.interface';
 import { PaymentStatus } from '@hassad/shared';
 
+const STRIPE_API_VERSION = '2025-03-31.basil';
+
 export class StripeProvider implements PaymentProvider {
   private stripe: Stripe;
 
   constructor(private config: { secretKey: string; webhookSecret: string }) {
     this.stripe = new Stripe(config.secretKey, {
-      apiVersion: '2024-12-18.acacia' as any,
+      apiVersion: STRIPE_API_VERSION as any,
+      maxNetworkRetries: 3,
     });
   }
 
@@ -16,8 +19,13 @@ export class StripeProvider implements PaymentProvider {
     amount: number;
     currency: string;
     clientId: string;
+    successUrl?: string;
+    cancelUrl?: string;
     metadata?: any;
   }): Promise<PaymentIntentResponse> {
+    const successUrl = params.successUrl ?? `${process.env.WEB_URL}/portal/finance?success=true`;
+    const cancelUrl = params.cancelUrl ?? `${process.env.WEB_URL}/portal/finance?canceled=true`;
+
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -25,7 +33,7 @@ export class StripeProvider implements PaymentProvider {
           price_data: {
             currency: params.currency.toLowerCase(),
             product_data: {
-              name: `Invoice ${params.invoiceId}`,
+              name: `فاتورة ${params.invoiceId}`,
             },
             unit_amount: Math.round(params.amount * 100),
           },
@@ -33,8 +41,8 @@ export class StripeProvider implements PaymentProvider {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.WEB_URL}/portal/finance?success=true`,
-      cancel_url: `${process.env.WEB_URL}/portal/finance?canceled=true`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         invoiceId: params.invoiceId,
         clientId: params.clientId,
@@ -44,7 +52,32 @@ export class StripeProvider implements PaymentProvider {
 
     return {
       providerPaymentId: session.id,
-      clientSecret: session.url || '', // We use URL for redirect
+      clientSecret: session.url ?? '',
+      status: PaymentStatus.PENDING,
+    };
+  }
+
+  async createElementPaymentIntent(params: {
+    invoiceId: string;
+    amount: number;
+    currency: string;
+    clientId: string;
+    metadata?: any;
+  }): Promise<PaymentIntentResponse> {
+    const paymentIntent = await this.stripe.paymentIntents.create({
+      amount: Math.round(params.amount * 100),
+      currency: params.currency.toLowerCase(),
+      metadata: {
+        invoiceId: params.invoiceId,
+        clientId: params.clientId,
+        ...params.metadata,
+      },
+      payment_method_types: ['card'],
+    });
+
+    return {
+      providerPaymentId: paymentIntent.id,
+      clientSecret: paymentIntent.client_secret ?? '',
       status: PaymentStatus.PENDING,
     };
   }

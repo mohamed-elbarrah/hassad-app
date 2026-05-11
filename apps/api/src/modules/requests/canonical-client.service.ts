@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { BusinessType, ClientStatus, UserRole } from "@hassad/shared";
 import { PrismaService } from "../../prisma/prisma.service";
+import { AutoConversationService } from "../chat/services/auto-conversation.service";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
 
@@ -22,7 +23,10 @@ interface UpsertCanonicalClientParams {
 
 @Injectable()
 export class CanonicalClientService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly autoConversationService: AutoConversationService,
+  ) {}
 
   private normalizeEmail(email?: string | null) {
     const normalized = email?.trim().toLowerCase();
@@ -280,6 +284,12 @@ export class CanonicalClientService {
         throw new ConflictException("Unable to resolve canonical client");
       }
 
+      if (client.accountManager && client.userId) {
+        this.autoConversationService
+          .ensureSalesConversation(client.id, client.accountManager, db)
+          .catch(() => undefined);
+      }
+
       return { client, created: false };
     }
 
@@ -297,6 +307,12 @@ export class CanonicalClientService {
         status: params.status ?? ClientStatus.LEAD,
       },
     });
+
+    if (accountManagerId && client.userId) {
+      this.autoConversationService
+        .ensureSalesConversation(client.id, accountManagerId, db)
+        .catch(() => undefined);
+    }
 
     return { client, created: true };
   }

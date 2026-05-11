@@ -107,6 +107,11 @@ enum RenewalAlertType {
   SEVEN_DAYS
 }
 
+enum ConversationType {
+  SALES
+  PM
+}
+
 enum ProjectStatus {
   PLANNING
   ACTIVE
@@ -545,6 +550,7 @@ model Client {
   satRatings   SatisfactionRating[]
   campaigns    Campaign[]
   snoozedItems ClientSnoozedItem[]
+  conversations Conversation[]
 
 
   @@map("clients")
@@ -764,6 +770,7 @@ model Contract {
   monthlyValue Float          @map("monthly_value")
   totalValue   Float          @map("total_value")
   currency     String         @default("SAR") @map("currency")
+  servicesList   Json?          @map("services_list")
   filePath        String?        @map("file_path")
   shareLinkToken  String?        @unique @map("share_link_token")
   versionNumber   Int            @default(1) @map("version_number")
@@ -1207,6 +1214,7 @@ model Payment {
   status             PaymentStatus
   method             PaymentMethod
   providerPaymentId  String?          @map("provider_payment_id")
+  receiptImage       String?          @map("receipt_image")
   metadataJson       Json?            @map("metadata_json")
   notes              String?
   date               DateTime         @default(now())
@@ -1403,13 +1411,20 @@ model StaffWorkload {
 // ⚫ COMMUNICATION (CHAT)
 
 model Conversation {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now()) @map("created_at")
+  id        String           @id @default(uuid())
+  type      ConversationType
+  clientId  String           @map("client_id")
+  title     String
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at")
 
+  client       Client                    @relation(fields: [clientId], references: [id], onDelete: Restrict)
   participants ConversationParticipant[]
   messages     Message[]
 
   @@map("conversations")
+  @@index([clientId])
+  @@index([type, clientId])
 }
 
 model ConversationParticipant {

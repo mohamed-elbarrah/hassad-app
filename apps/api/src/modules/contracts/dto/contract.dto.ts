@@ -23,20 +23,24 @@ export class CreateContractDto {
   @IsEnum(ContractType)
   type: ContractType;
 
+  @IsOptional()
   @IsDateString()
-  startDate: string;
+  startDate?: string;
 
+  @IsOptional()
   @IsDateString()
-  endDate: string;
+  endDate?: string;
 
   /** Sent as multipart text; @Transform converts to number */
+  @IsOptional()
   @Transform(({ value }) => parseFloat(value))
   @IsNumber()
-  monthlyValue: number;
+  monthlyValue?: number;
 
+  @IsOptional()
   @Transform(({ value }) => parseFloat(value))
   @IsNumber()
-  totalValue: number;
+  totalValue?: number;
 }
 
 export class UpdateContractDto {
