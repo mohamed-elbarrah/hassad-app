@@ -21,6 +21,7 @@ import {
   TaskStatus,
 } from "@hassad/shared";
 import { RequestsService } from "../../requests/requests.service";
+import { AutoConversationService } from "../../chat/services/auto-conversation.service";
 
 @Injectable()
 export class ContractsService {
@@ -28,6 +29,7 @@ export class ContractsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private requestsService: RequestsService,
+    private autoConversationService: AutoConversationService,
   ) {}
 
   private async createProjectFromSignedContract(contractId: string) {
@@ -252,6 +254,10 @@ export class ContractsService {
         })
         .catch(() => undefined);
     }
+
+    this.autoConversationService
+      .ensurePmConversation(contract.clientId, projectManagerId)
+      .catch(() => undefined);
 
     return project;
   }

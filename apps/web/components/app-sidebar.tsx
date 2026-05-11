@@ -20,6 +20,7 @@ import {
   TrendingUp,
   PlusCircle,
   ChevronRight,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -120,6 +121,12 @@ const navSections: NavSection[] = [
         icon: ClipboardList,
         roles: ["ADMIN", "PM"],
       },
+      {
+        title: "المحادثات",
+        url: "/dashboard/messages",
+        icon: MessageSquare,
+        roles: ["ADMIN", "PM"],
+      },
     ],
   },
   {
@@ -147,6 +154,12 @@ const navSections: NavSection[] = [
         title: "العقود",
         url: "/dashboard/sales/contracts",
         icon: FileSignature,
+        roles: ["ADMIN", "SALES"],
+      },
+      {
+        title: "المحادثات",
+        url: "/dashboard/messages",
+        icon: MessageSquare,
         roles: ["ADMIN", "SALES"],
       },
     ],

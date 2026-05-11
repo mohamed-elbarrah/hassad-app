@@ -107,6 +107,11 @@ enum RenewalAlertType {
   SEVEN_DAYS
 }
 
+enum ConversationType {
+  SALES
+  PM
+}
+
 enum ProjectStatus {
   PLANNING
   ACTIVE
@@ -545,6 +550,7 @@ model Client {
   satRatings   SatisfactionRating[]
   campaigns    Campaign[]
   snoozedItems ClientSnoozedItem[]
+  conversations Conversation[]
 
 
   @@map("clients")
@@ -1405,13 +1411,20 @@ model StaffWorkload {
 // ⚫ COMMUNICATION (CHAT)
 
 model Conversation {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now()) @map("created_at")
+  id        String           @id @default(uuid())
+  type      ConversationType
+  clientId  String           @map("client_id")
+  title     String
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at")
 
+  client       Client                    @relation(fields: [clientId], references: [id], onDelete: Restrict)
   participants ConversationParticipant[]
   messages     Message[]
 
   @@map("conversations")
+  @@index([clientId])
+  @@index([type, clientId])
 }
 
 model ConversationParticipant {

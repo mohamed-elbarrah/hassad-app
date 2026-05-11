@@ -15,6 +15,7 @@ import {
   FolderOpen,
   Bell,
   ClipboardList,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { label: "الرئيسية", href: "/portal", icon: Home },
   { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
   { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
+  { label: "المحادثات", href: "/portal/chat", icon: MessageSquare },
   { label: "الإشعارات", href: "/portal/notifications", icon: Bell },
   { label: "إجراءاتي", href: "/portal/actions", icon: CheckCircle2 },
   { label: "إنشاء طلب جديد", href: "/portal/new-order", icon: PlusCircle },
