@@ -7,6 +7,7 @@ import {
   Param,
   Query,
   UseGuards,
+  NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
 import { PortalService } from "../services/portal.service";
@@ -98,6 +99,19 @@ export class PortalController {
       sortOrder: sortOrder === "asc" ? "asc" : "desc",
       page: Number(page) || 1,
       limit: Number(limit) || 20,
+    });
+  }
+
+  @Get("portal/contracts/:id")
+  @RequirePermissions("portal.read")
+  async getContractById(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+  ) {
+    return this.portalService.getContractById({
+      contractId: id,
+      clientId: await this.resolveClientId(user),
+      role: user.role,
     });
   }
 

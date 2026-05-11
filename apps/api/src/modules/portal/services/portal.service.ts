@@ -757,6 +757,41 @@ export class PortalService {
     };
   }
 
+  async getContractById(params: {
+    contractId: string;
+    clientId: string | null;
+    role: string;
+  }) {
+    const { contractId, clientId, role } = params;
+
+    const where: any = { id: contractId };
+    if (role === "CLIENT" && clientId) {
+      where.clientId = clientId;
+    }
+
+    const contract = await this.prisma.contract.findFirst({
+      where,
+      include: {
+        client: {
+          select: { id: true, companyName: true, contactName: true },
+        },
+        proposal: true,
+        invoices: {
+          include: { items: true, payments: true },
+        },
+        request: {
+          select: { id: true, status: true },
+        },
+      },
+    });
+
+    if (!contract) {
+      throw new NotFoundException('العقد غير موجود');
+    }
+
+    return contract;
+  }
+
   async getContracts(
     clientId: string,
     query: { 

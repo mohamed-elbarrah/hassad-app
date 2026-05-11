@@ -12,9 +12,9 @@ import {
   PenLine,
 } from "lucide-react";
 import {
-  useGetContractByTokenQuery,
   useSignContractByTokenMutation,
 } from "@/features/contracts/contractsApi";
+import { useGetPortalContractByIdQuery } from "@/features/portal/portalApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +25,7 @@ import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSumma
 import { toast } from "sonner";
 
 interface PageProps {
-  params: Promise<{ token: string }>;
+  params: Promise<{ id: string }>;
 }
 
 function buildFileUrl(filePath: string): string {
@@ -63,7 +63,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function PortalContractDetailPage({ params }: PageProps) {
-  const { token } = use(params);
+  const { id } = use(params);
   return (
     <Suspense fallback={
       <div className="flex flex-col gap-4" dir="rtl">
@@ -71,14 +71,14 @@ export default function PortalContractDetailPage({ params }: PageProps) {
         <Skeleton className="h-80 w-full" />
       </div>
     }>
-      <PortalContractDetailInner token={token} />
+      <PortalContractDetailInner id={id} />
     </Suspense>
   );
 }
 
-function PortalContractDetailInner({ token }: { token: string }) {
+function PortalContractDetailInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
-  const { data, isLoading, isError } = useGetContractByTokenQuery(token);
+  const { data, isLoading, isError } = useGetPortalContractByIdQuery(id);
   const [signContract, { isLoading: signing }] =
     useSignContractByTokenMutation();
 
@@ -115,14 +115,14 @@ function PortalContractDetailInner({ token }: { token: string }) {
         </Link>
         <Card>
           <CardContent className="pt-6 text-center text-destructive text-sm">
-            العقد غير متوفر أو انتهت صلاحية الرابط.
+            العقد غير متوفر.
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const canSign = data.status === "SENT";
+  const canSign = data.status === "SENT" && !!data.shareLinkToken;
   const invoices = data.invoices ?? [];
 
   const allInvoicesPaid =
@@ -138,7 +138,7 @@ function PortalContractDetailInner({ token }: { token: string }) {
     }
     try {
       await signContract({
-        token,
+        token: data.shareLinkToken,
         body: {
           signedByName: signedByName.trim(),
           signedByEmail: signedByEmail.trim() || undefined,
