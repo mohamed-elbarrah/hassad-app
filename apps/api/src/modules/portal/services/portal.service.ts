@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
@@ -1783,7 +1783,7 @@ export class PortalService {
     }
 
     if (project.status !== ProjectStatus.AWAITING_REVIEW) {
-      throw new Error("Project is not awaiting review");
+      throw new BadRequestException("المشروع ليس بحالة انتظار المراجعة");
     }
 
     const updated = await this.prisma.project.update({
@@ -1821,7 +1821,7 @@ export class PortalService {
     }
 
     if (project.status !== ProjectStatus.AWAITING_REVIEW) {
-      throw new Error("Project is not awaiting review");
+      throw new BadRequestException("المشروع ليس بحالة انتظار المراجعة");
     }
 
     const [updated] = await this.prisma.$transaction([

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useAppSelector } from "@/lib/hooks";
 import {
   useGetReviewProjectsQuery,
@@ -49,6 +50,7 @@ export default function PortalDeliverablesPage() {
     data: reviewProjects,
     isLoading,
     isError,
+    refetch: refetchReviewProjects,
   } = useGetReviewProjectsQuery(undefined, { skip: !clientId });
 
   const { data: projectProgress } = useGetProjectProgressQuery(undefined, {
@@ -75,8 +77,10 @@ export default function PortalDeliverablesPage() {
     try {
       await approveProject(projectId).unwrap();
       setSelectedProjectId(null);
-    } catch {
-      // error handled by RTK Query
+      refetchReviewProjects();
+      toast.success("تمت الموافقة على المشروع بنجاح");
+    } catch (err: any) {
+      toast.error(err?.data?.message || "حدث خطأ أثناء الموافقة على المشروع");
     }
   }
 
@@ -87,8 +91,10 @@ export default function PortalDeliverablesPage() {
       setRevisionComment("");
       setShowRevisionForm(false);
       setSelectedProjectId(null);
-    } catch {
-      // error handled by RTK Query
+      refetchReviewProjects();
+      toast.success("تم إرسال طلب التعديل بنجاح");
+    } catch (err: any) {
+      toast.error(err?.data?.message || "حدث خطأ أثناء إرسال طلب التعديل");
     }
   }
 
