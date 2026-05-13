@@ -28,12 +28,23 @@ export interface ProjectFilters {
   projectManagerId?: string;
 }
 
+export interface ProjectFile {
+  id: string;
+  projectId: string;
+  uploadedBy: string;
+  fileName: string;
+  filePath: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
 // ── API slice ─────────────────────────────────────────────────────────────────
 
 export const projectsApi = createApi({
   reducerPath: "projectsApi",
   baseQuery,
-  tagTypes: ["Project"],
+  tagTypes: ["Project", "ProjectFile"],
   endpoints: (builder) => ({
     /** GET /v1/projects — paginated + filtered list */
     getProjects: builder.query<PaginatedProjects, ProjectFilters>({
@@ -102,6 +113,47 @@ export const projectsApi = createApi({
         { type: "Project", id: "LIST" },
       ],
     }),
+
+    /** GET /v1/projects/:id/files — list project files */
+    getProjectFiles: builder.query<ProjectFile[], string>({
+      query: (projectId) => `/projects/${projectId}/files`,
+      providesTags: (_result, _error, projectId) => [
+        { type: "ProjectFile", id: projectId },
+      ],
+    }),
+
+    /** POST /v1/projects/:id/files — upload a project file */
+    uploadProjectFile: builder.mutation<
+      ProjectFile,
+      { projectId: string; file: File }
+    >({
+      query: ({ projectId, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: `/projects/${projectId}/files`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: "ProjectFile", id: projectId },
+      ],
+    }),
+
+    /** DELETE /v1/projects/:id/files/:fileId — delete a project file */
+    deleteProjectFile: builder.mutation<
+      void,
+      { projectId: string; fileId: string }
+    >({
+      query: ({ projectId, fileId }) => ({
+        url: `/projects/${projectId}/files/${fileId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: "ProjectFile", id: projectId },
+      ],
+    }),
   }),
 });
 
@@ -112,4 +164,7 @@ export const {
   useUpdateProjectMutation,
   useUpdateProjectStatusMutation,
   useDeleteProjectMutation,
+  useGetProjectFilesQuery,
+  useUploadProjectFileMutation,
+  useDeleteProjectFileMutation,
 } = projectsApi;

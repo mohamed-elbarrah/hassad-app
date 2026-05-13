@@ -2,6 +2,8 @@ export enum ProjectStatus {
   PLANNING = 'PLANNING',
   ACTIVE = 'ACTIVE',
   ON_HOLD = 'ON_HOLD',
+  AWAITING_REVIEW = 'AWAITING_REVIEW',
+  NEEDS_REVISION = 'NEEDS_REVISION',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
@@ -10,6 +12,8 @@ export const PROJECT_STATUS_AR: Record<ProjectStatus, string> = {
   PLANNING: 'تخطيط',
   ACTIVE: 'نشط',
   ON_HOLD: 'معلق',
+  AWAITING_REVIEW: 'بانتظار المراجعة',
+  NEEDS_REVISION: 'مطلوب تعديلات',
   COMPLETED: 'مكتمل',
   CANCELLED: 'ملغى',
 };

@@ -1,8 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, User, TrendingUp } from "lucide-react";
+import { ArrowRight, Calendar, User, TrendingUp, Eye, AlertTriangle, Upload, FileText, Trash2, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
-import { useGetProjectByIdQuery } from "@/features/projects/projectsApi";
+import { useGetProjectByIdQuery, useGetProjectFilesQuery, useUploadProjectFileMutation, useDeleteProjectFileMutation } from "@/features/projects/projectsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus } from "@hassad/shared";
 import { formatDate } from "@/lib/format";
@@ -27,6 +27,8 @@ const STATUS_CONFIG: Record<
   [ProjectStatus.PLANNING]: { label: "تخطيط", variant: "secondary" },
   [ProjectStatus.ACTIVE]: { label: "نشط", variant: "default" },
   [ProjectStatus.ON_HOLD]: { label: "موقوف", variant: "outline" },
+  [ProjectStatus.AWAITING_REVIEW]: { label: "بانتظار المراجعة", variant: "outline" },
+  [ProjectStatus.NEEDS_REVISION]: { label: "مطلوب تعديلات", variant: "destructive" },
   [ProjectStatus.COMPLETED]: { label: "مكتمل", variant: "secondary" },
   [ProjectStatus.CANCELLED]: { label: "ملغى", variant: "destructive" },
 };
@@ -41,6 +43,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { id } = use(params);
   const { user } = useAppSelector((state) => state.auth);
   const { data: project, isLoading, isError } = useGetProjectByIdQuery(id);
+  const { data: files } = useGetProjectFilesQuery(id);
+  const [uploadFile, { isLoading: isUploading }] = useUploadProjectFileMutation();
+  const [deleteFile] = useDeleteProjectFileMutation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
 
@@ -110,6 +116,22 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         <p className="text-muted-foreground text-sm max-w-2xl">
           {project.description}
         </p>
+      )}
+
+      {/* Status banners */}
+      {project.status === ProjectStatus.AWAITING_REVIEW && (
+        <div className="flex items-center gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+          <Eye className="size-5 shrink-0" />
+          <span>هذا المشروع بانتظار مراجعة العميل والموافقة.</span>
+        </div>
+      )}
+      {project.status === ProjectStatus.NEEDS_REVISION && (
+        <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3">
+          <div className="flex items-center gap-3 text-sm text-destructive">
+            <AlertTriangle className="size-5 shrink-0" />
+            <span>طلب العميل تعديلات على هذا المشروع.</span>
+          </div>
+        </div>
       )}
 
       {/* Meta cards */}
@@ -202,14 +224,6 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">الملفات</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            ملفات المشروع وتسليمات الفريق قيد الإضافة.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
             <CardTitle className="text-base">المحادثة</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
@@ -225,6 +239,86 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Project Files */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">ملفات المشروع</CardTitle>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    await uploadFile({ projectId: id, file }).unwrap();
+                  } catch {}
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isUploading}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="size-4 mr-1" />
+                {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!files || files.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              لا توجد ملفات مرفقة بعد. ارفع ملفات يراها العميل عند مراجعة المشروع.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {files.map((file) => (
+                <div
+                  key={file.id}
+                  className="flex items-center justify-between rounded-lg border px-3 py-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm truncate">{file.fileName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {(file.fileSize / 1024).toFixed(0)} KB
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_API_URL || ""}${file.filePath}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="ghost" size="sm">
+                        <Download className="size-4" />
+                      </Button>
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={async () => {
+                        try {
+                          await deleteFile({ projectId: id, fileId: file.id }).unwrap();
+                        } catch {}
+                      }}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

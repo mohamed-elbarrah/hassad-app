@@ -12,7 +12,7 @@ import {
   UploadTaskFileDto,
   CreateTaskCommentDto,
 } from "../dto/task.dto";
-import { TaskDepartment, TaskStatus, UserRole } from "@hassad/shared";
+import { TaskDepartment, TaskStatus, UserRole, ProjectStatus } from "@hassad/shared";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FilePurpose, Prisma } from "@prisma/client";
 import { createReadStream, existsSync, ReadStream } from "fs";
@@ -76,9 +76,42 @@ export class TasksService {
             ) / tasks.length,
           );
 
+    const updateData: Record<string, unknown> = { completionPercentage };
+
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      select: { status: true, name: true, clientId: true, projectManagerId: true },
+    });
+
+    if (
+      completionPercentage === 100 &&
+      project &&
+      (project.status === ProjectStatus.ACTIVE ||
+        project.status === ProjectStatus.NEEDS_REVISION)
+    ) {
+      updateData.status = ProjectStatus.AWAITING_REVIEW;
+
+      const client = await db.client.findUnique({
+        where: { id: project.clientId },
+        select: { userId: true },
+      });
+      if (client?.userId) {
+        this.notificationsService
+          .createNotification({
+            entityId: projectId,
+            entityType: "project",
+            eventType: "PROJECT_AWAITING_REVIEW",
+            userId: client.userId,
+            title: "مشروعك جاهز للمراجعة والموافقة",
+            body: `المشروع "${project.name}" اكتمل وتم تقديمه لمراجعتك.`,
+          })
+          .catch(() => undefined);
+      }
+    }
+
     await db.project.update({
       where: { id: projectId },
-      data: { completionPercentage },
+      data: updateData,
     });
   }
 

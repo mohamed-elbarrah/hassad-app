@@ -1,7 +1,7 @@
-import { CheckCircle2, Clock, Hourglass, RotateCcw, PauseCircle, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Hourglass, RotateCcw, PauseCircle, XCircle, Eye, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type StatusType = "completed" | "in-progress" | "not-started" | "pending" | "revision" | "active" | "on-hold" | "planning" | "cancelled";
+export type StatusType = "completed" | "in-progress" | "not-started" | "pending" | "revision" | "active" | "on-hold" | "planning" | "cancelled" | "awaiting-review" | "needs-revision";
 
 const STATUS_CONFIG: Record<
   StatusType,
@@ -60,6 +60,18 @@ const STATUS_CONFIG: Record<
     bg: "bg-danger-100/10",
     text: "text-danger-500",
     icon: XCircle,
+  },
+  "awaiting-review": {
+    label: "بانتظار المراجعة",
+    bg: "bg-badge-orange-bg",
+    text: "text-badge-orange-text",
+    icon: Eye,
+  },
+  "needs-revision": {
+    label: "مطلوب تعديلات",
+    bg: "bg-danger-100/10",
+    text: "text-danger-500",
+    icon: AlertTriangle,
   },
 };
 

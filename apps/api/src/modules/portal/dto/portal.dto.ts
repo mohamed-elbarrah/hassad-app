@@ -102,3 +102,8 @@ export class CreateIntakeFormDto {
   @IsArray()
   uploadedFiles?: any[];
 }
+
+export class RequestProjectRevisionDto {
+  @IsString()
+  comment: string;
+}

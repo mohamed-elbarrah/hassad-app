@@ -10,11 +10,6 @@ import { BottomNav } from "@/components/portal/BottomNav";
 import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
-// ─── localStorage key helper ──────────────────────────────────────────────────
-function intakeStorageKey(userId: string) {
-  return `intake_done_${userId}`;
-}
-
 // ─── Layout ───────────────────────────────────────────────────────────────────
 export default function PortalLayout({
   children,
@@ -50,18 +45,14 @@ export default function PortalLayout({
     if (!mounted || !isInitialized || !isAuthenticated) return;
     if (user?.role !== UserRole.CLIENT || !user?.id) return;
 
-    const alreadyDone = localStorage.getItem(intakeStorageKey(user.id));
-    if (!alreadyDone) {
+    if (!user.intakeCompleted) {
       setShowIntakeForm(true);
     }
   }, [mounted, isInitialized, isAuthenticated, user]);
 
   const handleIntakeSuccess = useCallback(() => {
-    if (user?.id) {
-      localStorage.setItem(intakeStorageKey(user.id), "true");
-    }
     setShowIntakeForm(false);
-  }, [user]);
+  }, []);
 
   if (!mounted || !isInitialized) {
     return (

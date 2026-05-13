@@ -25,21 +25,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateRequestMutation } from "@/features/requests/requestsApi";
+import { useGetServicesQuery } from "@/features/services/servicesApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
-
-// ─── Services List ─────────────────────────────────────────────────────────────
-const SERVICES = [
-  { id: "social_media", label: "إدارة وسائل التواصل الاجتماعي" },
-  { id: "content", label: "إنشاء المحتوى" },
-  { id: "paid_ads", label: "الإعلانات المدفوعة (Meta / Google)" },
-  { id: "seo", label: "تحسين محركات البحث (SEO)" },
-  { id: "web_dev", label: "تطوير المواقع الإلكترونية" },
-  { id: "design", label: "التصميم الجرافيكي" },
-  { id: "branding", label: "إدارة العلامة التجارية" },
-  { id: "email_marketing", label: "التسويق بالبريد الإلكتروني" },
-] as const;
 
 // ─── Business Type Labels ──────────────────────────────────────────────────────
 const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
@@ -81,7 +70,6 @@ type IntakeFormValues = z.infer<typeof intakeSchema>;
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface IntakeFormProps {
   onSuccess: () => void;
-  /** Optional label override for the submit button */
   submitLabel?: string;
 }
 
@@ -92,6 +80,8 @@ export function IntakeForm({
 }: IntakeFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [createRequest, { isLoading }] = useCreateRequestMutation();
+  const { data: services = [], isLoading: servicesLoading } =
+    useGetServicesQuery(undefined);
 
   const form = useForm<IntakeFormValues>({
     resolver: zodResolver(intakeSchema),
@@ -106,7 +96,6 @@ export function IntakeForm({
     mode: "onChange",
   });
 
-  // Validate only step 1 fields before advancing
   async function handleNext() {
     const valid = await form.trigger([
       "contactName",
@@ -118,9 +107,13 @@ export function IntakeForm({
 
   async function onSubmit(values: IntakeFormValues) {
     try {
+      const selectedServices = services.filter((s) =>
+        values.services.includes(s.id),
+      );
+
       const notes = JSON.stringify({
         description: values.description || "",
-        services: values.services,
+        services: selectedServices.map((s) => s.nameAr),
       });
 
       await createRequest({
@@ -142,8 +135,11 @@ export function IntakeForm({
       );
       onSuccess();
     } catch (err: unknown) {
-      const error = err as { data?: { message?: string } };
-      toast.error(error?.data?.message || "حدث خطأ. يرجى المحاولة مرة أخرى.");
+      const error = err as { data?: { message?: string | string[] } };
+      const msg = error?.data?.message;
+      toast.error(
+        Array.isArray(msg) ? msg.join("; ") : msg || "حدث خطأ. يرجى المحاولة مرة أخرى.",
+      );
     }
   }
 
@@ -313,40 +309,46 @@ export function IntakeForm({
                   <FormLabel>
                     الخدمات المطلوبة <span className="text-destructive">*</span>
                   </FormLabel>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                    {SERVICES.map((service) => (
-                      <FormField
-                        key={service.id}
-                        control={form.control}
-                        name="services"
-                        render={({ field }) => (
-                          <FormItem
-                            key={service.id}
-                            className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-muted/40 transition-colors cursor-pointer"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(service.id)}
-                                onCheckedChange={(checked) => {
-                                  const current = field.value ?? [];
-                                  if (checked) {
-                                    field.onChange([...current, service.id]);
-                                  } else {
-                                    field.onChange(
-                                      current.filter((v) => v !== service.id),
-                                    );
-                                  }
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
-                              {service.label}
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
+                  {servicesLoading ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                      {services.map((service) => (
+                        <FormField
+                          key={service.id}
+                          control={form.control}
+                          name="services"
+                          render={({ field }) => (
+                            <FormItem
+                              key={service.id}
+                              className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-muted/40 transition-colors cursor-pointer"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(service.id)}
+                                  onCheckedChange={(checked) => {
+                                    const current = field.value ?? [];
+                                    if (checked) {
+                                      field.onChange([...current, service.id]);
+                                    } else {
+                                      field.onChange(
+                                        current.filter((v) => v !== service.id),
+                                      );
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
+                                {service.nameAr}
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -375,6 +377,7 @@ export function IntakeForm({
             <Button
               type="button"
               onClick={handleNext}
+              disabled={servicesLoading}
               className="gap-2 mr-auto"
             >
               التالي

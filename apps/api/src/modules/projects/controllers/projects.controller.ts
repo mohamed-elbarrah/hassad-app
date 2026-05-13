@@ -8,7 +8,12 @@ import {
   Delete,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  Res,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { ProjectsService } from '../services/projects.service';
 import { TasksService } from '../../tasks/services/tasks.service';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
@@ -29,6 +34,12 @@ export class ProjectsController {
   @RequirePermissions('projects.create')
   create(@Body() createProjectDto: CreateProjectDto) {
     return this.projectsService.create(createProjectDto);
+  }
+
+  @Get()
+  @RequirePermissions('projects.read')
+  findAll(@Query() filters: any) {
+    return this.projectsService.findAll(filters);
   }
 
   @Get(':id')
@@ -65,12 +76,6 @@ export class ProjectsController {
     return this.projectsService.removeMember(id, userId);
   }
 
-  @Get()
-  @RequirePermissions('projects.read')
-  findAll(@Query() filters: any) {
-    return this.projectsService.findAll(filters);
-  }
-
   @Patch(':id/status')
   @RequirePermissions('projects.update')
   updateStatus(@Param('id') id: string, @Body() body: { status: string }) {
@@ -81,5 +86,31 @@ export class ProjectsController {
   @RequirePermissions('tasks.read')
   getTasksByProject(@Param('id') projectId: string) {
     return this.tasksService.findByProject(projectId);
+  }
+
+  @Post(':id/files')
+  @RequirePermissions('projects.update')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadFile(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.projectsService.uploadFile(id, user.id, file);
+  }
+
+  @Get(':id/files')
+  @RequirePermissions('projects.read')
+  getFiles(@Param('id') id: string) {
+    return this.projectsService.getFiles(id);
+  }
+
+  @Delete(':id/files/:fileId')
+  @RequirePermissions('projects.update')
+  deleteFile(
+    @Param('id') id: string,
+    @Param('fileId') fileId: string,
+  ) {
+    return this.projectsService.deleteFile(id, fileId);
   }
 }

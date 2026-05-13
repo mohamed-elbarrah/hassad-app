@@ -25,6 +25,8 @@ const STATUS_FILTERS: { label: string; value: string }[] = [
   { label: "نشط", value: ProjectStatus.ACTIVE },
   { label: "تخطيط", value: ProjectStatus.PLANNING },
   { label: "معلق", value: ProjectStatus.ON_HOLD },
+  { label: "بانتظار المراجعة", value: ProjectStatus.AWAITING_REVIEW },
+  { label: "مطلوب تعديلات", value: ProjectStatus.NEEDS_REVISION },
   { label: "مكتمل", value: ProjectStatus.COMPLETED },
   { label: "ملغى", value: ProjectStatus.CANCELLED },
 ];

@@ -79,14 +79,16 @@ export class AuthService {
     });
 
     let clientId: string | undefined;
+    let intakeCompleted = false;
     if (user.role.name === UserRole.CLIENT) {
       const client = await this.prisma.client.findFirst({
         where: {
           OR: [{ userId: user.id }, { email: user.email }],
         },
-        select: { id: true },
+        select: { id: true, intakeCompleted: true },
       });
       clientId = client?.id ?? undefined;
+      intakeCompleted = client?.intakeCompleted ?? false;
     }
 
     return {
@@ -96,6 +98,7 @@ export class AuthService {
         email: user.email,
         role: user.role.name,
         department: null,
+        intakeCompleted,
         ...(clientId !== undefined && { clientId }),
       },
       accessToken,
@@ -141,14 +144,16 @@ export class AuthService {
     if (!user) throw new UnauthorizedException();
 
     let clientId: string | undefined;
+    let intakeCompleted = false;
     if (user.role.name === UserRole.CLIENT) {
       const client = await this.prisma.client.findFirst({
         where: {
           OR: [{ userId: user.id }, { email: user.email }],
         },
-        select: { id: true },
+        select: { id: true, intakeCompleted: true },
       });
       clientId = client?.id ?? undefined;
+      intakeCompleted = client?.intakeCompleted ?? false;
     }
 
     return {
@@ -161,6 +166,7 @@ export class AuthService {
       updatedAt: user.updatedAt,
       role: user.role.name,
       departments: user.departments.map((ud) => ud.department.name),
+      intakeCompleted,
       ...(clientId !== undefined && { clientId }),
     };
   }

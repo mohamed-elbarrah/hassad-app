@@ -7,7 +7,9 @@ import {
   IsString,
   IsUUID,
   Min,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 import { BusinessType, ClientSource, RequestStatus } from "@hassad/shared";
 
 export class RequestServiceItemDto {
@@ -53,6 +55,8 @@ export class CreateRequestDto {
 
   @IsOptional()
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RequestServiceItemDto)
   services?: RequestServiceItemDto[];
 }
 

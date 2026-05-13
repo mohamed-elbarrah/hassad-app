@@ -241,6 +241,55 @@ export interface ReportTimeline {
   datasets: ReportTimelineDataset[];
 }
 
+export interface ReviewProject {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  statusAr: string;
+  priority: string;
+  startDate: string;
+  endDate: string;
+  completionPercentage: number;
+  createdAt: string;
+  updatedAt: string;
+  manager: { id: string; name: string; isOnline: boolean } | null;
+  taskCount: number;
+  deliverableCount: number;
+}
+
+export interface ProjectReviewRevision {
+  id: string;
+  comment: string;
+  createdAt: string;
+  client: { id: string; companyName: string };
+}
+
+export interface ProjectReviewDetail {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  priority: string;
+  startDate: string;
+  endDate: string;
+  completionPercentage: number;
+  clientId: string;
+  projectManagerId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  manager: { id: string; name: string; isOnline: boolean } | null;
+  files: {
+    id: string;
+    fileName: string;
+    filePath: string;
+    fileType: string;
+    fileSize: number;
+    uploadedAt: string;
+  }[];
+  revisionRequests: ProjectReviewRevision[];
+}
+
 export const portalApi = createApi({
   reducerPath: "portalApi",
   baseQuery,
@@ -257,6 +306,7 @@ export const portalApi = createApi({
     "PortalInvoices",
     "PortalContracts",
     "PortalReports",
+    "ReviewProjects",
   ],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
@@ -375,6 +425,40 @@ export const portalApi = createApi({
           : { url: "/portal/reports/timeline" },
       providesTags: ["PortalReports"],
     }),
+
+    getReviewProjects: builder.query<ReviewProject[], void>({
+      query: () => "/portal/projects/review",
+      providesTags: ["ReviewProjects"],
+    }),
+
+    getProjectReviewDetail: builder.query<ProjectReviewDetail, string>({
+      query: (id) => `/portal/projects/${id}/review-detail`,
+      providesTags: (_result, _error, id) => [{ type: "ReviewProjects", id }],
+    }),
+
+    approveProject: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `/portal/projects/${id}/approve`,
+        method: "POST",
+      }),
+      invalidatesTags: ["ReviewProjects", "ProjectProgress", "PortalProjects"],
+    }),
+
+    requestProjectRevision: builder.mutation<
+      any,
+      { id: string; comment: string }
+    >({
+      query: ({ id, comment }) => ({
+        url: `/portal/projects/${id}/request-revision`,
+        method: "POST",
+        body: { comment },
+      }),
+      invalidatesTags: ["ReviewProjects", "ProjectProgress", "PortalProjects"],
+    }),
+
+    getProjectRevisions: builder.query<ProjectReviewRevision[], string>({
+      query: (id) => `/portal/projects/${id}/revisions`,
+    }),
   }),
 });
 
@@ -396,4 +480,9 @@ export const {
   useUnsnoozeActionItemMutation,
   useGetPortalReportsQuery,
   useGetReportTimelineQuery,
+  useGetReviewProjectsQuery,
+  useGetProjectReviewDetailQuery,
+  useApproveProjectMutation,
+  useRequestProjectRevisionMutation,
+  useGetProjectRevisionsQuery,
 } = portalApi;

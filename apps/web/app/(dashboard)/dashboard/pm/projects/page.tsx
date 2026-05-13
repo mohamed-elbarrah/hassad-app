@@ -24,6 +24,8 @@ const STATUS_LABELS: Record<ProjectStatus, string> = {
   [ProjectStatus.PLANNING]: "تخطيط",
   [ProjectStatus.ACTIVE]: "نشط",
   [ProjectStatus.ON_HOLD]: "موقوف",
+  [ProjectStatus.AWAITING_REVIEW]: "بانتظار المراجعة",
+  [ProjectStatus.NEEDS_REVISION]: "مطلوب تعديلات",
   [ProjectStatus.COMPLETED]: "مكتمل",
   [ProjectStatus.CANCELLED]: "ملغى",
 };

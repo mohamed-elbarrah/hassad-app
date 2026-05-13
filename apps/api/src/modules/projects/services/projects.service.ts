@@ -62,9 +62,12 @@ export class ProjectsService {
   }
 
   async update(id: string, dto: UpdateProjectDto) {
+    const data: Record<string, unknown> = { ...dto };
+    if (dto.startDate) data.startDate = new Date(dto.startDate);
+    if (dto.endDate) data.endDate = new Date(dto.endDate);
     return this.prisma.project.update({
       where: { id },
-      data: dto,
+      data,
     });
   }
 
@@ -234,5 +237,44 @@ export class ProjectsService {
     }
 
     return updated;
+  }
+
+  async uploadFile(
+    projectId: string,
+    userId: string,
+    file: Express.Multer.File,
+  ) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    return this.prisma.projectFile.create({
+      data: {
+        projectId,
+        uploadedBy: userId,
+        fileName: file.originalname,
+        filePath: `/uploads/projects/${file.filename}`,
+        fileType: file.mimetype,
+        fileSize: file.size,
+      },
+    });
+  }
+
+  async getFiles(projectId: string) {
+    return this.prisma.projectFile.findMany({
+      where: { projectId },
+      orderBy: { uploadedAt: 'desc' },
+    });
+  }
+
+  async deleteFile(projectId: string, fileId: string) {
+    const file = await this.prisma.projectFile.findFirst({
+      where: { id: fileId, projectId },
+    });
+    if (!file) throw new NotFoundException('File not found');
+
+    await this.prisma.projectFile.delete({ where: { id: fileId } });
+    return { success: true };
   }
 }

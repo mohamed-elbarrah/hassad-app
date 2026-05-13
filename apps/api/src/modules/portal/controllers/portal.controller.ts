@@ -16,6 +16,7 @@ import {
   CreateRevisionDto,
   CreateIntakeFormDto,
   ReportTimelineQueryDto,
+  RequestProjectRevisionDto,
 } from "../dto/portal.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -428,5 +429,58 @@ export class PortalController {
     const clientId = await this.resolveClientId(user);
     if (!clientId) return null;
     return this.portalService.findCampaignOne(id, clientId);
+  }
+
+  // ── Project Review (Client Approval) ──────────────────────────────────────
+
+  @Get("portal/projects/review")
+  @RequirePermissions("portal.read")
+  async getReviewProjects(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return [];
+    return this.portalService.getReviewProjects(clientId);
+  }
+
+  @Get("portal/projects/:id/review-detail")
+  @RequirePermissions("portal.read")
+  async getProjectReviewDetail(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.getProjectReviewDetail(id, clientId);
+  }
+
+  @Post("portal/projects/:id/approve")
+  @RequirePermissions("portal.approve_deliverables")
+  async approveProject(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.approveProject(id, clientId);
+  }
+
+  @Post("portal/projects/:id/request-revision")
+  @RequirePermissions("portal.request_revisions")
+  async requestProjectRevision(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: RequestProjectRevisionDto,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.requestProjectRevision(id, clientId, dto);
+  }
+
+  @Get("portal/projects/:id/revisions")
+  @RequirePermissions("portal.read")
+  async getProjectRevisions(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.portalService.getProjectRevisions(id);
   }
 }
