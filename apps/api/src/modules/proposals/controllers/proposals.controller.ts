@@ -12,34 +12,26 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { randomBytes } from 'crypto';
 import { ProposalsService } from '../services/proposals.service';
 import { CreateProposalDto, UpdateProposalDto, ProposalResponseDto } from '../dto/proposal.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-
-// ─── Multer storage config ────────────────────────────────────────────────────
-const proposalStorage = diskStorage({
-  destination: join(process.cwd(), 'uploads', 'proposals'),
-  filename: (_req, file, cb) => {
-    const unique = randomBytes(16).toString('hex');
-    const ext = extname(file.originalname);
-    cb(null, `${unique}${ext}`);
-  },
-});
+import { StorageService } from '../../../common/storage/storage.service';
+import { StorageCategory } from '../../../common/storage/storage.constants';
 
 @Controller('proposals')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ProposalsController {
-  constructor(private readonly proposalsService: ProposalsService) {}
+  constructor(
+    private readonly proposalsService: ProposalsService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Post()
   @RequirePermissions('proposals.create')
-  @UseInterceptors(FileInterceptor('file', { storage: proposalStorage }))
+  @UseInterceptors(FileInterceptor('file'))
   async create(
     @CurrentUser() user: any,
     @Body() createProposalDto: CreateProposalDto,
@@ -48,8 +40,17 @@ export class ProposalsController {
     if (!file) {
       throw new BadRequestException('PDF file is required');
     }
-    const filePath = `/uploads/proposals/${file.filename}`;
-    return this.proposalsService.create(user.id, { ...createProposalDto, filePath });
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.PROPOSAL,
+      entityId: 'pending',
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    return this.proposalsService.create(user.id, { ...createProposalDto, filePath: uploadResult.key });
   }
 
   @Get()

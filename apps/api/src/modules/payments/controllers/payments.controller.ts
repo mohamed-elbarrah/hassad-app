@@ -1,24 +1,19 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
 import { PaymentsService } from '../services/payments.service';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-
-const receiptStorage = diskStorage({
-  destination: join(process.cwd(), 'uploads', 'receipts'),
-  filename: (_req, file, cb) => {
-    const name = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    cb(null, `${name}${extname(file.originalname)}`);
-  },
-});
+import { StorageService } from '../../../common/storage/storage.service';
+import { StorageCategory } from '../../../common/storage/storage.constants';
 
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Post('create-intent')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -54,7 +49,7 @@ export class PaymentsController {
   @Post('upload-receipt')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('invoices.pay_public')
-  @UseInterceptors(FileInterceptor('receipt', { storage: receiptStorage }))
+  @UseInterceptors(FileInterceptor('receipt'))
   async uploadReceipt(
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
@@ -62,8 +57,18 @@ export class PaymentsController {
   ) {
     if (!file) throw new BadRequestException('Receipt image is required');
     if (!paymentId) throw new BadRequestException('paymentId is required');
-    const path = `/uploads/receipts/${file.filename}`;
-    return this.paymentsService.attachReceipt(paymentId, path);
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.RECEIPT,
+      entityId: paymentId,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+      subPath: 'receipts',
+    });
+    return this.paymentsService.attachReceipt(paymentId, uploadResult.key);
   }
 
   @Get('gateways')

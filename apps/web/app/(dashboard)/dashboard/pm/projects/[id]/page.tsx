@@ -3,6 +3,7 @@
 import { use, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, Calendar, User, TrendingUp, Eye, AlertTriangle, Upload, FileText, Trash2, Download } from "lucide-react";
+import { buildPortalFileUrl } from "@/lib/portal-files";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -292,7 +293,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <a
-                      href={`${process.env.NEXT_PUBLIC_API_URL || ""}${file.filePath}`}
+                      href={file.url || buildPortalFileUrl(file.filePath)}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

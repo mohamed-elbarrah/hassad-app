@@ -37,6 +37,7 @@ export interface ProjectFile {
   fileType: string;
   fileSize: number;
   uploadedAt: string;
+  url?: string;
 }
 
 // ── API slice ─────────────────────────────────────────────────────────────────

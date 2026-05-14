@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/lib/hooks";
+import { buildPortalFileUrl } from "@/lib/portal-files";
 import {
   useGetReviewProjectsQuery,
   useGetProjectReviewDetailQuery,
@@ -334,7 +335,7 @@ export default function PortalDeliverablesPage() {
                         </span>
                       </div>
                       <a
-                        href={`${process.env.NEXT_PUBLIC_API_URL || ""}${file.filePath}`}
+                        href={file.url || buildPortalFileUrl(file.filePath)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="shrink-0"

@@ -30,6 +30,17 @@ export interface Message {
   content: string;
   createdAt: string;
   sender: ConversationUser;
+  attachments?: MessageAttachment[];
+}
+
+export interface MessageAttachment {
+  id: string;
+  messageId: string;
+  filePath: string;
+  fileName: string;
+  fileType: string;
+  uploadedAt: string;
+  url?: string;
 }
 
 export interface Conversation {
@@ -157,6 +168,29 @@ export const chatApi = createApi({
         { type: "Conversation", id: "LIST" },
       ],
     }),
+
+    sendMessageWithFiles: builder.mutation<
+      Message,
+      { conversationId: string; content: string; files: File[] }
+    >({
+      query: ({ conversationId, content, files }) => {
+        const formData = new FormData();
+        formData.append("conversationId", conversationId);
+        formData.append("content", content);
+        files.forEach((file) => {
+          formData.append("files", file);
+        });
+        return {
+          url: "/messages/with-files",
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: (_, __, { conversationId }) => [
+        { type: "Message", id: conversationId },
+        { type: "Conversation", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -167,4 +201,5 @@ export const {
   useCreateConversationMutation,
   useGetMessagesQuery,
   useSendMessageMutation,
+  useSendMessageWithFilesMutation,
 } = chatApi;

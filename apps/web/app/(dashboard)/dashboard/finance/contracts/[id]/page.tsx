@@ -27,15 +27,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { buildPortalFileUrl } from "@/lib/portal-files";
+
 interface PageProps {
   params: Promise<{ id: string }>;
-}
-
-function buildFileUrl(filePath: string): string {
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_URL?.replace("/v1", "") ??
-    "http://localhost:3001";
-  return filePath.startsWith("http") ? filePath : `${apiBase}${filePath}`;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -85,7 +80,7 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
   const collectionRate =
     totalValue > 0 ? (totalPaid / totalValue) * 100 : 0;
   const invoiceCount = data.invoices?.length ?? 0;
-  const fileUrl = data.filePath ? buildFileUrl(data.filePath) : null;
+  const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500" dir="rtl">

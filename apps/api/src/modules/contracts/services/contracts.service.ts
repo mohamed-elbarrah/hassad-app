@@ -745,7 +745,7 @@ export class ContractsService {
     });
   }
 
-  async createVersion(id: string, userId: string, dto: CreateVersionDto) {
+  async createVersion(id: string, userId: string, storageKey: string, dto: CreateVersionDto) {
     const contract = await this.findOne(id);
 
     return this.prisma.$transaction(async (tx) => {
@@ -755,7 +755,7 @@ export class ContractsService {
         data: {
           contractId: id,
           versionNumber: newVersionNumber,
-          filePath: dto.filePath,
+          filePath: storageKey,
           createdBy: userId,
         },
       });
@@ -764,7 +764,7 @@ export class ContractsService {
         where: { id },
         data: {
           versionNumber: newVersionNumber,
-          filePath: dto.filePath,
+          filePath: storageKey,
         },
       });
     });

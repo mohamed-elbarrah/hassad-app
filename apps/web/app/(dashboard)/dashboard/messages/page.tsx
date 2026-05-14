@@ -7,6 +7,7 @@ import {
   useGetConversationsQuery,
   useGetMessagesQuery,
   useSendMessageMutation,
+  useSendMessageWithFilesMutation,
 } from "@/features/chat/chatApi";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { ConversationList } from "@/components/chat/ConversationList";
@@ -49,6 +50,7 @@ export default function MessagesPage() {
   );
 
   const [sendMessage] = useSendMessageMutation();
+  const [sendMessageWithFiles] = useSendMessageWithFilesMutation();
 
   const { isConnected, onNewMessage, emitTyping, emitStopTyping } =
     useChatSocket(selectedId ?? undefined);
@@ -88,15 +90,23 @@ export default function MessagesPage() {
   );
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async (content: string, files?: File[]) => {
       if (!selectedId) return;
       try {
-        await sendMessage({ conversationId: selectedId, content }).unwrap();
+        if (files && files.length > 0) {
+          await sendMessageWithFiles({
+            conversationId: selectedId,
+            content,
+            files,
+          }).unwrap();
+        } else {
+          await sendMessage({ conversationId: selectedId, content }).unwrap();
+        }
       } catch {
         // fallback: message will appear via socket
       }
     },
-    [selectedId, sendMessage],
+    [selectedId, sendMessage, sendMessageWithFiles],
   );
 
   const roleFilterHint = () => {

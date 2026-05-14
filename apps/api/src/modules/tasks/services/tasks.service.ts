@@ -15,8 +15,7 @@ import {
 import { TaskDepartment, TaskStatus, UserRole, ProjectStatus } from "@hassad/shared";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FilePurpose, Prisma } from "@prisma/client";
-import { createReadStream, existsSync, ReadStream } from "fs";
-import { join } from "path";
+import { StorageService } from "../../../common/storage/storage.service";
 
 const DEPARTMENT_ARABIC_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.DESIGN]: "التصميم",
@@ -33,6 +32,7 @@ export class TasksService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private storageService: StorageService,
   ) {}
 
   private getDepartmentArabicLabel(departmentName: string | null | undefined) {
@@ -655,13 +655,8 @@ export class TasksService {
   async addFile(
     id: string,
     userId: string,
-    file: Express.Multer.File,
-    dto: UploadTaskFileDto,
+    fileData: { key: string; originalName: string; mimeType: string; size: number; purpose?: string },
   ) {
-    if (!file) {
-      throw new BadRequestException("Task file is required");
-    }
-
     const task = await this.prisma.task.findUnique({
       where: { id },
       select: { id: true },
@@ -675,15 +670,15 @@ export class TasksService {
       data: {
         taskId: id,
         uploadedBy: userId,
-        filePath: `/uploads/tasks/${file.filename}`,
-        fileName: file.originalname,
-        fileType: file.mimetype,
-        fileSize: file.size,
-        purpose: (dto.purpose ?? FilePurpose.REFERENCE) as FilePurpose,
+        filePath: fileData.key,
+        fileName: fileData.originalName,
+        fileType: fileData.mimeType,
+        fileSize: fileData.size,
+        purpose: (fileData.purpose ?? FilePurpose.REFERENCE) as FilePurpose,
       },
     });
 
-    return this.mapTaskFile(createdFile);
+    return this.mapTaskFileWithUrl(createdFile);
   }
 
   async getFiles(id: string) {
@@ -692,42 +687,40 @@ export class TasksService {
       orderBy: { uploadedAt: "desc" },
     });
 
-    return files.map((file) => this.mapTaskFile(file));
+    const keys = files.map((file) => file.filePath);
+    const urlMap = await this.storageService.getMultiplePresignedUrls(keys);
+
+    return files.map((file) => ({
+      ...this.mapTaskFile(file),
+      url: urlMap.get(file.filePath) || null,
+    }));
   }
 
-  async downloadFile(
-    taskId: string,
-    fileId: string,
-  ): Promise<{
-    stream: ReadStream;
-    fileName: string;
-    mimeType: string;
-  }> {
+  async getDownloadUrl(taskId: string, fileId: string): Promise<string> {
     const file = await this.prisma.taskFile.findFirst({
       where: { id: fileId, taskId },
-      select: {
-        filePath: true,
-        fileName: true,
-        fileType: true,
-      },
+      select: { filePath: true },
     });
 
     if (!file) {
       throw new NotFoundException("Task file not found");
     }
 
-    const normalizedPath = file.filePath.replace(/^\//, "");
-    const absolutePath = join(process.cwd(), normalizedPath);
+    return this.storageService.getPresignedUrl(file.filePath);
+  }
 
-    if (!existsSync(absolutePath)) {
-      throw new NotFoundException("Task file is missing on disk");
+  async deleteFile(taskId: string, fileId: string) {
+    const file = await this.prisma.taskFile.findFirst({
+      where: { id: fileId, taskId },
+    });
+
+    if (file) {
+      await this.storageService.deleteByKey(file.filePath).catch(() => {});
     }
 
-    return {
-      stream: createReadStream(absolutePath),
-      fileName: file.fileName,
-      mimeType: file.fileType,
-    };
+    return this.prisma.taskFile.delete({
+      where: { id: fileId, taskId },
+    });
   }
 
   async addComment(id: string, userId: string, dto: CreateTaskCommentDto) {
@@ -922,10 +915,28 @@ export class TasksService {
     });
   }
 
-  async deleteFile(taskId: string, fileId: string) {
-    return this.prisma.taskFile.delete({
-      where: { id: fileId, taskId },
-    });
+  private mapTaskFileWithUrl(file: {
+    id: string;
+    taskId: string;
+    uploadedBy: string;
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    fileType: string;
+    purpose: string;
+    uploadedAt: Date;
+  }) {
+    return {
+      id: file.id,
+      taskId: file.taskId,
+      uploadedBy: file.uploadedBy,
+      fileName: file.fileName,
+      filePath: file.filePath,
+      fileSize: file.fileSize,
+      mimeType: file.fileType,
+      purpose: file.purpose,
+      createdAt: file.uploadedAt,
+    };
   }
 
   async toggleArchive(taskId: string): Promise<{ message: string; archived: boolean }> {

@@ -17,6 +17,7 @@ import {
   PROJECT_STATUS_AR,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
+import { StorageService } from "../../../common/storage/storage.service";
 
 const TASK_STATUS_AR_MAP: Record<string, string> = {
   TODO: "لم يبدأ",
@@ -31,6 +32,7 @@ export class PortalService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private storageService: StorageService,
   ) {}
 
   private getPendingRequestStageLabel(status: string) {
@@ -899,10 +901,14 @@ export class PortalService {
     return { data: items, total, page: query.page, limit: query.limit };
   }
 
-  async createDeliverable(userId: string, dto: CreateDeliverableDto) {
+  async createDeliverable(userId: string, dto: CreateDeliverableDto, filePath: string) {
     return this.prisma.deliverable.create({
       data: {
-        ...dto,
+        projectId: dto.projectId,
+        taskId: dto.taskId,
+        title: dto.title,
+        description: dto.description,
+        filePath,
         status: TaskStatus.TODO,
       },
     });
@@ -920,6 +926,11 @@ export class PortalService {
 
     if (!deliverable) {
       throw new NotFoundException(`Deliverable with ID ${id} not found`);
+    }
+
+    if (deliverable.filePath) {
+      const url = await this.storageService.getPresignedUrl(deliverable.filePath);
+      (deliverable as any).url = url;
     }
 
     return deliverable;
@@ -1013,11 +1024,26 @@ export class PortalService {
   }
 
   async findDeliverablesByProject(projectId: string) {
-    return this.prisma.deliverable.findMany({
+    const deliverables = await this.prisma.deliverable.findMany({
       where: { projectId },
       include: { revisionRequests: true },
       orderBy: { createdAt: "desc" },
     });
+
+    const fileKeys = deliverables
+      .filter((d) => d.filePath)
+      .map((d) => d.filePath);
+
+    if (fileKeys.length > 0) {
+      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      for (const d of deliverables) {
+        if (d.filePath) {
+          (d as any).url = urlMap.get(d.filePath) || null;
+        }
+      }
+    }
+
+    return deliverables;
   }
 
   async findDeliverablesByClient(clientId: string) {
@@ -1026,7 +1052,7 @@ export class PortalService {
       select: { id: true },
     });
     const projectIds = projects.map((p) => p.id);
-    return this.prisma.deliverable.findMany({
+    const deliverables = await this.prisma.deliverable.findMany({
       where: { projectId: { in: projectIds } },
       include: {
         project: { select: { id: true, name: true } },
@@ -1034,23 +1060,69 @@ export class PortalService {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    const fileKeys = deliverables
+      .filter((d) => d.filePath)
+      .map((d) => d.filePath);
+
+    if (fileKeys.length > 0) {
+      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      for (const d of deliverables) {
+        if (d.filePath) {
+          (d as any).url = urlMap.get(d.filePath) || null;
+        }
+      }
+    }
+
+    return deliverables;
   }
 
-  async createIntakeForm(clientId: string, dto: CreateIntakeFormDto) {
+  async createIntakeForm(
+    clientId: string,
+    dto: CreateIntakeFormDto,
+    uploadedFiles: { key: string; originalName: string; mimeType: string }[] = [],
+  ) {
     const token = randomBytes(32).toString("hex");
     return this.prisma.portalIntakeForm.create({
       data: {
         clientId,
         token,
-        ...dto,
+        businessDescription: dto.businessDescription,
+        goals: dto.goals,
+        uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
       },
     });
   }
 
   async getIntakeForm(clientId: string) {
-    return this.prisma.portalIntakeForm.findMany({
+    const forms = await this.prisma.portalIntakeForm.findMany({
       where: { clientId },
     });
+
+    const allFileKeys: string[] = [];
+    for (const form of forms) {
+      const files = form.uploadedFiles as { key: string; originalName: string; mimeType: string }[] | null;
+      if (Array.isArray(files)) {
+        for (const f of files) {
+          if (f.key) allFileKeys.push(f.key);
+        }
+      }
+    }
+
+    if (allFileKeys.length > 0) {
+      const urlMap = await this.storageService.getMultiplePresignedUrls(allFileKeys);
+      for (const form of forms) {
+        const files = form.uploadedFiles as { key: string; originalName: string; mimeType: string; url?: string }[] | null;
+        if (Array.isArray(files)) {
+          (form as any).uploadedFiles = files.map((f) => ({
+            ...f,
+            url: urlMap.get(f.key) || null,
+          }));
+        }
+      }
+    }
+
+    return forms;
   }
 
   async findCampaignsByClient(clientId: string) {
@@ -1768,6 +1840,15 @@ export class PortalService {
 
     if (!project || project.clientId !== clientId) {
       throw new NotFoundException("Project not found or access denied");
+    }
+
+    if (project.files && project.files.length > 0) {
+      const fileKeys = project.files.map((f) => f.filePath);
+      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      project.files = project.files.map((f) => ({
+        ...f,
+        url: urlMap.get(f.filePath) || null,
+      })) as any;
     }
 
     return project;

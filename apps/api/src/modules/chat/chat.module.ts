@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
+import { MulterModule } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 import { ChatController } from "./controllers/chat.controller";
 import { ChatService } from "./services/chat.service";
 import { AutoConversationService } from "./services/auto-conversation.service";
@@ -13,6 +15,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
       signOptions: { expiresIn: "1h" },
     }),
     NotificationsModule,
+    MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [ChatController],
   providers: [ChatService, AutoConversationService, ChatGateway],

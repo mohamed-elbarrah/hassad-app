@@ -6,7 +6,10 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ChatService } from '../services/chat.service';
 import {
   CreateConversationDto,
@@ -18,11 +21,16 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { StorageService } from '../../../common/storage/storage.service';
+import { StorageCategory } from '../../../common/storage/storage.constants';
 
 @Controller('')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Get('conversations')
   @RequirePermissions('chat.read')
@@ -64,6 +72,41 @@ export class ChatController {
   @RequirePermissions('chat.message')
   createMessage(@CurrentUser() user: any, @Body() dto: CreateMessageDto) {
     return this.chatService.createMessage(user.id, dto);
+  }
+
+  @Post('messages/with-files')
+  @RequirePermissions('chat.message')
+  @UseInterceptors(FilesInterceptor('files', 10))
+  async createMessageWithFiles(
+    @CurrentUser() user: any,
+    @Body() dto: CreateMessageDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const attachments = files && files.length > 0
+      ? await Promise.all(
+          files.map(async (file) => {
+            const uploadResult = await this.storageService.upload({
+              category: StorageCategory.CHAT_ATTACHMENT,
+              entityId: dto.conversationId,
+              file: {
+                buffer: file.buffer,
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                size: file.size,
+              },
+              subPath: `messages`,
+            });
+            return {
+              key: uploadResult.key,
+              originalName: file.originalname,
+              mimeType: file.mimetype,
+              size: file.size,
+            };
+          }),
+        )
+      : [];
+
+    return this.chatService.createMessageWithAttachments(user.id, dto, attachments);
   }
 
   @Get('conversations/:id/messages')

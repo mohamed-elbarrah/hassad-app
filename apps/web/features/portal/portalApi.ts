@@ -286,6 +286,7 @@ export interface ProjectReviewDetail {
     fileType: string;
     fileSize: number;
     uploadedAt: string;
+    url?: string;
   }[];
   revisionRequests: ProjectReviewRevision[];
 }

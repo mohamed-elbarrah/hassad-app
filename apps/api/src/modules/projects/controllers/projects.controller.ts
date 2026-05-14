@@ -10,10 +10,8 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
-  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
 import { ProjectsService } from '../services/projects.service';
 import { TasksService } from '../../tasks/services/tasks.service';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
@@ -21,6 +19,8 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { StorageService } from '../../../common/storage/storage.service';
+import { StorageCategory } from '../../../common/storage/storage.constants';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -28,6 +28,7 @@ export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
     private readonly tasksService: TasksService,
+    private readonly storageService: StorageService,
   ) {}
 
   @Post()
@@ -91,12 +92,30 @@ export class ProjectsController {
   @Post(':id/files')
   @RequirePermissions('projects.update')
   @UseInterceptors(FileInterceptor('file'))
-  uploadFile(
+  async uploadFile(
     @Param('id') id: string,
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.projectsService.uploadFile(id, user.id, file);
+    if (!file) {
+      throw new Error('File is required');
+    }
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.PROJECT_FILE,
+      entityId: id,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    return this.projectsService.uploadFile(id, user.id, {
+      key: uploadResult.key,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+    });
   }
 
   @Get(':id/files')

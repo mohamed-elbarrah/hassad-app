@@ -3,12 +3,14 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
 import { ContractStatus, TaskStatus, TaskPriority, UserRole } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
+import { StorageService } from '../../../common/storage/storage.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private storageService: StorageService,
   ) {}
 
   async create(dto: CreateProjectDto) {
@@ -242,7 +244,7 @@ export class ProjectsService {
   async uploadFile(
     projectId: string,
     userId: string,
-    file: Express.Multer.File,
+    fileData: { key: string; originalName: string; mimeType: string; size: number },
   ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -253,19 +255,28 @@ export class ProjectsService {
       data: {
         projectId,
         uploadedBy: userId,
-        fileName: file.originalname,
-        filePath: `/uploads/projects/${file.filename}`,
-        fileType: file.mimetype,
-        fileSize: file.size,
+        fileName: fileData.originalName,
+        filePath: fileData.key,
+        fileType: fileData.mimeType,
+        fileSize: fileData.size,
       },
     });
   }
 
   async getFiles(projectId: string) {
-    return this.prisma.projectFile.findMany({
+    const files = await this.prisma.projectFile.findMany({
       where: { projectId },
       orderBy: { uploadedAt: 'desc' },
     });
+
+    const urlMap = await this.storageService.getMultiplePresignedUrls(
+      files.map((f) => f.filePath),
+    );
+
+    return files.map((f) => ({
+      ...f,
+      url: urlMap.get(f.filePath) || null,
+    }));
   }
 
   async deleteFile(projectId: string, fileId: string) {
@@ -274,6 +285,7 @@ export class ProjectsService {
     });
     if (!file) throw new NotFoundException('File not found');
 
+    await this.storageService.deleteByKey(file.filePath);
     await this.prisma.projectFile.delete({ where: { id: fileId } });
     return { success: true };
   }

@@ -4,6 +4,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
+import { StorageModule } from "./common/storage/storage.module";
 
 // V2 Modules
 import { CoreModule } from "./modules/core/core.module";
@@ -29,6 +30,7 @@ import { ServicesModule } from "./modules/services/services.module";
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    StorageModule,
     EventEmitterModule.forRoot({
       wildcard: false,
       delimiter: ".",

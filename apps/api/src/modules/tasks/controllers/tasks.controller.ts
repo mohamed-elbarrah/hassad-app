@@ -10,10 +10,9 @@ import {
   Delete,
   UploadedFile,
   UseInterceptors,
-  Res,
+  Redirect,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
 import { TasksService } from '../services/tasks.service';
 import {
   CreateTaskDto,
@@ -27,11 +26,16 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { StorageService } from '../../../common/storage/storage.service';
+import { StorageCategory } from '../../../common/storage/storage.constants';
 
 @Controller('tasks')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Get('my')
   @RequirePermissions('tasks.read')
@@ -111,31 +115,43 @@ export class TasksController {
   @Post(':id/files')
   @RequirePermissions('tasks.update')
   @UseInterceptors(FileInterceptor('file'))
-  addFile(
+  async addFile(
     @Param('id') id: string,
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UploadTaskFileDto,
   ) {
-    return this.tasksService.addFile(id, user.id, file, dto);
+    if (!file) {
+      throw new Error('Task file is required');
+    }
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.TASK_FILE,
+      entityId: id,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    return this.tasksService.addFile(id, user.id, {
+      key: uploadResult.key,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      purpose: dto.purpose,
+    });
   }
 
   @Get(':id/files/:fileId/download')
   @RequirePermissions('tasks.read')
+  @Redirect()
   async downloadFile(
     @Param('id') taskId: string,
     @Param('fileId') fileId: string,
-    @Res() res: Response,
   ) {
-    const file = await this.tasksService.downloadFile(taskId, fileId);
-
-    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
-    );
-
-    file.stream.pipe(res);
+    const presignedUrl = await this.tasksService.getDownloadUrl(taskId, fileId);
+    return { url: presignedUrl, statusCode: 302 };
   }
 
   @Get(':id/files')

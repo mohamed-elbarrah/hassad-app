@@ -48,3 +48,6 @@ coverage/
 .cache/
 tmp/
 .planning/
+
+# Local file uploads (now stored in R2)
+apps/api/uploads/
