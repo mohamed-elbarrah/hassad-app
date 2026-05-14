@@ -743,7 +743,9 @@ export class PortalService {
   }) {
     const { contractId, clientId, role } = params;
 
-    const where: any = { id: contractId };
+    let where: any = {
+      OR: [{ id: contractId }, { shareLinkToken: contractId }],
+    };
     if (role === "CLIENT" && clientId) {
       where.clientId = clientId;
     }
