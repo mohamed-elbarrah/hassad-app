@@ -1,4 +1,7 @@
-import { PortalPill, type PortalPillTone } from "@/components/portal/PortalPill";
+import {
+  PortalPill,
+  type PortalPillTone,
+} from "@/components/portal/PortalPill";
 import { cn } from "@/lib/utils";
 
 interface PortalMetricCardProps {
@@ -23,14 +26,20 @@ export function PortalMetricCard({
         className,
       )}
     >
-      <p className="text-[18px] font-medium leading-8 text-portal-icon">{title}</p>
+      <p className="text-[18px] font-medium leading-8 text-portal-icon">
+        {title}
+      </p>
 
       <div className="mt-5 flex items-end justify-between gap-4">
         <p className="text-[48px] font-semibold leading-none text-natural-100 lg:text-[54px]">
           {value}
         </p>
 
-        {pillText ? <PortalPill tone={pillTone}>{pillText}</PortalPill> : <span />}
+        {pillText ? (
+          <PortalPill tone={pillTone}>{pillText}</PortalPill>
+        ) : (
+          <span />
+        )}
       </div>
     </div>
   );

@@ -44,9 +44,7 @@ export function PmCard({ name, role, status }: PmCardProps) {
         </Avatar>
       </div>
 
-      <Button
-        className="w-full h-[62px] bg-pm-button-bg hover:bg-pm-button-bg/80 rounded-[16px] text-[16px] font-semibold text-pm-button-text"
-      >
+      <Button className="w-full h-[62px] bg-pm-button-bg hover:bg-pm-button-bg/80 rounded-[16px] text-[16px] font-semibold text-pm-button-text">
         تواصل معه
       </Button>
     </div>

@@ -7,6 +7,7 @@ export enum StorageCategory {
   DELIVERABLE = 'deliverable',
   INTAKE_FORM = 'intake_form',
   CHAT_ATTACHMENT = 'chat_attachment',
+  CURRENCY_SVG = 'currency_svg',
 }
 
 export const STORAGE_CONFIG: Record<
@@ -144,6 +145,11 @@ export const STORAGE_CONFIG: Record<
       'video/quicktime',
       'video/webm',
     ],
+  },
+  [StorageCategory.CURRENCY_SVG]: {
+    keyPrefix: 'currency-svgs',
+    maxFileSize: 5 * 1024 * 1024,
+    allowedMimeTypes: ['image/svg+xml'],
   },
 };
 

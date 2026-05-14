@@ -88,7 +88,10 @@ export default function PortalDeliverablesPage() {
   async function handleRequestRevision(projectId: string) {
     if (!revisionComment.trim()) return;
     try {
-      await requestRevision({ id: projectId, comment: revisionComment }).unwrap();
+      await requestRevision({
+        id: projectId,
+        comment: revisionComment,
+      }).unwrap();
       setRevisionComment("");
       setShowRevisionForm(false);
       setSelectedProjectId(null);
@@ -152,10 +155,7 @@ export default function PortalDeliverablesPage() {
             />
           </div>
 
-          <PortalSurfaceCard
-            title="المشاريع بانتظار المراجعة"
-            icon={Eye}
-          >
+          <PortalSurfaceCard title="المشاريع بانتظار المراجعة" icon={Eye}>
             {isLoading && (
               <div className="grid gap-4 xl:grid-cols-2">
                 {Array.from({ length: 4 }).map((_, index) => (
@@ -163,12 +163,12 @@ export default function PortalDeliverablesPage() {
                     key={index}
                     className="space-y-3 rounded-[30px] border-[1.5px] border-portal-divider bg-portal-bg p-5"
                   >
-                    <Skeleton className="h-8 w-48 rounded-lg" />
-                    <Skeleton className="h-5 w-32 rounded-lg" />
-                    <Skeleton className="h-4 w-64 rounded-lg" />
+                    <Skeleton className="h-8 w-48 rounded-2xl" />
+                    <Skeleton className="h-5 w-32 rounded-2xl" />
+                    <Skeleton className="h-4 w-64 rounded-2xl" />
                     <div className="grid gap-2 sm:grid-cols-3">
                       {Array.from({ length: 3 }).map((__, i) => (
-                        <Skeleton key={i} className="h-10 rounded-xl" />
+                        <Skeleton key={i} className="h-10 rounded-2xl" />
                       ))}
                     </div>
                   </div>
@@ -177,7 +177,7 @@ export default function PortalDeliverablesPage() {
             )}
 
             {isError && (
-              <div className="rounded-3xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
+              <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
                 <p className="text-base font-medium text-danger-700">
                   حدث خطأ أثناء تحميل المشاريع.
                 </p>
@@ -187,80 +187,82 @@ export default function PortalDeliverablesPage() {
               </div>
             )}
 
-            {!isLoading && !isError && (!reviewProjects || reviewProjects.length === 0) && (
-              <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-3xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
-                  <CheckCircle2 className="h-8 w-8 text-secondary-500" />
+            {!isLoading &&
+              !isError &&
+              (!reviewProjects || reviewProjects.length === 0) && (
+                <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
+                    <CheckCircle2 className="h-8 w-8 text-secondary-500" />
+                  </div>
+                  <p className="text-lg font-medium text-natural-100">
+                    لا توجد مشاريع بانتظار المراجعة حالياً.
+                  </p>
+                  <p className="max-w-md text-sm leading-6 text-portal-note-text">
+                    ستظهر هنا المشاريع عندما يكتملها فريقك ويقدمها لمراجعتك.
+                  </p>
                 </div>
-                <p className="text-lg font-medium text-natural-100">
-                  لا توجد مشاريع بانتظار المراجعة حالياً.
-                </p>
-                <p className="max-w-md text-sm leading-6 text-portal-note-text">
-                  ستظهر هنا المشاريع عندما يكتملها فريقك ويقدمها لمراجعتك.
-                </p>
-              </div>
-            )}
+              )}
 
-            {!isLoading && !isError && reviewProjects && reviewProjects.length > 0 && (
-              <div className="grid gap-4 xl:grid-cols-2">
-                {reviewProjects.map((project) => (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedProjectId(project.id);
-                      setShowRevisionForm(false);
-                      setRevisionComment("");
-                    }}
-                    className="group space-y-3 rounded-[30px] border-[1.5px] border-portal-divider bg-portal-bg p-5 text-right transition-colors hover:border-action-blue/40 hover:bg-portal-bg/80"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-1">
-                        <h3 className="text-lg font-semibold text-natural-100 group-hover:text-action-blue">
-                          {project.name}
-                        </h3>
-                        {project.description && (
-                          <p className="text-sm text-portal-note-text line-clamp-2">
-                            {project.description}
-                          </p>
-                        )}
+            {!isLoading &&
+              !isError &&
+              reviewProjects &&
+              reviewProjects.length > 0 && (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {reviewProjects.map((project) => (
+                    <button
+                      key={project.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedProjectId(project.id);
+                        setShowRevisionForm(false);
+                        setRevisionComment("");
+                      }}
+                      className="group space-y-3 rounded-[30px] border-[1.5px] border-portal-divider bg-portal-bg p-5 text-right transition-colors hover:border-action-blue/40 hover:bg-portal-bg/80"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-1">
+                          <h3 className="text-lg font-semibold text-natural-100 group-hover:text-action-blue">
+                            {project.name}
+                          </h3>
+                          {project.description && (
+                            <p className="text-sm text-portal-note-text line-clamp-2">
+                              {project.description}
+                            </p>
+                          )}
+                        </div>
+                        <StatusBadge
+                          status={mapProjectStatusToUI(project.status)}
+                        />
                       </div>
-                      <StatusBadge
-                        status={mapProjectStatusToUI(project.status)}
-                      />
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-portal-note-text">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {formatPortalDate(project.startDate)} — {formatPortalDate(project.endDate)}
-                      </span>
-                      {project.manager && (
-                        <span>{project.manager.name}</span>
-                      )}
-                      <span>{project.completionPercentage}% مكتمل</span>
-                    </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-portal-note-text">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {formatPortalDate(project.startDate)} —{" "}
+                          {formatPortalDate(project.endDate)}
+                        </span>
+                        {project.manager && <span>{project.manager.name}</span>}
+                        <span>{project.completionPercentage}% مكتمل</span>
+                      </div>
 
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-gauge-track">
-                      <div
-                        className="h-full rounded-full bg-gauge-fill transition-all"
-                        style={{ width: `${project.completionPercentage}%` }}
-                      />
-                    </div>
+                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-gauge-track">
+                        <div
+                          className="h-full rounded-full bg-gauge-fill transition-all"
+                          style={{ width: `${project.completionPercentage}%` }}
+                        />
+                      </div>
 
-                    <div className="flex items-center gap-3 text-xs text-portal-note-text">
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5" />
-                        {project.taskCount} مهمة
-                      </span>
-                      <span>
-                        {project.deliverableCount} تسليم
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+                      <div className="flex items-center gap-3 text-xs text-portal-note-text">
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3.5 w-3.5" />
+                          {project.taskCount} مهمة
+                        </span>
+                        <span>{project.deliverableCount} تسليم</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
           </PortalSurfaceCard>
         </>
       )}
@@ -277,7 +279,7 @@ export default function PortalDeliverablesPage() {
           }}
         >
           <div
-            className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-3xl border-[1.5px] border-portal-divider bg-white p-6 shadow-xl"
+            className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[30px] border-[1.5px] border-portal-divider bg-natural-0 p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">
@@ -298,7 +300,8 @@ export default function PortalDeliverablesPage() {
 
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-portal-note-text">
               <span>
-                {formatPortalDate(selectedProject.startDate)} — {formatPortalDate(selectedProject.endDate)}
+                {formatPortalDate(selectedProject.startDate)} —{" "}
+                {formatPortalDate(selectedProject.endDate)}
               </span>
               {selectedProject.manager && (
                 <span>المدير: {selectedProject.manager.name}</span>
@@ -392,7 +395,7 @@ export default function PortalDeliverablesPage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-white text-base font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
+                    className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 text-base font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
                     onClick={() => setShowRevisionForm(true)}
                   >
                     <AlertTriangle className="ml-2 h-5 w-5" />
@@ -402,12 +405,12 @@ export default function PortalDeliverablesPage() {
               )}
 
               {showRevisionForm && (
-                <div className="rounded-3xl border-[1.5px] border-portal-divider bg-portal-bg p-4">
+                <div className="rounded-2xl border-[1.5px] border-portal-divider bg-portal-bg p-4">
                   <h4 className="mb-2 text-sm font-semibold text-natural-100">
                     ما التعديلات المطلوبة؟
                   </h4>
                   <Textarea
-                    className="min-h-28 rounded-3xl border-portal-card-border bg-natural-0 px-4 py-3 text-sm leading-7"
+                    className="min-h-28 rounded-2xl border-portal-card-border bg-natural-0 px-4 py-3 text-sm leading-7"
                     onChange={(e) => setRevisionComment(e.target.value)}
                     placeholder="اكتب تفاصيل التعديلات المطلوبة على المشروع..."
                     rows={4}
@@ -417,7 +420,7 @@ export default function PortalDeliverablesPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="h-11 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-4 text-sm font-medium text-portal-icon hover:bg-badge-gray-bg"
+                      className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
                       onClick={() => {
                         setShowRevisionForm(false);
                         setRevisionComment("");
@@ -427,11 +430,9 @@ export default function PortalDeliverablesPage() {
                     </Button>
                     <Button
                       type="button"
-                      className="h-11 rounded-2xl bg-action-blue px-4 text-sm font-medium hover:bg-action-blue-hover"
+                      className="h-9 rounded-xl bg-action-blue px-3 text-xs font-medium hover:bg-action-blue-hover"
                       disabled={isRequestingRevision || !revisionComment.trim()}
-                      onClick={() =>
-                        handleRequestRevision(selectedProject.id)
-                      }
+                      onClick={() => handleRequestRevision(selectedProject.id)}
                     >
                       {isRequestingRevision
                         ? "جارٍ الإرسال..."
@@ -444,7 +445,7 @@ export default function PortalDeliverablesPage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="h-11 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-4 text-sm font-medium text-portal-icon hover:bg-badge-gray-bg"
+                className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
                 onClick={() => {
                   setSelectedProjectId(null);
                   setShowRevisionForm(false);

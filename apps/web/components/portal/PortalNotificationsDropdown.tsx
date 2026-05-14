@@ -26,7 +26,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#7A13E8",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
         <polyline points="14 2 14 8 20 8" />
       </svg>
@@ -42,7 +51,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#2684FC",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
         <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
       </svg>
@@ -58,7 +76,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#2684FC",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <rect x="2" y="5" width="20" height="14" rx="2" />
         <line x1="2" y1="10" x2="22" y2="10" />
       </svg>
@@ -74,7 +101,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#7A13E8",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <polyline points="20 6 9 17 4 12" />
       </svg>
     </div>
@@ -89,7 +125,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#121936",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <rect x="3" y="3" width="18" height="18" rx="2" />
         <line x1="3" y1="9" x2="21" y2="9" />
         <line x1="9" y1="21" x2="9" y2="9" />
@@ -106,7 +151,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#0ED589",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
         <polyline points="17 6 23 6 23 12" />
       </svg>
@@ -122,7 +176,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#00AEFF",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
     </div>
@@ -137,7 +200,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#0ED589",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="16" />
         <line x1="8" y1="12" x2="16" y2="12" />
@@ -154,7 +226,16 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         color: "#121936",
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="16" x2="12" y2="12" />
         <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -178,9 +259,11 @@ function resolvePortalUrl(
   if (entityType === "deliverable") return `/portal/deliverables/${entityId}`;
   if (entityType === "project") return `/portal/projects`;
   if (entityType === "campaign") return `/portal/campaigns/${entityId}`;
-  if (entityType === "invoice" || entityType === "INVOICE") return `/portal/finance`;
+  if (entityType === "invoice" || entityType === "INVOICE")
+    return `/portal/finance`;
   if (entityType === "conversation") return `/portal/projects`;
-  if (entityType === "payment" || entityType === "PAYMENT") return `/portal/finance`;
+  if (entityType === "payment" || entityType === "PAYMENT")
+    return `/portal/finance`;
   return null;
 }
 
@@ -188,7 +271,8 @@ function getPrimaryActionLabel(entityType: string | null | undefined): string {
   if (entityType === "proposal") return "مراجعة العرض";
   if (entityType === "contract") return "مراجعة العقد";
   if (entityType === "deliverable") return "مراجعة التسليمة";
-  if (entityType === "invoice" || entityType === "INVOICE") return "دفع الفاتورة";
+  if (entityType === "invoice" || entityType === "INVOICE")
+    return "دفع الفاتورة";
   if (entityType === "project") return "متابعة المشروع";
   if (entityType === "campaign") return "عرض الحملة";
   return "عرض التفاصيل";
@@ -205,7 +289,9 @@ function NotificationListItem({
     <button
       className="w-full text-right px-4 py-3 hover:bg-gray-50 transition-colors border-b border-portal-divider last:border-0"
       style={{
-        backgroundColor: !notification.isRead ? "rgba(18, 25, 54, 0.03)" : undefined,
+        backgroundColor: !notification.isRead
+          ? "rgba(18, 25, 54, 0.03)"
+          : undefined,
       }}
       onClick={() => onSelect(notification)}
     >
@@ -282,7 +368,8 @@ export function PortalNotificationsDropdown() {
     }
   }
 
-  const notifications = (data as unknown as { data?: PortalNotificationItem[] })?.data ?? [];
+  const notifications =
+    (data as unknown as { data?: PortalNotificationItem[] })?.data ?? [];
   const hasUnread = notifications.some((n) => !n.isRead);
 
   return (
@@ -345,9 +432,14 @@ export function PortalNotificationsDropdown() {
               ))}
             </div>
           ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10" style={{ color: "#A8ABB2" }}>
+            <div
+              className="flex flex-col items-center justify-center py-10"
+              style={{ color: "#A8ABB2" }}
+            >
               <BellOff style={{ width: 40, height: 40, marginBottom: 8 }} />
-              <p style={{ fontSize: 16, lineHeight: "24px" }}>لا توجد إشعارات</p>
+              <p style={{ fontSize: 16, lineHeight: "24px" }}>
+                لا توجد إشعارات
+              </p>
             </div>
           ) : (
             notifications.map((n) => (
@@ -378,7 +470,10 @@ export function PortalNotificationsDropdown() {
       </div>
 
       {selectedNotification && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setSelectedNotification(null)}>
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+          onClick={() => setSelectedNotification(null)}
+        >
           <div
             className="mx-4 overflow-hidden"
             dir="rtl"
@@ -429,7 +524,10 @@ export function PortalNotificationsDropdown() {
               </p>
             </div>
             <div className="flex flex-row-reverse gap-2 p-5 pt-0">
-              {resolvePortalUrl(selectedNotification.entityType, selectedNotification.entityId) && (
+              {resolvePortalUrl(
+                selectedNotification.entityType,
+                selectedNotification.entityId,
+              ) && (
                 <button
                   className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white"
                   style={{

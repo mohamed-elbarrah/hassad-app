@@ -24,6 +24,7 @@ import { SalesModule } from "./modules/sales/sales.module";
 import { MarketingModule } from "./modules/marketing/marketing.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { ServicesModule } from "./modules/services/services.module";
+import { SettingsModule } from "./modules/settings/settings.module";
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ServicesModule } from "./modules/services/services.module";
     MarketingModule,
     PaymentsModule,
     ServicesModule,
+    SettingsModule,
 
     FinanceModule,
     ChatModule,

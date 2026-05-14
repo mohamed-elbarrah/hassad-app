@@ -162,6 +162,9 @@
   --color-gauge-track: #f5f7fa;
   --color-gauge-fill: #121936;
 
+  /* ── Portal Table ─────────────────────────────────────────────────────── */
+  --color-portal-table-row-alt: #f5f7fa;
+
   /* ── Animations ───────────────────────────────────────────────────────── */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;

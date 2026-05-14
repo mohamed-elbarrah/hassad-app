@@ -4,7 +4,8 @@ import { useState } from "react";
 import type { ReportTopCampaign } from "@/features/portal/portalApi";
 
 function fmtCompact(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000_000)
+    return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
   return n.toLocaleString("ar-SA-u-nu-latn");
 }
@@ -36,14 +37,17 @@ export function TopCampaignsTable({ campaigns }: TopCampaignsTableProps) {
     }
   };
 
-  const sorted = [...campaigns].sort((a, b) => {
-    const aVal = a[sortKey];
-    const bVal = b[sortKey];
-    const diff = typeof aVal === "number" && typeof bVal === "number"
-      ? bVal - aVal
-      : String(aVal).localeCompare(String(bVal));
-    return sortAsc ? -diff : diff;
-  }).slice(0, 5);
+  const sorted = [...campaigns]
+    .sort((a, b) => {
+      const aVal = a[sortKey];
+      const bVal = b[sortKey];
+      const diff =
+        typeof aVal === "number" && typeof bVal === "number"
+          ? bVal - aVal
+          : String(aVal).localeCompare(String(bVal));
+      return sortAsc ? -diff : diff;
+    })
+    .slice(0, 5);
 
   return (
     <div className="flex flex-col gap-2">
@@ -74,24 +78,39 @@ export function TopCampaignsTable({ campaigns }: TopCampaignsTableProps) {
 
       <div className="flex flex-col">
         {sorted.map((c) => {
-          const ctr = c.clicks > 0 ? ((c.clicks / c.impressions) * 100).toFixed(1) : "0.0";
+          const ctr =
+            c.clicks > 0
+              ? ((c.clicks / c.impressions) * 100).toFixed(1)
+              : "0.0";
           return (
             <div
               key={c.id}
               className="flex items-center gap-2 py-2.5 border-b last:border-0 px-1"
             >
               <div className="flex-1 text-xs truncate">{c.name}</div>
-              <div className="text-xs text-muted-foreground w-16 text-center">{ctr}%</div>
-              <div className="text-xs text-foreground w-16 text-center font-medium">{fmtCompact(c.conversions)}</div>
+              <div className="text-xs text-muted-foreground w-16 text-center">
+                {ctr}%
+              </div>
+              <div className="text-xs text-foreground w-16 text-center font-medium">
+                {fmtCompact(c.conversions)}
+              </div>
               <button
                 onClick={() => toggleSelect(c.id)}
                 className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                  selected.has(c.id) ? "bg-[#121936] border-[#121936]" : "border-gray-300"
+                  selected.has(c.id)
+                    ? "bg-[#121936] border-[#121936]"
+                    : "border-gray-300"
                 }`}
               >
                 {selected.has(c.id) && (
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M1.5 5.5L3.5 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path
+                      d="M1.5 5.5L3.5 7.5L8.5 2.5"
+                      stroke="white"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 )}
               </button>

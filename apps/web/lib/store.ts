@@ -21,6 +21,7 @@ import { portalApi } from "@/features/portal/portalApi";
 import { portalNotificationsApi } from "@/features/portal-notifications/portalNotificationsApi";
 import { servicesApi } from "@/features/services/servicesApi";
 import { chatApi } from "@/features/chat/chatApi";
+import { settingsApi } from "@/features/settings/settingsApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
 
 export const store = configureStore({
@@ -47,6 +48,7 @@ export const store = configureStore({
     [portalNotificationsApi.reducerPath]: portalNotificationsApi.reducer,
     [servicesApi.reducerPath]: servicesApi.reducer,
     [chatApi.reducerPath]: chatApi.reducer,
+    [settingsApi.reducerPath]: settingsApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -73,6 +75,7 @@ export const store = configureStore({
       portalNotificationsApi.middleware,
       servicesApi.middleware,
       chatApi.middleware,
+      settingsApi.middleware,
     ),
 });
 

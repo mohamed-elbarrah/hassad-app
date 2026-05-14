@@ -17,36 +17,21 @@ import {
 } from "@/features/proposals/proposalsApi";
 import { ProposalStatus } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
+import { StatusBadge } from "@/components/portal/StatusBadge";
+import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
+import { PortalStatusBanner } from "@/components/portal/PortalStatusBanner";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { toast } from "sonner";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
+import { mapProposalStatusToUI } from "@/lib/utils/statusMapping";
 
 interface PageProps {
   params: Promise<{ token: string }>;
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "مسودة",
-  SENT: "بانتظار ردّك",
-  APPROVED: "معتمد",
-  REVISION_REQUESTED: "بحاجة تعديل",
-  REJECTED: "مرفوض",
-};
-
-const STATUS_VARIANT: Record<
-  string,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
-  DRAFT: "outline",
-  SENT: "default",
-  APPROVED: "secondary",
-  REVISION_REQUESTED: "destructive",
-  REJECTED: "destructive",
-};
 
 export default function PortalProposalDetailPage({ params }: PageProps) {
   const { token } = use(params);
@@ -75,17 +60,19 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
             العروض الفنية
           </Button>
         </Link>
-        <Card>
-          <CardContent className="pt-6 text-center text-destructive text-sm">
+        <PortalSurfaceCard title="تعذر تحميل العرض" icon={AlertCircle}>
+          <p className="text-center text-sm text-portal-note-text">
             العرض غير متوفر أو انتهت صلاحية الرابط.
-          </CardContent>
-        </Card>
+          </p>
+        </PortalSurfaceCard>
       </div>
     );
   }
 
   const canRespond = data.status === ProposalStatus.SENT;
-  const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath as string) : null;
+  const fileUrl = data.filePath
+    ? buildPortalFileUrl(data.filePath as string)
+    : null;
   const companyLabel = data.request?.companyName ?? data.lead?.companyName;
   const contactLabel = data.request?.contactName ?? data.lead?.contactName;
 
@@ -119,142 +106,129 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-muted-foreground hover:text-foreground"
+            className="gap-1.5 text-portal-note-text hover:text-natural-100"
           >
             <ArrowRight className="h-4 w-4" />
             العروض الفنية
           </Button>
         </Link>
-        <span className="text-muted-foreground">/</span>
-        <span className="text-sm font-medium truncate max-w-xs">
+        <span className="text-portal-note-text">/</span>
+        <span className="max-w-xs truncate text-sm font-medium text-natural-100">
           {data.title}
         </span>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between flex-wrap gap-3">
-            <div>
-              <CardTitle className="text-xl">{data.title}</CardTitle>
-              {companyLabel && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {companyLabel}
-                  {contactLabel ? ` — ${contactLabel}` : ""}
-                </p>
-              )}
-            </div>
-            <Badge variant={STATUS_VARIANT[data.status] ?? "outline"}>
-              {STATUS_LABELS[data.status] ?? data.status}
-            </Badge>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-5">
-          {/* ── Services List ───────────────────────────────────────────── */}
-          {Array.isArray(data.servicesList) && (data.servicesList as { name: string; price: number }[]).length > 0 && (
-            <div className="rounded-xl border p-4 space-y-3">
-              <p className="text-sm font-semibold">الخدمات المطلوبة</p>
-              {(data.servicesList as { name: string; price: number }[]).map((service, idx) => (
-                <div key={idx} className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">{service.name}</span>
-                  <span className="text-muted-foreground font-medium">
-                    {service.price.toLocaleString("en-US")} رس
-                  </span>
-                </div>
-              ))}
-              <div className="border-t pt-2 flex items-center justify-between text-sm font-bold">
-                <span>الإجمالي الكلي</span>
-                <span>{data.totalPrice.toLocaleString("en-US")} رس</span>
-              </div>
-            </div>
+      <PortalSurfaceCard
+        title={data.title}
+        icon={FileText}
+        action={<StatusBadge status={mapProposalStatusToUI(data.status)} />}
+      >
+        <div className="space-y-5">
+          {companyLabel && (
+            <p className="text-sm text-portal-note-text">
+              {companyLabel}
+              {contactLabel ? ` — ${contactLabel}` : ""}
+            </p>
           )}
 
-          {/* ── Sales Contact (خدمة العملاء) ──────────────────────────── */}
+          {/* Services List */}
+          {Array.isArray(data.servicesList) &&
+            (data.servicesList as { name: string; price: number }[]).length >
+              0 && (
+              <PortalInfoPanel variant="bordered" title="الخدمات المطلوبة">
+                <div className="space-y-2">
+                  {(data.servicesList as { name: string; price: number }[]).map(
+                    (service, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="text-natural-100">{service.name}</span>
+                        <span className="font-medium text-portal-note-text">
+                          {service.price.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                        </span>
+                      </div>
+                    ),
+                  )}
+                  <div className="flex items-center justify-between border-t border-portal-divider pt-2 text-sm font-bold text-natural-100">
+                    <span>الإجمالي الكلي</span>
+                    <span>
+                      {data.totalPrice.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                    </span>
+                  </div>
+                </div>
+              </PortalInfoPanel>
+            )}
+
+          {/* Sales Contact */}
           {(data.contactName || data.contactEmail) && (
-            <div className="rounded-xl border bg-slate-50 p-4 space-y-2">
-              <p className="text-sm font-semibold">خدمة العملاء</p>
-              {data.contactName && (
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <span className="font-medium text-foreground">مسؤول التواصل:</span>
-                  {data.contactName}
-                </p>
-              )}
-              {data.contactEmail && (
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <span className="font-medium text-foreground">البريد الإلكتروني:</span>
-                  <a href={`mailto:${data.contactEmail}`} className="text-blue-600 hover:underline">
-                    {data.contactEmail}
-                  </a>
-                </p>
-              )}
-            </div>
+            <PortalInfoPanel variant="default" title="خدمة العملاء">
+              <div className="space-y-1">
+                {data.contactName && (
+                  <p className="flex items-center gap-2 text-sm text-portal-note-text">
+                    <span className="font-medium text-natural-100">
+                      مسؤول التواصل:
+                    </span>
+                    {data.contactName}
+                  </p>
+                )}
+                {data.contactEmail && (
+                  <p className="flex items-center gap-2 text-sm text-portal-note-text">
+                    <span className="font-medium text-natural-100">
+                      البريد الإلكتروني:
+                    </span>
+                    <a
+                      href={`mailto:${data.contactEmail}`}
+                      className="text-action-blue hover:underline"
+                    >
+                      {data.contactEmail}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </PortalInfoPanel>
           )}
 
           {/* PDF Download */}
           {fileUrl ? (
-            <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
-              <FileText className="w-8 h-8 text-blue-600 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">ملف العرض الفني</p>
-                <p className="text-xs text-muted-foreground">
-                  راجع تفاصيل العرض قبل الرد
-                </p>
-              </div>
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-              >
-                <Button variant="outline" size="sm" className="gap-2 shrink-0">
-                  <Download className="w-4 h-4" />
+            <PortalInfoPanel variant="default" title="ملف العرض الفني" description="راجع تفاصيل العرض قبل الرد">
+              <div className="flex items-center gap-3">
+                <FileText className="h-8 w-8 shrink-0 text-action-blue" />
+                <div className="min-w-0 flex-1"></div>
+                <PortalActionButton href={fileUrl} variant="outline" icon={<Download className="h-4 w-4" />}>
                   تحميل العرض
-                </Button>
-              </a>
-            </div>
+                </PortalActionButton>
+              </div>
+            </PortalInfoPanel>
           ) : (
-            <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
-              <AlertCircle className="w-5 h-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                لا يوجد ملف مرفق لهذا العرض.
-              </p>
-            </div>
+            <PortalInfoPanel variant="default" description="لا يوجد ملف مرفق لهذا العرض.">
+            </PortalInfoPanel>
           )}
 
           {/* Status-specific banners */}
           {data.status === ProposalStatus.APPROVED && (
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-              <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-              <p className="text-sm text-emerald-700 font-medium">
-                لقد اعتمدت هذا العرض الفني.
-              </p>
-            </div>
+            <PortalStatusBanner variant="success" title="لقد اعتمدت هذا العرض الفني.">
+            </PortalStatusBanner>
           )}
 
           {data.status === ProposalStatus.REVISION_REQUESTED && (
-            <div className="flex items-center gap-2 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 shrink-0" />
-              <p className="text-sm text-orange-700 font-medium">
-                طلبت تعديلاً على هذا العرض. سيتواصل معك فريقنا قريباً.
-              </p>
-            </div>
+            <PortalStatusBanner variant="warning" title="طلبت تعديلاً على هذا العرض. سيتواصل معك فريقنا قريباً.">
+            </PortalStatusBanner>
           )}
 
           {data.status === ProposalStatus.REJECTED && (
-            <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
-              <XCircle className="w-5 h-5 text-red-600 shrink-0" />
-              <p className="text-sm text-red-700 font-medium">
-                تم رفض هذا العرض.
-              </p>
-            </div>
+            <PortalStatusBanner variant="danger" title="تم رفض هذا العرض.">
+            </PortalStatusBanner>
           )}
 
-          {/* Response area — only when status is SENT */}
+          {/* Response area */}
           {canRespond && (
-            <div className="space-y-4 rounded-xl border p-4">
-              <p className="text-sm font-semibold">ردّك على العرض</p>
+            <div className="space-y-4 rounded-2xl border border-portal-card-border p-4">
+              <p className="text-sm font-semibold text-natural-100">
+                ردّك على العرض
+              </p>
               <div>
-                <p className="text-sm text-muted-foreground mb-2">
+                <p className="mb-2 text-sm text-portal-note-text">
                   ملاحظاتك (اختيارية عند الموافقة — مطلوبة عند طلب التعديل)
                 </p>
                 <Textarea
@@ -262,31 +236,32 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                   placeholder="اكتب ملاحظاتك هنا..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  className="rounded-2xl border-portal-card-border bg-natural-0"
                 />
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={handleApprove}
                   disabled={approving || requesting}
-                  className="gap-2"
+                  className="h-12 rounded-2xl px-5 text-base font-medium gap-2 bg-secondary-500 hover:bg-secondary-600"
                 >
-                  <CheckCircle className="w-4 h-4" />
+                  <CheckCircle className="h-4 w-4" />
                   {approving ? "جارٍ الاعتماد..." : "موافقة على العرض"}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={handleRevision}
                   disabled={approving || requesting}
-                  className="gap-2"
+                  className="h-12 rounded-2xl px-5 text-base font-medium gap-2 border-[1.5px] border-portal-card-border bg-natural-0 text-portal-icon hover:bg-badge-gray-bg"
                 >
-                  <AlertCircle className="w-4 h-4" />
+                  <AlertCircle className="h-4 w-4" />
                   {requesting ? "جارٍ الإرسال..." : "طلب تعديل"}
                 </Button>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </PortalSurfaceCard>
     </div>
   );
 }

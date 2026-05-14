@@ -1589,10 +1589,45 @@ model CurrencySetting {
   code      String   @unique
   name      String
   symbol    String
-  isDefault Boolean @default(false) @map("is_default")
-  exchangeRate Float @default(1) @map("exchange_rate")
+  symbolType SymbolType @default(TEXT) @map("symbol_type")
+  svgKey    String? @map("svg_key")
+  svgWidth  Int? @default(24) @map("svg_width")
+  svgHeight Int? @default(24) @map("svg_height")
+  isDefault Boolean  @default(false) @map("is_default")
+  isActive  Boolean  @default(true) @map("is_active")
+  exchangeRate Float  @default(1) @map("exchange_rate")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("currency_settings")
+}
+
+enum SymbolType {
+  TEXT
+  SVG_URL
+  SVG_INLINE
+}
+
+model CurrencySvg {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  filename  String
+  mimetype  String
+  size      Int
+  path      String
+  isCleaned Boolean @default(false) @map("is_cleaned")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("currency_svgs")
+}
+
+model CompanySetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("company_settings")
 }
