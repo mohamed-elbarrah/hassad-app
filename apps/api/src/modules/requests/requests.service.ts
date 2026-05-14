@@ -424,6 +424,11 @@ export class RequestsService {
         });
       }
 
+      await tx.client.update({
+        where: { id: client.id },
+        data: { intakeCompleted: true },
+      });
+
       return tx.request.findUnique({
         where: { id: request.id },
         include: {

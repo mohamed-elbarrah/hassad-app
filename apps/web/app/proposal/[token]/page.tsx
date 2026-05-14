@@ -19,6 +19,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+import { buildPortalFileUrl } from "@/lib/portal-files";
+
 interface PageProps {
   params: Promise<{ token: string }>;
 }
@@ -38,14 +40,6 @@ const STATUS_COLORS: Record<ProposalStatus, string> = {
   [ProposalStatus.REVISION_REQUESTED]: "bg-orange-100 text-orange-700",
   [ProposalStatus.REJECTED]: "bg-red-100 text-red-700",
 };
-
-// Build a full URL for the file path (from the API server)
-function buildFileUrl(filePath: string): string {
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_URL?.replace("/v1", "") ??
-    "http://localhost:3001";
-  return filePath.startsWith("http") ? filePath : `${apiBase}${filePath}`;
-}
 
 export default function ProposalSharePage({ params }: PageProps) {
   const { token } = use(params);
@@ -81,7 +75,7 @@ export default function ProposalSharePage({ params }: PageProps) {
     STATUS_COLORS[data.status as ProposalStatus] ??
     "bg-muted text-muted-foreground";
 
-  const fileUrl = data.filePath ? buildFileUrl(data.filePath as string) : null;
+  const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath as string) : null;
   const companyLabel = data.request?.companyName ?? data.lead?.companyName;
   const contactLabel = data.request?.contactName ?? data.lead?.contactName;
 

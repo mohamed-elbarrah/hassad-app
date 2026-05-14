@@ -94,6 +94,7 @@ export class SignByTokenDto {
 }
 
 export class CreateVersionDto {
+  @IsOptional()
   @IsString()
-  filePath: string;
+  notes?: string;
 }

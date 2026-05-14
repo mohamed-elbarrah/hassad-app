@@ -7,21 +7,28 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  UploadedFiles,
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
+import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { PortalService } from "../services/portal.service";
 import {
   CreateDeliverableDto,
   CreateRevisionDto,
   CreateIntakeFormDto,
   ReportTimelineQueryDto,
+  RequestProjectRevisionDto,
 } from "../dto/portal.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { StorageService } from "../../../common/storage/storage.service";
+import { StorageCategory } from "../../../common/storage/storage.constants";
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -29,6 +36,7 @@ export class PortalController {
   constructor(
     private readonly portalService: PortalService,
     private readonly prisma: PrismaService,
+    private readonly storageService: StorageService,
   ) {}
 
   /** Resolve clientId from JWT payload or DB lookup for CLIENT users */
@@ -148,11 +156,26 @@ export class PortalController {
 
   @Post("deliverables")
   @RequirePermissions("portal.manage_deliverables")
-  createDeliverable(
+  @UseInterceptors(FileInterceptor("file"))
+  async createDeliverable(
     @CurrentUser() user: any,
     @Body() dto: CreateDeliverableDto,
+    @UploadedFile() file: Express.Multer.File | undefined,
   ) {
-    return this.portalService.createDeliverable(user.id, dto);
+    if (!file) {
+      throw new ForbiddenException("File is required");
+    }
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.DELIVERABLE,
+      entityId: dto.projectId,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    return this.portalService.createDeliverable(user.id, dto, uploadResult.key);
   }
 
   @Get("deliverables/:id")
@@ -240,16 +263,40 @@ export class PortalController {
 
   @Post("clients/:id/intake-form")
   @RequirePermissions("portal.manage_intake")
+  @UseInterceptors(FilesInterceptor("files", 10))
   async createIntakeForm(
     @Param("id") clientIdFromUrl: string,
     @Body() dto: CreateIntakeFormDto,
     @CurrentUser() user: any,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
     const clientId = await this.resolveClientId(user);
     if (clientId && clientId !== clientIdFromUrl) {
       throw new ForbiddenException();
     }
-    return this.portalService.createIntakeForm(clientIdFromUrl, dto);
+
+    const uploadedFileKeys: { key: string; originalName: string; mimeType: string }[] = [];
+    if (files && files.length > 0) {
+      for (const f of files) {
+        const result = await this.storageService.upload({
+          category: StorageCategory.INTAKE_FORM,
+          entityId: clientIdFromUrl,
+          file: {
+            buffer: f.buffer,
+            originalname: f.originalname,
+            mimetype: f.mimetype,
+            size: f.size,
+          },
+        });
+        uploadedFileKeys.push({
+          key: result.key,
+          originalName: f.originalname,
+          mimeType: f.mimetype,
+        });
+      }
+    }
+
+    return this.portalService.createIntakeForm(clientIdFromUrl, dto, uploadedFileKeys);
   }
 
   @Get("clients/:id/intake-form")
@@ -428,5 +475,58 @@ export class PortalController {
     const clientId = await this.resolveClientId(user);
     if (!clientId) return null;
     return this.portalService.findCampaignOne(id, clientId);
+  }
+
+  // ── Project Review (Client Approval) ──────────────────────────────────────
+
+  @Get("portal/projects/review")
+  @RequirePermissions("portal.read")
+  async getReviewProjects(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return [];
+    return this.portalService.getReviewProjects(clientId);
+  }
+
+  @Get("portal/projects/:id/review-detail")
+  @RequirePermissions("portal.read")
+  async getProjectReviewDetail(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.getProjectReviewDetail(id, clientId);
+  }
+
+  @Post("portal/projects/:id/approve")
+  @RequirePermissions("portal.approve_deliverables")
+  async approveProject(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.approveProject(id, clientId);
+  }
+
+  @Post("portal/projects/:id/request-revision")
+  @RequirePermissions("portal.request_revisions")
+  async requestProjectRevision(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: RequestProjectRevisionDto,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.requestProjectRevision(id, clientId, dto);
+  }
+
+  @Get("portal/projects/:id/revisions")
+  @RequirePermissions("portal.read")
+  async getProjectRevisions(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.portalService.getProjectRevisions(id);
   }
 }

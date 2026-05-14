@@ -16,6 +16,7 @@ export interface Deliverable {
   createdAt: string;
   project?: { id: string; name: string };
   revisionRequests?: ClientRevisionRequest[];
+  url?: string;
 }
 
 export interface ClientRevisionRequest {
@@ -31,7 +32,7 @@ export interface ClientRevisionRequest {
 export interface CreateDeliverableInput {
   projectId: string;
   title: string;
-  filePath: string;
+  file: File;
   description?: string;
   taskId?: string;
   isVisibleToClient?: boolean;
@@ -59,7 +60,16 @@ export const deliverablesApi = createApi({
       providesTags: (_r, _e, id) => [{ type: "Deliverable", id }],
     }),
     createDeliverable: builder.mutation<Deliverable, CreateDeliverableInput>({
-      query: (body) => ({ url: "/deliverables", method: "POST", body }),
+      query: (input) => {
+        const formData = new FormData();
+        formData.append("projectId", input.projectId);
+        formData.append("title", input.title);
+        if (input.description) formData.append("description", input.description);
+        if (input.taskId) formData.append("taskId", input.taskId);
+        if (input.isVisibleToClient !== undefined) formData.append("isVisibleToClient", String(input.isVisibleToClient));
+        formData.append("file", input.file);
+        return { url: "/deliverables", method: "POST", body: formData };
+      },
       invalidatesTags: [{ type: "Deliverable", id: "LIST" }],
     }),
     approveDeliverable: builder.mutation<Deliverable, string>({

@@ -20,15 +20,10 @@ import {
   PenLine,
 } from "lucide-react";
 
+import { buildPortalFileUrl } from "@/lib/portal-files";
+
 interface PageProps {
   params: Promise<{ token: string }>;
-}
-
-function buildFileUrl(filePath: string): string {
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_URL?.replace("/v1", "") ??
-    "http://localhost:3001";
-  return filePath.startsWith("http") ? filePath : `${apiBase}${filePath}`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -109,7 +104,7 @@ function ContractSharePageInner({ token }: { token: string }) {
   const statusLabel = STATUS_LABELS[data.status] ?? data.status;
   const statusColor =
     STATUS_COLORS[data.status] ?? "bg-muted text-muted-foreground";
-  const fileUrl = data.filePath ? buildFileUrl(data.filePath) : null;
+  const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
 
   async function handleSign() {
     if (!signedByName.trim()) {

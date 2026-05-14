@@ -12,9 +12,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { randomBytes } from 'crypto';
 import { ContractsService } from '../services/contracts.service';
 import { FinanceService } from '../../finance/services/finance.service';
 import {
@@ -28,24 +25,15 @@ import { RequirePermissions } from '../../../common/decorators/permissions.decor
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { StorageService } from '../../../common/storage/storage.service';
+import { StorageCategory } from '../../../common/storage/storage.constants';
 
-// ─── Multer storage config ────────────────────────────────────────────────────
-const contractStorage = diskStorage({
-  destination: join(process.cwd(), 'uploads', 'contracts'),
-  filename: (_req, file, cb) => {
-    const unique = randomBytes(16).toString('hex');
-    const ext = extname(file.originalname);
-    cb(null, `${unique}${ext}`);
-  },
-});
-
-// Note: class-level guards are NOT used so that public share routes can be
-// placed in this same controller without guards.
 @Controller('contracts')
 export class ContractsController {
   constructor(
     private readonly contractsService: ContractsService,
     private readonly financeService: FinanceService,
+    private readonly storageService: StorageService,
   ) {}
 
   // ─── Protected endpoints ───────────────────────────────────────────────────
@@ -53,7 +41,7 @@ export class ContractsController {
   @Post()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('contracts.create')
-  @UseInterceptors(FileInterceptor('file', { storage: contractStorage }))
+  @UseInterceptors(FileInterceptor('file'))
   async create(
     @CurrentUser() user: any,
     @Body() createContractDto: CreateContractDto,
@@ -62,8 +50,17 @@ export class ContractsController {
     if (!file) {
       throw new BadRequestException('PDF file is required');
     }
-    const filePath = `/uploads/contracts/${file.filename}`;
-    const contract = await this.contractsService.create(user.id, filePath, createContractDto);
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.CONTRACT,
+      entityId: 'pending',
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    const contract = await this.contractsService.create(user.id, uploadResult.key, createContractDto);
 
     try {
       await this.financeService.generateInvoiceFromContract(contract.id, user.id);
@@ -137,12 +134,24 @@ export class ContractsController {
   @Post(':id/versions')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions('contracts.manage_versions')
-  createVersion(
+  @UseInterceptors(FileInterceptor('file'))
+  async createVersion(
     @Param('id') id: string,
     @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateVersionDto,
   ) {
-    return this.contractsService.createVersion(id, user.id, dto);
+    if (!file) {
+      throw new BadRequestException('PDF file is required for a new version');
+    }
+    const uploadResult = await this.storageService.uploadForSubEntity(
+      StorageCategory.CONTRACT,
+      id,
+      'versions',
+      `v${Date.now()}`,
+      { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size },
+    );
+    return this.contractsService.createVersion(id, user.id, uploadResult.key, dto);
   }
 
   @Post(':id/generate-invoice')

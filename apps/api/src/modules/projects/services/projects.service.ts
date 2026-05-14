@@ -3,12 +3,14 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
 import { ContractStatus, TaskStatus, TaskPriority, UserRole } from '@hassad/shared';
 import { NotificationsService } from '../../notifications/services/notifications.service';
+import { StorageService } from '../../../common/storage/storage.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private storageService: StorageService,
   ) {}
 
   async create(dto: CreateProjectDto) {
@@ -62,9 +64,12 @@ export class ProjectsService {
   }
 
   async update(id: string, dto: UpdateProjectDto) {
+    const data: Record<string, unknown> = { ...dto };
+    if (dto.startDate) data.startDate = new Date(dto.startDate);
+    if (dto.endDate) data.endDate = new Date(dto.endDate);
     return this.prisma.project.update({
       where: { id },
-      data: dto,
+      data,
     });
   }
 
@@ -234,5 +239,54 @@ export class ProjectsService {
     }
 
     return updated;
+  }
+
+  async uploadFile(
+    projectId: string,
+    userId: string,
+    fileData: { key: string; originalName: string; mimeType: string; size: number },
+  ) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    return this.prisma.projectFile.create({
+      data: {
+        projectId,
+        uploadedBy: userId,
+        fileName: fileData.originalName,
+        filePath: fileData.key,
+        fileType: fileData.mimeType,
+        fileSize: fileData.size,
+      },
+    });
+  }
+
+  async getFiles(projectId: string) {
+    const files = await this.prisma.projectFile.findMany({
+      where: { projectId },
+      orderBy: { uploadedAt: 'desc' },
+    });
+
+    const urlMap = await this.storageService.getMultiplePresignedUrls(
+      files.map((f) => f.filePath),
+    );
+
+    return files.map((f) => ({
+      ...f,
+      url: urlMap.get(f.filePath) || null,
+    }));
+  }
+
+  async deleteFile(projectId: string, fileId: string) {
+    const file = await this.prisma.projectFile.findFirst({
+      where: { id: fileId, projectId },
+    });
+    if (!file) throw new NotFoundException('File not found');
+
+    await this.storageService.deleteByKey(file.filePath);
+    await this.prisma.projectFile.delete({ where: { id: fileId } });
+    return { success: true };
   }
 }

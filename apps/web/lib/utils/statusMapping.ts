@@ -1,6 +1,6 @@
 import type { TaskStatus } from "@hassad/shared";
 
-export type UIStatus = "completed" | "in-progress" | "not-started" | "pending" | "revision" | "active" | "on-hold" | "planning" | "cancelled";
+export type UIStatus = "completed" | "in-progress" | "not-started" | "pending" | "revision" | "active" | "on-hold" | "planning" | "cancelled" | "awaiting-review" | "needs-revision";
 
 export function mapTaskStatusToUI(status: TaskStatus | string): UIStatus {
   switch (status) {
@@ -30,6 +30,10 @@ export function mapProjectStatusToUI(status: string): UIStatus {
       return "planning";
     case "CANCELLED":
       return "cancelled";
+    case "AWAITING_REVIEW":
+      return "awaiting-review";
+    case "NEEDS_REVISION":
+      return "needs-revision";
     default:
       return "planning";
   }

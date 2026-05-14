@@ -93,8 +93,15 @@ export class TaskFileResponseDto {
   @IsString()
   mimeType: string;
 
+  @IsString()
+  purpose: string;
+
   @IsDateString()
   createdAt: string;
+
+  @IsOptional()
+  @IsString()
+  url?: string;
 }
 
 export class CreateTaskCommentDto {

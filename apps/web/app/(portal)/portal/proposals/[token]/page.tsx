@@ -23,15 +23,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
+import { buildPortalFileUrl } from "@/lib/portal-files";
+
 interface PageProps {
   params: Promise<{ token: string }>;
-}
-
-function buildFileUrl(filePath: string): string {
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_URL?.replace("/v1", "") ??
-    "http://localhost:3001";
-  return filePath.startsWith("http") ? filePath : `${apiBase}${filePath}`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -90,7 +85,7 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
   }
 
   const canRespond = data.status === ProposalStatus.SENT;
-  const fileUrl = data.filePath ? buildFileUrl(data.filePath as string) : null;
+  const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath as string) : null;
   const companyLabel = data.request?.companyName ?? data.lead?.companyName;
   const contactLabel = data.request?.contactName ?? data.lead?.contactName;
 

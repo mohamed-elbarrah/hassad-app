@@ -17,10 +17,6 @@ async function bootstrap() {
 
   app.useWebSocketAdapter(new IoAdapter(app));
 
-  app.useStaticAssets(process.cwd() + "/uploads", {
-    prefix: "/uploads",
-  });
-
   app.use(cookieParser());
 
   app.useGlobalPipes(

@@ -25,6 +25,8 @@ const STATUS_CONFIG: Record<
   [ProjectStatus.PLANNING]: { label: "تخطيط", variant: "secondary" },
   [ProjectStatus.ACTIVE]: { label: "نشط", variant: "default" },
   [ProjectStatus.ON_HOLD]: { label: "موقوف", variant: "outline" },
+  [ProjectStatus.AWAITING_REVIEW]: { label: "بانتظار المراجعة", variant: "outline" },
+  [ProjectStatus.NEEDS_REVISION]: { label: "مطلوب تعديلات", variant: "destructive" },
   [ProjectStatus.COMPLETED]: { label: "مكتمل", variant: "secondary" },
   [ProjectStatus.CANCELLED]: { label: "ملغى", variant: "destructive" },
 };

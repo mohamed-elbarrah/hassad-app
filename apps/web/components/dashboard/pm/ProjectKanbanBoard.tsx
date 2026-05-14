@@ -43,6 +43,8 @@ const STATUS_LABELS: Record<ProjectStatus, string> = {
   [ProjectStatus.PLANNING]: "تخطيط",
   [ProjectStatus.ACTIVE]: "نشط",
   [ProjectStatus.ON_HOLD]: "موقوف",
+  [ProjectStatus.AWAITING_REVIEW]: "بانتظار المراجعة",
+  [ProjectStatus.NEEDS_REVISION]: "مطلوب تعديلات",
   [ProjectStatus.COMPLETED]: "مكتمل",
   [ProjectStatus.CANCELLED]: "ملغى",
 };
@@ -59,6 +61,14 @@ const STATUS_COLORS: Record<ProjectStatus, { column: string; dot: string }> = {
   [ProjectStatus.ON_HOLD]: {
     column: "bg-amber-50 border-amber-200",
     dot: "bg-amber-500",
+  },
+  [ProjectStatus.AWAITING_REVIEW]: {
+    column: "bg-orange-50 border-orange-200",
+    dot: "bg-orange-500",
+  },
+  [ProjectStatus.NEEDS_REVISION]: {
+    column: "bg-rose-50 border-rose-200",
+    dot: "bg-rose-400",
   },
   [ProjectStatus.COMPLETED]: {
     column: "bg-emerald-50 border-emerald-200",
@@ -84,6 +94,13 @@ const KANBAN_GROUPS = [
     accentClass: "bg-blue-50 border-blue-200 text-blue-700",
     textClass: "text-blue-700",
     statuses: [ProjectStatus.ACTIVE, ProjectStatus.ON_HOLD],
+  },
+  {
+    id: "review",
+    label: "المراجعة",
+    accentClass: "bg-orange-50 border-orange-200 text-orange-700",
+    textClass: "text-orange-700",
+    statuses: [ProjectStatus.AWAITING_REVIEW, ProjectStatus.NEEDS_REVISION],
   },
   {
     id: "closure",

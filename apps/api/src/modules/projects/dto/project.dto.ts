@@ -36,10 +36,6 @@ export class CreateProjectDto {
 export class UpdateProjectDto {
   @IsOptional()
   @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
   description?: string;
 
   @IsOptional()
@@ -49,6 +45,14 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsEnum(TaskPriority)
   priority?: TaskPriority;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
 }
 
 export class AddMemberDto {

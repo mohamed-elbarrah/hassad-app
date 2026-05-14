@@ -1,5 +1,3 @@
-import { getApiBaseUrl } from "@/lib/utils";
-
 export type PortalFileKind =
   | "image"
   | "video"
@@ -22,7 +20,11 @@ const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "m4v", "avi"]);
 const DOCUMENT_EXTENSIONS = new Set(["doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt"]);
 const ARCHIVE_EXTENSIONS = new Set(["zip", "rar", "7z"]);
 
-export function buildPortalFileUrl(filePath: string) {
+export function buildPortalFileUrl(filePath: string, url?: string | null): string {
+  if (url) {
+    return url;
+  }
+
   if (!filePath) {
     return "";
   }
@@ -31,13 +33,7 @@ export function buildPortalFileUrl(filePath: string) {
     return filePath;
   }
 
-  const apiBase = getApiBaseUrl().replace(/\/v1$/, "");
-
-  if (!apiBase) {
-    return filePath;
-  }
-
-  return filePath.startsWith("/") ? `${apiBase}${filePath}` : `${apiBase}/${filePath}`;
+  return filePath;
 }
 
 export function getPortalFileExtension(filePath: string) {

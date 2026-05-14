@@ -116,6 +116,8 @@ enum ProjectStatus {
   PLANNING
   ACTIVE
   ON_HOLD
+  AWAITING_REVIEW
+  NEEDS_REVISION
   COMPLETED
   CANCELLED
 }
@@ -322,6 +324,7 @@ model User {
   taskComments     TaskComment[]
   notifiedDelays   TaskDelayAlert[]
   approvedDelivs   Deliverable[]
+  uploadedProjectFiles ProjectFile[]
 
   createdInvoices  Invoice[]
   assignedTickets  PaymentTicket[]          @relation("TicketAssignee")
@@ -530,6 +533,7 @@ model Client {
   status               ClientStatus
   portalAccessToken    String?      @unique @map("portal_access_token")
   portalTokenExpiresAt DateTime?    @map("portal_token_expires_at")
+  intakeCompleted      Boolean      @default(false) @map("intake_completed")
   createdAt            DateTime     @default(now()) @map("created_at")
   updatedAt            DateTime     @updatedAt @map("updated_at")
 
@@ -541,8 +545,9 @@ model Client {
   proposals    Proposal[]
   contracts    Contract[]
   projects     Project[]
-  revisionReqs ClientRevisionRequest[]
-  intakeForms  PortalIntakeForm[]
+  revisionReqs            ClientRevisionRequest[]
+  projectRevisionReqs     ProjectRevisionRequest[]
+  intakeForms              PortalIntakeForm[]
 
   invoices     Invoice[]
   payTickets   PaymentTicket[]
@@ -851,9 +856,11 @@ model Project {
   deliverables   Deliverable[]
   campaigns      Campaign[]
   invoiceItems   InvoiceItem[]
+  files          ProjectFile[]
 
 
   satRatings     SatisfactionRating[]
+  revisionRequests ProjectRevisionRequest[]
 
   @@map("projects")
   @@index([requestId])
@@ -1116,6 +1123,38 @@ model ClientRevisionRequest {
   @@map("client_revision_requests")
   @@index([deliverableId])
   @@index([clientId])
+}
+
+model ProjectRevisionRequest {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  clientId  String   @map("client_id")
+  comment   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("project_revision_requests")
+  @@index([projectId])
+  @@index([clientId])
+}
+
+model ProjectFile {
+  id         String   @id @default(uuid())
+  projectId  String   @map("project_id")
+  uploadedBy String   @map("uploaded_by")
+  fileName   String   @map("file_name")
+  filePath   String   @map("file_path")
+  fileType   String   @map("file_type")
+  fileSize   Int      @map("file_size")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader User    @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@map("project_files")
+  @@index([projectId])
 }
 
 model PortalIntakeForm {

@@ -79,9 +79,6 @@ export class CreateDeliverableDto {
   @IsOptional()
   @IsString()
   description?: string;
-
-  @IsString()
-  filePath: string;
 }
 
 export class CreateRevisionDto {
@@ -97,8 +94,9 @@ export class CreateIntakeFormDto {
   @IsOptional()
   @IsArray()
   goals?: any[];
+}
 
-  @IsOptional()
-  @IsArray()
-  uploadedFiles?: any[];
+export class RequestProjectRevisionDto {
+  @IsString()
+  comment: string;
 }

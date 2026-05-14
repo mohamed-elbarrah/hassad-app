@@ -62,6 +62,7 @@ export interface User {
   isActive?: boolean;
   department?: string | null;
   clientId?: string | null;
+  intakeCompleted?: boolean;
 }
 
 /** Matches the DB `Client` model exactly */

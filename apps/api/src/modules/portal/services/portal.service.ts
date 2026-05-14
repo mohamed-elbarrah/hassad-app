@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   CreateDeliverableDto,
   CreateRevisionDto,
   CreateIntakeFormDto,
+  RequestProjectRevisionDto,
 } from "../dto/portal.dto";
 import {
   TaskStatus,
@@ -16,6 +17,7 @@ import {
   PROJECT_STATUS_AR,
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
+import { StorageService } from "../../../common/storage/storage.service";
 
 const TASK_STATUS_AR_MAP: Record<string, string> = {
   TODO: "لم يبدأ",
@@ -30,6 +32,7 @@ export class PortalService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private storageService: StorageService,
   ) {}
 
   private getPendingRequestStageLabel(status: string) {
@@ -149,14 +152,7 @@ export class PortalService {
         manager: {
           select: { id: true, name: true, isActive: true },
         },
-        deliverables: {
-          where: { isVisibleToClient: true },
-          select: {
-            id: true,
-            status: true,
-          },
-          orderBy: { createdAt: "asc" },
-        },
+        completionPercentage: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -164,11 +160,6 @@ export class PortalService {
     if (projects.length === 0) return null;
 
     const projectList = projects.map((p) => {
-      const total = p.deliverables.length;
-      const done = p.deliverables.filter(
-        (d) => d.status === TaskStatus.DONE,
-      ).length;
-      const progress = total > 0 ? Math.round((done / total) * 100) : 0;
       return {
         id: p.id,
         name: p.name,
@@ -176,7 +167,7 @@ export class PortalService {
         statusAr:
           PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
           p.status,
-        progress,
+        progress: p.completionPercentage,
         startDate: p.startDate,
         endDate: p.endDate,
         projectManager: p.manager
@@ -230,10 +221,6 @@ export class PortalService {
           manager: {
             select: { id: true, name: true, isActive: true },
           },
-          deliverables: {
-            where: { isVisibleToClient: true },
-            select: { id: true, status: true },
-          },
         },
         orderBy: { createdAt: "desc" },
         skip: (query.page - 1) * query.limit,
@@ -243,14 +230,6 @@ export class PortalService {
     ]);
 
     const items = data.map((p) => {
-      const totalDeliverables = p.deliverables.length;
-      const doneDeliverables = p.deliverables.filter(
-        (d) => d.status === TaskStatus.DONE,
-      ).length;
-      const progress =
-        totalDeliverables > 0
-          ? Math.round((doneDeliverables / totalDeliverables) * 100)
-          : p.completionPercentage;
       return {
         id: p.id,
         name: p.name,
@@ -258,7 +237,7 @@ export class PortalService {
         statusAr:
           PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
           p.status,
-        progress,
+        progress: p.completionPercentage,
         startDate: p.startDate,
         endDate: p.endDate,
         projectManager: p.manager
@@ -922,10 +901,14 @@ export class PortalService {
     return { data: items, total, page: query.page, limit: query.limit };
   }
 
-  async createDeliverable(userId: string, dto: CreateDeliverableDto) {
+  async createDeliverable(userId: string, dto: CreateDeliverableDto, filePath: string) {
     return this.prisma.deliverable.create({
       data: {
-        ...dto,
+        projectId: dto.projectId,
+        taskId: dto.taskId,
+        title: dto.title,
+        description: dto.description,
+        filePath,
         status: TaskStatus.TODO,
       },
     });
@@ -943,6 +926,11 @@ export class PortalService {
 
     if (!deliverable) {
       throw new NotFoundException(`Deliverable with ID ${id} not found`);
+    }
+
+    if (deliverable.filePath) {
+      const url = await this.storageService.getPresignedUrl(deliverable.filePath);
+      (deliverable as any).url = url;
     }
 
     return deliverable;
@@ -1036,11 +1024,26 @@ export class PortalService {
   }
 
   async findDeliverablesByProject(projectId: string) {
-    return this.prisma.deliverable.findMany({
+    const deliverables = await this.prisma.deliverable.findMany({
       where: { projectId },
       include: { revisionRequests: true },
       orderBy: { createdAt: "desc" },
     });
+
+    const fileKeys = deliverables
+      .filter((d) => d.filePath)
+      .map((d) => d.filePath);
+
+    if (fileKeys.length > 0) {
+      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      for (const d of deliverables) {
+        if (d.filePath) {
+          (d as any).url = urlMap.get(d.filePath) || null;
+        }
+      }
+    }
+
+    return deliverables;
   }
 
   async findDeliverablesByClient(clientId: string) {
@@ -1049,7 +1052,7 @@ export class PortalService {
       select: { id: true },
     });
     const projectIds = projects.map((p) => p.id);
-    return this.prisma.deliverable.findMany({
+    const deliverables = await this.prisma.deliverable.findMany({
       where: { projectId: { in: projectIds } },
       include: {
         project: { select: { id: true, name: true } },
@@ -1057,23 +1060,69 @@ export class PortalService {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    const fileKeys = deliverables
+      .filter((d) => d.filePath)
+      .map((d) => d.filePath);
+
+    if (fileKeys.length > 0) {
+      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      for (const d of deliverables) {
+        if (d.filePath) {
+          (d as any).url = urlMap.get(d.filePath) || null;
+        }
+      }
+    }
+
+    return deliverables;
   }
 
-  async createIntakeForm(clientId: string, dto: CreateIntakeFormDto) {
+  async createIntakeForm(
+    clientId: string,
+    dto: CreateIntakeFormDto,
+    uploadedFiles: { key: string; originalName: string; mimeType: string }[] = [],
+  ) {
     const token = randomBytes(32).toString("hex");
     return this.prisma.portalIntakeForm.create({
       data: {
         clientId,
         token,
-        ...dto,
+        businessDescription: dto.businessDescription,
+        goals: dto.goals,
+        uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
       },
     });
   }
 
   async getIntakeForm(clientId: string) {
-    return this.prisma.portalIntakeForm.findMany({
+    const forms = await this.prisma.portalIntakeForm.findMany({
       where: { clientId },
     });
+
+    const allFileKeys: string[] = [];
+    for (const form of forms) {
+      const files = form.uploadedFiles as { key: string; originalName: string; mimeType: string }[] | null;
+      if (Array.isArray(files)) {
+        for (const f of files) {
+          if (f.key) allFileKeys.push(f.key);
+        }
+      }
+    }
+
+    if (allFileKeys.length > 0) {
+      const urlMap = await this.storageService.getMultiplePresignedUrls(allFileKeys);
+      for (const form of forms) {
+        const files = form.uploadedFiles as { key: string; originalName: string; mimeType: string; url?: string }[] | null;
+        if (Array.isArray(files)) {
+          (form as any).uploadedFiles = files.map((f) => ({
+            ...f,
+            url: urlMap.get(f.key) || null,
+          }));
+        }
+      }
+    }
+
+    return forms;
   }
 
   async findCampaignsByClient(clientId: string) {
@@ -1720,5 +1769,179 @@ export class PortalService {
     return tips
       .sort((a, b) => (priorityOrder[a.type] ?? 3) - (priorityOrder[b.type] ?? 3))
       .slice(0, 4);
+  }
+
+  // ── Project Review (Client Approval Flow) ──────────────────────────────────
+
+  async getReviewProjects(clientId: string) {
+    const projects = await this.prisma.project.findMany({
+      where: {
+        clientId,
+        status: ProjectStatus.AWAITING_REVIEW,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        priority: true,
+        startDate: true,
+        endDate: true,
+        completionPercentage: true,
+        createdAt: true,
+        updatedAt: true,
+        manager: {
+          select: { id: true, name: true, isActive: true },
+        },
+        _count: {
+          select: { tasks: true, deliverables: true },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return projects.map((p) => ({
+      ...p,
+      statusAr: PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ?? p.status,
+      taskCount: p._count.tasks,
+      deliverableCount: p._count.deliverables,
+      _count: undefined,
+    }));
+  }
+
+  async getProjectReviewDetail(projectId: string, clientId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        manager: { select: { id: true, name: true, isActive: true } },
+        files: {
+          select: {
+            id: true,
+            fileName: true,
+            filePath: true,
+            fileType: true,
+            fileSize: true,
+            uploadedAt: true,
+          },
+          orderBy: { uploadedAt: "desc" },
+        },
+        revisionRequests: {
+          select: {
+            id: true,
+            comment: true,
+            createdAt: true,
+            client: { select: { id: true, companyName: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!project || project.clientId !== clientId) {
+      throw new NotFoundException("Project not found or access denied");
+    }
+
+    if (project.files && project.files.length > 0) {
+      const fileKeys = project.files.map((f) => f.filePath);
+      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      project.files = project.files.map((f) => ({
+        ...f,
+        url: urlMap.get(f.filePath) || null,
+      })) as any;
+    }
+
+    return project;
+  }
+
+  async approveProject(projectId: string, clientId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project || project.clientId !== clientId) {
+      throw new NotFoundException("Project not found or access denied");
+    }
+
+    if (project.status !== ProjectStatus.AWAITING_REVIEW) {
+      throw new BadRequestException("المشروع ليس بحالة انتظار المراجعة");
+    }
+
+    const updated = await this.prisma.project.update({
+      where: { id: projectId },
+      data: { status: ProjectStatus.COMPLETED },
+    });
+
+    if (project.projectManagerId) {
+      this.notificationsService
+        .createNotification({
+          entityId: projectId,
+          entityType: "project",
+          eventType: "PROJECT_APPROVED",
+          userId: project.projectManagerId,
+          title: "تمت الموافقة على المشروع",
+          body: `تمت الموافقة على المشروع "${project.name}" من قبل العميل.`,
+        })
+        .catch(() => undefined);
+    }
+
+    return updated;
+  }
+
+  async requestProjectRevision(
+    projectId: string,
+    clientId: string,
+    dto: RequestProjectRevisionDto,
+  ) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project || project.clientId !== clientId) {
+      throw new NotFoundException("Project not found or access denied");
+    }
+
+    if (project.status !== ProjectStatus.AWAITING_REVIEW) {
+      throw new BadRequestException("المشروع ليس بحالة انتظار المراجعة");
+    }
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.project.update({
+        where: { id: projectId },
+        data: { status: ProjectStatus.NEEDS_REVISION },
+      }),
+      this.prisma.projectRevisionRequest.create({
+        data: {
+          projectId,
+          clientId,
+          comment: dto.comment,
+        },
+      }),
+    ]);
+
+    if (project.projectManagerId) {
+      this.notificationsService
+        .createNotification({
+          entityId: projectId,
+          entityType: "project",
+          eventType: "PROJECT_REVISION_REQUESTED",
+          userId: project.projectManagerId,
+          title: "طلب العميل تعديلات على المشروع",
+          body: `طلب العميل تعديلات على المشروع "${project.name}": ${dto.comment}`,
+        })
+        .catch(() => undefined);
+    }
+
+    return updated;
+  }
+
+  async getProjectRevisions(projectId: string) {
+    return this.prisma.projectRevisionRequest.findMany({
+      where: { projectId },
+      include: {
+        client: { select: { id: true, companyName: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
   }
 }

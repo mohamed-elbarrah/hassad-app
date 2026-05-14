@@ -24,15 +24,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { toast } from "sonner";
 
+import { buildPortalFileUrl } from "@/lib/portal-files";
+
 interface PageProps {
   params: Promise<{ id: string }>;
-}
-
-function buildFileUrl(filePath: string): string {
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_URL?.replace("/v1", "") ??
-    "http://localhost:3001";
-  return filePath.startsWith("http") ? filePath : `${apiBase}${filePath}`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -129,7 +124,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
     invoices.length > 0 && invoices.every((inv) => inv.status === "PAID");
   const canSignNow =
     canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
-  const fileUrl = data.filePath ? buildFileUrl(data.filePath) : null;
+  const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
 
   async function handleSign() {
     if (!signedByName.trim()) {
