@@ -18,6 +18,7 @@ import { StatusBadge } from "@/components/portal/StatusBadge";
 import { PortalKpiPill, PortalKpiCurrency } from "@/components/portal/PortalKpiPill";
 import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -44,6 +45,7 @@ function formatDate(dateStr: string): string {
 
 export default function PortalCampaignDetailPage({ params }: PageProps) {
   const { id } = use(params);
+  const { fmtAmount, fmtNumber, currency } = useCurrency();
   const {
     data: campaign,
     isLoading,

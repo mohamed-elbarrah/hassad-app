@@ -6,7 +6,10 @@ import {
   useGetPortalFinanceSummaryQuery,
 } from "@/features/portal/portalApi";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalKpiPill, PortalKpiCurrency } from "@/components/portal/PortalKpiPill";
+import {
+  PortalKpiPill,
+  PortalKpiCurrency,
+} from "@/components/portal/PortalKpiPill";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { PortalDataTable } from "@/components/portal/PortalDataTable";
 import { PortalPagination } from "@/components/portal/PortalPagination";
@@ -19,6 +22,9 @@ import { Input } from "@/components/ui/input";
 import { mapFinanceStatusToUI } from "@/lib/utils/statusMapping";
 import { Search, CreditCard, Receipt } from "lucide-react";
 
+import { useCurrency } from "@/hooks/useCurrency";
+import { SymbolRenderer } from "@/components/portal/CurrencySymbol";
+
 const PAGE_SIZE = 7;
 
 const STATUS_FILTER_OPTIONS = [
@@ -30,10 +36,6 @@ const STATUS_FILTER_OPTIONS = [
   { value: "SENT", label: "مُرسلة" },
   { value: "CANCELLED", label: "ملغاة" },
 ];
-
-function fmtCurrency(n: number) {
-  return n.toLocaleString("en-US");
-}
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -64,6 +66,7 @@ function getInvoiceStatus(status?: string) {
 }
 
 export default function PortalFinancePage() {
+  const { currency, fmtAmount } = useCurrency();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -134,27 +137,23 @@ export default function PortalFinancePage() {
           <>
             <PortalKpiPill
               label="إجمالي المدفوعات"
-              value={
-                <PortalKpiCurrency amount={summary.totalInvoiced} />
-              }
+              value={<PortalKpiCurrency amount={summary.totalInvoiced} />}
             />
             <PortalKpiPill
               label="الفواتير المستحقة"
-              value={
-                <PortalKpiCurrency amount={summary.totalRemaining} />
-              }
+              value={<PortalKpiCurrency amount={summary.totalRemaining} />}
             />
             <PortalKpiPill
               label="الفواتير المدفوعة"
-              value={
-                <PortalKpiCurrency amount={summary.totalPaid} />
-              }
+              value={<PortalKpiCurrency amount={summary.totalPaid} />}
             />
             <PortalKpiPill
               label="الفاتورة القادمة"
               value={
                 nextDate ? (
-                  <span className="text-2xl font-bold text-natural-100">{nextDate}</span>
+                  <span className="text-2xl font-bold text-natural-100">
+                    {nextDate}
+                  </span>
                 ) : (
                   <PortalKpiCurrency amount={summary.nextInvoiceAmount} />
                 )
@@ -219,10 +218,13 @@ export default function PortalFinancePage() {
               </td>
               <td className="px-5 py-4">
                 <div className="flex items-baseline gap-1 justify-end font-medium text-natural-100">
-                  <span className="text-xs font-normal text-portal-icon">
-                    ر.س
-                  </span>
-                  <span>{fmtCurrency(invoice.amount)}</span>
+                  <span>{fmtAmount(invoice.amount)}</span>
+                  <SymbolRenderer
+                    currency={currency}
+                    className="text-xs font-light text-portal-icon"
+                    width={18}
+                    height={18}
+                  />
                 </div>
               </td>
               <td className="px-5 py-4">
