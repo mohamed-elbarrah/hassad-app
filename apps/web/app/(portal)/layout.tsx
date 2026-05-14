@@ -72,7 +72,11 @@ export default function PortalLayout({
   }
 
   return (
-    <div className="h-screen overflow-hidden flex w-full" dir="rtl" style={{ background: "#F9FAFB" }}>
+    <div
+      className="h-screen overflow-hidden flex w-full"
+      dir="rtl"
+      style={{ background: "#F9FAFB" }}
+    >
       {/* Right Sidebar — desktop only (lg = 1024px+) */}
       <div className="hidden lg:block">
         <PortalSidebar />

@@ -40,13 +40,16 @@ import {
   mapTaskStatusToUI,
   mapProjectStatusToUI,
 } from "@/lib/utils/statusMapping";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 const ACTION_TYPE_CONFIG: Record<
   string,
-  { primaryAction: string; primaryColor: "purple" | "blue"; icon: typeof Palette }
+  {
+    primaryAction: string;
+    primaryColor: "purple" | "blue";
+    icon: typeof Palette;
+  }
 > = {
   DELIVERABLE_APPROVAL: {
     primaryAction: "مراجعة الآن",
@@ -71,11 +74,11 @@ const ACTION_TYPE_CONFIG: Record<
 };
 
 const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
-  palette: <Palette className="w-[26px] h-[26px] text-secondary-500" />,
-  file: <FileText className="w-5 h-[23px] text-secondary-500" />,
+  palette: <Palette className="w-6 h-6 text-secondary-500" />,
+  file: <FileText className="w-5 h-5 text-secondary-500" />,
   trending: <TrendingUp className="w-6 h-6 text-secondary-500" />,
   check: <CheckCircle className="w-6 h-6 text-secondary-500" />,
-  dollar: <DollarSign className="w-7 h-7 text-secondary-500" />,
+  dollar: <DollarSign className="w-6 h-6 text-secondary-500" />,
 };
 
 export default function PortalPage() {
@@ -107,10 +110,13 @@ export default function PortalPage() {
     useGetActivityFeedQuery(undefined, {
       skip: !clientId,
     });
-  const { data: campaignSummary, error: campaignError, isLoading: campaignLoading } =
-    useGetCampaignSummaryQuery(undefined, {
-      skip: !clientId,
-    });
+  const {
+    data: campaignSummary,
+    error: campaignError,
+    isLoading: campaignLoading,
+  } = useGetCampaignSummaryQuery(undefined, {
+    skip: !clientId,
+  });
 
   const projects = projectProgress?.projects ?? [];
   const pendingRequests = pendingRequestsData?.data ?? [];
@@ -137,7 +143,7 @@ export default function PortalPage() {
   if (!clientId) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-[18px] text-portal-note-text">
+        <p className="text-lg text-portal-note-text">
           لم يتم ربط حسابك بملف عميل. يرجى التواصل مع الإدارة.
         </p>
       </div>
@@ -151,7 +157,6 @@ export default function PortalPage() {
     >
       {/* COLUMN 1 */}
       <div className="flex flex-col gap-5">
-      
         {/* ── تتبع المشاريع ──────────────────────────── */}
         <DashboardCard
           title="تتبع المشاريع"
@@ -160,7 +165,7 @@ export default function PortalPage() {
         >
           {projectError ? (
             <div className="flex flex-col items-center gap-5 py-8">
-              <p className="text-[16px] text-portal-note-text">
+              <p className="text-base text-portal-note-text">
                 تعذر تحميل بيانات المشاريع
               </p>
             </div>
@@ -172,9 +177,9 @@ export default function PortalPage() {
                 {projects.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between p-4 bg-white border-portal-card-border border rounded-xl"
+                    className="flex items-center justify-between p-4 bg-natural-0 border-portal-card-border border rounded-2xl"
                   >
-                    <span className="text-[22px] font-medium leading-[33px] text-natural-100">
+                    <span className="text-base font-medium text-natural-100">
                       {p.name}
                     </span>
                     <StatusBadge
@@ -184,11 +189,11 @@ export default function PortalPage() {
                   </div>
                 ))}
 
-                <div className="p-5 text-right bg-portal-bg rounded-xl">
-                  <p className="text-[22px] font-medium leading-[33px] text-natural-100">
+                <div className="p-5 text-right bg-portal-bg rounded-2xl">
+                  <p className="text-base font-medium text-natural-100">
                     المشاريع النشطة :
                   </p>
-                  <p className="mt-1 text-[18px] font-normal leading-[27px] text-portal-note-text">
+                  <p className="mt-1 text-sm text-portal-note-text">
                     {projectProgress.activeProjects} من{" "}
                     {projectProgress.totalProjects}
                   </p>
@@ -198,7 +203,7 @@ export default function PortalPage() {
           ) : (
             <div className="flex flex-col items-center gap-5 py-8">
               <GaugeChart value={0} max={100} />
-              <p className="text-[16px] text-portal-note-text">
+              <p className="text-base text-portal-note-text">
                 لا يوجد مشروع نشط حالياً
               </p>
             </div>
@@ -208,7 +213,7 @@ export default function PortalPage() {
         {/* ── آخر التحديثات ─────────────────────────── */}
         <DashboardCard title="آخر التحديثات" icon={Clock} showAll={false}>
           {activityError ? (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               تعذر تحميل التحديثات
             </p>
           ) : activityItems.length > 0 ? (
@@ -237,7 +242,7 @@ export default function PortalPage() {
               })}
             </div>
           ) : (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               لا توجد تحديثات حالياً
             </p>
           )}
@@ -253,7 +258,7 @@ export default function PortalPage() {
           onShowAll={() => router.push("/portal/actions")}
         >
           {actionItemsError ? (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               تعذر تحميل الإجراءات
             </p>
           ) : actionItems.length > 0 ? (
@@ -284,7 +289,7 @@ export default function PortalPage() {
               })}
             </div>
           ) : (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               لا توجد إجراءات معلقة
             </p>
           )}
@@ -298,12 +303,12 @@ export default function PortalPage() {
         >
           {campaignLoading ? (
             <div className="space-y-3 px-1">
-              <Skeleton className="h-[30px] w-full rounded-lg" />
-              <Skeleton className="h-[30px] w-full rounded-lg" />
-              <Skeleton className="h-[30px] w-3/4 rounded-lg" />
+              <Skeleton className="h-[30px] w-full rounded-2xl" />
+              <Skeleton className="h-[30px] w-full rounded-2xl" />
+              <Skeleton className="h-[30px] w-3/4 rounded-2xl" />
             </div>
           ) : campaignError ? (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               تعذر تحميل بيانات الحملة
             </p>
           ) : campaignSummary &&
@@ -313,12 +318,16 @@ export default function PortalPage() {
               <KpiRow
                 label="الزيارات"
                 value={`${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`}
-                icon={<Users className="w-[29px] h-[22px] text-secondary-500" />}
+                icon={
+                  <Users className="w-[29px] h-[22px] text-secondary-500" />
+                }
               />
               <KpiRow
                 label="التحويلات"
                 value={`${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`}
-                icon={<Filter className="w-[23px] h-[23px] text-secondary-500" />}
+                icon={
+                  <Filter className="w-[23px] h-[23px] text-secondary-500" />
+                }
               />
               <KpiRow
                 label="العائد على الإنفاق الإعلاني"
@@ -329,16 +338,16 @@ export default function PortalPage() {
               {campaignSummary.improvementPercent !== 0 && (
                 <div
                   className={cn(
-                    "p-5 text-right rounded-xl",
+                    "p-5 text-right rounded-2xl",
                     campaignSummary.improvementPercent > 0
                       ? "bg-success-100/15"
-                      : "bg-danger-100/10"
+                      : "bg-danger-100/10",
                   )}
                 >
-                  <p className="text-[22px] font-medium leading-[33px] text-natural-100">
+                  <p className="text-base font-medium text-natural-100">
                     ملاحظة:
                   </p>
-                  <p className="mt-1 text-[18px] font-normal leading-[27px] text-portal-note-text">
+                  <p className="mt-1 text-sm text-portal-note-text">
                     الأداء{" "}
                     {campaignSummary.improvementPercent > 0 ? "تحسن" : "انخفض"}{" "}
                     بنسبة {Math.abs(campaignSummary.improvementPercent)}% مقارنة
@@ -348,7 +357,7 @@ export default function PortalPage() {
               )}
             </div>
           ) : (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               لا توجد حملات نشطة حالياً
             </p>
           )}
@@ -357,48 +366,47 @@ export default function PortalPage() {
 
       {/* COLUMN 3 */}
       <div className="flex flex-col gap-5">
-
         <DashboardCard
           title="الطلبات قيد الانتظار"
           icon={ClipboardList}
           onShowAll={() => router.push("/portal/requests")}
         >
           {pendingRequestsError ? (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               تعذر تحميل الطلبات الحالية
             </p>
           ) : pendingRequests.length > 0 ? (
             <div className="space-y-3">
               {pendingRequests.map((request) => (
-                <Card
+                <div
                   key={request.id}
-                  className="rounded-2xl border-portal-card-border p-4 bg-white shadow-none"
+                  className="rounded-2xl border border-portal-card-border bg-natural-0 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[20px] font-semibold leading-[30px] text-natural-100 truncate">
+                      <p className="text-base font-semibold text-natural-100 truncate">
                         {request.companyName}
                       </p>
-                      <p className="text-[15px] leading-[22px] text-portal-note-text">
+                      <p className="text-sm text-portal-note-text">
                         {request.contactName}
                       </p>
                     </div>
                     <StatusBadge status="pending" label={request.statusLabel} />
                   </div>
-                  <p className="mt-3 text-[15px] leading-[24px] text-portal-note-text/90">
+                  <p className="mt-3 text-sm text-portal-note-text/90">
                     {request.stageLabel}
                   </p>
-                  <p className="mt-2 text-[14px] leading-[21px] text-portal-note-text/80">
+                  <p className="mt-2 text-xs text-portal-note-text/80">
                     تاريخ الطلب:{" "}
                     {new Date(request.createdAt).toLocaleDateString(
                       "ar-SA-u-nu-latn",
                     )}
                   </p>
-                </Card>
+                </div>
               ))}
             </div>
           ) : (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               لا توجد طلبات بانتظار المتابعة حالياً
             </p>
           )}
@@ -439,7 +447,7 @@ export default function PortalPage() {
               })}
             </div>
           ) : (
-            <p className="text-[16px] text-portal-note-text text-center py-4">
+            <p className="text-base text-portal-note-text text-center py-4">
               لا توجد تسليمات حالياً
             </p>
           )}

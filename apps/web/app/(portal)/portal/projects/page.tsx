@@ -4,18 +4,11 @@ import { useState } from "react";
 import { Activity, FolderOpen } from "lucide-react";
 import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
 import { ProjectStatus } from "@hassad/shared";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
+import { PortalPagination } from "@/components/portal/PortalPagination";
+import { PortalDataTable } from "@/components/portal/PortalDataTable";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
 import { cn } from "@/lib/utils";
@@ -32,23 +25,6 @@ const STATUS_FILTERS: { label: string; value: string }[] = [
 ];
 
 const PAGE_SIZE = 6;
-
-function ProjectSummaryPill({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="min-w-33 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-4 py-3">
-      <p className="text-xs leading-5 text-portal-note-text">{label}</p>
-      <p className="mt-1 text-lg font-semibold leading-7 text-secondary-500">
-        {value}
-      </p>
-    </div>
-  );
-}
 
 export default function PortalProjectsPage() {
   const [statusFilter, setStatusFilter] = useState("");
@@ -73,7 +49,6 @@ export default function PortalProjectsPage() {
         title="مشاريعي"
         description="تتبع جميع مشاريعك، راقب الحالة الحالية، واستعرض نسبة التقدم لكل مشروع ضمن نفس الهوية البصرية للبوابة."
         icon={FolderOpen}
-        
       />
 
       <PortalSurfaceCard
@@ -108,159 +83,87 @@ export default function PortalProjectsPage() {
           </div>
         }
       >
-        {isLoading && (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div
-                key={index}
-                className="grid gap-3 rounded-3xl border-[1.5px] border-portal-divider bg-portal-bg p-4 lg:grid-cols-[1.7fr_1fr_1.2fr_1fr_1fr_1fr]"
-              >
-                {Array.from({ length: 6 }).map((__, cellIndex) => (
-                  <Skeleton key={cellIndex} className="h-6 w-full rounded-lg" />
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {isError && (
-          <div className="rounded-3xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
-            <p className="text-base font-medium text-danger-700">
-              حدث خطأ أثناء تحميل المشاريع.
-            </p>
-            <p className="mt-2 text-sm text-danger-600">
-              يرجى المحاولة لاحقاً أو تحديث الصفحة.
-            </p>
-          </div>
-        )}
-
-        {!isLoading && !isError && projects.length === 0 && (
-          <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-3xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
-              <FolderOpen className="h-8 w-8 text-secondary-500" />
-            </div>
-            <p className="text-lg font-medium text-natural-100">
-              لا توجد مشاريع حالياً.
-            </p>
-            <p className="max-w-md text-sm leading-6 text-portal-note-text">
-              ستظهر هنا جميع المشاريع المرتبطة بحسابك مع التقدم الحالي والتواريخ
-              ومدير المشروع فور توفرها.
-            </p>
-          </div>
-        )}
-
-        {!isLoading && !isError && projects.length > 0 && (
-          <div className="space-y-5">
-            <Table className="min-w-230">
-              <TableHeader className="[&_tr]:border-portal-divider">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-14 px-5 text-right text-sm font-medium text-portal-note-text">
-                    اسم المشروع
-                  </TableHead>
-                  <TableHead className="h-14 px-5 text-right text-sm font-medium text-portal-note-text">
-                    الحالة
-                  </TableHead>
-                  <TableHead className="h-14 px-5 text-right text-sm font-medium text-portal-note-text">
-                    التقدم
-                  </TableHead>
-                  <TableHead className="h-14 px-5 text-right text-sm font-medium text-portal-note-text">
-                    مدير المشروع
-                  </TableHead>
-                  <TableHead className="h-14 px-5 text-right text-sm font-medium text-portal-note-text">
-                    تاريخ البداية
-                  </TableHead>
-                  <TableHead className="h-14 px-5 text-right text-sm font-medium text-portal-note-text">
-                    تاريخ النهاية
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {projects.map((project) => (
-                  <TableRow
-                    key={project.id}
-                    className="border-portal-divider hover:bg-black/3"
-                  >
-                    <TableCell className="px-5 py-5">
-                      <div className="space-y-1">
-                        <p className="text-base font-semibold text-natural-100">
-                          {project.name}
-                        </p>
-                        <p className="text-sm text-portal-note-text">
-                          مشروع ضمن عرض {activeFilterLabel}
-                        </p>
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="px-5 py-5">
-                      <StatusBadge
-                        status={mapProjectStatusToUI(project.status)}
-                        label={project.statusAr}
-                      />
-                    </TableCell>
-
-                    <TableCell className="px-5 py-5">
-                      <div className="flex min-w-45 items-center gap-3">
-                        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gauge-track">
-                          <div
-                            className="h-full rounded-full bg-gauge-fill"
-                            style={{ width: `${project.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-secondary-500">
-                          {project.progress}%
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="px-5 py-5 text-sm text-portal-note-text">
-                      {project.projectManager?.name ?? "غير معين"}
-                    </TableCell>
-
-                    <TableCell className="px-5 py-5 text-sm text-portal-note-text">
-                      {new Date(project.startDate).toLocaleDateString(
-                        "ar-SA-u-nu-latn",
-                      )}
-                    </TableCell>
-
-                    <TableCell className="px-5 py-5 text-sm text-portal-note-text">
-                      {new Date(project.endDate).toLocaleDateString(
-                        "ar-SA-u-nu-latn",
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            {totalPages > 1 && (
-              <div className="flex flex-wrap items-center justify-center gap-3 border-t-[1.5px] border-portal-divider pt-5">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg disabled:opacity-50"
-                  disabled={page <= 1}
-                  onClick={() => setPage((currentPage) => currentPage - 1)}
-                >
-                  السابق
-                </Button>
-
-                <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg px-5 py-3 text-sm font-medium text-secondary-500">
-                  {page} من {totalPages}
+        <PortalDataTable
+          columns={[
+            { id: "name", label: "اسم المشروع" },
+            { id: "status", label: "الحالة" },
+            { id: "progress", label: "التقدم" },
+            { id: "manager", label: "مدير المشروع" },
+            { id: "startDate", label: "تاريخ البداية" },
+            { id: "endDate", label: "تاريخ النهاية" },
+          ]}
+          data={projects}
+          isLoading={isLoading}
+          isError={isError}
+          errorMessage="حدث خطأ أثناء تحميل المشاريع."
+          emptyState={{
+            icon: FolderOpen,
+            message: "لا توجد مشاريع حالياً.",
+            hint: "ستظهر هنا جميع المشاريع المرتبطة بحسابك مع التقدم الحالي والتواريخ ومدير المشروع فور توفرها.",
+          }}
+          minWidth="min-w-[700px]"
+          renderRow={(project) => (
+            <tr
+              key={project.id}
+              className="border-b-[1.5px] border-portal-divider"
+            >
+              <td className="px-5 py-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-natural-100">
+                    {project.name}
+                  </p>
+                  <p className="text-xs text-portal-note-text">
+                    مشروع ضمن عرض {activeFilterLabel}
+                  </p>
                 </div>
+              </td>
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg disabled:opacity-50"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((currentPage) => currentPage + 1)}
-                >
-                  التالي
-                </Button>
-              </div>
-            )}
-          </div>
+              <td className="px-5 py-4">
+                <StatusBadge
+                  status={mapProjectStatusToUI(project.status)}
+                  label={project.statusAr}
+                />
+              </td>
+
+              <td className="px-5 py-4">
+                <div className="flex min-w-[120px] items-center gap-3">
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gauge-track">
+                    <div
+                      className="h-full rounded-full bg-gauge-fill"
+                      style={{ width: `${project.progress}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-secondary-500">
+                    {project.progress}%
+                  </span>
+                </div>
+              </td>
+
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {project.projectManager?.name ?? "غير معين"}
+              </td>
+
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {new Date(project.startDate).toLocaleDateString(
+                  "ar-SA-u-nu-latn",
+                )}
+              </td>
+
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {new Date(project.endDate).toLocaleDateString(
+                  "ar-SA-u-nu-latn",
+                )}
+              </td>
+            </tr>
+          )}
+        />
+
+        {totalPages > 1 && (
+          <PortalPagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         )}
       </PortalSurfaceCard>
     </div>

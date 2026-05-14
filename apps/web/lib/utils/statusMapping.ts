@@ -1,6 +1,7 @@
+import type { StatusType } from "@/components/portal/StatusBadge";
 import type { TaskStatus } from "@hassad/shared";
 
-export type UIStatus = "completed" | "in-progress" | "not-started" | "pending" | "revision" | "active" | "on-hold" | "planning" | "cancelled" | "awaiting-review" | "needs-revision";
+export type UIStatus = StatusType;
 
 export function mapTaskStatusToUI(status: TaskStatus | string): UIStatus {
   switch (status) {
@@ -34,6 +35,82 @@ export function mapProjectStatusToUI(status: string): UIStatus {
       return "awaiting-review";
     case "NEEDS_REVISION":
       return "needs-revision";
+    default:
+      return "planning";
+  }
+}
+
+export function mapContractStatusToUI(status: string): UIStatus {
+  switch (status) {
+    case "DRAFT":
+      return "draft";
+    case "SENT":
+      return "awaiting-review";
+    case "SIGNED":
+      return "completed";
+    case "ACTIVE":
+      return "active";
+    case "EXPIRED":
+      return "overdue";
+    case "CANCELLED":
+      return "cancelled";
+    default:
+      return "draft";
+  }
+}
+
+export function mapProposalStatusToUI(status: string): UIStatus {
+  switch (status) {
+    case "SENT":
+      return "awaiting-review";
+    case "APPROVED":
+      return "completed";
+    case "REVISION_REQUESTED":
+      return "needs-revision";
+    case "REJECTED":
+      return "cancelled";
+    case "DRAFT":
+      return "draft";
+    default:
+      return "draft";
+  }
+}
+
+export function mapFinanceStatusToUI(status: string): UIStatus {
+  switch (status) {
+    case "PAID":
+      return "completed";
+    case "PARTIAL":
+      return "pending";
+    case "DUE":
+      return "revision";
+    case "SENT":
+      return "active";
+    case "LATE":
+      return "overdue";
+    case "PENDING":
+      return "pending";
+    case "CANCELLED":
+      return "cancelled";
+    case "UNPAID":
+      return "unpaid";
+    default:
+      return "pending";
+  }
+}
+
+export function mapCampaignStatusToUI(status: string): UIStatus {
+  switch (status) {
+    case "PLANNING":
+      return "planning";
+    case "ACTIVE":
+      return "active";
+    case "PAUSED":
+      return "on-hold";
+    case "STOPPED":
+      return "cancelled";
+    case "COMPLETED":
+      return "completed";
     default:
       return "planning";
   }

@@ -22,12 +22,19 @@ export function PortalFilePreview({
 }: PortalFilePreviewProps) {
   const fileUrl = buildPortalFileUrl(filePath);
   const fileKind = getPortalFileKind(filePath);
-  const extension = getPortalFileExtension(filePath).toUpperCase() || getPortalFileKindLabel(filePath);
+  const extension =
+    getPortalFileExtension(filePath).toUpperCase() ||
+    getPortalFileKindLabel(filePath);
   const fileName = getPortalFileName(filePath);
 
   if (fileKind === "image") {
     return (
-      <div className={cn("group relative h-40 overflow-hidden rounded-[24px] bg-portal-bg", className)}>
+      <div
+        className={cn(
+          "group relative h-40 overflow-hidden rounded-[24px] bg-portal-bg",
+          className,
+        )}
+      >
         <img
           alt={title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
@@ -43,8 +50,19 @@ export function PortalFilePreview({
 
   if (fileKind === "video") {
     return (
-      <div className={cn("group relative h-40 overflow-hidden rounded-[24px] bg-[#10172f]", className)}>
-        <video className="h-full w-full object-cover opacity-75" muted playsInline preload="metadata" src={fileUrl} />
+      <div
+        className={cn(
+          "group relative h-40 overflow-hidden rounded-[24px] bg-[#10172f]",
+          className,
+        )}
+      >
+        <video
+          className="h-full w-full object-cover opacity-75"
+          muted
+          playsInline
+          preload="metadata"
+          src={fileUrl}
+        />
         <div className="absolute inset-0 flex items-center justify-center bg-black/20">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-secondary-500 shadow-sm">
             <PlayCircle className="h-6 w-6" />
@@ -86,7 +104,9 @@ export function PortalFilePreview({
         <p className="line-clamp-2 text-sm font-medium leading-6 text-natural-100">
           {title}
         </p>
-        <p className="truncate text-xs leading-5 text-portal-note-text">{fileName}</p>
+        <p className="truncate text-xs leading-5 text-portal-note-text">
+          {fileName}
+        </p>
       </div>
     </div>
   );

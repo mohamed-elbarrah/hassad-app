@@ -2,7 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 
-export type ChartMetric = "impressions" | "clicks" | "conversions" | "spend" | "all";
+export type ChartMetric =
+  | "impressions"
+  | "clicks"
+  | "conversions"
+  | "spend"
+  | "all";
 
 const METRICS: { key: ChartMetric; label: string }[] = [
   { key: "all", label: "الكل" },

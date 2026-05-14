@@ -3,24 +3,31 @@
 import { useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { toggleDropdown, setDropdownOpen } from "@/features/notifications/notificationsSlice";
+import {
+  toggleDropdown,
+  setDropdownOpen,
+} from "@/features/notifications/notificationsSlice";
 import { useGetUnreadCountQuery } from "@/features/portal-notifications/portalNotificationsApi";
 import { PortalNotificationsDropdown } from "./PortalNotificationsDropdown";
 
 export function PortalNotificationBell() {
   const dispatch = useAppDispatch();
-  const { isDropdownOpen } = useAppSelector(
-    (state) => state.notifications,
-  );
+  const { isDropdownOpen } = useAppSelector((state) => state.notifications);
 
-  const { data } = useGetUnreadCountQuery(undefined, { pollingInterval: 30000 });
+  const { data } = useGetUnreadCountQuery(undefined, {
+    pollingInterval: 30000,
+  });
   const unreadCount = data?.count ?? 0;
 
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node) && isDropdownOpen) {
+      if (
+        ref.current &&
+        !ref.current.contains(event.target as Node) &&
+        isDropdownOpen
+      ) {
         dispatch(setDropdownOpen(false));
       }
     }

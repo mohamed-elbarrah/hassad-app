@@ -2,11 +2,11 @@
 
 import { useAppSelector } from "@/lib/hooks";
 import { UserRole } from "@hassad/shared";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
+import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail } from "lucide-react";
+import { Settings, User, Mail } from "lucide-react";
 
 function getInitials(name: string) {
   return name
@@ -24,46 +24,59 @@ export default function PortalAccountPage() {
   if (!user) return null;
 
   return (
-    <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
-      <h1 className="text-2xl font-bold">الحساب الشخصي</h1>
+    <div className="flex flex-col gap-5" dir="rtl">
+      <PortalPageIntro
+        title="الحساب الشخصي"
+        description="معلومات حسابك وبيانات التواصل المرتبطة بملفك الشخصي في المنصة."
+        icon={Settings}
+      />
 
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-4 pb-4">
+      <PortalSurfaceCard
+        title="البيانات الأساسية"
+        description="تفاصيل حسابك الحالي في البوابة"
+        icon={User}
+      >
+        <div className="flex items-center gap-4 pb-5 border-b-[1.5px] border-portal-divider">
           <Avatar className="h-16 w-16 rounded-xl">
-            <AvatarFallback className="rounded-xl text-lg font-semibold">
+            <AvatarFallback
+              className="rounded-xl text-lg font-semibold"
+              style={{ backgroundColor: "#121936", color: "#fff" }}
+            >
               {getInitials(user.name)}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col gap-1">
-            <CardTitle className="text-xl">{user.name}</CardTitle>
-            <Badge variant="secondary">عميل</Badge>
+            <h3 className="text-xl font-semibold text-natural-100">
+              {user.name}
+            </h3>
+            <span className="inline-flex h-8 items-center justify-center rounded-full bg-badge-gray-bg px-3 text-sm font-medium text-secondary-500">
+              عميل
+            </span>
           </div>
-        </CardHeader>
+        </div>
 
-        <Separator />
-
-        <CardContent className="pt-4 space-y-4">
+        <div className="pt-5 space-y-4">
           <div className="flex items-center gap-3 text-sm">
-            <User className="h-4 w-4 text-muted-foreground shrink-0" />
+            <User className="h-4 w-4 text-portal-icon shrink-0" />
             <div>
-              <p className="text-muted-foreground text-xs mb-0.5">
+              <p className="text-xs text-portal-note-text mb-0.5">
                 الاسم الكامل
               </p>
-              <p className="font-medium">{user.name}</p>
+              <p className="font-medium text-natural-100">{user.name}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Mail className="h-4 w-4 text-portal-icon shrink-0" />
             <div>
-              <p className="text-muted-foreground text-xs mb-0.5">
+              <p className="text-xs text-portal-note-text mb-0.5">
                 البريد الإلكتروني
               </p>
-              <p className="font-medium">{user.email}</p>
+              <p className="font-medium text-natural-100">{user.email}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </PortalSurfaceCard>
     </div>
   );
 }

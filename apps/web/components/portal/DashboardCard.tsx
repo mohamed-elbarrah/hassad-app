@@ -25,16 +25,12 @@ export function DashboardCard({
     <Card
       className={cn(
         "overflow-hidden border-[1.5px] border-portal-card-border rounded-[30px] bg-white shadow-none",
-        className
+        className,
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between px-5 py-4 border-b-[1.5px] border-portal-divider space-y-0">
         <div className="flex items-center gap-2">
-          {Icon && (
-            <Icon
-              className="w-[29px] h-[29px] text-portal-icon"
-            />
-          )}
+          {Icon && <Icon className="w-[29px] h-[29px] text-portal-icon" />}
           <h3 className="text-[24px] font-medium leading-[36px] text-natural-100">
             {title}
           </h3>

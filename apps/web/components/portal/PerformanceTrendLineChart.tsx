@@ -18,7 +18,8 @@ const METRIC_LABELS: Record<string, string> = {
 };
 
 function fmtCompact(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000_000)
+    return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
   return n.toLocaleString("ar-SA-u-nu-latn");
 }
@@ -52,12 +53,16 @@ export function PerformanceTrendLineChart({
     ? timeline.datasets.find((ds) => ds.metric === selectedMetric)
     : timeline.datasets[0];
 
-  const dataKey = visibleDataset?.metric || timeline.datasets[0]?.metric || "impressions";
+  const dataKey =
+    visibleDataset?.metric || timeline.datasets[0]?.metric || "impressions";
   const color = "#121936";
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+      <AreaChart
+        data={chartData}
+        margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+      >
         <XAxis
           dataKey="name"
           tick={{ fontSize: 11, fill: "#9CA3AF" }}

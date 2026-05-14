@@ -17,12 +17,15 @@ interface SpendDistributionDonutChartProps {
 }
 
 function fmtSpend(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1_000_000)
+    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
   return n.toLocaleString("ar-SA-u-nu-latn");
 }
 
-export function SpendDistributionDonutChart({ data }: SpendDistributionDonutChartProps) {
+export function SpendDistributionDonutChart({
+  data,
+}: SpendDistributionDonutChartProps) {
   if (!data || data.length === 0) {
     return (
       <p className="text-xs text-muted-foreground py-10 text-center">
@@ -52,7 +55,10 @@ export function SpendDistributionDonutChart({ data }: SpendDistributionDonutChar
               {data.map((entry, i) => (
                 <Cell
                   key={entry.platform}
-                  fill={PLATFORM_COLORS[entry.platform] || FALLBACK_COLORS[i % FALLBACK_COLORS.length]}
+                  fill={
+                    PLATFORM_COLORS[entry.platform] ||
+                    FALLBACK_COLORS[i % FALLBACK_COLORS.length]
+                  }
                 />
               ))}
             </Pie>
@@ -82,10 +88,15 @@ export function SpendDistributionDonutChart({ data }: SpendDistributionDonutChar
 
       <div className="flex flex-wrap gap-x-5 gap-y-2 justify-center mt-2">
         {data.map((d, i) => {
-          const color = PLATFORM_COLORS[d.platform] || FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+          const color =
+            PLATFORM_COLORS[d.platform] ||
+            FALLBACK_COLORS[i % FALLBACK_COLORS.length];
           return (
             <div key={d.platform} className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: color }}
+              />
               <span className="text-xs text-muted-foreground">
                 {d.platform} ({Math.round(d.percent)}%)
               </span>

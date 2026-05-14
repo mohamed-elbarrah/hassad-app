@@ -9,5 +9,12 @@ export default function PortalError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/portal" backLabel="العودة للبوابة" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/portal"
+      backLabel="العودة للبوابة"
+    />
+  );
 }

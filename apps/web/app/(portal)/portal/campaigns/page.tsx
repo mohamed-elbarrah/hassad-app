@@ -5,30 +5,14 @@ import {
   useGetPortalCampaignsQuery,
   type PortalCampaign,
 } from "@/features/portal/portalApi";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
+import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
+import { StatusBadge } from "@/components/portal/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 import Link from "next/link";
-
-const STATUS_LABELS: Record<string, string> = {
-  PLANNING: "تخطيط",
-  ACTIVE: "نشطة",
-  PAUSED: "متوقفة",
-  STOPPED: "متوقفة",
-  COMPLETED: "مكتملة",
-};
-
-const STATUS_VARIANT: Record<
-  string,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
-  PLANNING: "outline",
-  ACTIVE: "default",
-  PAUSED: "secondary",
-  STOPPED: "destructive",
-  COMPLETED: "secondary",
-};
+import { TrendingUp } from "lucide-react";
 
 const PLATFORM_LABELS: Record<string, string> = {
   GOOGLE: "Google Ads",
@@ -45,128 +29,149 @@ export default function PortalCampaignsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
 
-  const { data: campaigns, isLoading, isError, refetch } = useGetPortalCampaignsQuery(undefined, {
+  const {
+    data: campaigns,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetPortalCampaignsQuery(undefined, {
     skip: !clientId,
   });
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      <div>
-        <h1 className="text-2xl font-semibold">الحملات الإعلانية</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          جميع الحملات الإعلانية وأدائها.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5" dir="rtl">
+      <PortalPageIntro
+        title="الحملات الإعلانية"
+        description="جميع الحملات الإعلانية المرتبطة بحسابك مع مؤشرات الأداء الرئيسية لكل حملة."
+        icon={TrendingUp}
+      />
 
       {!clientId && (
-        <p className="text-sm text-muted-foreground">
-          لم يتم ربط حسابك بملف عميل.
-        </p>
+        <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
+          <p className="text-base font-medium text-danger-700">
+            لم يتم ربط حسابك بملف عميل.
+          </p>
+        </div>
       )}
 
       {clientId && isError && !isLoading && (
         <div className="flex flex-col items-center gap-4 py-12">
-          <Card className="max-w-md w-full">
-            <CardContent className="py-8 text-center flex flex-col items-center gap-4">
-              <p className="text-muted-foreground text-sm">
-                تعذر تحميل الحملات. يرجى المحاولة مرة أخرى.
-              </p>
-              <Button variant="outline" size="sm" onClick={() => refetch()}>
-                إعادة المحاولة
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center max-w-md w-full">
+            <p className="text-base font-medium text-danger-700">
+              تعذر تحميل الحملات. يرجى المحاولة مرة أخرى.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="mt-3"
+            >
+              إعادة المحاولة
+            </Button>
+          </div>
         </div>
       )}
 
-      {clientId && !isError && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {isLoading &&
-            Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
+      {clientId && (
+        <PortalSurfaceCard title="قائمة الحملات" icon={TrendingUp}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {isLoading &&
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5"
+                >
                   <Skeleton className="h-6 w-3/4 mb-4" />
                   <Skeleton className="h-4 w-1/2 mb-2" />
                   <Skeleton className="h-4 w-1/3" />
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              ))}
 
-          {!isLoading && campaigns && campaigns.length === 0 && (
-            <Card className="col-span-full">
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">لا توجد حملات حالياً.</p>
-              </CardContent>
-            </Card>
-          )}
+            {!isLoading && campaigns && campaigns.length === 0 && (
+              <div className="col-span-full flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
+                  <TrendingUp className="h-8 w-8 text-secondary-500" />
+                </div>
+                <p className="text-lg font-medium text-natural-100">
+                  لا توجد حملات حالياً.
+                </p>
+                <p className="max-w-md text-sm leading-6 text-portal-note-text">
+                  ستظهر هنا جميع الحملات الإعلانية المرتبطة بحسابك بمجرد
+                  إطلاقها.
+                </p>
+              </div>
+            )}
 
-          {!isLoading &&
-            campaigns &&
-            campaigns.map((campaign: PortalCampaign) => (
-              <Link key={campaign.id} href={`/portal/campaigns/${campaign.id}`} className="block">
-                <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{campaign.name}</CardTitle>
-                    <Badge
-                      variant={STATUS_VARIANT[campaign.status] ?? "outline"}
-                    >
-                      {STATUS_LABELS[campaign.status] ?? campaign.status}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {PLATFORM_LABELS[campaign.platform] ?? campaign.platform}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">الانطباعات</p>
-                      <p className="font-medium">
-                        {fmt(campaign.analytics?.impressions ?? 0)}
-                      </p>
+            {!isLoading &&
+              campaigns?.map((campaign: PortalCampaign) => (
+                <Link
+                  key={campaign.id}
+                  href={`/portal/campaigns/${campaign.id}`}
+                  className="block"
+                >
+                  <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5 hover:border-secondary-500/50 transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between pb-3 border-b-[1.5px] border-portal-divider">
+                      <h3 className="text-base font-semibold text-natural-100">
+                        {campaign.name}
+                      </h3>
+                      <StatusBadge
+                        status={mapCampaignStatusToUI(campaign.status)}
+                      />
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">النقرات</p>
-                      <p className="font-medium">
-                        {fmt(campaign.analytics?.clicks ?? 0)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">التحويلات</p>
-                      <p className="font-medium">
-                        {fmt(campaign.analytics?.conversions ?? 0)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">العائد ROAS</p>
-                      <p className="font-medium">
-                        {campaign.analytics?.roas?.toFixed(1) ?? "0"}x
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">نسبة النقر CTR</p>
-                      <p className="font-medium">
-                        {campaign.analytics?.ctr?.toFixed(2) ?? "0"}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">تكلفة النقرة CPC</p>
-                      <p className="font-medium">
-                        {campaign.analytics?.cpc?.toFixed(2) ?? "0"} ر.س
-                      </p>
-                    </div>
-                  </div>
+                    <p className="text-xs text-portal-note-text mt-2">
+                      {PLATFORM_LABELS[campaign.platform] ?? campaign.platform}
+                    </p>
 
-                  <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                    الميزانية: {fmt(campaign.budgetTotal)} ر.س | المنفق:{" "}
-                    {fmt(campaign.budgetSpent)} ر.س
+                    <div className="grid grid-cols-2 gap-3 text-sm mt-3">
+                      <div>
+                        <p className="text-portal-note-text">الانطباعات</p>
+                        <p className="font-medium text-natural-100">
+                          {fmt(campaign.analytics?.impressions ?? 0)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-portal-note-text">النقرات</p>
+                        <p className="font-medium text-natural-100">
+                          {fmt(campaign.analytics?.clicks ?? 0)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-portal-note-text">التحويلات</p>
+                        <p className="font-medium text-natural-100">
+                          {fmt(campaign.analytics?.conversions ?? 0)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-portal-note-text">العائد ROAS</p>
+                        <p className="font-medium text-natural-100">
+                          {campaign.analytics?.roas?.toFixed(1) ?? "0"}x
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-portal-note-text">نسبة النقر CTR</p>
+                        <p className="font-medium text-natural-100">
+                          {campaign.analytics?.ctr?.toFixed(2) ?? "0"}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-portal-note-text">
+                          تكلفة النقرة CPC
+                        </p>
+                        <p className="font-medium text-natural-100">
+                          {campaign.analytics?.cpc?.toFixed(2) ?? "0"} ر.س
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t-[1.5px] border-portal-divider text-xs text-portal-note-text">
+                      الميزانية: {fmt(campaign.budgetTotal)} ر.س | المنفق:{" "}
+                      {fmt(campaign.budgetSpent)} ر.س
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-              </Link>
-            ))}
-        </div>
+                </Link>
+              ))}
+          </div>
+        </PortalSurfaceCard>
       )}
     </div>
   );

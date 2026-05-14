@@ -1,7 +1,32 @@
-import { CheckCircle2, Clock, Hourglass, RotateCcw, PauseCircle, XCircle, Eye, AlertTriangle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  Hourglass,
+  RotateCcw,
+  PauseCircle,
+  XCircle,
+  Eye,
+  AlertTriangle,
+  FileText,
+  DollarSign,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type StatusType = "completed" | "in-progress" | "not-started" | "pending" | "revision" | "active" | "on-hold" | "planning" | "cancelled" | "awaiting-review" | "needs-revision";
+export type StatusType =
+  | "completed"
+  | "in-progress"
+  | "not-started"
+  | "pending"
+  | "revision"
+  | "active"
+  | "on-hold"
+  | "planning"
+  | "cancelled"
+  | "awaiting-review"
+  | "needs-revision"
+  | "draft"
+  | "overdue"
+  | "unpaid";
 
 const STATUS_CONFIG: Record<
   StatusType,
@@ -33,7 +58,7 @@ const STATUS_CONFIG: Record<
   },
   revision: {
     label: "تعديل",
-    bg: "bg-danger-100/10",
+    bg: "bg-danger-100",
     text: "text-danger-500",
     icon: RotateCcw,
   },
@@ -57,7 +82,7 @@ const STATUS_CONFIG: Record<
   },
   cancelled: {
     label: "ملغى",
-    bg: "bg-danger-100/10",
+    bg: "bg-danger-100",
     text: "text-danger-500",
     icon: XCircle,
   },
@@ -69,9 +94,27 @@ const STATUS_CONFIG: Record<
   },
   "needs-revision": {
     label: "مطلوب تعديلات",
-    bg: "bg-danger-100/10",
+    bg: "bg-danger-100",
     text: "text-danger-500",
     icon: AlertTriangle,
+  },
+  draft: {
+    label: "مسودة",
+    bg: "bg-badge-gray-bg",
+    text: "text-badge-gray-text",
+    icon: FileText,
+  },
+  overdue: {
+    label: "متأخر",
+    bg: "bg-danger-100",
+    text: "text-danger-500",
+    icon: Clock,
+  },
+  unpaid: {
+    label: "غير مدفوعة",
+    bg: "bg-danger-100/10",
+    text: "text-danger-500",
+    icon: DollarSign,
   },
 };
 
@@ -90,11 +133,11 @@ export function StatusBadge({
       className={cn(
         "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[16px] font-medium leading-[24px]",
         config.bg,
-        config.text
+        config.text,
       )}
     >
-      {label ?? config.label}
       <Icon className="w-5 h-5" />
+      {label ?? config.label}
     </span>
   );
 }

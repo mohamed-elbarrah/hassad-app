@@ -1,49 +1,43 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Settings,
-  Palette,
-  Receipt,
-  FileText,
-  PenTool,
-  Clock,
-} from "lucide-react";
-import { useGetActionItemsQuery } from "@/features/portal/portalApi";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { Settings, CheckCircle2, Clock, ExternalLink } from "lucide-react";
+import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
+import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
+import { PortalPagination } from "@/components/portal/PortalPagination";
+import { PortalFilterPills } from "@/components/portal/PortalFilterPills";
+import { PortalPill } from "@/components/portal/PortalPill";
+import { PortalDataTable } from "@/components/portal/PortalDataTable";
+import { Button } from "@/components/ui/button";
+import { useGetActionItemsQuery } from "@/features/portal/portalApi";
 
-const TYPE_FILTERS: { label: string; value: string; icon: typeof Settings }[] =
-  [
-    { label: "الكل", value: "", icon: Settings },
-    { label: "مراجعة تسليمات", value: "DELIVERABLE_APPROVAL", icon: Palette },
-    { label: "دفع فواتير", value: "INVOICE_PAYMENT", icon: Receipt },
-    { label: "مراجعة عروض", value: "PROPOSAL_REVIEW", icon: FileText },
-    { label: "توقيع عقود", value: "CONTRACT_SIGN", icon: PenTool },
-  ];
+const TYPE_FILTERS = [
+  { label: "الكل", value: "" },
+  { label: "مراجعة تسليمات", value: "DELIVERABLE_APPROVAL" },
+  { label: "دفع فواتير", value: "INVOICE_PAYMENT" },
+  { label: "مراجعة عروض", value: "PROPOSAL_REVIEW" },
+  { label: "توقيع عقود", value: "CONTRACT_SIGN" },
+];
 
-const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  DELIVERABLE_APPROVAL: { label: "مراجعة تسليم", color: "purple" },
-  INVOICE_PAYMENT: { label: "دفع فاتورة", color: "blue" },
-  PROPOSAL_REVIEW: { label: "مراجعة عرض", color: "purple" },
-  CONTRACT_SIGN: { label: "توقيع عقد", color: "blue" },
-};
-
-const PRIORITY_CONFIG: Record<
-  string,
+const TYPE_CONFIG: Record<string, { label: string; color: "purple" | "blue" }> =
   {
-    label: string;
-    variant: "default" | "secondary" | "outline" | "destructive";
-  }
+    DELIVERABLE_APPROVAL: { label: "مراجعة تسليم", color: "purple" },
+    INVOICE_PAYMENT: { label: "دفع فاتورة", color: "blue" },
+    PROPOSAL_REVIEW: { label: "مراجعة عرض", color: "purple" },
+    CONTRACT_SIGN: { label: "توقيع عقد", color: "blue" },
+  };
+
+const PRIORITY_PILL: Record<
+  string,
+  { label: string; tone: "danger" | "neutral" | "warning" }
 > = {
-  high: { label: "عاجل", variant: "destructive" },
-  normal: { label: "عادي", variant: "default" },
-  low: { label: "منخفض", variant: "outline" },
+  high: { label: "عاجل", tone: "danger" },
+  normal: { label: "عادي", tone: "neutral" },
+  low: { label: "منخفض", tone: "warning" },
 };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 6;
 
 export default function PortalActionsPage() {
   const router = useRouter();
@@ -60,155 +54,114 @@ export default function PortalActionsPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  const handleFilterChange = (value: string) => {
+    setTypeFilter(value);
+    setPage(1);
+  };
+
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      <div>
-        <h1 className="text-2xl font-semibold">إجراءات تتطلب تدخلك</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          جميع الإجراءات التي تحتاج مراجعتك أو موافقتك.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5" dir="rtl">
+      <PortalPageIntro
+        title="إجراءات تتطلب تدخلك"
+        description="جميع الإجراءات التي تحتاج مراجعتك أو موافقتك ضمن نفس تجربة العميل الموحدة."
+        icon={CheckCircle2}
+      />
 
-      <div className="flex items-center gap-2 flex-wrap">
-        {TYPE_FILTERS.map((f) => {
-          const Icon = f.icon;
-          const isActive = typeFilter === f.value;
-          return (
-            <Button
-              key={f.value}
-              variant={isActive ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                setTypeFilter(f.value);
-                setPage(1);
-              }}
-              className="gap-1.5"
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {f.label}
-            </Button>
-          );
-        })}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">الإجراءات المعلقة</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading && (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-20 bg-muted animate-pulse rounded-xl"
-                />
-              ))}
-            </div>
-          )}
-          {isError && (
-            <p className="text-sm text-destructive">
-              حدث خطأ أثناء تحميل الإجراءات. يرجى المحاولة لاحقاً.
-            </p>
-          )}
-          {!isLoading && !isError && items.length === 0 && (
-            <div className="flex flex-col items-center gap-3 py-10">
-              <Settings className="h-8 w-8 opacity-30" />
-              <p className="text-sm text-muted-foreground">
-                لا توجد إجراءات معلقة.
-              </p>
-            </div>
-          )}
-          {!isLoading && !isError && items.length > 0 && (
-            <div className="space-y-3">
-              {items.map((item) => {
-                const config =
-                  TYPE_CONFIG[item.type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
-                const priorityConfig =
-                  PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.normal;
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between gap-4 p-4 bg-white rounded-xl"
-                    style={{ border: "1px solid #E1E4EA" }}
+      <PortalSurfaceCard
+        title="الإجراءات المعلقة"
+        description="راجع ما يتطلب تدخلك واتخذ الإجراء المناسب"
+        icon={Settings}
+        action={
+          <PortalFilterPills
+            options={TYPE_FILTERS}
+            active={typeFilter}
+            onChange={handleFilterChange}
+          />
+        }
+      >
+        <PortalDataTable
+          columns={[
+            { id: "title", label: "الإجراء" },
+            { id: "subtitle", label: "التفاصيل" },
+            { id: "priority", label: "الأولوية" },
+            { id: "type", label: "النوع" },
+            { id: "dueDate", label: "تاريخ الاستحقاق" },
+            { id: "action", label: "الإجراء" },
+          ]}
+          data={items}
+          isLoading={isLoading}
+          isError={isError}
+          errorMessage="حدث خطأ أثناء تحميل الإجراءات."
+          emptyState={{
+            icon: Settings,
+            message: "لا توجد إجراءات معلقة.",
+            hint: "ستظهر هنا جميع الإجراءات التي تتطلب مراجعتك وموافقتك.",
+          }}
+          renderRow={(item) => {
+            const config =
+              TYPE_CONFIG[item.type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
+            const priorityCfg =
+              PRIORITY_PILL[item.priority] ?? PRIORITY_PILL.normal;
+            return (
+              <tr
+                key={item.id}
+                className="border-b-[1.5px] border-portal-divider"
+              >
+                <td className="px-5 py-4 font-medium text-sm text-natural-100">
+                  {item.title}
+                </td>
+                <td className="px-5 py-4 text-sm text-portal-note-text truncate max-w-[200px]">
+                  {item.subtitle}
+                </td>
+                <td className="px-5 py-4">
+                  <PortalPill tone={priorityCfg.tone}>
+                    {priorityCfg.label}
+                  </PortalPill>
+                </td>
+                <td className="px-5 py-4">
+                  <PortalPill
+                    tone={config.color === "purple" ? "purple" : "blue"}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm truncate">
-                          {item.title}
-                        </span>
-                        <Badge
-                          variant={priorityConfig.variant}
-                          className="text-xs shrink-0"
-                        >
-                          {priorityConfig.label}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {item.subtitle}
-                      </p>
-                      {item.dueDate && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            مستحق:{" "}
-                            {new Date(item.dueDate).toLocaleDateString(
-                              "ar-SA-u-nu-latn",
-                            )}
-                          </span>
-                        </div>
-                      )}
+                    {config.label}
+                  </PortalPill>
+                </td>
+                <td className="px-5 py-4 text-sm text-portal-note-text">
+                  {item.dueDate ? (
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>
+                        {new Date(item.dueDate).toLocaleDateString(
+                          "ar-SA-u-nu-latn",
+                        )}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge
-                        variant="outline"
-                        className="text-xs"
-                        style={
-                          config.color === "purple"
-                            ? { borderColor: "#8B5CF6", color: "#8B5CF6" }
-                            : { borderColor: "#3B82F6", color: "#3B82F6" }
-                        }
-                      >
-                        {config.label}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        onClick={() => router.push(item.actionUrl)}
-                      >
-                        اتخاذ إجراء
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="px-5 py-4">
+                  <Button
+                    size="sm"
+                    onClick={() => router.push(item.actionUrl)}
+                    className="h-9 rounded-xl bg-secondary-500 hover:bg-secondary-600 text-white px-3 text-xs font-medium"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                    اتخاذ إجراء
+                  </Button>
+                </td>
+              </tr>
+            );
+          }}
+        />
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                السابق
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {page} من {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                التالي
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {!isLoading && !isError && items.length > 0 && (
+          <PortalPagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        )}
+      </PortalSurfaceCard>
     </div>
   );
 }

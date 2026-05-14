@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
+import { PortalPagination } from "@/components/portal/PortalPagination";
 
 const PAGE_SIZE = 6;
 
@@ -44,7 +45,7 @@ function RequestDocumentPanel({
   icon: LucideIcon;
 }) {
   return (
-    <div className="rounded-3xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+    <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-base font-medium text-natural-100">{title}</p>
@@ -59,12 +60,12 @@ function RequestDocumentPanel({
       </div>
 
       {href && actionLabel && (
-        <div className="mt-4">
+              <div className="mt-4">
           <Link href={href}>
             <Button
               type="button"
               variant="ghost"
-              className="h-11 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-4 text-sm font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
+              className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
             >
               <Icon className="ml-2 h-4 w-4" />
               {actionLabel}
@@ -116,7 +117,6 @@ export default function PortalRequestsPage() {
         title="الطلبات قيد الانتظار"
         description="قبل توقيع العقد ستظهر طلباتك هنا بالحالة المبسطة. بعد التوقيع ينتقل الطلب تلقائياً إلى صفحة المشاريع كتنفيذ فعلي ضمن نفس تجربة العميل الموحدة."
         icon={ClipboardList}
-        
       />
 
       <PortalSurfaceCard
@@ -127,22 +127,22 @@ export default function PortalRequestsPage() {
         {isLoading && (
           <div className="grid gap-4">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div
+                <div
                 key={index}
-                className="space-y-4 rounded-3xl border-[1.5px] border-portal-divider bg-portal-bg p-5"
+                className="space-y-4 rounded-2xl border-[1.5px] border-portal-divider bg-portal-bg p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
-                    <Skeleton className="h-7 w-48 rounded-lg" />
-                    <Skeleton className="h-5 w-32 rounded-lg" />
+                    <Skeleton className="h-7 w-48 rounded-2xl" />
+                    <Skeleton className="h-5 w-32 rounded-2xl" />
                   </div>
                   <Skeleton className="h-10 w-28 rounded-full" />
                 </div>
-                <Skeleton className="h-5 w-64 rounded-lg" />
-                <Skeleton className="h-20 w-full rounded-3xl" />
+                <Skeleton className="h-5 w-64 rounded-2xl" />
+                <Skeleton className="h-20 w-full rounded-2xl" />
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <Skeleton className="h-36 w-full rounded-3xl" />
-                  <Skeleton className="h-36 w-full rounded-3xl" />
+                  <Skeleton className="h-36 w-full rounded-2xl" />
+                  <Skeleton className="h-36 w-full rounded-2xl" />
                 </div>
               </div>
             ))}
@@ -150,7 +150,7 @@ export default function PortalRequestsPage() {
         )}
 
         {isError && (
-          <div className="rounded-3xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
+                <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
             <p className="text-base font-medium text-danger-700">
               حدث خطأ أثناء تحميل الطلبات.
             </p>
@@ -161,7 +161,7 @@ export default function PortalRequestsPage() {
         )}
 
         {!isLoading && !isError && requests.length === 0 && (
-          <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-3xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
+            <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
               <ClipboardList className="h-8 w-8 text-secondary-500" />
             </div>
@@ -183,7 +183,7 @@ export default function PortalRequestsPage() {
               return (
                 <div
                   key={request.id}
-                  className="rounded-3xl border-[1.5px] border-portal-card-border bg-natural-0 p-5"
+                  className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5"
                 >
                   <div className="space-y-5">
                     <div className="flex flex-wrap items-start justify-between gap-4 border-b-[1.5px] border-portal-divider pb-5">
@@ -215,7 +215,7 @@ export default function PortalRequestsPage() {
                     </div>
 
                     {noteText && (
-                      <div className="rounded-3xl border-[1.5px] border-portal-divider bg-portal-bg px-4 py-4">
+                      <div className="rounded-2xl border-[1.5px] border-portal-divider bg-portal-bg px-4 py-4">
                         <p className="text-xs font-medium leading-5 text-portal-note-text">
                           ملخص الطلب
                         </p>
@@ -285,29 +285,11 @@ export default function PortalRequestsPage() {
             })}
 
             {totalPages > 1 && (
-              <div className="flex flex-wrap items-center justify-center gap-3 border-t-[1.5px] border-portal-divider pt-5">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg disabled:opacity-50"
-                  disabled={page <= 1}
-                  onClick={() => setPage((current) => current - 1)}
-                >
-                  السابق
-                </Button>
-                <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg px-5 py-3 text-sm font-medium text-secondary-500">
-                  {page} من {totalPages}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg disabled:opacity-50"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((current) => current + 1)}
-                >
-                  التالي
-                </Button>
-              </div>
+              <PortalPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
             )}
           </div>
         )}

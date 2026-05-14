@@ -18,7 +18,10 @@ export function PortalProgressCard({
   className,
 }: PortalProgressCardProps) {
   const safeMax = max <= 0 ? 100 : max;
-  const percentage = Math.min(100, Math.max(0, Math.round((value / safeMax) * 100)));
+  const percentage = Math.min(
+    100,
+    Math.max(0, Math.round((value / safeMax) * 100)),
+  );
 
   return (
     <div
