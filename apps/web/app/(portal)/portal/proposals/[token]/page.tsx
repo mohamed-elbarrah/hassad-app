@@ -21,6 +21,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
+import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
+import { PortalStatusBanner } from "@/components/portal/PortalStatusBanner";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { toast } from "sonner";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
@@ -132,124 +135,90 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
           {Array.isArray(data.servicesList) &&
             (data.servicesList as { name: string; price: number }[]).length >
               0 && (
-              <div className="space-y-3 rounded-2xl border border-portal-card-border p-4">
-                <p className="text-sm font-semibold text-natural-100">
-                  الخدمات المطلوبة
-                </p>
-                {(data.servicesList as { name: string; price: number }[]).map(
-                  (service, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span className="text-natural-100">{service.name}</span>
-                      <span className="font-medium text-portal-note-text">
-                        {service.price.toLocaleString("ar-SA-u-nu-latn")} ر.س
-                      </span>
-                    </div>
-                  ),
-                )}
-                <div className="flex items-center justify-between border-t border-portal-divider pt-2 text-sm font-bold text-natural-100">
-                  <span>الإجمالي الكلي</span>
-                  <span>
-                    {data.totalPrice.toLocaleString("ar-SA-u-nu-latn")} ر.س
-                  </span>
+              <PortalInfoPanel variant="bordered" title="الخدمات المطلوبة">
+                <div className="space-y-2">
+                  {(data.servicesList as { name: string; price: number }[]).map(
+                    (service, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="text-natural-100">{service.name}</span>
+                        <span className="font-medium text-portal-note-text">
+                          {service.price.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                        </span>
+                      </div>
+                    ),
+                  )}
+                  <div className="flex items-center justify-between border-t border-portal-divider pt-2 text-sm font-bold text-natural-100">
+                    <span>الإجمالي الكلي</span>
+                    <span>
+                      {data.totalPrice.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </PortalInfoPanel>
             )}
 
           {/* Sales Contact */}
           {(data.contactName || data.contactEmail) && (
-            <div className="space-y-2 rounded-2xl border border-portal-card-border bg-portal-bg p-4">
-              <p className="text-sm font-semibold text-natural-100">
-                خدمة العملاء
-              </p>
-              {data.contactName && (
-                <p className="flex items-center gap-2 text-sm text-portal-note-text">
-                  <span className="font-medium text-natural-100">
-                    مسؤول التواصل:
-                  </span>
-                  {data.contactName}
-                </p>
-              )}
-              {data.contactEmail && (
-                <p className="flex items-center gap-2 text-sm text-portal-note-text">
-                  <span className="font-medium text-natural-100">
-                    البريد الإلكتروني:
-                  </span>
-                  <a
-                    href={`mailto:${data.contactEmail}`}
-                    className="text-action-blue hover:underline"
-                  >
-                    {data.contactEmail}
-                  </a>
-                </p>
-              )}
-            </div>
+            <PortalInfoPanel variant="default" title="خدمة العملاء">
+              <div className="space-y-1">
+                {data.contactName && (
+                  <p className="flex items-center gap-2 text-sm text-portal-note-text">
+                    <span className="font-medium text-natural-100">
+                      مسؤول التواصل:
+                    </span>
+                    {data.contactName}
+                  </p>
+                )}
+                {data.contactEmail && (
+                  <p className="flex items-center gap-2 text-sm text-portal-note-text">
+                    <span className="font-medium text-natural-100">
+                      البريد الإلكتروني:
+                    </span>
+                    <a
+                      href={`mailto:${data.contactEmail}`}
+                      className="text-action-blue hover:underline"
+                    >
+                      {data.contactEmail}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </PortalInfoPanel>
           )}
 
           {/* PDF Download */}
           {fileUrl ? (
-            <div className="flex items-center gap-3 rounded-2xl border border-portal-card-border bg-portal-bg p-4">
-              <FileText className="h-8 w-8 shrink-0 text-action-blue" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-natural-100">
-                  ملف العرض الفني
-                </p>
-                <p className="text-xs text-portal-note-text">
-                  راجع تفاصيل العرض قبل الرد
-                </p>
-              </div>
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-              >
-                <Button
-                  variant="ghost"
-                  className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg gap-2"
-                >
-                  <Download className="h-4 w-4" />
+            <PortalInfoPanel variant="default" title="ملف العرض الفني" description="راجع تفاصيل العرض قبل الرد">
+              <div className="flex items-center gap-3">
+                <FileText className="h-8 w-8 shrink-0 text-action-blue" />
+                <div className="min-w-0 flex-1"></div>
+                <PortalActionButton href={fileUrl} variant="outline" icon={<Download className="h-4 w-4" />}>
                   تحميل العرض
-                </Button>
-              </a>
-            </div>
+                </PortalActionButton>
+              </div>
+            </PortalInfoPanel>
           ) : (
-            <div className="flex items-center gap-3 rounded-2xl border border-portal-card-border bg-portal-bg p-4">
-              <AlertCircle className="h-5 w-5 text-portal-note-text" />
-              <p className="text-sm text-portal-note-text">
-                لا يوجد ملف مرفق لهذا العرض.
-              </p>
-            </div>
+            <PortalInfoPanel variant="default" description="لا يوجد ملف مرفق لهذا العرض.">
+            </PortalInfoPanel>
           )}
 
           {/* Status-specific banners */}
           {data.status === ProposalStatus.APPROVED && (
-            <div className="flex items-center gap-2 rounded-2xl border border-badge-green-bg bg-badge-green-bg/50 px-4 py-3">
-              <CheckCircle className="h-5 w-5 shrink-0 text-badge-green-text" />
-              <p className="text-sm font-medium text-badge-green-text">
-                لقد اعتمدت هذا العرض الفني.
-              </p>
-            </div>
+            <PortalStatusBanner variant="success" title="لقد اعتمدت هذا العرض الفني.">
+            </PortalStatusBanner>
           )}
 
           {data.status === ProposalStatus.REVISION_REQUESTED && (
-            <div className="flex items-center gap-2 rounded-2xl border border-badge-orange-bg bg-badge-orange-bg/50 px-4 py-3">
-              <AlertCircle className="h-5 w-5 shrink-0 text-badge-orange-text" />
-              <p className="text-sm font-medium text-badge-orange-text">
-                طلبت تعديلاً على هذا العرض. سيتواصل معك فريقنا قريباً.
-              </p>
-            </div>
+            <PortalStatusBanner variant="warning" title="طلبت تعديلاً على هذا العرض. سيتواصل معك فريقنا قريباً.">
+            </PortalStatusBanner>
           )}
 
           {data.status === ProposalStatus.REJECTED && (
-            <div className="flex items-center gap-2 rounded-2xl border border-danger-200 bg-danger-100/50 px-4 py-3">
-              <XCircle className="h-5 w-5 shrink-0 text-danger-500" />
-              <p className="text-sm font-medium text-danger-500">
-                تم رفض هذا العرض.
-              </p>
-            </div>
+            <PortalStatusBanner variant="danger" title="تم رفض هذا العرض.">
+            </PortalStatusBanner>
           )}
 
           {/* Response area */}

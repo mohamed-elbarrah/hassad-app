@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FileText, PenTool, PlusCircle } from "lucide-react";
+import { ClipboardList, FileText, PenTool, PlusCircle, type LucideIcon } from "lucide-react";
 import { useGetPortalRequestsQuery } from "@/features/portal/portalApi";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +10,10 @@ import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { PortalPagination } from "@/components/portal/PortalPagination";
+import { PortalKpiPill } from "@/components/portal/PortalKpiPill";
+import { PortalIconCircle } from "@/components/portal/PortalIconCircle";
+import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 
 const PAGE_SIZE = 6;
 
@@ -21,14 +24,7 @@ function RequestSummaryPill({
   label: string;
   value: string | number;
 }) {
-  return (
-    <div className="min-w-33 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-4 py-3">
-      <p className="text-xs leading-5 text-portal-note-text">{label}</p>
-      <p className="mt-1 text-lg font-semibold leading-7 text-secondary-500">
-        {value}
-      </p>
-    </div>
-  );
+  return <PortalKpiPill label={label} value={value} />;
 }
 
 function RequestDocumentPanel({
@@ -45,7 +41,7 @@ function RequestDocumentPanel({
   icon: LucideIcon;
 }) {
   return (
-    <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+    <PortalInfoPanel variant="default">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-base font-medium text-natural-100">{title}</p>
@@ -54,26 +50,17 @@ function RequestDocumentPanel({
           </p>
         </div>
 
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-portal-card-border bg-natural-0">
-          <Icon className="h-5 w-5 text-portal-icon" />
-        </div>
+        <PortalIconCircle icon={Icon} size="sm" />
       </div>
 
       {href && actionLabel && (
-              <div className="mt-4">
-          <Link href={href}>
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
-            >
-              <Icon className="ml-2 h-4 w-4" />
-              {actionLabel}
-            </Button>
-          </Link>
+        <div className="mt-4">
+          <PortalActionButton href={href} variant="outline" icon={<Icon className="ml-2 h-4 w-4" />}>
+            {actionLabel}
+          </PortalActionButton>
         </div>
       )}
-    </div>
+    </PortalInfoPanel>
   );
 }
 

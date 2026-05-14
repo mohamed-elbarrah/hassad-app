@@ -5,8 +5,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   TrendingUp,
-  Calendar,
-  DollarSign,
   AlertCircle,
 } from "lucide-react";
 import {
@@ -17,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
+import { PortalKpiPill, PortalKpiCurrency } from "@/components/portal/PortalKpiPill";
+import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 
 interface PageProps {
@@ -150,37 +150,20 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="flex items-center gap-3 rounded-2xl border border-portal-card-border bg-portal-bg p-4">
-              <DollarSign className="h-5 w-5 shrink-0 text-portal-note-text" />
-              <div>
-                <p className="text-xs text-portal-note-text">
-                  الميزانية الكلية
-                </p>
-                <p className="text-lg font-semibold text-natural-100">
-                  {fmt(campaignData.budgetTotal)} ر.س
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-portal-card-border bg-portal-bg p-4">
-              <TrendingUp className="h-5 w-5 shrink-0 text-portal-note-text" />
-              <div>
-                <p className="text-xs text-portal-note-text">
-                  الميزانية المنفقة
-                </p>
-                <p className="text-lg font-semibold text-natural-100">
-                  {fmt(campaignData.budgetSpent)} ر.س
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-portal-card-border bg-portal-bg p-4">
-              <Calendar className="h-5 w-5 shrink-0 text-portal-note-text" />
-              <div>
-                <p className="text-xs text-portal-note-text">تاريخ البدء</p>
-                <p className="text-lg font-semibold text-natural-100">
-                  {formatDate(campaignData.startDate)}
-                </p>
-              </div>
-            </div>
+            <PortalKpiPill
+              label="الميزانية الكلية"
+              value={<PortalKpiCurrency amount={campaignData.budgetTotal} />}
+            />
+            <PortalKpiPill
+              label="الميزانية المنفقة"
+              value={<PortalKpiCurrency amount={campaignData.budgetSpent} />}
+            />
+            <PortalKpiPill
+              label="تاريخ البدء"
+              value={
+                <span className="text-lg font-semibold text-natural-100">{formatDate(campaignData.startDate)}</span>
+              }
+            />
           </div>
 
           <div>
@@ -188,38 +171,54 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
               أداء الحملة الحالي
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              <AnalyticsItem
-                label="الانطباعات"
-                value={fmt(campaignData.analytics?.impressions ?? 0)}
-              />
-              <AnalyticsItem
-                label="النقرات"
-                value={fmt(campaignData.analytics?.clicks ?? 0)}
-              />
-              <AnalyticsItem
-                label="التحويلات"
-                value={fmt(campaignData.analytics?.conversions ?? 0)}
-              />
-              <AnalyticsItem
-                label="العائد ROAS"
-                value={`${campaignData.analytics?.roas?.toFixed(1) ?? "0"}x`}
-              />
-              <AnalyticsItem
-                label="نسبة النقر CTR"
-                value={`${campaignData.analytics?.ctr?.toFixed(2) ?? "0"}%`}
-              />
-              <AnalyticsItem
-                label="تكلفة النقرة CPC"
-                value={`${campaignData.analytics?.cpc?.toFixed(2) ?? "0"} ر.س`}
-              />
-              <AnalyticsItem
-                label="تكلفة التحويل CPA"
-                value={`${campaignData.analytics?.cpa?.toFixed(2) ?? "0"} ر.س`}
-              />
-              <AnalyticsItem
-                label="الإيرادات"
-                value={`${fmt(campaignData.analytics?.revenue ?? 0)} ر.س`}
-              />
+              <PortalInfoPanel variant="default" className="text-center">
+                <p className="text-xs text-portal-note-text">الانطباعات</p>
+                <p className="mt-1 text-sm font-semibold text-natural-100">
+                  {fmt(campaignData.analytics?.impressions ?? 0)}
+                </p>
+              </PortalInfoPanel>
+              <PortalInfoPanel variant="default" className="text-center">
+                <p className="text-xs text-portal-note-text">النقرات</p>
+                <p className="mt-1 text-sm font-semibold text-natural-100">
+                  {fmt(campaignData.analytics?.clicks ?? 0)}
+                </p>
+              </PortalInfoPanel>
+              <PortalInfoPanel variant="default" className="text-center">
+                <p className="text-xs text-portal-note-text">التحويلات</p>
+                <p className="mt-1 text-sm font-semibold text-natural-100">
+                  {fmt(campaignData.analytics?.conversions ?? 0)}
+                </p>
+              </PortalInfoPanel>
+              <PortalInfoPanel variant="default" className="text-center">
+                <p className="text-xs text-portal-note-text">العائد ROAS</p>
+                <p className="mt-1 text-sm font-semibold text-natural-100">
+                  {campaignData.analytics?.roas?.toFixed(1) ?? "0"}x
+                </p>
+              </PortalInfoPanel>
+              <PortalInfoPanel variant="default" className="text-center">
+                <p className="text-xs text-portal-note-text">نسبة النقر CTR</p>
+                <p className="mt-1 text-sm font-semibold text-natural-100">
+                  {campaignData.analytics?.ctr?.toFixed(2) ?? "0"}%
+                </p>
+              </PortalInfoPanel>
+              <PortalInfoPanel variant="default" className="text-center">
+                <p className="text-xs text-portal-note-text">تكلفة النقرة CPC</p>
+                <p className="mt-1 text-sm font-semibold text-natural-100">
+                  {campaignData.analytics?.cpc?.toFixed(2) ?? "0"} ر.س
+                </p>
+              </PortalInfoPanel>
+              <PortalInfoPanel variant="default" className="text-center">
+                <p className="text-xs text-portal-note-text">تكلفة التحويل CPA</p>
+                <p className="mt-1 text-sm font-semibold text-natural-100">
+                  {campaignData.analytics?.cpa?.toFixed(2) ?? "0"} ر.س
+                </p>
+              </PortalInfoPanel>
+              <PortalInfoPanel variant="default" className="text-center">
+                <p className="text-xs text-portal-note-text">الإيرادات</p>
+                <p className="mt-1 text-sm font-semibold text-natural-100">
+                  {fmt(campaignData.analytics?.revenue ?? 0)} ر.س
+                </p>
+              </PortalInfoPanel>
             </div>
           </div>
 
@@ -309,11 +308,4 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
   );
 }
 
-function AnalyticsItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-center">
-      <p className="text-xs text-portal-note-text">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-natural-100">{value}</p>
-    </div>
-  );
-}
+

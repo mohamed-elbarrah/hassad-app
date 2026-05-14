@@ -6,6 +6,7 @@ import {
   useGetPortalFinanceSummaryQuery,
 } from "@/features/portal/portalApi";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
+import { PortalKpiPill, PortalKpiCurrency } from "@/components/portal/PortalKpiPill";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { PortalDataTable } from "@/components/portal/PortalDataTable";
 import { PortalPagination } from "@/components/portal/PortalPagination";
@@ -60,34 +61,6 @@ function getInvoiceStatus(status?: string) {
     default:
       return "DUE";
   }
-}
-
-function SummaryCard({
-  title,
-  value,
-  date,
-}: {
-  title: string;
-  value: string;
-  date?: string;
-}) {
-  return (
-    <div className="rounded-[24px] border-[1.5px] border-portal-card-border bg-natural-0 p-6">
-      <p className="text-sm font-medium text-portal-icon mb-4">{title}</p>
-      <div>
-        {date ? (
-          <p className="text-2xl font-bold text-natural-100">{date}</p>
-        ) : (
-          <div className="flex items-baseline justify-end gap-1">
-            <span className="text-sm font-medium text-portal-icon">ر.س</span>
-            <span className="text-[28px] font-bold text-natural-100">
-              {value}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 export default function PortalFinancePage() {
@@ -159,22 +132,33 @@ export default function PortalFinancePage() {
           </>
         ) : (
           <>
-            <SummaryCard
-              title="إجمالي المدفوعات"
-              value={fmtCurrency(summary.totalInvoiced)}
+            <PortalKpiPill
+              label="إجمالي المدفوعات"
+              value={
+                <PortalKpiCurrency amount={summary.totalInvoiced} />
+              }
             />
-            <SummaryCard
-              title="الفواتير المستحقة"
-              value={fmtCurrency(summary.totalRemaining)}
+            <PortalKpiPill
+              label="الفواتير المستحقة"
+              value={
+                <PortalKpiCurrency amount={summary.totalRemaining} />
+              }
             />
-            <SummaryCard
-              title="الفواتير المدفوعة"
-              value={fmtCurrency(summary.totalPaid)}
+            <PortalKpiPill
+              label="الفواتير المدفوعة"
+              value={
+                <PortalKpiCurrency amount={summary.totalPaid} />
+              }
             />
-            <SummaryCard
-              title="الفاتورة القادمة"
-              value={fmtCurrency(summary.nextInvoiceAmount)}
-              date={nextDate}
+            <PortalKpiPill
+              label="الفاتورة القادمة"
+              value={
+                nextDate ? (
+                  <span className="text-2xl font-bold text-natural-100">{nextDate}</span>
+                ) : (
+                  <PortalKpiCurrency amount={summary.nextInvoiceAmount} />
+                )
+              }
             />
           </>
         )}
