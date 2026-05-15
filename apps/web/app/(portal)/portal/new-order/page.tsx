@@ -20,8 +20,6 @@ import {
   PlusCircle,
   ArrowRight,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,12 +31,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
-  Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
+import { PortalInput } from "@/components/portal/PortalInput";
+import { PortalTextarea } from "@/components/portal/PortalTextarea";
+import { PortalSelect } from "@/components/portal/PortalSelect";
 
 const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.RESTAURANT]: "مطعم / كافيه",
@@ -97,16 +94,21 @@ export default function PortalNewOrderPage() {
       description: "",
       serviceIds: [],
     },
-    mode: "onChange",
+    mode: "onSubmit",
   });
 
   async function handleNext() {
-    const valid = await form.trigger([
-      "contactName",
-      "phoneWhatsapp",
-      "companyName",
-    ]);
-    if (valid) setStep(2);
+    form.clearErrors(["contactName", "phoneWhatsapp", "companyName"]);
+    const values = form.getValues();
+    const result = step1Schema.safeParse(values);
+    if (result.success) {
+      setStep(2);
+    } else {
+      for (const issue of result.error.issues) {
+        const fieldName = issue.path[0] as keyof OrderFormValues;
+        form.setError(fieldName, { message: issue.message });
+      }
+    }
   }
 
   async function onSubmit(values: OrderFormValues) {
@@ -161,11 +163,7 @@ export default function PortalNewOrderPage() {
         icon={PlusCircle}
       />
 
-      <PortalSurfaceCard
-        title="بيانات الطلب"
-        description="املأ البيانات المطلوبة في خطوتين لإنشاء طلبك الجديد"
-        icon={PlusCircle}
-      >
+      <PortalSurfaceCard>
         <div className="max-w-xl mx-auto">
           <Form {...form}>
             <form
@@ -221,7 +219,7 @@ export default function PortalNewOrderPage() {
                           <span className="text-danger-500">*</span>
                         </FormLabel>
                         <FormControl>
-                          <Input
+                          <PortalInput
                             placeholder="مثال: أحمد محمد العمري"
                             autoFocus
                             {...field}
@@ -241,7 +239,7 @@ export default function PortalNewOrderPage() {
                           <span className="text-danger-500">*</span>
                         </FormLabel>
                         <FormControl>
-                          <Input
+                          <PortalInput
                             placeholder="+966 5X XXX XXXX"
                             type="tel"
                             dir="ltr"
@@ -259,7 +257,7 @@ export default function PortalNewOrderPage() {
                       <FormItem>
                         <FormLabel>البريد الإلكتروني (اختياري)</FormLabel>
                         <FormControl>
-                          <Input
+                          <PortalInput
                             placeholder="example@company.com"
                             type="email"
                             dir="ltr"
@@ -280,7 +278,7 @@ export default function PortalNewOrderPage() {
                           <span className="text-danger-500">*</span>
                         </FormLabel>
                         <FormControl>
-                          <Input placeholder="مثال: مطعم النخيل" {...field} />
+                          <PortalInput placeholder="مثال: مطعم النخيل" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -301,23 +299,19 @@ export default function PortalNewOrderPage() {
                           نوع النشاط التجاري{" "}
                           <span className="text-danger-500">*</span>
                         </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر نوع نشاطك التجاري" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
+                        <FormControl>
+                          <PortalSelect
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            placeholder="اختر نوع نشاطك التجاري"
+                          >
                             {Object.values(BusinessType).map((type) => (
                               <SelectItem key={type} value={type}>
                                 {BUSINESS_TYPE_LABELS[type]}
                               </SelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </PortalSelect>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -329,9 +323,9 @@ export default function PortalNewOrderPage() {
                       <FormItem>
                         <FormLabel>وصف المشروع (اختياري)</FormLabel>
                         <FormControl>
-                          <Textarea
+                          <PortalTextarea
                             placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
-                            className="resize-none h-24"
+                            className="h-24"
                             {...field}
                           />
                         </FormControl>
@@ -396,7 +390,7 @@ export default function PortalNewOrderPage() {
                     variant="ghost"
                     onClick={() => setStep(1)}
                     disabled={isLoading}
-                    className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg gap-2"
+                    className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg gap-2 cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" /> السابق
                   </Button>
@@ -407,7 +401,7 @@ export default function PortalNewOrderPage() {
                   <Button
                     type="button"
                     onClick={handleNext}
-                    className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white mr-auto"
+                    className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white mr-auto cursor-pointer"
                   >
                     التالي <ChevronLeft className="w-4 h-4" />
                   </Button>
@@ -415,7 +409,7 @@ export default function PortalNewOrderPage() {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white"
+                    className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white cursor-pointer"
                   >
                     {isLoading ? (
                       <>
