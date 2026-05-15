@@ -59,7 +59,7 @@ export default function ContractSharePage({ params }: PageProps) {
 
 function ContractSharePageInner({ token }: { token: string }) {
   const searchParams = useSearchParams();
-  const { data, isLoading, isError } = useGetContractByTokenQuery(token);
+  const { data, isLoading, isError, refetch } = useGetContractByTokenQuery(token);
   const [signContract, { isLoading: signing }] =
     useSignContractByTokenMutation();
 
@@ -120,6 +120,7 @@ function ContractSharePageInner({ token }: { token: string }) {
         },
       }).unwrap();
       toast.success("تم توقيع العقد بنجاح — شكراً لك");
+      refetch();
     } catch {
       toast.error("تعذّر توقيع العقد. حاول مجدداً.");
     }

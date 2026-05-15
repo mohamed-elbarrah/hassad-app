@@ -13,7 +13,7 @@ interface ChatHeaderProps {
 
 function getTypeBadge(type: "SALES" | "PM") {
   return type === "SALES"
-    ? { label: "مبيعات", variant: "secondary" as const }
+    ? { label: "مستشارك الفني", variant: "secondary" as const }
     : { label: "مدير مشروع", variant: "default" as const };
 }
 

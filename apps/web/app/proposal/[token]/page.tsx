@@ -17,7 +17,9 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  MessageSquare,
 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
 
@@ -124,45 +126,56 @@ export default function ProposalSharePage({ params }: PageProps) {
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {/* ── Services List ───────────────────────────────────────────── */}
-          {Array.isArray(data.servicesList) && (data.servicesList as { name: string; price: number }[]).length > 0 && (
-            <div className="rounded-xl border p-4 space-y-3">
-              <p className="text-sm font-semibold">الخدمات المطلوبة</p>
-              {(data.servicesList as { name: string; price: number }[]).map((service, idx) => (
-                <div key={idx} className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">{service.name}</span>
-                  <span className="text-muted-foreground font-medium">
-                    {service.price.toLocaleString("en-US")} رس
-                  </span>
+          {/* ── Services + Contact row ──────────────────────────────────── */}
+          <div className="flex flex-col md:flex-row md:gap-4 gap-5">
+            {/* ── Services List (70%) ──────────────────────────────────────── */}
+            {Array.isArray(data.servicesList) && (data.servicesList as { name: string; price: number }[]).length > 0 && (
+              <div className="rounded-xl border p-4 space-y-3 md:w-[70%]">
+                <p className="text-sm font-semibold">الخدمات المطلوبة</p>
+                {(data.servicesList as { name: string; price: number }[]).map((service, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm">
+                    <span className="text-foreground">{service.name}</span>
+                    <span className="text-muted-foreground font-medium">
+                      {service.price.toLocaleString("en-US")} رس
+                    </span>
+                  </div>
+                ))}
+                <div className="border-t pt-2 flex items-center justify-between text-sm font-bold">
+                  <span>الإجمالي الكلي</span>
+                  <span>{data.totalPrice.toLocaleString("en-US")} رس</span>
                 </div>
-              ))}
-              <div className="border-t pt-2 flex items-center justify-between text-sm font-bold">
-                <span>الإجمالي الكلي</span>
-                <span>{data.totalPrice.toLocaleString("en-US")} رس</span>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Sales Contact (خدمة العملاء) ──────────────────────────── */}
-          {(data.contactName || data.contactEmail) && (
-            <div className="rounded-xl border bg-slate-50 p-4 space-y-2">
-              <p className="text-sm font-semibold">خدمة العملاء</p>
-              {data.contactName && (
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <span className="font-medium text-foreground">مسؤول التواصل:</span>
-                  {data.contactName}
-                </p>
-              )}
-              {data.contactEmail && (
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <span className="font-medium text-foreground">البريد الإلكتروني:</span>
-                  <a href={`mailto:${data.contactEmail}`} className="text-blue-600 hover:underline">
-                    {data.contactEmail}
+            {/* ── Sales Contact (30%) ─────────────────────────────────────── */}
+            {(data.creator?.name || data.contactName) && (
+              <div className="rounded-xl border bg-slate-50 p-4 md:w-[30%]">
+                <div className="flex md:flex-col items-center md:items-center gap-3 md:gap-4 md:justify-center md:text-center h-full">
+                  <Avatar className="h-12 w-12 shrink-0 bg-primary/10">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                      {(data.creator?.name || data.contactName || "??")
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 md:flex-1">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {data.creator?.name || data.contactName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">مستشارك الفني</p>
+                  </div>
+                  <a href="/portal/chat?openSales=true">
+                    <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                      <MessageSquare className="w-4 h-4" />
+                      تواصل معه
+                    </Button>
                   </a>
-                </p>
-              )}
-            </div>
-          )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* ── PDF Download ────────────────────────────────────────────── */}
           {fileUrl ? (

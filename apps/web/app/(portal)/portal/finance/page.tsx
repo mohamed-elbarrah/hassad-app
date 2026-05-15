@@ -15,7 +15,7 @@ import { PortalDataTable } from "@/components/portal/PortalDataTable";
 import { PortalPagination } from "@/components/portal/PortalPagination";
 import { PortalFilterPills } from "@/components/portal/PortalFilterPills";
 import { StatusBadge } from "@/components/portal/StatusBadge";
-import { PaymentModal } from "@/components/portal/PaymentModal";
+import { PaymentSheet, type PayableInvoice } from "@/components/payments/PaymentSheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,8 +70,8 @@ export default function PortalFinancePage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<PayableInvoice | null>(null);
+  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
 
   const { data: summaryData, isLoading: summaryLoading } =
     useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: 30_000 });
@@ -102,8 +102,13 @@ export default function PortalFinancePage() {
   }, [invoices, searchQuery]);
 
   const handlePayClick = useCallback((invoice: any) => {
-    setSelectedInvoice(invoice);
-    setIsPaymentModalOpen(true);
+    setSelectedInvoice({
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      amount: invoice.amount,
+      status: invoice.status,
+    });
+    setIsPaymentSheetOpen(true);
   }, []);
 
   const summary = summaryData ?? {
@@ -262,13 +267,11 @@ export default function PortalFinancePage() {
         )}
       </PortalSurfaceCard>
 
-      {selectedInvoice && (
-        <PaymentModal
-          invoice={selectedInvoice}
-          open={isPaymentModalOpen}
-          onOpenChange={setIsPaymentModalOpen}
-        />
-      )}
+      <PaymentSheet
+        invoice={selectedInvoice}
+        open={isPaymentSheetOpen}
+        onOpenChange={setIsPaymentSheetOpen}
+      />
     </div>
   );
 }
