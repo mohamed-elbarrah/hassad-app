@@ -61,6 +61,14 @@ async function main() {
   // ── Reference data (upsert — never deleted) ──────────────────────────────────
 
   // Service Catalog
+  const KNOWN_SERVICE_IDS = ["svc-branding", "svc-landing", "svc-ads", "svc-content"];
+
+  // Clean up orphan service rows that may have been created by accidental create() calls
+  await prisma.requestService.deleteMany({ where: { serviceId: { notIn: KNOWN_SERVICE_IDS } } });
+  await prisma.leadService.deleteMany({ where: { serviceId: { notIn: KNOWN_SERVICE_IDS } } });
+  await prisma.deliverableTemplate.deleteMany({ where: { serviceId: { notIn: KNOWN_SERVICE_IDS } } });
+  await prisma.serviceCatalog.deleteMany({ where: { id: { notIn: KNOWN_SERVICE_IDS } } });
+
   const services = await Promise.all([
     prisma.serviceCatalog.upsert({
       where: { id: "svc-branding" },

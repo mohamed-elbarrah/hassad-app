@@ -51,7 +51,7 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
     isLoading,
     isError,
     refetch,
-  } = useGetPortalCampaignQuery(id);
+  } = useGetPortalCampaignQuery(id, { pollingInterval: 30_000 });
 
   if (isLoading) {
     return (

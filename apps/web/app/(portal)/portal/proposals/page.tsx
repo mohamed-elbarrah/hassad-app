@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { mapProposalStatusToUI } from "@/lib/utils/statusMapping";
 
 export default function PortalProposalsPage() {
-  const { data: proposals, isLoading, isError } = useGetMyProposalsQuery();
+  const { data: proposals, isLoading, isError } = useGetMyProposalsQuery(undefined, { pollingInterval: 30_000 });
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">

@@ -92,7 +92,7 @@ export default function PortalRequestsPage() {
   const { data, isLoading, isError } = useGetPortalRequestsQuery({
     page,
     limit: PAGE_SIZE,
-  });
+  }, { pollingInterval: 30_000 });
 
   const requests = data?.data ?? [];
   const total = data?.total ?? 0;

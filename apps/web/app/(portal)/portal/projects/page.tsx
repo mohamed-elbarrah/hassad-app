@@ -34,7 +34,7 @@ export default function PortalProjectsPage() {
     status: statusFilter || undefined,
     page,
     limit: PAGE_SIZE,
-  });
+  }, { pollingInterval: 30_000 });
 
   const projects = data?.data ?? [];
   const total = data?.total ?? 0;

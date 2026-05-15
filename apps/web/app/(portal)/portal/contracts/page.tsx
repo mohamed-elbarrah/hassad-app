@@ -45,7 +45,7 @@ export default function PortalContractsPage() {
     search,
     dateFrom: dateRange.from?.toISOString(),
     dateTo: dateRange.to?.toISOString(),
-  });
+  }, { pollingInterval: 30_000 });
 
   const contracts = contractsData?.data ?? [];
   const totalPages = Math.ceil((contractsData?.total ?? 0) / 10);

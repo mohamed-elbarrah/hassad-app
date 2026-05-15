@@ -13,7 +13,7 @@ import { Type } from "class-transformer";
 import { BusinessType, ClientSource, RequestStatus } from "@hassad/shared";
 
 export class RequestServiceItemDto {
-  @IsUUID()
+  @IsString()
   serviceId: string;
 
   @IsOptional()

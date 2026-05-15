@@ -90,25 +90,30 @@ export default function PortalPage() {
 
   const { data: deliverables } = useGetDeliverablesByClientQuery(clientId, {
     skip: !clientId,
+    pollingInterval: 30_000,
   });
   const { data: pendingRequestsData, error: pendingRequestsError } =
     useGetPortalRequestsQuery(
       { page: 1, limit: 3 },
       {
         skip: !clientId,
+        pollingInterval: 30_000,
       },
     );
   const { data: projectProgress, error: projectError } =
     useGetProjectProgressQuery(undefined, {
       skip: !clientId,
+      pollingInterval: 30_000,
     });
   const { data: actionItemsData, error: actionItemsError } =
     useGetActionItemsQuery(undefined, {
       skip: !clientId,
+      pollingInterval: 30_000,
     });
   const { data: activityFeedData, error: activityError } =
     useGetActivityFeedQuery(undefined, {
       skip: !clientId,
+      pollingInterval: 30_000,
     });
   const {
     data: campaignSummary,
@@ -116,6 +121,7 @@ export default function PortalPage() {
     isLoading: campaignLoading,
   } = useGetCampaignSummaryQuery(undefined, {
     skip: !clientId,
+    pollingInterval: 30_000,
   });
 
   const projects = projectProgress?.projects ?? [];
@@ -174,7 +180,7 @@ export default function PortalPage() {
               <GaugeChart value={gaugeValue} max={100} />
 
               <div className="w-full space-y-3">
-                {projects.map((p) => (
+                {projects.slice(0, 3).map((p) => (
                   <div
                     key={p.id}
                     className="flex items-center justify-between p-4 bg-natural-0 border-portal-card-border border rounded-2xl"
@@ -218,7 +224,7 @@ export default function PortalPage() {
             </p>
           ) : activityItems.length > 0 ? (
             <div className="space-y-3">
-              {activityItems.slice(0, 5).map((item) => {
+              {activityItems.slice(0, 3).map((item) => {
                 const dateStr = new Date(item.date).toLocaleDateString(
                   "ar-SA-u-nu-latn",
                   {
@@ -263,7 +269,7 @@ export default function PortalPage() {
             </p>
           ) : actionItems.length > 0 ? (
             <div className="space-y-3">
-              {actionItems.slice(0, 4).map((item) => {
+              {actionItems.slice(0, 3).map((item) => {
                 const config =
                   ACTION_TYPE_CONFIG[item.type] ??
                   ACTION_TYPE_CONFIG.DELIVERABLE_APPROVAL;

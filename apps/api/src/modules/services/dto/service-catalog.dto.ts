@@ -75,7 +75,7 @@ export class UpdateServiceCatalogDto {
 }
 
 export class CreateDeliverableTemplateDto {
-  @IsUUID()
+  @IsString()
   serviceId: string;
 
   @IsString()

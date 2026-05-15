@@ -20,8 +20,6 @@ import {
   PlusCircle,
   ArrowRight,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,12 +31,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
-  Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
+import { FormInput } from "@/components/portal/FormInput";
+import { FormTextarea } from "@/components/portal/FormTextarea";
+import { PortalSelect } from "@/components/portal/PortalSelect";
 
 const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.RESTAURANT]: "مطعم / كافيه",
@@ -97,16 +94,21 @@ export default function PortalNewOrderPage() {
       description: "",
       serviceIds: [],
     },
-    mode: "onChange",
+    mode: "onSubmit",
   });
 
   async function handleNext() {
-    const valid = await form.trigger([
-      "contactName",
-      "phoneWhatsapp",
-      "companyName",
-    ]);
-    if (valid) setStep(2);
+    form.clearErrors(["contactName", "phoneWhatsapp", "companyName"]);
+    const values = form.getValues();
+    const result = step1Schema.safeParse(values);
+    if (result.success) {
+      setStep(2);
+    } else {
+      for (const issue of result.error.issues) {
+        const fieldName = issue.path[0] as keyof OrderFormValues;
+        form.setError(fieldName, { message: issue.message });
+      }
+    }
   }
 
   async function onSubmit(values: OrderFormValues) {
@@ -139,33 +141,29 @@ export default function PortalNewOrderPage() {
 
   const activeServices = (services ?? []).filter((s) => s.isActive);
   const fallbackServices = [
-    { id: "social_media", label: "إدارة وسائل التواصل الاجتماعي" },
-    { id: "content", label: "إنشاء المحتوى" },
-    { id: "paid_ads", label: "الإعلانات المدفوعة (Meta / Google)" },
-    { id: "seo", label: "تحسين محركات البحث (SEO)" },
-    { id: "web_dev", label: "تطوير المواقع الإلكترونية" },
-    { id: "design", label: "التصميم الجرافيكي" },
-    { id: "branding", label: "إدارة العلامة التجارية" },
-    { id: "email_marketing", label: "التسويق بالبريد الإلكتروني" },
+    { id: "social_media", label: "إدارة وسائل التواصل الاجتماعي", description: "" },
+    { id: "content", label: "إنشاء المحتوى", description: "" },
+    { id: "paid_ads", label: "الإعلانات المدفوعة (Meta / Google)", description: "" },
+    { id: "seo", label: "تحسين محركات البحث (SEO)", description: "" },
+    { id: "web_dev", label: "تطوير المواقع الإلكترونية", description: "" },
+    { id: "design", label: "التصميم الجرافيكي", description: "" },
+    { id: "branding", label: "إدارة العلامة التجارية", description: "" },
+    { id: "email_marketing", label: "التسويق بالبريد الإلكتروني", description: "" },
   ];
   const serviceOptions =
     activeServices.length > 0
-      ? activeServices.map((s) => ({ id: s.id, label: s.nameAr || s.name }))
+      ? activeServices.map((s) => ({ id: s.id, label: s.nameAr || s.name, description: s.descriptionAr || s.description || "" }))
       : fallbackServices;
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
       <PortalPageIntro
         title="إنشاء طلب جديد"
-        description="أنشئ طلباً جديداً لمتابعته عبر مراحل خط المبيعات وتحويله إلى مشروع منفذ."
+        description=" املأ البيانات المطلوبة في خطوتين لإنشاء طلبك الجديد"
         icon={PlusCircle}
       />
 
-      <PortalSurfaceCard
-        title="بيانات الطلب"
-        description="املأ البيانات المطلوبة في خطوتين لإنشاء طلبك الجديد"
-        icon={PlusCircle}
-      >
+      <PortalSurfaceCard>
         <div className="max-w-xl mx-auto">
           <Form {...form}>
             <form
@@ -214,76 +212,54 @@ export default function PortalNewOrderPage() {
                   <FormField
                     control={form.control}
                     name="contactName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          الاسم الكامل{" "}
-                          <span className="text-danger-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="مثال: أحمد محمد العمري"
-                            autoFocus
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    render={({ field, fieldState }) => (
+                      <FormInput
+                        label="الاسم الكامل"
+                        placeholder="مثال: أحمد محمد العمري"
+                        error={fieldState.error?.message}
+                        autoFocus
+                        {...field}
+                      />
                     )}
                   />
                   <FormField
                     control={form.control}
                     name="phoneWhatsapp"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          رقم الهاتف (واتساب){" "}
-                          <span className="text-danger-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="+966 5X XXX XXXX"
-                            type="tel"
-                            dir="ltr"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    render={({ field, fieldState }) => (
+                      <FormInput
+                        label="رقم الهاتف (واتساب)"
+                        placeholder="+966 5X XXX XXXX"
+                        type="tel"
+                        dir="ltr"
+                        error={fieldState.error?.message}
+                        {...field}
+                      />
                     )}
                   />
                   <FormField
                     control={form.control}
                     name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>البريد الإلكتروني (اختياري)</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="example@company.com"
-                            type="email"
-                            dir="ltr"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    render={({ field, fieldState }) => (
+                      <FormInput
+                        label="البريد الإلكتروني (اختياري)"
+                        placeholder="example@company.com"
+                        type="email"
+                        dir="ltr"
+                        error={fieldState.error?.message}
+                        {...field}
+                      />
                     )}
                   />
                   <FormField
                     control={form.control}
                     name="companyName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          اسم الشركة / المشروع{" "}
-                          <span className="text-danger-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="مثال: مطعم النخيل" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    render={({ field, fieldState }) => (
+                      <FormInput
+                        label="اسم الشركة / المشروع"
+                        placeholder="مثال: مطعم النخيل"
+                        error={fieldState.error?.message}
+                        {...field}
+                      />
                     )}
                   />
                 </div>
@@ -295,48 +271,33 @@ export default function PortalNewOrderPage() {
                   <FormField
                     control={form.control}
                     name="businessType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          نوع النشاط التجاري{" "}
-                          <span className="text-danger-500">*</span>
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر نوع نشاطك التجاري" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.values(BusinessType).map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {BUSINESS_TYPE_LABELS[type]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                    render={({ field, fieldState }) => (
+                      <PortalSelect
+                        label="نوع النشاط التجاري"
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        placeholder="اختر نوع نشاطك التجاري"
+                        error={fieldState.error?.message}
+                      >
+                        {Object.values(BusinessType).map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {BUSINESS_TYPE_LABELS[type]}
+                          </SelectItem>
+                        ))}
+                      </PortalSelect>
                     )}
                   />
                   <FormField
                     control={form.control}
                     name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>وصف المشروع (اختياري)</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
-                            className="resize-none h-24"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    render={({ field, fieldState }) => (
+                      <FormTextarea
+                        label="وصف المشروع (اختياري)"
+                        placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
+                        className="h-24"
+                        error={fieldState.error?.message}
+                        {...field}
+                      />
                     )}
                   />
                   <FormField
@@ -355,28 +316,33 @@ export default function PortalNewOrderPage() {
                               control={form.control}
                               name="serviceIds"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-2xl border-portal-card-border border p-3 hover:bg-portal-bg transition-colors cursor-pointer">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(
-                                        service.id,
-                                      )}
-                                      onCheckedChange={(checked) => {
-                                        const current = field.value ?? [];
-                                        field.onChange(
-                                          checked
-                                            ? [...current, service.id]
-                                            : current.filter(
-                                                (v) => v !== service.id,
-                                              ),
-                                        );
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
-                                    {service.label}
-                                  </FormLabel>
-                                </FormItem>
+                                <FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-2xl border-portal-card-border border p-3 hover:bg-portal-bg transition-colors cursor-pointer">
+                                   <FormControl>
+                                     <Checkbox
+                                       checked={field.value?.includes(
+                                         service.id,
+                                       )}
+                                       onCheckedChange={(checked) => {
+                                         const current = field.value ?? [];
+                                         field.onChange(
+                                           checked
+                                             ? [...current, service.id]
+                                             : current.filter(
+                                                 (v) => v !== service.id,
+                                               ),
+                                         );
+                                       }}
+                                     />
+                                   </FormControl>
+                                   <div className="flex flex-col gap-0.5">
+                                     <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
+                                       {service.label}
+                                     </FormLabel>
+                                     {service.description && (
+                                       <p className="text-xs text-portal-icon leading-snug">{service.description}</p>
+                                     )}
+                                   </div>
+                                 </FormItem>
                               )}
                             />
                           ))}
@@ -396,7 +362,7 @@ export default function PortalNewOrderPage() {
                     variant="ghost"
                     onClick={() => setStep(1)}
                     disabled={isLoading}
-                    className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg gap-2"
+                    className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg gap-2 cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" /> السابق
                   </Button>
@@ -407,7 +373,7 @@ export default function PortalNewOrderPage() {
                   <Button
                     type="button"
                     onClick={handleNext}
-                    className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white mr-auto"
+                    className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white mr-auto cursor-pointer"
                   >
                     التالي <ChevronLeft className="w-4 h-4" />
                   </Button>
@@ -415,7 +381,7 @@ export default function PortalNewOrderPage() {
                   <Button
                     type="submit"
                     disabled={isLoading}
-                    className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white"
+                    className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white cursor-pointer"
                   >
                     {isLoading ? (
                       <>

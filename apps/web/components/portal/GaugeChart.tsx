@@ -59,7 +59,7 @@ export function GaugeChart({ value = 70, max = 100 }: GaugeChartProps) {
         {/* Value text — 32px weight 800 */}
         <text
           x={centerX}
-          y="70"
+          y="95"
           textAnchor="middle"
           style={{
             fontSize: 32,
@@ -69,11 +69,11 @@ export function GaugeChart({ value = 70, max = 100 }: GaugeChartProps) {
             fill: "rgb(0, 0, 0)",
           }}
         >
-          {value}
+          {value}%
         </text>
 
         {/* "من 100" label — 16px weight 200 */}
-        <text
+        {/* <text
           x={centerX}
           y="85"
           textAnchor="middle"
@@ -86,7 +86,7 @@ export function GaugeChart({ value = 70, max = 100 }: GaugeChartProps) {
           }}
         >
           من {max}
-        </text>
+        </text> */}
       </svg>
     </div>
   );
