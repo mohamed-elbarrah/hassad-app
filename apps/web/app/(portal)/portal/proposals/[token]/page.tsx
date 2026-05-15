@@ -35,7 +35,7 @@ interface PageProps {
 
 export default function PortalProposalDetailPage({ params }: PageProps) {
   const { token } = use(params);
-  const { data, isLoading, isError } = useGetProposalByTokenQuery(token);
+  const { data, isLoading, isError } = useGetProposalByTokenQuery(token, { pollingInterval: 30_000 });
   const [approveProposal, { isLoading: approving }] =
     useApproveProposalByTokenMutation();
   const [requestRevision, { isLoading: requesting }] =

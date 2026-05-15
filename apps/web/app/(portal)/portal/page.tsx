@@ -90,25 +90,30 @@ export default function PortalPage() {
 
   const { data: deliverables } = useGetDeliverablesByClientQuery(clientId, {
     skip: !clientId,
+    pollingInterval: 30_000,
   });
   const { data: pendingRequestsData, error: pendingRequestsError } =
     useGetPortalRequestsQuery(
       { page: 1, limit: 3 },
       {
         skip: !clientId,
+        pollingInterval: 30_000,
       },
     );
   const { data: projectProgress, error: projectError } =
     useGetProjectProgressQuery(undefined, {
       skip: !clientId,
+      pollingInterval: 30_000,
     });
   const { data: actionItemsData, error: actionItemsError } =
     useGetActionItemsQuery(undefined, {
       skip: !clientId,
+      pollingInterval: 30_000,
     });
   const { data: activityFeedData, error: activityError } =
     useGetActivityFeedQuery(undefined, {
       skip: !clientId,
+      pollingInterval: 30_000,
     });
   const {
     data: campaignSummary,
@@ -116,6 +121,7 @@ export default function PortalPage() {
     isLoading: campaignLoading,
   } = useGetCampaignSummaryQuery(undefined, {
     skip: !clientId,
+    pollingInterval: 30_000,
   });
 
   const projects = projectProgress?.projects ?? [];

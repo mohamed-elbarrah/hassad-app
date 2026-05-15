@@ -36,6 +36,7 @@ export default function PortalCampaignsPage() {
     refetch,
   } = useGetPortalCampaignsQuery(undefined, {
     skip: !clientId,
+    pollingInterval: 30_000,
   });
 
   return (

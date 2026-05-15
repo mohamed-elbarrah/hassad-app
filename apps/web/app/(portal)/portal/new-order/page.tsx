@@ -157,7 +157,7 @@ export default function PortalNewOrderPage() {
     <div className="flex flex-col gap-5" dir="rtl">
       <PortalPageIntro
         title="إنشاء طلب جديد"
-        description="أنشئ طلباً جديداً لمتابعته عبر مراحل خط المبيعات وتحويله إلى مشروع منفذ."
+        description=" املأ البيانات المطلوبة في خطوتين لإنشاء طلبك الجديد"
         icon={PlusCircle}
       />
 

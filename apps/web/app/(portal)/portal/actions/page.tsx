@@ -48,7 +48,7 @@ export default function PortalActionsPage() {
     type: typeFilter || undefined,
     page,
     limit: PAGE_SIZE,
-  });
+  }, { pollingInterval: 30_000 });
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;

@@ -74,13 +74,13 @@ export default function PortalFinancePage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const { data: summaryData, isLoading: summaryLoading } =
-    useGetPortalFinanceSummaryQuery();
+    useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: 30_000 });
   const { data: invoicesData, isLoading: invoicesLoading } =
     useGetPortalInvoicesQuery({
       status: statusFilter === "ALL" ? undefined : statusFilter,
       page,
       limit: PAGE_SIZE,
-    });
+    }, { pollingInterval: 30_000 });
 
   const invoices = invoicesData?.data ?? [];
   const total = invoicesData?.total ?? 0;

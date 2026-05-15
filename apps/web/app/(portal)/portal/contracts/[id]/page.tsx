@@ -56,7 +56,7 @@ export default function PortalContractDetailPage({ params }: PageProps) {
 
 function PortalContractDetailInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
-  const { data, isLoading, isError } = useGetPortalContractByIdQuery(id);
+  const { data, isLoading, isError } = useGetPortalContractByIdQuery(id, { pollingInterval: 30_000 });
   const [signContract, { isLoading: signing }] =
     useSignContractByTokenMutation();
 
