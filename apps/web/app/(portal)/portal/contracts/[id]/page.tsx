@@ -14,8 +14,7 @@ import {
 import { useSignContractByTokenMutation } from "@/features/contracts/contractsApi";
 import { useGetPortalContractByIdQuery } from "@/features/portal/portalApi";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormInput } from "@/components/portal/FormInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
@@ -237,39 +236,23 @@ function PortalContractDetailInner({ id }: { id: string }) {
               )}
 
               <div className="space-y-3">
-                <div>
-                  <Label
-                    htmlFor="signedByName"
-                    className="text-sm text-natural-100"
-                  >
-                    الاسم الكامل <span className="text-danger-500">*</span>
-                  </Label>
-                  <Input
-                    id="signedByName"
-                    placeholder="اكتب اسمك الكامل"
-                    value={signedByName}
-                    onChange={(e) => setSignedByName(e.target.value)}
-                    className="mt-1"
-                    disabled={!allInvoicesPaid}
-                  />
-                </div>
-                <div>
-                  <Label
-                    htmlFor="signedByEmail"
-                    className="text-sm text-natural-100"
-                  >
-                    البريد الإلكتروني <span className="text-danger-500">*</span>
-                  </Label>
-                  <Input
-                    id="signedByEmail"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={signedByEmail}
-                    onChange={(e) => setSignedByEmail(e.target.value)}
-                    className="mt-1"
-                    disabled={!allInvoicesPaid}
-                  />
-                </div>
+                <FormInput
+                  label="الاسم الكامل"
+                  id="signedByName"
+                  placeholder="اكتب اسمك الكامل"
+                  value={signedByName}
+                  onChange={(e) => setSignedByName(e.target.value)}
+                  disabled={!allInvoicesPaid}
+                />
+                <FormInput
+                  label="البريد الإلكتروني"
+                  id="signedByEmail"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={signedByEmail}
+                  onChange={(e) => setSignedByEmail(e.target.value)}
+                  disabled={!allInvoicesPaid}
+                />
               </div>
               <Button
                 onClick={handleSign}

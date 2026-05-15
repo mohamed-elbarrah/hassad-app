@@ -21,7 +21,7 @@ import {
   Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { FormTextarea } from "@/components/portal/FormTextarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PortalMetricCard } from "@/components/portal/PortalMetricCard";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
@@ -407,11 +407,9 @@ export default function PortalDeliverablesPage() {
 
               {showRevisionForm && (
                 <div className="rounded-2xl border-[1.5px] border-portal-divider bg-portal-bg p-4">
-                  <h4 className="mb-2 text-sm font-semibold text-natural-100">
-                    ما التعديلات المطلوبة؟
-                  </h4>
-                  <Textarea
-                    className="min-h-28 rounded-2xl border-portal-card-border bg-natural-0 px-4 py-3 text-sm leading-7"
+                  <FormTextarea
+                    label="ما التعديلات المطلوبة؟"
+                    className="min-h-28"
                     onChange={(e) => setRevisionComment(e.target.value)}
                     placeholder="اكتب تفاصيل التعديلات المطلوبة على المشروع..."
                     rows={4}

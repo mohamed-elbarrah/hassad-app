@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import {
   Select,
   SelectContent,
+  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -17,6 +18,8 @@ interface PortalSelectProps {
   children: ReactNode;
   triggerClassName?: string;
   disabled?: boolean;
+  label?: string;
+  error?: string;
 }
 
 export function PortalSelect({
@@ -27,27 +30,42 @@ export function PortalSelect({
   children,
   triggerClassName,
   disabled,
+  label,
+  error,
 }: PortalSelectProps) {
   return (
-    <Select
-      value={value}
-      defaultValue={defaultValue}
-      onValueChange={onValueChange}
-      disabled={disabled}
-    >
-      <SelectTrigger
-        className={cn(
-          "h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-4 text-base text-natural-100",
-          "focus:ring-1 focus:ring-secondary-500/20 focus:border-secondary-500",
-          "data-[placeholder]:text-portal-note-text/60",
-          triggerClassName,
-        )}
+    <div className="space-y-2">
+      {label && (
+        <label className="block text-sm font-medium text-secondary-500 text-right">
+          {label}
+        </label>
+      )}
+      <Select
+        value={value}
+        defaultValue={defaultValue}
+        onValueChange={onValueChange}
+        disabled={disabled}
       >
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0">
-        {children}
-      </SelectContent>
-    </Select>
+        <SelectTrigger
+          className={cn(
+            "h-12 rounded-xl border border-neutral-200 bg-white px-4 text-sm text-secondary-500",
+            "focus:ring-1 focus:ring-secondary-500/20 focus:border-secondary-500",
+            "data-[placeholder]:text-neutral-200",
+            "transition-colors duration-200",
+            error &&
+              "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20",
+            triggerClassName,
+          )}
+        >
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl border border-neutral-200 bg-white">
+          {children}
+        </SelectContent>
+      </Select>
+      {error && (
+        <p className="text-xs text-danger-500 text-right">{error}</p>
+      )}
+    </div>
   );
 }

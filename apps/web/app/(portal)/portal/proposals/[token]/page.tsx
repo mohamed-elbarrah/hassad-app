@@ -17,7 +17,7 @@ import {
 } from "@/features/proposals/proposalsApi";
 import { ProposalStatus } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { FormTextarea } from "@/components/portal/FormTextarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -227,18 +227,13 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
               <p className="text-sm font-semibold text-natural-100">
                 ردّك على العرض
               </p>
-              <div>
-                <p className="mb-2 text-sm text-portal-note-text">
-                  ملاحظاتك (اختيارية عند الموافقة — مطلوبة عند طلب التعديل)
-                </p>
-                <Textarea
+                <FormTextarea
+                  label="ملاحظاتك (اختيارية عند الموافقة — مطلوبة عند طلب التعديل)"
                   rows={3}
                   placeholder="اكتب ملاحظاتك هنا..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="rounded-2xl border-portal-card-border bg-natural-0"
                 />
-              </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={handleApprove}
