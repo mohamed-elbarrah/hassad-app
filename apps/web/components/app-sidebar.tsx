@@ -91,6 +91,7 @@ const navSections: NavSection[] = [
           { title: "الصلاحيات", url: "/dashboard/admin/settings" },
           { title: "إعدادات العملة", url: "/dashboard/admin/settings/currency" },
           { title: "بوابات الدفع", url: "/dashboard/admin/payments" },
+          { title: "الخدمات", url: "/dashboard/admin/settings/services" },
         ],
       },
     ],

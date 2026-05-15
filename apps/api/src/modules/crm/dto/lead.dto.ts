@@ -2,7 +2,7 @@ import { IsString, IsEmail, IsOptional, IsEnum, IsUUID, IsJSON, IsArray, IsInt, 
 import { PipelineStage, BusinessType, ClientSource, ContactLogType, ContactLogResult } from '@hassad/shared';
 
 export class LeadServiceItemDto {
-  @IsUUID()
+  @IsString()
   serviceId: string;
 
   @IsOptional()
@@ -92,7 +92,7 @@ export class ChangeLeadStageDto {
 }
 
 export class AddLeadServiceDto {
-  @IsUUID()
+  @IsString()
   serviceId: string;
 
   @IsOptional()
@@ -106,6 +106,6 @@ export class AddLeadServiceDto {
 }
 
 export class RemoveLeadServiceDto {
-  @IsUUID()
+  @IsString()
   serviceId: string;
 }

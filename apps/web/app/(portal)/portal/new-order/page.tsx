@@ -141,18 +141,18 @@ export default function PortalNewOrderPage() {
 
   const activeServices = (services ?? []).filter((s) => s.isActive);
   const fallbackServices = [
-    { id: "social_media", label: "إدارة وسائل التواصل الاجتماعي" },
-    { id: "content", label: "إنشاء المحتوى" },
-    { id: "paid_ads", label: "الإعلانات المدفوعة (Meta / Google)" },
-    { id: "seo", label: "تحسين محركات البحث (SEO)" },
-    { id: "web_dev", label: "تطوير المواقع الإلكترونية" },
-    { id: "design", label: "التصميم الجرافيكي" },
-    { id: "branding", label: "إدارة العلامة التجارية" },
-    { id: "email_marketing", label: "التسويق بالبريد الإلكتروني" },
+    { id: "social_media", label: "إدارة وسائل التواصل الاجتماعي", description: "" },
+    { id: "content", label: "إنشاء المحتوى", description: "" },
+    { id: "paid_ads", label: "الإعلانات المدفوعة (Meta / Google)", description: "" },
+    { id: "seo", label: "تحسين محركات البحث (SEO)", description: "" },
+    { id: "web_dev", label: "تطوير المواقع الإلكترونية", description: "" },
+    { id: "design", label: "التصميم الجرافيكي", description: "" },
+    { id: "branding", label: "إدارة العلامة التجارية", description: "" },
+    { id: "email_marketing", label: "التسويق بالبريد الإلكتروني", description: "" },
   ];
   const serviceOptions =
     activeServices.length > 0
-      ? activeServices.map((s) => ({ id: s.id, label: s.nameAr || s.name }))
+      ? activeServices.map((s) => ({ id: s.id, label: s.nameAr || s.name, description: s.descriptionAr || s.description || "" }))
       : fallbackServices;
 
   return (
@@ -349,28 +349,33 @@ export default function PortalNewOrderPage() {
                               control={form.control}
                               name="serviceIds"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-2xl border-portal-card-border border p-3 hover:bg-portal-bg transition-colors cursor-pointer">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(
-                                        service.id,
-                                      )}
-                                      onCheckedChange={(checked) => {
-                                        const current = field.value ?? [];
-                                        field.onChange(
-                                          checked
-                                            ? [...current, service.id]
-                                            : current.filter(
-                                                (v) => v !== service.id,
-                                              ),
-                                        );
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
-                                    {service.label}
-                                  </FormLabel>
-                                </FormItem>
+                                <FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-2xl border-portal-card-border border p-3 hover:bg-portal-bg transition-colors cursor-pointer">
+                                   <FormControl>
+                                     <Checkbox
+                                       checked={field.value?.includes(
+                                         service.id,
+                                       )}
+                                       onCheckedChange={(checked) => {
+                                         const current = field.value ?? [];
+                                         field.onChange(
+                                           checked
+                                             ? [...current, service.id]
+                                             : current.filter(
+                                                 (v) => v !== service.id,
+                                               ),
+                                         );
+                                       }}
+                                     />
+                                   </FormControl>
+                                   <div className="flex flex-col gap-0.5">
+                                     <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
+                                       {service.label}
+                                     </FormLabel>
+                                     {service.description && (
+                                       <p className="text-xs text-portal-icon leading-snug">{service.description}</p>
+                                     )}
+                                   </div>
+                                 </FormItem>
                               )}
                             />
                           ))}
