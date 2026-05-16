@@ -37,7 +37,14 @@ export default function PortalChatPage() {
   const [fetchOrCreateSalesConv] = useLazyGetOrCreateConversationQuery();
 
   useEffect(() => {
-    if (!openSales || !clientId || selectedId || convLoading || (conversations.length === 0 && !convLoading)) return;
+    if (
+      !openSales ||
+      !clientId ||
+      selectedId ||
+      convLoading ||
+      (conversations.length === 0 && !convLoading)
+    )
+      return;
     const salesConv = conversations.find((c) => c.type === "SALES");
     if (salesConv) {
       setSelectedId(salesConv.id);
@@ -47,7 +54,14 @@ export default function PortalChatPage() {
       .unwrap()
       .then((conv) => setSelectedId(conv.id))
       .catch(() => {});
-  }, [openSales, clientId, selectedId, convLoading, conversations, fetchOrCreateSalesConv]);
+  }, [
+    openSales,
+    clientId,
+    selectedId,
+    convLoading,
+    conversations,
+    fetchOrCreateSalesConv,
+  ]);
 
   const { data: messagesData, isLoading: msgLoading } = useGetMessagesQuery(
     { conversationId: selectedId!, limit: 100 },
@@ -109,7 +123,7 @@ export default function PortalChatPage() {
     <div className="flex flex-col gap-5" dir="rtl">
       <PortalPageIntro
         title="المحادثات"
-        description="تواصل مباشرة مع فريق مشروعك ومدير حسابك ضمن نفس تجربة العميل الموحدة."
+        description="من هنا يمكنك التواصل مع المشرفين ومدراء المشاريع المسؤولين عن حسابك."
         icon={MessageSquare}
       />
 

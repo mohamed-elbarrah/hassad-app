@@ -63,6 +63,8 @@ export interface User {
   department?: string | null;
   clientId?: string | null;
   intakeCompleted?: boolean;
+  phoneWhatsapp?: string | null;
+  avatarUrl?: string | null;
 }
 
 /** Matches the DB `Client` model exactly */

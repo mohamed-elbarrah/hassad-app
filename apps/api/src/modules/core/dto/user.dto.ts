@@ -42,6 +42,14 @@ export class UpdateUserDto {
   password?: string;
 
   @IsOptional()
+  @IsString()
+  phoneWhatsapp?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string;
+
+  @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
 

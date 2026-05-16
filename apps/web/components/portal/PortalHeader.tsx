@@ -2,18 +2,8 @@
 
 import { Search, Moon } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PortalNotificationBell } from "./PortalNotificationBell";
-
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
+import { UserHeaderDisplay } from "./UserAvatar";
 
 /* ── Component ──────────────────────────────────────────────────────────── */
 export function PortalHeader() {
@@ -27,46 +17,13 @@ export function PortalHeader() {
         borderBottom: "1.5px solid #ECEEF2",
       }}
     >
-      {/* ── Left side: Search + Actions ──────────────────────────── */}
-      <div className="flex items-center gap-4">
-        <Avatar
-          className="rounded-full shrink-0"
-          style={{
-            width: 60,
-            height: 60,
-            border: "1.5px solid #E4E7EC",
-          }}
-        >
-          <AvatarFallback
-            className="rounded-full text-sm font-semibold"
-            style={{ backgroundColor: "#121936", color: "#fff" }}
-          >
-            {user ? getInitials(user.name) : "--"}
-          </AvatarFallback>
-        </Avatar>
-        <div className="text-right hidden md:block">
-          <p
-            style={{
-              fontSize: 26,
-              fontWeight: 600,
-              lineHeight: "39px",
-              color: "#000000",
-            }}
-          >
-            مرحبًا {user?.name?.split(" ")[0] ?? ""}
-          </p>
-          <p
-            style={{
-              fontSize: 20,
-              fontWeight: 400,
-              lineHeight: "30px",
-              color: "#525866",
-            }}
-          >
-            مشروعك يسير بشكل جيد 🚀
-          </p>
-        </div>
-      </div>
+      {/* ── Left side: User Avatar + Welcome ──────────────────────────── */}
+      {user && (
+        <UserHeaderDisplay
+          name={user.name}
+          avatarUrl={user.avatarUrl}
+        />
+      )}
 
       {/* ── Right side: Welcome + Avatar ──────────────────────────── */}
       <div className="flex items-center gap-3">
