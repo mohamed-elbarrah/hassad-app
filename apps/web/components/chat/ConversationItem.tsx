@@ -25,7 +25,7 @@ function getLastMessage(conversation: Conversation): Message | null {
 }
 
 function getTypeLabel(type: "SALES" | "PM") {
-  return type === "SALES" ? "مبيعات" : "مدير مشروع";
+  return type === "SALES" ? "مستشارك الفني" : "مدير مشروع";
 }
 
 export function ConversationItem({

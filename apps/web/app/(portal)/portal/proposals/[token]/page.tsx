@@ -9,6 +9,7 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
+  MessageSquare,
 } from "lucide-react";
 import {
   useGetProposalByTokenQuery,
@@ -17,6 +18,7 @@ import {
 } from "@/features/proposals/proposalsApi";
 import { ProposalStatus } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FormTextarea } from "@/components/portal/FormTextarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
@@ -131,63 +133,70 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
             </p>
           )}
 
-          {/* Services List */}
-          {Array.isArray(data.servicesList) &&
-            (data.servicesList as { name: string; price: number }[]).length >
-              0 && (
-              <PortalInfoPanel variant="bordered" title="الخدمات المطلوبة">
-                <div className="space-y-2">
-                  {(data.servicesList as { name: string; price: number }[]).map(
-                    (service, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-sm"
-                      >
-                        <span className="text-natural-100">{service.name}</span>
-                        <span className="font-medium text-portal-note-text">
-                          {service.price.toLocaleString("ar-SA-u-nu-latn")} ر.س
+          {/* Services + Contact row */}
+          <div className="flex flex-col md:flex-row md:gap-4 gap-5">
+            {/* Services List (80%) */}
+            {Array.isArray(data.servicesList) &&
+              (data.servicesList as { name: string; price: number }[]).length >
+                0 && (
+                <div className="md:w-[80%]">
+                  <PortalInfoPanel variant="bordered" title="الخدمات المطلوبة">
+                    <div className="space-y-2">
+                      {(data.servicesList as { name: string; price: number }[]).map(
+                        (service, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <span className="text-natural-100">{service.name}</span>
+                            <span className="font-medium text-portal-note-text">
+                              {service.price.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                            </span>
+                          </div>
+                        ),
+                      )}
+                      <div className="flex items-center justify-between border-t border-portal-divider pt-2 text-sm font-bold text-natural-100">
+                        <span>الإجمالي الكلي</span>
+                        <span>
+                          {data.totalPrice.toLocaleString("ar-SA-u-nu-latn")} ر.س
                         </span>
                       </div>
-                    ),
-                  )}
-                  <div className="flex items-center justify-between border-t border-portal-divider pt-2 text-sm font-bold text-natural-100">
-                    <span>الإجمالي الكلي</span>
-                    <span>
-                      {data.totalPrice.toLocaleString("ar-SA-u-nu-latn")} ر.س
-                    </span>
-                  </div>
+                    </div>
+                  </PortalInfoPanel>
                 </div>
-              </PortalInfoPanel>
-            )}
+              )}
 
-          {/* Sales Contact */}
-          {(data.contactName || data.contactEmail) && (
-            <PortalInfoPanel variant="default" title="خدمة العملاء">
-              <div className="space-y-1">
-                {data.contactName && (
-                  <p className="flex items-center gap-2 text-sm text-portal-note-text">
-                    <span className="font-medium text-natural-100">
-                      مسؤول التواصل:
-                    </span>
-                    {data.contactName}
-                  </p>
-                )}
-                {data.contactEmail && (
-                  <p className="flex items-center gap-2 text-sm text-portal-note-text">
-                    <span className="font-medium text-natural-100">
-                      البريد الإلكتروني:
-                    </span>
-                    <a
-                      href={`mailto:${data.contactEmail}`}
-                      className="text-action-blue hover:underline"
-                    >
-                      {data.contactEmail}
-                    </a>
-                  </p>
-                )}
+            {/* Sales Contact (30%) */}
+            {(data.creator?.name || data.contactName) && (
+              <div className="md:w-[20%]">
+                <PortalInfoPanel variant="default" className="h-full">
+                  <div className="flex md:flex-col items-center md:items-center gap-3 md:gap-4 md:justify-center md:text-center h-full">
+                    <Avatar className="h-12 w-12 shrink-0 bg-primary/10">
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                        {(data.creator?.name || data.contactName || "??")
+                          .split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 md:flex-1">
+                      <p className="text-sm font-semibold text-natural-100 truncate">
+                        {data.creator?.name || data.contactName}
+                      </p>
+                      <p className="text-xs text-portal-note-text">مستشارك الفني</p>
+                    </div>
+                    <Link href="/portal/chat?openSales=true">
+                      <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                        <MessageSquare className="w-4 w-4" />
+                        تواصل معه
+                      </Button>
+                    </Link>
+                  </div>
+                </PortalInfoPanel>
               </div>
-            </PortalInfoPanel>
-          )}
+            )}
+          </div>
 
           {/* PDF Download */}
           {fileUrl ? (

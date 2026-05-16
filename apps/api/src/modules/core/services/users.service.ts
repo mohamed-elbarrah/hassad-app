@@ -67,6 +67,8 @@ export class UsersService {
       email: user.email,
       role: roleName,
       isActive: user.isActive,
+      phoneWhatsapp: user.phoneWhatsapp,
+      avatarUrl: user.avatarUrl,
       department,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -187,6 +189,8 @@ export class UsersService {
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.email !== undefined) data.email = dto.email;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.phoneWhatsapp !== undefined) data.phoneWhatsapp = dto.phoneWhatsapp;
+    if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl;
 
     if (dto.password) {
       data.passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);

@@ -198,6 +198,7 @@ export const {
   useGetConversationsQuery,
   useGetConversationQuery,
   useGetOrCreateConversationQuery,
+  useLazyGetOrCreateConversationQuery,
   useCreateConversationMutation,
   useGetMessagesQuery,
   useSendMessageMutation,

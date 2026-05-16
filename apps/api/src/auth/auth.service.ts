@@ -33,7 +33,12 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      include: { role: true },
+      include: {
+        role: true,
+        departments: {
+          include: { department: true },
+        },
+      },
     });
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");
@@ -97,6 +102,8 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role.name,
+        phoneWhatsapp: user.phoneWhatsapp,
+        avatarUrl: user.avatarUrl,
         department: null,
         intakeCompleted,
         ...(clientId !== undefined && { clientId }),
@@ -121,23 +128,10 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isActive: true,
-        provider: true,
-        createdAt: true,
-        updatedAt: true,
-        role: {
-          select: { name: true },
-        },
+      include: {
+        role: true,
         departments: {
-          select: {
-            department: {
-              select: { name: true },
-            },
-          },
+          include: { department: true },
         },
       },
     });
@@ -161,6 +155,8 @@ export class AuthService {
       name: user.name,
       email: user.email,
       isActive: user.isActive,
+      phoneWhatsapp: user.phoneWhatsapp,
+      avatarUrl: user.avatarUrl,
       provider: user.provider,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

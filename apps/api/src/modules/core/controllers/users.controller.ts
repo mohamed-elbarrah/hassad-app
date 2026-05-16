@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService, UserListFilters } from '../services/users.service';
 import { DepartmentsService } from '../services/departments.service';
@@ -15,6 +16,7 @@ import { CreateUserDto, UpdateUserDto } from '../dto/user.dto';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { CurrentUser, JwtPayload } from '../../../common/decorators/current-user.decorator';
 import { UserRole, TaskDepartment } from '@hassad/shared';
 
 @Controller('users')
@@ -57,8 +59,30 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @RequirePermissions('users.update')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() currentUser: JwtPayload,
+  ) {
+    // Allow users to update their own profile (self-service)
+    // Only admin can update other users
+    if (id !== currentUser.id && currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
+
+    // Self-update: restrict fields that can be updated
+    if (id === currentUser.id && currentUser.role !== UserRole.ADMIN) {
+      // Users can only update: name, email, phoneWhatsapp, password, avatarUrl
+      // Cannot update: role, department, isActive
+      const allowedFields = ['name', 'email', 'phoneWhatsapp', 'password', 'avatarUrl'];
+      const requestedFields = Object.keys(updateUserDto);
+      const hasRestrictedFields = requestedFields.some(field => !allowedFields.includes(field));
+
+      if (hasRestrictedFields) {
+        throw new ForbiddenException('You can only update your profile information (name, email, phone, password, avatar)');
+      }
+    }
+
     return this.usersService.update(id, updateUserDto);
   }
 

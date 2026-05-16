@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import {
   useGetConversationsQuery,
   useGetMessagesQuery,
   useSendMessageMutation,
+  useLazyGetOrCreateConversationQuery,
 } from "@/features/chat/chatApi";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { ConversationList } from "@/components/chat/ConversationList";
@@ -19,14 +21,47 @@ import { MessageSquare } from "lucide-react";
 
 export default function PortalChatPage() {
   const { user } = useAppSelector((s) => s.auth);
+  const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
+
+  const openSales = searchParams.get("openSales") === "true";
+  const clientId = user?.clientId ?? "";
 
   const { data: conversationsData, isLoading: convLoading } =
     useGetConversationsQuery({ limit: 50 });
 
   const conversations = conversationsData?.data ?? [];
   const selectedConversation = conversations.find((c) => c.id === selectedId);
+
+  const [fetchOrCreateSalesConv] = useLazyGetOrCreateConversationQuery();
+
+  useEffect(() => {
+    if (
+      !openSales ||
+      !clientId ||
+      selectedId ||
+      convLoading ||
+      (conversations.length === 0 && !convLoading)
+    )
+      return;
+    const salesConv = conversations.find((c) => c.type === "SALES");
+    if (salesConv) {
+      setSelectedId(salesConv.id);
+      return;
+    }
+    fetchOrCreateSalesConv({ clientId, type: "SALES" })
+      .unwrap()
+      .then((conv) => setSelectedId(conv.id))
+      .catch(() => {});
+  }, [
+    openSales,
+    clientId,
+    selectedId,
+    convLoading,
+    conversations,
+    fetchOrCreateSalesConv,
+  ]);
 
   const { data: messagesData, isLoading: msgLoading } = useGetMessagesQuery(
     { conversationId: selectedId!, limit: 100 },
@@ -88,7 +123,7 @@ export default function PortalChatPage() {
     <div className="flex flex-col gap-5" dir="rtl">
       <PortalPageIntro
         title="المحادثات"
-        description="تواصل مباشرة مع فريق مشروعك ومدير حسابك ضمن نفس تجربة العميل الموحدة."
+        description="من هنا يمكنك التواصل مع المشرفين ومدراء المشاريع المسؤولين عن حسابك."
         icon={MessageSquare}
       />
 

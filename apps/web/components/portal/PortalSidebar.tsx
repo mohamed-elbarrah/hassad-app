@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserInfoCard } from "./UserAvatar";
 
 /* ── Navigation groups ─────────────────────────────────────────────────── */
 const STANDALONE_ITEMS = [{ label: "الرئيسية", href: "/portal", icon: Home }];
@@ -83,16 +83,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
-
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
 
 function isActiveLink(href: string, pathname: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -318,50 +308,14 @@ export function PortalSidebar() {
 
         {/* User card */}
         {user && (
-          <div className="flex items-center gap-3 py-2">
-            <Avatar
-              className="shrink-0 rounded-full"
-              style={{ width: 60, height: 60 }}
-            >
-              <AvatarFallback
-                className="rounded-full text-sm font-semibold"
-                style={{ backgroundColor: "#121936", color: "#fff" }}
-              >
-                {getInitials(user.name)}
-              </AvatarFallback>
-            </Avatar>
-
-            <div className="flex-1 min-w-0 text-right">
-              <div className="flex items-center  gap-1.5">
-                <span
-                  className="truncate font-semibold"
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 600,
-                    lineHeight: "33px",
-                    color: "#000000",
-                  }}
-                >
-                  {user.name}
-                </span>
-                <CheckCircle2
-                  style={{ width: 22, height: 22, color: "#00AEFF" }}
-                  className="shrink-0"
-                />
-              </div>
-              <p
-                className="truncate mt-0.5"
-                style={{
-                  fontSize: 16,
-                  fontWeight: 400,
-                  lineHeight: "24px",
-                  color: "rgba(0, 0, 0, 0.6)",
-                }}
-              >
-                {user.email}
-              </p>
-            </div>
-          </div>
+          <UserInfoCard
+            name={user.name}
+            email={user.email}
+            avatarUrl={user.avatarUrl}
+            showVerified={true}
+            size="lg"
+            className="py-2"
+          />
         )}
       </div>
     </aside>

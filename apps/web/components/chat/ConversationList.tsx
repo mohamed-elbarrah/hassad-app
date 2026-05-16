@@ -59,7 +59,7 @@ export function ConversationList({
                   : "bg-muted text-muted-foreground hover:bg-muted/80",
               )}
             >
-              مبيعات
+              مستشارك الفني
             </button>
             <button
               onClick={() => onFilterChange("PM")}
