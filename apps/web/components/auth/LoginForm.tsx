@@ -138,20 +138,19 @@ function LoginFormInner() {
 
       {/* Remember Me + Forgot Password Row */}
       <div className="flex items-center justify-between">
-        <Link href="/forgot-password" className="text-sm">
-          نسيت كلمة المرور؟
-        </Link>
-
         <label className="flex items-center gap-2 cursor-pointer">
-          <span className="text-sm text-secondary-500">
-            تذكرني للمرة القادمة
-          </span>
           <input
             {...register("rememberMe")}
             type="checkbox"
             className="w-4 h-4 rounded border-neutral-200 text-secondary-500 focus:ring-secondary-500/20"
           />
+          <span className="text-sm text-secondary-500">
+            تذكرني للمرة القادمة
+          </span>
         </label>
+        <Link href="/forgot-password" className="text-sm">
+          نسيت كلمة المرور؟
+        </Link>
       </div>
 
       {/* Submit Button */}

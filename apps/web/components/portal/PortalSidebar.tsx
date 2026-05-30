@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Inbox,
@@ -26,6 +26,14 @@ import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
 import { UserInfoCard } from "./UserAvatar";
+import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /* ── Navigation groups ─────────────────────────────────────────────────── */
 const STANDALONE_ITEMS = [{ label: "الرئيسية", href: "/portal", icon: Home }];
@@ -85,12 +93,16 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 function isActiveLink(href: string, pathname: string) {
+  if (href === "/portal") {
+    return pathname === "/portal";
+  }
   return pathname === href || pathname.startsWith(href + "/");
 }
 
 /* ── Component ────────────────────────────────────────────────────────── */
 export function PortalSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const [logoutMutation] = useLogoutMutation();
@@ -147,28 +159,14 @@ export function PortalSidebar() {
       }}
     >
       {/* ── Logo ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-center  pb-12">
+      <div className="flex items-center justify-center  py-6">
         <div className="flex flex-col items-center gap-1">
-          <span
-            className="text-[40px] font-bold tracking-tight"
-            style={{
-              color: "#e7be52",
-              fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-            }}
-          >
-            مسار
-          </span>
-          <span
-            className="text-[10px] font-semibold tracking-[0.2em] uppercase"
-            style={{ color: "#525866" }}
-          >
-            MSAR
-          </span>
+          <Image src="/masar.svg" alt="Logo" width={100} height={100} />
         </div>
       </div>
 
       {/* ── Navigation ──────────────────────────────────────────── */}
-      <nav className="flex-1 px-8 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-8 pt-6 space-y-1 overflow-y-auto">
         {/* Standalone items (always visible) */}
         {STANDALONE_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -267,55 +265,48 @@ export function PortalSidebar() {
       </nav>
 
       {/* ── Bottom section ─────────────────────────────────────────── */}
-      <div className="px-8 pb-6 space-y-2">
-        {/* Settings */}
-        <Link
-          href="/portal/account"
-          className={cn(
-            linkBase,
-            isActiveLink("/portal/account", pathname)
-              ? linkActive
-              : linkInactive,
-          )}
-          style={textStyle(isActiveLink("/portal/account", pathname))}
-        >
-          <Settings
-            className="shrink-0"
-            style={iconStyle(isActiveLink("/portal/account", pathname))}
-          />
-          <span>الاعدادات</span>
-        </Link>
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium transition-colors"
-          style={{
-            color: "#FF6161",
-            fontSize: 20,
-            fontWeight: 500,
-            lineHeight: "30px",
-          }}
-        >
-          <LogOut
-            className="shrink-0"
-            style={{ width: 20, height: 20, color: "#FF6161" }}
-          />
-          <span>تسجيل الخروج</span>
-        </button>
-
+      <div className="px-8 pb-6">
         <div className="my-4" style={{ borderTop: "1.5px solid #ECEEF2" }} />
 
-        {/* User card */}
+        {/* User card with dropdown */}
         {user && (
-          <UserInfoCard
-            name={user.name}
-            email={user.email}
-            avatarUrl={user.avatarUrl}
-            showVerified={true}
-            size="lg"
-            className="py-2"
-          />
+          <DropdownMenu dir="rtl">
+            <DropdownMenuTrigger asChild>
+              <button className="w-full text-right cursor-pointer focus:outline-none focus:ring-0">
+                <UserInfoCard
+                  name={user.name}
+                  email={user.email}
+                  avatarUrl={user.avatarUrl}
+                  showVerified={true}
+                  size="lg"
+                  className="py-2"
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              side="top"
+              sideOffset={8}
+              style={{ width: 'var(--radix-dropdown-menu-trigger-width)' }}
+              className="rounded-xl p-2"
+            >
+              <DropdownMenuItem
+                className=" rounded-lg py-3 px-3 cursor-pointer text-base"
+                onClick={() => router.push("/portal/account")}
+              >
+                <Settings className=" text-gray-600" />
+                <span className="text-gray-600 font-medium transition-colors">الاعدادات</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="rounded-lg py-3 px-3 cursor-pointer text-base"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-5 h-5" style={{ color: "#FF6161" }} />
+                <span className="text-red-400 font-medium transition-colors">تسجيل الخروج</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </aside>
