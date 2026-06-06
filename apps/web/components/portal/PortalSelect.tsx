@@ -69,3 +69,5 @@ export function PortalSelect({
     </div>
   );
 }
+
+export { SelectItem as PortalSelectItem } from "@/components/ui/select";

@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { PortalActionButton } from "./PortalActionButton";
 import { cn } from "@/lib/utils";
 
 interface ActionItemCardProps {
@@ -40,24 +40,22 @@ export function ActionItemCard({
       </div>
 
       <div className="flex items-center gap-3">
-        <Button
+        <PortalActionButton
           variant="outline"
+          size="lg"
           onClick={onSecondary}
-          className="flex-1 h-[56px] border-[1.5px] border-portal-card-border rounded-[16px] text-[16px] font-semibold text-action-gray-text hover:bg-neutral-100"
+          className="flex-1 text-[16px] font-semibold text-action-gray-text border-[1.5px] border-portal-card-border rounded-[16px] hover:bg-neutral-100"
         >
           {secondaryAction}
-        </Button>
-        <Button
+        </PortalActionButton>
+        <PortalActionButton
+          variant={primaryColor === "purple" ? "action-purple" : "action-blue"}
+          size="lg"
           onClick={onPrimary}
-          className={cn(
-            "flex-1 h-[56px] rounded-[16px] text-[16px] font-semibold text-white",
-            primaryColor === "purple"
-              ? "bg-action-purple hover:bg-action-purple-hover"
-              : "bg-action-blue hover:bg-action-blue-hover",
-          )}
+          className="flex-1 text-[16px] font-semibold text-white rounded-[16px]"
         >
           {primaryAction}
-        </Button>
+        </PortalActionButton>
       </div>
     </div>
   );

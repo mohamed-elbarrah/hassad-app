@@ -9,13 +9,11 @@ import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { PortalPagination } from "@/components/portal/PortalPagination";
 import { PortalDataTable } from "@/components/portal/PortalDataTable";
 import { StatusBadge } from "@/components/portal/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
+import { PortalInput } from "@/components/portal/PortalInput";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  PortalPopover,
+} from "@/components/portal/PortalPopover";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { mapContractStatusToUI } from "@/lib/utils/statusMapping";
@@ -51,18 +49,17 @@ export default function PortalContractsPage() {
   const totalPages = Math.ceil((contractsData?.total ?? 0) / 10);
 
   const searchBar = (
-    <div className="flex items-center gap-2 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 py-2 w-full max-w-md">
-      <Search className="h-4 w-4 text-portal-icon" />
-      <Input
-        placeholder="البحث..."
-        className="border-none focus-visible:ring-0 text-sm bg-transparent h-8"
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(1);
-        }}
-      />
-    </div>
+    <PortalInput
+      icon={<Search className="h-4 w-4 text-portal-icon" />}
+      placeholder="البحث..."
+      className="h-8"
+      wrapperClassName="w-full max-w-md"
+      value={search}
+      onChange={(e) => {
+        setSearch(e.target.value);
+        setPage(1);
+      }}
+    />
   );
 
   return (
@@ -78,9 +75,9 @@ export default function PortalContractsPage() {
         description="جميع عقودك قيد الإدارة والتوقيع"
         icon={FileText}
         action={
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
+          <PortalPopover
+            trigger={
+              <PortalActionButton
                 variant="ghost"
                 size="sm"
                 className="h-10 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-4 text-sm font-medium text-portal-icon hover:bg-badge-gray-bg gap-2"
@@ -89,41 +86,42 @@ export default function PortalContractsPage() {
                 {dateRange.from
                   ? `${format(dateRange.from, "dd MMM yyyy", { locale: ar })} - ${dateRange.to ? format(dateRange.to, "dd MMM yyyy", { locale: ar }) : "اليوم"}`
                   : "اختر التاريخ"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <div className="p-3 flex flex-col gap-2">
-                <span className="text-xs font-medium text-natural-100">
-                  تحديد الفترة
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setDateRange({
-                        from: new Date(
-                          new Date().setDate(new Date().getDate() - 7),
-                        ),
-                        to: new Date(),
-                      })
-                    }
-                  >
-                    آخر 7 أيام
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setDateRange({ from: new Date(), to: new Date() })
-                    }
-                  >
-                    اليوم
-                  </Button>
-                </div>
+              </PortalActionButton>
+            }
+            align="start"
+            contentClassName="w-auto p-0"
+          >
+            <div className="p-3 flex flex-col gap-2">
+              <span className="text-xs font-medium text-natural-100">
+                تحديد الفترة
+              </span>
+              <div className="flex gap-2">
+                <PortalActionButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setDateRange({
+                      from: new Date(
+                        new Date().setDate(new Date().getDate() - 7),
+                      ),
+                      to: new Date(),
+                    })
+                  }
+                >
+                  آخر 7 أيام
+                </PortalActionButton>
+                <PortalActionButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setDateRange({ from: new Date(), to: new Date() })
+                  }
+                >
+                  اليوم
+                </PortalActionButton>
               </div>
-            </PopoverContent>
-          </Popover>
+            </div>
+          </PortalPopover>
         }
       >
         <div className="mb-3">{searchBar}</div>
@@ -168,7 +166,7 @@ export default function PortalContractsPage() {
               </td>
               <td className="px-5 py-4">
                 <Link href={`/portal/contracts/${contract.id}`}>
-                  <Button
+                  <PortalActionButton
                     variant="ghost"
                     size="sm"
                     className="h-9 rounded-xl border border-portal-card-border bg-white px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-1"
@@ -177,7 +175,7 @@ export default function PortalContractsPage() {
                     {contract.status === "SENT"
                       ? "توقيع العقد"
                       : "استعراض العقد"}
-                  </Button>
+                  </PortalActionButton>
                 </Link>
               </td>
             </tr>

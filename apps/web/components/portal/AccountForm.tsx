@@ -5,9 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { User, Mail, Phone, Lock, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { User, Mail, Phone, Lock } from "lucide-react";
+import { PortalActionButton } from "./PortalActionButton";
+import { PortalDivider } from "./PortalDivider";
 import { FormInput } from "./FormInput";
 import { UserInfoCard } from "./UserAvatar";
 
@@ -252,7 +252,7 @@ export function AccountForm({
           error={errors.phoneWhatsapp?.message}
         />
 
-        <Separator className="my-6" />
+        <PortalDivider className="my-6" />
 
         {/* Password Section - Always Visible */}
         <div className="space-y-4">
@@ -293,20 +293,16 @@ export function AccountForm({
 
       {/* Submit Button */}
       <div className="pt-4">
-        <Button
+        <PortalActionButton
           type="submit"
-          disabled={isLoading || !isDirty}
-          className="w-full h-12 text-base font-semibold"
+          variant="submit"
+          size="lg"
+          fullWidth
+          loading={isLoading}
+          disabled={!isDirty}
         >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-              جاري الحفظ...
-            </>
-          ) : (
-            "حفظ التغييرات"
-          )}
-        </Button>
+          {isLoading ? "جاري الحفظ..." : "حفظ التغييرات"}
+        </PortalActionButton>
       </div>
     </form>
   );

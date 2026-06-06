@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { PortalActionButton } from "./PortalActionButton";
 
 export type ChartMetric =
   | "impressions"
@@ -26,15 +26,14 @@ export function MetricSwitcher({ value, onChange }: MetricSwitcherProps) {
   return (
     <div className="flex gap-1 flex-wrap" dir="rtl">
       {METRICS.map((m) => (
-        <Button
+        <PortalActionButton
           key={m.key}
-          variant={value === m.key ? "default" : "outline"}
+          variant={value === m.key ? "toggle-active" : "toggle-inactive"}
           size="sm"
-          className="text-xs h-7 px-2.5"
           onClick={() => onChange(m.key)}
         >
           {m.label}
-        </Button>
+        </PortalActionButton>
       ))}
     </div>
   );

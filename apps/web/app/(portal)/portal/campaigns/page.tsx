@@ -8,8 +8,8 @@ import {
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
@@ -61,14 +61,14 @@ export default function PortalCampaignsPage() {
             <p className="text-base font-medium text-danger-700">
               تعذر تحميل الحملات. يرجى المحاولة مرة أخرى.
             </p>
-            <Button
-              variant="outline"
-              size="sm"
+            <PortalActionButton
+              variant="secondary"
+              size="md"
               onClick={() => refetch()}
               className="mt-3"
             >
               إعادة المحاولة
-            </Button>
+            </PortalActionButton>
           </div>
         </div>
       )}
@@ -82,9 +82,9 @@ export default function PortalCampaignsPage() {
                   key={i}
                   className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5"
                 >
-                  <Skeleton className="h-6 w-3/4 mb-4" />
-                  <Skeleton className="h-4 w-1/2 mb-2" />
-                  <Skeleton className="h-4 w-1/3" />
+                  <PortalSkeleton className="h-6 w-3/4 mb-4" />
+                  <PortalSkeleton className="h-4 w-1/2 mb-2" />
+                  <PortalSkeleton className="h-4 w-1/3" />
                 </div>
               ))}
 

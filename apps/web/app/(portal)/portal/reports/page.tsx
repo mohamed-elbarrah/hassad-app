@@ -9,8 +9,8 @@ import {
 } from "@/features/portal/portalApi";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
 import {
   BarChart3,
   TrendingUp,
@@ -46,10 +46,10 @@ function fmtSpend(n: number): string {
 function KpiCardShell() {
   return (
     <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5">
-      <Skeleton className="h-3 w-24 mx-auto mb-2" />
+      <PortalSkeleton className="h-3 w-24 mx-auto mb-2" />
       <div className="flex items-center justify-center gap-2 mb-1">
-        <Skeleton className="h-5 w-14 rounded-full" />
-        <Skeleton className="h-8 w-20" />
+        <PortalSkeleton className="h-5 w-14 rounded-full" />
+        <PortalSkeleton className="h-8 w-20" />
       </div>
     </div>
   );
@@ -144,14 +144,14 @@ export default function PortalReportsPage() {
           <p className="mt-2 text-sm text-danger-600">
             يرجى المحاولة لاحقاً أو تحديث الصفحة.
           </p>
-          <Button
+          <PortalActionButton
             variant="outline"
             size="sm"
             onClick={() => refetch()}
             className="mt-3"
           >
             إعادة المحاولة
-          </Button>
+          </PortalActionButton>
         </div>
       )}
 

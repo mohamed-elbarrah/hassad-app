@@ -13,15 +13,14 @@ import {
 } from "lucide-react";
 import { useSignContractByTokenMutation } from "@/features/contracts/contractsApi";
 import { useGetPortalContractByIdQuery } from "@/features/portal/portalApi";
-import { Button } from "@/components/ui/button";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { FormInput } from "@/components/portal/FormInput";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { PortalStatusBanner } from "@/components/portal/PortalStatusBanner";
 import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
-import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { toast } from "sonner";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
@@ -43,8 +42,8 @@ export default function PortalContractDetailPage({ params }: PageProps) {
     <Suspense
       fallback={
         <div className="flex flex-col gap-4" dir="rtl">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-80 w-full" />
+          <PortalSkeleton className="h-8 w-48" />
+          <PortalSkeleton className="h-80 w-full" />
         </div>
       }
     >
@@ -74,10 +73,10 @@ function PortalContractDetailInner({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-80 w-full" />
-      </div>
+        <div className="flex flex-col gap-4" dir="rtl">
+          <PortalSkeleton className="h-8 w-48" />
+          <PortalSkeleton className="h-80 w-full" />
+        </div>
     );
   }
 
@@ -85,10 +84,10 @@ function PortalContractDetailInner({ id }: { id: string }) {
     return (
       <div className="flex flex-col gap-4" dir="rtl">
         <Link href="/portal/contracts">
-          <Button variant="ghost" size="sm" className="gap-2">
+          <PortalActionButton variant="ghost" size="sm" className="gap-2">
             <ArrowRight className="h-4 w-4" />
             العقود
-          </Button>
+          </PortalActionButton>
         </Link>
         <PortalSurfaceCard title="تعذر تحميل العقد" icon={AlertCircle}>
           <p className="text-center text-sm text-portal-note-text">
@@ -132,14 +131,14 @@ function PortalContractDetailInner({ id }: { id: string }) {
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link href="/portal/contracts">
-          <Button
+          <PortalActionButton
             variant="ghost"
             size="sm"
             className="gap-1.5 text-portal-note-text hover:text-natural-100"
           >
             <ArrowRight className="h-4 w-4" />
             العقود
-          </Button>
+          </PortalActionButton>
         </Link>
         <span className="text-portal-note-text">/</span>
         <span className="max-w-xs truncate text-sm font-medium text-natural-100">
@@ -254,7 +253,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
                   disabled={!allInvoicesPaid}
                 />
               </div>
-              <Button
+              <PortalActionButton
                 onClick={handleSign}
                 disabled={signing || !canSignNow}
                 className="h-12 rounded-2xl px-5 text-base font-medium w-full gap-2 bg-secondary-500 hover:bg-secondary-600"
@@ -265,7 +264,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
                   : signing
                     ? "جارٍ التوقيع..."
                     : "أوافق وأوقّع العقد"}
-              </Button>
+              </PortalActionButton>
               <p className="text-center text-xs text-portal-note-text">
                 بالتوقيع، تقر بأنك قرأت العقد وتوافق على جميع شروطه.
               </p>

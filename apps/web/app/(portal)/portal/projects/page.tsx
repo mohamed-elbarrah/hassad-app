@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Activity, FolderOpen } from "lucide-react";
 import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
 import { ProjectStatus } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { PortalPagination } from "@/components/portal/PortalPagination";
@@ -61,10 +61,11 @@ export default function PortalProjectsPage() {
               const isActive = statusFilter === filter.value;
 
               return (
-                <Button
+                <PortalActionButton
                   key={filter.value}
                   type="button"
-                  variant="ghost"
+                  variant={isActive ? "toggle-active" : "toggle-inactive"}
+                  size="md"
                   className={cn(
                     "h-12 rounded-2xl border-[1.5px] px-5 text-base font-medium shadow-none transition-colors",
                     isActive
@@ -77,7 +78,7 @@ export default function PortalProjectsPage() {
                   }}
                 >
                   {filter.label}
-                </Button>
+                </PortalActionButton>
               );
             })}
           </div>

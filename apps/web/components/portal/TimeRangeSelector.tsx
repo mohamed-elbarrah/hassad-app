@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { PortalActionButton } from "./PortalActionButton";
 
 export type TimeRange = "last7days" | "last30days" | "last12months";
 
@@ -61,15 +61,14 @@ export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
   return (
     <div className="flex gap-1" dir="rtl">
       {RANGES.map((r) => (
-        <Button
+        <PortalActionButton
           key={r.key}
-          variant={value === r.key ? "default" : "outline"}
+          variant={value === r.key ? "toggle-active" : "toggle-inactive"}
           size="sm"
-          className="text-xs h-7 px-3"
           onClick={() => onChange(r.key)}
         >
           {r.label}
-        </Button>
+        </PortalActionButton>
       ))}
     </div>
   );

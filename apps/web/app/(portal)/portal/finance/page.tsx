@@ -16,9 +16,9 @@ import { PortalPagination } from "@/components/portal/PortalPagination";
 import { PortalFilterPills } from "@/components/portal/PortalFilterPills";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { PaymentSheet, type PayableInvoice } from "@/components/payments/PaymentSheet";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
+import { PortalInput } from "@/components/portal/PortalInput";
 import { mapFinanceStatusToUI } from "@/lib/utils/statusMapping";
 import { Search, CreditCard, Receipt } from "lucide-react";
 
@@ -133,10 +133,10 @@ export default function PortalFinancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryLoading ? (
           <>
-            <Skeleton className="h-[112px] rounded-[24px]" />
-            <Skeleton className="h-[112px] rounded-[24px]" />
-            <Skeleton className="h-[112px] rounded-[24px]" />
-            <Skeleton className="h-[112px] rounded-[24px]" />
+            <PortalSkeleton className="h-[112px] rounded-[24px]" />
+            <PortalSkeleton className="h-[112px] rounded-[24px]" />
+            <PortalSkeleton className="h-[112px] rounded-[24px]" />
+            <PortalSkeleton className="h-[112px] rounded-[24px]" />
           </>
         ) : (
           <>
@@ -176,9 +176,9 @@ export default function PortalFinancePage() {
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 py-2">
               <Search className="h-4 w-4 text-portal-icon" />
-              <Input
+              <PortalInput
                 placeholder="البحث برقم الفاتورة..."
-                className="border-none focus-visible:ring-0 text-sm bg-transparent h-8 w-[200px]"
+                className="text-sm h-8 w-[200px]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -244,14 +244,15 @@ export default function PortalFinancePage() {
                   invoice.status === "SENT" ||
                   invoice.status === "PARTIAL" ||
                   invoice.status === "LATE") && (
-                  <Button
+                  <PortalActionButton
+                    variant="primary"
                     size="sm"
                     onClick={() => handlePayClick(invoice)}
                     className="h-9 rounded-xl px-3 text-xs font-medium gap-1 bg-secondary-500 hover:bg-secondary-600 text-white"
                   >
                     <CreditCard className="h-3.5 w-3.5" />
                     دفع
-                  </Button>
+                  </PortalActionButton>
                 )}
               </td>
             </tr>

@@ -11,8 +11,8 @@ import {
   useGetPortalCampaignQuery,
   type PortalCampaignDetail,
 } from "@/features/portal/portalApi";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { PortalKpiPill, PortalKpiCurrency } from "@/components/portal/PortalKpiPill";
@@ -56,18 +56,18 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6" dir="rtl">
-        <Skeleton className="h-6 w-48" />
+        <PortalSkeleton className="h-6 w-48" />
         <PortalSurfaceCard icon={TrendingUp}>
           <div className="space-y-4">
-            <Skeleton className="h-7 w-64" />
-            <Skeleton className="mt-2 h-4 w-40" />
+            <PortalSkeleton className="h-7 w-64" />
+            <PortalSkeleton className="mt-2 h-4 w-40" />
             <div className="grid grid-cols-2 gap-3">
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-10 w-full rounded-2xl" />
+              <PortalSkeleton className="h-10 w-full rounded-2xl" />
+              <PortalSkeleton className="h-10 w-full rounded-2xl" />
+              <PortalSkeleton className="h-10 w-full rounded-2xl" />
+              <PortalSkeleton className="h-10 w-full rounded-2xl" />
             </div>
-            <Skeleton className="h-[200px] w-full rounded-2xl" />
+            <PortalSkeleton className="h-[200px] w-full rounded-2xl" />
           </div>
         </PortalSurfaceCard>
       </div>
@@ -78,14 +78,14 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
     return (
       <div className="flex flex-col gap-4" dir="rtl">
         <Link href="/portal/campaigns">
-          <Button
+          <PortalActionButton
             variant="ghost"
             size="sm"
             className="gap-2 text-portal-note-text hover:text-natural-100"
           >
             <ArrowRight className="h-4 w-4" />
             الحملات الإعلانية
-          </Button>
+          </PortalActionButton>
         </Link>
         <PortalSurfaceCard title="تعذر تحميل الحملة" icon={AlertCircle}>
           <div className="flex flex-col items-center gap-4 text-center">
@@ -95,13 +95,13 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
                 : "الحملة غير موجودة."}
             </p>
             {isError && (
-              <Button
+              <PortalActionButton
                 variant="ghost"
                 className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
                 onClick={() => refetch()}
               >
                 إعادة المحاولة
-              </Button>
+              </PortalActionButton>
             )}
           </div>
         </PortalSurfaceCard>
@@ -118,14 +118,14 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link href="/portal/campaigns">
-          <Button
+          <PortalActionButton
             variant="ghost"
             size="sm"
             className="gap-1.5 text-portal-note-text hover:text-natural-100"
           >
             <ArrowRight className="h-4 w-4" />
             الحملات الإعلانية
-          </Button>
+          </PortalActionButton>
         </Link>
         <span className="text-portal-note-text">/</span>
         <span className="max-w-xs truncate text-sm font-medium text-natural-100">

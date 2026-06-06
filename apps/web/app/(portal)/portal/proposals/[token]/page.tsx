@@ -17,15 +17,14 @@ import {
   useRequestRevisionByTokenMutation,
 } from "@/features/proposals/proposalsApi";
 import { ProposalStatus } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
+import { UserAvatar } from "@/components/portal/UserAvatar";
 import { FormTextarea } from "@/components/portal/FormTextarea";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
 import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
 import { PortalStatusBanner } from "@/components/portal/PortalStatusBanner";
-import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { toast } from "sonner";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
@@ -47,8 +46,8 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4" dir="rtl">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
+        <PortalSkeleton className="h-8 w-48" />
+        <PortalSkeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -57,10 +56,10 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
     return (
       <div className="flex flex-col gap-4" dir="rtl">
         <Link href="/portal/proposals">
-          <Button variant="ghost" size="sm" className="gap-2">
+          <PortalActionButton variant="ghost" size="sm" className="gap-2">
             <ArrowRight className="h-4 w-4" />
             العروض الفنية
-          </Button>
+          </PortalActionButton>
         </Link>
         <PortalSurfaceCard title="تعذر تحميل العرض" icon={AlertCircle}>
           <p className="text-center text-sm text-portal-note-text">
@@ -105,14 +104,14 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link href="/portal/proposals">
-          <Button
+          <PortalActionButton
             variant="ghost"
             size="sm"
             className="gap-1.5 text-portal-note-text hover:text-natural-100"
           >
             <ArrowRight className="h-4 w-4" />
             العروض الفنية
-          </Button>
+          </PortalActionButton>
         </Link>
         <span className="text-portal-note-text">/</span>
         <span className="max-w-xs truncate text-sm font-medium text-natural-100">
@@ -171,15 +170,10 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
               <div className="md:w-[20%]">
                 <PortalInfoPanel variant="default" className="h-full">
                   <div className="flex md:flex-col items-center md:items-center gap-3 md:gap-4 md:justify-center md:text-center h-full">
-                    <Avatar className="h-12 w-12 shrink-0 bg-primary/10">
-                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                        {(data.creator?.name || data.contactName || "??")
-                          .split(" ")
-                          .map((n: string) => n[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      name={data.creator?.name || data.contactName || "??"}
+                      className="h-12 w-12 shrink-0 bg-primary/10"
+                    />
                     <div className="flex-1 min-w-0 md:flex-1">
                       <p className="text-sm font-semibold text-natural-100 truncate">
                         {data.creator?.name || data.contactName}
@@ -187,10 +181,10 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                       <p className="text-xs text-portal-note-text">مستشارك الفني</p>
                     </div>
                     <Link href="/portal/chat?openSales=true">
-                      <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                      <PortalActionButton variant="outline" size="sm" className="gap-2 shrink-0">
                         <MessageSquare className="w-4 w-4" />
                         تواصل معه
-                      </Button>
+                      </PortalActionButton>
                     </Link>
                   </div>
                 </PortalInfoPanel>
@@ -244,15 +238,15 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                   onChange={(e) => setNotes(e.target.value)}
                 />
               <div className="flex flex-wrap gap-2">
-                <Button
+                <PortalActionButton
                   onClick={handleApprove}
                   disabled={approving || requesting}
                   className="h-12 rounded-2xl px-5 text-base font-medium gap-2 bg-secondary-500 hover:bg-secondary-600"
                 >
                   <CheckCircle className="h-4 w-4" />
                   {approving ? "جارٍ الاعتماد..." : "موافقة على العرض"}
-                </Button>
-                <Button
+                </PortalActionButton>
+                <PortalActionButton
                   variant="ghost"
                   onClick={handleRevision}
                   disabled={approving || requesting}
@@ -260,7 +254,7 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                 >
                   <AlertCircle className="h-4 w-4" />
                   {requesting ? "جارٍ الإرسال..." : "طلب تعديل"}
-                </Button>
+                </PortalActionButton>
               </div>
             </div>
           )}

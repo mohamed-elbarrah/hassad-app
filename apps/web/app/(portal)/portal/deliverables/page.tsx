@@ -20,9 +20,9 @@ import {
   FileText,
   Download,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { FormTextarea } from "@/components/portal/FormTextarea";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
 import { PortalMetricCard } from "@/components/portal/PortalMetricCard";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import {
@@ -164,12 +164,12 @@ export default function PortalDeliverablesPage() {
                     key={index}
                     className="space-y-3 rounded-[30px] border-[1.5px] border-portal-divider bg-portal-bg p-5"
                   >
-                    <Skeleton className="h-8 w-48 rounded-2xl" />
-                    <Skeleton className="h-5 w-32 rounded-2xl" />
-                    <Skeleton className="h-4 w-64 rounded-2xl" />
+                    <PortalSkeleton className="h-8 w-48 rounded-2xl" />
+                    <PortalSkeleton className="h-5 w-32 rounded-2xl" />
+                    <PortalSkeleton className="h-4 w-64 rounded-2xl" />
                     <div className="grid gap-2 sm:grid-cols-3">
                       {Array.from({ length: 3 }).map((__, i) => (
-                        <Skeleton key={i} className="h-10 rounded-2xl" />
+                        <PortalSkeleton key={i} className="h-10 rounded-2xl" />
                       ))}
                     </div>
                   </div>
@@ -344,9 +344,9 @@ export default function PortalDeliverablesPage() {
                         rel="noopener noreferrer"
                         className="shrink-0"
                       >
-                        <Button variant="ghost" size="sm" className="h-8 px-2">
+                        <PortalActionButton variant="outline" size="sm" className="h-8 px-2">
                           <Download className="h-4 w-4" />
-                        </Button>
+                        </PortalActionButton>
                       </a>
                     </div>
                   ))}
@@ -384,24 +384,27 @@ export default function PortalDeliverablesPage() {
             <div className="mt-6 flex flex-col gap-3">
               {!showRevisionForm && (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Button
+                  <PortalActionButton
                     type="button"
+                    variant="primary"
+                    size="md"
                     className="h-12 rounded-2xl bg-emerald-600 text-base font-medium hover:bg-emerald-700"
                     disabled={isApproving}
                     onClick={() => handleApprove(selectedProject.id)}
                   >
                     <CheckCircle2 className="ml-2 h-5 w-5" />
                     {isApproving ? "جارٍ الموافقة..." : "موافقة على المشروع"}
-                  </Button>
-                  <Button
+                  </PortalActionButton>
+                  <PortalActionButton
                     type="button"
-                    variant="ghost"
+                    variant="outline"
+                    size="md"
                     className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 text-base font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
                     onClick={() => setShowRevisionForm(true)}
                   >
                     <AlertTriangle className="ml-2 h-5 w-5" />
                     طلب تعديلات
-                  </Button>
+                  </PortalActionButton>
                 </div>
               )}
 
@@ -416,9 +419,10 @@ export default function PortalDeliverablesPage() {
                     value={revisionComment}
                   />
                   <div className="mt-3 flex flex-wrap justify-end gap-2">
-                    <Button
+                    <PortalActionButton
                       type="button"
-                      variant="ghost"
+                      variant="outline"
+                      size="sm"
                       className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
                       onClick={() => {
                         setShowRevisionForm(false);
@@ -426,9 +430,11 @@ export default function PortalDeliverablesPage() {
                       }}
                     >
                       إلغاء
-                    </Button>
-                    <Button
+                    </PortalActionButton>
+                    <PortalActionButton
                       type="button"
+                      variant="primary"
+                      size="sm"
                       className="h-9 rounded-xl bg-action-blue px-3 text-xs font-medium hover:bg-action-blue-hover"
                       disabled={isRequestingRevision || !revisionComment.trim()}
                       onClick={() => handleRequestRevision(selectedProject.id)}
@@ -436,14 +442,15 @@ export default function PortalDeliverablesPage() {
                       {isRequestingRevision
                         ? "جارٍ الإرسال..."
                         : "إرسال طلب التعديل"}
-                    </Button>
+                    </PortalActionButton>
                   </div>
                 </div>
               )}
 
-              <Button
+              <PortalActionButton
                 type="button"
-                variant="ghost"
+                variant="outline"
+                size="sm"
                 className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
                 onClick={() => {
                   setSelectedProjectId(null);
@@ -452,7 +459,7 @@ export default function PortalDeliverablesPage() {
                 }}
               >
                 إغلاق
-              </Button>
+              </PortalActionButton>
             </div>
           </div>
         </div>

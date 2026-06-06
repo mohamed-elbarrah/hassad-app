@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PortalSkeleton } from "./PortalSkeleton";
 import { cn } from "@/lib/utils";
 
 export interface PortalDataTableColumn {
@@ -107,7 +107,7 @@ export function PortalDataTable<T>({
                 >
                   {columns.map((col, cellIdx) => (
                     <TableCell key={`${col.id}-${cellIdx}`} className="px-5 py-4">
-                      <Skeleton className="h-5 w-full rounded-lg" />
+                      <PortalSkeleton className="h-5 w-full rounded-lg" />
                     </TableCell>
                   ))}
                 </TableRow>

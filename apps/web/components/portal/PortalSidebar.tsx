@@ -2,15 +2,13 @@
 
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Home,
   Inbox,
   FileText,
   Receipt,
   BarChart3,
-  Settings,
-  LogOut,
   CheckCircle2,
   PlusCircle,
   FolderOpen,
@@ -25,15 +23,8 @@ import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
-import { UserInfoCard } from "./UserAvatar";
+import { PortalUserMenu } from "./PortalUserMenu";
 import Image from "next/image";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 /* ── Navigation groups ─────────────────────────────────────────────────── */
 const STANDALONE_ITEMS = [{ label: "الرئيسية", href: "/portal", icon: Home }];
@@ -102,7 +93,6 @@ function isActiveLink(href: string, pathname: string) {
 /* ── Component ────────────────────────────────────────────────────────── */
 export function PortalSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const [logoutMutation] = useLogoutMutation();
@@ -268,46 +258,7 @@ export function PortalSidebar() {
       <div className="px-8 pb-6">
         <div className="my-4" style={{ borderTop: "1.5px solid #ECEEF2" }} />
 
-        {/* User card with dropdown */}
-        {user && (
-          <DropdownMenu dir="rtl">
-            <DropdownMenuTrigger asChild>
-              <button className="w-full text-right cursor-pointer focus:outline-none focus:ring-0">
-                <UserInfoCard
-                  name={user.name}
-                  email={user.email}
-                  avatarUrl={user.avatarUrl}
-                  showVerified={true}
-                  size="lg"
-                  className="py-2"
-                />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              side="top"
-              sideOffset={8}
-              style={{ width: 'var(--radix-dropdown-menu-trigger-width)' }}
-              className="rounded-xl p-2"
-            >
-              <DropdownMenuItem
-                className=" rounded-lg py-3 px-3 cursor-pointer text-base"
-                onClick={() => router.push("/portal/account")}
-              >
-                <Settings className=" text-gray-600" />
-                <span className="text-gray-600 font-medium transition-colors">الاعدادات</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="rounded-lg py-3 px-3 cursor-pointer text-base"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-5 h-5" style={{ color: "#FF6161" }} />
-                <span className="text-red-400 font-medium transition-colors">تسجيل الخروج</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        {user && <PortalUserMenu user={user} onLogout={handleLogout} />}
       </div>
     </aside>
   );

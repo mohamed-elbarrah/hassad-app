@@ -1,20 +1,10 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { UserAvatar } from "./UserAvatar";
+import { PortalActionButton } from "./PortalActionButton";
 
 interface PmCardProps {
   name: string;
   role: string;
   status: "online" | "offline";
-}
-
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
 }
 
 export function PmCard({ name, role, status }: PmCardProps) {
@@ -37,16 +27,21 @@ export function PmCard({ name, role, status }: PmCardProps) {
             {role}
           </p>
         </div>
-        <Avatar className="w-[82px] h-[82px] rounded-full shrink-0">
-          <AvatarFallback className="rounded-full text-lg font-bold bg-secondary-500 text-white">
-            {getInitials(name)}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          name={name}
+          size="xl"
+          className="shrink-0"
+        />
       </div>
 
-      <Button className="w-full h-[62px] bg-pm-button-bg hover:bg-pm-button-bg/80 rounded-[16px] text-[16px] font-semibold text-pm-button-text">
+      <PortalActionButton
+        variant="pm"
+        size="xl"
+        fullWidth
+        className="text-[16px] font-semibold"
+      >
         تواصل معه
-      </Button>
+      </PortalActionButton>
     </div>
   );
 }

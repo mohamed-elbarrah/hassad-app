@@ -40,7 +40,7 @@ import {
   mapTaskStatusToUI,
   mapProjectStatusToUI,
 } from "@/lib/utils/statusMapping";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
 import { cn } from "@/lib/utils";
 
 const ACTION_TYPE_CONFIG: Record<
@@ -309,9 +309,9 @@ export default function PortalPage() {
         >
           {campaignLoading ? (
             <div className="space-y-3 px-1">
-              <Skeleton className="h-[30px] w-full rounded-2xl" />
-              <Skeleton className="h-[30px] w-full rounded-2xl" />
-              <Skeleton className="h-[30px] w-3/4 rounded-2xl" />
+              <PortalSkeleton className="h-[30px] w-full rounded-2xl" />
+              <PortalSkeleton className="h-[30px] w-full rounded-2xl" />
+              <PortalSkeleton className="h-[30px] w-3/4 rounded-2xl" />
             </div>
           ) : campaignError ? (
             <p className="text-base text-portal-note-text text-center py-4">

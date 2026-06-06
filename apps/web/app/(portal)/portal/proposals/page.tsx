@@ -7,7 +7,7 @@ import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { PortalDataTable } from "@/components/portal/PortalDataTable";
 import { StatusBadge } from "@/components/portal/StatusBadge";
-import { Button } from "@/components/ui/button";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { mapProposalStatusToUI } from "@/lib/utils/statusMapping";
 
 export default function PortalProposalsPage() {
@@ -65,14 +65,14 @@ export default function PortalProposalsPage() {
               <td className="px-5 py-4">
                 {proposal.shareLinkToken ? (
                   <Link href={`/portal/proposals/${proposal.shareLinkToken}`}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <PortalActionButton
+                      variant="outline"
+                      size="md"
                       className="h-9 rounded-xl border border-portal-card-border bg-white px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-1"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       فتح العرض
-                    </Button>
+                    </PortalActionButton>
                   </Link>
                 ) : (
                   <span className="text-xs text-portal-note-text">

@@ -6,20 +6,12 @@ import {
   useGetPaymentGatewaysQuery,
   useGetBankAccountsQuery,
 } from "@/features/finance/financeApi";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { PortalDialog } from "./PortalDialog";
+import { PortalActionButton } from "./PortalActionButton";
 import {
   CreditCard,
   Landmark,
   Loader2,
-  CheckCircle2,
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -54,7 +46,7 @@ export function PaymentModal({
       }).unwrap();
 
       if (response.clientSecret) {
-        window.location.href = response.clientSecret; // redirect to stripe checkout
+        window.location.href = response.clientSecret;
       } else {
         toast.error("فشل في الحصول على رابط الدفع");
       }
@@ -63,149 +55,157 @@ export function PaymentModal({
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]" dir="rtl">
-        <DialogHeader className="text-right">
-          <DialogTitle className="text-xl">
-            دفع الفاتورة {invoice.invoiceNumber}
-          </DialogTitle>
-          <DialogDescription>اختر وسيلة الدفع المفضلة لديك</DialogDescription>
-        </DialogHeader>
+  const footer = (
+    <div className="text-[10px] text-portal-icon text-center w-full">
+      جميع المدفوعات مشفرة وآمنة 100%
+    </div>
+  );
 
-        {!method ? (
-          <div className="grid gap-4 py-4">
-            {stripeGateway && (
-              <Button
-                variant="outline"
-                className="h-20 justify-between px-6 border-2 hover:border-primary hover:bg-primary/5 group"
-                onClick={() => setMethod("stripe")}
-              >
+  return (
+    <PortalDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={<>
+        دفع الفاتورة {invoice.invoiceNumber}
+      </>}
+      description="اختر وسيلة الدفع المفضلة لديك"
+      footer={footer}
+      contentClassName="sm:max-w-[425px]"
+    >
+      {!method ? (
+        <div className="grid gap-4 py-4">
+          {stripeGateway && (
+            <PortalActionButton
+              variant="outline"
+              size="xl"
+              fullWidth
+              onClick={() => setMethod("stripe")}
+              iconPosition="right"
+              icon={
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-blue-50 rounded-lg group-hover:bg-blue-100">
                     <CreditCard className="w-6 h-6 text-blue-600" />
                   </div>
                   <div className="text-right">
                     <div className="font-bold">بطاقة ائتمان / مدى</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-portal-icon">
                       دفع آمن وفوري عبر Stripe
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground rotate-180" />
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              className="h-20 justify-between px-6 border-2 hover:border-primary hover:bg-primary/5 group"
-              onClick={() => setMethod("bank")}
+              }
+              className="h-20 justify-between px-6 border-2 hover:border-secondary-500 hover:bg-secondary-100/20 group"
             >
+              <ChevronRight className="w-5 h-5 text-portal-icon rotate-180" />
+            </PortalActionButton>
+          )}
+
+          <PortalActionButton
+            variant="outline"
+            size="xl"
+            fullWidth
+            onClick={() => setMethod("bank")}
+            iconPosition="right"
+            icon={
               <div className="flex items-center gap-4">
                 <div className="p-2 bg-amber-50 rounded-lg group-hover:bg-amber-100">
                   <Landmark className="w-6 h-6 text-amber-600" />
                 </div>
                 <div className="text-right">
                   <div className="font-bold">تحويل بنكي مباشر</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-portal-icon">
                     تحويل للمصرف وتأكيد يدوي
                   </div>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground rotate-180" />
-            </Button>
-          </div>
-        ) : method === "stripe" ? (
-          <div className="py-8 text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="p-4 bg-primary/10 rounded-full animate-pulse">
-                <CreditCard className="w-12 h-12 text-primary" />
-              </div>
-            </div>
-            <h4 className="font-bold text-lg">جاري تجهيز بوابة الدفع...</h4>
-            <p className="text-sm text-muted-foreground">
-              سيتم توجيهك إلى صفحة الدفع الآمنة الخاصة بـ Stripe لإتمام العملية.
-            </p>
-            <div className="pt-4 flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setMethod(null)}
-              >
-                رجوع
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handleStripePayment}
-                disabled={isCreatingIntent}
-              >
-                {isCreatingIntent && (
-                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                )}
-                تأكيد ومتابعة
-              </Button>
+            }
+            className="h-20 justify-between px-6 border-2 hover:border-secondary-500 hover:bg-secondary-100/20 group"
+          >
+            <ChevronRight className="w-5 h-5 text-portal-icon rotate-180" />
+          </PortalActionButton>
+        </div>
+      ) : method === "stripe" ? (
+        <div className="py-8 text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="p-4 bg-secondary-100/40 rounded-full animate-pulse">
+              <CreditCard className="w-12 h-12 text-secondary-500" />
             </div>
           </div>
-        ) : (
-          <div className="py-4 space-y-4">
-            <h4 className="font-bold text-center mb-2">
-              بيانات الحسابات البنكية المعتمدة
-            </h4>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto px-1">
-              {bankAccounts?.map((acc: any) => (
-                <div
-                  key={acc.id}
-                  className="p-4 border rounded-xl bg-muted/30 space-y-2"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-primary">
-                      {acc.bankName}
-                    </span>
-                    <Landmark className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div className="grid gap-1">
-                    <span className="text-[10px] text-muted-foreground uppercase">
-                      اسم الحساب
-                    </span>
-                    <span className="text-sm font-semibold">
-                      {acc.accountName}
-                    </span>
-                  </div>
-                  <div className="grid gap-1">
-                    <span className="text-[10px] text-muted-foreground uppercase">
-                      IBAN
-                    </span>
-                    <span className="text-sm font-mono bg-white p-2 rounded border select-all text-center">
-                      {acc.iban}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="bg-blue-50 p-4 rounded-xl text-xs text-blue-800 leading-relaxed">
-              <p className="font-bold mb-1">تعليمات:</p>
-              <p>
-                يرجى إرفاق رقم الفاتورة{" "}
-                <span className="font-bold">{invoice.invoiceNumber}</span> في
-                ملاحظات التحويل لسرعة التأكيد.
-              </p>
-            </div>
-            <Button
+          <h4 className="font-bold text-lg">جاري تجهيز بوابة الدفع...</h4>
+          <p className="text-sm text-portal-icon">
+            سيتم توجيهك إلى صفحة الدفع الآمنة الخاصة بـ Stripe لإتمام العملية.
+          </p>
+          <div className="pt-4 flex gap-2">
+            <PortalActionButton
               variant="outline"
-              className="w-full"
+              fullWidth
               onClick={() => setMethod(null)}
             >
               رجوع
-            </Button>
+            </PortalActionButton>
+            <PortalActionButton
+              variant="primary"
+              fullWidth
+              onClick={handleStripePayment}
+              loading={isCreatingIntent}
+            >
+              تأكيد ومتابعة
+            </PortalActionButton>
           </div>
-        )}
-
-        <DialogFooter className="sm:justify-start">
-          <div className="text-[10px] text-muted-foreground text-center w-full">
-            جميع المدفوعات مشفرة وآمنة 100%
+        </div>
+      ) : (
+        <div className="py-4 space-y-4">
+          <h4 className="font-bold text-center mb-2">
+            بيانات الحسابات البنكية المعتمدة
+          </h4>
+          <div className="space-y-3 max-h-[300px] overflow-y-auto px-1">
+            {bankAccounts?.map((acc: any) => (
+              <div
+                key={acc.id}
+                className="p-4 border rounded-xl bg-portal-bg space-y-2"
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-secondary-500">
+                    {acc.bankName}
+                  </span>
+                  <Landmark className="w-4 h-4 text-portal-icon" />
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-[10px] text-portal-icon uppercase">
+                    اسم الحساب
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {acc.accountName}
+                  </span>
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-[10px] text-portal-icon uppercase">
+                    IBAN
+                  </span>
+                  <span className="text-sm font-mono bg-white p-2 rounded border select-all text-center">
+                    {acc.iban}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <div className="bg-action-blue-soft p-4 rounded-xl text-xs text-action-blue leading-relaxed">
+            <p className="font-bold mb-1">تعليمات:</p>
+            <p>
+              يرجى إرفاق رقم الفاتورة{" "}
+              <span className="font-bold">{invoice.invoiceNumber}</span> في
+              ملاحظات التحويل لسرعة التأكيد.
+            </p>
+          </div>
+          <PortalActionButton
+            variant="outline"
+            fullWidth
+            onClick={() => setMethod(null)}
+          >
+            رجوع
+          </PortalActionButton>
+        </div>
+      )}
+    </PortalDialog>
   );
 }

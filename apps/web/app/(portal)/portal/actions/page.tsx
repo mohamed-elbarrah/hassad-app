@@ -9,7 +9,7 @@ import { PortalPagination } from "@/components/portal/PortalPagination";
 import { PortalFilterPills } from "@/components/portal/PortalFilterPills";
 import { PortalPill } from "@/components/portal/PortalPill";
 import { PortalDataTable } from "@/components/portal/PortalDataTable";
-import { Button } from "@/components/ui/button";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import { useGetActionItemsQuery } from "@/features/portal/portalApi";
 
 const TYPE_FILTERS = [
@@ -140,14 +140,14 @@ export default function PortalActionsPage() {
                   )}
                 </td>
                 <td className="px-5 py-4">
-                  <Button
-                    size="sm"
+                  <PortalActionButton
+                    variant="primary"
+                    size="md"
                     onClick={() => router.push(item.actionUrl)}
-                    className="h-9 rounded-xl bg-secondary-500 hover:bg-secondary-600 text-white px-3 text-xs font-medium"
                   >
                     <ExternalLink className="h-3.5 w-3.5 ml-1" />
                     اتخاذ إجراء
-                  </Button>
+                  </PortalActionButton>
                 </td>
               </tr>
             );

@@ -20,19 +20,19 @@ import {
   PlusCircle,
   ArrowRight,
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import { PortalCheckbox } from "@/components/portal/PortalCheckbox";
+import { PortalActionButton } from "@/components/portal/PortalActionButton";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  PortalForm,
+  PortalFormControl,
+  PortalFormField,
+  PortalFormItem,
+  PortalFormLabel,
+  PortalFormMessage,
+} from "@/components/portal/PortalForm";
 import {
-  SelectItem,
-} from "@/components/ui/select";
+  PortalSelectItem,
+} from "@/components/portal/PortalSelect";
 import { FormInput } from "@/components/portal/FormInput";
 import { FormTextarea } from "@/components/portal/FormTextarea";
 import { PortalSelect } from "@/components/portal/PortalSelect";
@@ -165,7 +165,7 @@ export default function PortalNewOrderPage() {
 
       <PortalSurfaceCard>
         <div className="max-w-xl mx-auto">
-          <Form {...form}>
+          <PortalForm {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex flex-col gap-6"
@@ -209,7 +209,7 @@ export default function PortalNewOrderPage() {
               {/* Step 1 */}
               {step === 1 && (
                 <div className="flex flex-col gap-5">
-                  <FormField
+                  <PortalFormField
                     control={form.control}
                     name="contactName"
                     render={({ field, fieldState }) => (
@@ -222,7 +222,7 @@ export default function PortalNewOrderPage() {
                       />
                     )}
                   />
-                  <FormField
+                  <PortalFormField
                     control={form.control}
                     name="phoneWhatsapp"
                     render={({ field, fieldState }) => (
@@ -236,7 +236,7 @@ export default function PortalNewOrderPage() {
                       />
                     )}
                   />
-                  <FormField
+                  <PortalFormField
                     control={form.control}
                     name="email"
                     render={({ field, fieldState }) => (
@@ -250,7 +250,7 @@ export default function PortalNewOrderPage() {
                       />
                     )}
                   />
-                  <FormField
+                  <PortalFormField
                     control={form.control}
                     name="companyName"
                     render={({ field, fieldState }) => (
@@ -268,7 +268,7 @@ export default function PortalNewOrderPage() {
               {/* Step 2 */}
               {step === 2 && (
                 <div className="flex flex-col gap-5">
-                  <FormField
+                  <PortalFormField
                     control={form.control}
                     name="businessType"
                     render={({ field, fieldState }) => (
@@ -280,14 +280,14 @@ export default function PortalNewOrderPage() {
                         error={fieldState.error?.message}
                       >
                         {Object.values(BusinessType).map((type) => (
-                          <SelectItem key={type} value={type}>
+                          <PortalSelectItem key={type} value={type}>
                             {BUSINESS_TYPE_LABELS[type]}
-                          </SelectItem>
+                          </PortalSelectItem>
                         ))}
                       </PortalSelect>
                     )}
                   />
-                  <FormField
+                  <PortalFormField
                     control={form.control}
                     name="description"
                     render={({ field, fieldState }) => (
@@ -300,25 +300,25 @@ export default function PortalNewOrderPage() {
                       />
                     )}
                   />
-                  <FormField
+                  <PortalFormField
                     control={form.control}
                     name="serviceIds"
                     render={() => (
-                      <FormItem>
-                        <FormLabel>
+                      <PortalFormItem>
+                        <PortalFormLabel>
                           الخدمات المطلوبة{" "}
                           <span className="text-danger-500">*</span>
-                        </FormLabel>
+                        </PortalFormLabel>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
                           {serviceOptions.map((service) => (
-                            <FormField
+                            <PortalFormField
                               key={service.id}
                               control={form.control}
                               name="serviceIds"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-2xl border-portal-card-border border p-3 hover:bg-portal-bg transition-colors cursor-pointer">
-                                   <FormControl>
-                                     <Checkbox
+                                <PortalFormItem className="flex flex-row items-start gap-3 space-y-0 rounded-2xl border-portal-card-border border p-3 hover:bg-portal-bg transition-colors cursor-pointer">
+                                   <PortalFormControl>
+                                     <PortalCheckbox
                                        checked={field.value?.includes(
                                          service.id,
                                        )}
@@ -333,22 +333,22 @@ export default function PortalNewOrderPage() {
                                          );
                                        }}
                                      />
-                                   </FormControl>
+                                   </PortalFormControl>
                                    <div className="flex flex-col gap-0.5">
-                                     <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
+                                     <PortalFormLabel className="font-normal cursor-pointer text-sm leading-tight">
                                        {service.label}
-                                     </FormLabel>
+                                     </PortalFormLabel>
                                      {service.description && (
                                        <p className="text-xs text-portal-icon leading-snug">{service.description}</p>
                                      )}
                                    </div>
-                                 </FormItem>
+                                 </PortalFormItem>
                               )}
                             />
                           ))}
                         </div>
-                        <FormMessage />
-                      </FormItem>
+                        <PortalFormMessage />
+                      </PortalFormItem>
                     )}
                   />
                 </div>
@@ -357,7 +357,7 @@ export default function PortalNewOrderPage() {
               {/* Navigation */}
               <div className="flex items-center justify-between pt-4 border-t-[1.5px] border-portal-card-border">
                 {step === 2 ? (
-                  <Button
+                  <PortalActionButton
                     type="button"
                     variant="ghost"
                     onClick={() => setStep(1)}
@@ -365,20 +365,20 @@ export default function PortalNewOrderPage() {
                     className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg gap-2 cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" /> السابق
-                  </Button>
+                  </PortalActionButton>
                 ) : (
                   <div />
                 )}
                 {step === 1 ? (
-                  <Button
+                  <PortalActionButton
                     type="button"
                     onClick={handleNext}
                     className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white mr-auto cursor-pointer"
                   >
                     التالي <ChevronLeft className="w-4 h-4" />
-                  </Button>
+                  </PortalActionButton>
                 ) : (
-                  <Button
+                  <PortalActionButton
                     type="submit"
                     disabled={isLoading}
                     className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white cursor-pointer"
@@ -393,11 +393,11 @@ export default function PortalNewOrderPage() {
                         إنشاء الطلب <ArrowRight className="w-4 h-4" />
                       </>
                     )}
-                  </Button>
+                  </PortalActionButton>
                 )}
               </div>
             </form>
-          </Form>
+          </PortalForm>
         </div>
       </PortalSurfaceCard>
     </div>

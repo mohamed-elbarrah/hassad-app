@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ClipboardList, FileText, PenTool, PlusCircle, type LucideIcon } from "lucide-react";
 import { useGetPortalRequestsQuery } from "@/features/portal/portalApi";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
 import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
 import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
 import { StatusBadge } from "@/components/portal/StatusBadge";
@@ -120,16 +119,16 @@ export default function PortalRequestsPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
-                    <Skeleton className="h-7 w-48 rounded-2xl" />
-                    <Skeleton className="h-5 w-32 rounded-2xl" />
+                    <PortalSkeleton className="h-7 w-48 rounded-2xl" />
+                    <PortalSkeleton className="h-5 w-32 rounded-2xl" />
                   </div>
-                  <Skeleton className="h-10 w-28 rounded-full" />
+                  <PortalSkeleton className="h-10 w-28 rounded-full" />
                 </div>
-                <Skeleton className="h-5 w-64 rounded-2xl" />
-                <Skeleton className="h-20 w-full rounded-2xl" />
+                <PortalSkeleton className="h-5 w-64 rounded-2xl" />
+                <PortalSkeleton className="h-20 w-full rounded-2xl" />
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <Skeleton className="h-36 w-full rounded-2xl" />
-                  <Skeleton className="h-36 w-full rounded-2xl" />
+                  <PortalSkeleton className="h-36 w-full rounded-2xl" />
+                  <PortalSkeleton className="h-36 w-full rounded-2xl" />
                 </div>
               </div>
             ))}
