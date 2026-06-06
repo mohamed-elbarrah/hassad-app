@@ -30,7 +30,7 @@ export function DashboardCard({
           <PortalActionButton
             variant="outline"
             size="md"
-            className="text-[18px] font-medium  text-portal-icon border-[1.5px] border-portal-card-border rounded-[10px] px-5 py-5 hover:bg-neutral-100"
+            className="text-[18px] font-medium text-portal-icon border-[1.5px] border-portal-card-border rounded-[10px] px-5 py-5"
             onClick={onShowAll}
           >
             عرض الكل

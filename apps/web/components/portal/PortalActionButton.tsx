@@ -81,13 +81,13 @@ export function PortalActionButton({
       variant="ghost"
       onClick={onClick}
       disabled={disabled || loading}
-      className={cn(
-        variantStyles[variant],
-        sizeStyles[size],
-        fullWidth && "w-full",
-        "gap-1 rounded-xl font-medium shrink-0",
-        className,
-      )}
+        className={cn(
+          variantStyles[variant],
+          sizeStyles[size],
+          fullWidth && "w-full",
+          "gap-1 rounded-xl font-medium shrink-0 cursor-pointer",
+          className,
+        )}
     >
       {loading && <Loader2 className="h-4 w-4 animate-spin" />}
       {icon && iconPosition === "left" && !loading && (

@@ -17,7 +17,7 @@ export function PortalPagination({
     <div className="flex flex-wrap items-center justify-center gap-3 border-t-[1.5px] border-portal-divider pt-5">
       <button
         type="button"
-        className="inline-flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon transition-colors hover:bg-badge-gray-bg disabled:opacity-50"
+        className="inline-flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon transition-colors hover:bg-badge-gray-bg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
       >
@@ -30,7 +30,7 @@ export function PortalPagination({
 
       <button
         type="button"
-        className="inline-flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon transition-colors hover:bg-badge-gray-bg disabled:opacity-50"
+        className="inline-flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon transition-colors hover:bg-badge-gray-bg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
       >

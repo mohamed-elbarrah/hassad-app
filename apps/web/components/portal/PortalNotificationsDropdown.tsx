@@ -529,7 +529,7 @@ export function PortalNotificationsDropdown() {
                 selectedNotification.entityId,
               ) && (
                 <button
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white cursor-pointer transition-colors hover:bg-[#1a234a]"
                   style={{
                     backgroundColor: "#121936",
                     fontSize: 16,
@@ -543,7 +543,7 @@ export function PortalNotificationsDropdown() {
                 </button>
               )}
               <button
-                className="px-5 py-2.5 rounded-2xl"
+                className="px-5 py-2.5 rounded-2xl cursor-pointer transition-colors hover:bg-badge-gray-bg"
                 style={{
                   backgroundColor: "#F9FAFB",
                   border: "1.5px solid #E1E4EA",

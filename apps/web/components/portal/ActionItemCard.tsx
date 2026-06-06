@@ -44,7 +44,7 @@ export function ActionItemCard({
           variant="outline"
           size="lg"
           onClick={onSecondary}
-          className="flex-1 text-[16px] font-semibold text-action-gray-text border-[1.5px] border-portal-card-border rounded-[16px] hover:bg-neutral-100"
+          className="flex-1 text-[16px] font-semibold text-action-gray-text border-[1.5px] border-portal-card-border rounded-[16px]"
         >
           {secondaryAction}
         </PortalActionButton>
