@@ -2,11 +2,11 @@
 
 import { useAppSelector } from "@/lib/hooks";
 import { UserRole, TaskDepartment } from "@hassad/shared";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Pill } from "@/components/design-system/Pill";
+import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import { User, Mail, Briefcase } from "lucide-react";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -26,16 +26,6 @@ const DEPT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.CONTENT]: "المحتوى",
   [TaskDepartment.PRODUCTION]: "المونتاج",
 };
-
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
 
 export default function AccountPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -71,29 +61,25 @@ export default function AccountPage() {
     <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">الحساب الشخصي</h1>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-4 pb-4">
-          <Avatar className="h-16 w-16 rounded-xl">
-            <AvatarFallback className="rounded-xl text-lg font-semibold">
-              {getInitials(user.name)}
-            </AvatarFallback>
-          </Avatar>
+      <SurfaceCard>
+        <div className="flex flex-row items-center gap-4 pb-4">
+          <UserAvatar name={user.name} size="lg" variant="rounded" />
           <div className="flex flex-col gap-1">
-            <CardTitle className="text-xl">{user.name}</CardTitle>
+            <h2 className="text-xl font-semibold text-natural-100">{user.name}</h2>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">{roleLabel}</Badge>
-              {deptLabel && <Badge variant="outline">{deptLabel}</Badge>}
+              <Pill tone="neutral">{roleLabel}</Pill>
+              {deptLabel && <Pill tone="blue">{deptLabel}</Pill>}
             </div>
           </div>
-        </CardHeader>
+        </div>
 
         <Separator />
 
-        <CardContent className="pt-4 space-y-4">
+        <div className="pt-4 space-y-4">
           <div className="flex items-center gap-3 text-sm">
-            <User className="h-4 w-4 text-muted-foreground shrink-0" />
+            <User className="h-4 w-4 text-neutral-300 shrink-0" />
             <div>
-              <p className="text-muted-foreground text-xs mb-0.5">
+              <p className="text-neutral-300 text-xs mb-0.5">
                 الاسم الكامل
               </p>
               <p className="font-medium">{user.name}</p>
@@ -101,9 +87,9 @@ export default function AccountPage() {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Mail className="h-4 w-4 text-neutral-300 shrink-0" />
             <div>
-              <p className="text-muted-foreground text-xs mb-0.5">
+              <p className="text-neutral-300 text-xs mb-0.5">
                 البريد الإلكتروني
               </p>
               <p className="font-medium">{user.email}</p>
@@ -112,15 +98,15 @@ export default function AccountPage() {
 
           {deptLabel && (
             <div className="flex items-center gap-3 text-sm">
-              <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Briefcase className="h-4 w-4 text-neutral-300 shrink-0" />
               <div>
-                <p className="text-muted-foreground text-xs mb-0.5">القسم</p>
+                <p className="text-neutral-300 text-xs mb-0.5">القسم</p>
                 <p className="font-medium">{deptLabel}</p>
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SurfaceCard>
     </div>
   );
 }

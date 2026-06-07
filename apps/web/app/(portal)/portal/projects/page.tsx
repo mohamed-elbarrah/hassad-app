@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Activity, FolderOpen } from "lucide-react";
 import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
 import { ProjectStatus } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { PortalPagination } from "@/components/portal/PortalPagination";
-import { PortalDataTable } from "@/components/portal/PortalDataTable";
-import { StatusBadge } from "@/components/portal/StatusBadge";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Pagination } from "@/components/design-system/Pagination";
+import { DataTable } from "@/components/design-system/DataTable";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
 import { cn } from "@/lib/utils";
 
@@ -45,13 +45,13 @@ export default function PortalProjectsPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="مشاريعي"
         description="تتبع جميع مشاريعك، راقب الحالة الحالية، واستعرض نسبة التقدم لكل مشروع ضمن نفس الهوية البصرية للبوابة."
         icon={FolderOpen}
       />
 
-      <PortalSurfaceCard
+      <SurfaceCard
         title="قائمة المشاريع"
         description="استخدم الفلاتر لتضييق العرض، ثم راجع حالة المشروع والتقدم ومدير المشروع والتواريخ الأساسية."
         icon={Activity}
@@ -61,10 +61,11 @@ export default function PortalProjectsPage() {
               const isActive = statusFilter === filter.value;
 
               return (
-                <Button
+                <ActionButton
                   key={filter.value}
                   type="button"
-                  variant="ghost"
+                  variant={isActive ? "toggle-active" : "toggle-inactive"}
+                  size="md"
                   className={cn(
                     "h-12 rounded-2xl border-[1.5px] px-5 text-base font-medium shadow-none transition-colors",
                     isActive
@@ -77,13 +78,13 @@ export default function PortalProjectsPage() {
                   }}
                 >
                   {filter.label}
-                </Button>
+                </ActionButton>
               );
             })}
           </div>
         }
       >
-        <PortalDataTable
+        <DataTable
           columns={[
             { id: "name", label: "اسم المشروع" },
             { id: "status", label: "الحالة" },
@@ -159,13 +160,13 @@ export default function PortalProjectsPage() {
         />
 
         {totalPages > 1 && (
-          <PortalPagination
+          <Pagination
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
           />
         )}
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

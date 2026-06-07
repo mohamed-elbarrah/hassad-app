@@ -5,25 +5,25 @@ import {
   useGetPortalInvoicesQuery,
   useGetPortalFinanceSummaryQuery,
 } from "@/features/portal/portalApi";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
+import { PageIntro } from "@/components/design-system/PageIntro";
 import {
-  PortalKpiPill,
-  PortalKpiCurrency,
-} from "@/components/portal/PortalKpiPill";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { PortalDataTable } from "@/components/portal/PortalDataTable";
-import { PortalPagination } from "@/components/portal/PortalPagination";
-import { PortalFilterPills } from "@/components/portal/PortalFilterPills";
-import { StatusBadge } from "@/components/portal/StatusBadge";
+  KpiPill,
+  KpiCurrency,
+} from "@/components/design-system/KpiPill";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { DataTable } from "@/components/design-system/DataTable";
+import { Pagination } from "@/components/design-system/Pagination";
+import { FilterPills } from "@/components/design-system/FilterPills";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { PaymentSheet, type PayableInvoice } from "@/components/payments/PaymentSheet";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Input } from "@/components/design-system/Input";
 import { mapFinanceStatusToUI } from "@/lib/utils/statusMapping";
 import { Search, CreditCard, Receipt } from "lucide-react";
 
 import { useCurrency } from "@/hooks/useCurrency";
-import { SymbolRenderer } from "@/components/portal/CurrencySymbol";
+import { SymbolRenderer } from "@/components/design-system/CurrencySymbol";
 
 const PAGE_SIZE = 7;
 
@@ -124,7 +124,7 @@ export default function PortalFinancePage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="الفواتير والمدفوعات"
         description="استعرض جميع فواتيرك، حالة الدفع، المبالغ المستحقة، وقم بالدفع مباشرة."
         icon={Receipt}
@@ -140,19 +140,19 @@ export default function PortalFinancePage() {
           </>
         ) : (
           <>
-            <PortalKpiPill
+            <KpiPill
               label="إجمالي المدفوعات"
-              value={<PortalKpiCurrency amount={summary.totalInvoiced} />}
+              value={<KpiCurrency amount={summary.totalInvoiced} />}
             />
-            <PortalKpiPill
+            <KpiPill
               label="الفواتير المستحقة"
-              value={<PortalKpiCurrency amount={summary.totalRemaining} />}
+              value={<KpiCurrency amount={summary.totalRemaining} />}
             />
-            <PortalKpiPill
+            <KpiPill
               label="الفواتير المدفوعة"
-              value={<PortalKpiCurrency amount={summary.totalPaid} />}
+              value={<KpiCurrency amount={summary.totalPaid} />}
             />
-            <PortalKpiPill
+            <KpiPill
               label="الفاتورة القادمة"
               value={
                 nextDate ? (
@@ -160,7 +160,7 @@ export default function PortalFinancePage() {
                     {nextDate}
                   </span>
                 ) : (
-                  <PortalKpiCurrency amount={summary.nextInvoiceAmount} />
+                  <KpiCurrency amount={summary.nextInvoiceAmount} />
                 )
               }
             />
@@ -168,7 +168,7 @@ export default function PortalFinancePage() {
         )}
       </div>
 
-      <PortalSurfaceCard
+      <SurfaceCard
         title="قائمة الفواتير"
         description="جميع فواتيرك مع حالة الدفع والإجراءات المتاحة"
         icon={Receipt}
@@ -178,7 +178,7 @@ export default function PortalFinancePage() {
               <Search className="h-4 w-4 text-portal-icon" />
               <Input
                 placeholder="البحث برقم الفاتورة..."
-                className="border-none focus-visible:ring-0 text-sm bg-transparent h-8 w-[200px]"
+                className="text-sm h-8 w-[200px]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -186,7 +186,7 @@ export default function PortalFinancePage() {
                 }}
               />
             </div>
-            <PortalFilterPills
+            <FilterPills
               options={STATUS_FILTER_OPTIONS}
               active={statusFilter}
               onChange={handleFilterChange}
@@ -194,7 +194,7 @@ export default function PortalFinancePage() {
           </div>
         }
       >
-        <PortalDataTable
+        <DataTable
           columns={[
             { id: "number", label: "رقم الفاتورة" },
             { id: "date", label: "التاريخ" },
@@ -244,14 +244,15 @@ export default function PortalFinancePage() {
                   invoice.status === "SENT" ||
                   invoice.status === "PARTIAL" ||
                   invoice.status === "LATE") && (
-                  <Button
+                  <ActionButton
+                    variant="primary"
                     size="sm"
                     onClick={() => handlePayClick(invoice)}
                     className="h-9 rounded-xl px-3 text-xs font-medium gap-1 bg-secondary-500 hover:bg-secondary-600 text-white"
                   >
                     <CreditCard className="h-3.5 w-3.5" />
                     دفع
-                  </Button>
+                  </ActionButton>
                 )}
               </td>
             </tr>
@@ -259,13 +260,13 @@ export default function PortalFinancePage() {
         />
 
         {!invoicesLoading && filteredInvoices.length > 0 && (
-          <PortalPagination
+          <Pagination
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
           />
         )}
-      </PortalSurfaceCard>
+      </SurfaceCard>
 
       <PaymentSheet
         invoice={selectedInvoice}

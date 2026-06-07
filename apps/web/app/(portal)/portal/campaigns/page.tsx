@@ -5,11 +5,11 @@ import {
   useGetPortalCampaignsQuery,
   type PortalCampaign,
 } from "@/features/portal/portalApi";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { StatusBadge } from "@/components/portal/StatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
@@ -41,7 +41,7 @@ export default function PortalCampaignsPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="الحملات الإعلانية"
         description="جميع الحملات الإعلانية المرتبطة بحسابك مع مؤشرات الأداء الرئيسية لكل حملة."
         icon={TrendingUp}
@@ -61,20 +61,20 @@ export default function PortalCampaignsPage() {
             <p className="text-base font-medium text-danger-700">
               تعذر تحميل الحملات. يرجى المحاولة مرة أخرى.
             </p>
-            <Button
-              variant="outline"
-              size="sm"
+            <ActionButton
+              variant="secondary"
+              size="md"
               onClick={() => refetch()}
               className="mt-3"
             >
               إعادة المحاولة
-            </Button>
+            </ActionButton>
           </div>
         </div>
       )}
 
       {clientId && (
-        <PortalSurfaceCard title="قائمة الحملات" icon={TrendingUp}>
+        <SurfaceCard title="قائمة الحملات" icon={TrendingUp}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {isLoading &&
               Array.from({ length: 4 }).map((_, i) => (
@@ -172,7 +172,7 @@ export default function PortalCampaignsPage() {
                 </Link>
               ))}
           </div>
-        </PortalSurfaceCard>
+        </SurfaceCard>
       )}
     </div>
   );

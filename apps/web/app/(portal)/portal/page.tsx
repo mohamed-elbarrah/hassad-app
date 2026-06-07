@@ -28,19 +28,19 @@ import {
   useSnoozeActionItemMutation,
 } from "@/features/portal/portalApi";
 
-import { DashboardCard } from "@/components/portal/DashboardCard";
-import { GaugeChart } from "@/components/portal/GaugeChart";
-import { StatusBadge } from "@/components/portal/StatusBadge";
-import { ActionItemCard } from "@/components/portal/ActionItemCard";
-import { KpiRow } from "@/components/portal/KpiRow";
-import { TimelineItem } from "@/components/portal/TimelineItem";
-import { DeliverableItem } from "@/components/portal/DeliverableItem";
-import { PmCard } from "@/components/portal/PmCard";
+import { DashboardCard } from "@/components/design-system/DashboardCard";
+import { GaugeChart } from "@/components/design-system/GaugeChart";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ActionItemCard } from "@/components/design-system/ActionItemCard";
+import { KpiRow } from "@/components/design-system/KpiRow";
+import { TimelineItem } from "@/components/design-system/TimelineItem";
+import { DeliverableItem } from "@/components/design-system/DeliverableItem";
+import { PmCard } from "@/components/design-system/PmCard";
 import {
   mapTaskStatusToUI,
   mapProjectStatusToUI,
 } from "@/lib/utils/statusMapping";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import { cn } from "@/lib/utils";
 
 const ACTION_TYPE_CONFIG: Record<

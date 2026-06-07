@@ -6,14 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Dialog } from "@/components/design-system/Dialog";
 import {
   Form,
   FormControl,
@@ -21,15 +15,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@/components/design-system/Form";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+} from "@/components/design-system/Select";
 import { useCreateTaskMutation } from "@/features/tasks/tasksApi";
 import { useSearchTaskAssigneesQuery } from "@/features/users/usersApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
@@ -130,112 +121,48 @@ export function TaskForm({ projectId }: TaskFormProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="size-4 mr-1" />
-          مهمة جديدة
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>إنشاء مهمة جديدة</DialogTitle>
-        </DialogHeader>
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+      title="إنشاء مهمة جديدة"
+      contentClassName="sm:max-w-md"
+    >
+      <ActionButton size="sm" onClick={() => setOpen(true)} icon={<Plus className="size-4" />}>
+        مهمة جديدة
+      </ActionButton>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>عنوان المهمة</FormLabel>
+                <FormControl>
+                  <FormInputControl placeholder="أدخل عنوان المهمة" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
             <FormField
               control={form.control}
-              name="title"
+              name="dept"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>عنوان المهمة</FormLabel>
-                  <FormControl>
-                    <Input placeholder="أدخل عنوان المهمة" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="dept"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>القسم</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر القسم" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.values(TaskDepartment).map((d) => (
-                          <SelectItem key={d} value={d}>
-                            {DEPT_LABELS[d]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الأولوية</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="عادي" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.values(TaskPriority).map((p) => (
-                          <SelectItem key={p} value={p}>
-                            {PRIORITY_LABELS[p]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="assignedTo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>المسند إليه</FormLabel>
-                  <FormControl>
-                    <SearchCombobox
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={assigneeOptions}
-                      onSearchChange={setAssigneeSearch}
-                      placeholder={
-                        watchedDept ? "اختر المسند إليه" : "اختر القسم أولاً"
-                      }
-                      searchPlaceholder="ابحث بالاسم..."
-                      isLoading={usersLoading}
-                      disabled={!watchedDept}
-                    />
-                  </FormControl>
+                  <FormLabel>القسم</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    placeholder="اختر القسم"
+                  >
+                    {Object.values(TaskDepartment).map((d) => (
+                      <SelectItem key={d} value={d}>{DEPT_LABELS[d]}</SelectItem>
+                    ))}
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -243,51 +170,96 @@ export function TaskForm({ projectId }: TaskFormProps) {
 
             <FormField
               control={form.control}
-              name="dueDate"
+              name="priority"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>تاريخ الاستحقاق</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
+                  <FormLabel>الأولوية</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    placeholder="عادي"
+                  >
+                    {Object.values(TaskPriority).map((p) => (
+                      <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
+                    ))}
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          </div>
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الوصف (اختياري)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="وصف المهمة"
-                      {...field}
-                      value={field.value ?? ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <FormField
+            control={form.control}
+            name="assignedTo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>المسند إليه</FormLabel>
+                <FormControl>
+                  <SearchCombobox
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={assigneeOptions}
+                    onSearchChange={setAssigneeSearch}
+                    placeholder={
+                      watchedDept ? "اختر المسند إليه" : "اختر القسم أولاً"
+                    }
+                    searchPlaceholder="ابحث بالاسم..."
+                    isLoading={usersLoading}
+                    disabled={!watchedDept}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <div className="flex justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
-                إلغاء
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "جارٍ الإنشاء..." : "إنشاء المهمة"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
+          <FormField
+            control={form.control}
+            name="dueDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>تاريخ الاستحقاق</FormLabel>
+                <FormControl>
+                  <FormInputControl type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>الوصف (اختياري)</FormLabel>
+                <FormControl>
+                  <FormInputControl
+                    placeholder="وصف المهمة"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="flex justify-end gap-3 pt-2">
+            <ActionButton
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton type="submit" disabled={isLoading}>
+              {isLoading ? "جارٍ الإنشاء..." : "إنشاء المهمة"}
+            </ActionButton>
+          </div>
+        </form>
+      </Form>
     </Dialog>
   );
 }

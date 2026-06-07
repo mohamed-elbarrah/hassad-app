@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { useUpdateUserMutation } from "@/features/users/usersApi";
 import { updateUser } from "@/features/auth/authSlice";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { AccountForm } from "@/components/portal/AccountForm";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { AccountForm } from "@/components/design-system/AccountForm";
 import { Settings } from "lucide-react";
 import { toast } from "sonner";
 
@@ -64,13 +64,13 @@ export default function PortalAccountPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="الحساب الشخصي"
         description="معلومات حسابك وبيانات التواصل المرتبطة بملفك الشخصي في المنصة."
         icon={Settings}
       />
 
-      <PortalSurfaceCard>
+      <SurfaceCard>
         <AccountForm
           user={{
             id: user.id,
@@ -84,7 +84,7 @@ export default function PortalAccountPage() {
           onUploadAvatar={handleUploadAvatar}
           isLoading={isLoading || isUploading}
         />
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

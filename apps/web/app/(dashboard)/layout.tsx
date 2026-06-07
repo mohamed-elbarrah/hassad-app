@@ -87,8 +87,8 @@ export default function DashboardLayout({
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground animate-pulse">جارٍ التهيئة...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-secondary-500 mx-auto" />
+          <p className="text-neutral-300 animate-pulse">جارٍ التهيئة...</p>
         </div>
       </div>
     );

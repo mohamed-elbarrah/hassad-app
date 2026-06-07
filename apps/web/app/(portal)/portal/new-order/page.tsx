@@ -8,8 +8,8 @@ import { z } from "zod";
 import { BusinessType, ClientSource } from "@hassad/shared";
 import { useCreateRequestMutation } from "@/features/requests/requestsApi";
 import { useGetServicesQuery } from "@/features/services/servicesApi";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -20,8 +20,8 @@ import {
   PlusCircle,
   ArrowRight,
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/design-system/Checkbox";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Form,
   FormControl,
@@ -29,13 +29,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "@/components/design-system/Form";
 import {
   SelectItem,
-} from "@/components/ui/select";
-import { FormInput } from "@/components/portal/FormInput";
-import { FormTextarea } from "@/components/portal/FormTextarea";
-import { PortalSelect } from "@/components/portal/PortalSelect";
+} from "@/components/design-system/Select";
+import { FormInput } from "@/components/design-system/FormInput";
+import { FormTextarea } from "@/components/design-system/FormTextarea";
+import { Select } from "@/components/design-system/Select";
 
 const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.RESTAURANT]: "مطعم / كافيه",
@@ -157,13 +157,13 @@ export default function PortalNewOrderPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="إنشاء طلب جديد"
         description=" املأ البيانات المطلوبة في خطوتين لإنشاء طلبك الجديد"
         icon={PlusCircle}
       />
 
-      <PortalSurfaceCard>
+      <SurfaceCard>
         <div className="max-w-xl mx-auto">
           <Form {...form}>
             <form
@@ -272,7 +272,7 @@ export default function PortalNewOrderPage() {
                     control={form.control}
                     name="businessType"
                     render={({ field, fieldState }) => (
-                      <PortalSelect
+                      <Select
                         label="نوع النشاط التجاري"
                         onValueChange={field.onChange}
                         defaultValue={field.value}
@@ -284,7 +284,7 @@ export default function PortalNewOrderPage() {
                             {BUSINESS_TYPE_LABELS[type]}
                           </SelectItem>
                         ))}
-                      </PortalSelect>
+                      </Select>
                     )}
                   />
                   <FormField
@@ -357,7 +357,7 @@ export default function PortalNewOrderPage() {
               {/* Navigation */}
               <div className="flex items-center justify-between pt-4 border-t-[1.5px] border-portal-card-border">
                 {step === 2 ? (
-                  <Button
+                  <ActionButton
                     type="button"
                     variant="ghost"
                     onClick={() => setStep(1)}
@@ -365,20 +365,20 @@ export default function PortalNewOrderPage() {
                     className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon hover:bg-badge-gray-bg gap-2 cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" /> السابق
-                  </Button>
+                  </ActionButton>
                 ) : (
                   <div />
                 )}
                 {step === 1 ? (
-                  <Button
+                  <ActionButton
                     type="button"
                     onClick={handleNext}
                     className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white mr-auto cursor-pointer"
                   >
                     التالي <ChevronLeft className="w-4 h-4" />
-                  </Button>
+                  </ActionButton>
                 ) : (
-                  <Button
+                  <ActionButton
                     type="submit"
                     disabled={isLoading}
                     className="gap-2 h-12 rounded-2xl px-5 text-base font-medium bg-secondary-500 hover:bg-secondary-600 text-white cursor-pointer"
@@ -393,13 +393,13 @@ export default function PortalNewOrderPage() {
                         إنشاء الطلب <ArrowRight className="w-4 h-4" />
                       </>
                     )}
-                  </Button>
+                  </ActionButton>
                 )}
               </div>
             </form>
           </Form>
         </div>
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

@@ -39,11 +39,11 @@ export function KanbanColumn({
         <div className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <span className={cn("w-2 h-2 rounded-full shrink-0", dotClass)} />
-            <h3 className="text-xs font-semibold text-foreground truncate">
+            <h3 className="text-xs font-semibold text-natural-100 truncate">
               {label}
             </h3>
           </div>
-          <span className="text-xs font-medium bg-background/70 px-2 py-0.5 rounded-full text-muted-foreground shrink-0 tabular-nums">
+          <span className="text-xs font-medium bg-background/70 px-2 py-0.5 rounded-full text-neutral-300 shrink-0 tabular-nums">
             {clients.length}
           </span>
         </div>
@@ -56,7 +56,7 @@ export function KanbanColumn({
         ))}
         {clients.length === 0 && (
           <div className="flex items-center justify-center flex-1 min-h-20">
-            <p className="text-xs text-muted-foreground/60 text-center select-none">
+            <p className="text-xs text-neutral-300/60 text-center select-none">
               لا يوجد عملاء
             </p>
           </div>

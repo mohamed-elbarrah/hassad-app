@@ -17,7 +17,7 @@ import {
   AlertCircle,
   Receipt,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Sheet,
   SheetContent,
@@ -109,8 +109,8 @@ export function CardPaymentForm({
   if (!clientSecret) {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center" dir="rtl">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">
+        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
+        <p className="text-sm text-neutral-300">
           جاري تجهيز نموذج الدفع...
         </p>
       </div>
@@ -198,12 +198,12 @@ function StripePaymentForm({
         <PaymentElement />
       
       {error && (
-        <p className="text-xs text-destructive flex items-center gap-1">
+        <p className="text-xs text-danger-500 flex items-center gap-1">
           <AlertCircle className="w-3 h-3" />
           {error}
         </p>
       )}
-      <Button
+      <ActionButton
         type="submit"
         disabled={!stripe || processing}
         className="w-full gap-2"
@@ -219,8 +219,8 @@ function StripePaymentForm({
             تأكيد الدفع
           </>
         )}
-      </Button>
-      <p className="text-[10px] text-muted-foreground text-center">
+      </ActionButton>
+      <p className="text-[10px] text-neutral-300 text-center">
         جميع المدفوعات مشفرة وآمنة 100%
       </p>
     </form>
@@ -278,23 +278,23 @@ export function BankTransferForm({
           {bankAccounts.map((acc: any) => (
             <div
               key={acc.id}
-              className="rounded-xl border bg-muted/20 p-4 space-y-2"
+              className="rounded-xl border bg-neutral-50/20 p-4 space-y-2"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-primary">
+                <span className="text-xs font-bold text-secondary-500">
                   {acc.bankName}
                 </span>
-                <Landmark className="w-4 h-4 text-muted-foreground" />
+                <Landmark className="w-4 h-4 text-neutral-300" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase">
+                <p className="text-[10px] text-neutral-300 uppercase">
                   اسم الحساب
                 </p>
                 <p className="text-sm font-semibold">{acc.accountName}</p>
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase">IBAN</p>
-                <p className="text-sm font-mono bg-background p-2 rounded border select-all text-center">
+                <p className="text-[10px] text-neutral-300 uppercase">IBAN</p>
+                <p className="text-sm font-mono bg-natural-0 p-2 rounded border select-all text-center">
                   {acc.iban}
                 </p>
               </div>
@@ -302,12 +302,12 @@ export function BankTransferForm({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground text-center py-4">
+        <p className="text-sm text-neutral-300 text-center py-4">
           لا توجد حسابات بنكية متاحة حالياً
         </p>
       )}
 
-      <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 space-y-1">
+      <div className="rounded-lg bg-alert-50 border border-alert-200 p-3 text-xs text-alert-800 space-y-1">
         <p className="font-bold">تعليمات التحويل:</p>
         <p>
           قم بتحويل المبلغ{" "}
@@ -321,11 +321,11 @@ export function BankTransferForm({
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground block">
+        <label className="text-xs font-medium text-neutral-300 block">
           إرفاق صورة الإيصال
         </label>
         <div className="flex items-center gap-2">
-          <Button
+          <ActionButton
             type="button"
             variant="outline"
             size="sm"
@@ -336,7 +336,7 @@ export function BankTransferForm({
           >
             <Upload className="w-4 h-4" />
             {receiptFile ? receiptFile.name : "اختيار ملف"}
-          </Button>
+          </ActionButton>
           <input
             id={`receipt-sheet-${invoice.id}`}
             type="file"
@@ -349,14 +349,14 @@ export function BankTransferForm({
             }}
           />
           {receiptFile && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-neutral-300">
               {(receiptFile.size / 1024 / 1024).toFixed(1)} MB
             </span>
           )}
         </div>
       </div>
 
-      <Button
+      <ActionButton
         onClick={handleConfirm}
         disabled={confirming || !receiptFile}
         className="w-full gap-2"
@@ -372,7 +372,7 @@ export function BankTransferForm({
             تأكيد الدفع
           </>
         )}
-      </Button>
+      </ActionButton>
     </div>
   );
 }
@@ -423,7 +423,7 @@ export function InlinePaymentCard({
   const loadingGateways = !(stripeKeyProp ?? stripeConfig?.publishableKey);
 
   const wrapperClass = compact
-    ? "bg-muted/30 rounded-lg p-3 space-y-3"
+    ? "bg-neutral-50/30 rounded-lg p-3 space-y-3"
     : "rounded-xl border bg-white p-4 space-y-4";
 
   return (
@@ -431,20 +431,20 @@ export function InlinePaymentCard({
       {!compact && (
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-sm font-semibold text-natural-100">
               {invoice.invoiceNumber}
             </p>
-            <p className="text-xs text-muted-foreground">المبلغ المستحق</p>
+            <p className="text-xs text-neutral-300">المبلغ المستحق</p>
           </div>
-          <p className="text-lg font-bold text-foreground">
+          <p className="text-lg font-bold text-natural-100">
             {invoice.amount.toLocaleString("ar-SA-u-nu-latn")}{" "}
-            <span className="text-sm font-normal text-muted-foreground">ر.س</span>
+            <span className="text-sm font-normal text-neutral-300">ر.س</span>
           </p>
         </div>
       )}
 
       {showTabs && (
-        <div className={compact ? "flex gap-1 rounded-lg bg-muted" : "flex gap-1 p-1 rounded-lg bg-muted"}>
+        <div className={compact ? "flex gap-1 rounded-lg bg-neutral-50" : "flex gap-1 p-1 rounded-lg bg-neutral-50"}>
           {resolvedMethods.map((m) => {
             const Icon = m.icon;
             return (
@@ -454,8 +454,8 @@ export function InlinePaymentCard({
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors",
                   selectedMethod === m.key
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "bg-natural-0 text-natural-100 shadow-sm"
+                    : "text-neutral-300 hover:text-natural-100",
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -468,8 +468,8 @@ export function InlinePaymentCard({
 
       {loadingGateways ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">جاري تحميل طرق الدفع...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
+          <p className="text-sm text-neutral-300">جاري تحميل طرق الدفع...</p>
         </div>
       ) : (
         <>
@@ -554,7 +554,7 @@ export function PaymentSheet({
       >
         <SheetHeader className="text-right mb-4">
           <SheetTitle className="flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-primary" />
+            <Receipt className="w-5 h-5 text-secondary-500" />
             دفع الفاتورة
           </SheetTitle>
           <SheetDescription>
@@ -563,19 +563,19 @@ export function PaymentSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="rounded-xl border bg-muted/30 p-4 mb-6">
+        <div className="rounded-xl border bg-neutral-50/30 p-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-sm font-semibold text-natural-100">
                 {invoice.invoiceNumber}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-neutral-300 mt-0.5">
                 المبلغ المستحق
               </p>
             </div>
-            <p className="text-lg font-bold text-foreground">
+            <p className="text-lg font-bold text-natural-100">
               {invoice.amount.toLocaleString("ar-SA-u-nu-latn")}{" "}
-              <span className="text-sm font-normal text-muted-foreground">
+              <span className="text-sm font-normal text-neutral-300">
                 ر.س
               </span>
             </p>
@@ -583,7 +583,7 @@ export function PaymentSheet({
         </div>
 
         {showTabs && (
-          <div className="flex gap-1 p-1 rounded-lg bg-muted mb-6">
+          <div className="flex gap-1 p-1 rounded-lg bg-neutral-50 mb-6">
             {availableMethods.map((m) => {
               const Icon = m.icon;
               return (
@@ -593,8 +593,8 @@ export function PaymentSheet({
                   className={cn(
                     "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors",
                     selectedMethod === m.key
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "bg-natural-0 text-natural-100 shadow-sm"
+                      : "text-neutral-300 hover:text-natural-100",
                   )}
                 >
                   <Icon className="w-4 h-4" />

@@ -3,11 +3,11 @@
 import { use, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Paperclip, Upload } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
+import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FileItem } from "@/components/dashboard/employee/FileItem";
 import { CommentItem } from "@/components/dashboard/employee/CommentItem";
 import {
@@ -54,11 +54,26 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.DONE]: "منجز",
 };
 
+const STATUS_MAP: Record<TaskStatus, string> = {
+  [TaskStatus.TODO]: "PENDING",
+  [TaskStatus.IN_PROGRESS]: "IN_PROGRESS",
+  [TaskStatus.IN_REVIEW]: "PENDING",
+  [TaskStatus.REVISION]: "REJECTED",
+  [TaskStatus.DONE]: "COMPLETED",
+};
+
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
   [TaskPriority.LOW]: "منخفض",
   [TaskPriority.NORMAL]: "عادي",
   [TaskPriority.HIGH]: "عالي",
   [TaskPriority.URGENT]: "عاجل",
+};
+
+const PRIORITY_MAP: Record<TaskPriority, string> = {
+  [TaskPriority.LOW]: "neutral",
+  [TaskPriority.NORMAL]: "neutral",
+  [TaskPriority.HIGH]: "warning",
+  [TaskPriority.URGENT]: "danger",
 };
 
 const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
@@ -67,27 +82,6 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.DEVELOPMENT]: "التطوير",
   [TaskDepartment.CONTENT]: "المحتوى",
   [TaskDepartment.PRODUCTION]: "المونتاج",
-};
-
-const STATUS_VARIANT: Record<
-  TaskStatus,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  [TaskStatus.TODO]: "secondary",
-  [TaskStatus.IN_PROGRESS]: "default",
-  [TaskStatus.IN_REVIEW]: "outline",
-  [TaskStatus.REVISION]: "destructive",
-  [TaskStatus.DONE]: "secondary",
-};
-
-const PRIORITY_VARIANT: Record<
-  TaskPriority,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  [TaskPriority.LOW]: "secondary",
-  [TaskPriority.NORMAL]: "outline",
-  [TaskPriority.HIGH]: "default",
-  [TaskPriority.URGENT]: "destructive",
 };
 
 const FILE_PURPOSE_LABELS: Record<FilePurpose, string> = {
@@ -149,14 +143,14 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <Skeleton className="h-8 w-48" />
+        <DSSkeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-lg" />
+            <DSSkeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
-        <Skeleton className="h-48 rounded-lg" />
-        <Skeleton className="h-48 rounded-lg" />
+        <DSSkeleton className="h-48 rounded-lg" />
+        <DSSkeleton className="h-48 rounded-lg" />
       </div>
     );
   }
@@ -178,12 +172,12 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
     return (
       <div className="flex flex-col gap-4">
         <Link href="/dashboard/pm/projects">
-          <Button variant="ghost" size="sm">
+          <ActionButton variant="ghost" size="sm">
             <ArrowRight className="size-4 mr-1" />
             العودة إلى المشاريع
-          </Button>
+          </ActionButton>
         </Link>
-        <p className="text-destructive">
+        <p className="text-danger-500">
           المهمة غير موجودة أو لا يمكن الوصول إليها.
         </p>
       </div>
@@ -256,122 +250,105 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
     <div className="flex flex-col gap-6">
       {/* Back navigation */}
       <Link href={backHref}>
-        <Button variant="ghost" size="sm">
+        <ActionButton variant="ghost" size="sm">
           <ArrowRight className="size-4 mr-1" />
           {taskWithRelations.project
             ? `العودة إلى ${taskWithRelations.project.name}`
             : "العودة إلى المشاريع"}
-        </Button>
+        </ActionButton>
       </Link>
 
       {/* Task header */}
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold">{task.title}</h1>
         <div className="flex flex-wrap gap-2">
-          <Badge variant={STATUS_VARIANT[task.status]}>
-            {STATUS_LABELS[task.status]}
-          </Badge>
-          <Badge variant={PRIORITY_VARIANT[task.priority]}>
-            {PRIORITY_LABELS[task.priority]}
-          </Badge>
+          <StatusBadge status={STATUS_MAP[task.status]} label={STATUS_LABELS[task.status]} />
+          <StatusBadge status={PRIORITY_MAP[task.priority]} label={PRIORITY_LABELS[task.priority]} />
           {typeof task.revisionCount === "number" && task.revisionCount > 0 && (
-            <Badge variant="destructive">
-              طلبات تعديل: {task.revisionCount}
-            </Badge>
+            <StatusBadge status="REJECTED" label={`طلبات تعديل: ${task.revisionCount}`} />
           )}
         </div>
       </div>
 
       {/* Task details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">تفاصيل المهمة</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+      <SurfaceCard title="تفاصيل المهمة">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           {task.description && (
             <div className="sm:col-span-2">
-              <p className="text-muted-foreground text-xs mb-1">الوصف</p>
+              <p className="text-neutral-300 text-xs mb-1">الوصف</p>
               <p className="whitespace-pre-wrap">{task.description}</p>
             </div>
           )}
           {taskWithRelations.project && (
             <div>
-              <p className="text-muted-foreground text-xs mb-1">المشروع</p>
+              <p className="text-neutral-300 text-xs mb-1">المشروع</p>
               <p className="font-medium">{taskWithRelations.project.name}</p>
             </div>
           )}
           <div>
-            <p className="text-muted-foreground text-xs mb-1">القسم</p>
+            <p className="text-neutral-300 text-xs mb-1">القسم</p>
             <p className="font-medium">
               {DEPARTMENT_LABELS[task.department?.name as TaskDepartment]}
             </p>
           </div>
           {taskWithRelations.assignee && (
             <div>
-              <p className="text-muted-foreground text-xs mb-1">المسند إليه</p>
+              <p className="text-neutral-300 text-xs mb-1">المسند إليه</p>
               <p className="font-medium">{taskWithRelations.assignee.name}</p>
             </div>
           )}
           <div>
-            <p className="text-muted-foreground text-xs mb-1">
+            <p className="text-neutral-300 text-xs mb-1">
               تاريخ الاستحقاق
             </p>
             <p className="font-medium">
               {new Date(task.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SurfaceCard>
 
       {/* Workflow history */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">سجل انتقال الحالة</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!taskWithRelations.statusHistory ||
-          taskWithRelations.statusHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              لا توجد انتقالات بعد.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2 text-sm">
-              {[...taskWithRelations.statusHistory]
-                .sort(
-                  (a, b) =>
-                    new Date(b.changedAt).getTime() -
-                    new Date(a.changedAt).getTime(),
-                )
-                .map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-md border px-3 py-2 flex items-center justify-between"
-                  >
-                    <p className="font-medium">
-                      {STATUS_LABELS[entry.fromStatus]} ←{" "}
-                      {STATUS_LABELS[entry.toStatus]}
-                    </p>
-                    <p className="text-xs text-muted-foreground" dir="ltr">
-                      {new Date(entry.changedAt).toLocaleString(
-                        "ar-SA-u-nu-latn",
-                      )}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <SurfaceCard title="سجل انتقال الحالة">
+        {!taskWithRelations.statusHistory ||
+        taskWithRelations.statusHistory.length === 0 ? (
+          <p className="text-sm text-neutral-300">
+            لا توجد انتقالات بعد.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2 text-sm">
+            {[...taskWithRelations.statusHistory]
+              .sort(
+                (a, b) =>
+                  new Date(b.changedAt).getTime() -
+                  new Date(a.changedAt).getTime(),
+              )
+              .map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-md border px-3 py-2 flex items-center justify-between"
+                >
+                  <p className="font-medium">
+                    {STATUS_LABELS[entry.fromStatus]} ←{" "}
+                    {STATUS_LABELS[entry.toStatus]}
+                  </p>
+                  <p className="text-xs text-neutral-300" dir="ltr">
+                    {new Date(entry.changedAt).toLocaleString(
+                      "ar-SA-u-nu-latn",
+                    )}
+                  </p>
+                </div>
+              ))}
+          </div>
+        )}
+      </SurfaceCard>
 
       {/* Status update */}
       {allowedTransitions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">تحديث الحالة</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
+        <SurfaceCard title="تحديث الحالة">
+          <div className="flex flex-wrap gap-2">
             {allowedTransitions.map((status) => (
-              <Button
+              <ActionButton
                 key={status}
                 variant="outline"
                 size="sm"
@@ -379,23 +356,20 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
                 disabled={isUpdatingStatus}
               >
                 {STATUS_LABELS[status]}
-              </Button>
+              </ActionButton>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </SurfaceCard>
       )}
 
       {/* Files */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Paperclip className="size-4" />
-            الملفات
-          </CardTitle>
+      <SurfaceCard
+        title="الملفات"
+        action={
           <div className="flex items-center gap-2">
-            <label className="text-xs text-muted-foreground">نوع الملف</label>
+            <label className="text-xs text-neutral-300">نوع الملف</label>
             <select
-              className="h-8 rounded-md border bg-background px-2 text-xs"
+              className="h-8 rounded-md border bg-natural-0 px-2 text-xs"
               value={filePurpose}
               onChange={(e) => setFilePurpose(e.target.value as FilePurpose)}
               disabled={isUploading}
@@ -413,59 +387,55 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
               onChange={handleFileUpload}
               disabled={isUploading}
             />
-            <Button
+            <ActionButton
               variant="outline"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
+              icon={<Upload className="size-3.5" />}
             >
-              <Upload className="size-3.5 mr-1" />
               {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
-            </Button>
+            </ActionButton>
           </div>
-        </CardHeader>
-        <CardContent>
-          {filesLoading ? (
-            <div className="flex flex-col gap-2">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 rounded-md" />
-              ))}
-            </div>
-          ) : !files || files.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              لا توجد ملفات مرفقة.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {files.map((file) => (
-                <FileItem
-                  key={file.id}
-                  file={file}
-                  taskId={id}
-                  canDelete={canDeleteFile(file.uploadedBy)}
-                  onDelete={handleDeleteFile}
-                  isDeleting={isDeletingFile}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        }
+      >
+        {filesLoading ? (
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <DSSkeleton key={i} className="h-10 rounded-md" />
+            ))}
+          </div>
+        ) : !files || files.length === 0 ? (
+          <p className="text-sm text-neutral-300">
+            لا توجد ملفات مرفقة.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {files.map((file) => (
+              <FileItem
+                key={file.id}
+                file={file}
+                taskId={id}
+                canDelete={canDeleteFile(file.uploadedBy)}
+                onDelete={handleDeleteFile}
+                isDeleting={isDeletingFile}
+              />
+            ))}
+          </div>
+        )}
+      </SurfaceCard>
 
       {/* Comments */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">التعليقات</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+      <SurfaceCard title="التعليقات">
+        <div className="flex flex-col gap-4">
           {commentsLoading ? (
             <div className="flex flex-col gap-3">
               {Array.from({ length: 2 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 rounded-md" />
+                <DSSkeleton key={i} className="h-12 rounded-md" />
               ))}
             </div>
           ) : !comments || comments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-neutral-300">
               لا توجد تعليقات بعد.
             </p>
           ) : (
@@ -484,24 +454,24 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
 
           {/* Add comment */}
           <div className="flex flex-col gap-2 pt-2 border-t">
-            <Textarea
+            <FormTextareaControl
               placeholder="اكتب تعليقًا..."
               value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCommentText(e.target.value)}
               rows={3}
               disabled={isAddingComment}
             />
-            <Button
+            <ActionButton
               size="sm"
               className="self-end"
               onClick={handleAddComment}
               disabled={isAddingComment || !commentText.trim()}
             >
               {isAddingComment ? "جارٍ الإرسال..." : "إرسال"}
-            </Button>
+            </ActionButton>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SurfaceCard>
     </div>
   );
 }

@@ -12,7 +12,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { KanbanGroup } from "@/components/dashboard/crm/KanbanGroup";
 import { useGetTasksByProjectQuery } from "@/features/tasks/tasksApi";
 import {
@@ -26,7 +26,7 @@ import { TaskStatus } from "@hassad/shared";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Calendar, GripVertical, User } from "lucide-react";
 
 interface TaskWithAssignee extends Task {
@@ -45,26 +45,34 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.DONE]: "منجز",
 };
 
+const STATUS_MAP: Record<TaskStatus, string> = {
+  [TaskStatus.TODO]: "PENDING",
+  [TaskStatus.IN_PROGRESS]: "IN_PROGRESS",
+  [TaskStatus.IN_REVIEW]: "PENDING",
+  [TaskStatus.REVISION]: "REJECTED",
+  [TaskStatus.DONE]: "COMPLETED",
+};
+
 const STATUS_COLORS: Record<TaskStatus, { column: string; dot: string }> = {
   [TaskStatus.TODO]: {
-    column: "bg-slate-50 border-slate-200",
-    dot: "bg-slate-400",
+    column: "bg-neutral-50 border-neutral-200",
+    dot: "bg-neutral-400",
   },
   [TaskStatus.IN_PROGRESS]: {
-    column: "bg-blue-50 border-blue-200",
-    dot: "bg-blue-500",
+    column: "bg-action-blue-soft border-action-blue",
+    dot: "bg-action-blue",
   },
   [TaskStatus.IN_REVIEW]: {
-    column: "bg-amber-50 border-amber-200",
-    dot: "bg-amber-500",
+    column: "bg-alert-100/50 border-alert-200",
+    dot: "bg-alert-500",
   },
   [TaskStatus.REVISION]: {
-    column: "bg-rose-50 border-rose-200",
-    dot: "bg-rose-500",
+    column: "bg-danger-100/50 border-danger-200",
+    dot: "bg-danger-500",
   },
   [TaskStatus.DONE]: {
-    column: "bg-emerald-50 border-emerald-200",
-    dot: "bg-emerald-500",
+    column: "bg-success-100/50 border-success-200",
+    dot: "bg-success-500",
   },
 };
 
@@ -72,22 +80,22 @@ const TASK_GROUPS = [
   {
     id: "backlog",
     label: "التحضير",
-    accentClass: "bg-slate-50 border-slate-200 text-slate-700",
-    textClass: "text-slate-700",
+    accentClass: "bg-neutral-50 border-neutral-200 text-neutral-700",
+    textClass: "text-neutral-700",
     statuses: [TaskStatus.TODO],
   },
   {
     id: "execution",
     label: "التنفيذ",
-    accentClass: "bg-blue-50 border-blue-200 text-blue-700",
-    textClass: "text-blue-700",
+    accentClass: "bg-action-blue-soft border-action-blue text-action-blue",
+    textClass: "text-action-blue",
     statuses: [TaskStatus.IN_PROGRESS, TaskStatus.REVISION],
   },
   {
     id: "review_done",
     label: "المراجعة والإغلاق",
-    accentClass: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    textClass: "text-emerald-700",
+    accentClass: "bg-success-100/50 border-success-200 text-success-600",
+    textClass: "text-success-600",
     statuses: [TaskStatus.IN_REVIEW, TaskStatus.DONE],
   },
 ] as const;
@@ -104,14 +112,11 @@ const PRIORITY_LABELS: Record<string, string> = {
   URGENT: "عاجل",
 };
 
-const PRIORITY_VARIANT: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  LOW: "secondary",
-  NORMAL: "outline",
-  HIGH: "default",
-  URGENT: "destructive",
+const PRIORITY_MAP: Record<string, string> = {
+  LOW: "neutral",
+  NORMAL: "neutral",
+  HIGH: "warning",
+  URGENT: "danger",
 };
 
 interface DraggableTaskCardProps {
@@ -132,8 +137,8 @@ function DraggableTaskCard({
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-background rounded-lg border p-3 cursor-grab active:cursor-grabbing",
-        "hover:border-primary/40 hover:shadow-sm transition-all duration-100",
+        "bg-natural-0 rounded-lg border p-3 cursor-grab active:cursor-grabbing",
+        "hover:border-secondary-500/40 hover:shadow-sm transition-all duration-100",
         (isDragging || isOverlay) && "opacity-50 shadow-xl rotate-1 scale-105",
       )}
       {...attributes}
@@ -147,28 +152,27 @@ function DraggableTaskCard({
         >
           {task.title}
         </Link>
-        <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-0.5" />
+        <GripVertical className="h-4 w-4 text-neutral-300/40 shrink-0 mt-0.5" />
       </div>
 
       {task.description && (
-        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+        <p className="text-xs text-neutral-300 mt-2 line-clamp-2">
           {task.description}
         </p>
       )}
 
       <div className="mt-2 flex items-center justify-between gap-2">
-        <Badge
-          variant={PRIORITY_VARIANT[task.priority as string] ?? "outline"}
+        <StatusBadge
+          status={PRIORITY_MAP[task.priority as string] ?? "neutral"}
+          label={PRIORITY_LABELS[task.priority as string] ?? task.priority}
           className="text-[10px]"
-        >
-          {PRIORITY_LABELS[task.priority as string] ?? task.priority}
-        </Badge>
-        <span className="text-[11px] text-muted-foreground">
+        />
+        <span className="text-[11px] text-neutral-300">
           {STATUS_LABELS[task.status as TaskStatus]}
         </span>
       </div>
 
-      <div className="mt-2 flex flex-col gap-1 text-[11px] text-muted-foreground">
+      <div className="mt-2 flex flex-col gap-1 text-[11px] text-neutral-300">
         {task.assignee && (
           <div className="flex items-center gap-1">
             <User className="size-3 shrink-0" />
@@ -200,18 +204,18 @@ function TaskKanbanColumn({ status, tasks }: TaskKanbanColumnProps) {
       className={cn(
         "w-72 shrink-0 rounded-xl border-2 flex flex-col transition-all duration-150",
         color.column,
-        isOver && "ring-2 ring-primary ring-offset-2 scale-[1.01]",
+        isOver && "ring-2 ring-secondary-500 ring-offset-2 scale-[1.01]",
       )}
     >
       <div className="px-3 py-2.5 border-b border-inherit">
         <div className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <span className={cn("w-2 h-2 rounded-full shrink-0", color.dot)} />
-            <h3 className="text-xs font-semibold text-foreground truncate">
+            <h3 className="text-xs font-semibold text-natural-100 truncate">
               {STATUS_LABELS[status]}
             </h3>
           </div>
-          <span className="text-xs font-medium bg-background/70 px-2 py-0.5 rounded-full text-muted-foreground shrink-0 tabular-nums">
+          <span className="text-xs font-medium bg-natural-0/70 px-2 py-0.5 rounded-full text-neutral-300 shrink-0 tabular-nums">
             {tasks.length}
           </span>
         </div>
@@ -223,7 +227,7 @@ function TaskKanbanColumn({ status, tasks }: TaskKanbanColumnProps) {
         ))}
         {tasks.length === 0 && (
           <div className="flex items-center justify-center flex-1 min-h-20">
-            <p className="text-xs text-muted-foreground/60 text-center select-none">
+            <p className="text-xs text-neutral-300/60 text-center select-none">
               لا توجد مهام
             </p>
           </div>
@@ -312,12 +316,12 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
       <div className="space-y-4">
         {TASK_GROUPS.map((group) => (
           <div key={group.id} className="space-y-2">
-            <div className="h-10 bg-muted animate-pulse rounded-lg" />
+            <div className="h-10 bg-neutral-50/80 animate-pulse rounded-lg" />
             <div className="flex gap-3">
               {group.statuses.map((status) => (
                 <div
                   key={status}
-                  className="w-72 shrink-0 h-44 bg-muted animate-pulse rounded-xl"
+                  className="w-72 shrink-0 h-44 bg-neutral-50/80 animate-pulse rounded-xl"
                 />
               ))}
             </div>
@@ -329,7 +333,7 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
 
   if (isError) {
     return (
-      <p className="text-destructive text-sm">حدث خطأ أثناء تحميل المهام.</p>
+      <p className="text-danger-500 text-sm">حدث خطأ أثناء تحميل المهام.</p>
     );
   }
 

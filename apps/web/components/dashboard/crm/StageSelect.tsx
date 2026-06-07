@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
 import { PipelineStage, PIPELINE_STAGE_ORDER } from "@hassad/shared";
 
 const STAGE_LABELS: Record<PipelineStage, string> = {
@@ -40,21 +40,21 @@ export function StageSelect({
   }
 
   return (
-    <Select
+    <FormSelect
       value={currentStage}
       onValueChange={handleChange}
       disabled={disabled}
     >
-      <SelectTrigger className="h-8 w-52 text-xs">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
+      <FormSelectTrigger className="h-8 w-52 text-xs">
+        <FormSelectValue />
+      </FormSelectTrigger>
+      <FormSelectContent>
         {PIPELINE_STAGE_ORDER.map((stage) => (
-          <SelectItem key={stage} value={stage} className="text-xs">
+          <FormSelectItem key={stage} value={stage} className="text-xs">
             {STAGE_LABELS[stage]}
-          </SelectItem>
+          </FormSelectItem>
         ))}
-      </SelectContent>
-    </Select>
+      </FormSelectContent>
+    </FormSelect>
   );
 }

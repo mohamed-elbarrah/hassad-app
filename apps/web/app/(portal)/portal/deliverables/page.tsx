@@ -20,18 +20,18 @@ import {
   FileText,
   Download,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { FormTextarea } from "@/components/portal/FormTextarea";
-import { Skeleton } from "@/components/ui/skeleton";
-import { PortalMetricCard } from "@/components/portal/PortalMetricCard";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormTextarea } from "@/components/design-system/FormTextarea";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { MetricCard } from "@/components/design-system/MetricCard";
+import { PageIntro } from "@/components/design-system/PageIntro";
 import {
-  PortalPill,
-  type PortalPillTone,
-} from "@/components/portal/PortalPill";
-import { PortalProgressCard } from "@/components/portal/PortalProgressCard";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { StatusBadge } from "@/components/portal/StatusBadge";
+  Pill,
+  type PillTone,
+} from "@/components/design-system/Pill";
+import { ProgressCard } from "@/components/design-system/ProgressCard";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
 
 function formatPortalDate(date?: string | null) {
@@ -119,36 +119,36 @@ export default function PortalDeliverablesPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="مراجعة المشاريع"
         description="المشاريع الجاهزة للمراجعة والموافقة. راجع أعمال فريقك ووافق عليها أو اطلب تعديلات."
         icon={Eye}
       />
 
       {!clientId && (
-        <PortalSurfaceCard title="تعذر تحميل المشاريع" icon={PackageOpen}>
+        <SurfaceCard title="تعذر تحميل المشاريع" icon={PackageOpen}>
           <p className="text-sm leading-6 text-portal-note-text">
             لم يتم ربط حسابك بملف عميل.
           </p>
-        </PortalSurfaceCard>
+        </SurfaceCard>
       )}
 
       {clientId && (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <PortalMetricCard
+            <MetricCard
               title="بانتظار المراجعة"
               value={metrics.awaitingReview}
               pillText="مشاريع"
               pillTone="warning"
             />
-            <PortalMetricCard
+            <MetricCard
               title="إجمالي المشاريع"
               value={metrics.totalProjects}
               pillText="مشروع"
               pillTone="neutral"
             />
-            <PortalProgressCard
+            <ProgressCard
               title="تقدم المشاريع"
               value={progressValue}
               max={100}
@@ -156,7 +156,7 @@ export default function PortalDeliverablesPage() {
             />
           </div>
 
-          <PortalSurfaceCard title="المشاريع بانتظار المراجعة" icon={Eye}>
+          <SurfaceCard title="المشاريع بانتظار المراجعة" icon={Eye}>
             {isLoading && (
               <div className="grid gap-4 xl:grid-cols-2">
                 {Array.from({ length: 4 }).map((_, index) => (
@@ -264,7 +264,7 @@ export default function PortalDeliverablesPage() {
                   ))}
                 </div>
               )}
-          </PortalSurfaceCard>
+          </SurfaceCard>
         </>
       )}
 
@@ -344,9 +344,9 @@ export default function PortalDeliverablesPage() {
                         rel="noopener noreferrer"
                         className="shrink-0"
                       >
-                        <Button variant="ghost" size="sm" className="h-8 px-2">
+                        <ActionButton variant="outline" size="sm" className="h-8 px-2">
                           <Download className="h-4 w-4" />
-                        </Button>
+                        </ActionButton>
                       </a>
                     </div>
                   ))}
@@ -384,24 +384,27 @@ export default function PortalDeliverablesPage() {
             <div className="mt-6 flex flex-col gap-3">
               {!showRevisionForm && (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Button
+                  <ActionButton
                     type="button"
-                    className="h-12 rounded-2xl bg-emerald-600 text-base font-medium hover:bg-emerald-700"
+                    variant="primary"
+                    size="md"
+                    className="h-12 rounded-2xl bg-success-600 text-base font-medium hover:bg-success-700"
                     disabled={isApproving}
                     onClick={() => handleApprove(selectedProject.id)}
                   >
                     <CheckCircle2 className="ml-2 h-5 w-5" />
                     {isApproving ? "جارٍ الموافقة..." : "موافقة على المشروع"}
-                  </Button>
-                  <Button
+                  </ActionButton>
+                  <ActionButton
                     type="button"
-                    variant="ghost"
+                    variant="outline"
+                    size="md"
                     className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 text-base font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
                     onClick={() => setShowRevisionForm(true)}
                   >
                     <AlertTriangle className="ml-2 h-5 w-5" />
                     طلب تعديلات
-                  </Button>
+                  </ActionButton>
                 </div>
               )}
 
@@ -416,9 +419,10 @@ export default function PortalDeliverablesPage() {
                     value={revisionComment}
                   />
                   <div className="mt-3 flex flex-wrap justify-end gap-2">
-                    <Button
+                    <ActionButton
                       type="button"
-                      variant="ghost"
+                      variant="outline"
+                      size="sm"
                       className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
                       onClick={() => {
                         setShowRevisionForm(false);
@@ -426,9 +430,11 @@ export default function PortalDeliverablesPage() {
                       }}
                     >
                       إلغاء
-                    </Button>
-                    <Button
+                    </ActionButton>
+                    <ActionButton
                       type="button"
+                      variant="primary"
+                      size="sm"
                       className="h-9 rounded-xl bg-action-blue px-3 text-xs font-medium hover:bg-action-blue-hover"
                       disabled={isRequestingRevision || !revisionComment.trim()}
                       onClick={() => handleRequestRevision(selectedProject.id)}
@@ -436,14 +442,15 @@ export default function PortalDeliverablesPage() {
                       {isRequestingRevision
                         ? "جارٍ الإرسال..."
                         : "إرسال طلب التعديل"}
-                    </Button>
+                    </ActionButton>
                   </div>
                 </div>
               )}
 
-              <Button
+              <ActionButton
                 type="button"
-                variant="ghost"
+                variant="outline"
+                size="sm"
                 className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
                 onClick={() => {
                   setSelectedProjectId(null);
@@ -452,7 +459,7 @@ export default function PortalDeliverablesPage() {
                 }}
               >
                 إغلاق
-              </Button>
+              </ActionButton>
             </div>
           </div>
         </div>

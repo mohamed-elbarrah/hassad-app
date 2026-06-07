@@ -3,16 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCheck, BellOff, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { Dialog } from "@/components/design-system/Dialog";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setDropdownOpen } from "@/features/notifications/notificationsSlice";
 import {
@@ -178,15 +171,15 @@ export function NotificationsDropdown() {
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <span className="font-semibold text-sm">الإشعارات</span>
           {hasUnread && (
-            <Button
+            <ActionButton
               variant="ghost"
               size="sm"
               className="h-7 text-xs gap-1"
               onClick={() => markAllAsRead()}
+              icon={<CheckCheck className="h-3 w-3" />}
             >
-              <CheckCheck className="h-3 w-3" />
               تعليم الكل كمقروء
-            </Button>
+            </ActionButton>
           )}
         </div>
 
@@ -232,29 +225,20 @@ export function NotificationsDropdown() {
       <Dialog
         open={!!selectedNotification}
         onOpenChange={(open) => !open && setSelectedNotification(null)}
-      >
-        <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedNotification?.title}</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              {selectedNotification?.createdAt
-                ? formatRelativeTime(selectedNotification.createdAt as string)
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {selectedNotification?.body}
-          </p>
-
-          <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">
+        title={selectedNotification?.title}
+        description={selectedNotification?.createdAt
+          ? formatRelativeTime(selectedNotification.createdAt as string)
+          : ""}
+        contentClassName="max-w-md"
+        footer={
+          <div className="flex flex-row-reverse gap-2">
             {entityUrl && (
-              <Button
+              <ActionButton
                 size="sm"
                 className="gap-1"
                 onClick={handleNavigateToEntity}
+                icon={<ExternalLink className="h-3.5 w-3.5" />}
               >
-                <ExternalLink className="h-3.5 w-3.5" />
                 {selectedNotification?.entityType === "task"
                   ? "فتح المهمة"
                   : selectedNotification?.entityType === "project"
@@ -264,17 +248,21 @@ export function NotificationsDropdown() {
                       : selectedNotification?.entityType === "contract"
                         ? "عرض العقود"
                         : "فتح"}
-              </Button>
+              </ActionButton>
             )}
-            <Button
+            <ActionButton
               variant="outline"
               size="sm"
               onClick={() => setSelectedNotification(null)}
             >
               إغلاق
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+            </ActionButton>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+          {selectedNotification?.body}
+        </p>
       </Dialog>
     </>
   );

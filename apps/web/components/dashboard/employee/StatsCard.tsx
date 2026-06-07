@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 
 interface StatsCardProps {
   label: string;
@@ -10,10 +10,10 @@ const VARIANT_CLASSES: Record<
   NonNullable<StatsCardProps["variant"]>,
   string
 > = {
-  default: "text-foreground",
-  warning: "text-yellow-600",
-  success: "text-green-600",
-  destructive: "text-destructive",
+  default: "text-natural-100",
+  warning: "text-alert-600",
+  success: "text-success-600",
+  destructive: "text-danger-500",
 };
 
 export function StatsCard({
@@ -22,17 +22,10 @@ export function StatsCard({
   variant = "default",
 }: StatsCardProps) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className={`text-3xl font-bold ${VARIANT_CLASSES[variant]}`}>
-          {value}
-        </p>
-      </CardContent>
-    </Card>
+    <SurfaceCard title={label}>
+      <p className={`text-3xl font-bold ${VARIANT_CLASSES[variant]}`}>
+        {value}
+      </p>
+    </SurfaceCard>
   );
 }

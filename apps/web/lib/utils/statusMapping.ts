@@ -1,4 +1,4 @@
-import type { StatusType } from "@/components/portal/StatusBadge";
+import type { StatusType } from "@/components/design-system/StatusBadge";
 import type { TaskStatus } from "@hassad/shared";
 
 export type UIStatus = StatusType;

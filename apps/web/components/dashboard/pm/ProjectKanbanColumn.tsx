@@ -39,7 +39,7 @@ export function ProjectKanbanColumn({
       className={cn(
         "w-72 shrink-0 rounded-xl border-2 flex flex-col transition-all duration-150",
         colorClass,
-        isOver && "ring-2 ring-primary ring-offset-2 scale-[1.01]",
+        isOver && "ring-2 ring-secondary-500 ring-offset-2 scale-[1.01]",
       )}
     >
       <div className="px-3 py-2.5 border-b border-inherit">

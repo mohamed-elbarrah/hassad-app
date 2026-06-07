@@ -1,8 +1,8 @@
 "use client";
 
 import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Pill } from "@/components/design-system/Pill";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { toggleDropdown } from "@/features/notifications/notificationsSlice";
 import { useGetUnreadCountQuery } from "@/features/notifications/notificationsApi";
@@ -22,23 +22,22 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <Button
+      <ActionButton
         variant="ghost"
-        size="icon"
-        className="relative"
+        className="relative h-9 w-9 p-0"
         onClick={() => dispatch(toggleDropdown())}
         aria-label="الإشعارات"
       >
         <Bell className="h-5 w-5" />
         {displayCount !== null && (
-          <Badge
-            variant="destructive"
+          <Pill
+            tone="danger"
             className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center"
           >
             {displayCount}
-          </Badge>
+          </Pill>
         )}
-      </Button>
+      </ActionButton>
 
       {isDropdownOpen && <NotificationsDropdown />}
     </div>

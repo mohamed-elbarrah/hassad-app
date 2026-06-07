@@ -1,8 +1,8 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Pill } from "@/components/design-system/Pill";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { AlertCircle, ArrowRight, TrendingDown, Target, MousePointerClick } from "lucide-react";
 import Link from "next/link";
 import { computeMetrics } from "@/lib/marketing-mock";
@@ -48,46 +48,46 @@ export function AlertList({ tasks }: { tasks: any[] }) {
   if (alerts.length === 0) return null;
 
   return (
-    <Card className="border-rose-200 bg-rose-50/30">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2 text-rose-700">
+    <SurfaceCard className="border-danger-200 bg-danger-50/30">
+      <div className="pb-3">
+        <h2 className="text-lg flex items-center gap-2 text-danger-700">
           <AlertCircle className="w-5 h-5" />
           تنبيهات حرجة تحتاج تدخل فوري
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+        </h2>
+      </div>
+      <div className="space-y-3">
         {alerts.map((alert: any, idx) => (
-          <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded-xl border border-rose-100 shadow-sm gap-4 transition-all hover:shadow-md">
+          <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded-xl border border-danger-100 shadow-sm gap-4 transition-all hover:shadow-md">
             <div className="flex items-start gap-4">
-              <div className={`p-2 rounded-lg ${alert.type === 'CRITICAL' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+              <div className={`p-2 rounded-lg ${alert.type === 'CRITICAL' ? 'bg-danger-100 text-danger-600' : 'bg-alert-100 text-alert-600'}`}>
                 {alert.type === 'CRITICAL' ? <TrendingDown className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-bold text-sm">{alert.campaign.name}</h4>
-                  <Badge variant="outline" className="text-[10px] bg-slate-50">{alert.task.project?.client?.companyName}</Badge>
+                  <Pill tone="neutral" className="text-[10px] h-auto px-2 py-0.5">{alert.task.project?.client?.companyName}</Pill>
                 </div>
 
-                <p className="text-xs text-rose-600 font-medium">{alert.reason}</p>
+                <p className="text-xs text-danger-600 font-medium">{alert.reason}</p>
                 <div className="flex items-center gap-3 mt-2">
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <span className="text-[10px] text-neutral-300 flex items-center gap-1">
                     <Target className="w-3 h-3" /> ROAS: {alert.metrics.roas}
                   </span>
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <span className="text-[10px] text-neutral-300 flex items-center gap-1">
                     <MousePointerClick className="w-3 h-3" /> CTR: {alert.metrics.ctr}%
                   </span>
                 </div>
               </div>
             </div>
             <Link href={`/dashboard/marketing/tasks/${alert.task.id}`}>
-              <Button size="sm" variant="outline" className="gap-2 border-rose-200 hover:bg-rose-50 text-rose-700">
+              <ActionButton size="sm" variant="outline" className="gap-2 border-danger-200 hover:bg-danger-50 text-danger-700">
                 مراجعة المهمة
                 <ArrowRight className="w-4 h-4" />
-              </Button>
+              </ActionButton>
             </Link>
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </SurfaceCard>
   );
 }

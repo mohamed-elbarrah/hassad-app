@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Download, Trash2, File, FileImage, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import type { TaskFile } from "@hassad/shared";
 import { downloadTaskFile } from "@/lib/downloadFile";
 import { toast } from "sonner";
@@ -16,10 +16,10 @@ function formatFileSize(bytes: number): string {
 
 function FileIcon({ mimeType }: { mimeType: string }) {
   if (mimeType.startsWith("image/"))
-    return <FileImage className="size-4 text-blue-500" />;
+    return <FileImage className="size-4 text-action-blue" />;
   if (mimeType.startsWith("text/") || mimeType.includes("pdf"))
-    return <FileText className="size-4 text-orange-500" />;
-  return <File className="size-4 text-muted-foreground" />;
+    return <FileText className="size-4 text-alert-500" />;
+  return <File className="size-4 text-neutral-300" />;
 }
 
 interface FileItemProps {
@@ -56,7 +56,7 @@ export function FileItem({
         <FileIcon mimeType={file.mimeType} />
         <div className="min-w-0">
           <p className="font-medium truncate">{file.fileName}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-neutral-300">
             {formatFileSize(file.fileSize)}
             {file.purpose ? ` · ${file.purpose}` : ""} ·{" "}
             {new Date(file.createdAt).toLocaleDateString("ar-SA-u-nu-latn")}
@@ -64,27 +64,27 @@ export function FileItem({
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <Button
+        <ActionButton
           variant="ghost"
-          size="icon"
+          size="sm"
           className="size-7"
           onClick={handleDownload}
           disabled={isDownloading}
           title="تحميل"
         >
           <Download className="size-3.5" />
-        </Button>
+        </ActionButton>
         {canDelete && (
-          <Button
+          <ActionButton
             variant="ghost"
-            size="icon"
-            className="size-7 text-destructive hover:text-destructive"
+            size="sm"
+            className="size-7 text-danger-500 hover:text-danger-500"
             onClick={() => onDelete(file.id)}
             disabled={isDeleting}
             title="حذف"
           >
             <Trash2 className="size-3.5" />
-          </Button>
+          </ActionButton>
         )}
       </div>
     </div>

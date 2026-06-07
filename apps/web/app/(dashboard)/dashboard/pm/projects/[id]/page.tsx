@@ -4,10 +4,13 @@ import { use, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, Calendar, User, TrendingUp, Eye, AlertTriangle, Upload, FileText, Trash2, Download } from "lucide-react";
 import { buildPortalFileUrl } from "@/lib/portal-files";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
+import { ProgressBar } from "@/components/design-system/ProgressBar";
+import { AlertCard } from "@/components/design-system/AlertCard";
+import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
@@ -22,16 +25,16 @@ const STATUS_CONFIG: Record<
   ProjectStatus,
   {
     label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
+    statusKey: string;
   }
 > = {
-  [ProjectStatus.PLANNING]: { label: "تخطيط", variant: "secondary" },
-  [ProjectStatus.ACTIVE]: { label: "نشط", variant: "default" },
-  [ProjectStatus.ON_HOLD]: { label: "موقوف", variant: "outline" },
-  [ProjectStatus.AWAITING_REVIEW]: { label: "بانتظار المراجعة", variant: "outline" },
-  [ProjectStatus.NEEDS_REVISION]: { label: "مطلوب تعديلات", variant: "destructive" },
-  [ProjectStatus.COMPLETED]: { label: "مكتمل", variant: "secondary" },
-  [ProjectStatus.CANCELLED]: { label: "ملغى", variant: "destructive" },
+  [ProjectStatus.PLANNING]: { label: "تخطيط", statusKey: "DRAFT" },
+  [ProjectStatus.ACTIVE]: { label: "نشط", statusKey: "ACTIVE" },
+  [ProjectStatus.ON_HOLD]: { label: "موقوف", statusKey: "STOPPED" },
+  [ProjectStatus.AWAITING_REVIEW]: { label: "بانتظار المراجعة", statusKey: "PENDING" },
+  [ProjectStatus.NEEDS_REVISION]: { label: "مطلوب تعديلات", statusKey: "REJECTED" },
+  [ProjectStatus.COMPLETED]: { label: "مكتمل", statusKey: "COMPLETED" },
+  [ProjectStatus.CANCELLED]: { label: "ملغى", statusKey: "CANCELLED" },
 };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -54,13 +57,13 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <Skeleton className="h-8 w-64" />
+        <DSSkeleton className="h-8 w-64" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-lg" />
+            <DSSkeleton key={i} className="h-32 rounded-lg" />
           ))}
         </div>
-        <Skeleton className="h-64 rounded-lg" />
+        <DSSkeleton className="h-64 rounded-lg" />
       </div>
     );
   }
@@ -69,12 +72,12 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     return (
       <div className="flex flex-col gap-4">
         <Link href="/dashboard/pm/projects">
-          <Button variant="ghost" size="sm">
+          <ActionButton variant="ghost" size="sm">
             <ArrowRight className="size-4 mr-1" />
             العودة للمشاريع
-          </Button>
+          </ActionButton>
         </Link>
-        <p className="text-destructive">
+        <p className="text-danger-500">
           المشروع غير موجود أو لا يمكن الوصول إليه.
         </p>
       </div>
@@ -92,234 +95,173 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   return (
     <div className="flex flex-col gap-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm text-neutral-300">
         <Link
           href="/dashboard/pm/projects"
-          className="hover:text-foreground transition-colors"
+          className="hover:text-natural-100 transition-colors"
         >
           المشاريع
         </Link>
         <span>/</span>
-        <span className="text-foreground font-medium">{project.name}</span>
+        <span className="text-natural-100 font-medium">{project.name}</span>
       </div>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-          <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+          <StatusBadge status={statusConfig.statusKey} label={statusConfig.label} />
         </div>
         <ProjectForm project={project} currentUserId={user.id} />
       </div>
 
       {/* Description */}
       {project.description && (
-        <p className="text-muted-foreground text-sm max-w-2xl">
+        <p className="text-neutral-300 text-sm max-w-2xl">
           {project.description}
         </p>
       )}
 
       {/* Status banners */}
       {project.status === ProjectStatus.AWAITING_REVIEW && (
-        <div className="flex items-center gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+        <AlertCard variant="warning" className="flex items-center gap-3">
           <Eye className="size-5 shrink-0" />
           <span>هذا المشروع بانتظار مراجعة العميل والموافقة.</span>
-        </div>
+        </AlertCard>
       )}
       {project.status === ProjectStatus.NEEDS_REVISION && (
-        <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3">
-          <div className="flex items-center gap-3 text-sm text-destructive">
-            <AlertTriangle className="size-5 shrink-0" />
-            <span>طلب العميل تعديلات على هذا المشروع.</span>
-          </div>
-        </div>
+        <AlertCard variant="danger" className="flex items-center gap-3">
+          <AlertTriangle className="size-5 shrink-0" />
+          <span>طلب العميل تعديلات على هذا المشروع.</span>
+        </AlertCard>
       )}
 
       {/* Meta cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Calendar className="size-4" />
-              الجدول الزمني
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-1">
+        <SurfaceCard title="الجدول الزمني" icon={Calendar}>
+          <div className="text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">البداية</span>
-              <span>
-                {formatDate(project.startDate)}
-              </span>
+              <span className="text-neutral-300">البداية</span>
+              <span>{formatDate(project.startDate)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">النهاية</span>
-              <span>
-                {formatDate(project.endDate)}
-              </span>
+              <span className="text-neutral-300">النهاية</span>
+              <span>{formatDate(project.endDate)}</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SurfaceCard>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingUp className="size-4" />
-              التقدم
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {progressValue}%
-            </p>
-            <div className="h-2 bg-muted rounded-full mt-2 overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${progressValue}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <SurfaceCard title="التقدم" icon={TrendingUp}>
+          <p className="text-2xl font-bold">{progressValue}%</p>
+          <div className="mt-2">
+            <ProgressBar value={progressValue} variant="default" size="sm" />
+          </div>
+        </SurfaceCard>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <User className="size-4" />
-              المدير
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-1">
+        <SurfaceCard title="المدير" icon={User}>
+          <div className="text-sm space-y-1">
             {"manager" in project && project.manager ? (
-              <>
-                <p className="font-medium">
-                  {(project as { manager: { name: string } }).manager.name}
-                </p>
-              </>
+              <p className="font-medium">
+                {(project as { manager: { name: string } }).manager.name}
+              </p>
             ) : (
-              <p className="text-muted-foreground">—</p>
+              <p className="text-neutral-300">—</p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SurfaceCard>
       </div>
 
       {/* Tasks section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">المهام</CardTitle>
-            <TaskForm projectId={id} />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <TaskKanban projectId={id} />
-        </CardContent>
-      </Card>
+      <SurfaceCard title="المهام" action={<TaskForm projectId={id} />}>
+        <TaskKanban projectId={id} />
+      </SurfaceCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">الفريق</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+        <SurfaceCard title="الفريق">
+          <p className="text-sm text-neutral-300">
             أعضاء الفريق وتوزيع الأدوار سيظهرون هنا.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">المحادثة</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          </p>
+        </SurfaceCard>
+        <SurfaceCard title="المحادثة">
+          <p className="text-sm text-neutral-300">
             سجل المحادثات سيكون متاحاً هنا.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">التسليمات</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          </p>
+        </SurfaceCard>
+        <SurfaceCard title="التسليمات">
+          <p className="text-sm text-neutral-300">
             قائمة التسليمات المعتمدة ستظهر هنا.
-          </CardContent>
-        </Card>
+          </p>
+        </SurfaceCard>
       </div>
 
       {/* Project Files */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">ملفات المشروع</CardTitle>
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  try {
-                    await uploadFile({ projectId: id, file }).unwrap();
-                  } catch {}
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isUploading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="size-4 mr-1" />
-                {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
-              </Button>
-            </div>
+      <SurfaceCard
+        title="ملفات المشروع"
+        action={
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  await uploadFile({ projectId: id, file }).unwrap();
+                } catch {}
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+            />
+            <ActionButton
+              variant="outline"
+              size="sm"
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              icon={<Upload className="size-4" />}
+            >
+              {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
+            </ActionButton>
           </div>
-        </CardHeader>
-        <CardContent>
-          {!files || files.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              لا توجد ملفات مرفقة بعد. ارفع ملفات يراها العميل عند مراجعة المشروع.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {files.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center justify-between rounded-lg border px-3 py-2"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="text-sm truncate">{file.fileName}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {(file.fileSize / 1024).toFixed(0)} KB
-                    </span>
-                  </div>
+        }
+      >
+        {!files || files.length === 0 ? (
+          <p className="text-sm text-neutral-300">
+            لا توجد ملفات مرفقة بعد. ارفع ملفات يراها العميل عند مراجعة المشروع.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {files.map((file) => (
+              <FileAttachmentRow
+                key={file.id}
+                filename={file.fileName}
+                size={`${(file.fileSize / 1024).toFixed(0)} KB`}
+                action={
                   <div className="flex items-center gap-2 shrink-0">
                     <a
                       href={file.url || buildPortalFileUrl(file.filePath)}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <Button variant="ghost" size="sm">
-                        <Download className="size-4" />
-                      </Button>
+                      <ActionButton variant="ghost" size="sm" icon={<Download className="size-4" />}>{''}</ActionButton>
                     </a>
-                    <Button
+                    <ActionButton
                       variant="ghost"
                       size="sm"
-                      className="text-destructive hover:text-destructive"
+                      className="text-danger-500 hover:text-danger-500"
                       onClick={async () => {
                         try {
                           await deleteFile({ projectId: id, fileId: file.id }).unwrap();
                         } catch {}
                       }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                      icon={<Trash2 className="size-4" />}
+                    >{''}</ActionButton>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                }
+              />
+            ))}
+          </div>
+        )}
+      </SurfaceCard>
     </div>
   );
 }

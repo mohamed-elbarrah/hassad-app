@@ -13,15 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { UserAvatar } from "@/components/design-system/UserAvatar";
 import {
   Search,
   Wallet,
@@ -31,7 +25,7 @@ import {
   ChevronLeft,
   Loader2,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -55,7 +49,7 @@ export default function PayrollPage() {
   if (isLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
       </div>
     );
   }
@@ -67,14 +61,14 @@ export default function PayrollPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">الرواتب والأجور</h1>
-          <p className="text-muted-foreground">
+          <p className="text-neutral-300">
             إدارة مستحقات الموظفين والبدلات والاستقطاعات.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">إدارة الهيكل الوظيفي</Button>
-          <Button
-            className="bg-primary hover:bg-primary/90"
+          <ActionButton variant="outline">إدارة الهيكل الوظيفي</ActionButton>
+          <ActionButton
+            variant="primary"
             onClick={handleRunPayroll}
             disabled={isRunning}
           >
@@ -84,42 +78,39 @@ export default function PayrollPage() {
               <Wallet className="w-4 h-4 ml-2" />
             )}
             صرف الرواتب الجماعي
-          </Button>
+          </ActionButton>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-none shadow-sm">
-          <CardHeader className="pb-2">
-            <CardDescription>إجمالي رواتب الشهر الحالي</CardDescription>
-            <CardTitle className="text-2xl font-bold">
-              {totalPayroll.toLocaleString()} ر.س
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center gap-4 pt-2">
-            <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded">
+        <SurfaceCard className="border-none shadow-sm" description="إجمالي رواتب الشهر الحالي">
+          <h3 className="text-2xl font-bold">
+            {totalPayroll.toLocaleString()} ر.س
+          </h3>
+          <div className="flex items-center gap-4 pt-2">
+            <div className="flex items-center gap-1 text-success-600 text-xs font-bold bg-success-50 px-2 py-1 rounded">
               <CheckCircle className="w-3 h-3" />
               تكامل النظام: نشط
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SurfaceCard>
       </div>
 
-      <Card className="border-none shadow-md">
-        <CardHeader>
+      <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
+        <div className="p-6">
           <div className="flex items-center justify-between gap-4">
             <div className="relative max-w-sm flex-1">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="بحث عن موظف..." className="pr-10" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
+              <FormInputControl placeholder="بحث عن موظف..." className="pr-10" />
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
+              <ActionButton variant="ghost" size="sm">
                 تاريخ الصرف
-              </Button>
+              </ActionButton>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-6 pt-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -136,18 +127,20 @@ export default function PayrollPage() {
                 return (
                   <TableRow
                     key={employee.id}
-                    className="group hover:bg-muted/50 transition-colors"
+                    className="group hover:bg-neutral-50/50 transition-colors"
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 border border-muted">
-                          <AvatarFallback className="bg-primary/5 text-primary font-bold">
-                            {employee.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          name={employee.name}
+                          size="md"
+                          variant="circle"
+                          showBorder
+                          className="h-9 w-9"
+                        />
                         <div>
                           <p className="font-bold text-sm">{employee.name}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-neutral-300">
                             {employee.role}
                           </p>
                         </div>
@@ -156,7 +149,7 @@ export default function PayrollPage() {
                     <TableCell>
                       {employee.baseSalary.toLocaleString()} ر.س
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-neutral-300 text-sm">
                       {latestSalary?.paymentDate
                         ? new Date(latestSalary.paymentDate).toLocaleDateString(
                             "ar-SA-u-nu-latn",
@@ -170,13 +163,13 @@ export default function PayrollPage() {
                     </TableCell>
                     <TableCell className="text-left">
                       <Link href={`/dashboard/finance/payroll/${employee.id}`}>
-                        <Button
+                        <ActionButton
                           variant="ghost"
-                          size="icon"
-                          className="group-hover:bg-primary/10 group-hover:text-primary transition-all"
+                          size="sm"
+                          className="group-hover:bg-secondary-500/10 group-hover:text-secondary-500 transition-all"
                         >
                           <ChevronLeft className="w-4 h-4" />
-                        </Button>
+                        </ActionButton>
                       </Link>
                     </TableCell>
                   </TableRow>
@@ -186,7 +179,7 @@ export default function PayrollPage() {
                 <TableRow>
                   <TableCell
                     colSpan={5}
-                    className="text-center py-10 text-muted-foreground"
+                    className="text-center py-10 text-neutral-300"
                   >
                     لا يوجد موظفون مسجلون.
                   </TableCell>
@@ -194,8 +187,8 @@ export default function PayrollPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

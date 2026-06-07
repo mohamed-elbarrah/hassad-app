@@ -2,8 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { Inbox } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system/ActionButton";
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -22,12 +21,10 @@ export function EmptyState({
   actionHref,
   onAction,
 }: EmptyStateProps) {
-  const ActionButton = actionHref ? (
-    <Button asChild>
-      <Link href={actionHref}>{actionLabel}</Link>
-    </Button>
+  const actionBtn = actionHref ? (
+    <ActionButton href={actionHref}>{actionLabel}</ActionButton>
   ) : actionLabel && onAction ? (
-    <Button onClick={onAction}>{actionLabel}</Button>
+    <ActionButton onClick={onAction}>{actionLabel}</ActionButton>
   ) : null;
 
   return (
@@ -44,7 +41,7 @@ export function EmptyState({
           {description}
         </p>
       )}
-      {ActionButton}
+      {actionBtn}
     </div>
   );
 }

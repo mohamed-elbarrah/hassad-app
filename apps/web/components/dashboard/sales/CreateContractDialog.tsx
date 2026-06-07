@@ -5,14 +5,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/design-system/Dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import {
   Form,
   FormControl,
@@ -20,17 +15,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@/components/design-system/Form";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
 import { useGetRequestsQuery } from "@/features/requests/requestsApi";
 import { useCreateContractMutation } from "@/features/contracts/contractsApi";
 import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
@@ -224,28 +217,30 @@ export function CreateContractDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button>إنشاء عقد</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg" dir="rtl">
-        <DialogHeader>
-          <DialogTitle>
-            {isFromProposal ? "إنشاء عقد من العرض الفني" : "عقد جديد"}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      {!isControlled && (
+        <ActionButton variant="primary" onClick={() => setInternalOpen(true)}>
+          إنشاء عقد
+        </ActionButton>
+      )}
+      <Dialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={isFromProposal ? "إنشاء عقد من العرض الفني" : "عقد جديد"}
+        contentClassName="sm:max-w-lg"
+      >
 
         {shareLink ? (
           <div className="space-y-5 py-2">
             <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center">
-                <CheckCheck className="h-7 w-7 text-emerald-600" />
+              <div className="h-14 w-14 rounded-full bg-success-100 flex items-center justify-center">
+                <CheckCheck className="h-7 w-7 text-success-600" />
               </div>
               <div>
                 <p className="font-semibold text-base">
                   تم إنشاء العقد وإرساله
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-neutral-300 mt-1">
                   شارك رابط التوقيع مع العميل ليوقّع إلكترونياً
                 </p>
               </div>
@@ -253,42 +248,32 @@ export function CreateContractDialog({
 
             <div className="min-w-0">
               <div className="relative w-full">
-                <Input
+                <FormInputControl
                   readOnly
                   value={shareLink ?? ""}
                   dir="ltr"
                   className="w-full pr-36 text-xs font-mono truncate"
                 />
                 <div className="absolute inset-y-0 right-2 flex items-center">
-                  <Button
+                  <ActionButton
                     size="sm"
-                    variant={copied ? "secondary" : "default"}
-                    className="gap-2"
+                    variant={copied ? "secondary" : "primary"}
                     onClick={copyLink}
+                    icon={copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   >
-                    {copied ? (
-                      <>
-                        <CheckCheck className="w-3.5 h-3.5" />
-                        تم النسخ
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        نسخ الرابط
-                      </>
-                    )}
-                  </Button>
+                    {copied ? "تم النسخ" : "نسخ الرابط"}
+                  </ActionButton>
                 </div>
               </div>
             </div>
 
-            <Button
-              className="w-full"
+            <ActionButton
               variant="outline"
+              className="w-full"
               onClick={() => handleOpenChange(false)}
             >
               إغلاق
-            </Button>
+            </ActionButton>
           </div>
         ) : isFromProposal ? (
           <div className="space-y-4">
@@ -301,11 +286,11 @@ export function CreateContractDialog({
               </div>
             ) : (
               <>
-                <div className="rounded-xl border p-4 space-y-2 bg-muted/20">
+                <div className="rounded-xl border p-4 space-y-2 bg-neutral-50">
                   <p className="text-sm font-semibold">معلومات العرض الفني</p>
-                  <div className="text-sm text-muted-foreground space-y-1">
+                  <div className="text-sm text-neutral-300 space-y-1">
                     <p>
-                      <span className="font-medium text-foreground">
+                      <span className="font-medium text-natural-100">
                         العميل:{" "}
                       </span>
                       {proposalData?.request?.companyName ??
@@ -313,7 +298,7 @@ export function CreateContractDialog({
                         "—"}
                     </p>
                     <p>
-                      <span className="font-medium text-foreground">
+                      <span className="font-medium text-natural-100">
                         العنوان:{" "}
                       </span>
                       {proposalData?.title}
@@ -322,7 +307,7 @@ export function CreateContractDialog({
                       <Calculator className="w-4 h-4" />
                       <span>
                         إجمالي القيمة:{" "}
-                        <span className="font-bold text-foreground">
+                        <span className="font-bold text-natural-100">
                           {proposalData?.totalPrice?.toLocaleString("en-US")} ر.س
                         </span>
                       </span>
@@ -351,7 +336,7 @@ export function CreateContractDialog({
                     />
                   )}
 
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-xs text-neutral-300 text-center">
                   تم اعتماد هذه القيم من قبل العميل في العرض الفني. لا يمكنك
                   تعديلها من هنا.
                 </p>
@@ -369,25 +354,25 @@ export function CreateContractDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>نوع العقد</FormLabel>
-                      <Select
+                      <FormSelect
                         onValueChange={field.onChange}
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر النوع" />
-                          </SelectTrigger>
+                          <FormSelectTrigger>
+                            <FormSelectValue placeholder="اختر النوع" />
+                          </FormSelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <FormSelectContent>
                           {(Object.values(ContractType) as ContractType[]).map(
                             (t) => (
-                              <SelectItem key={t} value={t}>
+                              <FormSelectItem key={t} value={t}>
                                 {TYPE_LABELS[t]}
-                              </SelectItem>
+                              </FormSelectItem>
                             ),
                           )}
-                        </SelectContent>
-                      </Select>
+                        </FormSelectContent>
+                      </FormSelect>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -400,7 +385,7 @@ export function CreateContractDialog({
                   <div
                     role="button"
                     tabIndex={0}
-                    className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer hover:bg-muted/40 transition-colors"
+                    className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer hover:bg-neutral-50 transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ")
@@ -411,16 +396,16 @@ export function CreateContractDialog({
                   >
                     {file ? (
                       <>
-                        <FileText className="w-8 h-8 text-blue-600" />
+                        <FileText className="w-8 h-8 text-action-blue" />
                         <p className="text-sm font-medium">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-neutral-300">
                           {(file.size / 1024).toFixed(0)} KB
                         </p>
                       </>
                     ) : (
                       <>
-                        <Upload className="w-7 h-7 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
+                        <Upload className="w-7 h-7 text-neutral-300" />
+                        <p className="text-sm text-neutral-300">
                           اسحب الملف هنا أو انقر للاختيار
                         </p>
                       </>
@@ -436,17 +421,22 @@ export function CreateContractDialog({
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button
+                  <ActionButton
                     type="button"
                     variant="outline"
                     onClick={() => handleOpenChange(false)}
                     disabled={isLoading}
                   >
                     إلغاء
-                  </Button>
-                  <Button type="submit" disabled={isLoading || !file}>
+                  </ActionButton>
+                  <ActionButton
+                    type="submit"
+                    variant="primary"
+                    loading={isLoading}
+                    disabled={!file}
+                  >
                     {isLoading ? "جارٍ الإرسال..." : "إنشاء وإرسال"}
-                  </Button>
+                  </ActionButton>
                 </div>
               </form>
             </Form>
@@ -460,10 +450,10 @@ export function CreateContractDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>الطلب (مرحلة إعداد العقد)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormSelect onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
+                        <FormSelectTrigger>
+                          <FormSelectValue
                             placeholder={
                               requestsFetching
                                 ? "جارٍ التحميل..."
@@ -472,20 +462,20 @@ export function CreateContractDialog({
                                   : "اختر الطلب"
                             }
                           />
-                        </SelectTrigger>
+                        </FormSelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <FormSelectContent>
                         {contractRequests.map((request) => (
-                          <SelectItem key={request.id} value={request.id}>
+                          <FormSelectItem key={request.id} value={request.id}>
                             {request.companyName}
                             {request.contactName
                               ? ` — ${request.contactName}`
                               : ""}
-                          </SelectItem>
+                          </FormSelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
+                      </FormSelectContent>
+                    </FormSelect>
+                    <p className="text-xs text-neutral-300">
                       يعرض هذا الحقل الطلبات الموجودة حالياً في مسار إعداد العقد
                       أو المرسلة للتوقيع
                     </p>
@@ -501,7 +491,7 @@ export function CreateContractDialog({
                   <FormItem>
                     <FormLabel>عنوان العقد</FormLabel>
                     <FormControl>
-                      <Input
+                      <FormInputControl
                         placeholder="عقد خدمات التسويق الرقمي..."
                         {...field}
                       />
@@ -517,22 +507,22 @@ export function CreateContractDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>نوع العقد</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormSelect onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر النوع" />
-                        </SelectTrigger>
+                        <FormSelectTrigger>
+                          <FormSelectValue placeholder="اختر النوع" />
+                        </FormSelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <FormSelectContent>
                         {(Object.values(ContractType) as ContractType[]).map(
                           (t) => (
-                            <SelectItem key={t} value={t}>
+                            <FormSelectItem key={t} value={t}>
                               {TYPE_LABELS[t]}
-                            </SelectItem>
+                            </FormSelectItem>
                           ),
                         )}
-                      </SelectContent>
-                    </Select>
+                      </FormSelectContent>
+                    </FormSelect>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -546,7 +536,7 @@ export function CreateContractDialog({
                     <FormItem>
                       <FormLabel>القيمة الشهرية (ر.س)</FormLabel>
                       <FormControl>
-                        <Input
+                        <FormInputControl
                           type="number"
                           min="0"
                           step="0.01"
@@ -569,7 +559,7 @@ export function CreateContractDialog({
                     <FormItem>
                       <FormLabel>إجمالي القيمة (ر.س)</FormLabel>
                       <FormControl>
-                        <Input
+                        <FormInputControl
                           type="number"
                           min="0"
                           step="0.01"
@@ -595,7 +585,7 @@ export function CreateContractDialog({
                     <FormItem>
                       <FormLabel>تاريخ البداية</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <FormInputControl type="date" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -608,7 +598,7 @@ export function CreateContractDialog({
                     <FormItem>
                       <FormLabel>تاريخ النهاية</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <FormInputControl type="date" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -621,7 +611,7 @@ export function CreateContractDialog({
                 <div
                   role="button"
                   tabIndex={0}
-                  className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer hover:bg-muted/40 transition-colors"
+                  className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer hover:bg-neutral-50 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ")
@@ -632,16 +622,16 @@ export function CreateContractDialog({
                 >
                   {file ? (
                     <>
-                      <FileText className="w-8 h-8 text-blue-600" />
+                      <FileText className="w-8 h-8 text-action-blue" />
                       <p className="text-sm font-medium">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-neutral-300">
                         {(file.size / 1024).toFixed(0)} KB
                       </p>
                     </>
                   ) : (
                     <>
-                      <Upload className="w-7 h-7 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
+                      <Upload className="w-7 h-7 text-neutral-300" />
+                      <p className="text-sm text-neutral-300">
                         اسحب الملف هنا أو انقر للاختيار
                       </p>
                     </>
@@ -657,22 +647,27 @@ export function CreateContractDialog({
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button
+                <ActionButton
                   type="button"
                   variant="outline"
                   onClick={() => handleOpenChange(false)}
                   disabled={isLoading}
                 >
                   إلغاء
-                </Button>
-                <Button type="submit" disabled={isLoading || !file}>
+                </ActionButton>
+                <ActionButton
+                  type="submit"
+                  variant="primary"
+                  loading={isLoading}
+                  disabled={!file}
+                >
                   {isLoading ? "جارٍ الإرسال..." : "إنشاء وإرسال"}
-                </Button>
+                </ActionButton>
               </div>
             </form>
           </Form>
         )}
-      </DialogContent>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }

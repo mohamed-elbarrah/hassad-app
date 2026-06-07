@@ -11,12 +11,12 @@ import {
   useGetPortalCampaignQuery,
   type PortalCampaignDetail,
 } from "@/features/portal/portalApi";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { StatusBadge } from "@/components/portal/StatusBadge";
-import { PortalKpiPill, PortalKpiCurrency } from "@/components/portal/PortalKpiPill";
-import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { KpiPill, KpiCurrency } from "@/components/design-system/KpiPill";
+import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -57,7 +57,7 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
     return (
       <div className="flex flex-col gap-6" dir="rtl">
         <Skeleton className="h-6 w-48" />
-        <PortalSurfaceCard icon={TrendingUp}>
+        <SurfaceCard icon={TrendingUp}>
           <div className="space-y-4">
             <Skeleton className="h-7 w-64" />
             <Skeleton className="mt-2 h-4 w-40" />
@@ -69,7 +69,7 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
             </div>
             <Skeleton className="h-[200px] w-full rounded-2xl" />
           </div>
-        </PortalSurfaceCard>
+        </SurfaceCard>
       </div>
     );
   }
@@ -78,16 +78,16 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
     return (
       <div className="flex flex-col gap-4" dir="rtl">
         <Link href="/portal/campaigns">
-          <Button
+          <ActionButton
             variant="ghost"
             size="sm"
             className="gap-2 text-portal-note-text hover:text-natural-100"
           >
             <ArrowRight className="h-4 w-4" />
             الحملات الإعلانية
-          </Button>
+          </ActionButton>
         </Link>
-        <PortalSurfaceCard title="تعذر تحميل الحملة" icon={AlertCircle}>
+        <SurfaceCard title="تعذر تحميل الحملة" icon={AlertCircle}>
           <div className="flex flex-col items-center gap-4 text-center">
             <p className="text-sm text-portal-note-text">
               {isError
@@ -95,16 +95,16 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
                 : "الحملة غير موجودة."}
             </p>
             {isError && (
-              <Button
+              <ActionButton
                 variant="ghost"
                 className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
                 onClick={() => refetch()}
               >
                 إعادة المحاولة
-              </Button>
+              </ActionButton>
             )}
           </div>
-        </PortalSurfaceCard>
+        </SurfaceCard>
       </div>
     );
   }
@@ -118,14 +118,14 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link href="/portal/campaigns">
-          <Button
+          <ActionButton
             variant="ghost"
             size="sm"
             className="gap-1.5 text-portal-note-text hover:text-natural-100"
           >
             <ArrowRight className="h-4 w-4" />
             الحملات الإعلانية
-          </Button>
+          </ActionButton>
         </Link>
         <span className="text-portal-note-text">/</span>
         <span className="max-w-xs truncate text-sm font-medium text-natural-100">
@@ -134,7 +134,7 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
       </div>
 
       {/* Main card */}
-      <PortalSurfaceCard
+      <SurfaceCard
         title={campaignData.name}
         icon={TrendingUp}
         action={
@@ -152,15 +152,15 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <PortalKpiPill
+            <KpiPill
               label="الميزانية الكلية"
-              value={<PortalKpiCurrency amount={campaignData.budgetTotal} />}
+              value={<KpiCurrency amount={campaignData.budgetTotal} />}
             />
-            <PortalKpiPill
+            <KpiPill
               label="الميزانية المنفقة"
-              value={<PortalKpiCurrency amount={campaignData.budgetSpent} />}
+              value={<KpiCurrency amount={campaignData.budgetSpent} />}
             />
-            <PortalKpiPill
+            <KpiPill
               label="تاريخ البدء"
               value={
                 <span className="text-lg font-semibold text-natural-100">{formatDate(campaignData.startDate)}</span>
@@ -173,54 +173,54 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
               أداء الحملة الحالي
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              <PortalInfoPanel variant="default" className="text-center">
+              <InfoPanel variant="default" className="text-center">
                 <p className="text-xs text-portal-note-text">الانطباعات</p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {fmt(campaignData.analytics?.impressions ?? 0)}
                 </p>
-              </PortalInfoPanel>
-              <PortalInfoPanel variant="default" className="text-center">
+              </InfoPanel>
+              <InfoPanel variant="default" className="text-center">
                 <p className="text-xs text-portal-note-text">النقرات</p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {fmt(campaignData.analytics?.clicks ?? 0)}
                 </p>
-              </PortalInfoPanel>
-              <PortalInfoPanel variant="default" className="text-center">
+              </InfoPanel>
+              <InfoPanel variant="default" className="text-center">
                 <p className="text-xs text-portal-note-text">التحويلات</p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {fmt(campaignData.analytics?.conversions ?? 0)}
                 </p>
-              </PortalInfoPanel>
-              <PortalInfoPanel variant="default" className="text-center">
+              </InfoPanel>
+              <InfoPanel variant="default" className="text-center">
                 <p className="text-xs text-portal-note-text">العائد ROAS</p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {campaignData.analytics?.roas?.toFixed(1) ?? "0"}x
                 </p>
-              </PortalInfoPanel>
-              <PortalInfoPanel variant="default" className="text-center">
+              </InfoPanel>
+              <InfoPanel variant="default" className="text-center">
                 <p className="text-xs text-portal-note-text">نسبة النقر CTR</p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {campaignData.analytics?.ctr?.toFixed(2) ?? "0"}%
                 </p>
-              </PortalInfoPanel>
-              <PortalInfoPanel variant="default" className="text-center">
+              </InfoPanel>
+              <InfoPanel variant="default" className="text-center">
                 <p className="text-xs text-portal-note-text">تكلفة النقرة CPC</p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {campaignData.analytics?.cpc?.toFixed(2) ?? "0"} ر.س
                 </p>
-              </PortalInfoPanel>
-              <PortalInfoPanel variant="default" className="text-center">
+              </InfoPanel>
+              <InfoPanel variant="default" className="text-center">
                 <p className="text-xs text-portal-note-text">تكلفة التحويل CPA</p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {campaignData.analytics?.cpa?.toFixed(2) ?? "0"} ر.س
                 </p>
-              </PortalInfoPanel>
-              <PortalInfoPanel variant="default" className="text-center">
+              </InfoPanel>
+              <InfoPanel variant="default" className="text-center">
                 <p className="text-xs text-portal-note-text">الإيرادات</p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {fmt(campaignData.analytics?.revenue ?? 0)} ر.س
                 </p>
-              </PortalInfoPanel>
+              </InfoPanel>
             </div>
           </div>
 
@@ -254,10 +254,10 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-      </PortalSurfaceCard>
+      </SurfaceCard>
 
       {/* KPI Snapshots */}
-      <PortalSurfaceCard
+      <SurfaceCard
         title="سجل مؤشرات الأداء"
         description="جميع قياسات الأداء المسجلة مرتبة من الأقدم إلى الأحدث"
         icon={TrendingUp}
@@ -305,7 +305,7 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
             </table>
           </div>
         )}
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

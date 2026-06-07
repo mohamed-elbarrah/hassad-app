@@ -1,8 +1,7 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { 
   Calendar, 
   ArrowUpRight, 
@@ -21,7 +20,7 @@ import {
 import Link from "next/link";
 import { useGetMyTasksQuery, useChangeTaskStatusMutation } from "@/features/tasks/tasksApi";
 import { useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 
 export default function MarketingTasksListPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -35,27 +34,27 @@ export default function MarketingTasksListPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">المهام التسويقية المسندة</h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-neutral-300 mt-2">
             جميع المهام التي تم إسنادها إليك من قبل مديري المشاريع.
           </p>
         </div>
-        <div className="flex items-center gap-2 border rounded-lg p-1 bg-muted/50">
-          <Button 
-            variant={view === "grid" ? "secondary" : "ghost"} 
+        <div className="flex items-center gap-2 border rounded-lg p-1 bg-neutral-50/50">
+          <ActionButton 
+            variant={view === "grid" ? "toggle-active" : "toggle-inactive"} 
             size="sm" 
             onClick={() => setView("grid")}
             className="h-8 w-8 p-0"
           >
             <LayoutGrid className="w-4 h-4" />
-          </Button>
-          <Button 
-            variant={view === "list" ? "secondary" : "ghost"} 
+          </ActionButton>
+          <ActionButton 
+            variant={view === "list" ? "toggle-active" : "toggle-inactive"} 
             size="sm" 
             onClick={() => setView("list")}
             className="h-8 w-8 p-0"
           >
             <List className="w-4 h-4" />
-          </Button>
+          </ActionButton>
         </div>
       </div>
 
@@ -92,15 +91,15 @@ function TaskCard({ task }: { task: any }) {
   };
 
   return (
-    <Card className="group overflow-hidden shadow-sm border-muted/60 hover:border-primary/40 transition-all flex flex-col">
-      <CardHeader className="pb-3 border-b border-muted/40 bg-muted/5">
+    <SurfaceCard className="group overflow-hidden shadow-sm border-neutral-50/60 hover:border-secondary-500/40 transition-all flex flex-col" contentClassName="p-0">
+      <div className="pb-3 border-b border-neutral-50/40 bg-neutral-50/5 p-6">
         <div className="flex justify-between items-start gap-2 mb-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className={`h-6 px-2 text-[10px] font-bold gap-1 ${getStatusColor(task.status)}`}>
+              <ActionButton variant="outline" size="sm" className={`h-6 px-2 text-[10px] font-bold gap-1 ${getStatusColor(task.status)}`}>
                 {getStatusLabel(task.status)}
                 <ChevronDown className="w-3 h-3 opacity-50" />
-              </Button>
+              </ActionButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="text-right">
               {statusOptions.map((opt) => (
@@ -120,42 +119,42 @@ function TaskCard({ task }: { task: any }) {
           </DropdownMenu>
         </div>
         
-        <CardTitle className="text-lg group-hover:text-primary transition-colors leading-snug">
+        <h3 className="text-lg group-hover:text-secondary-500 transition-colors leading-snug font-semibold">
           {task.title}
-        </CardTitle>
-      </CardHeader>
+        </h3>
+      </div>
       
-      <CardContent className="pt-4 flex-1 space-y-4">
+      <div className="pt-4 flex-1 space-y-4 p-6">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium">العميل</span>
+            <span className="text-neutral-300 font-medium">العميل</span>
             <span className="font-bold">{task.project?.client?.companyName}</span>
           </div>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium">المشروع</span>
-            <span className="font-medium text-slate-600">{task.project?.name}</span>
+            <span className="text-neutral-300 font-medium">المشروع</span>
+            <span className="font-medium text-neutral-300">{task.project?.name}</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-muted/40">
+        <div className="flex items-center justify-between pt-4 border-t border-neutral-50/40">
           <div className="flex items-center gap-4">
             <div className="flex flex-col">
-              <span className="text-[10px] text-muted-foreground font-medium">الموعد</span>
+              <span className="text-[10px] text-neutral-300 font-medium">الموعد</span>
               <span className="text-sm font-bold flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <Calendar className="w-3.5 h-3.5 text-neutral-300" />
                 {new Date(task.dueDate).toLocaleDateString('ar-EG')}
               </span>
             </div>
           </div>
           <Link href={`/dashboard/marketing/tasks/${task.id}`}>
-            <Button size="sm" className="gap-2">
+            <ActionButton size="sm" className="gap-2">
               التنفيذ
               <ArrowUpRight className="w-4 h-4" />
-            </Button>
+            </ActionButton>
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </SurfaceCard>
   );
 }
 
@@ -173,10 +172,10 @@ function getStatusLabel(status: string) {
 
 function getStatusColor(status: string) {
   switch (status) {
-    case "TODO": return "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-100";
-    case "IN_PROGRESS": return "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100";
-    case "IN_REVIEW": return "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100";
-    case "DONE": return "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100";
-    default: return "bg-slate-100 text-slate-600";
+    case "TODO": return "bg-neutral-50 text-neutral-300 border-neutral-200 hover:bg-neutral-50";
+    case "IN_PROGRESS": return "bg-action-blue/10 text-action-blue border-action-blue/20 hover:bg-action-blue/10";
+    case "IN_REVIEW": return "bg-alert-100 text-alert-700 border-alert-200 hover:bg-alert-100";
+    case "DONE": return "bg-success-100 text-success-700 border-success-200 hover:bg-success-100";
+    default: return "bg-neutral-50 text-neutral-300";
   }
 }

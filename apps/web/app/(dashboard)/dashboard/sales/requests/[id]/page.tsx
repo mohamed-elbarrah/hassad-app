@@ -20,9 +20,10 @@ import {
   useGetRequestByIdQuery,
   type RequestDetail,
 } from "@/features/requests/requestsApi";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pill } from "@/components/design-system/Pill";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
@@ -38,17 +39,17 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
   [RequestStatus.CANCELLED]: "ملغي",
 };
 
-const STATUS_BADGE: Record<RequestStatus, string> = {
-  [RequestStatus.SUBMITTED]: "bg-slate-100 text-slate-700",
-  [RequestStatus.QUALIFYING]: "bg-blue-100 text-blue-700",
-  [RequestStatus.PROPOSAL_IN_PROGRESS]: "bg-violet-100 text-violet-700",
-  [RequestStatus.PROPOSAL_SENT]: "bg-amber-100 text-amber-700",
-  [RequestStatus.NEGOTIATION]: "bg-orange-100 text-orange-700",
-  [RequestStatus.CONTRACT_PREPARATION]: "bg-yellow-100 text-yellow-700",
-  [RequestStatus.CONTRACT_SENT]: "bg-lime-100 text-lime-700",
-  [RequestStatus.SIGNED]: "bg-emerald-100 text-emerald-700",
-  [RequestStatus.PROJECT_CREATED]: "bg-teal-100 text-teal-700",
-  [RequestStatus.CANCELLED]: "bg-rose-100 text-rose-700",
+const STATUS_TONE: Record<RequestStatus, import("@/components/design-system/Pill").PillTone> = {
+  [RequestStatus.SUBMITTED]: "neutral",
+  [RequestStatus.QUALIFYING]: "blue",
+  [RequestStatus.PROPOSAL_IN_PROGRESS]: "purple",
+  [RequestStatus.PROPOSAL_SENT]: "warning",
+  [RequestStatus.NEGOTIATION]: "warning",
+  [RequestStatus.CONTRACT_PREPARATION]: "warning",
+  [RequestStatus.CONTRACT_SENT]: "success",
+  [RequestStatus.SIGNED]: "success",
+  [RequestStatus.PROJECT_CREATED]: "success",
+  [RequestStatus.CANCELLED]: "danger",
 };
 
 const BUSINESS_TYPE_LABELS: Record<string, string> = {
@@ -108,9 +109,9 @@ function InfoRow({
   if (!value) return null;
   return (
     <div className="flex items-start gap-3">
-      <span className="mt-0.5 text-muted-foreground shrink-0">{icon}</span>
+      <span className="mt-0.5 text-neutral-300 shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-xs text-neutral-300">{label}</p>
         <p
           className={cn(
             "text-sm font-medium break-all",
@@ -134,10 +135,10 @@ function DetailSkeleton() {
         <Skeleton className="h-6 w-24 rounded-full mr-auto" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Skeleton className="h-44 rounded-xl" />
-        <Skeleton className="h-44 rounded-xl" />
+        <Skeleton className="h-44" />
+        <Skeleton className="h-44" />
       </div>
-      <Skeleton className="h-36 rounded-xl" />
+      <Skeleton className="h-36" />
     </div>
   );
 }
@@ -151,27 +152,21 @@ function RelatedRecords({ request }: { request: RequestDetail }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          <FolderKanban className="w-4 h-4 text-muted-foreground" />
-          السجل المرتبط بالطلب
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <SurfaceCard title="السجل المرتبط بالطلب" icon={FolderKanban}>
+      <div className="space-y-3">
         {request.proposals.map((proposal) => (
           <div
             key={proposal.id}
             className="flex items-start gap-3 rounded-lg border p-3"
           >
-            <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <FileText className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{proposal.title}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-neutral-300">
                 عرض فني • {formatDate(proposal.createdAt)}
               </p>
             </div>
-            <Badge variant="outline">{proposal.status}</Badge>
+            <Pill tone="neutral">{proposal.status}</Pill>
           </div>
         ))}
 
@@ -180,31 +175,31 @@ function RelatedRecords({ request }: { request: RequestDetail }) {
             key={contract.id}
             className="flex items-start gap-3 rounded-lg border p-3"
           >
-            <FileSignature className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <FileSignature className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{contract.title}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-neutral-300">
                 عقد • {formatDate(contract.createdAt)}
               </p>
             </div>
-            <Badge variant="outline">{contract.status}</Badge>
+            <Pill tone="neutral">{contract.status}</Pill>
           </div>
         ))}
 
         {request.project && (
           <div className="flex items-start gap-3 rounded-lg border p-3">
-            <FolderKanban className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <FolderKanban className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{request.project.name}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-neutral-300">
                 مشروع • {formatDate(request.project.createdAt)}
               </p>
             </div>
-            <Badge variant="secondary">{request.project.status}</Badge>
+            <Pill tone="neutral">{request.project.status}</Pill>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SurfaceCard>
   );
 }
 
@@ -236,7 +231,7 @@ export default function RequestDetailPage({
         className="flex flex-col items-center justify-center py-24 gap-4"
         dir="rtl"
       >
-        <p className="text-destructive font-medium">{message}</p>
+        <StatusBanner variant="danger" title={message} />
         <Link
           href="/dashboard/sales/pipeline"
           className="text-sm text-primary underline underline-offset-2"
@@ -257,8 +252,6 @@ export default function RequestDetailPage({
         )
       : services;
   const statusLabel = STATUS_LABELS[request.status] ?? request.status;
-  const statusBadgeClass =
-    STATUS_BADGE[request.status] ?? "bg-muted text-muted-foreground";
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl" dir="rtl">
@@ -266,7 +259,7 @@ export default function RequestDetailPage({
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/dashboard/sales/pipeline"
-            className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0"
+            className="p-1.5 rounded-md hover:bg-neutral-50 transition-colors shrink-0"
             title="العودة إلى لوحة المبيعات"
           >
             <ArrowRight className="w-5 h-5" />
@@ -276,31 +269,22 @@ export default function RequestDetailPage({
               {request.contactName}
             </h1>
             {request.companyName && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-neutral-300">
                 {request.companyName}
               </p>
             )}
           </div>
         </div>
-        <span
-          className={cn(
-            "px-3 py-1 rounded-full text-xs font-semibold shrink-0",
-            statusBadgeClass,
-          )}
-        >
-          {statusLabel}
-        </span>
+        <div className="shrink-0">
+          <Pill tone={STATUS_TONE[request.status]} className="text-xs h-6 px-2">
+            {statusLabel}
+          </Pill>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <User className="w-4 h-4 text-muted-foreground" />
-              بيانات التواصل
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <SurfaceCard title="بيانات التواصل" icon={User}>
+          <div className="space-y-4">
             <InfoRow
               icon={<User className="w-4 h-4" />}
               label="الاسم"
@@ -328,17 +312,11 @@ export default function RequestDetailPage({
               label="مسؤول المبيعات"
               value={request.assignee?.name}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </SurfaceCard>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Tag className="w-4 h-4 text-muted-foreground" />
-              بيانات النشاط
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <SurfaceCard title="بيانات النشاط" icon={Tag}>
+          <div className="space-y-4">
             <InfoRow
               icon={<Building2 className="w-4 h-4" />}
               label="اسم النشاط التجاري"
@@ -356,29 +334,25 @@ export default function RequestDetailPage({
             />
             {description && (
               <div className="flex items-start gap-3">
-                <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <MessageSquare className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs text-muted-foreground">الوصف</p>
+                  <p className="text-xs text-neutral-300">الوصف</p>
                   <p className="text-sm leading-relaxed">{description}</p>
                 </div>
               </div>
             )}
             {selectedServices.length > 0 && (
               <div className="flex items-start gap-3">
-                <Tag className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <Tag className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1.5">
+                  <p className="text-xs text-neutral-300 mb-1.5">
                     الخدمات المطلوبة
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedServices.map((service) => (
-                      <Badge
-                        key={service}
-                        variant="secondary"
-                        className="text-xs"
-                      >
+                      <Pill key={service} tone="neutral" className="text-xs h-6 px-2">
                         {service}
-                      </Badge>
+                      </Pill>
                     ))}
                   </div>
                 </div>
@@ -389,78 +363,64 @@ export default function RequestDetailPage({
               label="تاريخ إنشاء الطلب"
               value={formatDate(request.createdAt)}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </SurfaceCard>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            مسار حالة الطلب
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="relative border-r border-muted mr-2 space-y-4">
-            <li className="mr-4">
-              <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-background bg-slate-400" />
-              <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                  تم استلام الطلب
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {formatDate(request.createdAt)}
-              </p>
-            </li>
+      <SurfaceCard title="مسار حالة الطلب" icon={Calendar}>
+        <ol className="relative border-r border-muted mr-2 space-y-4">
+          <li className="mr-4">
+            <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-natural-0 bg-neutral-400" />
+            <div className="flex flex-wrap items-center gap-2 mb-0.5">
+              <Pill tone="neutral" className="text-xs h-6 px-2">
+                تم استلام الطلب
+              </Pill>
+            </div>
+            <p className="text-xs text-neutral-300">
+              {formatDate(request.createdAt)}
+            </p>
+          </li>
 
-            {[...request.statusHistory]
-              .sort(
-                (a, b) =>
-                  new Date(a.changedAt).getTime() -
-                  new Date(b.changedAt).getTime(),
-              )
-              .map((entry) => (
-                <li key={entry.id} className="mr-4">
-                  <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-background bg-primary" />
-                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                    {entry.fromStatus && (
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-xs font-medium",
-                          STATUS_BADGE[entry.fromStatus] ??
-                            "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {STATUS_LABELS[entry.fromStatus] ?? entry.fromStatus}
-                      </span>
-                    )}
-                    {entry.fromStatus && (
-                      <ArrowRight className="w-3 h-3 text-muted-foreground rotate-180" />
-                    )}
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 rounded-full text-xs font-medium",
-                        STATUS_BADGE[entry.toStatus] ??
-                          "bg-muted text-muted-foreground",
-                      )}
+          {[...request.statusHistory]
+            .sort(
+              (a, b) =>
+                new Date(a.changedAt).getTime() -
+                new Date(b.changedAt).getTime(),
+            )
+            .map((entry) => (
+              <li key={entry.id} className="mr-4">
+                <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-background bg-secondary-500" />
+                <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                  {entry.fromStatus && (
+                    <Pill
+                      tone={STATUS_TONE[entry.fromStatus]}
+                      className="text-xs h-6 px-2"
                     >
-                      {STATUS_LABELS[entry.toStatus] ?? entry.toStatus}
-                    </span>
-                  </div>
-                  {entry.note && (
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-1">
-                      {entry.note}
-                    </p>
+                      {STATUS_LABELS[entry.fromStatus] ?? entry.fromStatus}
+                    </Pill>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    {formatDate(entry.changedAt)}
+                  {entry.fromStatus && (
+                    <ArrowRight className="w-3 h-3 text-neutral-300 rotate-180" />
+                  )}
+                  <Pill
+                    tone={STATUS_TONE[entry.toStatus]}
+                    className="text-xs h-6 px-2"
+                  >
+                    {STATUS_LABELS[entry.toStatus] ?? entry.toStatus}
+                  </Pill>
+                </div>
+                {entry.note && (
+                  <p className="text-sm text-neutral-300 leading-relaxed mb-1">
+                    {entry.note}
                   </p>
-                </li>
-              ))}
-          </ol>
-        </CardContent>
-      </Card>
+                )}
+                <p className="text-xs text-neutral-300">
+                  {formatDate(entry.changedAt)}
+                </p>
+              </li>
+            ))}
+        </ol>
+      </SurfaceCard>
 
       <RelatedRecords request={request} />
     </div>

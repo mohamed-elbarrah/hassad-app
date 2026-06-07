@@ -3,7 +3,7 @@
 import { useAppSelector } from "@/lib/hooks";
 import { useGetAdminStatsQuery } from "@/features/admin/adminApi";
 import { useGetInvoicesQuery } from "@/features/finance/financeApi";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import { InvoiceStatus } from "@hassad/shared";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 
@@ -40,7 +40,7 @@ export default function AdminWorkspacePage() {
           <h1 className="text-3xl font-bold tracking-tight">
             لوحة الإدارة العليا
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-neutral-300 mt-1">
             مرحباً، {user.name || "الإدارة"}
           </p>
         </div>
@@ -48,92 +48,75 @@ export default function AdminWorkspacePage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {KPI_ITEMS.map((item) => (
-          <Card key={item.label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">
-                {item.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {item.value == null ? (
-                <Skeleton className="h-8 w-20" />
-              ) : (
-                <p className="text-2xl font-semibold" dir="ltr">{item.value}</p>
-              )}
-            </CardContent>
-          </Card>
+          <SurfaceCard title={item.label} key={item.label}>
+            {item.value == null ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <p className="text-2xl font-semibold" dir="ltr">{item.value}</p>
+            )}
+          </SurfaceCard>
         ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">مؤشرات إضافية</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-full" />
-                <Skeleton className="h-5 w-full" />
-              </div>
-            ) : (
-              <ul className="space-y-2 text-sm" dir="rtl">
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">المهام المتأخرة</span>
-                  <span className="font-semibold text-destructive">
-                    {formatNumber(stats?.overdueTasks)}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">الفواتير غير المسددة</span>
-                  <span className="font-semibold text-amber-600">
-                    {formatNumber(stats?.unpaidInvoicesCount)}
-                  </span>
-                </li>
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <SurfaceCard title="مؤشرات إضافية">
+          {statsLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+            </div>
+          ) : (
+            <ul className="space-y-2 text-sm" dir="rtl">
+              <li className="flex justify-between">
+                <span className="text-neutral-300">المهام المتأخرة</span>
+                <span className="font-semibold text-danger-500">
+                  {formatNumber(stats?.overdueTasks)}
+                </span>
+              </li>
+              <li className="flex justify-between">
+                <span className="text-neutral-300">الفواتير غير المسددة</span>
+                <span className="font-semibold text-alert-600">
+                  {formatNumber(stats?.unpaidInvoicesCount)}
+                </span>
+              </li>
+            </ul>
+          )}
+        </SurfaceCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">الفواتير المستحقة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {invoicesLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-5 w-full" />
-                ))}
-              </div>
-            ) : !invoicesData?.items?.length ? (
-              <p className="text-sm text-muted-foreground">لا توجد فواتير مستحقة.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">العميل</TableHead>
-                    <TableHead className="text-right">القيمة</TableHead>
-                    <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
+        <SurfaceCard title="الفواتير المستحقة">
+          {invoicesLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-5 w-full" />
+              ))}
+            </div>
+          ) : !invoicesData?.items?.length ? (
+            <p className="text-sm text-neutral-300">لا توجد فواتير مستحقة.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">العميل</TableHead>
+                  <TableHead className="text-right">القيمة</TableHead>
+                  <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoicesData.items.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-medium">
+                      {invoice.client?.companyName ?? "—"}
+                    </TableCell>
+                    <TableCell dir="ltr">{formatCurrency(invoice.amount)}</TableCell>
+                    <TableCell dir="ltr">
+                      {formatDate(invoice.dueDate)}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoicesData.items.map((invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">
-                        {invoice.client?.companyName ?? "—"}
-                      </TableCell>
-                      <TableCell dir="ltr">{formatCurrency(invoice.amount)}</TableCell>
-                      <TableCell dir="ltr">
-                        {formatDate(invoice.dueDate)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </SurfaceCard>
       </div>
     </div>
   );

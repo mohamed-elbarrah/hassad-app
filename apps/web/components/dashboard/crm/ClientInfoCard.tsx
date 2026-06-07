@@ -3,19 +3,16 @@
 import { useState } from "react";
 import type { Client } from "@hassad/shared";
 import { ClientStatus, BusinessType, UserRole } from "@hassad/shared";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Pill } from "@/components/design-system/Pill";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { useAppSelector } from "@/lib/hooks";
 import { HandoverModal } from "./HandoverModal";
 
-const STATUS_VARIANT: Record<
-  ClientStatus,
-  "default" | "secondary" | "destructive"
-> = {
-  [ClientStatus.LEAD]: "secondary",
-  [ClientStatus.ACTIVE]: "default",
-  [ClientStatus.STOPPED]: "destructive",
+const STATUS_TONE: Record<ClientStatus, import("@/components/design-system/Pill").PillTone> = {
+  [ClientStatus.LEAD]: "purple",
+  [ClientStatus.ACTIVE]: "success",
+  [ClientStatus.STOPPED]: "danger",
 };
 
 const STATUS_LABELS: Record<ClientStatus, string> = {
@@ -44,49 +41,49 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
     user?.role === UserRole.ADMIN || user?.role === UserRole.SALES;
   const canHandover = canManageSales && client.status === ClientStatus.ACTIVE;
 
+  const tone = STATUS_TONE[client.status as ClientStatus] ?? "neutral";
+  const statusLabel = STATUS_LABELS[client.status as ClientStatus] ?? client.status;
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">معلومات العميل</CardTitle>
-          <Badge variant={STATUS_VARIANT[client.status as ClientStatus]}>
-            {STATUS_LABELS[client.status as ClientStatus] ?? client.status}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SurfaceCard
+      title="معلومات العميل"
+      action={
+        <Pill tone={tone} className="text-xs h-6 px-2">
+          {statusLabel}
+        </Pill>
+      }
+    >
+      <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-muted-foreground mb-1">اسم الشركة</p>
+            <p className="text-neutral-300 mb-1">اسم الشركة</p>
             <p className="font-medium">{client.companyName}</p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-1">اسم المسؤول</p>
+            <p className="text-neutral-300 mb-1">اسم المسؤول</p>
             <p className="font-medium">{client.contactName}</p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-1">رقم الواتساب</p>
+            <p className="text-neutral-300 mb-1">رقم الواتساب</p>
             <p className="font-medium font-mono" dir="ltr">
               {client.phoneWhatsapp}
             </p>
           </div>
           {client.email && (
             <div>
-              <p className="text-muted-foreground mb-1">البريد الإلكتروني</p>
-              <p className="font-medium" dir="ltr">
-                {client.email}
-              </p>
+              <p className="text-neutral-300 mb-1">البريد الإلكتروني</p>
+              <p className="font-medium" dir="ltr">{client.email}</p>
             </div>
           )}
           <div>
-            <p className="text-muted-foreground mb-1">نوع النشاط</p>
+            <p className="text-neutral-300 mb-1">نوع النشاط</p>
             <p className="font-medium">
               {BUSINESS_TYPE_LABELS[client.businessType as BusinessType] ??
                 client.businessType}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-1">تاريخ الإضافة</p>
+            <p className="text-neutral-300 mb-1">تاريخ الإضافة</p>
             <p className="font-medium" dir="ltr">
               {new Intl.DateTimeFormat("en-GB", {
                 day: "2-digit",
@@ -98,7 +95,7 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
           </div>
           {client.accountManager && (
             <div>
-              <p className="text-muted-foreground mb-1">مدير الحساب</p>
+              <p className="text-neutral-300 mb-1">مدير الحساب</p>
               <p className="font-medium">{client.accountManager}</p>
             </div>
           )}
@@ -106,16 +103,16 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
 
         {canHandover && (
           <div className="pt-2 border-t flex justify-end">
-            <Button
-              variant="default"
+            <ActionButton
               size="sm"
+              variant="primary"
               onClick={() => setHandoverOpen(true)}
             >
               تسليم للعمليات
-            </Button>
+            </ActionButton>
           </div>
         )}
-      </CardContent>
+      </div>
 
       {handoverOpen && (
         <HandoverModal
@@ -124,6 +121,6 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
           onClose={() => setHandoverOpen(false)}
         />
       )}
-    </Card>
+    </SurfaceCard>
   );
 }

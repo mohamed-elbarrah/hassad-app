@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, CheckCircle2, Clock, ExternalLink } from "lucide-react";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { PortalPagination } from "@/components/portal/PortalPagination";
-import { PortalFilterPills } from "@/components/portal/PortalFilterPills";
-import { PortalPill } from "@/components/portal/PortalPill";
-import { PortalDataTable } from "@/components/portal/PortalDataTable";
-import { Button } from "@/components/ui/button";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Pagination } from "@/components/design-system/Pagination";
+import { FilterPills } from "@/components/design-system/FilterPills";
+import { Pill } from "@/components/design-system/Pill";
+import { DataTable } from "@/components/design-system/DataTable";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { useGetActionItemsQuery } from "@/features/portal/portalApi";
 
 const TYPE_FILTERS = [
@@ -61,25 +61,25 @@ export default function PortalActionsPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="إجراءات تتطلب تدخلك"
         description="جميع الإجراءات التي تحتاج مراجعتك أو موافقتك ضمن نفس تجربة العميل الموحدة."
         icon={CheckCircle2}
       />
 
-      <PortalSurfaceCard
+      <SurfaceCard
         title="الإجراءات المعلقة"
         description="راجع ما يتطلب تدخلك واتخذ الإجراء المناسب"
         icon={Settings}
         action={
-          <PortalFilterPills
+          <FilterPills
             options={TYPE_FILTERS}
             active={typeFilter}
             onChange={handleFilterChange}
           />
         }
       >
-        <PortalDataTable
+        <DataTable
           columns={[
             { id: "title", label: "الإجراء" },
             { id: "subtitle", label: "التفاصيل" },
@@ -114,16 +114,16 @@ export default function PortalActionsPage() {
                   {item.subtitle}
                 </td>
                 <td className="px-5 py-4">
-                  <PortalPill tone={priorityCfg.tone}>
+                  <Pill tone={priorityCfg.tone}>
                     {priorityCfg.label}
-                  </PortalPill>
+                  </Pill>
                 </td>
                 <td className="px-5 py-4">
-                  <PortalPill
+                  <Pill
                     tone={config.color === "purple" ? "purple" : "blue"}
                   >
                     {config.label}
-                  </PortalPill>
+                  </Pill>
                 </td>
                 <td className="px-5 py-4 text-sm text-portal-note-text">
                   {item.dueDate ? (
@@ -140,14 +140,14 @@ export default function PortalActionsPage() {
                   )}
                 </td>
                 <td className="px-5 py-4">
-                  <Button
-                    size="sm"
+                  <ActionButton
+                    variant="primary"
+                    size="md"
                     onClick={() => router.push(item.actionUrl)}
-                    className="h-9 rounded-xl bg-secondary-500 hover:bg-secondary-600 text-white px-3 text-xs font-medium"
                   >
                     <ExternalLink className="h-3.5 w-3.5 ml-1" />
                     اتخاذ إجراء
-                  </Button>
+                  </ActionButton>
                 </td>
               </tr>
             );
@@ -155,13 +155,13 @@ export default function PortalActionsPage() {
         />
 
         {!isLoading && !isError && items.length > 0 && (
-          <PortalPagination
+          <Pagination
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
           />
         )}
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

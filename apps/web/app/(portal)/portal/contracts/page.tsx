@@ -4,18 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { FileText, ExternalLink, Search, Calendar } from "lucide-react";
 import { useGetPortalContractsQuery } from "@/features/portal/portalApi";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { PortalPagination } from "@/components/portal/PortalPagination";
-import { PortalDataTable } from "@/components/portal/PortalDataTable";
-import { StatusBadge } from "@/components/portal/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Pagination } from "@/components/design-system/Pagination";
+import { DataTable } from "@/components/design-system/DataTable";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Input } from "@/components/design-system/Input";
 import {
   Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/design-system/Popover";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { mapContractStatusToUI } from "@/lib/utils/statusMapping";
@@ -51,36 +49,35 @@ export default function PortalContractsPage() {
   const totalPages = Math.ceil((contractsData?.total ?? 0) / 10);
 
   const searchBar = (
-    <div className="flex items-center gap-2 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 py-2 w-full max-w-md">
-      <Search className="h-4 w-4 text-portal-icon" />
-      <Input
-        placeholder="البحث..."
-        className="border-none focus-visible:ring-0 text-sm bg-transparent h-8"
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(1);
-        }}
-      />
-    </div>
+    <Input
+      icon={<Search className="h-4 w-4 text-portal-icon" />}
+      placeholder="البحث..."
+      className="h-8"
+      wrapperClassName="w-full max-w-md"
+      value={search}
+      onChange={(e) => {
+        setSearch(e.target.value);
+        setPage(1);
+      }}
+    />
   );
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="العقود"
         description="استعرض جميع عقودك الحالية، حالة كل عقد، القيمة، وتواريخ البدء والانتهاء."
         icon={FileText}
       />
 
-      <PortalSurfaceCard
+      <SurfaceCard
         title="قائمة العقود"
         description="جميع عقودك قيد الإدارة والتوقيع"
         icon={FileText}
         action={
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
+          <Popover
+            trigger={
+              <ActionButton
                 variant="ghost"
                 size="sm"
                 className="h-10 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-4 text-sm font-medium text-portal-icon hover:bg-badge-gray-bg gap-2"
@@ -89,46 +86,47 @@ export default function PortalContractsPage() {
                 {dateRange.from
                   ? `${format(dateRange.from, "dd MMM yyyy", { locale: ar })} - ${dateRange.to ? format(dateRange.to, "dd MMM yyyy", { locale: ar }) : "اليوم"}`
                   : "اختر التاريخ"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <div className="p-3 flex flex-col gap-2">
-                <span className="text-xs font-medium text-natural-100">
-                  تحديد الفترة
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setDateRange({
-                        from: new Date(
-                          new Date().setDate(new Date().getDate() - 7),
-                        ),
-                        to: new Date(),
-                      })
-                    }
-                  >
-                    آخر 7 أيام
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setDateRange({ from: new Date(), to: new Date() })
-                    }
-                  >
-                    اليوم
-                  </Button>
-                </div>
+              </ActionButton>
+            }
+            align="start"
+            contentClassName="w-auto p-0"
+          >
+            <div className="p-3 flex flex-col gap-2">
+              <span className="text-xs font-medium text-natural-100">
+                تحديد الفترة
+              </span>
+              <div className="flex gap-2">
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setDateRange({
+                      from: new Date(
+                        new Date().setDate(new Date().getDate() - 7),
+                      ),
+                      to: new Date(),
+                    })
+                  }
+                >
+                  آخر 7 أيام
+                </ActionButton>
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setDateRange({ from: new Date(), to: new Date() })
+                  }
+                >
+                  اليوم
+                </ActionButton>
               </div>
-            </PopoverContent>
+            </div>
           </Popover>
         }
       >
         <div className="mb-3">{searchBar}</div>
 
-        <PortalDataTable
+        <DataTable
           columns={[
             { id: "title", label: "العقد" },
             { id: "type", label: "النوع" },
@@ -168,7 +166,7 @@ export default function PortalContractsPage() {
               </td>
               <td className="px-5 py-4">
                 <Link href={`/portal/contracts/${contract.id}`}>
-                  <Button
+                  <ActionButton
                     variant="ghost"
                     size="sm"
                     className="h-9 rounded-xl border border-portal-card-border bg-white px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-1"
@@ -177,7 +175,7 @@ export default function PortalContractsPage() {
                     {contract.status === "SENT"
                       ? "توقيع العقد"
                       : "استعراض العقد"}
-                  </Button>
+                  </ActionButton>
                 </Link>
               </td>
             </tr>
@@ -185,13 +183,13 @@ export default function PortalContractsPage() {
         />
 
         {!isLoading && !isError && contracts.length > 0 && (
-          <PortalPagination
+          <Pagination
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
           />
         )}
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

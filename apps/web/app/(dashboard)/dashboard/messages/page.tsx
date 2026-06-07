@@ -18,7 +18,7 @@ import { MessageInput } from "@/components/chat/MessageInput";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system/ActionButton";
 
 export default function MessagesPage() {
   const { user } = useAppSelector((s) => s.auth);
@@ -137,13 +137,13 @@ export default function MessagesPage() {
       <div className="md:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button
+            <ActionButton
               variant="ghost"
-              size="icon"
+              size="sm"
               className="absolute top-2 right-2 z-10 md:hidden"
             >
               <Menu className="h-5 w-5" />
-            </Button>
+            </ActionButton>
           </SheetTrigger>
           <SheetContent side="right" className="w-80 p-0">
             {sidebarContent}

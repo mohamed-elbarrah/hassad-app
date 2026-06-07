@@ -6,14 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Plus, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Dialog } from "@/components/design-system/Dialog";
 import {
   Form,
   FormControl,
@@ -21,15 +15,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@/components/design-system/Form";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+} from "@/components/design-system/Select";
 import {
   useCreateProjectMutation,
   useUpdateProjectMutation,
@@ -198,317 +189,280 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {isEdit ? (
-          <Button variant="outline" size="sm">
-            <Pencil className="size-4 mr-1" />
-            تعديل
-          </Button>
-        ) : (
-          <Button>
-            <Plus className="size-4 mr-1" />
-            مشروع جديد
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "تعديل المشروع" : "إنشاء مشروع جديد"}
-          </DialogTitle>
-        </DialogHeader>
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+      title={isEdit ? "تعديل المشروع" : "إنشاء مشروع جديد"}
+      contentClassName="sm:max-w-lg"
+    >
+      {isEdit ? (
+        <ActionButton
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(true)}
+          icon={<Pencil className="size-4" />}
+        >
+          تعديل
+        </ActionButton>
+      ) : (
+        <ActionButton onClick={() => setOpen(true)} icon={<Plus className="size-4" />}>
+          مشروع جديد
+        </ActionButton>
+      )}
 
-        {isEdit ? (
-          <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(onSubmit)} className="space-y-4">
+      {isEdit ? (
+        <Form {...editForm}>
+          <form onSubmit={editForm.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={editForm.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الوصف (اختياري)</FormLabel>
+                  <FormControl>
+                    <FormInputControl
+                      placeholder="وصف المشروع"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={editForm.control}
-                name="description"
+                name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الوصف (اختياري)</FormLabel>
+                    <FormLabel>الحالة</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} placeholder="اختر الحالة">
+                      {Object.values(ProjectStatus).map((s) => (
+                        <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                      ))}
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>الأولوية</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} placeholder="اختر الأولوية">
+                      {Object.values(TaskPriority).map((p) => (
+                        <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
+                      ))}
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={editForm.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>تاريخ البدء</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="وصف المشروع"
-                        {...field}
-                        value={field.value ?? ""}
-                      />
+                      <FormInputControl type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              <FormField
+                control={editForm.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>تاريخ الانتهاء</FormLabel>
+                    <FormControl>
+                      <FormInputControl type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={editForm.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الحالة</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الحالة" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(ProjectStatus).map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {STATUS_LABELS[s]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الأولوية</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الأولوية" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(TaskPriority).map((p) => (
-                            <SelectItem key={p} value={p}>
-                              {PRIORITY_LABELS[p]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <ActionButton
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                إلغاء
+              </ActionButton>
+              <ActionButton type="submit" disabled={isLoading}>
+                {isLoading ? "جارٍ الحفظ..." : "حفظ التعديلات"}
+              </ActionButton>
+            </div>
+          </form>
+        </Form>
+      ) : (
+        <Form {...createForm}>
+          <form onSubmit={createForm.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={createForm.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>اسم المشروع</FormLabel>
+                  <FormControl>
+                    <FormInputControl placeholder="أدخل اسم المشروع" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={editForm.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ البدء</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ الانتهاء</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <FormField
+              control={createForm.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الوصف (اختياري)</FormLabel>
+                  <FormControl>
+                    <FormInputControl
+                      placeholder="وصف المشروع"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                >
-                  إلغاء
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "جارٍ الحفظ..." : "حفظ التعديلات"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        ) : (
-          <Form {...createForm}>
-            <form onSubmit={createForm.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={createForm.control}
+              name="clientId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>العميل</FormLabel>
+                  <FormControl>
+                    <SearchCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={clientOptions}
+                      onSearchChange={setClientSearch}
+                      placeholder="ابحث عن العميل..."
+                      searchPlaceholder="اكتب اسم العميل"
+                      isLoading={clientsFetching}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={createForm.control}
+              name="projectManagerId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>مدير المشروع</FormLabel>
+                  <FormControl>
+                    <SearchCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={managerOptions}
+                      onSearchChange={setManagerSearch}
+                      placeholder="ابحث عن مدير المشروع..."
+                      searchPlaceholder="اكتب اسم المدير"
+                      isLoading={usersFetching}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={createForm.control}
-                name="name"
+                name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>اسم المشروع</FormLabel>
-                    <FormControl>
-                      <Input placeholder="أدخل اسم المشروع" {...field} />
-                    </FormControl>
+                    <FormLabel>الحالة</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} placeholder="اختر الحالة">
+                      {Object.values(ProjectStatus).map((s) => (
+                        <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                      ))}
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={createForm.control}
-                name="description"
+                name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الوصف (اختياري)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="وصف المشروع"
-                        {...field}
-                        value={field.value ?? ""}
-                      />
-                    </FormControl>
+                    <FormLabel>الأولوية</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} placeholder="اختر الأولوية">
+                      {Object.values(TaskPriority).map((p) => (
+                        <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
+                      ))}
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 control={createForm.control}
-                name="clientId"
+                name="startDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>العميل</FormLabel>
+                    <FormLabel>تاريخ البدء</FormLabel>
                     <FormControl>
-                      <SearchCombobox
-                        value={field.value}
-                        onChange={field.onChange}
-                        options={clientOptions}
-                        onSearchChange={setClientSearch}
-                        placeholder="ابحث عن العميل..."
-                        searchPlaceholder="اكتب اسم العميل"
-                        isLoading={clientsFetching}
-                      />
+                      <FormInputControl type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={createForm.control}
-                name="projectManagerId"
+                name="endDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>مدير المشروع</FormLabel>
+                    <FormLabel>تاريخ الانتهاء</FormLabel>
                     <FormControl>
-                      <SearchCombobox
-                        value={field.value}
-                        onChange={field.onChange}
-                        options={managerOptions}
-                        onSearchChange={setManagerSearch}
-                        placeholder="ابحث عن مدير المشروع..."
-                        searchPlaceholder="اكتب اسم المدير"
-                        isLoading={usersFetching}
-                      />
+                      <FormInputControl type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={createForm.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الحالة</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الحالة" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(ProjectStatus).map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {STATUS_LABELS[s]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الأولوية</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الأولوية" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(TaskPriority).map((p) => (
-                            <SelectItem key={p} value={p}>
-                              {PRIORITY_LABELS[p]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={createForm.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ البدء</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ الانتهاء</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                >
-                  إلغاء
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "جارٍ الحفظ..." : "إنشاء المشروع"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
-      </DialogContent>
+            <div className="flex justify-end gap-3 pt-2">
+              <ActionButton
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                إلغاء
+              </ActionButton>
+              <ActionButton type="submit" disabled={isLoading}>
+                {isLoading ? "جارٍ الحفظ..." : "إنشاء المشروع"}
+              </ActionButton>
+            </div>
+          </form>
+        </Form>
+      )}
     </Dialog>
   );
 }

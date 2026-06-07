@@ -1,5 +1,6 @@
 import { SignupForm } from "@/components/auth/SignupForm";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import Image from "next/image";
 
 export default function SignupPage() {
   return (
@@ -8,21 +9,12 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="flex justify-center">
           <div className="flex flex-col items-center gap-1">
-            <svg width="80" height="40" viewBox="0 0 120 50" fill="none">
-              <text
-                x="10"
-                y="35"
-                fontFamily="Arial"
-                fontSize="28"
-                fontWeight="bold"
-                fill="#E7BE52"
-              >
-                مسار
-              </text>
-            </svg>
-            <span className="text-xs font-medium tracking-widest text-secondary-500 uppercase">
-              MSAR
-            </span>
+             <Image
+                          src="/masar.svg"
+                          alt="Logo"
+                          width={100}
+                          height={100}
+                        />
           </div>
         </div>
 

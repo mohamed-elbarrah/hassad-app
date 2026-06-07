@@ -79,32 +79,32 @@ export function KanbanCard({
           </p>
           {request.companyName && (
             <div className="flex items-center gap-1 mt-1">
-              <Building2 className="w-3 h-3 text-muted-foreground shrink-0" />
-              <p className="text-xs text-muted-foreground truncate">
+              <Building2 className="w-3 h-3 text-neutral-300 shrink-0" />
+              <p className="text-xs text-neutral-300 truncate">
                 {request.companyName}
               </p>
             </div>
           )}
         </div>
-        <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-0.5" />
+        <GripVertical className="h-4 w-4 text-neutral-300/40 shrink-0 mt-0.5" />
       </div>
 
       {/* ── Short Description ──────────────────────────────────────── */}
       {description && (
-        <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed border-t pt-2">
+        <p className="text-xs text-neutral-300 mt-2 line-clamp-2 leading-relaxed border-t pt-2">
           {description}
         </p>
       )}
 
       {/* ── Footer: Phone + Last Activity ─────────────────────────── */}
       <div className="flex items-center justify-between mt-2 pt-1 gap-2">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+        <div className="flex items-center gap-1 text-xs text-neutral-300 min-w-0">
           <Phone className="w-3 h-3 shrink-0" />
           <span dir="ltr" className="truncate">
             {request.phoneWhatsapp}
           </span>
         </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+        <div className="flex items-center gap-1 text-xs text-neutral-300 shrink-0">
           <Clock className="w-3 h-3" />
           <span>{formatRelativeTime(request.updatedAt)}</span>
         </div>

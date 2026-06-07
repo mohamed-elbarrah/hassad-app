@@ -3,6 +3,8 @@
 import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
 import { ContractsTable } from "@/components/dashboard/sales/ContractsTable";
 import { useGetContractsQuery } from "@/features/contracts/contractsApi";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { StatusBanner } from "@/components/design-system/StatusBanner";
 
 export default function ContractsPage() {
   const { data, isLoading, isError } = useGetContractsQuery({
@@ -18,13 +20,15 @@ export default function ContractsPage() {
       </div>
 
       {isLoading && (
-        <div className="h-32 rounded-md border bg-muted/30 animate-pulse" />
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
       )}
 
       {isError && (
-        <div className="rounded-md border p-4 text-sm text-destructive">
-          فشل تحميل العقود.
-        </div>
+        <StatusBanner variant="danger">فشل تحميل العقود.</StatusBanner>
       )}
 
       {!isLoading && !isError && (

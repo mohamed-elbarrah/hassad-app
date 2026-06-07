@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, BellOff, CheckCheck, ExternalLink } from "lucide-react";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
   useGetMyNotificationsQuery,
   useMarkAsReadMutation,
@@ -381,14 +381,14 @@ export default function PortalNotificationsPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="الإشعارات"
         description="جميع الإشعارات الواردة، الإجراءات المطلوبة منك، والمعلومات العامة حول مشاريعك."
         icon={Bell}
         actions={actions}
       />
 
-      <PortalSurfaceCard
+      <SurfaceCard
         title="صندوق الوارد"
         description={
           unreadCount > 0
@@ -555,7 +555,7 @@ export default function PortalNotificationsPage() {
             })}
           </div>
         )}
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

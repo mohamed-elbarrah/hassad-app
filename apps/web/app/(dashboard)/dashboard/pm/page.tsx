@@ -3,8 +3,8 @@
 import { useAppSelector } from "@/lib/hooks";
 import { useGetProjectsQuery } from "@/features/projects/projectsApi";
 import { ProjectCard } from "@/components/dashboard/pm/ProjectCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 
 const ALERTS = [
   "مهمة متأخرة في مشروع " + "شركة النور",
@@ -24,36 +24,31 @@ export default function PMWorkspacePage() {
     <div className="flex flex-col gap-6" dir="rtl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">لوحة مدير المشروع</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-neutral-300 mt-1">
           متابعة المشاريع والتنبيهات اليومية.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">تنبيهات</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-muted-foreground">
+      <SurfaceCard title="تنبيهات">
+          <ul className="space-y-2 text-sm text-neutral-300">
             {ALERTS.map((alert) => (
               <li key={alert}>• {alert}</li>
             ))}
           </ul>
-        </CardContent>
-      </Card>
+      </SurfaceCard>
 
       <div>
         <h2 className="text-lg font-semibold mb-3">المشاريع الحالية</h2>
         {isLoading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-48 rounded-lg" />
+              <DSSkeleton key={i} className="h-48 rounded-lg" />
             ))}
           </div>
         )}
 
         {isError && (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-danger-500">
             حدث خطأ أثناء تحميل المشاريع.
           </p>
         )}

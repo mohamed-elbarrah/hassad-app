@@ -2,33 +2,32 @@
 
 import Link from "next/link";
 import { Calendar, Users, TrendingUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ProgressBar } from "@/components/design-system/ProgressBar";
 import type { Project } from "@hassad/shared";
 import { ProjectStatus } from "@hassad/shared";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-  ProjectStatus,
-  {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
-  }
-> = {
-  [ProjectStatus.PLANNING]: { label: "تخطيط", variant: "secondary" },
-  [ProjectStatus.ACTIVE]: { label: "نشط", variant: "default" },
-  [ProjectStatus.ON_HOLD]: { label: "موقوف", variant: "outline" },
-  [ProjectStatus.AWAITING_REVIEW]: { label: "بانتظار المراجعة", variant: "outline" },
-  [ProjectStatus.NEEDS_REVISION]: { label: "مطلوب تعديلات", variant: "destructive" },
-  [ProjectStatus.COMPLETED]: { label: "مكتمل", variant: "secondary" },
-  [ProjectStatus.CANCELLED]: { label: "ملغى", variant: "destructive" },
+const STATUS_MAP: Record<ProjectStatus, string> = {
+  [ProjectStatus.PLANNING]: "DRAFT",
+  [ProjectStatus.ACTIVE]: "ACTIVE",
+  [ProjectStatus.ON_HOLD]: "STOPPED",
+  [ProjectStatus.AWAITING_REVIEW]: "PENDING",
+  [ProjectStatus.NEEDS_REVISION]: "REJECTED",
+  [ProjectStatus.COMPLETED]: "COMPLETED",
+  [ProjectStatus.CANCELLED]: "CANCELLED",
+};
+
+const STATUS_LABELS: Record<ProjectStatus, string> = {
+  [ProjectStatus.PLANNING]: "تخطيط",
+  [ProjectStatus.ACTIVE]: "نشط",
+  [ProjectStatus.ON_HOLD]: "موقوف",
+  [ProjectStatus.AWAITING_REVIEW]: "بانتظار المراجعة",
+  [ProjectStatus.NEEDS_REVISION]: "مطلوب تعديلات",
+  [ProjectStatus.COMPLETED]: "مكتمل",
+  [ProjectStatus.CANCELLED]: "ملغى",
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -46,7 +45,6 @@ interface ProjectCardProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const statusConfig = STATUS_CONFIG[project.status];
   const progressValue = Math.round(
     (project.progress ??
       (project as ProjectWithMeta & { completionPercentage?: number })
@@ -69,44 +67,29 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
   return (
     <Link href={`/dashboard/pm/projects/${project.id}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-base font-semibold line-clamp-2">
-              {project.name}
-            </CardTitle>
-            <Badge variant={statusConfig.variant} className="shrink-0 text-xs">
-              {statusConfig.label}
-            </Badge>
-          </div>
-          {project.client && (
-            <CardDescription className="text-xs">
-              {project.client.companyName}
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <SurfaceCard className="hover:shadow-md transition-shadow cursor-pointer h-full">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <h3 className="text-base font-semibold line-clamp-2">{project.name}</h3>
+          <StatusBadge status={STATUS_MAP[project.status]} label={STATUS_LABELS[project.status]} className="shrink-0 text-xs" />
+        </div>
+        {project.client && (
+          <p className="text-xs text-neutral-300 mb-3">{project.client.companyName}</p>
+        )}
+        <div className="space-y-3">
           {/* Progress bar */}
           <div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+            <div className="flex items-center justify-between text-xs text-neutral-300 mb-1">
               <span>التقدم</span>
               <span>{progressValue}%</span>
             </div>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all"
-                style={{ width: `${progressValue}%` }}
-              />
-            </div>
+            <ProgressBar value={progressValue} variant="default" size="sm" />
           </div>
 
           {/* Meta info */}
-          <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+          <div className="flex flex-col gap-1.5 text-xs text-neutral-300">
             <div className="flex items-center gap-1.5">
               <Calendar className="size-3.5 shrink-0" />
-              <span>
-                {startDate} — {endDate}
-              </span>
+              <span>{startDate} — {endDate}</span>
             </div>
             {project.manager && (
               <div className="flex items-center gap-1.5">
@@ -121,8 +104,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SurfaceCard>
     </Link>
   );
 }

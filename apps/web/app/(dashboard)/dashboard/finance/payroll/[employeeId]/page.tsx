@@ -4,14 +4,8 @@ import { use } from "react";
 import { useGetEmployeeByIdQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { TimelineComponent } from "@/components/dashboard/finance/TimelineComponent";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Separator } from "@/components/ui/separator";
 import {
   Table,
@@ -21,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/design-system/UserAvatar";
 import {
   ChevronRight,
   Wallet,
@@ -47,14 +41,14 @@ export default function SalaryDetailPage({
   if (isLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
       </div>
     );
   }
 
   if (!employee) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
+      <div className="p-8 text-center text-neutral-300">
         الموظف غير موجود
       </div>
     );
@@ -65,43 +59,45 @@ export default function SalaryDetailPage({
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/dashboard/finance" className="hover:text-primary">
+        <div className="flex items-center gap-2 text-sm text-neutral-300">
+          <Link href="/dashboard/finance" className="hover:text-secondary-500">
             المالية
           </Link>
           <ChevronRight className="w-4 h-4 rotate-180" />
           <Link
             href="/dashboard/finance/payroll"
-            className="hover:text-primary"
+            className="hover:text-secondary-500"
           >
             الرواتب
           </Link>
           <ChevronRight className="w-4 h-4 rotate-180" />
-          <span className="text-foreground font-medium">{employee.name}</span>
+          <span className="text-natural-100 font-medium">{employee.name}</span>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <ActionButton variant="outline" size="sm">
             <FileText className="w-4 h-4 ml-2" />
             تصدير مسير الرواتب
-          </Button>
-          <Button size="sm">
+          </ActionButton>
+          <ActionButton size="sm" variant="primary">
             <Wallet className="w-4 h-4 ml-2" />
             صرف المستحقات الحالية
-          </Button>
+          </ActionButton>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           {/* Profile Header */}
-          <Card className="border-none shadow-md">
-            <CardContent className="p-8">
+          <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
+            <div className="p-8">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-lg">
-                  <AvatarFallback className="text-3xl font-bold bg-primary/5 text-primary">
-                    {employee.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  name={employee.name}
+                  size="xl"
+                  variant="circle"
+                  showBorder
+                  className="h-24 w-24 border-4 border-secondary-500/10 shadow-lg"
+                />
                 <div className="flex-1 space-y-2">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                     <h2 className="text-3xl font-bold">{employee.name}</h2>
@@ -110,12 +106,12 @@ export default function SalaryDetailPage({
                       className="w-fit self-center"
                     />
                   </div>
-                  <p className="text-muted-foreground text-lg">
+                  <p className="text-neutral-300 text-lg">
                     {employee.role}
                   </p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
-                    <div className="bg-muted/50 px-4 py-2 rounded-lg text-sm">
-                      <span className="text-muted-foreground ml-2">
+                    <div className="bg-neutral-50/50 px-4 py-2 rounded-lg text-sm">
+                      <span className="text-neutral-300 ml-2">
                         المعرف:
                       </span>
                       <span className="font-mono font-medium">
@@ -125,60 +121,62 @@ export default function SalaryDetailPage({
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Salary Breakdown */}
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1">
+            <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
+              <div className="p-6 pb-2">
+                <p className="text-sm text-neutral-300 flex items-center gap-1">
                   <DollarSign className="w-3 h-3" /> الراتب الأساسي
-                </CardDescription>
-                <CardTitle className="text-xl font-bold">
+                </p>
+                <h3 className="text-xl font-bold">
                   {employee.baseSalary.toLocaleString()} ر.س
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card className="border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1 text-emerald-600">
+                </h3>
+              </div>
+            </div>
+            <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
+              <div className="p-6 pb-2">
+                <p className="text-sm text-success-600 flex items-center gap-1">
                   <ArrowUp className="w-3 h-3" /> الحوافز والبدلات
-                </CardDescription>
-                <CardTitle className="text-xl font-bold text-emerald-600">
+                </p>
+                <h3 className="text-xl font-bold text-success-600">
                   0 ر.س
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card className="border-none shadow-sm">
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-1 text-rose-600">
+                </h3>
+              </div>
+            </div>
+            <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
+              <div className="p-6 pb-2">
+                <p className="text-sm text-danger-600 flex items-center gap-1">
                   <ArrowDown className="w-3 h-3" /> الإستقطاعات
-                </CardDescription>
-                <CardTitle className="text-xl font-bold text-rose-600">
+                </p>
+                <h3 className="text-xl font-bold text-danger-600">
                   0 ر.س
-                </CardTitle>
-              </CardHeader>
-            </Card>
+                </h3>
+              </div>
+            </div>
           </div>
 
           {/* Payment History */}
-          <Card className="border-none shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="w-5 h-5 text-primary" />
-                  سجل الدفعات السابقة
-                </CardTitle>
-                <CardDescription>
-                  عرض جميع الرواتب التي تم صرفها لهذا الموظف
-                </CardDescription>
+          <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
+            <div className="p-6">
+              <div className="flex flex-row items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <History className="w-5 h-5 text-secondary-500" />
+                    سجل الدفعات السابقة
+                  </h3>
+                  <p className="text-sm text-neutral-300">
+                    عرض جميع الرواتب التي تم صرفها لهذا الموظف
+                  </p>
+                </div>
+                <ActionButton variant="outline" size="sm">
+                  تحميل السجل
+                </ActionButton>
               </div>
-              <Button variant="outline" size="sm">
-                تحميل السجل
-              </Button>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-6 pt-0">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -213,7 +211,7 @@ export default function SalaryDetailPage({
                     <TableRow>
                       <TableCell
                         colSpan={4}
-                        className="text-center py-6 text-muted-foreground"
+                        className="text-center py-6 text-neutral-300"
                       >
                         لا توجد سجلات رواتب.
                       </TableCell>
@@ -221,27 +219,25 @@ export default function SalaryDetailPage({
                   )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Sidebar: Details & Timeline */}
         <div className="space-y-6">
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle>الجدول الزمني</CardTitle>
-              <CardDescription>إجراءات الصرف الحالية</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TimelineComponent items={[]} />
-            </CardContent>
-          </Card>
+          <SurfaceCard
+            className="border-none shadow-md"
+            title="الجدول الزمني"
+            description="إجراءات الصرف الحالية"
+          >
+            <TimelineComponent items={[]} />
+          </SurfaceCard>
 
-          <Card className="border-none shadow-md bg-primary/5">
-            <CardHeader>
-              <CardTitle className="text-lg">إدارة البدلات</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm bg-secondary-500/5">
+            <div className="p-6 pb-0">
+              <h3 className="text-lg font-semibold">إدارة البدلات</h3>
+            </div>
+            <div className="p-6 space-y-4">
               <div className="flex items-center justify-between text-sm">
                 <span>بدل سكن</span>
                 <span className="font-bold">1,000 ر.س</span>
@@ -251,12 +247,12 @@ export default function SalaryDetailPage({
                 <span className="font-bold">500 ر.س</span>
               </div>
               <Separator />
-              <Button variant="outline" className="w-full text-xs">
+              <ActionButton variant="outline" className="w-full text-xs">
                 <Plus className="w-3 h-3 ml-1" />
                 إضافة بدل أو استقطاع
-              </Button>
-            </CardContent>
-          </Card>
+              </ActionButton>
+            </div>
+          </div>
         </div>
       </div>
     </div>

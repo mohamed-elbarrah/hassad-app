@@ -15,7 +15,7 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
 import { MessageInput } from "@/components/chat/MessageInput";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
+import { PageIntro } from "@/components/design-system/PageIntro";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { MessageSquare } from "lucide-react";
 
@@ -121,7 +121,7 @@ export default function PortalChatPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="المحادثات"
         description="من هنا يمكنك التواصل مع المشرفين ومدراء المشاريع المسؤولين عن حسابك."
         icon={MessageSquare}

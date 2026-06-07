@@ -1,8 +1,7 @@
 "use client";
 
 import { AlertTriangle, RefreshCw, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { ActionButton } from "@/components/design-system/ActionButton";
 
 interface ErrorFallbackProps {
   error: Error;
@@ -35,18 +34,14 @@ export function ErrorFallback({
 
       <div className="flex items-center gap-3">
         {reset && (
-          <Button onClick={reset} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
+          <ActionButton onClick={reset} icon={<RefreshCw className="h-4 w-4" />} className="gap-2">
             إعادة المحاولة
-          </Button>
+          </ActionButton>
         )}
         {backHref && (
-          <Button asChild variant="outline" className="gap-2">
-            <Link href={backHref}>
-              <ArrowRight className="h-4 w-4" />
-              {backLabel || "العودة"}
-            </Link>
-          </Button>
+          <ActionButton href={backHref} variant="outline" icon={<ArrowRight className="h-4 w-4" />} className="gap-2">
+            {backLabel || "العودة"}
+          </ActionButton>
         )}
       </div>
     </div>
