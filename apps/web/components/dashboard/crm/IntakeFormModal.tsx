@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/design-system/Dialog";
 import { IntakeForm } from "./IntakeForm";
 import { ClipboardList } from "lucide-react";
 
@@ -35,48 +29,33 @@ export function IntakeFormModal({
     <Dialog
       open
       onOpenChange={handleOpenChange}
-      // Disable Radix close-on-outside-click / Escape in mandatory mode
-      modal
+      contentClassName="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+      onInteractOutside={mandatory ? (e) => e.preventDefault() : undefined}
+      onEscapeKeyDown={mandatory ? (e) => e.preventDefault() : undefined}
+      hideClose={mandatory}
+      className="space-y-4"
     >
-      <DialogContent
-        className="max-w-lg w-full max-h-[90vh] overflow-y-auto"
-        // In mandatory mode: hide the default (×) close button via CSS trick —
-        // we override the close button by applying a classname that hides it.
-        onInteractOutside={mandatory ? (e) => e.preventDefault() : undefined}
-        onEscapeKeyDown={mandatory ? (e) => e.preventDefault() : undefined}
-      >
-        {/* Hide the auto-generated X button in mandatory mode */}
-        {mandatory && (
-          <style>{`
-            [data-radix-dialog-close] { display: none !important; }
-          `}</style>
-        )}
-
-        <DialogHeader className="text-right" dir="rtl">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <ClipboardList className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <DialogTitle className="text-lg font-semibold">
-                {mandatory ? "مرحباً بك! أخبرنا عن مشروعك" : "صفقة جديدة"}
-              </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground mt-0.5">
-                {mandatory
-                  ? "يرجى تعبئة البيانات التالية حتى يتمكن فريقنا من التواصل معك بأسرع وقت."
-                  : "أدخل بيانات العميل الجديد لإضافته إلى خط المبيعات."}
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div dir="rtl">
-          <IntakeForm
-            onSuccess={onSuccess}
-            submitLabel={mandatory ? "إرسال الطلب" : "إضافة إلى خط المبيعات"}
-          />
+      {/* ── Custom header (matches original visual layout) ─────────── */}
+      <div className="flex items-center gap-3 mb-1" dir="rtl">
+        <div className="w-10 h-10 rounded-lg bg-secondary-500/10 flex items-center justify-center shrink-0">
+          <ClipboardList className="w-5 h-5 text-secondary-500" />
         </div>
-      </DialogContent>
+        <div>
+          <h1 className="text-lg font-semibold text-natural-100">
+            {mandatory ? "مرحباً بك! أخبرنا عن مشروعك" : "صفقة جديدة"}
+          </h1>
+          <p className="text-sm text-neutral-300 mt-0.5">
+            {mandatory
+              ? "يرجى تعبئة البيانات التالية حتى يتمكن فريقنا من التواصل معك بأسرع وقت."
+              : "أدخل بيانات العميل الجديد لإضافته إلى خط المبيعات."}
+          </p>
+        </div>
+      </div>
+
+      <IntakeForm
+        onSuccess={onSuccess}
+        submitLabel={mandatory ? "إرسال الطلب" : "إضافة إلى خط المبيعات"}
+      />
     </Dialog>
   );
 }

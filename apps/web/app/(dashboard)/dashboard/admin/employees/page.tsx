@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Search, Plus, Pencil, PowerOff, Power } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Pill } from "@/components/design-system/Pill";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import {
   Table,
   TableBody,
@@ -52,17 +52,14 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.PRODUCTION]: "مونتاج",
 };
 
-const ROLE_BADGE_VARIANTS: Record<
-  UserRole,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  [UserRole.ADMIN]: "destructive",
-  [UserRole.PM]: "default",
-  [UserRole.SALES]: "secondary",
-  [UserRole.EMPLOYEE]: "outline",
-  [UserRole.MARKETING]: "secondary",
-  [UserRole.ACCOUNTANT]: "secondary",
-  [UserRole.CLIENT]: "outline",
+const ROLE_PILL_TONE: Record<UserRole, "danger" | "neutral" | "warning" | "success" | "blue"> = {
+  [UserRole.ADMIN]: "danger",
+  [UserRole.PM]: "neutral",
+  [UserRole.SALES]: "warning",
+  [UserRole.EMPLOYEE]: "neutral",
+  [UserRole.MARKETING]: "warning",
+  [UserRole.ACCOUNTANT]: "warning",
+  [UserRole.CLIENT]: "neutral",
 };
 
 // ── Debounce hook ─────────────────────────────────────────────────────────────
@@ -115,7 +112,6 @@ export default function EmployeesPage() {
     }
   }
 
-  // The API returns paginated shape; items include isActive and department.
   const employees = (data?.items ?? []) as UserDetail[];
 
   return (
@@ -123,45 +119,45 @@ export default function EmployeesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">إدارة الموظفين</h1>
-        <Button onClick={() => setCreateOpen(true)}>
+        <ActionButton onClick={() => setCreateOpen(true)}>
           <Plus className="size-4 mr-1" />
           موظف جديد
-        </Button>
+        </ActionButton>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-neutral-300" />
+          <FormInputControl
             placeholder="ابحث عن موظف..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="pr-9"
           />
         </div>
-        <Select
+        <FormSelect
           value={deptFilter}
           onValueChange={(v) => setDeptFilter(v as TaskDepartment | "all")}
         >
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="كل الأقسام" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الأقسام</SelectItem>
+          <FormSelectTrigger className="w-full sm:w-44">
+            <FormSelectValue placeholder="كل الأقسام" />
+          </FormSelectTrigger>
+          <FormSelectContent>
+            <FormSelectItem value="all">كل الأقسام</FormSelectItem>
             {Object.values(TaskDepartment).map((dept) => (
-              <SelectItem key={dept} value={dept}>
+              <FormSelectItem key={dept} value={dept}>
                 {DEPARTMENT_LABELS[dept]}
-              </SelectItem>
+              </FormSelectItem>
             ))}
-          </SelectContent>
-        </Select>
+          </FormSelectContent>
+        </FormSelect>
       </div>
 
       {/* Content */}
       {isLoading && (
         <div className="rounded-lg border overflow-hidden">
-          <div className="bg-muted/50 px-4 py-3 flex gap-6">
+          <div className="bg-neutral-50/50 px-4 py-3 flex gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-4 w-20" />
             ))}
@@ -180,7 +176,7 @@ export default function EmployeesPage() {
       )}
 
       {isError && (
-        <p className="text-destructive text-sm">
+        <p className="text-danger-500 text-sm">
           حدث خطأ أثناء تحميل الموظفين. يرجى تحديث الصفحة.
         </p>
       )}
@@ -188,7 +184,7 @@ export default function EmployeesPage() {
       {!isLoading && !isError && data && (
         <>
           {employees.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
+            <div className="text-center py-16 text-neutral-300">
               <p className="text-lg font-medium">لا يوجد موظفون</p>
               <p className="text-sm mt-1">ابدأ بإضافة موظف جديد</p>
             </div>
@@ -196,7 +192,7 @@ export default function EmployeesPage() {
             <div className="rounded-lg border overflow-hidden">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
+                  <TableRow className="bg-neutral-50/50">
                     <TableHead className="text-right font-semibold">
                       الاسم
                     </TableHead>
@@ -225,60 +221,53 @@ export default function EmployeesPage() {
                 </TableHeader>
                 <TableBody>
                   {employees.map((emp) => (
-                    <TableRow key={emp.id} className="hover:bg-muted/30">
+                    <TableRow key={emp.id} className="hover:bg-neutral-50/50">
                       <TableCell className="font-medium">{emp.name}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="text-neutral-300 text-sm">
                         {emp.email}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={ROLE_BADGE_VARIANTS[emp.role]}>
+                        <Pill tone={ROLE_PILL_TONE[emp.role]}>
                           {ROLE_LABELS[emp.role]}
-                        </Badge>
+                        </Pill>
                       </TableCell>
                       <TableCell>
                         {emp.department ? (
-                          <Badge variant="outline">
+                          <Pill tone="neutral">
                             {DEPARTMENT_LABELS[emp.department]}
-                          </Badge>
+                          </Pill>
                         ) : (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-neutral-300">
                             —
                           </span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-neutral-300">—</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-neutral-300">—</span>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={emp.isActive ? "default" : "destructive"}
-                          className={
-                            emp.isActive
-                              ? "bg-green-600 hover:bg-green-700"
-                              : undefined
-                          }
-                        >
+                        <Pill tone={emp.isActive ? "success" : "danger"}>
                           {emp.isActive ? "نشط" : "غير نشط"}
-                        </Badge>
+                        </Pill>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button
+                          <ActionButton
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                             className="size-8"
                             onClick={() => setEditEmployee(emp)}
                             aria-label="تعديل"
                           >
                             <Pencil className="size-3.5" />
-                          </Button>
-                          <Button
+                          </ActionButton>
+                          <ActionButton
                             variant="ghost"
-                            size="icon"
-                            className={`size-8 ${emp.isActive ? "text-destructive hover:text-destructive" : "text-green-600 hover:text-green-600"}`}
+                            size="sm"
+                            className={`size-8 ${emp.isActive ? "text-danger-500 hover:text-danger-500" : "text-success-600 hover:text-success-600"}`}
                             disabled={isToggling}
                             onClick={() =>
                               handleToggleActive(emp.id, emp.isActive)
@@ -290,7 +279,7 @@ export default function EmployeesPage() {
                             ) : (
                               <Power className="size-3.5" />
                             )}
-                          </Button>
+                          </ActionButton>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -299,7 +288,7 @@ export default function EmployeesPage() {
               </Table>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-neutral-300">
             إجمالي {data.total} موظف
           </p>
         </>

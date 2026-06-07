@@ -16,13 +16,13 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; icon: typeof CheckCircle; color: string }
 > = {
-  PAID: { label: "مدفوع", icon: CheckCircle, color: "text-emerald-600" },
-  PENDING: { label: "معلق", icon: Clock, color: "text-amber-600" },
-  SENT: { label: "مرسل", icon: Send, color: "text-blue-600" },
-  DUE: { label: "مستحق", icon: AlertCircle, color: "text-orange-600" },
-  PARTIAL: { label: "مدفوع جزئياً", icon: AlertCircle, color: "text-yellow-600" },
-  LATE: { label: "متأخر", icon: AlertCircle, color: "text-red-600" },
-  CANCELLED: { label: "ملغي", icon: Ban, color: "text-gray-600" },
+  PAID: { label: "مدفوع", icon: CheckCircle, color: "text-success-600" },
+  PENDING: { label: "معلق", icon: Clock, color: "text-alert-600" },
+  SENT: { label: "مرسل", icon: Send, color: "text-action-blue" },
+  DUE: { label: "مستحق", icon: AlertCircle, color: "text-alert-600" },
+  PARTIAL: { label: "مدفوع جزئياً", icon: AlertCircle, color: "text-alert-600" },
+  LATE: { label: "متأخر", icon: AlertCircle, color: "text-danger-600" },
+  CANCELLED: { label: "ملغي", icon: Ban, color: "text-neutral-600" },
 };
 
 const PAYABLE_STATUSES = new Set(["PENDING", "SENT", "DUE", "PARTIAL", "LATE"]);
@@ -73,7 +73,7 @@ export function ContractInvoicesList({
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Icon className={`w-4 h-4 shrink-0 ${config.color}`} />
-                <span className="text-foreground truncate">
+                <span className="text-neutral-300 truncate">
                   {invoice.invoiceNumber}
                 </span>
                 <span className={`text-xs font-medium ${config.color}`}>
@@ -81,7 +81,7 @@ export function ContractInvoicesList({
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <span className="text-muted-foreground text-xs">
+                <span className="text-neutral-300 text-xs">
                   {new Date(invoice.dueDate).toLocaleDateString("en-GB", {
                     day: "2-digit",
                     month: "short",
@@ -93,7 +93,7 @@ export function ContractInvoicesList({
                 {isPayable && (
                   <button
                     onClick={() => handlePayClick(invoice)}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-secondary-500 px-2.5 py-1 text-xs font-medium text-white hover:bg-secondary-500/90 transition-colors"
                   >
                     <CreditCard className="w-3.5 h-3.5" />
                     ادفع

@@ -10,16 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   Search,
   Plus,
@@ -56,18 +50,12 @@ export default function InvoicesPage() {
             <Skeleton className="h-10 w-36" />
           </div>
         </div>
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <Skeleton className="h-10 w-full" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <SurfaceCard className="border-none shadow-md" contentClassName="space-y-3">
+          <Skeleton className="h-10 w-full" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </SurfaceCard>
       </div>
     );
   }
@@ -79,41 +67,38 @@ export default function InvoicesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">إدارة الفواتير</h1>
-          <p className="text-muted-foreground">
+          <p className="text-neutral-300">
             عرض وإدارة فواتير العملاء وتحصيل المدفوعات.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="w-4 h-4 ml-2" />
+          <ActionButton variant="outline" icon={<Download className="w-4 h-4" />}>
             تصدير الكل
-          </Button>
-          <Button>
-            <Plus className="w-4 h-4 ml-2" />
+          </ActionButton>
+          <ActionButton variant="primary" icon={<Plus className="w-4 h-4" />}>
             فاتورة جديدة
-          </Button>
+          </ActionButton>
         </div>
       </div>
 
-      <Card className="border-none shadow-md">
-        <CardHeader>
+      <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
+        <div className="px-5 py-4 border-b border-portal-divider">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="relative w-full md:w-96">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
+              <FormInputControl
                 placeholder="البحث عن فاتورة أو عميل..."
                 className="pr-10"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-9">
-                <Filter className="w-4 h-4 ml-2" />
+              <ActionButton variant="outline" size="sm" icon={<Filter className="w-4 h-4" />}>
                 تصفية
-              </Button>
+              </ActionButton>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-5">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -146,19 +131,19 @@ export default function InvoicesPage() {
                     <TableCell className="font-medium">
                       {invoice.client?.companyName || "N/A"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-neutral-300">
                       {(invoice as any).contract?.title || "N/A"}
                     </TableCell>
                     <TableCell className="font-bold">
                       {invoice.amount.toLocaleString()} ر.س
                     </TableCell>
-                    <TableCell className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    <TableCell className="text-success-600 dark:text-success-400 font-medium">
                       {paidAmount.toLocaleString()} ر.س
                     </TableCell>
                     <TableCell>
                       <FinanceStatusBadge status={invoice.status} />
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-neutral-300 text-sm">
                       {new Date(invoice.dueDate).toLocaleDateString(
                         "ar-SA-u-nu-latn",
                       )}
@@ -168,23 +153,23 @@ export default function InvoicesPage() {
                         <Link
                           href={`/dashboard/finance/invoices/${invoice.id}`}
                         >
-                          <Button
+                          <ActionButton
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                            size="sm"
+                            className="h-8 w-8 hover:bg-secondary-500/10 hover:text-secondary-500"
                           >
                             <Eye className="w-4 h-4" />
-                          </Button>
+                          </ActionButton>
                         </Link>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button
+                            <ActionButton
                               variant="ghost"
-                              size="icon"
+                              size="sm"
                               className="h-8 w-8"
                             >
                               <MoreHorizontal className="w-4 h-4" />
-                            </Button>
+                            </ActionButton>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
@@ -204,7 +189,7 @@ export default function InvoicesPage() {
                               إرسال للعميل
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer text-rose-500 flex justify-end">
+                            <DropdownMenuItem className="cursor-pointer text-danger-500 flex justify-end">
                               إلغاء الفاتورة
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -218,7 +203,7 @@ export default function InvoicesPage() {
                 <TableRow>
                   <TableCell
                     colSpan={8}
-                    className="text-center py-10 text-muted-foreground"
+                    className="text-center py-10 text-neutral-300"
                   >
                     لا توجد فواتير حالياً.
                   </TableCell>
@@ -226,8 +211,8 @@ export default function InvoicesPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import {
   CircleDollarSign,
   Check,
@@ -18,15 +18,8 @@ import {
   useUpdateCurrencySettingMutation,
   useDeleteCurrencySettingMutation,
 } from "@/features/settings/settingsApi";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   Table,
   TableBody,
@@ -35,17 +28,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Pill } from "@/components/design-system/Pill";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { Dialog } from "@/components/design-system/Dialog";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
 import { cn } from "@/lib/utils";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -206,18 +193,18 @@ export default function CurrencySettingsPage() {
           <h2 className="text-xl font-semibold tracking-tight">
             إعدادات العملة
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-neutral-300">
             تحديد العملة الافتراضية وإدارة العملات المدعومة في المنصة.
           </p>
         </div>
-        <Button
+        <ActionButton
           size="sm"
           onClick={openCreate}
           className="mt-2 sm:mt-0 gap-1.5 h-9"
         >
           <Plus className="h-4 w-4" />
           إضافة عملة
-        </Button>
+        </ActionButton>
       </div>
 
       {/* Table */}
@@ -231,7 +218,7 @@ export default function CurrencySettingsPage() {
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableRow className="bg-neutral-50/40 hover:bg-neutral-50/40">
                 <TableHead className="text-right font-semibold">الرمز</TableHead>
                 <TableHead className="text-right font-semibold">الاسم</TableHead>
                 <TableHead className="text-right font-semibold">الرمز الظاهر</TableHead>
@@ -247,7 +234,7 @@ export default function CurrencySettingsPage() {
                 <TableRow>
                   <TableCell
                     colSpan={8}
-                    className="text-center text-muted-foreground py-12"
+                    className="text-center text-neutral-300 py-12"
                   >
                     <CircleDollarSign className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     لا توجد عملات محددة.
@@ -255,7 +242,7 @@ export default function CurrencySettingsPage() {
                 </TableRow>
               ) : (
                 currencies.map((c: any) => (
-                  <TableRow key={c.id} className="hover:bg-muted/20">
+                  <TableRow key={c.id} className="hover:bg-neutral-50/20">
                     <TableCell className="font-semibold text-sm">
                       {c.code}
                     </TableCell>
@@ -283,54 +270,51 @@ export default function CurrencySettingsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-normal text-xs">
+                      <Pill tone="neutral" className="font-normal text-xs">
                         {SYMBOL_TYPE_OPTIONS.find((o) => o.value === c.symbolType)
                           ?.label ?? c.symbolType}
-                      </Badge>
+                      </Pill>
                     </TableCell>
                     <TableCell className="font-mono text-sm">
                       {c.exchangeRate}
                     </TableCell>
                     <TableCell>
                       {c.isActive ? (
-                        <Badge
-                          variant="default"
-                          className="bg-emerald-500 hover:bg-emerald-600"
-                        >
+                        <Pill tone="success">
                           نشط
-                        </Badge>
+                        </Pill>
                       ) : (
-                        <Badge variant="secondary">معطل</Badge>
+                        <Pill tone="neutral">معطل</Pill>
                       )}
                     </TableCell>
                     <TableCell>
                       {c.isDefault ? (
-                        <Badge className="bg-amber-500 hover:bg-amber-600 gap-1">
+                        <Pill tone="warning" className="gap-1">
                           <Check className="h-3 w-3" />
                           افتراضي
-                        </Badge>
+                        </Pill>
                       ) : (
                         "—"
                       )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-0.5">
-                        <Button
+                        <ActionButton
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          size="sm"
+                          className="h-8 w-8 text-neutral-300 hover:text-natural-100"
                           onClick={() => openEdit(c)}
                         >
                           <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
+                        </ActionButton>
+                        <ActionButton
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          size="sm"
+                          className="h-8 w-8 text-neutral-300 hover:text-danger-500"
                           onClick={() => handleDelete(c.id)}
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </ActionButton>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -342,418 +326,411 @@ export default function CurrencySettingsPage() {
       </div>
 
       {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-xl p-0 overflow-hidden" dir="rtl">
-          <DialogHeader className="px-6 pt-6 pb-0">
-            <DialogTitle className="text-lg">
-              {editingId ? "تعديل العملة" : "إضافة عملة جديدة"}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground leading-5">
-              {editingId
-                ? "عدّل بيانات العملة الحالية."
-                : "أضف عملة جديدة وتحكم في ظهورها على المنصة."}
-            </DialogDescription>
-          </DialogHeader>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}
+        title={editingId ? "تعديل العملة" : "إضافة عملة جديدة"}
+        description={editingId
+          ? "عدّل بيانات العملة الحالية."
+          : "أضف عملة جديدة وتحكم في ظهورها على المنصة."}
+        contentClassName="sm:max-w-xl"
+      >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* ── Symbol type tabs ── */}
+          <div className="flex flex-col gap-2">
+            <Label className="text-sm font-medium">نوع الرمز الظاهر</Label>
+            <Tabs
+              value={form.symbolType}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, symbolType: v as SymbolType }))
+              }
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-3 h-10">
+                {SYMBOL_TYPE_OPTIONS.map((opt) => (
+                  <TabsTrigger
+                    key={opt.value}
+                    value={opt.value}
+                    className="text-xs gap-1"
+                  >
+                    {opt.value === "TEXT" && (
+                      <CreditCard className="h-3.5 w-3.5" />
+                    )}
+                    {opt.value === "SVG_URL" && (
+                      <Globe className="h-3.5 w-3.5" />
+                    )}
+                    {opt.value === "SVG_INLINE" && (
+                      <CircleDollarSign className="h-3.5 w-3.5" />
+                    )}
+                    {opt.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            <p className="text-xs text-neutral-300">
+              {
+                SYMBOL_TYPE_OPTIONS.find((o) => o.value === form.symbolType)
+                  ?.desc
+              }
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="p-6 pt-4 flex flex-col gap-5">
-            {/* ── Symbol type tabs ── */}
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium">نوع الرمز الظاهر</Label>
-              <Tabs
-                value={form.symbolType}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, symbolType: v as SymbolType }))
+          {/* ── Core fields ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm font-medium">
+                رمز العملة <span className="text-danger-500">*</span>
+              </Label>
+              <FormInputControl
+                placeholder="SAR"
+                value={form.code}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    code: e.target.value.toUpperCase().slice(0, 3),
+                  }))
                 }
-                className="w-full"
-              >
-                <TabsList className="grid w-full grid-cols-3 h-10">
-                  {SYMBOL_TYPE_OPTIONS.map((opt) => (
-                    <TabsTrigger
-                      key={opt.value}
-                      value={opt.value}
-                      className="text-xs gap-1"
-                    >
-                      {opt.value === "TEXT" && (
-                        <CreditCard className="h-3.5 w-3.5" />
-                      )}
-                      {opt.value === "SVG_URL" && (
-                        <Globe className="h-3.5 w-3.5" />
-                      )}
-                      {opt.value === "SVG_INLINE" && (
-                        <CircleDollarSign className="h-3.5 w-3.5" />
-                      )}
-                      {opt.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-              <p className="text-xs text-muted-foreground">
-                {
-                  SYMBOL_TYPE_OPTIONS.find((o) => o.value === form.symbolType)
-                    ?.desc
+                onBlur={() =>
+                  setErrors((e) => ({ ...e, code: undefined }))
                 }
-              </p>
+                className={cn(
+                  "h-10 text-center font-mono font-semibold tracking-wider",
+                  errors.code && "border-danger-500 focus-visible:ring-danger-500"
+                )}
+                required
+              />
+              {errors.code ? (
+                <span className="text-xs text-danger-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.code}
+                </span>
+              ) : (
+                <span className="text-xs text-neutral-300">
+                  3 حروف ISO 4217
+                </span>
+              )}
             </div>
 
-            {/* ── Core fields ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm font-medium">
+                اسم العملة <span className="text-danger-500">*</span>
+              </Label>
+              <FormInputControl
+                placeholder="ريال سعودي"
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+                onBlur={() =>
+                  setErrors((e) => ({ ...e, name: undefined }))
+                }
+                className={cn(
+                  "h-10",
+                  errors.name && "border-danger-500 focus-visible:ring-danger-500"
+                )}
+                required
+              />
+              {errors.name && (
+                <span className="text-xs text-danger-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.name}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm font-medium">
+                الرمز الظاهر <span className="text-danger-500">*</span>
+              </Label>
+              <FormInputControl
+                placeholder="مثال: ر.س  أو  $"
+                value={form.symbol}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, symbol: e.target.value }))
+                }
+                onBlur={() =>
+                  setErrors((e) => ({ ...e, symbol: undefined }))
+                }
+                className={cn(
+                  "h-10 text-center font-semibold",
+                  errors.symbol && "border-danger-500 focus-visible:ring-danger-500"
+                )}
+                required
+              />
+              {errors.symbol && (
+                <span className="text-xs text-danger-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.symbol}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm font-medium">
+                سعر الصرف
+              </Label>
+              <FormInputControl
+                type="number"
+                step="0.0001"
+                min={0}
+                placeholder="1.0000"
+                value={form.exchangeRate}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    exchangeRate: parseFloat(e.target.value || "1"),
+                  }))
+                }
+                onBlur={() =>
+                  setErrors((e) => ({ ...e, exchangeRate: undefined }))
+                }
+                className={cn(
+                  "h-10 font-mono",
+                  errors.exchangeRate &&
+                    "border-danger-500 focus-visible:ring-danger-500"
+                )}
+              />
+              {errors.exchangeRate ? (
+                <span className="text-xs text-danger-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.exchangeRate}
+                </span>
+              ) : (
+                <span className="text-xs text-neutral-300">
+                  مقارنة بالعملة الأساسية (1 = متساوي)
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* ── SVG-specific fields ── */}
+          {form.symbolType !== "TEXT" && (
+            <>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-sm font-medium">
-                  رمز العملة <span className="text-destructive">*</span>
+                  {form.symbolType === "SVG_URL"
+                    ? "رابط ملف SVG"
+                    : "كود SVG"}
+                  <span className="text-danger-500">*</span>
                 </Label>
-                <Input
-                  placeholder="SAR"
-                  value={form.code}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      code: e.target.value.toUpperCase().slice(0, 3),
-                    }))
-                  }
-                  onBlur={() =>
-                    setErrors((e) => ({ ...e, code: undefined }))
-                  }
-                  className={cn(
-                    "h-10 text-center font-mono font-semibold tracking-wider",
-                    errors.code && "border-destructive focus-visible:ring-destructive"
-                  )}
-                  required
-                />
-                {errors.code ? (
-                  <span className="text-xs text-destructive flex items-center gap-1">
+                {form.symbolType === "SVG_URL" ? (
+                  <FormInputControl
+                    placeholder="https://example.com/symbol.svg"
+                    value={form.svgKey}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        svgKey: e.target.value,
+                      }))
+                    }
+                    onBlur={() =>
+                      setErrors((e) => ({ ...e, svgKey: undefined }))
+                    }
+                    className={cn(
+                      "h-10 ltr-dir",
+                      errors.svgKey &&
+                        "border-danger-500 focus-visible:ring-danger-500"
+                    )}
+                  />
+                ) : (
+                  <textarea
+                    placeholder='<svg xmlns="http://www.w3.org/2000/svg" ...></svg>'
+                    value={form.svgKey}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        svgKey: e.target.value,
+                      }))
+                    }
+                    onBlur={() =>
+                      setErrors((e) => ({ ...e, svgKey: undefined }))
+                    }
+                    rows={3}
+                    className={cn(
+                      "flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-neutral-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-y font-mono ltr-dir",
+                      errors.svgKey &&
+                        "border-danger-500 focus-visible:ring-danger-500"
+                    )}
+                  />
+                )}
+                {errors.svgKey ? (
+                  <span className="text-xs text-danger-500 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
-                    {errors.code}
+                    {errors.svgKey}
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">
-                    3 حروف ISO 4217
+                  <span className="text-xs text-neutral-300">
+                    {form.symbolType === "SVG_URL"
+                      ? "يجب أن يكون عنوان URL صالحًا لملف SVG."
+                      : "أدخل شفرة SVG مباشرة (بدون <script> أو event handlers)."}
                   </span>
                 )}
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium">
-                  اسم العملة <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  placeholder="ريال سعودي"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  onBlur={() =>
-                    setErrors((e) => ({ ...e, name: undefined }))
-                  }
-                  className={cn(
-                    "h-10",
-                    errors.name && "border-destructive focus-visible:ring-destructive"
-                  )}
-                  required
-                />
-                {errors.name && (
-                  <span className="text-xs text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {errors.name}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium">
-                  الرمز الظاهر <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  placeholder="مثال: ر.س  أو  $"
-                  value={form.symbol}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, symbol: e.target.value }))
-                  }
-                  onBlur={() =>
-                    setErrors((e) => ({ ...e, symbol: undefined }))
-                  }
-                  className={cn(
-                    "h-10 text-center font-semibold",
-                    errors.symbol && "border-destructive focus-visible:ring-destructive"
-                  )}
-                  required
-                />
-                {errors.symbol && (
-                  <span className="text-xs text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {errors.symbol}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-sm font-medium">
-                  سعر الصرف
-                </Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min={0}
-                  placeholder="1.0000"
-                  value={form.exchangeRate}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      exchangeRate: parseFloat(e.target.value || "1"),
-                    }))
-                  }
-                  onBlur={() =>
-                    setErrors((e) => ({ ...e, exchangeRate: undefined }))
-                  }
-                  className={cn(
-                    "h-10 font-mono",
-                    errors.exchangeRate &&
-                      "border-destructive focus-visible:ring-destructive"
-                  )}
-                />
-                {errors.exchangeRate ? (
-                  <span className="text-xs text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {errors.exchangeRate}
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">
-                    مقارنة بالعملة الأساسية (1 = متساوي)
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* ── SVG-specific fields ── */}
-            {form.symbolType !== "TEXT" && (
-              <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-sm font-medium">العرض (px)</Label>
+                  <FormInputControl
+                    type="number"
+                    min={8}
+                    max={128}
+                    value={form.svgWidth}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        svgWidth: parseInt(e.target.value || "24", 10),
+                      }))
+                    }
+                    className="h-10"
+                  />
+                </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-sm font-medium">
-                    {form.symbolType === "SVG_URL"
-                      ? "رابط ملف SVG"
-                      : "كود SVG"}
-                    <span className="text-destructive">*</span>
+                    الارتفاع (px)
                   </Label>
-                  {form.symbolType === "SVG_URL" ? (
-                    <Input
-                      placeholder="https://example.com/symbol.svg"
-                      value={form.svgKey}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          svgKey: e.target.value,
-                        }))
-                      }
-                      onBlur={() =>
-                        setErrors((e) => ({ ...e, svgKey: undefined }))
-                      }
-                      className={cn(
-                        "h-10 ltr-dir",
-                        errors.svgKey &&
-                          "border-destructive focus-visible:ring-destructive"
-                      )}
-                    />
-                  ) : (
-                    <textarea
-                      placeholder='<svg xmlns="http://www.w3.org/2000/svg" ...></svg>'
-                      value={form.svgKey}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          svgKey: e.target.value,
-                        }))
-                      }
-                      onBlur={() =>
-                        setErrors((e) => ({ ...e, svgKey: undefined }))
-                      }
-                      rows={3}
-                      className={cn(
-                        "flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-y font-mono ltr-dir",
-                        errors.svgKey &&
-                          "border-destructive focus-visible:ring-destructive"
-                      )}
-                    />
-                  )}
-                  {errors.svgKey ? (
-                    <span className="text-xs text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.svgKey}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      {form.symbolType === "SVG_URL"
-                        ? "يجب أن يكون عنوان URL صالحًا لملف SVG."
-                        : "أدخل شفرة SVG مباشرة (بدون <script> أو event handlers)."}
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <Label className="text-sm font-medium">العرض (px)</Label>
-                    <Input
-                      type="number"
-                      min={8}
-                      max={128}
-                      value={form.svgWidth}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          svgWidth: parseInt(e.target.value || "24", 10),
-                        }))
-                      }
-                      className="h-10"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <Label className="text-sm font-medium">
-                      الارتفاع (px)
-                    </Label>
-                    <Input
-                      type="number"
-                      min={8}
-                      max={128}
-                      value={form.svgHeight}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          svgHeight: parseInt(e.target.value || "24", 10),
-                        }))
-                      }
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* ── Switches ── */}
-            <div className="flex flex-wrap items-center gap-6 py-1">
-              <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-                <div
-                  className={cn(
-                    "w-11 h-6 rounded-full relative transition-colors",
-                    form.isActive ? "bg-emerald-500" : "bg-gray-200"
-                  )}
-                  onClick={() =>
-                    setForm((f) => ({ ...f, isActive: !f.isActive }))
-                  }
-                >
-                  <div
-                    className={cn(
-                      "absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200",
-                      form.isActive ? "translate-x-5" : ""
-                    )}
+                  <FormInputControl
+                    type="number"
+                    min={8}
+                    max={128}
+                    value={form.svgHeight}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        svgHeight: parseInt(e.target.value || "24", 10),
+                      }))
+                    }
+                    className="h-10"
                   />
                 </div>
-                <span className="text-sm font-medium">نشطة</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-                <div
-                  className={cn(
-                    "w-11 h-6 rounded-full relative transition-colors",
-                    form.isDefault ? "bg-amber-500" : "bg-gray-200"
-                  )}
-                  onClick={() =>
-                    setForm((f) => ({ ...f, isDefault: !f.isDefault }))
-                  }
-                >
-                  <div
-                    className={cn(
-                      "absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200",
-                      form.isDefault ? "translate-x-5" : ""
-                    )}
-                  />
-                </div>
-                <span className="text-sm font-medium">العملة الافتراضية</span>
-              </label>
-            </div>
-
-            {form.isDefault && (
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2 text-sm">
-                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-amber-800">
-                  سيتم تعيين هذه العملة كافتراضية لجميع العملاء في البوابة و
-                  استبدال العملة الافتراضية الحالية تلقائيًا.
-                </p>
               </div>
-            )}
+            </>
+          )}
 
-            {/* ── Preview ── */}
-            <div className="rounded-xl border border-dashed bg-muted/30 p-4 flex flex-col items-center gap-2">
-              <span className="text-xs text-muted-foreground mb-1">
-                معاينة العرض
-              </span>
-              <div className="flex items-baseline gap-2">
-                {form.symbolType === "SVG_URL" && previewSvgUrl ? (
-                  <>
-                    <span className="text-2xl font-bold text-foreground tabular-nums">
-                      {previewAmount.toLocaleString("ar-SA-u-nu-latn")}
-                    </span>
-                    <img
-                      src={previewSvgUrl}
-                      alt="symbol"
-                      width={form.svgWidth}
-                      height={form.svgHeight}
-                      className="object-contain inline-block"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  </>
-                ) : form.symbolType === "SVG_INLINE" && form.svgKey.trim() ? (
-                  <>
-                    <span className="text-2xl font-bold text-foreground tabular-nums">
-                      {previewAmount.toLocaleString("ar-SA-u-nu-latn")}
-                    </span>
-                    <span
-                      dangerouslySetInnerHTML={{ __html: form.svgKey.trim() }}
-                      className="inline-block"
-                      style={{
-                        width: form.svgWidth,
-                        height: form.svgHeight,
-                        verticalAlign: "middle",
-                      }}
-                    />
-                  </>
-                ) : (
-                  <span className="text-2xl font-bold text-foreground tabular-nums">
-                    {previewAmount.toLocaleString("ar-SA-u-nu-latn")}
-                    <span className="mr-1.5"> </span>
-                    {previewSymbol || "؟"}
-                  </span>
+          {/* ── Switches ── */}
+          <div className="flex flex-wrap items-center gap-6 py-1">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+              <div
+                className={cn(
+                  "w-11 h-6 rounded-full relative transition-colors",
+                  form.isActive ? "bg-success-500" : "bg-neutral-200"
                 )}
+                onClick={() =>
+                  setForm((f) => ({ ...f, isActive: !f.isActive }))
+                }
+              >
+                <div
+                  className={cn(
+                    "absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200",
+                    form.isActive ? "translate-x-5" : ""
+                  )}
+                />
               </div>
-            </div>
+              <span className="text-sm font-medium">نشطة</span>
+            </label>
 
-            {/* ── Actions ── */}
-            <div className="flex gap-2 justify-end mt-1 border-t pt-4">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setDialogOpen(false);
-                  resetForm();
-                }}
+            <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+              <div
+                className={cn(
+                  "w-11 h-6 rounded-full relative transition-colors",
+                  form.isDefault ? "bg-alert-500" : "bg-neutral-200"
+                )}
+                onClick={() =>
+                  setForm((f) => ({ ...f, isDefault: !f.isDefault }))
+                }
               >
-                إلغاء
-              </Button>
-              <Button
-                type="submit"
-                disabled={creating || updating}
-                className="min-w-[120px]"
-              >
-                {creating || updating
-                  ? "جارٍ الحفظ..."
-                  : editingId
-                    ? "حفظ التعديلات"
-                    : "إضافة العملة"}
-              </Button>
+                <div
+                  className={cn(
+                    "absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200",
+                    form.isDefault ? "translate-x-5" : ""
+                  )}
+                />
+              </div>
+              <span className="text-sm font-medium">العملة الافتراضية</span>
+            </label>
+          </div>
+
+          {form.isDefault && (
+            <div className="rounded-lg bg-alert-50 border border-alert-200 p-3 flex items-start gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 text-alert-600 mt-0.5 shrink-0" />
+              <p className="text-alert-800">
+                سيتم تعيين هذه العملة كافتراضية لجميع العملاء في البوابة و
+                استبدال العملة الافتراضية الحالية تلقائيًا.
+              </p>
             </div>
-          </form>
-        </DialogContent>
+          )}
+
+          {/* ── Preview ── */}
+          <div className="rounded-xl border border-dashed bg-neutral-50/30 p-4 flex flex-col items-center gap-2">
+            <span className="text-xs text-neutral-300 mb-1">
+              معاينة العرض
+            </span>
+            <div className="flex items-baseline gap-2">
+              {form.symbolType === "SVG_URL" && previewSvgUrl ? (
+                <>
+                  <span className="text-2xl font-bold text-natural-100 tabular-nums">
+                    {previewAmount.toLocaleString("ar-SA-u-nu-latn")}
+                  </span>
+                  <img
+                    src={previewSvgUrl}
+                    alt="symbol"
+                    width={form.svgWidth}
+                    height={form.svgHeight}
+                    className="object-contain inline-block"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </>
+              ) : form.symbolType === "SVG_INLINE" && form.svgKey.trim() ? (
+                <>
+                  <span className="text-2xl font-bold text-natural-100 tabular-nums">
+                    {previewAmount.toLocaleString("ar-SA-u-nu-latn")}
+                  </span>
+                  <span
+                    dangerouslySetInnerHTML={{ __html: form.svgKey.trim() }}
+                    className="inline-block"
+                    style={{
+                      width: form.svgWidth,
+                      height: form.svgHeight,
+                      verticalAlign: "middle",
+                    }}
+                  />
+                </>
+              ) : (
+                <span className="text-2xl font-bold text-natural-100 tabular-nums">
+                  {previewAmount.toLocaleString("ar-SA-u-nu-latn")}
+                  <span className="mr-1.5"> </span>
+                  {previewSymbol || "؟"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* ── Actions ── */}
+          <div className="flex gap-2 justify-end mt-1 border-t pt-4">
+            <ActionButton
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setDialogOpen(false);
+                resetForm();
+              }}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              type="submit"
+              disabled={creating || updating}
+              className="min-w-[120px]"
+            >
+              {creating || updating
+                ? "جارٍ الحفظ..."
+                : editingId
+                  ? "حفظ التعديلات"
+                  : "إضافة العملة"}
+            </ActionButton>
+          </div>
+        </form>
       </Dialog>
     </div>
   );

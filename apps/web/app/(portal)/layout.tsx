@@ -4,9 +4,9 @@ import { useAppSelector } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { UserRole } from "@hassad/shared";
-import { PortalSidebar } from "@/components/portal/PortalSidebar";
-import { PortalHeader } from "@/components/portal/PortalHeader";
-import { BottomNav } from "@/components/portal/BottomNav";
+import { Sidebar } from "@/components/design-system/Sidebar";
+import { AppHeader } from "@/components/design-system/AppHeader";
+import { BottomNav } from "@/components/design-system/BottomNav";
 import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
@@ -79,12 +79,12 @@ export default function PortalLayout({
     >
       {/* Right Sidebar — desktop only (lg = 1024px+) */}
       <div className="hidden lg:block">
-        <PortalSidebar />
+        <Sidebar />
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <PortalHeader />
+        <AppHeader />
         {/* Bottom padding on mobile/tablet to make room for bottom nav */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-5 pb-20 lg:pb-5">
           {children}

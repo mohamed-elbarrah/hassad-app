@@ -7,14 +7,8 @@ import {
   TimelineComponent,
   TimelineItem,
 } from "@/components/dashboard/finance/TimelineComponent";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Separator } from "@/components/ui/separator";
 import {
   Table,
@@ -48,7 +42,7 @@ export default function InvoiceDetailPage({
   if (isLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
       </div>
     );
   }
@@ -56,17 +50,17 @@ export default function InvoiceDetailPage({
   if (error || !invoice) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center gap-4 text-center">
-        <AlertCircle className="w-12 h-12 text-rose-500" />
+        <AlertCircle className="w-12 h-12 text-danger-500" />
         <div>
           <h2 className="text-2xl font-bold">
             عذراً، لم يتم العثور على الفاتورة
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-neutral-300">
             قد يكون الرابط غير صحيح أو تم نقل الفاتورة.
           </p>
         </div>
         <Link href="/dashboard/finance/invoices">
-          <Button variant="outline">العودة لقائمة الفواتير</Button>
+          <ActionButton variant="outline">العودة لقائمة الفواتير</ActionButton>
         </Link>
       </div>
     );
@@ -90,78 +84,75 @@ export default function InvoiceDetailPage({
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Breadcrumbs / Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/dashboard/finance" className="hover:text-primary">
+        <div className="flex items-center gap-2 text-sm text-neutral-300">
+          <Link href="/dashboard/finance" className="hover:text-secondary-500">
             المالية
           </Link>
           <ChevronRight className="w-4 h-4 rotate-180" />
           <Link
             href="/dashboard/finance/invoices"
-            className="hover:text-primary"
+            className="hover:text-secondary-500"
           >
             الفواتير
           </Link>
           <ChevronRight className="w-4 h-4 rotate-180" />
-          <span className="text-foreground font-medium">
+          <span className="text-natural-100 font-medium">
             {invoice.invoiceNumber}
           </span>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Printer className="w-4 h-4 ml-2" />
+          <ActionButton variant="outline" size="sm" icon={<Printer className="w-4 h-4" />}>
             طباعة
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 ml-2" />
+          </ActionButton>
+          <ActionButton variant="outline" size="sm" icon={<Download className="w-4 h-4" />}>
             تحميل PDF
-          </Button>
-          <Button size="sm">
-            <Send className="w-4 h-4 ml-2" />
+          </ActionButton>
+          <ActionButton variant="primary" size="sm" icon={<Send className="w-4 h-4" />}>
             إرسال للعميل
-          </Button>
+          </ActionButton>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Details */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-none shadow-md overflow-hidden">
-            <div className="bg-primary h-2 w-full" />
-            <CardHeader className="flex flex-row items-start justify-between">
+          <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm overflow-hidden">
+            <div className="bg-secondary-500 h-2 w-full" />
+            <div className="px-5 py-4 border-b border-portal-divider flex flex-row items-start justify-between">
               <div>
-                <CardTitle className="text-2xl font-mono">
+                <h2 className="text-2xl font-mono">
                   {invoice.invoiceNumber}
-                </CardTitle>
-                <CardDescription>
+                </h2>
+                <p className="text-portal-note-text">
                   بتاريخ:{" "}
                   {new Date(invoice.createdAt).toLocaleDateString(
                     "ar-SA-u-nu-latn",
                   )}
-                </CardDescription>
+                </p>
               </div>
               <FinanceStatusBadge
                 status={invoice.status}
                 className="text-lg px-4 py-1"
               />
-            </CardHeader>
-            <CardContent className="space-y-8">
+            </div>
+            <div className="p-5 space-y-8">
               <div className="grid grid-cols-2 gap-8">
                 <div>
-                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                  <h4 className="text-sm font-semibold text-neutral-300 mb-2">
                     العميل
                   </h4>
                   <p className="text-lg font-bold">
                     {invoice.client?.companyName || "N/A"}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-neutral-300">
                     العقد: {invoice.contract?.title || "N/A"}
                   </p>
                 </div>
                 <div className="text-left">
-                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                  <h4 className="text-sm font-semibold text-neutral-300 mb-2">
                     تاريخ الاستحقاق
                   </h4>
-                  <p className="text-lg font-bold text-rose-600">
+                  <p className="text-lg font-bold text-danger-600">
                     {new Date(invoice.dueDate).toLocaleDateString(
                       "ar-SA-u-nu-latn",
                     )}
@@ -176,28 +167,28 @@ export default function InvoiceDetailPage({
                   <CreditCard className="w-4 h-4" />
                   تفاصيل المبالغ
                 </h4>
-                <div className="bg-muted/30 rounded-xl p-6 grid grid-cols-3 gap-4">
+                <div className="bg-neutral-50/30 rounded-xl p-6 grid grid-cols-3 gap-4">
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">
+                    <p className="text-xs text-neutral-300 mb-1">
                       الإجمالي
                     </p>
                     <p className="text-xl font-bold">
                       {invoice.amount.toLocaleString()} ر.س
                     </p>
                   </div>
-                  <div className="text-center border-x border-muted-foreground/10">
-                    <p className="text-xs text-muted-foreground mb-1">
+                  <div className="text-center border-x border-neutral-300/10">
+                    <p className="text-xs text-neutral-300 mb-1">
                       المدفوع
                     </p>
-                    <p className="text-xl font-bold text-emerald-600">
+                    <p className="text-xl font-bold text-success-600">
                       {paidAmount.toLocaleString()} ر.س
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground mb-1">
+                    <p className="text-xs text-neutral-300 mb-1">
                       المتبقي
                     </p>
-                    <p className="text-xl font-bold text-rose-600">
+                    <p className="text-xl font-bold text-danger-600">
                       {remainingAmount.toLocaleString()} ر.س
                     </p>
                   </div>
@@ -210,10 +201,9 @@ export default function InvoiceDetailPage({
                     <History className="w-4 h-4" />
                     تاريخ المدفوعات
                   </h4>
-                  <Button variant="outline" size="sm" className="h-8">
-                    <Plus className="w-3 h-3 ml-1" />
+                  <ActionButton variant="outline" size="sm" icon={<Plus className="w-3 h-3" />}>
                     إضافة دفعة
-                  </Button>
+                  </ActionButton>
                 </div>
                 <Table>
                   <TableHeader>
@@ -239,7 +229,7 @@ export default function InvoiceDetailPage({
                           <TableCell>
                             <FinanceStatusBadge status={p.status as any} />
                           </TableCell>
-                          <TableCell className="text-left text-xs text-muted-foreground">
+                          <TableCell className="text-left text-xs text-neutral-300">
                             {new Date(p.date).toLocaleDateString(
                               "ar-SA-u-nu-latn",
                             )}
@@ -250,7 +240,7 @@ export default function InvoiceDetailPage({
                       <TableRow>
                         <TableCell
                           colSpan={5}
-                          className="text-center py-8 text-muted-foreground"
+                          className="text-center py-8 text-neutral-300"
                         >
                           لا توجد عمليات دفع مسجلة بعد
                         </TableCell>
@@ -259,44 +249,40 @@ export default function InvoiceDetailPage({
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Sidebar: Timeline & Actions */}
         <div className="space-y-6">
-          <Card className="border-none shadow-md">
-            <CardHeader>
-              <CardTitle className="text-lg">الجدول الزمني للفاتورة</CardTitle>
-              <CardDescription>
-                تتبع جميع الأحداث المرتبطة بالفاتورة
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TimelineComponent items={timeline} />
-            </CardContent>
-          </Card>
+          <SurfaceCard
+            title="الجدول الزمني للفاتورة"
+            description="تتبع جميع الأحداث المرتبطة بالفاتورة"
+            className="border-none shadow-md"
+          >
+            <TimelineComponent items={timeline} />
+          </SurfaceCard>
 
-          <Card className="border-none shadow-md bg-amber-50/50 dark:bg-amber-500/5">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-400">
+          <div className="rounded-xl border border-portal-card-border bg-alert-50/50 dark:bg-alert-500/5 shadow-sm">
+            <div className="px-5 py-4 border-b border-portal-divider">
+              <h3 className="text-lg flex items-center gap-2 text-alert-700 dark:text-alert-400">
                 <AlertCircle className="w-5 h-5" />
                 ملاحظات التدقيق
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-amber-800 dark:text-amber-300">
+              </h3>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-alert-800 dark:text-alert-300">
                 هذه الفاتورة جزء من عقد توريد مستمر. يرجى التأكد من مطابقة
                 الدفعات مع تسليمات المشروع.
               </p>
-              <Button
-                variant="link"
-                className="text-amber-700 p-0 h-auto mt-4 text-xs"
+              <ActionButton
+                variant="ghost"
+                className="text-alert-700 p-0 h-auto mt-4 text-xs"
               >
                 إضافة ملاحظة جديدة
-              </Button>
-            </CardContent>
-          </Card>
+              </ActionButton>
+            </div>
+          </div>
         </div>
       </div>
     </div>

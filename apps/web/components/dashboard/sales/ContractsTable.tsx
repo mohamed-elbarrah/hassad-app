@@ -1,14 +1,16 @@
 "use client";
 
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
+  DataTable,
+  type DataTableColumn,
+  type DataTableEmptyState,
+} from "@/components/design-system/DataTable";
+import {
   TableRow,
+  TableCell,
 } from "@/components/ui/table";
 import { ContractStatus } from "@hassad/shared";
 import type { ContractItem as ContractListItem } from "@/features/contracts/contractsApi";
@@ -25,6 +27,20 @@ const STATUS_LABELS: Record<ContractStatus, string> = {
   [ContractStatus.ACTIVE]: "نشط",
   [ContractStatus.EXPIRED]: "منتهي",
   [ContractStatus.CANCELLED]: "ملغى",
+};
+
+const CONTRACT_COLUMNS: DataTableColumn[] = [
+  { id: "client", label: "العميل", align: "right" },
+  { id: "totalValue", label: "القيمة", align: "right" },
+  { id: "period", label: "الفترة", align: "right" },
+  { id: "status", label: "الحالة", align: "right" },
+  { id: "actions", label: "إجراءات", align: "left" },
+];
+
+const CONTRACT_EMPTY: DataTableEmptyState = {
+  icon: FileText,
+  message: "لا توجد عقود بعد.",
+  hint: "أنشئ عقداً جديداً من صفحة لوحة المبيعات أو من صفحة العروض.",
 };
 
 interface ContractsTableProps {
@@ -68,83 +84,69 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>العميل</TableHead>
-            <TableHead>القيمة</TableHead>
-            <TableHead>الفترة</TableHead>
-            <TableHead>الحالة</TableHead>
-            <TableHead className="text-right">إجراءات</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {contracts.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={5}
-                className="text-center text-muted-foreground"
-              >
-                لا توجد عقود بعد.
-              </TableCell>
-            </TableRow>
-          ) : (
-            contracts.map((contract) => (
-              <TableRow key={contract.id}>
-                <TableCell>
-                  {contract.client?.companyName ?? contract.clientId}
-                </TableCell>
-                <TableCell>{contract.totalValue.toLocaleString("en-US")}</TableCell>
-                <TableCell>
-                  {new Intl.DateTimeFormat("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                    numberingSystem: "latn",
-                  }).format(new Date(contract.startDate))}{" "}
-                  -{" "}
-                  {new Intl.DateTimeFormat("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                    numberingSystem: "latn",
-                  }).format(new Date(contract.endDate))}
-                </TableCell>
-                <TableCell>{STATUS_LABELS[contract.status]}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    {contract.status === ContractStatus.DRAFT && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleSend(contract.id)}
-                        disabled={sending}
-                      >
-                        إرسال
-                      </Button>
-                    )}
-                    {contract.status === ContractStatus.SENT && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleSign(contract.id)}
-                        disabled={signing}
-                      >
-                        توقيع
-                      </Button>
-                    )}
-                    {contract.status === ContractStatus.SIGNED && (
-                      <Button size="sm" variant="secondary" disabled>
-                        تم التوقيع
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={CONTRACT_COLUMNS}
+      data={contracts}
+      isLoading={false}
+      isError={false}
+      emptyState={CONTRACT_EMPTY}
+      renderRow={(contract) => (
+        <TableRow key={contract.id}>
+          <TableCell className="text-right">
+            {contract.client?.companyName ?? contract.clientId}
+          </TableCell>
+          <TableCell className="text-right">
+            {contract.totalValue.toLocaleString("en-US")}
+          </TableCell>
+          <TableCell className="text-right">
+            {new Intl.DateTimeFormat("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              numberingSystem: "latn",
+            }).format(new Date(contract.startDate))}{" "}
+            -{" "}
+            {new Intl.DateTimeFormat("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              numberingSystem: "latn",
+            }).format(new Date(contract.endDate))}
+          </TableCell>
+          <TableCell className="text-right">
+            {STATUS_LABELS[contract.status]}
+          </TableCell>
+          <TableCell className="text-left">
+            <div className="flex justify-end gap-2">
+              {contract.status === ContractStatus.DRAFT && (
+                <ActionButton
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleSend(contract.id)}
+                  loading={sending}
+                >
+                  إرسال
+                </ActionButton>
+              )}
+              {contract.status === ContractStatus.SENT && (
+                <ActionButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleSign(contract.id)}
+                  loading={signing}
+                >
+                  توقيع
+                </ActionButton>
+              )}
+              {contract.status === ContractStatus.SIGNED && (
+                <ActionButton size="sm" variant="ghost" disabled>
+                  تم التوقيع
+                </ActionButton>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    />
   );
 }

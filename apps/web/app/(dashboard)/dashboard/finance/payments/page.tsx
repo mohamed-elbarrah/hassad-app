@@ -10,15 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   Search,
   Filter,
@@ -29,7 +23,7 @@ import {
   Landmark,
   Loader2,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -39,16 +33,16 @@ export default function PaymentsPage() {
 
   const getMethodIcon = (method: string) => {
     if (method.includes("VISA") || method.includes("MADA"))
-      return <CreditCard className="w-4 h-4 ml-2 text-blue-500" />;
+      return <CreditCard className="w-4 h-4 ml-2 text-action-blue" />;
     if (method.includes("BANK_TRANSFER"))
-      return <Landmark className="w-4 h-4 ml-2 text-slate-500" />;
-    return <Banknote className="w-4 h-4 ml-2 text-emerald-500" />;
+      return <Landmark className="w-4 h-4 ml-2 text-neutral-500" />;
+    return <Banknote className="w-4 h-4 ml-2 text-success-500" />;
   };
 
   if (isLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
       </div>
     );
   }
@@ -63,36 +57,36 @@ export default function PaymentsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">تتبع المدفوعات</h1>
-          <p className="text-muted-foreground">
+          <p className="text-neutral-300">
             سجل شامل لجميع العمليات المالية الواردة.
           </p>
         </div>
-        <Button variant="outline">
+        <ActionButton variant="outline">
           <Download className="w-4 h-4 ml-2" />
           تحميل كشف الحساب
-        </Button>
+        </ActionButton>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-none shadow-sm bg-emerald-50/50 dark:bg-emerald-500/5">
-          <CardContent className="p-4 flex items-center justify-between">
+        <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm bg-success-50/50 dark:bg-success-500/5">
+          <div className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-emerald-600">
+              <p className="text-sm font-medium text-success-600">
                 مدفوعات ناجحة (هذه الصفحة)
               </p>
               <h3 className="text-2xl font-bold">
                 {totalSuccessful.toLocaleString()} ر.س
               </h3>
             </div>
-            <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600">
+            <div className="p-2 rounded-full bg-success-100 dark:bg-success-500/20 text-success-600">
               <CreditCard className="w-5 h-5" />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      <Card className="border-none shadow-md">
-        <CardHeader>
+      <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
+        <div className="p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <Tabs defaultValue="all" className="w-full md:w-auto">
               <TabsList className="grid grid-cols-3 w-full md:w-[300px]">
@@ -103,16 +97,16 @@ export default function PaymentsPage() {
             </Tabs>
             <div className="flex flex-1 items-center gap-2 max-w-sm">
               <div className="relative flex-1">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
+                <FormInputControl
                   placeholder="بحث برقم العملية أو العميل..."
                   className="pr-10"
                 />
               </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-6 pt-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -134,7 +128,7 @@ export default function PaymentsPage() {
                   <TableCell>
                     <Link
                       href={`/dashboard/finance/invoices/${p.invoiceId}`}
-                      className="flex items-center hover:text-primary transition-colors"
+                      className="flex items-center hover:text-secondary-500 transition-colors"
                     >
                       {p.invoice?.invoiceNumber || "N/A"}
                       <ExternalLink className="w-3 h-3 mr-1" />
@@ -155,7 +149,7 @@ export default function PaymentsPage() {
                   <TableCell>
                     <FinanceStatusBadge status={p.status as any} />
                   </TableCell>
-                  <TableCell className="text-left text-xs text-muted-foreground">
+                  <TableCell className="text-left text-xs text-neutral-300">
                     {new Date(p.date).toLocaleDateString("ar-SA-u-nu-latn")}
                   </TableCell>
                 </TableRow>
@@ -164,7 +158,7 @@ export default function PaymentsPage() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="text-center py-10 text-muted-foreground"
+                    className="text-center py-10 text-neutral-300"
                   >
                     لا توجد عمليات مسجلة.
                   </TableCell>
@@ -172,8 +166,8 @@ export default function PaymentsPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

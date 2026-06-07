@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog } from "@/components/design-system/Dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { 
+  FormSelect,
+  FormSelectTrigger,
+  FormSelectValue,
+  FormSelectContent,
+  FormSelectItem,
+} from "@/components/design-system/FormSelectControl";
 import { 
   CampaignPlatform 
 } from "@hassad/shared";
@@ -53,67 +52,67 @@ export function CampaignFormModal({ isOpen, onClose, taskId, clientId, projectId
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]" dir="rtl">
-        <DialogHeader className="text-right">
-          <DialogTitle>إنشاء حملة جديدة</DialogTitle>
-          <DialogDescription>أضف تفاصيل الحملة الإعلانية المرتبطة بهذه المهمة.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">اسم الحملة</Label>
-            <Input 
-              id="name" 
-              placeholder="مثال: بحث جوجل - رمضان" 
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="platform">المنصة</Label>
-            <Select 
-              value={formData.platform} 
-              onValueChange={(v) => setFormData({ ...formData, platform: v as CampaignPlatform })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="اختر المنصة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={CampaignPlatform.GOOGLE}>Google Ads</SelectItem>
-                <SelectItem value={CampaignPlatform.META}>Meta Ads</SelectItem>
-                <SelectItem value={CampaignPlatform.TIKTOK}>TikTok Ads</SelectItem>
-                <SelectItem value={CampaignPlatform.SNAPCHAT}>Snapchat Ads</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <Dialog
+      open={isOpen}
+      onOpenChange={onClose}
+      title="إنشاء حملة جديدة"
+      description="أضف تفاصيل الحملة الإعلانية المرتبطة بهذه المهمة."
+      className="sm:max-w-[425px]"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <div className="space-y-2">
+          <label htmlFor="name">اسم الحملة</label>
+          <FormInputControl 
+            id="name" 
+            placeholder="مثال: بحث جوجل - رمضان" 
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="platform">المنصة</label>
+          <FormSelect 
+            value={formData.platform} 
+            onValueChange={(v) => setFormData({ ...formData, platform: v as CampaignPlatform })}
+          >
+            <FormSelectTrigger>
+              <FormSelectValue placeholder="اختر المنصة" />
+            </FormSelectTrigger>
+            <FormSelectContent>
+              <FormSelectItem value={CampaignPlatform.GOOGLE}>Google Ads</FormSelectItem>
+              <FormSelectItem value={CampaignPlatform.META}>Meta Ads</FormSelectItem>
+              <FormSelectItem value={CampaignPlatform.TIKTOK}>TikTok Ads</FormSelectItem>
+              <FormSelectItem value={CampaignPlatform.SNAPCHAT}>Snapchat Ads</FormSelectItem>
+            </FormSelectContent>
+          </FormSelect>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="budget">الميزانية الكلية (USD)</Label>
-            <Input 
-              id="budget" 
-              type="number" 
-              value={formData.budgetTotal}
-              onChange={(e) => setFormData({ ...formData, budgetTotal: parseFloat(e.target.value) })}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="date">تاريخ البدء</Label>
-            <Input 
-              id="date" 
-              type="date" 
-              value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              required
-            />
-          </div>
-          <div className="pt-4 flex gap-3">
-            <Button type="submit" className="flex-1">تأكيد الإضافة</Button>
-            <Button type="button" variant="outline" onClick={onClose}>إلغاء</Button>
-          </div>
-        </form>
-      </DialogContent>
+        <div className="space-y-2">
+          <label htmlFor="budget">الميزانية الكلية (USD)</label>
+          <FormInputControl 
+            id="budget" 
+            type="number" 
+            value={formData.budgetTotal}
+            onChange={(e) => setFormData({ ...formData, budgetTotal: parseFloat(e.target.value) })}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="date">تاريخ البدء</label>
+          <FormInputControl 
+            id="date" 
+            type="date" 
+            value={formData.startDate}
+            onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+            required
+          />
+        </div>
+        <div className="pt-4 flex gap-3">
+          <ActionButton type="submit" className="flex-1">تأكيد الإضافة</ActionButton>
+          <ActionButton type="button" variant="outline" onClick={onClose}>إلغاء</ActionButton>
+        </div>
+      </form>
     </Dialog>
   );
 }

@@ -1,14 +1,14 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { ClientStatus } from "@hassad/shared";
 import type { ClientFilters } from "@/features/clients/clientsApi";
 
@@ -45,7 +45,7 @@ export function ClientFiltersBar({ filters, onChange }: ClientFiltersBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Search */}
-      <Input
+      <FormInputControl
         placeholder="ابحث بالاسم..."
         value={filters.search ?? ""}
         onChange={(e) => handleSearch(e.target.value)}
@@ -53,25 +53,29 @@ export function ClientFiltersBar({ filters, onChange }: ClientFiltersBarProps) {
       />
 
       {/* Status filter */}
-      <Select value={filters.status ?? "ALL"} onValueChange={handleStatus}>
-        <SelectTrigger className="h-9 w-44">
-          <SelectValue placeholder="كل الحالات" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">كل الحالات</SelectItem>
+      <FormSelect value={filters.status ?? "ALL"} onValueChange={handleStatus}>
+        <FormSelectTrigger className="h-9 w-44">
+          <FormSelectValue placeholder="كل الحالات" />
+        </FormSelectTrigger>
+        <FormSelectContent>
+          <FormSelectItem value="ALL">كل الحالات</FormSelectItem>
           {(Object.values(ClientStatus) as ClientStatus[]).map((s) => (
-            <SelectItem key={s} value={s}>
+            <FormSelectItem key={s} value={s}>
               {STATUS_LABELS[s]}
-            </SelectItem>
+            </FormSelectItem>
           ))}
-        </SelectContent>
-      </Select>
+        </FormSelectContent>
+      </FormSelect>
 
       {/* Reset */}
       {hasActiveFilters && (
-        <Button variant="ghost" size="sm" onClick={handleReset}>
+        <ActionButton
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+        >
           مسح الفلاتر
-        </Button>
+        </ActionButton>
       )}
     </div>
   );

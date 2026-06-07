@@ -50,44 +50,44 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
 
 const STATUS_COLORS: Record<RequestStatus, { column: string; dot: string }> = {
   [RequestStatus.SUBMITTED]: {
-    column: "bg-slate-50 border-slate-200",
-    dot: "bg-slate-400",
+    column: "bg-neutral-50 border-neutral-200",
+    dot: "bg-neutral-400",
   },
   [RequestStatus.QUALIFYING]: {
-    column: "bg-blue-50 border-blue-200",
-    dot: "bg-blue-400",
+    column: "bg-neutral-50 border-neutral-200",
+    dot: "bg-neutral-500",
   },
   [RequestStatus.PROPOSAL_IN_PROGRESS]: {
-    column: "bg-violet-50 border-violet-200",
-    dot: "bg-violet-400",
+    column: "bg-secondary-100 border-secondary-200",
+    dot: "bg-secondary-500",
   },
   [RequestStatus.PROPOSAL_SENT]: {
-    column: "bg-amber-50 border-amber-200",
-    dot: "bg-amber-400",
+    column: "bg-alert-50 border-alert-200",
+    dot: "bg-alert-400",
   },
   [RequestStatus.NEGOTIATION]: {
-    column: "bg-orange-50 border-orange-200",
-    dot: "bg-orange-400",
+    column: "bg-alert-50 border-alert-200",
+    dot: "bg-alert-500",
   },
   [RequestStatus.CONTRACT_PREPARATION]: {
-    column: "bg-yellow-50 border-yellow-200",
-    dot: "bg-yellow-400",
+    column: "bg-alert-50 border-alert-200",
+    dot: "bg-alert-500",
   },
   [RequestStatus.CONTRACT_SENT]: {
-    column: "bg-lime-50 border-lime-200",
-    dot: "bg-lime-500",
+    column: "bg-success-50 border-success-200",
+    dot: "bg-success-500",
   },
   [RequestStatus.SIGNED]: {
-    column: "bg-emerald-50 border-emerald-200",
-    dot: "bg-emerald-500",
+    column: "bg-success-100 border-success-200",
+    dot: "bg-success-500",
   },
   [RequestStatus.PROJECT_CREATED]: {
-    column: "bg-teal-50 border-teal-200",
-    dot: "bg-teal-500",
+    column: "bg-success-50 border-success-200",
+    dot: "bg-success-500",
   },
   [RequestStatus.CANCELLED]: {
-    column: "bg-rose-50 border-rose-200",
-    dot: "bg-rose-500",
+    column: "bg-danger-50 border-danger-200",
+    dot: "bg-danger-500",
   },
 };
 
@@ -95,15 +95,15 @@ const KANBAN_GROUPS = [
   {
     id: "intake",
     label: "الاستقبال والتأهيل",
-    accentClass: "bg-blue-50 border-blue-200 text-blue-700",
-    textClass: "text-blue-700",
+    accentClass: "bg-neutral-50 border-neutral-200 text-neutral-600",
+    textClass: "text-neutral-600",
     stages: [RequestStatus.SUBMITTED, RequestStatus.QUALIFYING],
   },
   {
     id: "proposal",
     label: "العرض والتفاوض",
-    accentClass: "bg-violet-50 border-violet-200 text-violet-700",
-    textClass: "text-violet-700",
+    accentClass: "bg-secondary-100 border-secondary-200 text-secondary-500",
+    textClass: "text-secondary-500",
     stages: [
       RequestStatus.PROPOSAL_IN_PROGRESS,
       RequestStatus.PROPOSAL_SENT,
@@ -113,15 +113,15 @@ const KANBAN_GROUPS = [
   {
     id: "contract",
     label: "العقد",
-    accentClass: "bg-amber-50 border-amber-200 text-amber-700",
-    textClass: "text-amber-700",
+    accentClass: "bg-alert-50 border-alert-200 text-alert-600",
+    textClass: "text-alert-600",
     stages: [RequestStatus.CONTRACT_PREPARATION, RequestStatus.CONTRACT_SENT],
   },
   {
     id: "handoff",
     label: "التوقيع والتحويل",
-    accentClass: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    textClass: "text-emerald-700",
+    accentClass: "bg-success-100 border-success-200 text-success-700",
+    textClass: "text-success-700",
     stages: [
       RequestStatus.SIGNED,
       RequestStatus.PROJECT_CREATED,
@@ -193,12 +193,12 @@ export function KanbanBoard() {
       <div className="space-y-4">
         {KANBAN_GROUPS.map((group) => (
           <div key={group.id} className="space-y-2">
-            <div className="h-10 bg-muted animate-pulse rounded-lg" />
+            <div className="h-10 bg-neutral-50 animate-pulse rounded-lg" />
             <div className="flex gap-3">
               {group.stages.map((stage) => (
                 <div
                   key={stage}
-                  className="w-72 shrink-0 h-48 bg-muted animate-pulse rounded-xl"
+                  className="w-72 shrink-0 h-48 bg-neutral-50 animate-pulse rounded-xl"
                 />
               ))}
             </div>
@@ -212,7 +212,7 @@ export function KanbanBoard() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-        <p className="text-destructive font-medium">
+        <p className="text-danger-500 font-medium">
           {resolveKanbanError(error)}
         </p>
       </div>
@@ -223,7 +223,7 @@ export function KanbanBoard() {
 
   const emptyBanner = totalRequests === 0 && data !== undefined && (
     <div className="mb-4 rounded-xl border-2 border-dashed px-6 py-4 text-center">
-      <p className="text-sm font-medium text-muted-foreground">
+      <p className="text-sm font-medium text-neutral-300">
         لا يوجد أي طلب بعد — سيظهر هنا بعد تقديم طلبات جديدة عبر بوابة العملاء
       </p>
     </div>

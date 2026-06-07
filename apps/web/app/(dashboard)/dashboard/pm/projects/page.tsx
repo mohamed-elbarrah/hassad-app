@@ -2,15 +2,9 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/design-system/Input";
+import { Select, SelectItem } from "@/components/design-system/Select";
+import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { ProjectCard } from "@/components/dashboard/pm/ProjectCard";
 import { ProjectKanbanBoard } from "@/components/dashboard/pm/ProjectKanbanBoard";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
@@ -62,30 +56,26 @@ export default function ProjectsPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <div className="flex-1">
           <Input
             placeholder="ابحث عن مشروع..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pr-9"
+            icon={<Search className="size-4 text-neutral-300" />}
           />
         </div>
         <Select
           value={statusFilter}
           onValueChange={(v) => setStatusFilter(v as ProjectStatus | "all")}
+          placeholder="كل الحالات"
+          triggerClassName="w-full sm:w-44"
         >
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue placeholder="كل الحالات" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الحالات</SelectItem>
-            {Object.values(ProjectStatus).map((s) => (
-              <SelectItem key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
+          <SelectItem value="all">كل الحالات</SelectItem>
+          {Object.values(ProjectStatus).map((s) => (
+            <SelectItem key={s} value={s}>
+              {STATUS_LABELS[s]}
+            </SelectItem>
+          ))}
         </Select>
         <div className="flex rounded-md border p-1 gap-1">
           <button
@@ -93,8 +83,8 @@ export default function ProjectsPage() {
             onClick={() => setView("kanban")}
             className={`px-3 py-1.5 text-sm rounded ${
               view === "kanban"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground"
+                ? "bg-secondary-500 text-white"
+                : "text-neutral-300"
             }`}
           >
             كانبان
@@ -104,8 +94,8 @@ export default function ProjectsPage() {
             onClick={() => setView("cards")}
             className={`px-3 py-1.5 text-sm rounded ${
               view === "cards"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground"
+                ? "bg-secondary-500 text-white"
+                : "text-neutral-300"
             }`}
           >
             بطاقات
@@ -129,13 +119,13 @@ export default function ProjectsPage() {
       {view === "cards" && isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-lg" />
+            <DSSkeleton key={i} className="h-48 rounded-lg" />
           ))}
         </div>
       )}
 
       {view === "cards" && isError && (
-        <p className="text-destructive text-sm">
+        <p className="text-danger-500 text-sm">
           حدث خطأ أثناء تحميل المشاريع. يرجى تحديث الصفحة.
         </p>
       )}
@@ -143,7 +133,7 @@ export default function ProjectsPage() {
       {view === "cards" && !isLoading && !isError && data && (
         <>
           {data.items.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
+            <div className="text-center py-16 text-neutral-300">
               <p className="text-lg font-medium">لا توجد مشاريع</p>
               <p className="text-sm mt-1">ابدأ بإنشاء مشروع جديد</p>
             </div>
@@ -154,7 +144,7 @@ export default function ProjectsPage() {
               ))}
             </div>
           )}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-neutral-300">
             إجمالي {data.total} مشروع
           </p>
         </>

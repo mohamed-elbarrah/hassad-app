@@ -1,15 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { StatsCard } from "@/components/dashboard/employee/StatsCard";
+} from "@/components/design-system/Select";
+import { StatCard } from "@/components/design-system/StatCard";
 import { EmployeeTaskKanban } from "@/components/dashboard/employee/EmployeeTaskKanban";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ClipboardList } from "lucide-react";
@@ -54,23 +51,15 @@ export default function EmployeeDashboardPage() {
       {statsLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-28 rounded-lg" />
+            <DSSkeleton key={i} className="h-28 rounded-lg" />
           ))}
         </div>
       ) : stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatsCard label="إجمالي المهام" value={stats.total} />
-          <StatsCard
-            label="قيد التنفيذ"
-            value={stats.inProgress}
-            variant="default"
-          />
-          <StatsCard
-            label="متأخرة"
-            value={stats.overdue}
-            variant="destructive"
-          />
-          <StatsCard label="منجزة" value={stats.done} variant="success" />
+          <StatCard title="إجمالي المهام" value={stats.total} />
+          <StatCard title="قيد التنفيذ" value={stats.inProgress} />
+          <StatCard title="متأخرة" value={stats.overdue} variant="danger" />
+          <StatCard title="منجزة" value={stats.done} variant="success" />
         </div>
       ) : null}
 
@@ -79,18 +68,15 @@ export default function EmployeeDashboardPage() {
         <Select
           value={priorityFilter}
           onValueChange={(v) => setPriorityFilter(v as TaskPriority | "all")}
+          placeholder="كل الأولويات"
+          triggerClassName="w-44"
         >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="كل الأولويات" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل الأولويات</SelectItem>
-            {Object.values(TaskPriority).map((p) => (
-              <SelectItem key={p} value={p}>
-                {PRIORITY_LABELS[p]}
-              </SelectItem>
-            ))}
-          </SelectContent>
+          <SelectItem value="all">كل الأولويات</SelectItem>
+          {Object.values(TaskPriority).map((p) => (
+            <SelectItem key={p} value={p}>
+              {PRIORITY_LABELS[p]}
+            </SelectItem>
+          ))}
         </Select>
       </div>
 

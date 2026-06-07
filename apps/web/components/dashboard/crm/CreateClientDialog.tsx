@@ -5,14 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/design-system/Dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Form,
   FormControl,
@@ -20,15 +14,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@/components/design-system/Form";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
 import { useCreateClientMutation } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { useAppSelector } from "@/lib/hooks";
@@ -86,19 +80,21 @@ export function CreateClientDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          إضافة عميل
-        </Button>
-      </DialogTrigger>
+    <>
+      <ActionButton
+        variant="primary"
+        onClick={() => setOpen(true)}
+        icon={<Plus className="h-4 w-4" />}
+      >
+        إضافة عميل
+      </ActionButton>
 
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>إضافة عميل جديد</DialogTitle>
-        </DialogHeader>
-
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title="إضافة عميل جديد"
+        contentClassName="sm:max-w-md"
+      >
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
@@ -112,7 +108,7 @@ export function CreateClientDialog() {
                 <FormItem>
                   <FormLabel>اسم الشركة</FormLabel>
                   <FormControl>
-                    <Input placeholder="مثال: شركة النجوم" {...field} />
+                    <FormInputControl placeholder="مثال: شركة النجوم" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -127,7 +123,7 @@ export function CreateClientDialog() {
                 <FormItem>
                   <FormLabel>اسم جهة الاتصال</FormLabel>
                   <FormControl>
-                    <Input placeholder="الاسم الكامل للمسؤول" {...field} />
+                    <FormInputControl placeholder="الاسم الكامل للمسؤول" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -142,7 +138,7 @@ export function CreateClientDialog() {
                 <FormItem>
                   <FormLabel>رقم الواتساب</FormLabel>
                   <FormControl>
-                    <Input
+                    <FormInputControl
                       dir="ltr"
                       placeholder="+966 5x xxx xxxx"
                       {...field}
@@ -161,7 +157,7 @@ export function CreateClientDialog() {
                 <FormItem>
                   <FormLabel>البريد الإلكتروني (اختياري)</FormLabel>
                   <FormControl>
-                    <Input
+                    <FormInputControl
                       dir="ltr"
                       type="email"
                       placeholder="email@example.com"
@@ -182,7 +178,7 @@ export function CreateClientDialog() {
                 <FormItem>
                   <FormLabel>اسم النشاط التجاري</FormLabel>
                   <FormControl>
-                    <Input placeholder="الاسم التجاري المعروف به" {...field} />
+                    <FormInputControl placeholder="الاسم التجاري المعروف به" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -196,22 +192,22 @@ export function CreateClientDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>نوع النشاط</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormSelect onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر النوع" />
-                      </SelectTrigger>
+                      <FormSelectTrigger>
+                        <FormSelectValue placeholder="اختر النوع" />
+                      </FormSelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <FormSelectContent>
                       {(Object.values(BusinessType) as BusinessType[]).map(
                         (type) => (
-                          <SelectItem key={type} value={type}>
+                          <FormSelectItem key={type} value={type}>
                             {BUSINESS_TYPE_LABELS[type]}
-                          </SelectItem>
+                          </FormSelectItem>
                         ),
                       )}
-                    </SelectContent>
-                  </Select>
+                    </FormSelectContent>
+                  </FormSelect>
                   <FormMessage />
                 </FormItem>
               )}
@@ -225,26 +221,26 @@ export function CreateClientDialog() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>مدير الحساب (اختياري)</FormLabel>
-                    <Select
+                    <FormSelect
                       value={field.value ?? "AUTO"}
                       onValueChange={(value) =>
                         field.onChange(value === "AUTO" ? undefined : value)
                       }
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="تعيين تلقائي" />
-                        </SelectTrigger>
+                        <FormSelectTrigger>
+                          <FormSelectValue placeholder="تعيين تلقائي" />
+                        </FormSelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="AUTO">تعيين تلقائي</SelectItem>
+                      <FormSelectContent>
+                        <FormSelectItem value="AUTO">تعيين تلقائي</FormSelectItem>
                         {(salesUsers?.items ?? []).map((staff) => (
-                          <SelectItem key={staff.id} value={staff.id}>
+                          <FormSelectItem key={staff.id} value={staff.id}>
                             {staff.name}
-                          </SelectItem>
+                          </FormSelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </FormSelectContent>
+                    </FormSelect>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -252,26 +248,30 @@ export function CreateClientDialog() {
             )}
 
             {form.formState.errors.root && (
-              <p className="text-sm text-destructive">
+              <p className="text-sm text-danger-500">
                 {form.formState.errors.root.message}
               </p>
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button
+              <ActionButton
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
               >
                 إلغاء
-              </Button>
-              <Button type="submit" disabled={isLoading}>
+              </ActionButton>
+              <ActionButton
+                type="submit"
+                variant="primary"
+                loading={isLoading}
+              >
                 {isLoading ? "جارٍ الحفظ..." : "حفظ"}
-              </Button>
+              </ActionButton>
             </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }

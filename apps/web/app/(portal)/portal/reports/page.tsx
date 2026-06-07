@@ -7,10 +7,10 @@ import {
   useGetReportTimelineQuery,
   type ReportSummary,
 } from "@/features/portal/portalApi";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { PortalActionButton } from "@/components/portal/PortalActionButton";
-import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import {
   BarChart3,
   TrendingUp,
@@ -18,16 +18,16 @@ import {
   BarChart2,
   PieChart,
 } from "lucide-react";
-import { MonthlyComparisonBarChart } from "@/components/portal/MonthlyComparisonBarChart";
-import { PerformanceTrendLineChart } from "@/components/portal/PerformanceTrendLineChart";
-import { SpendDistributionDonutChart } from "@/components/portal/SpendDistributionDonutChart";
-import { SmartTips } from "@/components/portal/SmartTips";
-import { TopCampaignsTable } from "@/components/portal/TopCampaignsTable";
+import { MonthlyComparisonBarChart } from "@/components/design-system/MonthlyComparisonBarChart";
+import { PerformanceTrendLineChart } from "@/components/design-system/PerformanceTrendLineChart";
+import { SpendDistributionDonutChart } from "@/components/design-system/SpendDistributionDonutChart";
+import { SmartTips } from "@/components/design-system/SmartTips";
+import { TopCampaignsTable } from "@/components/design-system/TopCampaignsTable";
 import {
   TimeRangeSelector,
   getTimeRangeParams,
   type TimeRange,
-} from "@/components/portal/TimeRangeSelector";
+} from "@/components/design-system/TimeRangeSelector";
 
 function fmtCompact(n: number): string {
   if (n >= 1_000_000)
@@ -46,10 +46,10 @@ function fmtSpend(n: number): string {
 function KpiCardShell() {
   return (
     <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5">
-      <PortalSkeleton className="h-3 w-24 mx-auto mb-2" />
+      <Skeleton className="h-3 w-24 mx-auto mb-2" />
       <div className="flex items-center justify-center gap-2 mb-1">
-        <PortalSkeleton className="h-5 w-14 rounded-full" />
-        <PortalSkeleton className="h-8 w-20" />
+        <Skeleton className="h-5 w-14 rounded-full" />
+        <Skeleton className="h-8 w-20" />
       </div>
     </div>
   );
@@ -121,7 +121,7 @@ export default function PortalReportsPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="التقارير"
         description="لوحة تحليلات شاملة لأداء حملاتك الإعلانية، الزيارات، التحويلات، والعائد على الإنفاق."
         icon={BarChart3}
@@ -144,14 +144,14 @@ export default function PortalReportsPage() {
           <p className="mt-2 text-sm text-danger-600">
             يرجى المحاولة لاحقاً أو تحديث الصفحة.
           </p>
-          <PortalActionButton
+          <ActionButton
             variant="outline"
             size="sm"
             onClick={() => refetch()}
             className="mt-3"
           >
             إعادة المحاولة
-          </PortalActionButton>
+          </ActionButton>
         </div>
       )}
 
@@ -188,27 +188,27 @@ export default function PortalReportsPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <PortalSurfaceCard
+                <SurfaceCard
                   title="تطور الأداء"
                   icon={TrendingUp}
                   className="md:col-span-3"
                   contentClassName="h-[220px] md:h-[260px]"
                 >
                   <PerformanceTrendLineChart timeline={timeline} />
-                </PortalSurfaceCard>
+                </SurfaceCard>
 
-                <PortalSurfaceCard
+                <SurfaceCard
                   title="مقارنة الأداء"
                   icon={BarChart3}
                   className="md:col-span-2"
                   contentClassName="h-[220px] md:h-[260px]"
                 >
                   <MonthlyComparisonBarChart timeline={timeline} />
-                </PortalSurfaceCard>
+                </SurfaceCard>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <PortalSurfaceCard
+                <SurfaceCard
                   title="توصيات ذكية"
                   icon={Lightbulb}
                   className="md:col-span-3"
@@ -220,9 +220,9 @@ export default function PortalReportsPage() {
                       لا توجد توصيات حالياً.
                     </p>
                   )}
-                </PortalSurfaceCard>
+                </SurfaceCard>
 
-                <PortalSurfaceCard
+                <SurfaceCard
                   title="أفضل الإعلانات أداءً"
                   icon={BarChart2}
                   className="md:col-span-5"
@@ -234,9 +234,9 @@ export default function PortalReportsPage() {
                       لا توجد بيانات.
                     </p>
                   )}
-                </PortalSurfaceCard>
+                </SurfaceCard>
 
-                <PortalSurfaceCard
+                <SurfaceCard
                   title="توزيع الإنفاق الإعلاني"
                   icon={PieChart}
                   className="md:col-span-4"
@@ -245,7 +245,7 @@ export default function PortalReportsPage() {
                   <SpendDistributionDonutChart
                     data={report.platformDistribution}
                   />
-                </PortalSurfaceCard>
+                </SurfaceCard>
               </div>
             </>
           )}

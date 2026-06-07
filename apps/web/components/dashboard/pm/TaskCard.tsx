@@ -1,25 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Calendar, User } from "lucide-react";
 import type { Task } from "@hassad/shared";
 import { TaskStatus, TaskPriority } from "@hassad/shared";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const PRIORITY_CONFIG: Record<
-  TaskPriority,
-  {
-    label: string;
-    variant: "default" | "secondary" | "destructive" | "outline";
-  }
-> = {
-  [TaskPriority.LOW]: { label: "منخفض", variant: "secondary" },
-  [TaskPriority.NORMAL]: { label: "عادي", variant: "outline" },
-  [TaskPriority.HIGH]: { label: "عالي", variant: "default" },
-  [TaskPriority.URGENT]: { label: "عاجل", variant: "destructive" },
+const PRIORITY_MAP: Record<TaskPriority, string> = {
+  [TaskPriority.LOW]: "neutral",
+  [TaskPriority.NORMAL]: "neutral",
+  [TaskPriority.HIGH]: "warning",
+  [TaskPriority.URGENT]: "danger",
+};
+
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  [TaskPriority.LOW]: "منخفض",
+  [TaskPriority.NORMAL]: "عادي",
+  [TaskPriority.HIGH]: "عالي",
+  [TaskPriority.URGENT]: "عاجل",
 };
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -28,6 +29,14 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.IN_REVIEW]: "قيد المراجعة",
   [TaskStatus.REVISION]: "يحتاج تعديل",
   [TaskStatus.DONE]: "منجز",
+};
+
+const STATUS_MAP: Record<TaskStatus, string> = {
+  [TaskStatus.TODO]: "PENDING",
+  [TaskStatus.IN_PROGRESS]: "IN_PROGRESS",
+  [TaskStatus.IN_REVIEW]: "PENDING",
+  [TaskStatus.REVISION]: "REJECTED",
+  [TaskStatus.DONE]: "COMPLETED",
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -43,31 +52,28 @@ interface TaskCardProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function TaskCard({ task }: TaskCardProps) {
-  const priorityConfig = PRIORITY_CONFIG[task.priority];
-
   return (
     <Link href={`/dashboard/pm/tasks/${task.id}`} className="block">
-      <Card className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-        <CardHeader className="pb-2 pt-3 px-3">
+      <SurfaceCard className="shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+        <div className="pb-2 pt-3 px-3">
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-sm font-medium leading-tight line-clamp-2">
+            <h4 className="text-sm font-medium leading-tight line-clamp-2">
               {task.title}
-            </CardTitle>
-            <Badge
-              variant={priorityConfig.variant}
+            </h4>
+            <StatusBadge
+              status={PRIORITY_MAP[task.priority]}
+              label={PRIORITY_LABELS[task.priority]}
               className="text-[10px] shrink-0"
-            >
-              {priorityConfig.label}
-            </Badge>
+            />
           </div>
-        </CardHeader>
-        <CardContent className="px-3 pb-3 space-y-2">
+        </div>
+        <div className="px-3 pb-3 space-y-2">
           {task.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2">
+            <p className="text-xs text-neutral-300 line-clamp-2">
               {task.description}
             </p>
           )}
-          <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+          <div className="flex flex-col gap-1 text-[11px] text-neutral-300">
             {task.assignee && (
               <div className="flex items-center gap-1">
                 <User className="size-3 shrink-0" />
@@ -85,11 +91,11 @@ export function TaskCard({ task }: TaskCardProps) {
               </span>
             </div>
           </div>
-          <div className="text-[10px] text-muted-foreground border-t pt-1.5">
+          <div className="text-[10px] text-neutral-300 border-t pt-1.5">
             {STATUS_LABELS[task.status]}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SurfaceCard>
     </Link>
   );
 }

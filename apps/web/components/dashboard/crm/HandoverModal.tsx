@@ -5,13 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/design-system/Dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Form,
   FormControl,
@@ -19,9 +14,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from "@/components/design-system/Form";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { useHandoverClientMutation } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
@@ -118,105 +112,114 @@ export function HandoverModal({ open, onClose, client }: HandoverModalProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>تسليم العميل للعمليات</DialogTitle>
-          <DialogDescription>
-            سيتم إنشاء مشروع جديد لـ <strong>{client.name}</strong> وتعيين مدير
-            مشروع مسؤول.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 pt-2"
+    <Dialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="تسليم العميل للعمليات"
+      description={
+        <>
+          سيتم إنشاء مشروع جديد لـ <strong>{client.name}</strong> وتعيين مدير
+          مشروع مسؤول.
+        </>
+      }
+      contentClassName="sm:max-w-md"
+      footer={
+        <div className="flex justify-end gap-3 w-full">
+          <ActionButton
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
           >
-            {/* Project name */}
+            إلغاء
+          </ActionButton>
+          <ActionButton
+            variant="primary"
+            onClick={form.handleSubmit(onSubmit)}
+            loading={isLoading}
+          >
+            {isLoading ? "جارٍ التسليم..." : "تأكيد التسليم"}
+          </ActionButton>
+        </div>
+      }
+      className="space-y-4 pt-2"
+    >
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-4"
+        >
+          {/* Project name */}
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>اسم المشروع</FormLabel>
+                <FormControl>
+                  <FormInputControl placeholder="اسم المشروع" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Manager combobox */}
+          <FormField
+            control={form.control}
+            name="managerId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>مدير المشروع</FormLabel>
+                <FormControl>
+                  <SearchCombobox
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={managerOptions}
+                    onSearchChange={setManagerSearch}
+                    placeholder="ابحث عن مدير المشروع..."
+                    searchPlaceholder="اكتب اسم المدير"
+                    isLoading={usersFetching}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-3">
             <FormField
               control={form.control}
-              name="name"
+              name="startDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>اسم المشروع</FormLabel>
+                  <FormLabel>تاريخ البدء</FormLabel>
                   <FormControl>
-                    <Input placeholder="اسم المشروع" {...field} />
+                    <FormInputControl type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            {/* Manager combobox */}
             <FormField
               control={form.control}
-              name="managerId"
+              name="endDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>مدير المشروع</FormLabel>
+                  <FormLabel>تاريخ الانتهاء</FormLabel>
                   <FormControl>
-                    <SearchCombobox
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={managerOptions}
-                      onSearchChange={setManagerSearch}
-                      placeholder="ابحث عن مدير المشروع..."
-                      searchPlaceholder="اكتب اسم المدير"
-                      isLoading={usersFetching}
-                    />
+                    <FormInputControl type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          </div>
 
-            {/* Dates */}
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>تاريخ البدء</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>تاريخ الانتهاء</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isLoading}
-              >
-                إلغاء
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "جارٍ التسليم..." : "تأكيد التسليم"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
+          {/* Hidden submit to allow form.submit() via footer button */}
+          <button type="submit" className="hidden" />
+        </form>
+      </Form>
     </Dialog>
   );
 }

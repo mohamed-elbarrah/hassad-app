@@ -10,12 +10,16 @@ import {
   Plus,
 } from "lucide-react";
 import { DurationUnit, type RequestStatus } from "@hassad/shared";
+import { Dialog } from "@/components/design-system/Dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
 import {
   useCreateProposalMutation,
   useUpdateProposalMutation,
@@ -334,38 +338,32 @@ export function ProposalFormDialog({
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <>
       {!isControlled && (
-        <DialogTrigger asChild>
-          {trigger ?? (
-            <button className="bg-[#1e293b] hover:bg-[#0f172a] text-white text-[15px] font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg shadow-slate-800/20 hover:shadow-xl hover:shadow-slate-800/30">
-              {isEdit ? "تعديل العرض" : "إنشاء عرض جديد"}
-            </button>
-          )}
-        </DialogTrigger>
+        <ActionButton variant="primary" onClick={() => setInternalOpen(true)}>
+          {isEdit ? "تعديل العرض" : "إنشاء عرض جديد"}
+        </ActionButton>
       )}
 
-        <DialogContent
-        className="sm:max-w-[520px] p-0 gap-0 rounded-[24px] overflow-hidden"
-        dir="rtl"
+      <Dialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={isEdit ? "تعديل العرض" : "إنشاء عرض جديد"}
+        contentClassName="sm:max-w-[520px] p-0 gap-0 rounded-[24px] overflow-hidden"
+        className="space-y-6 max-h-[90vh] overflow-y-auto modal-scroll p-6"
       >
-        <DialogTitle className="sr-only">
-          {isEdit ? "تعديل العرض" : "إنشاء عرض جديد"}
-        </DialogTitle>
-        <div className="max-h-[90vh] overflow-y-auto modal-scroll">
-          <div className="p-6 space-y-6">
             {/* ── Success state (create only) ─────────────────────── */}
             {sentLink && !isEdit ? (
               <div className="space-y-5 py-2">
                 <div className="flex flex-col items-center gap-3 py-4 text-center">
-                  <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <CheckCheck className="h-7 w-7 text-emerald-600" />
+                  <div className="h-14 w-14 rounded-full bg-success-100 flex items-center justify-center">
+                    <CheckCheck className="h-7 w-7 text-success-600" />
                   </div>
                   <div>
                     <p className="font-semibold text-base">
                       تم إنشاء العرض وإرساله
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-neutral-300 mt-1">
                       شارك الرابط مع العميل لمراجعة العرض والرد عليه
                     </p>
                   </div>
@@ -373,30 +371,28 @@ export function ProposalFormDialog({
 
                 <div className="min-w-0">
                   <div className="relative w-full">
-                    <input
+                    <FormInputControl
                       readOnly
                       value={sentLink}
                       dir="ltr"
-                      className="w-full h-12 px-4 pr-36 text-xs font-mono truncate border border-gray-200 rounded-xl bg-gray-50"
+                      className="w-full h-12 px-4 pr-36 text-xs font-mono truncate bg-neutral-50"
                     />
                     <div className="absolute inset-y-0 right-2 flex items-center">
-                      <button
+                      <ActionButton
+                        size="sm"
+                        variant={copied ? "secondary" : "primary"}
                         onClick={copyLink}
-                        className={`px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
-                          copied
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-[#1e293b] text-white hover:bg-[#0f172a]"
-                        }`}
+                        className="px-4 py-2 text-[13px] rounded-lg"
                       >
                         {copied ? "تم النسخ ✓" : "نسخ الرابط"}
-                      </button>
+                      </ActionButton>
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleOpenChange(false)}
-                  className="w-full h-12 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full h-12 border border-neutral-200 rounded-xl text-[13px] font-medium text-secondary-500 hover:bg-neutral-50 transition-colors"
                 >
                   إغلاق
                 </button>
@@ -406,23 +402,23 @@ export function ProposalFormDialog({
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Header */}
                 <div className="text-center space-y-1.5">
-                  <h1 className="text-[22px] font-bold text-gray-900 leading-tight">
+                  <h1 className="text-[22px] font-bold text-natural-100 leading-tight">
                     {isEdit ? "تعديل العرض" : "إنشاء عرض جديد"}
                   </h1>
-                  <p className="text-[13px] text-gray-500 leading-relaxed px-2">
+                  <p className="text-[13px] text-neutral-300 leading-relaxed px-2">
                     أدخل تفاصيل العرض وأرسله مباشرة للعميل برابط مخصص
                   </p>
                 </div>
 
                 {/* ── Customer Info ─────────────────────────────────── */}
                 <div>
-                  <h2 className="text-[15px] font-bold text-gray-900 mb-3">
+                  <h2 className="text-[15px] font-bold text-natural-100 mb-3">
                     بيانات العميل
                   </h2>
-                  <div className="border border-gray-200 rounded-2xl p-4 space-y-4 bg-white">
+                  <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0">
                     {/* Request picker */}
                     <div>
-                      <label className="text-[13px] font-bold text-gray-900 block mb-1.5">
+                      <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
                         الطلب
                       </label>
                       <SearchCombobox
@@ -435,7 +431,7 @@ export function ProposalFormDialog({
                         isLoading={requestsFetching}
                       />
                       {fieldErrors.requestId && (
-                        <p className="text-[11px] text-red-500 mt-1">
+                        <p className="text-[11px] text-danger-500 mt-1">
                           {fieldErrors.requestId}
                         </p>
                       )}
@@ -449,7 +445,7 @@ export function ProposalFormDialog({
 
                     {/* ── Title ────────────────────────────────────────── */}
                     <div>
-                      <label className="text-[13px] font-bold text-gray-900 block mb-1.5">
+                      <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
                         عنوان العرض
                       </label>
                       <input
@@ -457,10 +453,10 @@ export function ProposalFormDialog({
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="باقة إدارة وسائل التواصل الاجتماعي"
-                        className="w-full h-12 px-4 text-right text-[13px] text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 transition-colors bg-white"
+                        className="w-full h-12 px-4 text-right text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
                       />
                       {fieldErrors.title && (
-                        <p className="text-[11px] text-red-500 mt-1">
+                        <p className="text-[11px] text-danger-500 mt-1">
                           {fieldErrors.title}
                         </p>
                       )}
@@ -468,16 +464,16 @@ export function ProposalFormDialog({
 
                     {/* ── PDF Upload ─────────────────────────────────────── */}
                     <div>
-                      <label className="text-[13px] font-bold text-gray-900 block mb-1.5">
+                      <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
                         ملف العرض الفني (PDF)
-                        {!isEdit && <span className="text-red-500 mr-1">*</span>}
+                        {!isEdit && <span className="text-danger-500 mr-1">*</span>}
                       </label>
                       <div
-                        className="flex items-center gap-3 rounded-xl border border-gray-200 h-12 px-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 rounded-xl border border-neutral-200 h-12 px-4 cursor-pointer hover:bg-neutral-50 transition-colors"
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        <Paperclip className="w-4 h-4 text-gray-400 shrink-0" />
-                        <span className="text-[13px] text-gray-500 flex-1 truncate">
+                        <Paperclip className="w-4 h-4 text-neutral-200 shrink-0" />
+                        <span className="text-[13px] text-neutral-300 flex-1 truncate">
                           {pdfFile
                             ? pdfFile.name
                             : isEdit
@@ -493,7 +489,7 @@ export function ProposalFormDialog({
                               if (fileInputRef.current)
                                 fileInputRef.current.value = "";
                             }}
-                            className="shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                            className="shrink-0 text-neutral-200 hover:text-danger-500 transition-colors"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -510,7 +506,7 @@ export function ProposalFormDialog({
                         }}
                       />
                       {fieldErrors.file && (
-                        <p className="text-[11px] text-red-500 mt-1">
+                        <p className="text-[11px] text-danger-500 mt-1">
                           {fieldErrors.file}
                         </p>
                       )}
@@ -520,10 +516,10 @@ export function ProposalFormDialog({
 
                 {/* ── Services ─────────────────────────────────────── */}
                 <div>
-                  <h2 className="text-[15px] font-bold text-gray-900 mb-3">
+                  <h2 className="text-[15px] font-bold text-natural-100 mb-3">
                     الخدمات المطلوبة
                   </h2>
-                  <div className="border border-gray-200 rounded-2xl p-4 space-y-3 bg-white">
+                  <div className="border border-neutral-200 rounded-2xl p-4 space-y-3 bg-natural-0">
                     {services.map((service, index) => (
                       <div
                         key={index}
@@ -532,7 +528,7 @@ export function ProposalFormDialog({
                         <button
                           type="button"
                           onClick={() => removeService(index)}
-                          className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-300 transition-all duration-200 flex-shrink-0"
+                          className="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-200 hover:text-danger-500 hover:border-danger-300 transition-all duration-200 flex-shrink-0"
                           title="حذف الخدمة"
                           disabled={services.length <= 1}
                         >
@@ -545,7 +541,7 @@ export function ProposalFormDialog({
                             updateServiceName(index, e.target.value)
                           }
                           placeholder="اسم الخدمة"
-                          className="flex-1 h-12 px-4 text-right text-[13px] text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 transition-colors bg-white"
+                          className="flex-1 h-12 px-4 text-right text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
                         />
                         <div className="relative w-[130px] flex-shrink-0">
                           <input
@@ -556,26 +552,27 @@ export function ProposalFormDialog({
                               updateServicePrice(index, e.target.value)
                             }
                             placeholder="0"
-                            className="w-full h-12 px-3 pl-10 text-left text-[13px] text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 transition-colors bg-white"
+                            className="w-full h-12 px-3 pl-10 text-left text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
                           />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[12px] font-medium pointer-events-none">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-200 text-[12px] font-medium pointer-events-none">
                             رس
                           </span>
                         </div>
                       </div>
                     ))}
 
-                    <button
+                    <ActionButton
+                      variant="outline"
                       type="button"
                       onClick={addService}
-                      className="w-full h-12 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 flex items-center justify-center gap-2 mt-1"
+                      className="w-full h-12 text-[13px] font-medium gap-2 mt-1"
                     >
                       <Plus className="w-4 h-4" />
                       <span>اضافة خدمة اخرى</span>
-                    </button>
+                    </ActionButton>
 
                     {fieldErrors.servicesList && (
-                      <p className="text-[11px] text-red-500">
+                      <p className="text-[11px] text-danger-500">
                         {fieldErrors.servicesList}
                       </p>
                     )}
@@ -583,38 +580,38 @@ export function ProposalFormDialog({
                 </div>
 
                 {/* ── Total ──────────────────────────────────────────── */}
-                <div className="bg-gray-100 rounded-xl px-5 py-4 flex items-center justify-between">
-                  <span className="text-[15px] font-bold text-gray-900">
+                <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between">
+                  <span className="text-[15px] font-bold text-natural-100">
                     {formatNumber(totalAmount)} رس
                   </span>
-                  <span className="text-[14px] font-bold text-gray-900">
+                  <span className="text-[14px] font-bold text-natural-100">
                     الإجمالي الكلي
                   </span>
                 </div>
 
                 {/* ── Dates & Terms ────────────────────────────────── */}
                 <div>
-                  <h2 className="text-[15px] font-bold text-gray-900 mb-3">
+                  <h2 className="text-[15px] font-bold text-natural-100 mb-3">
                     التواريخ والشروط
                   </h2>
-                  <div className="border border-gray-200 rounded-2xl p-4 bg-white">
+                  <div className="border border-neutral-200 rounded-2xl p-4 bg-natural-0">
                     <div className="grid grid-cols-3 gap-3">
                       {/* Start Date */}
                       <div>
-                        <label className="text-[11px] font-bold text-gray-500 text-center mb-2 block">
+                        <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
                           تاريخ البداية
                         </label>
                         <input
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full h-12 px-2 text-[13px] text-gray-700 border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 transition-colors bg-white text-center appearance-none"
+                          className="w-full h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center appearance-none"
                         />
                       </div>
 
                       {/* Duration */}
                       <div>
-                        <label className="text-[11px] font-bold text-gray-500 text-center mb-2 block">
+                        <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
                           مدة التنفيذ
                         </label>
                         <div className="flex items-stretch gap-1.5">
@@ -624,12 +621,12 @@ export function ProposalFormDialog({
                             placeholder="0"
                             value={durationDays}
                             onChange={(e) => setDurationDays(e.target.value)}
-                            className="flex-1 min-w-0 h-12 px-2 text-[13px] text-gray-700 border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 transition-colors bg-white text-center"
+                            className="flex-1 min-w-0 h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center"
                           />
                           <select
                             value={durationUnit}
                             onChange={(e) => setDurationUnit(e.target.value)}
-                            className="h-12 px-2 text-[13px] text-gray-700 border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 transition-colors bg-white appearance-none cursor-pointer"
+                            className="h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 appearance-none cursor-pointer"
                             style={{ width: "70px" }}
                           >
                             <option value="DAYS">أيام</option>
@@ -641,7 +638,7 @@ export function ProposalFormDialog({
 
                       {/* Offer Validity */}
                       <div>
-                        <label className="text-[11px] font-bold text-gray-500 text-center mb-2 block">
+                        <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
                           صلاحية العرض
                         </label>
                         <input
@@ -650,7 +647,7 @@ export function ProposalFormDialog({
                           placeholder="30"
                           value={offerValidityDays}
                           onChange={(e) => setOfferValidityDays(e.target.value)}
-                          className="w-full h-12 px-2 text-[13px] text-gray-700 border border-gray-200 rounded-xl focus:outline-none focus:border-gray-400 transition-colors bg-white text-center"
+                          className="w-full h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center"
                         />
                       </div>
                     </div>
@@ -659,17 +656,18 @@ export function ProposalFormDialog({
 
                 {/* ── Buttons row ─────────────────────────────── */}
                 <div className="flex gap-3">
-                  <button
+                  <ActionButton
+                    variant="outline"
                     type="button"
                     onClick={() => handleOpenChange(false)}
-                    className="w-[30%] h-14 border border-gray-200 rounded-xl text-[13px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-[30%] h-14 text-[13px] font-medium"
                   >
                     إلغاء
-                  </button>
+                  </ActionButton>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 h-14 bg-[#1e293b] hover:bg-[#0f172a] text-white text-[15px] font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-slate-800/20 hover:shadow-xl hover:shadow-slate-800/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                    className="flex-1 h-14 bg-secondary-500 hover:bg-secondary-600 text-white text-[15px] font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-secondary-500/20 hover:shadow-xl hover:shadow-secondary-500/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
                   >
                     {isSubmitting
                       ? "جارٍ الإرسال..."
@@ -680,9 +678,6 @@ export function ProposalFormDialog({
                 </div>
               </form>
             )}
-          </div>
-        </div>
-      </DialogContent>
 
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -702,6 +697,7 @@ export function ProposalFormDialog({
         `,
       }}
       />
-    </Dialog>
+      </Dialog>
+    </>
   );
 }

@@ -6,6 +6,8 @@ import { ProposalsTable } from "@/components/dashboard/sales/ProposalsTable";
 import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
 import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { StatusBanner } from "@/components/design-system/StatusBanner";
 
 function resolveProposalError(error: unknown): string {
   const e = error as FetchBaseQueryError | undefined;
@@ -35,13 +37,17 @@ export default function ProposalsPage() {
       </div>
 
       {isLoading && (
-        <div className="h-32 rounded-md border bg-muted/30 animate-pulse" />
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
       )}
 
       {isError && (
-        <div className="rounded-md border p-4 text-sm text-destructive">
+        <StatusBanner variant="danger">
           {resolveProposalError(error)}
-        </div>
+        </StatusBanner>
       )}
 
       {!isLoading && !isError && (

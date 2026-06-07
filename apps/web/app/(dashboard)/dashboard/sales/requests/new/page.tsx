@@ -6,10 +6,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { BusinessType, ClientSource } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
+import { Checkbox } from "@/components/design-system/Checkbox";
 import {
   Form,
   FormControl,
@@ -17,14 +17,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "@/components/design-system/Form";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
 import { useCreateRequestMutation } from "@/features/requests/requestsApi";
 import { useGetServicesQuery } from "@/features/services/servicesApi";
 import { toast } from "sonner";
@@ -143,12 +143,12 @@ export default function NewOrderPage() {
   return (
     <div className="max-w-2xl mx-auto py-8 px-4" dir="rtl">
       <div className="flex items-center gap-3 mb-8">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary-500 text-natural-0 shrink-0">
           <PlusCircle className="h-5 w-5" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">إنشاء طلب جديد</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-neutral-300">
             أنشئ طلباً جديداً لمتابعته عبر دورة الطلب حتى التحويل إلى مشروع
           </p>
         </div>
@@ -167,10 +167,10 @@ export default function NewOrderPage() {
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors",
                     step === s
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-secondary-500 text-natural-0"
                       : step > s
-                        ? "bg-emerald-500 text-white"
-                        : "bg-muted text-muted-foreground",
+                        ? "bg-success-500 text-white"
+                        : "bg-neutral-50 text-neutral-300",
                   )}
                 >
                   {step > s ? <CheckCircle2 className="w-4 h-4" /> : s}
@@ -178,7 +178,7 @@ export default function NewOrderPage() {
                 <span
                   className={cn(
                     "text-sm font-medium transition-colors",
-                    step >= s ? "text-foreground" : "text-muted-foreground",
+                    step >= s ? "text-natural-100" : "text-neutral-300",
                   )}
                 >
                   {s === 1 ? "المعلومات الأساسية" : "تفاصيل المشروع"}
@@ -187,7 +187,7 @@ export default function NewOrderPage() {
                   <div
                     className={cn(
                       "flex-1 h-0.5 rounded transition-colors",
-                      step > s ? "bg-emerald-400" : "bg-muted",
+                      step > s ? "bg-success-400" : "bg-neutral-50",
                     )}
                   />
                 )}
@@ -204,10 +204,10 @@ export default function NewOrderPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      الاسم الكامل <span className="text-destructive">*</span>
+                      الاسم الكامل <span className="text-danger-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input
+                      <FormInputControl
                         placeholder="مثال: أحمد محمد العمري"
                         autoFocus
                         {...field}
@@ -225,10 +225,10 @@ export default function NewOrderPage() {
                   <FormItem>
                     <FormLabel>
                       رقم الهاتف (واتساب){" "}
-                      <span className="text-destructive">*</span>
+                      <span className="text-danger-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input
+                      <FormInputControl
                         placeholder="+966 5X XXX XXXX"
                         type="tel"
                         dir="ltr"
@@ -247,7 +247,7 @@ export default function NewOrderPage() {
                   <FormItem>
                     <FormLabel>البريد الإلكتروني (اختياري)</FormLabel>
                     <FormControl>
-                      <Input
+                      <FormInputControl
                         placeholder="example@company.com"
                         type="email"
                         dir="ltr"
@@ -266,10 +266,10 @@ export default function NewOrderPage() {
                   <FormItem>
                     <FormLabel>
                       اسم الشركة / المشروع{" "}
-                      <span className="text-destructive">*</span>
+                      <span className="text-danger-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="مثال: مطعم النخيل" {...field} />
+                      <FormInputControl placeholder="مثال: مطعم النخيل" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -288,25 +288,25 @@ export default function NewOrderPage() {
                   <FormItem>
                     <FormLabel>
                       نوع النشاط التجاري{" "}
-                      <span className="text-destructive">*</span>
+                      <span className="text-danger-500">*</span>
                     </FormLabel>
-                    <Select
+                    <FormSelect
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر نوع نشاطك التجاري" />
-                        </SelectTrigger>
+                        <FormSelectTrigger>
+                          <FormSelectValue placeholder="اختر نوع نشاطك التجاري" />
+                        </FormSelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <FormSelectContent>
                         {Object.values(BusinessType).map((type) => (
-                          <SelectItem key={type} value={type}>
+                          <FormSelectItem key={type} value={type}>
                             {BUSINESS_TYPE_LABELS[type]}
-                          </SelectItem>
+                          </FormSelectItem>
                         ))}
-                      </SelectContent>
-                    </Select>
+                      </FormSelectContent>
+                    </FormSelect>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -319,7 +319,7 @@ export default function NewOrderPage() {
                   <FormItem>
                     <FormLabel>وصف المشروع (اختياري)</FormLabel>
                     <FormControl>
-                      <Textarea
+                      <FormTextareaControl
                         placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
                         className="resize-none h-24"
                         {...field}
@@ -337,7 +337,7 @@ export default function NewOrderPage() {
                   <FormItem>
                     <FormLabel>
                       الخدمات المطلوبة{" "}
-                      <span className="text-destructive">*</span>
+                      <span className="text-danger-500">*</span>
                     </FormLabel>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
                       {activeServices.length > 0
@@ -347,7 +347,7 @@ export default function NewOrderPage() {
                               control={form.control}
                               name="serviceIds"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-muted/40 transition-colors cursor-pointer">
+                                <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-neutral-50/40 transition-colors cursor-pointer">
                                   <FormControl>
                                     <Checkbox
                                       checked={field.value?.includes(
@@ -404,7 +404,7 @@ export default function NewOrderPage() {
                               control={form.control}
                               name="serviceIds"
                               render={({ field }) => (
-                                <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-muted/40 transition-colors cursor-pointer">
+                                <FormItem className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-neutral-50/40 transition-colors cursor-pointer">
                                   <FormControl>
                                     <Checkbox
                                       checked={field.value?.includes(
@@ -445,48 +445,49 @@ export default function NewOrderPage() {
           {/* ── Navigation Buttons ────────────────── */}
           <div className="flex items-center justify-between pt-4 border-t gap-3">
             {step === 2 ? (
-              <Button
+              <ActionButton
                 type="button"
                 variant="outline"
                 onClick={() => setStep(1)}
                 disabled={isLoading}
-                className="gap-2"
+                icon={<ChevronRight className="w-4 h-4" />}
               >
-                <ChevronRight className="w-4 h-4" />
                 السابق
-              </Button>
+              </ActionButton>
             ) : (
               <div />
             )}
 
-            <Button
+            <ActionButton
               type="button"
               variant="ghost"
               onClick={() => router.back()}
               disabled={isLoading}
             >
               إلغاء
-            </Button>
+            </ActionButton>
 
             {step === 1 ? (
-              <Button type="button" onClick={handleNext} className="gap-2">
+              <ActionButton
+                type="button"
+                variant="primary"
+                onClick={handleNext}
+                icon={<ChevronLeft className="w-4 h-4" />}
+                iconPosition="right"
+              >
                 التالي
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
+              </ActionButton>
             ) : (
-              <Button type="submit" disabled={isLoading} className="gap-2">
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    جاري الإنشاء...
-                  </>
-                ) : (
-                  <>
-                    إنشاء الطلب
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </Button>
+              <ActionButton
+                type="submit"
+                variant="primary"
+                disabled={isLoading}
+                loading={isLoading}
+                icon={<ArrowRight className="w-4 h-4" />}
+                iconPosition="right"
+              >
+                {isLoading ? "جاري الإنشاء..." : "إنشاء الطلب"}
+              </ActionButton>
             )}
           </div>
         </form>

@@ -58,8 +58,8 @@ export function ProjectKanbanCard({
       ref={setNodeRef}
       onClick={onOpen}
       className={cn(
-        "bg-background rounded-lg border p-3 cursor-grab active:cursor-grabbing",
-        "hover:border-primary/40 hover:shadow-sm transition-all duration-100",
+        "bg-natural-0 rounded-lg border p-3 cursor-grab active:cursor-grabbing",
+        "hover:border-secondary-500/40 hover:shadow-sm transition-all duration-100",
         (isDragging || isOverlay) && "opacity-50 shadow-xl rotate-1 scale-105",
       )}
       {...attributes}
@@ -69,30 +69,30 @@ export function ProjectKanbanCard({
         <p className="text-sm font-semibold leading-tight line-clamp-2 flex-1 min-w-0">
           {project.name}
         </p>
-        <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-0.5" />
+        <GripVertical className="h-4 w-4 text-neutral-300/40 shrink-0 mt-0.5" />
       </div>
 
       {project.client?.companyName && (
-        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 mt-2 text-xs text-neutral-300">
           <Building2 className="w-3 h-3 shrink-0" />
           <span className="truncate">{project.client.companyName}</span>
         </div>
       )}
 
       <div className="mt-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+        <div className="flex items-center justify-between text-xs text-neutral-300 mb-1">
           <span>التقدم</span>
           <span>{progressValue}%</span>
         </div>
-        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+        <div className="h-1.5 bg-neutral-50 rounded-full overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full transition-all"
+            className="h-full bg-secondary-500 rounded-full transition-all"
             style={{ width: `${progressValue}%` }}
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1 mt-3 text-xs text-neutral-300">
         <Calendar className="w-3 h-3 shrink-0" />
         <span>
           {startDate} - {endDate}

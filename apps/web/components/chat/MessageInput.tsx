@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Send, Paperclip, X } from "lucide-react";
 
 interface MessageInputProps {
@@ -87,14 +87,14 @@ export function MessageInput({
           {files.map((file, i) => (
             <div
               key={`${file.name}-${i}`}
-              className="flex items-center gap-1.5 rounded-lg border bg-muted/50 px-2.5 py-1.5 text-xs"
+              className="flex items-center gap-1.5 rounded-lg border bg-neutral-50/50 px-2.5 py-1.5 text-xs"
             >
-              <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <Paperclip className="h-3 w-3 shrink-0 text-neutral-300" />
               <span className="max-w-[120px] truncate">{file.name}</span>
               <button
                 type="button"
                 onClick={() => removeFile(i)}
-                className="shrink-0 text-muted-foreground hover:text-foreground"
+                className="shrink-0 text-neutral-300 hover:text-foreground"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -111,16 +111,14 @@ export function MessageInput({
           onChange={handleFileSelect}
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
         />
-        <Button
-          type="button"
+        <ActionButton
           variant="ghost"
-          size="icon"
-          className="h-10 w-10 shrink-0 rounded-xl"
+          className="h-10 w-10 shrink-0 rounded-xl p-0"
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
         >
           <Paperclip className="h-4 w-4" />
-        </Button>
+        </ActionButton>
         <textarea
           ref={textareaRef}
           value={text}
@@ -131,22 +129,21 @@ export function MessageInput({
           placeholder={placeholder}
           rows={1}
           className={cn(
-            "flex-1 resize-none rounded-xl border bg-muted/50 px-3 py-2 text-sm",
+            "flex-1 resize-none rounded-xl border bg-neutral-50/50 px-3 py-2 text-sm",
             "focus:outline-none focus:ring-2 focus:ring-ring",
             "max-h-[120px]",
-            "placeholder:text-muted-foreground",
+            "placeholder:text-neutral-300",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}
           dir="rtl"
         />
-        <Button
-          size="icon"
+        <ActionButton
           onClick={handleSend}
           disabled={disabled || (!text.trim() && files.length === 0)}
-          className="h-10 w-10 shrink-0 rounded-xl"
+          className="h-10 w-10 shrink-0 rounded-xl p-0"
         >
           <Send className="h-4 w-4" />
-        </Button>
+        </ActionButton>
       </div>
     </div>
   );

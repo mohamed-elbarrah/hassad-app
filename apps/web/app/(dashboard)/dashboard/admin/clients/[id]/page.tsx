@@ -7,9 +7,9 @@ import { useGetClientByIdQuery } from "@/features/clients/clientsApi";
 import { ClientInfoCard } from "@/components/dashboard/crm/ClientInfoCard";
 import { ClientTimeline } from "@/components/dashboard/crm/ClientTimeline";
 import { RequirementsForm } from "@/components/dashboard/crm/RequirementsForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -23,7 +23,7 @@ export default function AdminClientDetailPage({ params }: PageProps) {
   if (isLoading) {
     return (
       <div className="space-y-6" dir="rtl">
-        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-8 w-48 rounded" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <Skeleton className="h-48" />
@@ -38,11 +38,11 @@ export default function AdminClientDetailPage({ params }: PageProps) {
   if (isError || !client) {
     return (
       <div className="text-center space-y-4 pt-12" dir="rtl">
-        <p className="text-muted-foreground">لم يتم العثور على العميل</p>
-        <Button variant="outline" onClick={() => router.back()}>
+        <p className="text-neutral-300">لم يتم العثور على العميل</p>
+        <ActionButton variant="outline" onClick={() => router.back()}>
           <ArrowRight className="h-4 w-4 me-2" />
           رجوع
-        </Button>
+        </ActionButton>
       </div>
     );
   }
@@ -62,15 +62,14 @@ export default function AdminClientDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex items-center gap-3">
-        <Button
+        <ActionButton
           variant="ghost"
           size="sm"
           onClick={() => router.back()}
-          className="gap-2"
+          icon={<ArrowRight className="h-4 w-4" />}
         >
-          <ArrowRight className="h-4 w-4" />
           رجوع
-        </Button>
+        </ActionButton>
         <h1 className="text-2xl font-semibold">{client.companyName}</h1>
       </div>
 
@@ -85,38 +84,26 @@ export default function AdminClientDetailPage({ params }: PageProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">المشاريع</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+        <SurfaceCard title="المشاريع">
+          <p className="text-sm text-neutral-300">
             قائمة المشاريع الخاصة بالعميل ستظهر هنا.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">الفواتير</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          </p>
+        </SurfaceCard>
+        <SurfaceCard title="الفواتير">
+          <p className="text-sm text-neutral-300">
             الفواتير والمدفوعات قيد الإضافة.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">المحادثات</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          </p>
+        </SurfaceCard>
+        <SurfaceCard title="المحادثات">
+          <p className="text-sm text-neutral-300">
             سجل المحادثات سيظهر هنا.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">العقود</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          </p>
+        </SurfaceCard>
+        <SurfaceCard title="العقود">
+          <p className="text-sm text-neutral-300">
             تفاصيل العقود سيتم إظهارها عند اكتمال الربط.
-          </CardContent>
-        </Card>
+          </p>
+        </SurfaceCard>
       </div>
     </div>
   );

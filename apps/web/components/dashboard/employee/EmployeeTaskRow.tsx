@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Pill } from "@/components/design-system/Pill";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Archive, ArchiveRestore } from "lucide-react";
 import { TaskStatus, TaskPriority, TaskDepartment } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
@@ -33,14 +33,14 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.PRODUCTION]: "مونتاج",
 };
 
-const PRIORITY_VARIANT: Record<
+const PRIORITY_TONE: Record<
   TaskPriority,
-  "default" | "secondary" | "destructive" | "outline"
+  "neutral" | "success" | "warning" | "danger" | "blue"
 > = {
-  [TaskPriority.LOW]: "secondary",
-  [TaskPriority.NORMAL]: "outline",
-  [TaskPriority.HIGH]: "default",
-  [TaskPriority.URGENT]: "destructive",
+  [TaskPriority.LOW]: "neutral",
+  [TaskPriority.NORMAL]: "neutral",
+  [TaskPriority.HIGH]: "warning",
+  [TaskPriority.URGENT]: "danger",
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -72,8 +72,8 @@ export function EmployeeTaskRow({
     : null;
 
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+    <SurfaceCard className="shadow-sm hover:shadow-md transition-shadow">
+      <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         {/* Title + project */}
         <div className="flex-1 min-w-0">
           <Link
@@ -83,7 +83,7 @@ export function EmployeeTaskRow({
             {task.title}
           </Link>
           {task.project && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+            <p className="text-xs text-neutral-300 mt-0.5 line-clamp-1">
               {task.project.name}
             </p>
           )}
@@ -91,15 +91,13 @@ export function EmployeeTaskRow({
 
         {/* Badges */}
         <div className="flex flex-wrap gap-1.5 shrink-0">
-          <Badge variant="outline">{STATUS_LABELS[task.status]}</Badge>
-          <Badge variant={PRIORITY_VARIANT[task.priority]}>
-            {PRIORITY_LABELS[task.priority]}
-          </Badge>
+          <Pill tone="neutral">{STATUS_LABELS[task.status]}</Pill>
+          <Pill tone={PRIORITY_TONE[task.priority]}>{PRIORITY_LABELS[task.priority]}</Pill>
           {task.department?.name && (
-            <Badge variant="secondary">
+            <Pill tone="blue">
               {DEPARTMENT_LABELS[task.department.name as TaskDepartment] ??
                 task.department.name}
-            </Badge>
+            </Pill>
           )}
         </div>
 
@@ -108,8 +106,8 @@ export function EmployeeTaskRow({
           <p
             className={`text-xs shrink-0 ${
               isOverdue
-                ? "text-destructive font-medium"
-                : "text-muted-foreground"
+                ? "text-danger-500 font-medium"
+                : "text-neutral-300"
             }`}
           >
             {dueDateFormatted}
@@ -117,9 +115,9 @@ export function EmployeeTaskRow({
         )}
 
         {/* Archive toggle */}
-        <Button
+        <ActionButton
           variant="ghost"
-          size="icon"
+          size="sm"
           className="shrink-0"
           disabled={isArchiving}
           onClick={() => onArchive(task.id)}
@@ -130,8 +128,8 @@ export function EmployeeTaskRow({
           ) : (
             <Archive className="size-4" />
           )}
-        </Button>
-      </CardContent>
-    </Card>
+        </ActionButton>
+      </div>
+    </SurfaceCard>
   );
 }

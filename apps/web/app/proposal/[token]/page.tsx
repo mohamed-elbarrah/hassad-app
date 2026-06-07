@@ -7,9 +7,9 @@ import {
   useRequestRevisionByTokenMutation,
 } from "@/features/proposals/proposalsApi";
 import { ProposalStatus } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { toast } from "sonner";
 import {
   FileText,
@@ -19,7 +19,7 @@ import {
   AlertCircle,
   MessageSquare,
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/design-system/UserAvatar";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
 
@@ -36,11 +36,11 @@ const STATUS_LABELS: Record<ProposalStatus, string> = {
 };
 
 const STATUS_COLORS: Record<ProposalStatus, string> = {
-  [ProposalStatus.DRAFT]: "bg-slate-100 text-slate-700",
-  [ProposalStatus.SENT]: "bg-blue-100 text-blue-700",
-  [ProposalStatus.APPROVED]: "bg-emerald-100 text-emerald-700",
-  [ProposalStatus.REVISION_REQUESTED]: "bg-orange-100 text-orange-700",
-  [ProposalStatus.REJECTED]: "bg-red-100 text-red-700",
+  [ProposalStatus.DRAFT]: "bg-neutral-100 text-neutral-700",
+  [ProposalStatus.SENT]: "bg-action-blue-soft text-action-blue",
+  [ProposalStatus.APPROVED]: "bg-success-100 text-success-700",
+  [ProposalStatus.REVISION_REQUESTED]: "bg-alert-100 text-alert-700",
+  [ProposalStatus.REJECTED]: "bg-danger-100 text-danger-700",
 };
 
 export default function ProposalSharePage({ params }: PageProps) {
@@ -54,16 +54,16 @@ export default function ProposalSharePage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-muted/40 flex items-center justify-center">
-        <p className="text-muted-foreground">جارٍ تحميل العرض...</p>
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <p className="text-neutral-300">جارٍ تحميل العرض...</p>
       </div>
     );
   }
 
   if (isError || !data) {
     return (
-      <div className="min-h-screen bg-muted/40 flex items-center justify-center">
-        <p className="text-destructive">
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <p className="text-danger-500">
           العرض غير متوفر أو انتهت صلاحية الرابط.
         </p>
       </div>
@@ -75,7 +75,7 @@ export default function ProposalSharePage({ params }: PageProps) {
     STATUS_LABELS[data.status as ProposalStatus] ?? data.status;
   const statusColor =
     STATUS_COLORS[data.status as ProposalStatus] ??
-    "bg-muted text-muted-foreground";
+    "bg-neutral-50 text-neutral-300";
 
   const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath as string) : null;
   const companyLabel = data.request?.companyName ?? data.lead?.companyName;
@@ -104,14 +104,15 @@ export default function ProposalSharePage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-muted/40 flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl" dir="rtl">
-        <CardHeader className="pb-4">
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
+      <div className="w-full max-w-2xl" dir="rtl">
+        <SurfaceCard className="w-full max-w-2xl">
+          <div className="pb-4 px-5 pt-5">
           <div className="flex items-start justify-between flex-wrap gap-3">
             <div>
-              <CardTitle className="text-xl">{data.title}</CardTitle>
+              <h2 className="text-xl font-semibold">{data.title}</h2>
               {companyLabel && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-neutral-300 mt-1">
                   {companyLabel}
                   {contactLabel ? ` — ${contactLabel}` : ""}
                 </p>
@@ -123,9 +124,9 @@ export default function ProposalSharePage({ params }: PageProps) {
               {statusLabel}
             </span>
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent className="space-y-5">
+        <div className="space-y-5 px-5 pb-5">
           {/* ── Services + Contact row ──────────────────────────────────── */}
           <div className="flex flex-col md:flex-row md:gap-4 gap-5">
             {/* ── Services List (70%) ──────────────────────────────────────── */}
@@ -134,8 +135,8 @@ export default function ProposalSharePage({ params }: PageProps) {
                 <p className="text-sm font-semibold">الخدمات المطلوبة</p>
                 {(data.servicesList as { name: string; price: number }[]).map((service, idx) => (
                   <div key={idx} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{service.name}</span>
-                    <span className="text-muted-foreground font-medium">
+                    <span className="text-natural-100">{service.name}</span>
+                    <span className="text-neutral-300 font-medium">
                       {service.price.toLocaleString("en-US")} رس
                     </span>
                   </div>
@@ -149,28 +150,24 @@ export default function ProposalSharePage({ params }: PageProps) {
 
             {/* ── Sales Contact (30%) ─────────────────────────────────────── */}
             {(data.creator?.name || data.contactName) && (
-              <div className="rounded-xl border bg-slate-50 p-4 md:w-[30%]">
+              <div className="rounded-xl border bg-neutral-50 p-4 md:w-[30%]">
                 <div className="flex md:flex-col items-center md:items-center gap-3 md:gap-4 md:justify-center md:text-center h-full">
-                  <Avatar className="h-12 w-12 shrink-0 bg-primary/10">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                      {(data.creator?.name || data.contactName || "??")
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    name={(data.creator?.name || data.contactName || "??")}
+                    size="md"
+                    variant="circle"
+                  />
                   <div className="flex-1 min-w-0 md:flex-1">
-                    <p className="text-sm font-semibold text-foreground truncate">
+                    <p className="text-sm font-semibold text-natural-100 truncate">
                       {data.creator?.name || data.contactName}
                     </p>
-                    <p className="text-xs text-muted-foreground">مستشارك الفني</p>
+                    <p className="text-xs text-neutral-300">مستشارك الفني</p>
                   </div>
                   <a href="/portal/chat?openSales=true">
-                    <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                    <ActionButton variant="outline" size="sm" className="gap-2 shrink-0">
                       <MessageSquare className="w-4 h-4" />
                       تواصل معه
-                    </Button>
+                    </ActionButton>
                   </a>
                 </div>
               </div>
@@ -179,11 +176,11 @@ export default function ProposalSharePage({ params }: PageProps) {
 
           {/* ── PDF Download ────────────────────────────────────────────── */}
           {fileUrl ? (
-            <div className="flex items-center gap-3 rounded-xl border bg-slate-50 p-4">
-              <FileText className="w-8 h-8 text-blue-600 shrink-0" />
+            <div className="flex items-center gap-3 rounded-xl border bg-neutral-50 p-4">
+              <FileText className="w-8 h-8 text-action-blue shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">ملف العرض الفني</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-neutral-300">
                   يمكنك تحميل الملف لمراجعة تفاصيل العرض
                 </p>
               </div>
@@ -193,16 +190,16 @@ export default function ProposalSharePage({ params }: PageProps) {
                 rel="noopener noreferrer"
                 download
               >
-                <Button variant="outline" size="sm" className="gap-2 shrink-0">
+                <ActionButton variant="outline" size="sm" className="gap-2 shrink-0">
                   <Download className="w-4 h-4" />
                   تحميل العرض
-                </Button>
+                </ActionButton>
               </a>
             </div>
           ) : (
-            <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
-              <AlertCircle className="w-5 h-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 rounded-xl border bg-neutral-50 p-4">
+              <AlertCircle className="w-5 h-5 text-neutral-300" />
+              <p className="text-sm text-neutral-300">
                 لا يوجد ملف مرفق لهذا العرض.
               </p>
             </div>
@@ -210,27 +207,27 @@ export default function ProposalSharePage({ params }: PageProps) {
 
           {/* ── Status-specific feedback ─────────────────────────────── */}
           {data.status === ProposalStatus.APPROVED && (
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-              <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
-              <p className="text-sm text-emerald-700 font-medium">
+            <div className="flex items-center gap-2 rounded-xl bg-success-100 border border-success-200 px-4 py-3">
+              <CheckCircle className="w-5 h-5 text-success-600 shrink-0" />
+              <p className="text-sm text-success-700 font-medium">
                 لقد اعتمدت هذا العرض الفني.
               </p>
             </div>
           )}
 
           {data.status === ProposalStatus.REVISION_REQUESTED && (
-            <div className="flex items-center gap-2 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 shrink-0" />
-              <p className="text-sm text-orange-700 font-medium">
+            <div className="flex items-center gap-2 rounded-xl bg-alert-100 border border-alert-200 px-4 py-3">
+              <AlertCircle className="w-5 h-5 text-alert-600 shrink-0" />
+              <p className="text-sm text-alert-700 font-medium">
                 طلبت تعديلاً على هذا العرض.
               </p>
             </div>
           )}
 
           {data.status === ProposalStatus.REJECTED && (
-            <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
-              <XCircle className="w-5 h-5 text-red-600 shrink-0" />
-              <p className="text-sm text-red-700 font-medium">
+            <div className="flex items-center gap-2 rounded-xl bg-danger-100 border border-danger-200 px-4 py-3">
+              <XCircle className="w-5 h-5 text-danger-600 shrink-0" />
+              <p className="text-sm text-danger-700 font-medium">
                 تم رفض هذا العرض.
               </p>
             </div>
@@ -243,7 +240,7 @@ export default function ProposalSharePage({ params }: PageProps) {
                 <p className="text-sm font-medium mb-2">
                   ملاحظاتك (اختياري عند الموافقة — مطلوبة عند طلب التعديل)
                 </p>
-                <Textarea
+                <FormTextareaControl
                   rows={3}
                   placeholder="اكتب ملاحظاتك هنا..."
                   value={notes}
@@ -252,15 +249,15 @@ export default function ProposalSharePage({ params }: PageProps) {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button
+                <ActionButton
                   onClick={handleApprove}
                   disabled={approving || requesting}
                   className="gap-2"
                 >
                   <CheckCircle className="w-4 h-4" />
                   {approving ? "جارٍ الاعتماد..." : "موافقة على العرض"}
-                </Button>
-                <Button
+                </ActionButton>
+                <ActionButton
                   variant="outline"
                   onClick={handleRevision}
                   disabled={approving || requesting}
@@ -268,12 +265,13 @@ export default function ProposalSharePage({ params }: PageProps) {
                 >
                   <AlertCircle className="w-4 h-4" />
                   {requesting ? "جارٍ الإرسال..." : "طلب تعديل"}
-                </Button>
+                </ActionButton>
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        </SurfaceCard>
+      </div>
     </div>
   );
 }

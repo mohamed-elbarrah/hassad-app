@@ -4,15 +4,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { ClipboardList, FileText, PenTool, PlusCircle, type LucideIcon } from "lucide-react";
 import { useGetPortalRequestsQuery } from "@/features/portal/portalApi";
-import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { StatusBadge } from "@/components/portal/StatusBadge";
-import { PortalPagination } from "@/components/portal/PortalPagination";
-import { PortalKpiPill } from "@/components/portal/PortalKpiPill";
-import { PortalIconCircle } from "@/components/portal/PortalIconCircle";
-import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
-import { PortalActionButton } from "@/components/portal/PortalActionButton";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { Pagination } from "@/components/design-system/Pagination";
+import { KpiPill } from "@/components/design-system/KpiPill";
+import { IconCircle } from "@/components/design-system/IconCircle";
+import { InfoPanel } from "@/components/design-system/InfoPanel";
+import { ActionButton } from "@/components/design-system/ActionButton";
 
 const PAGE_SIZE = 6;
 
@@ -23,7 +23,7 @@ function RequestSummaryPill({
   label: string;
   value: string | number;
 }) {
-  return <PortalKpiPill label={label} value={value} />;
+  return <KpiPill label={label} value={value} />;
 }
 
 function RequestDocumentPanel({
@@ -40,7 +40,7 @@ function RequestDocumentPanel({
   icon: LucideIcon;
 }) {
   return (
-    <PortalInfoPanel variant="default">
+    <InfoPanel variant="default">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-base font-medium text-natural-100">{title}</p>
@@ -49,17 +49,17 @@ function RequestDocumentPanel({
           </p>
         </div>
 
-        <PortalIconCircle icon={Icon} size="sm" />
+        <IconCircle icon={Icon} size="sm" />
       </div>
 
       {href && actionLabel && (
         <div className="mt-4">
-          <PortalActionButton href={href} variant="outline" icon={<Icon className="ml-2 h-4 w-4" />}>
+          <ActionButton href={href} variant="outline" icon={<Icon className="ml-2 h-4 w-4" />}>
             {actionLabel}
-          </PortalActionButton>
+          </ActionButton>
         </div>
       )}
-    </PortalInfoPanel>
+    </InfoPanel>
   );
 }
 
@@ -99,13 +99,13 @@ export default function PortalRequestsPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="الطلبات قيد الانتظار"
         description="قبل توقيع العقد ستظهر طلباتك هنا بالحالة المبسطة. بعد التوقيع ينتقل الطلب تلقائياً إلى صفحة المشاريع كتنفيذ فعلي ضمن نفس تجربة العميل الموحدة."
         icon={ClipboardList}
       />
 
-      <PortalSurfaceCard
+      <SurfaceCard
         title="طلباتك الحالية"
         description="راجع حالة كل طلب، الخدمات المطلوبة، وآخر ما تم توفيره من عرض فني أو عقد قبل بدء التنفيذ."
         icon={ClipboardList}
@@ -119,16 +119,16 @@ export default function PortalRequestsPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
-                    <PortalSkeleton className="h-7 w-48 rounded-2xl" />
-                    <PortalSkeleton className="h-5 w-32 rounded-2xl" />
+                    <Skeleton className="h-7 w-48 rounded-2xl" />
+                    <Skeleton className="h-5 w-32 rounded-2xl" />
                   </div>
-                  <PortalSkeleton className="h-10 w-28 rounded-full" />
+                  <Skeleton className="h-10 w-28 rounded-full" />
                 </div>
-                <PortalSkeleton className="h-5 w-64 rounded-2xl" />
-                <PortalSkeleton className="h-20 w-full rounded-2xl" />
+                <Skeleton className="h-5 w-64 rounded-2xl" />
+                <Skeleton className="h-20 w-full rounded-2xl" />
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <PortalSkeleton className="h-36 w-full rounded-2xl" />
-                  <PortalSkeleton className="h-36 w-full rounded-2xl" />
+                  <Skeleton className="h-36 w-full rounded-2xl" />
+                  <Skeleton className="h-36 w-full rounded-2xl" />
                 </div>
               </div>
             ))}
@@ -271,7 +271,7 @@ export default function PortalRequestsPage() {
             })}
 
             {totalPages > 1 && (
-              <PortalPagination
+              <Pagination
                 page={page}
                 totalPages={totalPages}
                 onPageChange={setPage}
@@ -279,7 +279,7 @@ export default function PortalRequestsPage() {
             )}
           </div>
         )}
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

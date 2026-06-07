@@ -10,7 +10,7 @@ import {
 } from "@/features/finance/financeApi";
 import { KPIStatCard } from "@/components/dashboard/finance/KPIStatCard";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import {
   BarChart,
   Bar,
@@ -34,14 +34,8 @@ import {
   Wallet,
   Calendar,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   Table,
   TableBody,
@@ -99,7 +93,7 @@ export default function FinanceDashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight">
           لوحة التحكم المالية
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-neutral-300">
           نظرة عامة على الإيرادات والمصروفات والتدفق النقدي.
         </p>
       </div>
@@ -116,19 +110,19 @@ export default function FinanceDashboardPage() {
           title="فواتير مدفوعة"
           value={formatCurrency(summary?.totalRevenue)}
           icon={TrendingUp}
-          className="bg-emerald-50/50 dark:bg-emerald-500/5"
+          className="bg-success-50/50 dark:bg-success-500/5"
         />
         <KPIStatCard
           title="فواتير معلقة"
           value={formatCurrency(summary?.pendingInvoices)}
           icon={Clock}
-          className="bg-amber-50/50 dark:bg-amber-500/5"
+          className="bg-alert-50/50 dark:bg-alert-500/5"
         />
         <KPIStatCard
           title="مدفوعات فاشلة"
           value={formatCurrency(summary?.failedPayments)}
           icon={AlertTriangle}
-          className="bg-rose-50/50 dark:bg-rose-500/5"
+          className="bg-danger-50/50 dark:bg-danger-500/5"
         />
         <KPIStatCard
           title="أرباح الشهر"
@@ -144,214 +138,207 @@ export default function FinanceDashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         {/* Cash Flow Chart */}
-        <Card className="lg:col-span-4 border-none shadow-md">
-          <CardHeader>
-            <CardTitle>التدفق النقدي</CardTitle>
-            <CardDescription>
-              مقارنة الدخل والمصروفات على مدار الأشهر الماضية
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={cashFlow}
-                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="hsl(var(--primary))"
-                      stopOpacity={0.1}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="hsl(var(--primary))"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                  <linearGradient
-                    id="colorExpenses"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="hsl(var(--muted))"
-                />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12 }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `${value / 1000}k`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: "8px",
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  }}
-                  formatter={(value: number) => [
-                    `${value.toLocaleString("ar-SA-u-nu-latn")} ر.س`,
-                  ]}
-                />
-                <Legend verticalAlign="top" height={36} />
-                <Area
-                  type="monotone"
-                  dataKey="income"
-                  name="الدخل"
-                  stroke="hsl(var(--primary))"
-                  fillOpacity={1}
-                  fill="url(#colorIncome)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expenses"
-                  name="المصروفات"
-                  stroke="#f43f5e"
-                  fillOpacity={1}
-                  fill="url(#colorExpenses)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <SurfaceCard
+          className="lg:col-span-4 border-none shadow-md"
+          title="التدفق النقدي"
+          description="مقارنة الدخل والمصروفات على مدار الأشهر الماضية"
+          contentClassName="h-[350px]"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={cashFlow}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                  <stop
+                    offset="5%"
+                    stopColor="hsl(var(--primary))"
+                    stopOpacity={0.1}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="hsl(var(--primary))"
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+                <linearGradient
+                  id="colorExpenses"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
+                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="hsl(var(--muted))"
+              />
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12 }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12 }}
+                tickFormatter={(value) => `${value / 1000}k`}
+              />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "8px",
+                  border: "none",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                }}
+                formatter={(value: number) => [
+                  `${value.toLocaleString("ar-SA-u-nu-latn")} ر.س`,
+                ]}
+              />
+              <Legend verticalAlign="top" height={36} />
+              <Area
+                type="monotone"
+                dataKey="income"
+                name="الدخل"
+                stroke="hsl(var(--primary))"
+                fillOpacity={1}
+                fill="url(#colorIncome)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="expenses"
+                name="المصروفات"
+                stroke="#f43f5e"
+                fillOpacity={1}
+                fill="url(#colorExpenses)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </SurfaceCard>
 
         {/* Alerts Section */}
-        <Card className="lg:col-span-3 border-none shadow-md overflow-hidden">
-          <CardHeader className="bg-rose-50/50 dark:bg-rose-500/5">
+        <div className="lg:col-span-3 rounded-[30px] border border-portal-card-border bg-natural-0 shadow-sm overflow-hidden">
+          <div className="p-6 pb-0 bg-danger-50/50 dark:bg-danger-500/5">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-rose-600 dark:text-rose-400">
+                <h3 className="text-lg font-semibold text-danger-500 dark:text-danger-400">
                   تنبيهات مالية
-                </CardTitle>
-                <CardDescription>مشكلات تتطلب تدخلًا فوريًا</CardDescription>
+                </h3>
+                <p className="text-sm text-neutral-300">مشكلات تتطلب تدخلًا فوريًا</p>
               </div>
-              <AlertTriangle className="w-5 h-5 text-rose-500" />
+              <AlertTriangle className="w-5 h-5 text-danger-500" />
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-muted/50">
+          </div>
+          <div className="p-0">
+            <div className="divide-y divide-neutral-50/50">
               {alerts?.map((alert) => (
                 <div
                   key={alert.id}
-                  className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                  className="p-4 flex items-center justify-between hover:bg-neutral-50/30 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div
                       className={cn(
                         "w-2 h-2 rounded-full",
                         alert.severity === "HIGH"
-                          ? "bg-rose-500 animate-pulse"
+                          ? "bg-danger-500 animate-pulse"
                           : alert.severity === "MEDIUM"
-                            ? "bg-amber-500"
-                            : "bg-blue-500",
+                            ? "bg-alert-500"
+                            : "bg-action-blue",
                       )}
                     />
                     <div>
                       <p className="text-sm font-medium">{alert.client}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-neutral-300">
                         {alert.date}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-rose-600">
+                    <p className="text-sm font-bold text-danger-500">
                       {formatCurrency(alert.amount)}
                     </p>
                     <Link href={`/dashboard/finance/invoices/${alert.id}`}>
-                      <Button
-                        variant="link"
+                      <ActionButton
+                        variant="ghost"
                         size="sm"
                         className="h-auto p-0 text-xs"
                       >
                         عرض التفاصيل
-                      </Button>
+                      </ActionButton>
                     </Link>
                   </div>
                 </div>
               ))}
               {alerts?.length === 0 && (
-                <div className="p-8 text-center text-muted-foreground">
+                <div className="p-8 text-center text-neutral-300">
                   لا توجد تنبيهات حالياً.
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Recent Transactions */}
-        <Card className="border-none shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>أحدث العمليات</CardTitle>
-              <CardDescription>
-                آخر المدفوعات والتحويلات المسجلة
-              </CardDescription>
-            </div>
+        <SurfaceCard
+          className="border-none shadow-md"
+          title="أحدث العمليات"
+          description="آخر المدفوعات والتحويلات المسجلة"
+          action={
             <Link href="/dashboard/finance/payments">
-              <Button variant="outline" size="sm">
+              <ActionButton variant="outline" size="sm">
                 عرض الكل
-              </Button>
+              </ActionButton>
             </Link>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>العميل</TableHead>
-                  <TableHead>المبلغ</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead className="text-left">التاريخ</TableHead>
+          }
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>العميل</TableHead>
+                <TableHead>المبلغ</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead className="text-left">التاريخ</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell className="font-medium">
+                    {payment.invoice.client?.companyName || "عميل غير معروف"}
+                  </TableCell>
+                  <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                  <TableCell>
+                    <FinanceStatusBadge status={payment.status as any} />
+                  </TableCell>
+                  <TableCell className="text-left text-neutral-300 text-xs">
+                    {formatDate(payment.date)}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-medium">
-                      {payment.invoice.client?.companyName || "عميل غير معروف"}
-                    </TableCell>
-                    <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                    <TableCell>
-                      <FinanceStatusBadge status={payment.status as any} />
-                    </TableCell>
-                    <TableCell className="text-left text-muted-foreground text-xs">
-                      {formatDate(payment.date)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {payments.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      لا توجد عمليات مسجلة.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              ))}
+              {payments.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={4}
+                    className="text-center py-8 text-neutral-300"
+                  >
+                    لا توجد عمليات مسجلة.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </SurfaceCard>
 
         {/* Quick Links / Navigation */}
         <div className="grid gap-4 grid-cols-2">
@@ -402,24 +389,24 @@ function QuickLinkCard({
 }) {
   return (
     <Link href={href}>
-      <Card className="h-full border-none shadow-sm hover:shadow-md transition-all group cursor-pointer bg-white dark:bg-slate-900">
-        <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-2">
-          <div className="p-3 rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+      <div className="h-full rounded-xl border border-portal-card-border bg-natural-0 shadow-sm hover:shadow-md transition-all group cursor-pointer">
+        <div className="p-6 flex flex-col items-center justify-center text-center space-y-2">
+          <div className="p-3 rounded-xl bg-secondary-500/5 text-secondary-500 group-hover:bg-secondary-500 group-hover:text-white transition-colors">
             <Icon className="w-6 h-6" />
           </div>
           <div className="space-y-1">
             <h3 className="font-bold text-lg flex items-center justify-center gap-2">
               {title}
               {count !== undefined && (
-                <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full">
+                <span className="text-xs bg-neutral-50 px-1.5 py-0.5 rounded-full">
                   {count}
                 </span>
               )}
             </h3>
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-xs text-neutral-300">{description}</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </Link>
   );
 }

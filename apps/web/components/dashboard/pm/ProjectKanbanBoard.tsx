@@ -21,6 +21,7 @@ import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { KanbanGroup } from "@/components/dashboard/crm/KanbanGroup";
 import { ProjectKanbanColumn } from "./ProjectKanbanColumn";
 import { ProjectKanbanCard } from "./ProjectKanbanCard";
+import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 
 interface ProjectWithMeta extends Project {
   client?: { id: string; companyName: string };
@@ -51,32 +52,32 @@ const STATUS_LABELS: Record<ProjectStatus, string> = {
 
 const STATUS_COLORS: Record<ProjectStatus, { column: string; dot: string }> = {
   [ProjectStatus.PLANNING]: {
-    column: "bg-slate-50 border-slate-200",
-    dot: "bg-slate-400",
+    column: "bg-neutral-50 border-neutral-200",
+    dot: "bg-neutral-400",
   },
   [ProjectStatus.ACTIVE]: {
-    column: "bg-blue-50 border-blue-200",
-    dot: "bg-blue-500",
+    column: "bg-action-blue-soft border-action-blue",
+    dot: "bg-action-blue",
   },
   [ProjectStatus.ON_HOLD]: {
-    column: "bg-amber-50 border-amber-200",
-    dot: "bg-amber-500",
+    column: "bg-alert-100/50 border-alert-200",
+    dot: "bg-alert-500",
   },
   [ProjectStatus.AWAITING_REVIEW]: {
-    column: "bg-orange-50 border-orange-200",
-    dot: "bg-orange-500",
+    column: "bg-alert-100/50 border-alert-200",
+    dot: "bg-alert-500",
   },
   [ProjectStatus.NEEDS_REVISION]: {
-    column: "bg-rose-50 border-rose-200",
-    dot: "bg-rose-400",
+    column: "bg-danger-100/50 border-danger-200",
+    dot: "bg-danger-400",
   },
   [ProjectStatus.COMPLETED]: {
-    column: "bg-emerald-50 border-emerald-200",
-    dot: "bg-emerald-500",
+    column: "bg-success-100/50 border-success-200",
+    dot: "bg-success-500",
   },
   [ProjectStatus.CANCELLED]: {
-    column: "bg-rose-50 border-rose-200",
-    dot: "bg-rose-500",
+    column: "bg-danger-100/50 border-danger-200",
+    dot: "bg-danger-500",
   },
 };
 
@@ -84,29 +85,29 @@ const KANBAN_GROUPS = [
   {
     id: "planning",
     label: "التخطيط",
-    accentClass: "bg-slate-50 border-slate-200 text-slate-700",
-    textClass: "text-slate-700",
+    accentClass: "bg-neutral-50 border-neutral-200 text-neutral-700",
+    textClass: "text-neutral-700",
     statuses: [ProjectStatus.PLANNING],
   },
   {
     id: "execution",
     label: "التنفيذ",
-    accentClass: "bg-blue-50 border-blue-200 text-blue-700",
-    textClass: "text-blue-700",
+    accentClass: "bg-action-blue-soft border-action-blue text-action-blue",
+    textClass: "text-action-blue",
     statuses: [ProjectStatus.ACTIVE, ProjectStatus.ON_HOLD],
   },
   {
     id: "review",
     label: "المراجعة",
-    accentClass: "bg-orange-50 border-orange-200 text-orange-700",
-    textClass: "text-orange-700",
+    accentClass: "bg-alert-100/50 border-alert-200 text-alert-600",
+    textClass: "text-alert-600",
     statuses: [ProjectStatus.AWAITING_REVIEW, ProjectStatus.NEEDS_REVISION],
   },
   {
     id: "closure",
     label: "الإغلاق",
-    accentClass: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    textClass: "text-emerald-700",
+    accentClass: "bg-success-100/50 border-success-200 text-success-600",
+    textClass: "text-success-600",
     statuses: [ProjectStatus.COMPLETED, ProjectStatus.CANCELLED],
   },
 ] as const;
@@ -188,12 +189,12 @@ export function ProjectKanbanBoard({
       <div className="space-y-4">
         {KANBAN_GROUPS.map((group) => (
           <div key={group.id} className="space-y-2">
-            <div className="h-10 bg-muted animate-pulse rounded-lg" />
+            <div className="h-10 bg-neutral-50/80 animate-pulse rounded-lg" />
             <div className="flex gap-3">
               {group.statuses.map((status) => (
                 <div
                   key={status}
-                  className="w-72 shrink-0 h-48 bg-muted animate-pulse rounded-xl"
+                  className="w-72 shrink-0 h-48 bg-neutral-50/80 animate-pulse rounded-xl"
                 />
               ))}
             </div>
@@ -206,7 +207,7 @@ export function ProjectKanbanBoard({
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-        <p className="text-destructive font-medium">
+        <p className="text-danger-500 font-medium">
           {resolveKanbanError(error)}
         </p>
       </div>
@@ -216,7 +217,7 @@ export function ProjectKanbanBoard({
   const totalProjects = projects.length;
   const emptyBanner = totalProjects === 0 && (
     <div className="mb-4 rounded-xl border-2 border-dashed px-6 py-4 text-center">
-      <p className="text-sm font-medium text-muted-foreground">
+      <p className="text-sm font-medium text-neutral-300">
         لا توجد مشاريع حالياً — ستظهر المشاريع الجديدة تلقائياً بعد توقيع العقود
       </p>
     </div>

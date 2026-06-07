@@ -6,16 +6,16 @@ import {
   useCreateUserMutation,
   useDeactivateUserMutation,
 } from "@/features/users/usersApi";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
 import {
   Table,
   TableBody,
@@ -24,8 +24,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Pill } from "@/components/design-system/Pill";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import { UserRole } from "@hassad/shared";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -72,100 +72,96 @@ export default function AdminSettingsPage() {
     <div className="flex flex-col gap-6" dir="rtl">
       <div>
         <h1 className="text-2xl font-semibold">الإعدادات والمستخدمون</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-neutral-300 mt-1">
           إدارة أعضاء الفريق وأدوارهم.
         </p>
       </div>
 
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">إضافة مستخدم جديد</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">الاسم</label>
-                  <Input
-                    placeholder="الاسم الكامل"
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">البريد الإلكتروني</label>
-                  <Input
-                    type="email"
-                    placeholder="example@hassad.com"
-                    value={form.email}
-                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">كلمة المرور</label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={form.password}
-                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium">الدور</label>
-                  <Select
-                    value={form.role}
-                    onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الدور" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ROLE_LABELS).map(([val, label]) => (
-                        <SelectItem key={val} value={val}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        <SurfaceCard title="إضافة مستخدم جديد">
+          <form onSubmit={handleCreate} className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">الاسم</label>
+                <FormInputControl
+                  placeholder="الاسم الكامل"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  required
+                />
               </div>
-              {createError && (
-                <p className="text-sm text-destructive">
-                  حدث خطأ أثناء إنشاء المستخدم.
-                </p>
-              )}
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setShowForm(false)}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">البريد الإلكتروني</label>
+                <FormInputControl
+                  type="email"
+                  placeholder="example@hassad.com"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">كلمة المرور</label>
+                <FormInputControl
+                  type="password"
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">الدور</label>
+                <FormSelect
+                  value={form.role}
+                  onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}
                 >
-                  إلغاء
-                </Button>
-                <Button type="submit" disabled={creating}>
-                  {creating ? "جارٍ الإنشاء..." : "إنشاء المستخدم"}
-                </Button>
+                  <FormSelectTrigger>
+                    <FormSelectValue placeholder="اختر الدور" />
+                  </FormSelectTrigger>
+                  <FormSelectContent>
+                    {Object.entries(ROLE_LABELS).map(([val, label]) => (
+                      <FormSelectItem key={val} value={val}>
+                        {label}
+                      </FormSelectItem>
+                    ))}
+                  </FormSelectContent>
+                </FormSelect>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+            {createError && (
+              <p className="text-sm text-danger-500">
+                حدث خطأ أثناء إنشاء المستخدم.
+              </p>
+            )}
+            <div className="flex gap-2 justify-end">
+              <ActionButton
+                type="button"
+                variant="ghost"
+                onClick={() => setShowForm(false)}
+              >
+                إلغاء
+              </ActionButton>
+              <ActionButton type="submit" disabled={creating}>
+                {creating ? "جارٍ الإنشاء..." : "إنشاء المستخدم"}
+              </ActionButton>
+            </div>
+          </form>
+        </SurfaceCard>
       )}
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">أعضاء الفريق</CardTitle>
-          {!showForm && (
-            <Button size="sm" onClick={() => setShowForm(true)}>
+      <SurfaceCard 
+        title="أعضاء الفريق"
+        action={
+          !showForm && (
+            <ActionButton size="sm" onClick={() => setShowForm(true)}>
               + إضافة مستخدم
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Input
+            </ActionButton>
+          )
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <FormInputControl
             placeholder="بحث بالاسم أو الإيميل..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -191,7 +187,7 @@ export default function AdminSettingsPage() {
               <TableBody>
                 {data?.items.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={4} className="text-center text-neutral-300 py-8">
                       لا يوجد مستخدمون.
                     </TableCell>
                   </TableRow>
@@ -201,27 +197,27 @@ export default function AdminSettingsPage() {
                     <TableCell className="font-medium">{u.name}</TableCell>
                     <TableCell dir="ltr">{u.email}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">
+                      <Pill tone="neutral">
                         {ROLE_LABELS[u.role] ?? u.role}
-                      </Badge>
+                      </Pill>
                     </TableCell>
                     <TableCell>
-                      <Button
+                      <ActionButton
                         variant="ghost"
                         size="sm"
-                        className="text-destructive hover:text-destructive"
+                        className="text-danger-500 hover:text-danger-500"
                         onClick={() => deactivateUser(u.id)}
                       >
                         تعطيل
-                      </Button>
+                      </ActionButton>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SurfaceCard>
     </div>
   );
 }

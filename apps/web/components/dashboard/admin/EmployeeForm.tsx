@@ -4,12 +4,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/design-system/Dialog";
 import {
   Form,
   FormControl,
@@ -17,16 +12,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@/components/design-system/Form";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   useCreateUserMutation,
   useUpdateUserMutation,
@@ -168,153 +163,150 @@ export function EmployeeForm({ mode, employee, onClose }: EmployeeFormProps) {
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "تعديل بيانات الموظف" : "إضافة موظف جديد"}
-          </DialogTitle>
-        </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Name */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الاسم</FormLabel>
-                  <FormControl>
-                    <Input placeholder="أدخل الاسم الكامل" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Email */}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>البريد الإلكتروني</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="example@hassad.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Password */}
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>كلمة المرور</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder={
-                        isEdit
-                          ? "اتركه فارغًا للإبقاء على كلمة المرور الحالية"
-                          : "8 أحرف على الأقل"
-                      }
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Role */}
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الدور</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر الدور" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.values(UserRole).map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {ROLE_LABELS[role]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Department — only visible for EMPLOYEE role */}
-            {showDepartment && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>القسم</FormLabel>
-                      <Select
-                        onValueChange={(v) =>
-                          field.onChange(
-                            v === "none" ? undefined : (v as TaskDepartment),
-                          )
-                        }
-                        value={field.value ?? "none"}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر القسم" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">بدون قسم</SelectItem>
-                          {Object.values(TaskDepartment).map((dept) => (
-                            <SelectItem key={dept} value={dept}>
-                              {DEPARTMENT_LABELS[dept]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
+    <Dialog
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={isEdit ? "تعديل بيانات الموظف" : "إضافة موظف جديد"}
+      contentClassName="sm:max-w-lg"
+      footer={
+        <div className="flex justify-end gap-3 pt-2">
+          <ActionButton type="button" variant="outline" onClick={onClose}>
+            إلغاء
+          </ActionButton>
+          <ActionButton type="submit" form="employee-form" disabled={isLoading}>
+            {isLoading
+              ? "جارٍ الحفظ..."
+              : isEdit
+                ? "حفظ التغييرات"
+                : "إضافة الموظف"}
+          </ActionButton>
+        </div>
+      }
+    >
+      <Form {...form}>
+        <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Name */}
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>الاسم</FormLabel>
+                <FormControl>
+                  <FormInputControl placeholder="أدخل الاسم الكامل" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
+          />
 
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                إلغاء
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading
-                  ? "جارٍ الحفظ..."
-                  : isEdit
-                    ? "حفظ التغييرات"
-                    : "إضافة الموظف"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
+          {/* Email */}
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>البريد الإلكتروني</FormLabel>
+                <FormControl>
+                  <FormInputControl
+                    type="email"
+                    placeholder="example@hassad.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Password */}
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>كلمة المرور</FormLabel>
+                <FormControl>
+                  <FormInputControl
+                    type="password"
+                    placeholder={
+                      isEdit
+                        ? "اتركه فارغًا للإبقاء على كلمة المرور الحالية"
+                        : "8 أحرف على الأقل"
+                    }
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Role */}
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>الدور</FormLabel>
+                <FormSelect onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <FormSelectTrigger>
+                      <FormSelectValue placeholder="اختر الدور" />
+                    </FormSelectTrigger>
+                  </FormControl>
+                  <FormSelectContent>
+                    {Object.values(UserRole).map((role) => (
+                      <FormSelectItem key={role} value={role}>
+                        {ROLE_LABELS[role]}
+                      </FormSelectItem>
+                    ))}
+                  </FormSelectContent>
+                </FormSelect>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Department — only visible for EMPLOYEE role */}
+          {showDepartment && (
+            <>
+              <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>القسم</FormLabel>
+                    <FormSelect
+                      onValueChange={(v) =>
+                        field.onChange(
+                          v === "none" ? undefined : (v as TaskDepartment),
+                        )
+                      }
+                      value={field.value ?? "none"}
+                    >
+                      <FormControl>
+                        <FormSelectTrigger>
+                          <FormSelectValue placeholder="اختر القسم" />
+                        </FormSelectTrigger>
+                      </FormControl>
+                      <FormSelectContent>
+                        <FormSelectItem value="none">بدون قسم</FormSelectItem>
+                        {Object.values(TaskDepartment).map((dept) => (
+                          <FormSelectItem key={dept} value={dept}>
+                            {DEPARTMENT_LABELS[dept]}
+                          </FormSelectItem>
+                        ))}
+                      </FormSelectContent>
+                    </FormSelect>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
+        </form>
+      </Form>
     </Dialog>
   );
 }

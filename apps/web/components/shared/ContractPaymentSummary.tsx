@@ -19,13 +19,13 @@ const STATUS_CONFIG: Record<
   string,
   { label: string; icon: typeof CheckCircle; color: string }
 > = {
-  PAID: { label: "مدفوع", icon: CheckCircle, color: "text-emerald-600" },
-  PENDING: { label: "معلق", icon: Clock, color: "text-amber-600" },
-  SENT: { label: "مرسل", icon: Send, color: "text-blue-600" },
-  DUE: { label: "مستحق", icon: AlertCircle, color: "text-orange-600" },
-  PARTIAL: { label: "مدفوع جزئياً", icon: AlertCircle, color: "text-yellow-600" },
-  LATE: { label: "متأخر", icon: AlertCircle, color: "text-red-600" },
-  CANCELLED: { label: "ملغي", icon: Ban, color: "text-gray-600" },
+  PAID: { label: "مدفوع", icon: CheckCircle, color: "text-success-600" },
+  PENDING: { label: "معلق", icon: Clock, color: "text-alert-600" },
+  SENT: { label: "مرسل", icon: Send, color: "text-action-blue" },
+  DUE: { label: "مستحق", icon: AlertCircle, color: "text-alert-600" },
+  PARTIAL: { label: "مدفوع جزئياً", icon: AlertCircle, color: "text-alert-600" },
+  LATE: { label: "متأخر", icon: AlertCircle, color: "text-danger-600" },
+  CANCELLED: { label: "ملغي", icon: Ban, color: "text-neutral-600" },
 };
 
 const PAYABLE_STATUSES = new Set(["PENDING", "SENT", "DUE", "PARTIAL", "LATE"]);
@@ -58,9 +58,9 @@ export function ContractPaymentSummary({
 
   return (
     <div className="rounded-xl border bg-card" dir="rtl">
-      <div className="p-4 border-b bg-muted/20">
+        <div className="p-4 border-b bg-neutral-50/20">
         <h3 className="text-sm font-bold flex items-center gap-2">
-          <FileText className="w-4 h-4 text-primary" />
+          <FileText className="w-4 h-4 text-secondary-500" />
           ملخص العقد والدفع
         </h3>
       </div>
@@ -68,20 +68,20 @@ export function ContractPaymentSummary({
       <div className="p-4 space-y-4">
         {/* Services */}
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground font-medium">الخدمات المشمولة</p>
+          <p className="text-xs text-neutral-300 font-medium">الخدمات المشمولة</p>
           <div className="rounded-lg border divide-y">
             {services.map((service, idx) => (
               <div
                 key={idx}
                 className="flex items-center justify-between px-3 py-2 text-sm"
               >
-                <span className="text-foreground">{service.name}</span>
-                <span className="text-muted-foreground font-medium tabular-nums">
+                <span className="text-natural-100">{service.name}</span>
+                <span className="text-neutral-300 font-medium tabular-nums">
                   {service.price.toLocaleString("en-US")} ر.س
                 </span>
               </div>
             ))}
-            <div className="flex items-center justify-between px-3 py-2.5 text-sm font-bold bg-muted/20">
+            <div className="flex items-center justify-between px-3 py-2.5 text-sm font-bold bg-neutral-50/20">
               <span>الإجمالي</span>
               <span className="tabular-nums">{totalValue.toLocaleString("en-US")} ر.س</span>
             </div>
@@ -90,14 +90,14 @@ export function ContractPaymentSummary({
 
         {/* Invoices list with inline forms inside each row */}
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground font-medium">الفواتير</p>
+          <p className="text-xs text-neutral-300 font-medium">الفواتير</p>
 
           <div className="rounded-lg border">
             {invoices.map((invoice) => {
               const config = STATUS_CONFIG[invoice.status] ?? {
                 label: invoice.status,
                 icon: Clock,
-                color: "text-muted-foreground",
+                color: "text-neutral-300",
               };
               const Icon = config.icon;
               const isPaid = invoice.status === "PAID";
@@ -109,14 +109,14 @@ export function ContractPaymentSummary({
                   <div className="flex items-center justify-between px-3 py-2.5 text-sm">
                     <div className="flex items-center gap-2 min-w-0">
                       <Icon className={`w-4 h-4 shrink-0 ${config.color}`} />
-                      <span className="text-foreground truncate font-medium">
+                       <span className="text-natural-100 truncate font-medium">
                         {invoice.invoiceNumber}
                       </span>
                       <span
                         className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
-                          isPaid
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-amber-50 text-amber-700"
+                        isPaid
+                          ? "bg-success-50 text-success-700"
+                          : "bg-alert-50 text-alert-700"
                         }`}
                       >
                         {config.label}

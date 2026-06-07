@@ -4,16 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { FileText, ExternalLink, Search, Calendar } from "lucide-react";
 import { useGetPortalContractsQuery } from "@/features/portal/portalApi";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { PortalPagination } from "@/components/portal/PortalPagination";
-import { PortalDataTable } from "@/components/portal/PortalDataTable";
-import { StatusBadge } from "@/components/portal/StatusBadge";
-import { PortalActionButton } from "@/components/portal/PortalActionButton";
-import { PortalInput } from "@/components/portal/PortalInput";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Pagination } from "@/components/design-system/Pagination";
+import { DataTable } from "@/components/design-system/DataTable";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Input } from "@/components/design-system/Input";
 import {
-  PortalPopover,
-} from "@/components/portal/PortalPopover";
+  Popover,
+} from "@/components/design-system/Popover";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { mapContractStatusToUI } from "@/lib/utils/statusMapping";
@@ -49,7 +49,7 @@ export default function PortalContractsPage() {
   const totalPages = Math.ceil((contractsData?.total ?? 0) / 10);
 
   const searchBar = (
-    <PortalInput
+    <Input
       icon={<Search className="h-4 w-4 text-portal-icon" />}
       placeholder="البحث..."
       className="h-8"
@@ -64,20 +64,20 @@ export default function PortalContractsPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="العقود"
         description="استعرض جميع عقودك الحالية، حالة كل عقد، القيمة، وتواريخ البدء والانتهاء."
         icon={FileText}
       />
 
-      <PortalSurfaceCard
+      <SurfaceCard
         title="قائمة العقود"
         description="جميع عقودك قيد الإدارة والتوقيع"
         icon={FileText}
         action={
-          <PortalPopover
+          <Popover
             trigger={
-              <PortalActionButton
+              <ActionButton
                 variant="ghost"
                 size="sm"
                 className="h-10 rounded-2xl border-[1.5px] border-portal-card-border bg-white px-4 text-sm font-medium text-portal-icon hover:bg-badge-gray-bg gap-2"
@@ -86,7 +86,7 @@ export default function PortalContractsPage() {
                 {dateRange.from
                   ? `${format(dateRange.from, "dd MMM yyyy", { locale: ar })} - ${dateRange.to ? format(dateRange.to, "dd MMM yyyy", { locale: ar }) : "اليوم"}`
                   : "اختر التاريخ"}
-              </PortalActionButton>
+              </ActionButton>
             }
             align="start"
             contentClassName="w-auto p-0"
@@ -96,7 +96,7 @@ export default function PortalContractsPage() {
                 تحديد الفترة
               </span>
               <div className="flex gap-2">
-                <PortalActionButton
+                <ActionButton
                   variant="ghost"
                   size="sm"
                   onClick={() =>
@@ -109,8 +109,8 @@ export default function PortalContractsPage() {
                   }
                 >
                   آخر 7 أيام
-                </PortalActionButton>
-                <PortalActionButton
+                </ActionButton>
+                <ActionButton
                   variant="ghost"
                   size="sm"
                   onClick={() =>
@@ -118,15 +118,15 @@ export default function PortalContractsPage() {
                   }
                 >
                   اليوم
-                </PortalActionButton>
+                </ActionButton>
               </div>
             </div>
-          </PortalPopover>
+          </Popover>
         }
       >
         <div className="mb-3">{searchBar}</div>
 
-        <PortalDataTable
+        <DataTable
           columns={[
             { id: "title", label: "العقد" },
             { id: "type", label: "النوع" },
@@ -166,7 +166,7 @@ export default function PortalContractsPage() {
               </td>
               <td className="px-5 py-4">
                 <Link href={`/portal/contracts/${contract.id}`}>
-                  <PortalActionButton
+                  <ActionButton
                     variant="ghost"
                     size="sm"
                     className="h-9 rounded-xl border border-portal-card-border bg-white px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-1"
@@ -175,7 +175,7 @@ export default function PortalContractsPage() {
                     {contract.status === "SENT"
                       ? "توقيع العقد"
                       : "استعراض العقد"}
-                  </PortalActionButton>
+                  </ActionButton>
                 </Link>
               </td>
             </tr>
@@ -183,13 +183,13 @@ export default function PortalContractsPage() {
         />
 
         {!isLoading && !isError && contracts.length > 0 && (
-          <PortalPagination
+          <Pagination
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
           />
         )}
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

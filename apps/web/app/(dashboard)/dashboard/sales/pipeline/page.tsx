@@ -1,6 +1,6 @@
-import { KanbanBoard } from "@/components/dashboard/crm/KanbanBoard";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { KanbanBoard } from "@/components/dashboard/crm/KanbanBoard";
+import { ActionButton } from "@/components/design-system/ActionButton";
 
 export default function PipelinePage() {
   return (
@@ -9,12 +9,12 @@ export default function PipelinePage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-3xl font-bold tracking-tight">لوحة خط المبيعات</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/sales/proposals">العروض الفنية</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard/sales/contracts">العقود</Link>
-          </Button>
+          <ActionButton variant="outline" size="sm" href="/dashboard/sales/proposals">
+            العروض الفنية
+          </ActionButton>
+          <ActionButton variant="outline" size="sm" href="/dashboard/sales/contracts">
+            العقود
+          </ActionButton>
         </div>
       </div>
 

@@ -6,7 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
+import { Pill } from "@/components/design-system/Pill";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,16 +50,12 @@ export function KanbanGroup({
           <span className={cn("font-semibold text-sm flex-1", textClass)}>
             {label}
           </span>
-          <Badge
-            variant="secondary"
-            className={cn(
-              "text-xs font-medium min-w-[1.5rem] justify-center",
-              accentClass,
-              "border-0",
-            )}
+          <Pill
+            tone="neutral"
+            className="text-xs h-5 px-2 min-w-[1.5rem] justify-center"
           >
             {totalCount}
-          </Badge>
+          </Pill>
         </button>
       </CollapsibleTrigger>
 

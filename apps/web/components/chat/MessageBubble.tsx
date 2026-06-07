@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { formatRelativeTime } from "@/lib/format";
 import { useAppSelector } from "@/lib/hooks";
 import { FileIcon, Download } from "lucide-react";
@@ -43,9 +43,9 @@ function AttachmentCard({ attachment }: { attachment: MessageAttachment }) {
       rel="noopener noreferrer"
       className="flex items-center gap-2 rounded-lg border bg-background/50 px-3 py-2 text-sm transition-colors hover:bg-background/80"
     >
-      <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <FileIcon className="h-4 w-4 shrink-0 text-neutral-300" />
       <span className="max-w-[180px] truncate">{attachment.fileName}</span>
-      <Download className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <Download className="ml-auto h-3.5 w-3.5 shrink-0 text-neutral-300" />
     </a>
   );
 }
@@ -58,22 +58,12 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const user = useAppSelector((s) => s.auth.user);
   const isOwn = message.senderId === user?.id;
 
-  const initials = message.sender?.name
-    ? message.sender.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-    : "??";
-
   const hasAttachments = message.attachments && message.attachments.length > 0;
 
   return (
     <div className={cn("flex gap-2.5", isOwn ? "flex-row-reverse" : "flex-row")}>
       {!isOwn && (
-        <Avatar className="h-8 w-8 shrink-0">
-          <AvatarFallback className="bg-muted text-xs">{initials}</AvatarFallback>
-        </Avatar>
+        <UserAvatar name={message.sender?.name ?? "??"} size="sm" />
       )}
 
       <div
@@ -88,7 +78,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               "rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
               isOwn
                 ? "bg-primary text-primary-foreground"
-                : "bg-muted text-foreground",
+                : "bg-neutral-50 text-foreground",
             )}
           >
             {message.content}
@@ -110,7 +100,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
         <p
           className={cn(
-            "text-[10px] text-muted-foreground",
+            "text-[10px] text-neutral-300",
             isOwn ? "text-left" : "text-right",
           )}
         >

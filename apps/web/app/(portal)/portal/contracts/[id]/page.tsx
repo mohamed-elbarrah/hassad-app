@@ -13,14 +13,14 @@ import {
 } from "lucide-react";
 import { useSignContractByTokenMutation } from "@/features/contracts/contractsApi";
 import { useGetPortalContractByIdQuery } from "@/features/portal/portalApi";
-import { PortalActionButton } from "@/components/portal/PortalActionButton";
-import { FormInput } from "@/components/portal/FormInput";
-import { PortalSkeleton } from "@/components/portal/PortalSkeleton";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormInput } from "@/components/design-system/FormInput";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { StatusBadge } from "@/components/portal/StatusBadge";
-import { PortalStatusBanner } from "@/components/portal/PortalStatusBanner";
-import { PortalInfoPanel } from "@/components/portal/PortalInfoPanel";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { StatusBanner } from "@/components/design-system/StatusBanner";
+import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { toast } from "sonner";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
@@ -42,8 +42,8 @@ export default function PortalContractDetailPage({ params }: PageProps) {
     <Suspense
       fallback={
         <div className="flex flex-col gap-4" dir="rtl">
-          <PortalSkeleton className="h-8 w-48" />
-          <PortalSkeleton className="h-80 w-full" />
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-80 w-full" />
         </div>
       }
     >
@@ -74,8 +74,8 @@ function PortalContractDetailInner({ id }: { id: string }) {
   if (isLoading) {
     return (
         <div className="flex flex-col gap-4" dir="rtl">
-          <PortalSkeleton className="h-8 w-48" />
-          <PortalSkeleton className="h-80 w-full" />
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-80 w-full" />
         </div>
     );
   }
@@ -84,16 +84,16 @@ function PortalContractDetailInner({ id }: { id: string }) {
     return (
       <div className="flex flex-col gap-4" dir="rtl">
         <Link href="/portal/contracts">
-          <PortalActionButton variant="ghost" size="sm" className="gap-2">
+          <ActionButton variant="ghost" size="sm" className="gap-2">
             <ArrowRight className="h-4 w-4" />
             العقود
-          </PortalActionButton>
+          </ActionButton>
         </Link>
-        <PortalSurfaceCard title="تعذر تحميل العقد" icon={AlertCircle}>
+        <SurfaceCard title="تعذر تحميل العقد" icon={AlertCircle}>
           <p className="text-center text-sm text-portal-note-text">
             العقد غير متوفر.
           </p>
-        </PortalSurfaceCard>
+        </SurfaceCard>
       </div>
     );
   }
@@ -131,14 +131,14 @@ function PortalContractDetailInner({ id }: { id: string }) {
       {/* Breadcrumb */}
       <div className="flex items-center gap-2">
         <Link href="/portal/contracts">
-          <PortalActionButton
+          <ActionButton
             variant="ghost"
             size="sm"
             className="gap-1.5 text-portal-note-text hover:text-natural-100"
           >
             <ArrowRight className="h-4 w-4" />
             العقود
-          </PortalActionButton>
+          </ActionButton>
         </Link>
         <span className="text-portal-note-text">/</span>
         <span className="max-w-xs truncate text-sm font-medium text-natural-100">
@@ -147,7 +147,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
       </div>
 
       {/* Main contract card */}
-      <PortalSurfaceCard
+      <SurfaceCard
         title={data.title}
         icon={FileText}
         action={<StatusBadge status={mapContractStatusToUI(data.status)} />}
@@ -166,42 +166,42 @@ function PortalContractDetailInner({ id }: { id: string }) {
           )}
 
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <PortalInfoPanel variant="default" title="القيمة الإجمالية">
+            <InfoPanel variant="default" title="القيمة الإجمالية">
               <p className="font-semibold text-natural-100">
                 {data.totalValue.toLocaleString("ar-SA-u-nu-latn")} ر.س
               </p>
-            </PortalInfoPanel>
-            <PortalInfoPanel variant="default" title="القيمة الشهرية">
+            </InfoPanel>
+            <InfoPanel variant="default" title="القيمة الشهرية">
               <p className="font-semibold text-natural-100">
                 {data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س
               </p>
-            </PortalInfoPanel>
-            <PortalInfoPanel variant="default" title="تاريخ البداية">
+            </InfoPanel>
+            <InfoPanel variant="default" title="تاريخ البداية">
               <p className="font-semibold text-natural-100">
                 {new Date(data.startDate).toLocaleDateString("ar-SA-u-nu-latn")}
               </p>
-            </PortalInfoPanel>
-            <PortalInfoPanel variant="default" title="تاريخ النهاية">
+            </InfoPanel>
+            <InfoPanel variant="default" title="تاريخ النهاية">
               <p className="font-semibold text-natural-100">
                 {new Date(data.endDate).toLocaleDateString("ar-SA-u-nu-latn")}
               </p>
-            </PortalInfoPanel>
+            </InfoPanel>
           </div>
 
           {fileUrl ? (
-            <PortalInfoPanel variant="bordered" title="ملف العقد" description="راجع العقد كاملاً قبل التوقيع">
+            <InfoPanel variant="bordered" title="ملف العقد" description="راجع العقد كاملاً قبل التوقيع">
               <div className="flex items-center gap-3">
                 <FileText className="h-8 w-8 shrink-0 text-action-blue" />
                 <div className="min-w-0 flex-1">
                 </div>
-                <PortalActionButton href={fileUrl} variant="outline" icon={<Download className="h-4 w-4" />}>
+                <ActionButton href={fileUrl} variant="outline" icon={<Download className="h-4 w-4" />}>
                   تحميل العقد
-                </PortalActionButton>
+                </ActionButton>
               </div>
-            </PortalInfoPanel>
+            </InfoPanel>
           ) : (
-            <PortalInfoPanel variant="bordered" description="لا يوجد ملف مرفق لهذا العقد.">
-            </PortalInfoPanel>
+            <InfoPanel variant="bordered" description="لا يوجد ملف مرفق لهذا العقد.">
+            </InfoPanel>
           )}
 
           <ContractPaymentSummary
@@ -213,11 +213,11 @@ function PortalContractDetailInner({ id }: { id: string }) {
           />
 
           {data.status === "SIGNED" && (
-            <PortalStatusBanner variant="success" title="تم توقيع هذا العقد.">
+            <StatusBanner variant="success" title="تم توقيع هذا العقد.">
               {data.signedAt
                 ? new Date(data.signedAt).toLocaleString("ar-SA-u-nu-latn")
                 : null}
-            </PortalStatusBanner>
+            </StatusBanner>
           )}
 
           {canSign && (
@@ -230,8 +230,8 @@ function PortalContractDetailInner({ id }: { id: string }) {
               </div>
 
               {!allInvoicesPaid && (
-                <PortalStatusBanner variant="warning" title="يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر &quot;ادفع&quot; بجانب كل فاتورة.">
-                </PortalStatusBanner>
+                <StatusBanner variant="warning" title="يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر &quot;ادفع&quot; بجانب كل فاتورة.">
+                </StatusBanner>
               )}
 
               <div className="space-y-3">
@@ -253,7 +253,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
                   disabled={!allInvoicesPaid}
                 />
               </div>
-              <PortalActionButton
+              <ActionButton
                 onClick={handleSign}
                 disabled={signing || !canSignNow}
                 className="h-12 rounded-2xl px-5 text-base font-medium w-full gap-2 bg-secondary-500 hover:bg-secondary-600"
@@ -264,14 +264,14 @@ function PortalContractDetailInner({ id }: { id: string }) {
                   : signing
                     ? "جارٍ التوقيع..."
                     : "أوافق وأوقّع العقد"}
-              </PortalActionButton>
+              </ActionButton>
               <p className="text-center text-xs text-portal-note-text">
                 بالتوقيع، تقر بأنك قرأت العقد وتوافق على جميع شروطه.
               </p>
             </div>
           )}
         </div>
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

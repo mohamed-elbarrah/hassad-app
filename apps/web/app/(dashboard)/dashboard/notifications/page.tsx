@@ -3,16 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { Dialog } from "@/components/design-system/Dialog";
 import {
   useGetMyNotificationsQuery,
   useMarkAsReadMutation,
@@ -83,14 +76,14 @@ export default function NotificationsPage() {
           <Bell className="h-5 w-5" />
           <h1 className="text-2xl font-semibold">الإشعارات</h1>
           {data?.unreadCount ? (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-neutral-300">
               ({data.unreadCount} غير مقروء)
             </span>
           ) : null}
         </div>
 
         {hasUnread && (
-          <Button
+          <ActionButton
             variant="outline"
             size="sm"
             className="gap-1"
@@ -98,7 +91,7 @@ export default function NotificationsPage() {
           >
             <CheckCheck className="h-4 w-4" />
             تعليم الكل كمقروء
-          </Button>
+          </ActionButton>
         )}
       </div>
 
@@ -109,8 +102,8 @@ export default function NotificationsPage() {
             key={f}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === f
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                ? "bg-secondary-500 text-white"
+                : "bg-neutral-50 text-neutral-300 hover:bg-neutral-50/80"
             }`}
             onClick={() => {
               setFilter(f);
@@ -133,7 +126,7 @@ export default function NotificationsPage() {
             </div>
           ))
         ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <div className="flex flex-col items-center justify-center py-16 text-neutral-300">
             <Bell className="h-10 w-10 mb-3" />
             <p className="text-base">
               {filter === "unread"
@@ -145,29 +138,29 @@ export default function NotificationsPage() {
           notifications.map((notification) => (
             <button
               key={notification.id}
-              className={`w-full text-right px-4 py-4 hover:bg-muted/50 transition-colors border-b last:border-0 ${
-                !notification.isRead ? "bg-primary/5" : ""
+              className={`w-full text-right px-4 py-4 hover:bg-neutral-50/50 transition-colors border-b last:border-0 ${
+                !notification.isRead ? "bg-secondary-100/50" : ""
               }`}
               onClick={() => handleClickNotification(notification)}
             >
               <div className="flex items-start gap-3">
                 {!notification.isRead && (
-                  <span className="mt-1.5 h-2.5 w-2.5 rounded-full bg-primary flex-shrink-0" />
+                  <span className="mt-1.5 h-2.5 w-2.5 rounded-full bg-secondary-500 flex-shrink-0" />
                 )}
                 <div
                   className={`flex-1 min-w-0 ${notification.isRead ? "pr-5" : ""}`}
                 >
                   <p
                     className={`text-sm ${
-                      !notification.isRead ? "font-medium" : "text-foreground"
+                      !notification.isRead ? "font-medium" : "text-natural-100"
                     }`}
                   >
                     {notification.title}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                  <p className="text-sm text-neutral-300 mt-0.5 line-clamp-2">
                     {notification.body}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-neutral-300 mt-1">
                     {formatRelativeTime(notification.createdAt as string)}
                   </p>
                 </div>
@@ -180,25 +173,25 @@ export default function NotificationsPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
-          <Button
+          <ActionButton
             variant="outline"
             size="sm"
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
           >
             السابق
-          </Button>
-          <span className="text-sm text-muted-foreground">
+          </ActionButton>
+          <span className="text-sm text-neutral-300">
             صفحة {page} من {totalPages}
           </span>
-          <Button
+          <ActionButton
             variant="outline"
             size="sm"
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
           >
             التالي
-          </Button>
+          </ActionButton>
         </div>
       )}
 
@@ -206,24 +199,16 @@ export default function NotificationsPage() {
       <Dialog
         open={!!selectedNotification}
         onOpenChange={(open) => !open && setSelectedNotification(null)}
-      >
-        <DialogContent dir="rtl" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedNotification?.title}</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              {selectedNotification?.createdAt
-                ? formatRelativeTime(selectedNotification.createdAt as string)
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {selectedNotification?.body}
-          </p>
-
-          <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">
+        title={selectedNotification?.title}
+        description={
+          selectedNotification?.createdAt
+            ? formatRelativeTime(selectedNotification.createdAt as string)
+            : ""
+        }
+        footer={
+          <div className="flex flex-row-reverse gap-2 sm:justify-start">
             {entityUrl && (
-              <Button
+              <ActionButton
                 size="sm"
                 className="gap-1"
                 onClick={handleNavigateToEntity}
@@ -232,17 +217,22 @@ export default function NotificationsPage() {
                 {selectedNotification?.entityType === "task"
                   ? "فتح المهمة"
                   : "فتح المشروع"}
-              </Button>
+              </ActionButton>
             )}
-            <Button
+            <ActionButton
               variant="outline"
               size="sm"
               onClick={() => setSelectedNotification(null)}
             >
               إغلاق
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+            </ActionButton>
+          </div>
+        }
+        contentClassName="max-w-md"
+      >
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+          {selectedNotification?.body}
+        </p>
       </Dialog>
     </div>
   );

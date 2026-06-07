@@ -3,7 +3,7 @@
 import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/design-system/UserAvatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,17 +23,6 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
 import { UserRole } from "@hassad/shared";
-
-/** Extract up-to-2 Arabic/Latin initials from a name */
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-}
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -69,14 +58,10 @@ export function NavUser() {
               size="lg"
               className=" data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8  rounded-lg">
-                <AvatarFallback className="rounded-lg bg-gray-300 text-xs">
-                  {getInitials(user.name)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar name={user.name} size="sm" variant="rounded" />
               <div className="grid flex-1 text-right text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="truncate text-xs text-neutral-300">
                   {user.email}
                 </span>
               </div>
@@ -93,15 +78,11 @@ export function NavUser() {
               <div className="flex items-center  gap-2 px-1 py-1.5 text-right text-sm">
                 <div className="grid flex-1 text-right text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="truncate text-xs text-neutral-300">
                     {user.email}
                   </span>
                 </div>
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-gray-300 text-xs">
-                    {getInitials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar name={user.name} size="sm" variant="rounded" />
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -118,7 +99,7 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="cursor-pointer text-destructive focus:text-destructive"
+              className="cursor-pointer text-danger-500 focus:text-danger-500"
               dir="rtl"
             >
               <LogOut className="size-4" />

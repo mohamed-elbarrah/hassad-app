@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { FileText, ExternalLink } from "lucide-react";
 import { useGetMyProposalsQuery } from "@/features/proposals/proposalsApi";
-import { PortalPageIntro } from "@/components/portal/PortalPageIntro";
-import { PortalSurfaceCard } from "@/components/portal/PortalSurfaceCard";
-import { PortalDataTable } from "@/components/portal/PortalDataTable";
-import { StatusBadge } from "@/components/portal/StatusBadge";
-import { PortalActionButton } from "@/components/portal/PortalActionButton";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { DataTable } from "@/components/design-system/DataTable";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { mapProposalStatusToUI } from "@/lib/utils/statusMapping";
 
 export default function PortalProposalsPage() {
@@ -15,14 +15,14 @@ export default function PortalProposalsPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <PortalPageIntro
+      <PageIntro
         title="العروض الفنية"
         description="استعرض العروض الفنية المقدّمة لك وراجع تفاصيلها قبل الموافقة."
         icon={FileText}
       />
 
-      <PortalSurfaceCard title="قائمة العروض الفنية" icon={FileText}>
-        <PortalDataTable
+      <SurfaceCard title="قائمة العروض الفنية" icon={FileText}>
+        <DataTable
           columns={[
             { id: "title", label: "عنوان العرض" },
             { id: "company", label: "الشركة" },
@@ -65,14 +65,14 @@ export default function PortalProposalsPage() {
               <td className="px-5 py-4">
                 {proposal.shareLinkToken ? (
                   <Link href={`/portal/proposals/${proposal.shareLinkToken}`}>
-                    <PortalActionButton
+                    <ActionButton
                       variant="outline"
                       size="md"
                       className="h-9 rounded-xl border border-portal-card-border bg-white px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-1"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       فتح العرض
-                    </PortalActionButton>
+                    </ActionButton>
                   </Link>
                 ) : (
                   <span className="text-xs text-portal-note-text">
@@ -83,7 +83,7 @@ export default function PortalProposalsPage() {
             </tr>
           )}
         />
-      </PortalSurfaceCard>
+      </SurfaceCard>
     </div>
   );
 }

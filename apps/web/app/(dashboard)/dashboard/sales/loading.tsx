@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 
 export default function SalesLoading() {
   return (

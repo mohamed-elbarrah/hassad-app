@@ -1,8 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/design-system/UserAvatar";
+import { Pill } from "@/components/design-system/Pill";
 import type { Conversation } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
 
@@ -13,8 +12,8 @@ interface ChatHeaderProps {
 
 function getTypeBadge(type: "SALES" | "PM") {
   return type === "SALES"
-    ? { label: "مستشارك الفني", variant: "secondary" as const }
-    : { label: "مدير مشروع", variant: "default" as const };
+    ? { label: "مستشارك الفني", tone: "neutral" as const }
+    : { label: "مدير مشروع", tone: "blue" as const };
 }
 
 export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
@@ -24,30 +23,21 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
   );
   const typeBadge = getTypeBadge(conversation.type);
 
-  const initials = otherParticipant?.user?.name
-    ? otherParticipant.user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-    : "??";
-
   return (
     <div className="flex items-center gap-3 border-b px-4 py-3">
-      <Avatar className="h-10 w-10 shrink-0">
-        <AvatarFallback className="bg-primary/10 text-primary text-sm">
-          {initials}
-        </AvatarFallback>
-      </Avatar>
+      <UserAvatar
+        name={otherParticipant?.user?.name ?? conversation.title}
+        size="sm"
+      />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-semibold">
             {otherParticipant?.user?.name ?? conversation.title}
           </span>
-          <Badge variant={typeBadge.variant} className="text-[10px]">
+          <Pill tone={typeBadge.tone} className="text-[10px]">
             {typeBadge.label}
-          </Badge>
+          </Pill>
         </div>
 
         {isTyping && (
@@ -57,7 +47,7 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
         )}
       </div>
 
-      <span className="text-xs text-muted-foreground">
+      <span className="text-xs text-neutral-300">
         {conversation.client?.companyName}
       </span>
     </div>

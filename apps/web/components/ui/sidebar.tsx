@@ -8,7 +8,7 @@ import { PanelLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -17,7 +17,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/design-system/Skeleton";
 import {
   Tooltip,
   TooltipContent,
@@ -328,7 +328,7 @@ const SidebarInset = React.forwardRef<
     <main
       ref={ref}
       className={cn(
-        "relative flex w-full flex-1 flex-col min-w-0 bg-background",
+        "relative flex w-full flex-1 flex-col min-w-0 bg-natural-0",
         "md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ms-2 md:peer-data-[variant=inset]:ms-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className,
       )}
@@ -339,15 +339,15 @@ const SidebarInset = React.forwardRef<
 SidebarInset.displayName = "SidebarInset";
 
 const SidebarInput = React.forwardRef<
-  React.ElementRef<typeof Input>,
-  React.ComponentProps<typeof Input>
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement>
 >(({ className, ...props }, ref) => {
   return (
-    <Input
+    <FormInputControl
       ref={ref}
       data-sidebar="input"
       className={cn(
-        "h-8 w-full bg-background shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+        "h-8 w-full bg-natural-0 shadow-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
         className,
       )}
       {...props}
@@ -524,7 +524,7 @@ const sidebarMenuButtonVariants = cva(
       variant: {
         default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
+          "bg-natural-0 shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
       size: {
         default: "h-8 text-sm",
