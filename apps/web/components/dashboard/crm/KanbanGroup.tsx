@@ -1,21 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Pill } from "@/components/design-system/Pill";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface KanbanGroupProps {
   id: string;
   label: string;
-  /** Tailwind border/background color classes for the group accent */
   accentClass: string;
-  /** Tailwind text color class for the label */
   textClass: string;
   totalCount: number;
   children: React.ReactNode;
@@ -28,46 +19,36 @@ export function KanbanGroup({
   totalCount,
   children,
 }: KanbanGroupProps) {
-  const [open, setOpen] = useState(true);
-
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
+    <div
+      className={cn(
+        "flex-1 min-w-[280px] flex flex-col rounded-2xl border-2 overflow-hidden",
+        accentClass,
+      )}
+      dir="rtl"
+    >
       {/* ── Group Header ─────────────────────────────────────────────── */}
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border",
-            "hover:opacity-80 transition-opacity select-none text-right",
-            accentClass,
-          )}
+      <div
+        className={cn(
+          "flex items-center gap-2 px-3 py-2.5 border-b border-inherit",
+          accentClass,
+        )}
+      >
+        <span className={cn("font-bold text-sm flex-1 truncate", textClass)}>
+          {label}
+        </span>
+        <Pill
+          tone="neutral"
+          className="text-xs h-5 px-2 min-w-[1.5rem] justify-center tabular-nums"
         >
-          {open ? (
-            <ChevronDown className={cn("w-4 h-4 shrink-0", textClass)} />
-          ) : (
-            <ChevronRight className={cn("w-4 h-4 shrink-0", textClass)} />
-          )}
-          <span className={cn("font-semibold text-sm flex-1", textClass)}>
-            {label}
-          </span>
-          <Pill
-            tone="neutral"
-            className="text-xs h-5 px-2 min-w-[1.5rem] justify-center"
-          >
-            {totalCount}
-          </Pill>
-        </button>
-      </CollapsibleTrigger>
+          {totalCount}
+        </Pill>
+      </div>
 
-      {/* ── Columns Row ───────────────────────────────────────────────── */}
-      <CollapsibleContent>
-        {/* overflow-x-auto enables per-group horizontal scroll; min-w-max prevents column squashing */}
-        <div className="overflow-x-auto pb-2 pt-3">
-          <div className="flex gap-3 min-w-max">
-            {children}
-          </div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+      {/* ── Stages Stack (vertical) ─────────────────────────────────── */}
+      <div className="flex flex-col gap-2 p-2 overflow-y-auto flex-1 min-h-0">
+        {children}
+      </div>
+    </div>
   );
 }

@@ -17,11 +17,7 @@ export function ContactAttemptDialog({
 
   return (
     <>
-      <ActionButton
-        size="sm"
-        variant="outline"
-        onClick={() => setOpen(true)}
-      >
+      <ActionButton size="sm" variant="outline" onClick={() => setOpen(true)}>
         تسجيل محاولة تواصل
       </ActionButton>
       <Dialog
@@ -38,7 +34,9 @@ export function ContactAttemptDialog({
             variant="outline"
             onClick={() => {
               setOpen(false);
-              toast.info("انتقل إلى صفحة العميل المحتمل لتسجيل محاولة التواصل.");
+              toast.info(
+                "انتقل إلى صفحة العميل المحتمل لتسجيل محاولة التواصل.",
+              );
             }}
           >
             إغلاق

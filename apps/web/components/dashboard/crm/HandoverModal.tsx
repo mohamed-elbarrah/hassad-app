@@ -144,10 +144,7 @@ export function HandoverModal({ open, onClose, client }: HandoverModalProps) {
       className="space-y-4 pt-2"
     >
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-4"
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Project name */}
           <FormField
             control={form.control}

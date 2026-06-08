@@ -5,8 +5,8 @@ import {
   IsBoolean,
   IsEnum,
   MinLength,
-} from 'class-validator';
-import { UserRole, TaskDepartment } from '@hassad/shared';
+} from "class-validator";
+import { UserRole, TaskDepartment } from "@hassad/shared";
 
 export class CreateUserDto {
   @IsString()

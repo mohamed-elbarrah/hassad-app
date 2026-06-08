@@ -88,7 +88,7 @@ export function TopCampaignsTable({ campaigns }: TopCampaignsTableProps) {
               className="flex items-center gap-2 py-2.5 border-b last:border-0 px-1"
             >
               <div className="flex-1 text-xs truncate">{c.name}</div>
-                  <div className="text-xs text-neutral-300 w-16 text-center">
+              <div className="text-xs text-neutral-300 w-16 text-center">
                 {ctr}%
               </div>
               <div className="text-xs text-natural-100 w-16 text-center font-medium">

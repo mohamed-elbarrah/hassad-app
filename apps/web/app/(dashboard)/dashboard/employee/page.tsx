@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import {
-  Select,
-  SelectItem,
-} from "@/components/design-system/Select";
+import { Select, SelectItem } from "@/components/design-system/Select";
 import { StatCard } from "@/components/design-system/StatCard";
 import { EmployeeTaskKanban } from "@/components/dashboard/employee/EmployeeTaskKanban";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -36,16 +33,21 @@ export default function EmployeeDashboardPage() {
   );
 
   const { data: stats, isLoading: statsLoading } = useGetMyTaskStatsQuery();
-  const { data: tasks, isLoading: tasksLoading } = useGetMyTasksQuery({
-    priority: priorityFilter === "all" ? undefined : priorityFilter,
-  }, { pollingInterval: 30000 });
+  const { data: tasks, isLoading: tasksLoading } = useGetMyTasksQuery(
+    {
+      priority: priorityFilter === "all" ? undefined : priorityFilter,
+    },
+    { pollingInterval: 30000 },
+  );
 
   if (!user) return null;
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <h1 className="text-3xl font-bold tracking-tight">لوحة الموظف التنفيذي</h1>
+      <h1 className="text-3xl font-bold tracking-tight">
+        لوحة الموظف التنفيذي
+      </h1>
 
       {/* Stats */}
       {statsLoading ? (

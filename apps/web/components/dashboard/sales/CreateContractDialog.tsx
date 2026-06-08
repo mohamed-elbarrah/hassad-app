@@ -229,7 +229,6 @@ export function CreateContractDialog({
         title={isFromProposal ? "إنشاء عقد من العرض الفني" : "عقد جديد"}
         contentClassName="sm:max-w-lg"
       >
-
         {shareLink ? (
           <div className="space-y-5 py-2">
             <div className="flex flex-col items-center gap-3 py-4 text-center">
@@ -259,7 +258,13 @@ export function CreateContractDialog({
                     size="sm"
                     variant={copied ? "secondary" : "primary"}
                     onClick={copyLink}
-                    icon={copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    icon={
+                      copied ? (
+                        <CheckCheck className="w-3.5 h-3.5" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )
+                    }
                   >
                     {copied ? "تم النسخ" : "نسخ الرابط"}
                   </ActionButton>
@@ -308,15 +313,14 @@ export function CreateContractDialog({
                       <span>
                         إجمالي القيمة:{" "}
                         <span className="font-bold text-natural-100">
-                          {proposalData?.totalPrice?.toLocaleString("en-US")} ر.س
+                          {proposalData?.totalPrice?.toLocaleString("en-US")}{" "}
+                          ر.س
                         </span>
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      <span>
-                        المدة: {proposalData?.durationDays} يوم
-                      </span>
+                      <span>المدة: {proposalData?.durationDays} يوم</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
@@ -379,9 +383,7 @@ export function CreateContractDialog({
                 />
 
                 <div>
-                  <p className="text-sm font-medium mb-1.5">
-                    ملف العقد (PDF)
-                  </p>
+                  <p className="text-sm font-medium mb-1.5">ملف العقد (PDF)</p>
                   <div
                     role="button"
                     tabIndex={0}
@@ -450,7 +452,10 @@ export function CreateContractDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>الطلب (مرحلة إعداد العقد)</FormLabel>
-                    <FormSelect onValueChange={field.onChange} value={field.value}>
+                    <FormSelect
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                       <FormControl>
                         <FormSelectTrigger>
                           <FormSelectValue
@@ -507,7 +512,10 @@ export function CreateContractDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>نوع العقد</FormLabel>
-                    <FormSelect onValueChange={field.onChange} value={field.value}>
+                    <FormSelect
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                       <FormControl>
                         <FormSelectTrigger>
                           <FormSelectValue placeholder="اختر النوع" />

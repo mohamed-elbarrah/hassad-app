@@ -95,9 +95,7 @@ export default function AdminClientDetailPage({ params }: PageProps) {
           </p>
         </SurfaceCard>
         <SurfaceCard title="المحادثات">
-          <p className="text-sm text-neutral-300">
-            سجل المحادثات سيظهر هنا.
-          </p>
+          <p className="text-sm text-neutral-300">سجل المحادثات سيظهر هنا.</p>
         </SurfaceCard>
         <SurfaceCard title="العقود">
           <p className="text-sm text-neutral-300">

@@ -109,7 +109,10 @@ export default function PortalReportsPage() {
     isLoading,
     isError,
     refetch,
-  } = useGetPortalReportsQuery(undefined, { skip: !clientId, pollingInterval: 30_000 });
+  } = useGetPortalReportsQuery(undefined, {
+    skip: !clientId,
+    pollingInterval: 30_000,
+  });
   const { data: timeline } = useGetReportTimelineQuery(
     {
       dateFrom: rangeParams.dateFrom,
@@ -137,7 +140,7 @@ export default function PortalReportsPage() {
       )}
 
       {clientId && isError && !isLoading && (
-            <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
+        <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
           <p className="text-base font-medium text-danger-700">
             تعذر تحميل التقارير.
           </p>

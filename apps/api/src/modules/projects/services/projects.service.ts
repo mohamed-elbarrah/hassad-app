@@ -1,9 +1,22 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateProjectDto, UpdateProjectDto, AddMemberDto } from '../dto/project.dto';
-import { ContractStatus, TaskStatus, TaskPriority, UserRole } from '@hassad/shared';
-import { NotificationsService } from '../../notifications/services/notifications.service';
-import { StorageService } from '../../../common/storage/storage.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import {
+  CreateProjectDto,
+  UpdateProjectDto,
+  AddMemberDto,
+} from "../dto/project.dto";
+import {
+  ContractStatus,
+  TaskStatus,
+  TaskPriority,
+  UserRole,
+} from "@hassad/shared";
+import { NotificationsService } from "../../notifications/services/notifications.service";
+import { StorageService } from "../../../common/storage/storage.service";
 
 @Injectable()
 export class ProjectsService {
@@ -15,7 +28,9 @@ export class ProjectsService {
 
   async create(dto: CreateProjectDto) {
     if (!dto.contractId) {
-      throw new BadRequestException('Project must be linked to a signed contract');
+      throw new BadRequestException(
+        "Project must be linked to a signed contract",
+      );
     }
 
     const contract = await this.prisma.contract.findUnique({
@@ -23,10 +38,15 @@ export class ProjectsService {
     });
 
     if (!contract) {
-      throw new NotFoundException(`Contract with ID ${dto.contractId} not found`);
+      throw new NotFoundException(
+        `Contract with ID ${dto.contractId} not found`,
+      );
     }
 
-    if (contract.status !== ContractStatus.SIGNED && contract.status !== ContractStatus.ACTIVE) {
+    if (
+      contract.status !== ContractStatus.SIGNED &&
+      contract.status !== ContractStatus.ACTIVE
+    ) {
       throw new BadRequestException(
         `Contract must be SIGNED or ACTIVE to create a project (current status: ${contract.status})`,
       );
@@ -85,7 +105,7 @@ export class ProjectsService {
 
   async addMember(id: string, dto: AddMemberDto, addedBy: string) {
     const project = await this.prisma.project.findUnique({ where: { id } });
-    if (!project) throw new NotFoundException('Project not found');
+    if (!project) throw new NotFoundException("Project not found");
 
     const member = await this.prisma.projectMember.create({
       data: {
@@ -103,7 +123,7 @@ export class ProjectsService {
 
     if (user?.role.name === UserRole.MARKETING) {
       const marketingDept = await this.prisma.department.findUnique({
-        where: { name: 'MARKETING' },
+        where: { name: "MARKETING" },
       });
 
       if (marketingDept) {
@@ -113,7 +133,7 @@ export class ProjectsService {
             departmentId: marketingDept.id,
             assignedTo: dto.userId,
             createdBy: addedBy,
-            title: 'إدارة الحملات الإعلانية',
+            title: "إدارة الحملات الإعلانية",
             description: `تم إنشاء هذه المهمة تلقائياً عند إسناد المشروع إلى قسم التسويق. يرجى البدء في إعداد الحملات الإعلانية للمشروع: ${project.name}`,
             status: TaskStatus.TODO,
             priority: TaskPriority.NORMAL,
@@ -125,10 +145,10 @@ export class ProjectsService {
         this.notificationsService
           .createNotification({
             entityId: task.id,
-            entityType: 'task',
-            eventType: 'TASK_ASSIGNED',
+            entityType: "task",
+            eventType: "TASK_ASSIGNED",
             userId: dto.userId,
-            title: 'تم إسناد مهمة تسويق جديدة',
+            title: "تم إسناد مهمة تسويق جديدة",
             body: `تم إنشاء مهمة "إدارة الحملات الإعلانية" تلقائياً لك في مشروع ${project.name}.`,
             metadata: {
               taskId: task.id,
@@ -164,10 +184,12 @@ export class ProjectsService {
     const limit = filters.limit ? Number(filters.limit) : 20;
 
     const where: Record<string, unknown> = {};
-    if (filters.status) where['status'] = filters.status;
-    if (filters.search) where['name'] = { contains: filters.search, mode: 'insensitive' };
-    if (filters.clientId) where['clientId'] = filters.clientId;
-    if (filters.projectManagerId) where['projectManagerId'] = filters.projectManagerId;
+    if (filters.status) where["status"] = filters.status;
+    if (filters.search)
+      where["name"] = { contains: filters.search, mode: "insensitive" };
+    if (filters.clientId) where["clientId"] = filters.clientId;
+    if (filters.projectManagerId)
+      where["projectManagerId"] = filters.projectManagerId;
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.project.findMany({
@@ -179,7 +201,7 @@ export class ProjectsService {
         },
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       this.prisma.project.count({ where }),
     ]);
@@ -198,7 +220,7 @@ export class ProjectsService {
 
     const updated = await this.prisma.project.update({
       where: { id },
-      data: { status: status as import('@prisma/client').ProjectStatus },
+      data: { status: status as import("@prisma/client").ProjectStatus },
     });
 
     const memberIds = await this.prisma.projectMember.findMany({
@@ -213,11 +235,11 @@ export class ProjectsService {
     if (recipientIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: recipientIds,
-        title: 'تحديث حالة المشروع',
+        title: "تحديث حالة المشروع",
         message: `تم تغيير حالة المشروع "${project.name}" إلى ${status}`,
         entityId: id,
-        entityType: 'PROJECT',
-        eventType: 'PROJECT_STATUS_CHANGED',
+        entityType: "PROJECT",
+        eventType: "PROJECT_STATUS_CHANGED",
       });
     }
 
@@ -229,10 +251,10 @@ export class ProjectsService {
       this.notificationsService
         .createNotification({
           entityId: id,
-          entityType: 'project',
-          eventType: 'PROJECT_STATUS_CHANGED',
+          entityType: "project",
+          eventType: "PROJECT_STATUS_CHANGED",
           userId: clientUser.userId,
-          title: 'تحديث حالة مشروعك',
+          title: "تحديث حالة مشروعك",
           body: `تم تغيير حالة مشروع "${project.name}" إلى ${status}`,
         })
         .catch(() => undefined);
@@ -244,12 +266,17 @@ export class ProjectsService {
   async uploadFile(
     projectId: string,
     userId: string,
-    fileData: { key: string; originalName: string; mimeType: string; size: number },
+    fileData: {
+      key: string;
+      originalName: string;
+      mimeType: string;
+      size: number;
+    },
   ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project) throw new NotFoundException('Project not found');
+    if (!project) throw new NotFoundException("Project not found");
 
     return this.prisma.projectFile.create({
       data: {
@@ -266,7 +293,7 @@ export class ProjectsService {
   async getFiles(projectId: string) {
     const files = await this.prisma.projectFile.findMany({
       where: { projectId },
-      orderBy: { uploadedAt: 'desc' },
+      orderBy: { uploadedAt: "desc" },
     });
 
     const urlMap = await this.storageService.getMultiplePresignedUrls(
@@ -283,7 +310,7 @@ export class ProjectsService {
     const file = await this.prisma.projectFile.findFirst({
       where: { id: fileId, projectId },
     });
-    if (!file) throw new NotFoundException('File not found');
+    if (!file) throw new NotFoundException("File not found");
 
     await this.storageService.deleteByKey(file.filePath);
     await this.prisma.projectFile.delete({ where: { id: fileId } });

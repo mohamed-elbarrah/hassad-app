@@ -11,7 +11,11 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { mapProposalStatusToUI } from "@/lib/utils/statusMapping";
 
 export default function PortalProposalsPage() {
-  const { data: proposals, isLoading, isError } = useGetMyProposalsQuery(undefined, { pollingInterval: 30_000 });
+  const {
+    data: proposals,
+    isLoading,
+    isError,
+  } = useGetMyProposalsQuery(undefined, { pollingInterval: 30_000 });
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">

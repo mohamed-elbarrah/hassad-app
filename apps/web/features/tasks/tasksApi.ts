@@ -41,7 +41,6 @@ export interface TaskWithProject extends Task {
   creator?: { id: string; name: string };
 }
 
-
 export interface TaskStats {
   total: number;
   todo: number;
@@ -90,7 +89,10 @@ export const tasksApi = createApi({
       invalidatesTags: (_result, _error, body) => [
         { type: "Task", id: "MY_TASKS" },
         { type: "Task", id: "MY_STATS" },
-        { type: "Task", id: `PROJECT_${"projectId" in body ? (body as any).projectId : ""}` },
+        {
+          type: "Task",
+          id: `PROJECT_${"projectId" in body ? (body as any).projectId : ""}`,
+        },
       ],
     }),
 
@@ -156,10 +158,10 @@ export const tasksApi = createApi({
         }
 
         return {
-        url: `/tasks/${taskId}/files`,
-        method: "POST",
-        body: formData,
-      };
+          url: `/tasks/${taskId}/files`,
+          method: "POST",
+          body: formData,
+        };
       },
       invalidatesTags: (_result, _error, { taskId }) => [
         { type: "Task", id: `FILES_${taskId}` },
@@ -203,19 +205,28 @@ export const tasksApi = createApi({
     /** POST /v1/tasks/:id/start — move TODO→IN_PROGRESS */
     startTask: builder.mutation<Task, string>({
       query: (id) => ({ url: `/tasks/${id}/start`, method: "POST" }),
-      invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Task", id },
+        { type: "Task", id: "MY_TASKS" },
+      ],
     }),
 
     /** POST /v1/tasks/:id/submit — move IN_PROGRESS→IN_REVIEW */
     submitTask: builder.mutation<Task, string>({
       query: (id) => ({ url: `/tasks/${id}/submit`, method: "POST" }),
-      invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Task", id },
+        { type: "Task", id: "MY_TASKS" },
+      ],
     }),
 
     /** POST /v1/tasks/:id/approve — move IN_REVIEW→DONE */
     approveTask: builder.mutation<Task, string>({
       query: (id) => ({ url: `/tasks/${id}/approve`, method: "POST" }),
-      invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Task", id },
+        { type: "Task", id: "MY_TASKS" },
+      ],
     }),
 
     /** PATCH /v1/tasks/:id/status — change task status to any valid state */
@@ -238,7 +249,10 @@ export const tasksApi = createApi({
     /** POST /v1/tasks/:id/reject — move IN_REVIEW→REVISION */
     rejectTask: builder.mutation<Task, string>({
       query: (id) => ({ url: `/tasks/${id}/reject`, method: "POST" }),
-      invalidatesTags: (_r, _e, id) => [{ type: "Task", id }, { type: "Task", id: "MY_TASKS" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Task", id },
+        { type: "Task", id: "MY_TASKS" },
+      ],
     }),
 
     /** POST /v1/tasks/:id/assign — assign a task to a user (PM only) */

@@ -46,10 +46,10 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const progressValue = Math.round(
-    (project.progress ??
+    project.progress ??
       (project as ProjectWithMeta & { completionPercentage?: number })
         .completionPercentage ??
-      0),
+      0,
   );
 
   const startDate = new Intl.DateTimeFormat("en-GB", {
@@ -69,11 +69,19 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Link href={`/dashboard/pm/projects/${project.id}`}>
       <SurfaceCard className="hover:shadow-md transition-shadow cursor-pointer h-full">
         <div className="flex items-start justify-between gap-2 mb-3">
-          <h3 className="text-base font-semibold line-clamp-2">{project.name}</h3>
-          <StatusBadge status={STATUS_MAP[project.status]} label={STATUS_LABELS[project.status]} className="shrink-0 text-xs" />
+          <h3 className="text-base font-semibold line-clamp-2">
+            {project.name}
+          </h3>
+          <StatusBadge
+            status={STATUS_MAP[project.status]}
+            label={STATUS_LABELS[project.status]}
+            className="shrink-0 text-xs"
+          />
         </div>
         {project.client && (
-          <p className="text-xs text-neutral-300 mb-3">{project.client.companyName}</p>
+          <p className="text-xs text-neutral-300 mb-3">
+            {project.client.companyName}
+          </p>
         )}
         <div className="space-y-3">
           {/* Progress bar */}
@@ -89,7 +97,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div className="flex flex-col gap-1.5 text-xs text-neutral-300">
             <div className="flex items-center gap-1.5">
               <Calendar className="size-3.5 shrink-0" />
-              <span>{startDate} — {endDate}</span>
+              <span>
+                {startDate} — {endDate}
+              </span>
             </div>
             {project.manager && (
               <div className="flex items-center gap-1.5">

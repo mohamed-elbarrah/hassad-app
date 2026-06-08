@@ -36,7 +36,9 @@ interface PageProps {
 
 export default function PortalProposalDetailPage({ params }: PageProps) {
   const { token } = use(params);
-  const { data, isLoading, isError } = useGetProposalByTokenQuery(token, { pollingInterval: 30_000 });
+  const { data, isLoading, isError } = useGetProposalByTokenQuery(token, {
+    pollingInterval: 30_000,
+  });
   const [approveProposal, { isLoading: approving }] =
     useApproveProposalByTokenMutation();
   const [requestRevision, { isLoading: requesting }] =
@@ -141,23 +143,27 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                 <div className="md:w-[80%]">
                   <InfoPanel variant="bordered" title="الخدمات المطلوبة">
                     <div className="space-y-2">
-                      {(data.servicesList as { name: string; price: number }[]).map(
-                        (service, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span className="text-natural-100">{service.name}</span>
-                            <span className="font-medium text-portal-note-text">
-                              {service.price.toLocaleString("ar-SA-u-nu-latn")} ر.س
-                            </span>
-                          </div>
-                        ),
-                      )}
+                      {(
+                        data.servicesList as { name: string; price: number }[]
+                      ).map((service, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span className="text-natural-100">
+                            {service.name}
+                          </span>
+                          <span className="font-medium text-portal-note-text">
+                            {service.price.toLocaleString("ar-SA-u-nu-latn")}{" "}
+                            ر.س
+                          </span>
+                        </div>
+                      ))}
                       <div className="flex items-center justify-between border-t border-portal-divider pt-2 text-sm font-bold text-natural-100">
                         <span>الإجمالي الكلي</span>
                         <span>
-                          {data.totalPrice.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                          {data.totalPrice.toLocaleString("ar-SA-u-nu-latn")}{" "}
+                          ر.س
                         </span>
                       </div>
                     </div>
@@ -178,10 +184,16 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                       <p className="text-sm font-semibold text-natural-100 truncate">
                         {data.creator?.name || data.contactName}
                       </p>
-                      <p className="text-xs text-portal-note-text">مستشارك الفني</p>
+                      <p className="text-xs text-portal-note-text">
+                        مستشارك الفني
+                      </p>
                     </div>
                     <Link href="/portal/chat?openSales=true">
-                      <ActionButton variant="outline" size="sm" className="gap-2 shrink-0">
+                      <ActionButton
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 shrink-0"
+                      >
                         <MessageSquare className="w-4 w-4" />
                         تواصل معه
                       </ActionButton>
@@ -194,34 +206,50 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
 
           {/* PDF Download */}
           {fileUrl ? (
-            <InfoPanel variant="default" title="ملف العرض الفني" description="راجع تفاصيل العرض قبل الرد">
+            <InfoPanel
+              variant="default"
+              title="ملف العرض الفني"
+              description="راجع تفاصيل العرض قبل الرد"
+            >
               <div className="flex items-center gap-3">
                 <FileText className="h-8 w-8 shrink-0 text-action-blue" />
                 <div className="min-w-0 flex-1"></div>
-                <ActionButton href={fileUrl} variant="outline" icon={<Download className="h-4 w-4" />}>
+                <ActionButton
+                  href={fileUrl}
+                  variant="outline"
+                  icon={<Download className="h-4 w-4" />}
+                >
                   تحميل العرض
                 </ActionButton>
               </div>
             </InfoPanel>
           ) : (
-            <InfoPanel variant="default" description="لا يوجد ملف مرفق لهذا العرض.">
-            </InfoPanel>
+            <InfoPanel
+              variant="default"
+              description="لا يوجد ملف مرفق لهذا العرض."
+            ></InfoPanel>
           )}
 
           {/* Status-specific banners */}
           {data.status === ProposalStatus.APPROVED && (
-            <StatusBanner variant="success" title="لقد اعتمدت هذا العرض الفني.">
-            </StatusBanner>
+            <StatusBanner
+              variant="success"
+              title="لقد اعتمدت هذا العرض الفني."
+            ></StatusBanner>
           )}
 
           {data.status === ProposalStatus.REVISION_REQUESTED && (
-            <StatusBanner variant="warning" title="طلبت تعديلاً على هذا العرض. سيتواصل معك فريقنا قريباً.">
-            </StatusBanner>
+            <StatusBanner
+              variant="warning"
+              title="طلبت تعديلاً على هذا العرض. سيتواصل معك فريقنا قريباً."
+            ></StatusBanner>
           )}
 
           {data.status === ProposalStatus.REJECTED && (
-            <StatusBanner variant="danger" title="تم رفض هذا العرض.">
-            </StatusBanner>
+            <StatusBanner
+              variant="danger"
+              title="تم رفض هذا العرض."
+            ></StatusBanner>
           )}
 
           {/* Response area */}
@@ -230,13 +258,13 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
               <p className="text-sm font-semibold text-natural-100">
                 ردّك على العرض
               </p>
-                <FormTextarea
-                  label="ملاحظاتك (اختيارية عند الموافقة — مطلوبة عند طلب التعديل)"
-                  rows={3}
-                  placeholder="اكتب ملاحظاتك هنا..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
+              <FormTextarea
+                label="ملاحظاتك (اختيارية عند الموافقة — مطلوبة عند طلب التعديل)"
+                rows={3}
+                placeholder="اكتب ملاحظاتك هنا..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
               <div className="flex flex-wrap gap-2">
                 <ActionButton
                   onClick={handleApprove}

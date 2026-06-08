@@ -24,7 +24,9 @@ function ProjectRevisions({ project }: { project: Project }) {
 
   return (
     <div className="border rounded-lg overflow-hidden">
-      <div className="bg-neutral-50/40 px-4 py-2 font-medium text-sm">{project.name}</div>
+      <div className="bg-neutral-50/40 px-4 py-2 font-medium text-sm">
+        {project.name}
+      </div>
       <div className="divide-y">
         {withRevisions.map((deliverable) =>
           deliverable.revisionRequests?.map((rev) => (
@@ -34,7 +36,9 @@ function ProjectRevisions({ project }: { project: Project }) {
             >
               <div className="flex flex-col gap-1">
                 <span className="font-medium">{deliverable.title}</span>
-                <span className="text-neutral-300 text-xs">{rev.description}</span>
+                <span className="text-neutral-300 text-xs">
+                  {rev.description}
+                </span>
                 <span className="text-neutral-300 text-xs" dir="ltr">
                   {new Date(rev.createdAt).toLocaleDateString("ar-DZ")}
                 </span>

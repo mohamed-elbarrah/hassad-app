@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ConversationType, Prisma } from '@prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationsService } from '../../notifications/services/notifications.service';
-import { CreateConversationDto, AddParticipantDto, CreateMessageDto } from '../dto/chat.dto';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { StorageService } from '../../../common/storage/storage.service';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConversationType, Prisma } from "@prisma/client";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { NotificationsService } from "../../notifications/services/notifications.service";
+import {
+  CreateConversationDto,
+  AddParticipantDto,
+  CreateMessageDto,
+} from "../dto/chat.dto";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { StorageService } from "../../../common/storage/storage.service";
 
 interface AttachmentData {
   key: string;
@@ -80,12 +84,12 @@ export class ChatService {
           client: true,
           participants: { include: { user: true } },
           messages: {
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             take: 1,
             include: { sender: true, attachments: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -132,7 +136,7 @@ export class ChatService {
 
     if (!client.userId) {
       throw new NotFoundException(
-        'Cannot create conversation: client has no linked user account',
+        "Cannot create conversation: client has no linked user account",
       );
     }
 
@@ -144,7 +148,7 @@ export class ChatService {
         select: { id: true, role: { select: { name: true } } },
       });
 
-      if (manager && ['SALES', 'ADMIN'].includes(manager.role.name)) {
+      if (manager && ["SALES", "ADMIN"].includes(manager.role.name)) {
         participantIds.push(manager.id);
       }
     }
@@ -153,7 +157,7 @@ export class ChatService {
       const project = await this.prisma.project.findFirst({
         where: { clientId, projectManagerId: { not: null } },
         select: { projectManagerId: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
 
       if (project?.projectManagerId) {
@@ -162,7 +166,7 @@ export class ChatService {
           select: { id: true, role: { select: { name: true } } },
         });
 
-        if (pm && ['PM', 'ADMIN'].includes(pm.role.name)) {
+        if (pm && ["PM", "ADMIN"].includes(pm.role.name)) {
           participantIds.push(pm.id);
         }
       }
@@ -170,7 +174,7 @@ export class ChatService {
 
     if (participantIds.length < 2) {
       throw new NotFoundException(
-        'Cannot create conversation: no valid participant found for this conversation type',
+        "Cannot create conversation: no valid participant found for this conversation type",
       );
     }
 
@@ -188,9 +192,7 @@ export class ChatService {
     });
 
     for (const conv of conversations) {
-      const convParticipantIds = conv.participants
-        .map((p) => p.userId)
-        .sort();
+      const convParticipantIds = conv.participants.map((p) => p.userId).sort();
       const expectedIds = [...userIds].sort();
       if (
         convParticipantIds.length === expectedIds.length &&
@@ -257,18 +259,21 @@ export class ChatService {
     });
 
     if (participants.length > 0) {
-      const truncatedContent = dto.content.length > 100
-        ? dto.content.substring(0, 97) + '...'
-        : dto.content;
+      const truncatedContent =
+        dto.content.length > 100
+          ? dto.content.substring(0, 97) + "..."
+          : dto.content;
 
-      this.notificationsService.notifyUsers({
-        userIds: participants.map((p) => p.userId),
-        title: `رسالة جديدة من ${message.sender.name}`,
-        message: truncatedContent,
-        entityId: dto.conversationId,
-        entityType: "conversation",
-        eventType: "NEW_MESSAGE",
-      }).catch(() => undefined);
+      this.notificationsService
+        .notifyUsers({
+          userIds: participants.map((p) => p.userId),
+          title: `رسالة جديدة من ${message.sender.name}`,
+          message: truncatedContent,
+          entityId: dto.conversationId,
+          entityType: "conversation",
+          eventType: "NEW_MESSAGE",
+        })
+        .catch(() => undefined);
     }
 
     this.eventEmitter.emit("chat.messageCreated", {
@@ -315,21 +320,25 @@ export class ChatService {
     });
 
     if (participants.length > 0) {
-      const truncatedContent = dto.content.length > 100
-        ? dto.content.substring(0, 97) + '...'
-        : dto.content;
-      const suffix = attachments.length > 0
-        ? ` (${attachments.length} مرفق${attachments.length > 1 ? 'ات' : ''})`
-        : '';
+      const truncatedContent =
+        dto.content.length > 100
+          ? dto.content.substring(0, 97) + "..."
+          : dto.content;
+      const suffix =
+        attachments.length > 0
+          ? ` (${attachments.length} مرفق${attachments.length > 1 ? "ات" : ""})`
+          : "";
 
-      this.notificationsService.notifyUsers({
-        userIds: participants.map((p) => p.userId),
-        title: `رسالة جديدة من ${message.sender.name}`,
-        message: truncatedContent + suffix,
-        entityId: dto.conversationId,
-        entityType: "conversation",
-        eventType: "NEW_MESSAGE",
-      }).catch(() => undefined);
+      this.notificationsService
+        .notifyUsers({
+          userIds: participants.map((p) => p.userId),
+          title: `رسالة جديدة من ${message.sender.name}`,
+          message: truncatedContent + suffix,
+          entityId: dto.conversationId,
+          entityType: "conversation",
+          eventType: "NEW_MESSAGE",
+        })
+        .catch(() => undefined);
     }
 
     this.eventEmitter.emit("chat.messageCreated", {
@@ -345,22 +354,30 @@ export class ChatService {
       },
     });
 
-    if (messageWithAttachments && messageWithAttachments.attachments.length > 0) {
-      const attachmentKeys = messageWithAttachments.attachments.map((a) => a.filePath);
-      const urlMap = await this.storageService.getMultiplePresignedUrls(attachmentKeys);
+    if (
+      messageWithAttachments &&
+      messageWithAttachments.attachments.length > 0
+    ) {
+      const attachmentKeys = messageWithAttachments.attachments.map(
+        (a) => a.filePath,
+      );
+      const urlMap =
+        await this.storageService.getMultiplePresignedUrls(attachmentKeys);
 
-      (messageWithAttachments as any).attachments = messageWithAttachments.attachments.map(
-        (att) => ({
+      (messageWithAttachments as any).attachments =
+        messageWithAttachments.attachments.map((att) => ({
           ...att,
           url: urlMap.get(att.filePath) || null,
-        }),
-      );
+        }));
     }
 
     return messageWithAttachments;
   }
 
-  async getMessages(conversationId: string, query?: { page?: number; limit?: number }) {
+  async getMessages(
+    conversationId: string,
+    query?: { page?: number; limit?: number },
+  ) {
     const page = Number(query?.page) || 1;
     const limit = Number(query?.limit) || 50;
 
@@ -370,7 +387,7 @@ export class ChatService {
         sender: true,
         attachments: true,
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -380,7 +397,8 @@ export class ChatService {
     );
 
     if (allAttachmentKeys.length > 0) {
-      const urlMap = await this.storageService.getMultiplePresignedUrls(allAttachmentKeys);
+      const urlMap =
+        await this.storageService.getMultiplePresignedUrls(allAttachmentKeys);
       for (const msg of messages) {
         if (msg.attachments && msg.attachments.length > 0) {
           (msg as any).attachments = msg.attachments.map((att) => ({

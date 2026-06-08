@@ -399,14 +399,14 @@ export function NotificationsDropdown() {
             الإشعارات
           </span>
           {hasUnread && (
-              <button
-                className="flex items-center gap-1 px-3 py-1 rounded-xl text-xs border-none bg-transparent hover:bg-neutral-100 transition-colors"
-                style={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: "#525866",
-                  lineHeight: "21px",
-                }}
+            <button
+              className="flex items-center gap-1 px-3 py-1 rounded-xl text-xs border-none bg-transparent hover:bg-neutral-100 transition-colors"
+              style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: "#525866",
+                lineHeight: "21px",
+              }}
               onClick={() => markAllAsRead()}
             >
               <CheckCheck style={{ width: 16, height: 16 }} />

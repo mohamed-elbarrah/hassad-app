@@ -16,7 +16,7 @@ const variantClasses = {
   default: "bg-natural-0 border-portal-card-border",
   success: "bg-success-100/30 border-success-200",
   warning: "bg-alert-100/30 border-alert-200",
-  danger:  "bg-danger-100/30 border-danger-200",
+  danger: "bg-danger-100/30 border-danger-200",
 };
 
 const trendColors = {
@@ -25,9 +25,23 @@ const trendColors = {
   neutral: "text-neutral-300",
 };
 
-export function StatCard({ title, value, icon: Icon, variant = "default", trend, trendValue, className }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  icon: Icon,
+  variant = "default",
+  trend,
+  trendValue,
+  className,
+}: StatCardProps) {
   return (
-    <div className={cn("rounded-[30px] border-[1.5px] p-5", variantClasses[variant], className)}>
+    <div
+      className={cn(
+        "rounded-[30px] border-[1.5px] p-5",
+        variantClasses[variant],
+        className,
+      )}
+    >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm text-neutral-300">{title}</p>

@@ -184,7 +184,11 @@ export function EmployeeForm({ mode, employee, onClose }: EmployeeFormProps) {
       }
     >
       <Form {...form}>
-        <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          id="employee-form"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-4"
+        >
           {/* Name */}
           <FormField
             control={form.control}
@@ -193,7 +197,10 @@ export function EmployeeForm({ mode, employee, onClose }: EmployeeFormProps) {
               <FormItem>
                 <FormLabel>الاسم</FormLabel>
                 <FormControl>
-                  <FormInputControl placeholder="أدخل الاسم الكامل" {...field} />
+                  <FormInputControl
+                    placeholder="أدخل الاسم الكامل"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

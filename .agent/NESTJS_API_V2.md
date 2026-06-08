@@ -1,9 +1,11 @@
 # HASAD PLATFORM — NESTJS API SPEC (V2 FULL)
+
 ## Source of Truth — STRICT EXECUTION (NO INTERPRETATION ALLOWED)
 
 This document defines the **complete API layer** for the Hasad Platform using **NestJS**.
 
 🚨 The agent MUST:
+
 - Implement EXACTLY what is written
 - NOT add, remove, rename, or infer anything
 - NOT bypass workflow rules
@@ -300,3 +302,4 @@ Not optimize
 Not skip
 
 ANY deviation = INVALID IMPLEMENTATION
+```

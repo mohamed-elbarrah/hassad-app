@@ -103,7 +103,10 @@ export default function LedgerPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="relative w-full md:w-96">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
-              <FormInputControl placeholder="بحث في السجلات..." className="pr-10" />
+              <FormInputControl
+                placeholder="بحث في السجلات..."
+                className="pr-10"
+              />
             </div>
             <div className="flex gap-2">
               <ActionButton variant="outline" size="sm">

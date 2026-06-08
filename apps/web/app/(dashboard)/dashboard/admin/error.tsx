@@ -9,5 +9,12 @@ export default function AdminError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard/admin" backLabel="العودة للوحة الإدارة" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/dashboard/admin"
+      backLabel="العودة للوحة الإدارة"
+    />
+  );
 }

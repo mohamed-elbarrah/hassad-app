@@ -226,9 +226,11 @@ export function NotificationsDropdown() {
         open={!!selectedNotification}
         onOpenChange={(open) => !open && setSelectedNotification(null)}
         title={selectedNotification?.title}
-        description={selectedNotification?.createdAt
-          ? formatRelativeTime(selectedNotification.createdAt as string)
-          : ""}
+        description={
+          selectedNotification?.createdAt
+            ? formatRelativeTime(selectedNotification.createdAt as string)
+            : ""
+        }
         contentClassName="max-w-md"
         footer={
           <div className="flex flex-row-reverse gap-2">

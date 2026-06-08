@@ -48,8 +48,12 @@ export default function AdminSettingsPage() {
     role: UserRole.EMPLOYEE as string,
   });
 
-  const { data, isLoading } = useSearchUsersQuery({ search: search || undefined, limit: 20 });
-  const [createUser, { isLoading: creating, error: createError }] = useCreateUserMutation();
+  const { data, isLoading } = useSearchUsersQuery({
+    search: search || undefined,
+    limit: 20,
+  });
+  const [createUser, { isLoading: creating, error: createError }] =
+    useCreateUserMutation();
   const [deactivateUser] = useDeactivateUserMutation();
 
   async function handleCreate(e: React.FormEvent) {
@@ -59,7 +63,7 @@ export default function AdminSettingsPage() {
         name: form.name,
         email: form.email,
         password: form.password,
-        role: form.role as typeof UserRole[keyof typeof UserRole],
+        role: form.role as (typeof UserRole)[keyof typeof UserRole],
       }).unwrap();
       setForm({ name: "", email: "", password: "", role: UserRole.EMPLOYEE });
       setShowForm(false);
@@ -86,7 +90,9 @@ export default function AdminSettingsPage() {
                 <FormInputControl
                   placeholder="الاسم الكامل"
                   value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
                   required
                 />
               </div>
@@ -96,7 +102,9 @@ export default function AdminSettingsPage() {
                   type="email"
                   placeholder="example@hassad.com"
                   value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, email: e.target.value }))
+                  }
                   required
                 />
               </div>
@@ -106,7 +114,9 @@ export default function AdminSettingsPage() {
                   type="password"
                   placeholder="••••••••"
                   value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, password: e.target.value }))
+                  }
                   required
                 />
               </div>
@@ -150,7 +160,7 @@ export default function AdminSettingsPage() {
         </SurfaceCard>
       )}
 
-      <SurfaceCard 
+      <SurfaceCard
         title="أعضاء الفريق"
         action={
           !showForm && (
@@ -179,7 +189,9 @@ export default function AdminSettingsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-right">الاسم</TableHead>
-                  <TableHead className="text-right">البريد الإلكتروني</TableHead>
+                  <TableHead className="text-right">
+                    البريد الإلكتروني
+                  </TableHead>
                   <TableHead className="text-right">الدور</TableHead>
                   <TableHead className="text-right">إجراء</TableHead>
                 </TableRow>
@@ -187,7 +199,10 @@ export default function AdminSettingsPage() {
               <TableBody>
                 {data?.items.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-neutral-300 py-8">
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-neutral-300 py-8"
+                    >
                       لا يوجد مستخدمون.
                     </TableCell>
                   </TableRow>

@@ -30,11 +30,14 @@ export default function PortalProjectsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError } = useGetPortalProjectsQuery({
-    status: statusFilter || undefined,
-    page,
-    limit: PAGE_SIZE,
-  }, { pollingInterval: 30_000 });
+  const { data, isLoading, isError } = useGetPortalProjectsQuery(
+    {
+      status: statusFilter || undefined,
+      page,
+      limit: PAGE_SIZE,
+    },
+    { pollingInterval: 30_000 },
+  );
 
   const projects = data?.data ?? [];
   const total = data?.total ?? 0;

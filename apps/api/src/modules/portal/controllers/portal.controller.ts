@@ -112,10 +112,7 @@ export class PortalController {
 
   @Get("portal/contracts/:id")
   @RequirePermissions("portal.read")
-  async getContractById(
-    @CurrentUser() user: any,
-    @Param("id") id: string,
-  ) {
+  async getContractById(@CurrentUser() user: any, @Param("id") id: string) {
     return this.portalService.getContractById({
       contractId: id,
       clientId: await this.resolveClientId(user),
@@ -127,13 +124,14 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getFinanceSummary(@CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return {
-      totalInvoiced: 0,
-      totalPaid: 0,
-      totalRemaining: 0,
-      nextInvoiceDueDate: null,
-      nextInvoiceAmount: 0,
-    };
+    if (!clientId)
+      return {
+        totalInvoiced: 0,
+        totalPaid: 0,
+        totalRemaining: 0,
+        nextInvoiceDueDate: null,
+        nextInvoiceAmount: 0,
+      };
     return this.portalService.getFinanceSummary(clientId);
   }
 
@@ -275,7 +273,11 @@ export class PortalController {
       throw new ForbiddenException();
     }
 
-    const uploadedFileKeys: { key: string; originalName: string; mimeType: string }[] = [];
+    const uploadedFileKeys: {
+      key: string;
+      originalName: string;
+      mimeType: string;
+    }[] = [];
     if (files && files.length > 0) {
       for (const f of files) {
         const result = await this.storageService.upload({
@@ -296,7 +298,11 @@ export class PortalController {
       }
     }
 
-    return this.portalService.createIntakeForm(clientIdFromUrl, dto, uploadedFileKeys);
+    return this.portalService.createIntakeForm(
+      clientIdFromUrl,
+      dto,
+      uploadedFileKeys,
+    );
   }
 
   @Get("clients/:id/intake-form")
@@ -429,7 +435,7 @@ export class PortalController {
       ? new Date(query.dateFrom)
       : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const dateTo = query.dateTo ? new Date(query.dateTo) : new Date();
-    const granularity = query.granularity || 'month';
+    const granularity = query.granularity || "month";
     return this.portalService.getReportTimeline(
       clientId,
       dateFrom,
@@ -500,10 +506,7 @@ export class PortalController {
 
   @Post("portal/projects/:id/approve")
   @RequirePermissions("portal.approve_deliverables")
-  async approveProject(
-    @Param("id") id: string,
-    @CurrentUser() user: any,
-  ) {
+  async approveProject(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
     return this.portalService.approveProject(id, clientId);
@@ -523,10 +526,7 @@ export class PortalController {
 
   @Get("portal/projects/:id/revisions")
   @RequirePermissions("portal.read")
-  async getProjectRevisions(
-    @Param("id") id: string,
-    @CurrentUser() user: any,
-  ) {
+  async getProjectRevisions(@Param("id") id: string, @CurrentUser() user: any) {
     return this.portalService.getProjectRevisions(id);
   }
 }

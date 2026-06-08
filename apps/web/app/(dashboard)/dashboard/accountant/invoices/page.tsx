@@ -22,7 +22,10 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "ملغاة",
 };
 
-const STATUS_PILL_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "blue"> = {
+const STATUS_PILL_TONE: Record<
+  string,
+  "neutral" | "success" | "warning" | "danger" | "blue"
+> = {
   DUE: "warning",
   SENT: "blue",
   PAID: "success",
@@ -38,9 +41,15 @@ export default function FinanceInvoicesPage() {
   const { data, isLoading, isError } = useGetInvoicesQuery({ limit: 50 });
 
   const counts = {
-    due: data?.items.filter((i) => i.status === InvoiceStatus.DUE || i.status === InvoiceStatus.SENT).length ?? 0,
-    paid: data?.items.filter((i) => i.status === InvoiceStatus.PAID).length ?? 0,
-    late: data?.items.filter((i) => i.status === InvoiceStatus.LATE).length ?? 0,
+    due:
+      data?.items.filter(
+        (i) =>
+          i.status === InvoiceStatus.DUE || i.status === InvoiceStatus.SENT,
+      ).length ?? 0,
+    paid:
+      data?.items.filter((i) => i.status === InvoiceStatus.PAID).length ?? 0,
+    late:
+      data?.items.filter((i) => i.status === InvoiceStatus.LATE).length ?? 0,
   };
 
   const SUMMARY = [
@@ -60,7 +69,10 @@ export default function FinanceInvoicesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {SUMMARY.map((item) => (
-          <div key={item.label} className="overflow-hidden rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0">
+          <div
+            key={item.label}
+            className="overflow-hidden rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0"
+          >
             <div className="flex flex-col gap-4 px-5 py-4">
               <h2 className="text-sm text-neutral-300">{item.label}</h2>
               {isLoading ? (
@@ -73,7 +85,9 @@ export default function FinanceInvoicesPage() {
         ))}
       </div>
 
-      <SurfaceCard title={data ? `قائمة الفواتير (${data.total})` : "قائمة الفواتير"}>
+      <SurfaceCard
+        title={data ? `قائمة الفواتير (${data.total})` : "قائمة الفواتير"}
+      >
         {isLoading && (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -82,7 +96,9 @@ export default function FinanceInvoicesPage() {
           </div>
         )}
         {isError && (
-          <p className="text-sm text-danger-500">حدث خطأ أثناء تحميل الفواتير.</p>
+          <p className="text-sm text-danger-500">
+            حدث خطأ أثناء تحميل الفواتير.
+          </p>
         )}
         {!isLoading && !isError && data && (
           <Table>
@@ -98,7 +114,10 @@ export default function FinanceInvoicesPage() {
             <TableBody>
               {data.items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-neutral-300 py-8">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-neutral-300 py-8"
+                  >
                     لا توجد فواتير.
                   </TableCell>
                 </TableRow>

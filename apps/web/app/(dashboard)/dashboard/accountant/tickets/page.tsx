@@ -24,7 +24,10 @@ const STATUS_LABELS: Record<string, string> = {
   LATE: "متأخرة",
 };
 
-const STATUS_PILL_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "blue"> = {
+const STATUS_PILL_TONE: Record<
+  string,
+  "neutral" | "success" | "warning" | "danger" | "blue"
+> = {
   PENDING: "warning",
   COLLECTION: "blue",
   PAID: "success",
@@ -33,7 +36,8 @@ const STATUS_PILL_TONE: Record<string, "neutral" | "success" | "warning" | "dang
 
 export default function FinanceTicketsPage() {
   const { data, isLoading, isError } = useGetPaymentTicketsQuery({ limit: 30 });
-  const [resolveTicket, { isLoading: resolving }] = useResolvePaymentTicketMutation();
+  const [resolveTicket, { isLoading: resolving }] =
+    useResolvePaymentTicketMutation();
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -44,7 +48,9 @@ export default function FinanceTicketsPage() {
         </p>
       </div>
 
-      <SurfaceCard title={data ? `قائمة التذاكر (${data.total})` : "قائمة التذاكر"}>
+      <SurfaceCard
+        title={data ? `قائمة التذاكر (${data.total})` : "قائمة التذاكر"}
+      >
         {isLoading && (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -53,7 +59,9 @@ export default function FinanceTicketsPage() {
           </div>
         )}
         {isError && (
-          <p className="text-sm text-danger-500">حدث خطأ أثناء تحميل التذاكر.</p>
+          <p className="text-sm text-danger-500">
+            حدث خطأ أثناء تحميل التذاكر.
+          </p>
         )}
         {!isLoading && !isError && data && (
           <Table>
@@ -68,7 +76,10 @@ export default function FinanceTicketsPage() {
             <TableBody>
               {data.items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-neutral-300 py-8">
+                  <TableCell
+                    colSpan={4}
+                    className="text-center text-neutral-300 py-8"
+                  >
                     لا توجد تذاكر مالية.
                   </TableCell>
                 </TableRow>

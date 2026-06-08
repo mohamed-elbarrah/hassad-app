@@ -75,14 +75,17 @@ export class CampaignsService {
       eventType: "MARKETING_CAMPAIGN_CREATED",
     });
 
-    this.notifyClientAboutCampaign(campaign.id, "MARKETING_CAMPAIGN_CREATED",
+    this.notifyClientAboutCampaign(
+      campaign.id,
+      "MARKETING_CAMPAIGN_CREATED",
       "تم إطلاق حملة جديدة",
-      `تم إطلاق حملة "${campaign.name}" لمشروعك`).catch((error) => {
-        this.logger.error(
-          `Failed to notify client about campaign creation: campaignId=${campaign.id}, eventType=MARKETING_CAMPAIGN_CREATED`,
-          error instanceof Error ? error.stack : String(error),
-        );
-      });
+      `تم إطلاق حملة "${campaign.name}" لمشروعك`,
+    ).catch((error) => {
+      this.logger.error(
+        `Failed to notify client about campaign creation: campaignId=${campaign.id}, eventType=MARKETING_CAMPAIGN_CREATED`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    });
 
     return campaign;
   }
@@ -138,7 +141,8 @@ export class CampaignsService {
     if (dto.platform !== undefined) data.platform = dto.platform;
     if (dto.budgetTotal !== undefined) data.budgetTotal = dto.budgetTotal;
     if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
-    if (dto.endDate !== undefined) data.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    if (dto.endDate !== undefined)
+      data.endDate = dto.endDate ? new Date(dto.endDate) : null;
 
     const updated = await this.prisma.campaign.update({
       where: { id },
@@ -213,7 +217,11 @@ export class CampaignsService {
     return { activeCampaigns, totalBudgetUsed, avgRoas };
   }
 
-  async createKpiSnapshot(id: string, data: UpdateCampaignMetricsDto, userId: string) {
+  async createKpiSnapshot(
+    id: string,
+    data: UpdateCampaignMetricsDto,
+    userId: string,
+  ) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id },
       include: {
@@ -259,11 +267,41 @@ export class CampaignsService {
 
       await tx.campaignKpiAuditLog.createMany({
         data: [
-          { campaignId: id, snapshotId: snap.id, field: "impressions", newValue: String(impressions), changedBy: userId },
-          { campaignId: id, snapshotId: snap.id, field: "clicks", newValue: String(clicks), changedBy: userId },
-          { campaignId: id, snapshotId: snap.id, field: "conversions", newValue: String(conversions), changedBy: userId },
-          { campaignId: id, snapshotId: snap.id, field: "revenue", newValue: String(revenue), changedBy: userId },
-          { campaignId: id, snapshotId: snap.id, field: "budgetSpent", newValue: String(budgetSpent), changedBy: userId },
+          {
+            campaignId: id,
+            snapshotId: snap.id,
+            field: "impressions",
+            newValue: String(impressions),
+            changedBy: userId,
+          },
+          {
+            campaignId: id,
+            snapshotId: snap.id,
+            field: "clicks",
+            newValue: String(clicks),
+            changedBy: userId,
+          },
+          {
+            campaignId: id,
+            snapshotId: snap.id,
+            field: "conversions",
+            newValue: String(conversions),
+            changedBy: userId,
+          },
+          {
+            campaignId: id,
+            snapshotId: snap.id,
+            field: "revenue",
+            newValue: String(revenue),
+            changedBy: userId,
+          },
+          {
+            campaignId: id,
+            snapshotId: snap.id,
+            field: "budgetSpent",
+            newValue: String(budgetSpent),
+            changedBy: userId,
+          },
         ],
       });
 
@@ -283,14 +321,17 @@ export class CampaignsService {
       });
     }
 
-    this.notifyClientAboutCampaign(campaign.id, "MARKETING_METRICS_UPDATED",
+    this.notifyClientAboutCampaign(
+      campaign.id,
+      "MARKETING_METRICS_UPDATED",
       "تحديث أداء الحملة",
-      `تم تحديث نتائج الحملة "${campaign.name}"`).catch((error) => {
-        this.logger.error(
-          `Failed to notify client about metrics update: campaignId=${campaign.id}, eventType=MARKETING_METRICS_UPDATED`,
-          error instanceof Error ? error.stack : String(error),
-        );
-      });
+      `تم تحديث نتائج الحملة "${campaign.name}"`,
+    ).catch((error) => {
+      this.logger.error(
+        `Failed to notify client about metrics update: campaignId=${campaign.id}, eventType=MARKETING_METRICS_UPDATED`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    });
 
     return snapshot;
   }
@@ -319,7 +360,10 @@ export class CampaignsService {
       throw new NotFoundException("الحملة غير موجودة");
     }
 
-    this.validateStatusTransition(campaign.status as unknown as CampaignStatus, status);
+    this.validateStatusTransition(
+      campaign.status as unknown as CampaignStatus,
+      status,
+    );
 
     const updated = await this.prisma.campaign.update({
       where: { id },
@@ -331,27 +375,34 @@ export class CampaignsService {
       await this.notifications.notifyUsers({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: 'تحديث حالة الحملة',
+        title: "تحديث حالة الحملة",
         message: `تم تغيير حالة الحملة "${campaign.name}" إلى ${status}`,
         entityId: campaign.id,
-        entityType: 'CAMPAIGN',
-        eventType: 'MARKETING_CAMPAIGN_STATUS_CHANGED',
+        entityType: "CAMPAIGN",
+        eventType: "MARKETING_CAMPAIGN_STATUS_CHANGED",
       });
     }
 
-    this.notifyClientAboutCampaign(id, "MARKETING_CAMPAIGN_STATUS_CHANGED",
+    this.notifyClientAboutCampaign(
+      id,
+      "MARKETING_CAMPAIGN_STATUS_CHANGED",
       "تحديث حالة الحملة",
-      `تم تغيير حالة حملة "${campaign.name}" إلى ${status}`).catch((error) => {
-        this.logger.error(
-          `Failed to notify client about status change: campaignId=${id}, eventType=MARKETING_CAMPAIGN_STATUS_CHANGED`,
-          error instanceof Error ? error.stack : String(error),
-        );
-      });
+      `تم تغيير حالة حملة "${campaign.name}" إلى ${status}`,
+    ).catch((error) => {
+      this.logger.error(
+        `Failed to notify client about status change: campaignId=${id}, eventType=MARKETING_CAMPAIGN_STATUS_CHANGED`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    });
 
     return updated;
   }
 
-  async flagOptimization(id: string, needsOptimization: boolean, userId: string) {
+  async flagOptimization(
+    id: string,
+    needsOptimization: boolean,
+    userId: string,
+  ) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id },
       include: { task: true },
@@ -378,14 +429,17 @@ export class CampaignsService {
         eventType: "MARKETING_OPTIMIZATION_REQUIRED",
       });
 
-      this.notifyClientAboutCampaign(id, "MARKETING_OPTIMIZATION_REQUIRED",
+      this.notifyClientAboutCampaign(
+        id,
+        "MARKETING_OPTIMIZATION_REQUIRED",
         "حملة تحتاج تحسين",
-        `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`).catch((error) => {
-          this.logger.error(
-            `Failed to notify client about optimization flag: campaignId=${id}, eventType=MARKETING_OPTIMIZATION_REQUIRED`,
-            error instanceof Error ? error.stack : String(error),
-          );
-        });
+        `تم وضع علامة "تحتاج تحسين" على الحملة "${campaign.name}"`,
+      ).catch((error) => {
+        this.logger.error(
+          `Failed to notify client about optimization flag: campaignId=${id}, eventType=MARKETING_OPTIMIZATION_REQUIRED`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      });
     }
 
     return updated;
@@ -412,7 +466,9 @@ export class CampaignsService {
     });
   }
 
-  private async getLatestSnapshots(campaignIds: string[]): Promise<Record<string, any>> {
+  private async getLatestSnapshots(
+    campaignIds: string[],
+  ): Promise<Record<string, any>> {
     if (campaignIds.length === 0) return {};
 
     const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
@@ -457,9 +513,15 @@ export class CampaignsService {
     };
   }
 
-  private validateStatusTransition(current: CampaignStatus, next: CampaignStatus) {
+  private validateStatusTransition(
+    current: CampaignStatus,
+    next: CampaignStatus,
+  ) {
     const allowed: Record<CampaignStatus, CampaignStatus[]> = {
-      [CampaignStatus.PLANNING]: [CampaignStatus.ACTIVE, CampaignStatus.STOPPED],
+      [CampaignStatus.PLANNING]: [
+        CampaignStatus.ACTIVE,
+        CampaignStatus.STOPPED,
+      ],
       [CampaignStatus.ACTIVE]: [
         CampaignStatus.PAUSED,
         CampaignStatus.STOPPED,

@@ -44,7 +44,10 @@ export const settingsApi = createApi({
       providesTags: (_r, _e, id) => [{ type: "CurrencySetting", id }],
     }),
 
-    createCurrencySetting: builder.mutation<CurrencySetting, Partial<CurrencySetting>>({
+    createCurrencySetting: builder.mutation<
+      CurrencySetting,
+      Partial<CurrencySetting>
+    >({
       query: (body) => ({ url: "/currency-settings", method: "POST", body }),
       invalidatesTags: ["CurrencySetting"],
     }),

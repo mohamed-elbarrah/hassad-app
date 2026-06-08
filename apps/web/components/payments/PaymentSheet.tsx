@@ -45,13 +45,7 @@ export interface PayableInvoice {
 
 /* ═════════════ Shared utilities ═════════════ */
 
-const PAYABLE_STATUSES = new Set([
-  "PENDING",
-  "SENT",
-  "DUE",
-  "PARTIAL",
-  "LATE",
-]);
+const PAYABLE_STATUSES = new Set(["PENDING", "SENT", "DUE", "PARTIAL", "LATE"]);
 
 function buildAvailableMethods(activeGateways: string[]) {
   const methods: {
@@ -108,11 +102,12 @@ export function CardPaymentForm({
 
   if (!clientSecret) {
     return (
-      <div className="flex flex-col items-center gap-3 py-8 text-center" dir="rtl">
+      <div
+        className="flex flex-col items-center gap-3 py-8 text-center"
+        dir="rtl"
+      >
         <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-        <p className="text-sm text-neutral-300">
-          جاري تجهيز نموذج الدفع...
-        </p>
+        <p className="text-sm text-neutral-300">جاري تجهيز نموذج الدفع...</p>
       </div>
     );
   }
@@ -157,11 +152,7 @@ function StripeElementsWrapper({
   );
 }
 
-function StripePaymentForm({
-  onComplete,
-}: {
-  onComplete?: () => void;
-}) {
+function StripePaymentForm({ onComplete }: { onComplete?: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -194,9 +185,8 @@ function StripePaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
-      
-        <PaymentElement />
-      
+      <PaymentElement />
+
       {error && (
         <p className="text-xs text-danger-500 flex items-center gap-1">
           <AlertCircle className="w-3 h-3" />
@@ -377,7 +367,7 @@ export function BankTransferForm({
   );
 }
 
-/* ═══════════════ INLINE PAYMENT CARD (for contract pages) ═════════════════ */ 
+/* ═══════════════ INLINE PAYMENT CARD (for contract pages) ═════════════════ */
 
 export interface InlinePaymentProps {
   invoice: PayableInvoice;
@@ -407,7 +397,7 @@ export function InlinePaymentCard({
     () => buildAvailableMethods(activeGateways),
     [activeGateways],
   );
-  const resolvedBankAccounts = bankAccountsProp ?? (bankData ?? []);
+  const resolvedBankAccounts = bankAccountsProp ?? bankData ?? [];
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
     null,
@@ -444,7 +434,13 @@ export function InlinePaymentCard({
       )}
 
       {showTabs && (
-        <div className={compact ? "flex gap-1 rounded-lg bg-neutral-50" : "flex gap-1 p-1 rounded-lg bg-neutral-50"}>
+        <div
+          className={
+            compact
+              ? "flex gap-1 rounded-lg bg-neutral-50"
+              : "flex gap-1 p-1 rounded-lg bg-neutral-50"
+          }
+        >
           {resolvedMethods.map((m) => {
             const Icon = m.icon;
             return (
@@ -493,7 +489,6 @@ export function InlinePaymentCard({
   );
 }
 
-
 /* ═══════════════ PAYMENT SHEET (for finance table) ═════════════════ */
 
 interface PaymentSheetProps {
@@ -512,8 +507,9 @@ export function PaymentSheet({
   const { data: activeGateways = [] } = useGetPublicGatewaysQuery(undefined, {
     skip: !invoice,
   });
-  const { data: stripeConfig } =
-    useGetStripePublishableKeyQuery(undefined, { skip: !invoice });
+  const { data: stripeConfig } = useGetStripePublishableKeyQuery(undefined, {
+    skip: !invoice,
+  });
   const { data: bankAccounts } = useGetBankAccountsQuery(undefined, {
     skip: !invoice,
   });
@@ -569,15 +565,11 @@ export function PaymentSheet({
               <p className="text-sm font-semibold text-natural-100">
                 {invoice.invoiceNumber}
               </p>
-              <p className="text-xs text-neutral-300 mt-0.5">
-                المبلغ المستحق
-              </p>
+              <p className="text-xs text-neutral-300 mt-0.5">المبلغ المستحق</p>
             </div>
             <p className="text-lg font-bold text-natural-100">
               {invoice.amount.toLocaleString("ar-SA-u-nu-latn")}{" "}
-              <span className="text-sm font-normal text-neutral-300">
-                ر.س
-              </span>
+              <span className="text-sm font-normal text-neutral-300">ر.س</span>
             </p>
           </div>
         </div>

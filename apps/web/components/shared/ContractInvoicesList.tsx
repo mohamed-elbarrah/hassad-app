@@ -10,7 +10,10 @@ import {
   CreditCard,
 } from "lucide-react";
 import type { InvoiceSummary } from "@/features/contracts/contractsApi";
-import { PaymentSheet, type PayableInvoice } from "@/components/payments/PaymentSheet";
+import {
+  PaymentSheet,
+  type PayableInvoice,
+} from "@/components/payments/PaymentSheet";
 
 const STATUS_CONFIG: Record<
   string,
@@ -20,7 +23,11 @@ const STATUS_CONFIG: Record<
   PENDING: { label: "معلق", icon: Clock, color: "text-alert-600" },
   SENT: { label: "مرسل", icon: Send, color: "text-action-blue" },
   DUE: { label: "مستحق", icon: AlertCircle, color: "text-alert-600" },
-  PARTIAL: { label: "مدفوع جزئياً", icon: AlertCircle, color: "text-alert-600" },
+  PARTIAL: {
+    label: "مدفوع جزئياً",
+    icon: AlertCircle,
+    color: "text-alert-600",
+  },
   LATE: { label: "متأخر", icon: AlertCircle, color: "text-danger-600" },
   CANCELLED: { label: "ملغي", icon: Ban, color: "text-neutral-600" },
 };
@@ -38,7 +45,9 @@ export function ContractInvoicesList({
   showPayButton = false,
   onPaymentComplete,
 }: ContractInvoicesListProps) {
-  const [selectedInvoice, setSelectedInvoice] = useState<PayableInvoice | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<PayableInvoice | null>(
+    null,
+  );
   const [sheetOpen, setSheetOpen] = useState(false);
 
   if (!invoices || invoices.length === 0) return null;
@@ -64,7 +73,8 @@ export function ContractInvoicesList({
             color: "text-muted-foreground",
           };
           const Icon = config.icon;
-          const isPayable = showPayButton && PAYABLE_STATUSES.has(invoice.status);
+          const isPayable =
+            showPayButton && PAYABLE_STATUSES.has(invoice.status);
 
           return (
             <div

@@ -9,5 +9,12 @@ export default function FinanceError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard/finance" backLabel="العودة للوحة المالية" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/dashboard/finance"
+      backLabel="العودة للوحة المالية"
+    />
+  );
 }

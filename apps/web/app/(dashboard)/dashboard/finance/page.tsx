@@ -162,13 +162,7 @@ export default function FinanceDashboardPage() {
                     stopOpacity={0}
                   />
                 </linearGradient>
-                <linearGradient
-                  id="colorExpenses"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
+                <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
                   <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                 </linearGradient>
@@ -232,7 +226,9 @@ export default function FinanceDashboardPage() {
                 <h3 className="text-lg font-semibold text-danger-500 dark:text-danger-400">
                   تنبيهات مالية
                 </h3>
-                <p className="text-sm text-neutral-300">مشكلات تتطلب تدخلًا فوريًا</p>
+                <p className="text-sm text-neutral-300">
+                  مشكلات تتطلب تدخلًا فوريًا
+                </p>
               </div>
               <AlertTriangle className="w-5 h-5 text-danger-500" />
             </div>
@@ -257,9 +253,7 @@ export default function FinanceDashboardPage() {
                     />
                     <div>
                       <p className="text-sm font-medium">{alert.client}</p>
-                      <p className="text-xs text-neutral-300">
-                        {alert.date}
-                      </p>
+                      <p className="text-xs text-neutral-300">{alert.date}</p>
                     </div>
                   </div>
                   <div className="text-right">

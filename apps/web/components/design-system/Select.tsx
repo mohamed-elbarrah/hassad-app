@@ -63,9 +63,7 @@ export function Select({
           {children}
         </SelectContent>
       </BaseSelect>
-      {error && (
-        <p className="text-xs text-danger-500 text-right">{error}</p>
-      )}
+      {error && <p className="text-xs text-danger-500 text-right">{error}</p>}
     </div>
   );
 }

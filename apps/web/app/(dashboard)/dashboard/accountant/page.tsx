@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 
-
 export default function AccountantWorkspacePage() {
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -17,7 +16,9 @@ export default function AccountantWorkspacePage() {
         <Link href="/dashboard/accountant/invoices">
           <div className="overflow-hidden rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0 hover:shadow-md transition-shadow cursor-pointer">
             <div className="px-5 py-4">
-              <h2 className="text-base font-medium text-natural-100">الفواتير</h2>
+              <h2 className="text-base font-medium text-natural-100">
+                الفواتير
+              </h2>
             </div>
             <div className="px-5 pb-4 text-sm text-neutral-300">
               مستحقة، مدفوعة، ومتأخرة.
@@ -27,7 +28,9 @@ export default function AccountantWorkspacePage() {
         <Link href="/dashboard/accountant/tickets">
           <div className="overflow-hidden rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0 hover:shadow-md transition-shadow cursor-pointer">
             <div className="px-5 py-4">
-              <h2 className="text-base font-medium text-natural-100">التذاكر المالية</h2>
+              <h2 className="text-base font-medium text-natural-100">
+                التذاكر المالية
+              </h2>
             </div>
             <div className="px-5 pb-4 text-sm text-neutral-300">
               طلبات مالية داخلية.
@@ -37,7 +40,9 @@ export default function AccountantWorkspacePage() {
         <Link href="/dashboard/accountant/contracts">
           <div className="overflow-hidden rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0 hover:shadow-md transition-shadow cursor-pointer">
             <div className="px-5 py-4">
-              <h2 className="text-base font-medium text-natural-100">العقود (مالية)</h2>
+              <h2 className="text-base font-medium text-natural-100">
+                العقود (مالية)
+              </h2>
             </div>
             <div className="px-5 pb-4 text-sm text-neutral-300">
               قيم العقود والرصيد المتبقي.

@@ -92,7 +92,9 @@ export function EmployeeTaskRow({
         {/* Badges */}
         <div className="flex flex-wrap gap-1.5 shrink-0">
           <Pill tone="neutral">{STATUS_LABELS[task.status]}</Pill>
-          <Pill tone={PRIORITY_TONE[task.priority]}>{PRIORITY_LABELS[task.priority]}</Pill>
+          <Pill tone={PRIORITY_TONE[task.priority]}>
+            {PRIORITY_LABELS[task.priority]}
+          </Pill>
           {task.department?.name && (
             <Pill tone="blue">
               {DEPARTMENT_LABELS[task.department.name as TaskDepartment] ??
@@ -105,9 +107,7 @@ export function EmployeeTaskRow({
         {dueDateFormatted && (
           <p
             className={`text-xs shrink-0 ${
-              isOverdue
-                ? "text-danger-500 font-medium"
-                : "text-neutral-300"
+              isOverdue ? "text-danger-500 font-medium" : "text-neutral-300"
             }`}
           >
             {dueDateFormatted}

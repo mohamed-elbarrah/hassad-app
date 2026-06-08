@@ -283,10 +283,12 @@ export class NotificationsService {
       const unreadCount = await this.prisma.notification.count({
         where: { userId, isRead: false },
       });
-      this.eventEmitter.emit("notification.unreadCount", { userId, count: unreadCount });
+      this.eventEmitter.emit("notification.unreadCount", {
+        userId,
+        count: unreadCount,
+      });
     }
 
     return result;
   }
 }
-

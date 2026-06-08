@@ -238,7 +238,11 @@ function TaskKanbanColumn({ status, tasks }: TaskKanbanColumnProps) {
 }
 
 export function TaskKanban({ projectId }: TaskKanbanProps) {
-  const { data: tasks, isLoading, isError } = useGetTasksByProjectQuery(projectId);
+  const {
+    data: tasks,
+    isLoading,
+    isError,
+  } = useGetTasksByProjectQuery(projectId);
 
   const [activeTask, setActiveTask] = useState<TaskWithAssignee | null>(null);
   const [startTask] = useStartTaskMutation();
@@ -281,7 +285,8 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
 
     try {
       if (
-        (currentStatus === TaskStatus.TODO || currentStatus === TaskStatus.REVISION) &&
+        (currentStatus === TaskStatus.TODO ||
+          currentStatus === TaskStatus.REVISION) &&
         newStatus === TaskStatus.IN_PROGRESS
       ) {
         await startTask(taskId).unwrap();

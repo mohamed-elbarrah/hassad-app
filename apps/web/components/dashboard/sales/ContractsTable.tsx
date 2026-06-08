@@ -8,10 +8,7 @@ import {
   type DataTableColumn,
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
-import {
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+import { TableRow, TableCell } from "@/components/ui/table";
 import { ContractStatus } from "@hassad/shared";
 import type { ContractItem as ContractListItem } from "@/features/contracts/contractsApi";
 import {

@@ -254,10 +254,19 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold">{task.title}</h1>
         <div className="flex flex-wrap gap-2">
-          <StatusBadge status={STATUS_MAP[task.status]} label={STATUS_LABELS[task.status]} />
-          <StatusBadge status={PRIORITY_MAP[task.priority]} label={PRIORITY_LABELS[task.priority]} />
+          <StatusBadge
+            status={STATUS_MAP[task.status]}
+            label={STATUS_LABELS[task.status]}
+          />
+          <StatusBadge
+            status={PRIORITY_MAP[task.priority]}
+            label={PRIORITY_LABELS[task.priority]}
+          />
           {typeof task.revisionCount === "number" && task.revisionCount > 0 && (
-            <StatusBadge status="REJECTED" label={`طلبات تعديل: ${task.revisionCount}`} />
+            <StatusBadge
+              status="REJECTED"
+              label={`طلبات تعديل: ${task.revisionCount}`}
+            />
           )}
         </div>
       </div>
@@ -292,9 +301,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             </div>
           )}
           <div>
-            <p className="text-neutral-300 text-xs mb-1">
-              تاريخ الاستحقاق
-            </p>
+            <p className="text-neutral-300 text-xs mb-1">تاريخ الاستحقاق</p>
             <p className="font-medium">
               {new Date(task.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}
             </p>
@@ -306,9 +313,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
       <SurfaceCard title="سجل انتقال الحالة">
         {!taskWithRelations.statusHistory ||
         taskWithRelations.statusHistory.length === 0 ? (
-          <p className="text-sm text-neutral-300">
-            لا توجد انتقالات بعد.
-          </p>
+          <p className="text-sm text-neutral-300">لا توجد انتقالات بعد.</p>
         ) : (
           <div className="flex flex-col gap-2 text-sm">
             {[...taskWithRelations.statusHistory]
@@ -400,9 +405,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             ))}
           </div>
         ) : !files || files.length === 0 ? (
-          <p className="text-sm text-neutral-300">
-            لا توجد ملفات مرفقة.
-          </p>
+          <p className="text-sm text-neutral-300">لا توجد ملفات مرفقة.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {files.map((file) => (
@@ -429,9 +432,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
               ))}
             </div>
           ) : !comments || comments.length === 0 ? (
-            <p className="text-sm text-neutral-300">
-              لا توجد تعليقات بعد.
-            </p>
+            <p className="text-sm text-neutral-300">لا توجد تعليقات بعد.</p>
           ) : (
             <div className="flex flex-col gap-4">
               {[...comments]
@@ -451,7 +452,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             <FormTextareaControl
               placeholder="اكتب تعليقًا..."
               value={commentText}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCommentText(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setCommentText(e.target.value)
+              }
               rows={3}
               disabled={isAddingComment}
             />

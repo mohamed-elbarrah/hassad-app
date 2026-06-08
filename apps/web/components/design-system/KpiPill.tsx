@@ -32,10 +32,7 @@ export interface KpiCurrencyProps {
   className?: string;
 }
 
-export function KpiCurrency({
-  amount,
-  className,
-}: KpiCurrencyProps) {
+export function KpiCurrency({ amount, className }: KpiCurrencyProps) {
   const { fmtAmount, currency } = useCurrency();
 
   return (

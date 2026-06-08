@@ -129,17 +129,16 @@ export const chatApi = createApi({
       ],
     }),
 
-    createConversation: builder.mutation<
-      Conversation,
-      CreateConversationInput
-    >({
-      query: (body) => ({
-        url: "/conversations",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: [{ type: "Conversation", id: "LIST" }],
-    }),
+    createConversation: builder.mutation<Conversation, CreateConversationInput>(
+      {
+        query: (body) => ({
+          url: "/conversations",
+          method: "POST",
+          body,
+        }),
+        invalidatesTags: [{ type: "Conversation", id: "LIST" }],
+      },
+    ),
 
     getMessages: builder.query<
       Message[],

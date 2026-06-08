@@ -9,5 +9,12 @@ export default function EmployeeError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard/employee" backLabel="العودة للوحة الموظف" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/dashboard/employee"
+      backLabel="العودة للوحة الموظف"
+    />
+  );
 }

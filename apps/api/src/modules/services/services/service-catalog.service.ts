@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateServiceCatalogDto, UpdateServiceCatalogDto, CreateDeliverableTemplateDto } from '../dto/service-catalog.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import {
+  CreateServiceCatalogDto,
+  UpdateServiceCatalogDto,
+  CreateDeliverableTemplateDto,
+} from "../dto/service-catalog.dto";
 
 @Injectable()
 export class ServiceCatalogService {
@@ -24,17 +28,18 @@ export class ServiceCatalogService {
   async findAll(includeInactive = false) {
     return this.prisma.serviceCatalog.findMany({
       where: includeInactive ? {} : { isActive: true },
-      include: { deliverableTemplates: { orderBy: { sortOrder: 'asc' } } },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      include: { deliverableTemplates: { orderBy: { sortOrder: "asc" } } },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
   }
 
   async findOne(id: string) {
     const service = await this.prisma.serviceCatalog.findUnique({
       where: { id },
-      include: { deliverableTemplates: { orderBy: { sortOrder: 'asc' } } },
+      include: { deliverableTemplates: { orderBy: { sortOrder: "asc" } } },
     });
-    if (!service) throw new NotFoundException(`Service with ID ${id} not found`);
+    if (!service)
+      throw new NotFoundException(`Service with ID ${id} not found`);
     return service;
   }
 
@@ -60,8 +65,13 @@ export class ServiceCatalogService {
   }
 
   async removeDeliverableTemplate(id: string) {
-    const tmpl = await this.prisma.deliverableTemplate.findUnique({ where: { id } });
-    if (!tmpl) throw new NotFoundException(`DeliverableTemplate with ID ${id} not found`);
+    const tmpl = await this.prisma.deliverableTemplate.findUnique({
+      where: { id },
+    });
+    if (!tmpl)
+      throw new NotFoundException(
+        `DeliverableTemplate with ID ${id} not found`,
+      );
     return this.prisma.deliverableTemplate.delete({ where: { id } });
   }
 }

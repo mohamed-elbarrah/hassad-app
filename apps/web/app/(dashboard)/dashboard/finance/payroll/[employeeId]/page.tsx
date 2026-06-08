@@ -48,9 +48,7 @@ export default function SalaryDetailPage({
 
   if (!employee) {
     return (
-      <div className="p-8 text-center text-neutral-300">
-        الموظف غير موجود
-      </div>
+      <div className="p-8 text-center text-neutral-300">الموظف غير موجود</div>
     );
   }
 
@@ -106,14 +104,10 @@ export default function SalaryDetailPage({
                       className="w-fit self-center"
                     />
                   </div>
-                  <p className="text-neutral-300 text-lg">
-                    {employee.role}
-                  </p>
+                  <p className="text-neutral-300 text-lg">{employee.role}</p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
                     <div className="bg-neutral-50/50 px-4 py-2 rounded-lg text-sm">
-                      <span className="text-neutral-300 ml-2">
-                        المعرف:
-                      </span>
+                      <span className="text-neutral-300 ml-2">المعرف:</span>
                       <span className="font-mono font-medium">
                         {employee.id}
                       </span>
@@ -141,9 +135,7 @@ export default function SalaryDetailPage({
                 <p className="text-sm text-success-600 flex items-center gap-1">
                   <ArrowUp className="w-3 h-3" /> الحوافز والبدلات
                 </p>
-                <h3 className="text-xl font-bold text-success-600">
-                  0 ر.س
-                </h3>
+                <h3 className="text-xl font-bold text-success-600">0 ر.س</h3>
               </div>
             </div>
             <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
@@ -151,9 +143,7 @@ export default function SalaryDetailPage({
                 <p className="text-sm text-danger-600 flex items-center gap-1">
                   <ArrowDown className="w-3 h-3" /> الإستقطاعات
                 </p>
-                <h3 className="text-xl font-bold text-danger-600">
-                  0 ر.س
-                </h3>
+                <h3 className="text-xl font-bold text-danger-600">0 ر.س</h3>
               </div>
             </div>
           </div>

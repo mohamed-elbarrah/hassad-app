@@ -99,10 +99,7 @@ export const proposalsApi = createApi({
           formData.append("file", input.file, input.file.name);
 
           if (input.servicesList && input.servicesList.length > 0) {
-            formData.append(
-              "servicesList",
-              JSON.stringify(input.servicesList),
-            );
+            formData.append("servicesList", JSON.stringify(input.servicesList));
           }
           if (input.totalPrice !== undefined) {
             formData.append("totalPrice", String(input.totalPrice));
@@ -186,7 +183,9 @@ export const proposalsApi = createApi({
 
     getProposalByToken: builder.query<ProposalListItem, string>({
       query: (token) => `/proposals/share/${token}`,
-      providesTags: (_result, _error, token) => [{ type: "Proposal", id: `share-${token}` }],
+      providesTags: (_result, _error, token) => [
+        { type: "Proposal", id: `share-${token}` },
+      ],
     }),
 
     /** CLIENT portal: proposals linked to the logged-in user's leads */
@@ -204,7 +203,9 @@ export const proposalsApi = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: (_result, _error, { token }) => [{ type: "Proposal", id: `share-${token}` }],
+      invalidatesTags: (_result, _error, { token }) => [
+        { type: "Proposal", id: `share-${token}` },
+      ],
     }),
 
     requestRevisionByToken: builder.mutation<
@@ -216,7 +217,9 @@ export const proposalsApi = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: (_result, _error, { token }) => [{ type: "Proposal", id: `share-${token}` }],
+      invalidatesTags: (_result, _error, { token }) => [
+        { type: "Proposal", id: `share-${token}` },
+      ],
     }),
   }),
 });

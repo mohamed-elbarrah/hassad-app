@@ -2,13 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
-import {
-  Paperclip,
-  X,
-  Copy,
-  CheckCheck,
-  Plus,
-} from "lucide-react";
+import { Paperclip, X, Copy, CheckCheck, Plus } from "lucide-react";
 import { DurationUnit, type RequestStatus } from "@hassad/shared";
 import { Dialog } from "@/components/design-system/Dialog";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -190,38 +184,35 @@ export function ProposalFormDialog({
     setServices((prev) => [...prev, { name: "", price: "" }]);
   }, []);
 
-  const updateServiceName = useCallback(
-    (index: number, value: string) => {
-      setServices((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], name: value };
-        return next;
-      });
-    },
-    [],
-  );
+  const updateServiceName = useCallback((index: number, value: string) => {
+    setServices((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], name: value };
+      return next;
+    });
+  }, []);
 
-  const updateServicePrice = useCallback(
-    (index: number, rawValue: string) => {
-      const digits = rawValue.replace(/[^\d]/g, "");
-      const formatted = digits ? formatNumber(parseInt(digits)) : "";
-      setServices((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], price: formatted };
-        return next;
-      });
-    },
-    [],
-  );
+  const updateServicePrice = useCallback((index: number, rawValue: string) => {
+    const digits = rawValue.replace(/[^\d]/g, "");
+    const formatted = digits ? formatNumber(parseInt(digits)) : "";
+    setServices((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], price: formatted };
+      return next;
+    });
+  }, []);
 
-  const removeService = useCallback((index: number) => {
-    if (services.length <= 1) return;
-    setRemovingIndex(index);
-    setTimeout(() => {
-      setServices((prev) => prev.filter((_, i) => i !== index));
-      setRemovingIndex(null);
-    }, 250);
-  }, [services.length]);
+  const removeService = useCallback(
+    (index: number) => {
+      if (services.length <= 1) return;
+      setRemovingIndex(index);
+      setTimeout(() => {
+        setServices((prev) => prev.filter((_, i) => i !== index));
+        setRemovingIndex(null);
+      }, 250);
+    },
+    [services.length],
+  );
 
   // ── Validate & Submit ──────────────────────────────────────────────────
   function validate(): boolean {
@@ -236,7 +227,11 @@ export function ProposalFormDialog({
     if (!pdfFile && !isEdit) {
       errors.file = "يرجى رفع ملف PDF للعرض الفني";
     }
-    if (pdfFile && pdfFile.type !== "application/pdf" && !pdfFile.name.endsWith(".pdf")) {
+    if (
+      pdfFile &&
+      pdfFile.type !== "application/pdf" &&
+      !pdfFile.name.endsWith(".pdf")
+    ) {
       errors.file = "يجب أن يكون الملف بصيغة PDF";
     }
     if (services.every((s) => !s.name.trim())) {
@@ -352,335 +347,334 @@ export function ProposalFormDialog({
         contentClassName="sm:max-w-[520px] p-0 gap-0 rounded-[24px] overflow-hidden"
         className="space-y-6 max-h-[90vh] overflow-y-auto modal-scroll p-6"
       >
-            {/* ── Success state (create only) ─────────────────────── */}
-            {sentLink && !isEdit ? (
-              <div className="space-y-5 py-2">
-                <div className="flex flex-col items-center gap-3 py-4 text-center">
-                  <div className="h-14 w-14 rounded-full bg-success-100 flex items-center justify-center">
-                    <CheckCheck className="h-7 w-7 text-success-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-base">
-                      تم إنشاء العرض وإرساله
-                    </p>
-                    <p className="text-sm text-neutral-300 mt-1">
-                      شارك الرابط مع العميل لمراجعة العرض والرد عليه
-                    </p>
-                  </div>
-                </div>
-
-                <div className="min-w-0">
-                  <div className="relative w-full">
-                    <FormInputControl
-                      readOnly
-                      value={sentLink}
-                      dir="ltr"
-                      className="w-full h-12 px-4 pr-36 text-xs font-mono truncate bg-neutral-50"
-                    />
-                    <div className="absolute inset-y-0 right-2 flex items-center">
-                      <ActionButton
-                        size="sm"
-                        variant={copied ? "secondary" : "primary"}
-                        onClick={copyLink}
-                        className="px-4 py-2 text-[13px] rounded-lg"
-                      >
-                        {copied ? "تم النسخ ✓" : "نسخ الرابط"}
-                      </ActionButton>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleOpenChange(false)}
-                  className="w-full h-12 border border-neutral-200 rounded-xl text-[13px] font-medium text-secondary-500 hover:bg-neutral-50 transition-colors"
-                >
-                  إغلاق
-                </button>
+        {/* ── Success state (create only) ─────────────────────── */}
+        {sentLink && !isEdit ? (
+          <div className="space-y-5 py-2">
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <div className="h-14 w-14 rounded-full bg-success-100 flex items-center justify-center">
+                <CheckCheck className="h-7 w-7 text-success-600" />
               </div>
-            ) : (
-              /* ── Form ─────────────────────────────────────────── */
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Header */}
-                <div className="text-center space-y-1.5">
-                  <h1 className="text-[22px] font-bold text-natural-100 leading-tight">
-                    {isEdit ? "تعديل العرض" : "إنشاء عرض جديد"}
-                  </h1>
-                  <p className="text-[13px] text-neutral-300 leading-relaxed px-2">
-                    أدخل تفاصيل العرض وأرسله مباشرة للعميل برابط مخصص
-                  </p>
+              <div>
+                <p className="font-semibold text-base">
+                  تم إنشاء العرض وإرساله
+                </p>
+                <p className="text-sm text-neutral-300 mt-1">
+                  شارك الرابط مع العميل لمراجعة العرض والرد عليه
+                </p>
+              </div>
+            </div>
+
+            <div className="min-w-0">
+              <div className="relative w-full">
+                <FormInputControl
+                  readOnly
+                  value={sentLink}
+                  dir="ltr"
+                  className="w-full h-12 px-4 pr-36 text-xs font-mono truncate bg-neutral-50"
+                />
+                <div className="absolute inset-y-0 right-2 flex items-center">
+                  <ActionButton
+                    size="sm"
+                    variant={copied ? "secondary" : "primary"}
+                    onClick={copyLink}
+                    className="px-4 py-2 text-[13px] rounded-lg"
+                  >
+                    {copied ? "تم النسخ ✓" : "نسخ الرابط"}
+                  </ActionButton>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleOpenChange(false)}
+              className="w-full h-12 border border-neutral-200 rounded-xl text-[13px] font-medium text-secondary-500 hover:bg-neutral-50 transition-colors"
+            >
+              إغلاق
+            </button>
+          </div>
+        ) : (
+          /* ── Form ─────────────────────────────────────────── */
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Header */}
+            <div className="text-center space-y-1.5">
+              <h1 className="text-[22px] font-bold text-natural-100 leading-tight">
+                {isEdit ? "تعديل العرض" : "إنشاء عرض جديد"}
+              </h1>
+              <p className="text-[13px] text-neutral-300 leading-relaxed px-2">
+                أدخل تفاصيل العرض وأرسله مباشرة للعميل برابط مخصص
+              </p>
+            </div>
+
+            {/* ── Customer Info ─────────────────────────────────── */}
+            <div>
+              <h2 className="text-[15px] font-bold text-natural-100 mb-3">
+                بيانات العميل
+              </h2>
+              <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0">
+                {/* Request picker */}
+                <div>
+                  <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
+                    الطلب
+                  </label>
+                  <SearchCombobox
+                    value={selectedRequestId}
+                    onChange={setSelectedRequestId}
+                    options={requestOptions}
+                    onSearchChange={setRequestSearch}
+                    placeholder="ابحث عن طلب جاهز للعرض..."
+                    searchPlaceholder="اكتب اسم الشركة أو العميل"
+                    isLoading={requestsFetching}
+                  />
+                  {fieldErrors.requestId && (
+                    <p className="text-[11px] text-danger-500 mt-1">
+                      {fieldErrors.requestId}
+                    </p>
+                  )}
                 </div>
 
-                {/* ── Customer Info ─────────────────────────────────── */}
+                {/* مسؤول التواصل — auto-filled, hidden */}
+                <input type="hidden" value={contactName} readOnly />
+
+                {/* البريد الإلكتروني — auto-filled, hidden */}
+                <input type="hidden" value={contactEmail} readOnly />
+
+                {/* ── Title ────────────────────────────────────────── */}
                 <div>
-                  <h2 className="text-[15px] font-bold text-natural-100 mb-3">
-                    بيانات العميل
-                  </h2>
-                  <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0">
-                    {/* Request picker */}
-                    <div>
-                      <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
-                        الطلب
-                      </label>
-                      <SearchCombobox
-                        value={selectedRequestId}
-                        onChange={setSelectedRequestId}
-                        options={requestOptions}
-                        onSearchChange={setRequestSearch}
-                        placeholder="ابحث عن طلب جاهز للعرض..."
-                        searchPlaceholder="اكتب اسم الشركة أو العميل"
-                        isLoading={requestsFetching}
-                      />
-                      {fieldErrors.requestId && (
-                        <p className="text-[11px] text-danger-500 mt-1">
-                          {fieldErrors.requestId}
-                        </p>
-                      )}
-                    </div>
+                  <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
+                    عنوان العرض
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="باقة إدارة وسائل التواصل الاجتماعي"
+                    className="w-full h-12 px-4 text-right text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
+                  />
+                  {fieldErrors.title && (
+                    <p className="text-[11px] text-danger-500 mt-1">
+                      {fieldErrors.title}
+                    </p>
+                  )}
+                </div>
 
-                    {/* مسؤول التواصل — auto-filled, hidden */}
-                    <input type="hidden" value={contactName} readOnly />
-
-                    {/* البريد الإلكتروني — auto-filled, hidden */}
-                    <input type="hidden" value={contactEmail} readOnly />
-
-                    {/* ── Title ────────────────────────────────────────── */}
-                    <div>
-                      <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
-                        عنوان العرض
-                      </label>
-                      <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="باقة إدارة وسائل التواصل الاجتماعي"
-                        className="w-full h-12 px-4 text-right text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
-                      />
-                      {fieldErrors.title && (
-                        <p className="text-[11px] text-danger-500 mt-1">
-                          {fieldErrors.title}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* ── PDF Upload ─────────────────────────────────────── */}
-                    <div>
-                      <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
-                        ملف العرض الفني (PDF)
-                        {!isEdit && <span className="text-danger-500 mr-1">*</span>}
-                      </label>
-                      <div
-                        className="flex items-center gap-3 rounded-xl border border-neutral-200 h-12 px-4 cursor-pointer hover:bg-neutral-50 transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Paperclip className="w-4 h-4 text-neutral-200 shrink-0" />
-                        <span className="text-[13px] text-neutral-300 flex-1 truncate">
-                          {pdfFile
-                            ? pdfFile.name
-                            : isEdit
-                              ? "اختر ملف PDF جديد (اتركه فارغاً للإبقاء على الملف الحالي)"
-                              : "انقر لاختيار ملف PDF..."}
-                        </span>
-                        {pdfFile && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPdfFile(null);
-                              if (fileInputRef.current)
-                                fileInputRef.current.value = "";
-                            }}
-                            className="shrink-0 text-neutral-200 hover:text-danger-500 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="application/pdf,.pdf"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) setPdfFile(file);
+                {/* ── PDF Upload ─────────────────────────────────────── */}
+                <div>
+                  <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
+                    ملف العرض الفني (PDF)
+                    {!isEdit && <span className="text-danger-500 mr-1">*</span>}
+                  </label>
+                  <div
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 h-12 px-4 cursor-pointer hover:bg-neutral-50 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip className="w-4 h-4 text-neutral-200 shrink-0" />
+                    <span className="text-[13px] text-neutral-300 flex-1 truncate">
+                      {pdfFile
+                        ? pdfFile.name
+                        : isEdit
+                          ? "اختر ملف PDF جديد (اتركه فارغاً للإبقاء على الملف الحالي)"
+                          : "انقر لاختيار ملف PDF..."}
+                    </span>
+                    {pdfFile && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPdfFile(null);
+                          if (fileInputRef.current)
+                            fileInputRef.current.value = "";
                         }}
-                      />
-                      {fieldErrors.file && (
-                        <p className="text-[11px] text-danger-500 mt-1">
-                          {fieldErrors.file}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Services ─────────────────────────────────────── */}
-                <div>
-                  <h2 className="text-[15px] font-bold text-natural-100 mb-3">
-                    الخدمات المطلوبة
-                  </h2>
-                  <div className="border border-neutral-200 rounded-2xl p-4 space-y-3 bg-natural-0">
-                    {services.map((service, index) => (
-                      <div
-                        key={index}
-                        className={`flex items-center gap-3 ${removingIndex === index ? "service-row-removing" : "service-row"}`}
+                        className="shrink-0 text-neutral-200 hover:text-danger-500 transition-colors"
                       >
-                        <button
-                          type="button"
-                          onClick={() => removeService(index)}
-                          className="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-200 hover:text-danger-500 hover:border-danger-300 transition-all duration-200 flex-shrink-0"
-                          title="حذف الخدمة"
-                          disabled={services.length <= 1}
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <input
-                          type="text"
-                          value={service.name}
-                          onChange={(e) =>
-                            updateServiceName(index, e.target.value)
-                          }
-                          placeholder="اسم الخدمة"
-                          className="flex-1 h-12 px-4 text-right text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
-                        />
-                        <div className="relative w-[130px] flex-shrink-0">
-                          <input
-                            type="text"
-                            dir="ltr"
-                            value={service.price}
-                            onChange={(e) =>
-                              updateServicePrice(index, e.target.value)
-                            }
-                            placeholder="0"
-                            className="w-full h-12 px-3 pl-10 text-left text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
-                          />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-200 text-[12px] font-medium pointer-events-none">
-                            رس
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-
-                    <ActionButton
-                      variant="outline"
-                      type="button"
-                      onClick={addService}
-                      className="w-full h-12 text-[13px] font-medium gap-2 mt-1"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>اضافة خدمة اخرى</span>
-                    </ActionButton>
-
-                    {fieldErrors.servicesList && (
-                      <p className="text-[11px] text-danger-500">
-                        {fieldErrors.servicesList}
-                      </p>
+                        <X className="w-4 h-4" />
+                      </button>
                     )}
                   </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setPdfFile(file);
+                    }}
+                  />
+                  {fieldErrors.file && (
+                    <p className="text-[11px] text-danger-500 mt-1">
+                      {fieldErrors.file}
+                    </p>
+                  )}
                 </div>
+              </div>
+            </div>
 
-                {/* ── Total ──────────────────────────────────────────── */}
-                <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between">
-                  <span className="text-[15px] font-bold text-natural-100">
-                    {formatNumber(totalAmount)} رس
-                  </span>
-                  <span className="text-[14px] font-bold text-natural-100">
-                    الإجمالي الكلي
-                  </span>
-                </div>
-
-                {/* ── Dates & Terms ────────────────────────────────── */}
-                <div>
-                  <h2 className="text-[15px] font-bold text-natural-100 mb-3">
-                    التواريخ والشروط
-                  </h2>
-                  <div className="border border-neutral-200 rounded-2xl p-4 bg-natural-0">
-                    <div className="grid grid-cols-3 gap-3">
-                      {/* Start Date */}
-                      <div>
-                        <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
-                          تاريخ البداية
-                        </label>
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center appearance-none"
-                        />
-                      </div>
-
-                      {/* Duration */}
-                      <div>
-                        <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
-                          مدة التنفيذ
-                        </label>
-                        <div className="flex items-stretch gap-1.5">
-                          <input
-                            type="number"
-                            min={0}
-                            placeholder="0"
-                            value={durationDays}
-                            onChange={(e) => setDurationDays(e.target.value)}
-                            className="flex-1 min-w-0 h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center"
-                          />
-                          <select
-                            value={durationUnit}
-                            onChange={(e) => setDurationUnit(e.target.value)}
-                            className="h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 appearance-none cursor-pointer"
-                            style={{ width: "70px" }}
-                          >
-                            <option value="DAYS">أيام</option>
-                            <option value="WEEKS">أسابيع</option>
-                            <option value="MONTHS">أشهر</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Offer Validity */}
-                      <div>
-                        <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
-                          صلاحية العرض
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          placeholder="30"
-                          value={offerValidityDays}
-                          onChange={(e) => setOfferValidityDays(e.target.value)}
-                          className="w-full h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center"
-                        />
-                      </div>
+            {/* ── Services ─────────────────────────────────────── */}
+            <div>
+              <h2 className="text-[15px] font-bold text-natural-100 mb-3">
+                الخدمات المطلوبة
+              </h2>
+              <div className="border border-neutral-200 rounded-2xl p-4 space-y-3 bg-natural-0">
+                {services.map((service, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-3 ${removingIndex === index ? "service-row-removing" : "service-row"}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => removeService(index)}
+                      className="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-200 hover:text-danger-500 hover:border-danger-300 transition-all duration-200 flex-shrink-0"
+                      title="حذف الخدمة"
+                      disabled={services.length <= 1}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <input
+                      type="text"
+                      value={service.name}
+                      onChange={(e) => updateServiceName(index, e.target.value)}
+                      placeholder="اسم الخدمة"
+                      className="flex-1 h-12 px-4 text-right text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
+                    />
+                    <div className="relative w-[130px] flex-shrink-0">
+                      <input
+                        type="text"
+                        dir="ltr"
+                        value={service.price}
+                        onChange={(e) =>
+                          updateServicePrice(index, e.target.value)
+                        }
+                        placeholder="0"
+                        className="w-full h-12 px-3 pl-10 text-left text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
+                      />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-200 text-[12px] font-medium pointer-events-none">
+                        رس
+                      </span>
                     </div>
                   </div>
-                </div>
+                ))}
 
-                {/* ── Buttons row ─────────────────────────────── */}
-                <div className="flex gap-3">
-                  <ActionButton
-                    variant="outline"
-                    type="button"
-                    onClick={() => handleOpenChange(false)}
-                    className="w-[30%] h-14 text-[13px] font-medium"
-                  >
-                    إلغاء
-                  </ActionButton>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 h-14 bg-secondary-500 hover:bg-secondary-600 text-white text-[15px] font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-secondary-500/20 hover:shadow-xl hover:shadow-secondary-500/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    {isSubmitting
-                      ? "جارٍ الإرسال..."
-                      : isEdit
-                        ? "تحديث العرض"
-                        : "ارسال العرض للعميل"}
-                  </button>
-                </div>
-              </form>
-            )}
+                <ActionButton
+                  variant="outline"
+                  type="button"
+                  onClick={addService}
+                  className="w-full h-12 text-[13px] font-medium gap-2 mt-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>اضافة خدمة اخرى</span>
+                </ActionButton>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
+                {fieldErrors.servicesList && (
+                  <p className="text-[11px] text-danger-500">
+                    {fieldErrors.servicesList}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ── Total ──────────────────────────────────────────── */}
+            <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between">
+              <span className="text-[15px] font-bold text-natural-100">
+                {formatNumber(totalAmount)} رس
+              </span>
+              <span className="text-[14px] font-bold text-natural-100">
+                الإجمالي الكلي
+              </span>
+            </div>
+
+            {/* ── Dates & Terms ────────────────────────────────── */}
+            <div>
+              <h2 className="text-[15px] font-bold text-natural-100 mb-3">
+                التواريخ والشروط
+              </h2>
+              <div className="border border-neutral-200 rounded-2xl p-4 bg-natural-0">
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Start Date */}
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
+                      تاريخ البداية
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center appearance-none"
+                    />
+                  </div>
+
+                  {/* Duration */}
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
+                      مدة التنفيذ
+                    </label>
+                    <div className="flex items-stretch gap-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="0"
+                        value={durationDays}
+                        onChange={(e) => setDurationDays(e.target.value)}
+                        className="flex-1 min-w-0 h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center"
+                      />
+                      <select
+                        value={durationUnit}
+                        onChange={(e) => setDurationUnit(e.target.value)}
+                        className="h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 appearance-none cursor-pointer"
+                        style={{ width: "70px" }}
+                      >
+                        <option value="DAYS">أيام</option>
+                        <option value="WEEKS">أسابيع</option>
+                        <option value="MONTHS">أشهر</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Offer Validity */}
+                  <div>
+                    <label className="text-[11px] font-bold text-neutral-300 text-center mb-2 block">
+                      صلاحية العرض
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="30"
+                      value={offerValidityDays}
+                      onChange={(e) => setOfferValidityDays(e.target.value)}
+                      className="w-full h-12 px-2 text-[13px] text-secondary-500 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0 text-center"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Buttons row ─────────────────────────────── */}
+            <div className="flex gap-3">
+              <ActionButton
+                variant="outline"
+                type="button"
+                onClick={() => handleOpenChange(false)}
+                className="w-[30%] h-14 text-[13px] font-medium"
+              >
+                إلغاء
+              </ActionButton>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 h-14 bg-secondary-500 hover:bg-secondary-600 text-white text-[15px] font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-secondary-500/20 hover:shadow-xl hover:shadow-secondary-500/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {isSubmitting
+                  ? "جارٍ الإرسال..."
+                  : isEdit
+                    ? "تحديث العرض"
+                    : "ارسال العرض للعميل"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
           .modal-scroll::-webkit-scrollbar { width: 6px; }
           .modal-scroll::-webkit-scrollbar-track { background: transparent; }
           .modal-scroll::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 20px; }
@@ -695,8 +689,8 @@ export function ProposalFormDialog({
           input[type="number"] { -moz-appearance: textfield; }
           input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
         `,
-      }}
-      />
+          }}
+        />
       </Dialog>
     </>
   );

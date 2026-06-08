@@ -10,7 +10,9 @@ export const CreateClientSchema = z.object({
   contactName: z.string().min(2, "Contact name must be at least 2 characters"),
   phoneWhatsapp: z.string().min(5, "Phone must be at least 5 characters"),
   email: z.string().email("Invalid email address").optional().nullable(),
-  businessName: z.string().min(2, "Business name must be at least 2 characters"),
+  businessName: z
+    .string()
+    .min(2, "Business name must be at least 2 characters"),
   businessType: z.nativeEnum(BusinessType),
   accountManager: z.string().uuid("Invalid user ID format").optional(),
 });

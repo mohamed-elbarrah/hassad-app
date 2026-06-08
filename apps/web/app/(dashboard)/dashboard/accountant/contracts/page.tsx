@@ -22,7 +22,10 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "ملغى",
 };
 
-const STATUS_PILL_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "blue"> = {
+const STATUS_PILL_TONE: Record<
+  string,
+  "neutral" | "success" | "warning" | "danger" | "blue"
+> = {
   DRAFT: "neutral",
   SENT: "blue",
   SIGNED: "success",
@@ -47,7 +50,9 @@ export default function FinanceContractsPage() {
         </p>
       </div>
 
-      <SurfaceCard title={data ? `قائمة العقود (${data.total})` : "قائمة العقود"}>
+      <SurfaceCard
+        title={data ? `قائمة العقود (${data.total})` : "قائمة العقود"}
+      >
         {isLoading && (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -72,7 +77,10 @@ export default function FinanceContractsPage() {
             <TableBody>
               {data.items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-neutral-300 py-8">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-neutral-300 py-8"
+                  >
                     لا توجد عقود.
                   </TableCell>
                 </TableRow>
@@ -82,9 +90,13 @@ export default function FinanceContractsPage() {
                 return (
                   <TableRow key={contract.id}>
                     <TableCell className="font-medium">{clientName}</TableCell>
-                    <TableCell dir="ltr">{fmt(contract.totalValue)} دج</TableCell>
+                    <TableCell dir="ltr">
+                      {fmt(contract.totalValue)} دج
+                    </TableCell>
                     <TableCell>
-                      <Pill tone={STATUS_PILL_TONE[contract.status] ?? "neutral"}>
+                      <Pill
+                        tone={STATUS_PILL_TONE[contract.status] ?? "neutral"}
+                      >
                         {STATUS_LABELS[contract.status] ?? contract.status}
                       </Pill>
                     </TableCell>

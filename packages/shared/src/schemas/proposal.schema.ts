@@ -17,7 +17,10 @@ export const CreateProposalSchema = z.object({
     .array(ServiceItemSchema)
     .min(1, "At least one service is required"),
   totalPrice: z.number().positive("Price must be greater than zero"),
-  durationDays: z.number().int().positive("Duration must be a positive integer"),
+  durationDays: z
+    .number()
+    .int()
+    .positive("Duration must be a positive integer"),
   durationUnit: z.nativeEnum(DurationUnit).default(DurationUnit.DAYS),
   platforms: z.array(z.string()).min(1, "At least one platform is required"),
   contactName: z.string().optional(),

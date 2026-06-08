@@ -16,11 +16,34 @@ interface UserAvatarProps {
   className?: string;
 }
 
-const sizeConfig: Record<AvatarSize, { width: number; height: number; fontSize: string; borderRadius: string }> = {
-  sm: { width: 40, height: 40, fontSize: "text-xs", borderRadius: "rounded-lg" },
-  md: { width: 50, height: 50, fontSize: "text-sm", borderRadius: "rounded-xl" },
-  lg: { width: 60, height: 60, fontSize: "text-base", borderRadius: "rounded-xl" },
-  xl: { width: 64, height: 64, fontSize: "text-lg", borderRadius: "rounded-xl" },
+const sizeConfig: Record<
+  AvatarSize,
+  { width: number; height: number; fontSize: string; borderRadius: string }
+> = {
+  sm: {
+    width: 40,
+    height: 40,
+    fontSize: "text-xs",
+    borderRadius: "rounded-lg",
+  },
+  md: {
+    width: 50,
+    height: 50,
+    fontSize: "text-sm",
+    borderRadius: "rounded-xl",
+  },
+  lg: {
+    width: 60,
+    height: 60,
+    fontSize: "text-base",
+    borderRadius: "rounded-xl",
+  },
+  xl: {
+    width: 64,
+    height: 64,
+    fontSize: "text-lg",
+    borderRadius: "rounded-xl",
+  },
 };
 
 const variantConfig: Record<AvatarVariant, string> = {
@@ -52,11 +75,7 @@ export function UserAvatar({
 
   return (
     <Avatar
-      className={cn(
-        "shrink-0",
-        variantClass,
-        className
-      )}
+      className={cn("shrink-0", variantClass, className)}
       style={{
         width: config.width,
         height: config.height,
@@ -64,18 +83,10 @@ export function UserAvatar({
       }}
     >
       {avatarUrl && (
-        <AvatarImage
-          src={avatarUrl}
-          alt={name}
-          className={variantClass}
-        />
+        <AvatarImage src={avatarUrl} alt={name} className={variantClass} />
       )}
       <AvatarFallback
-        className={cn(
-          variantClass,
-          config.fontSize,
-          "font-semibold"
-        )}
+        className={cn(variantClass, config.fontSize, "font-semibold")}
         style={{
           backgroundColor: "#121936",
           color: "#fff",
@@ -119,7 +130,7 @@ export function UserInfoCard({
         disabled={isUploading}
         className={cn(
           "relative shrink-0",
-          onAvatarClick && "group cursor-pointer"
+          onAvatarClick && "group cursor-pointer",
         )}
       >
         <UserAvatar

@@ -1,6 +1,15 @@
-import { IsString, IsNumber, IsUUID, IsDateString, IsEnum, IsOptional, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PaymentMethod } from '@hassad/shared';
+import {
+  IsString,
+  IsNumber,
+  IsUUID,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { PaymentMethod } from "@hassad/shared";
 
 export class InvoiceItemDto {
   @IsOptional()

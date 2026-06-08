@@ -155,10 +155,7 @@ export function ClientTimeline({ activities }: ClientTimelineProps) {
                         {activity.details}
                       </p>
                     )}
-                    <p
-                      className="text-xs text-neutral-300 mt-1"
-                      dir="ltr"
-                    >
+                    <p className="text-xs text-neutral-300 mt-1" dir="ltr">
                       {new Intl.DateTimeFormat("en-GB", {
                         day: "2-digit",
                         month: "short",

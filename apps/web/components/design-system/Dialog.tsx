@@ -61,7 +61,13 @@ export function Dialog({
             )}
           </DialogHeader>
         )}
-        <div className={cn("px-5", title || description ? "pt-2" : "pt-5", className)}>
+        <div
+          className={cn(
+            "px-5",
+            title || description ? "pt-2" : "pt-5",
+            className,
+          )}
+        >
           {children}
         </div>
         {footer && (

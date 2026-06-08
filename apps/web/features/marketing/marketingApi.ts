@@ -1,10 +1,10 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "../../lib/baseQuery";
-import { 
-  Campaign, 
-  CreateCampaignInput, 
+import {
+  Campaign,
+  CreateCampaignInput,
   UpdateCampaignMetricsInput,
-  UpdateCampaignStatusInput 
+  UpdateCampaignStatusInput,
 } from "@hassad/shared";
 
 export const marketingApi = createApi({
@@ -14,7 +14,9 @@ export const marketingApi = createApi({
   endpoints: (builder) => ({
     getCampaignsByTask: builder.query<Campaign[], string>({
       query: (taskId) => `tasks/${taskId}/campaigns`,
-      providesTags: (result, error, taskId) => [{ type: "TaskCampaigns", id: taskId }],
+      providesTags: (result, error, taskId) => [
+        { type: "TaskCampaigns", id: taskId },
+      ],
       transformResponse: (baseQueryReturnValue: any) => {
         return (baseQueryReturnValue || []).map((c: any) => ({
           ...c,
@@ -62,7 +64,7 @@ export const marketingApi = createApi({
     }),
     updateCampaignStatus: builder.mutation<
       Campaign,
-      { id: string; action: 'start' | 'pause' | 'stop' | 'end' }
+      { id: string; action: "start" | "pause" | "stop" | "end" }
     >({
       query: ({ id, action }) => ({
         url: `campaigns/${id}/${action}`,

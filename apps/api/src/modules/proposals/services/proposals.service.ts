@@ -158,9 +158,7 @@ export class ProposalsService {
     const isOwner = proposal.createdBy === userId;
 
     if (!isAdmin && !isOwner) {
-      throw new ForbiddenException(
-        "You can only edit proposals you created",
-      );
+      throw new ForbiddenException("You can only edit proposals you created");
     }
 
     const updateData: any = { ...dto };

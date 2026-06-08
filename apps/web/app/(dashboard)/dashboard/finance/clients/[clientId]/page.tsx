@@ -15,7 +15,12 @@ import {
 } from "@/components/ui/table";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/design-system/Tabs";
 import {
   ChevronRight,
   FileText,
@@ -50,9 +55,7 @@ export default function ClientFinanceDetailPage({
 
   if (!client) {
     return (
-      <div className="p-8 text-center text-neutral-300">
-        العميل غير موجود
-      </div>
+      <div className="p-8 text-center text-neutral-300">العميل غير موجود</div>
     );
   }
 
@@ -87,7 +90,10 @@ export default function ClientFinanceDetailPage({
         </ActionButton>
       </div>
 
-      <SurfaceCard className="border-none shadow-md overflow-hidden bg-gradient-to-br from-secondary-500/5 via-transparent to-transparent" contentClassName="p-8">
+      <SurfaceCard
+        className="border-none shadow-md overflow-hidden bg-gradient-to-br from-secondary-500/5 via-transparent to-transparent"
+        contentClassName="p-8"
+      >
         <div className="flex flex-col md:flex-row items-start justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -96,9 +102,7 @@ export default function ClientFinanceDetailPage({
               </div>
               <div>
                 <h1 className="text-3xl font-bold">{client.companyName}</h1>
-                <p className="text-neutral-300">
-                  معرف العميل: {client.id}
-                </p>
+                <p className="text-neutral-300">معرف العميل: {client.id}</p>
               </div>
             </div>
             <div className="flex gap-4">
@@ -111,9 +115,7 @@ export default function ClientFinanceDetailPage({
                 </p>
               </div>
               <div className="bg-white dark:bg-neutral-900 px-4 py-2 rounded-xl shadow-sm border">
-                <p className="text-xs text-neutral-300 mb-1">
-                  المبالغ المحصلة
-                </p>
+                <p className="text-xs text-neutral-300 mb-1">المبالغ المحصلة</p>
                 <p className="text-xl font-bold text-success-600">
                   {totalPaid.toLocaleString()} ر.س
                 </p>
@@ -123,9 +125,7 @@ export default function ClientFinanceDetailPage({
 
           <div className="w-full md:w-80 rounded-xl border border-portal-card-border bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md shadow-sm">
             <div className="px-5 py-4 border-b border-portal-divider">
-              <h3 className="text-sm font-medium">
-                نسبة التحصيل
-              </h3>
+              <h3 className="text-sm font-medium">نسبة التحصيل</h3>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-end justify-between">

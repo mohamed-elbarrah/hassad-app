@@ -190,15 +190,18 @@ export function KanbanBoard() {
   // ── Loading skeleton ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="flex gap-4 h-full" dir="rtl">
         {KANBAN_GROUPS.map((group) => (
-          <div key={group.id} className="space-y-2">
-            <div className="h-10 bg-neutral-50 animate-pulse rounded-lg" />
-            <div className="flex gap-3">
+          <div
+            key={group.id}
+            className="flex-1 min-w-[280px] rounded-2xl border-2 p-3 space-y-3 bg-neutral-50"
+          >
+            <div className="h-8 bg-neutral-100 animate-pulse rounded-lg" />
+            <div className="space-y-2">
               {group.stages.map((stage) => (
                 <div
                   key={stage}
-                  className="w-72 shrink-0 h-48 bg-neutral-50 animate-pulse rounded-xl"
+                  className="h-36 bg-neutral-100 animate-pulse rounded-xl"
                 />
               ))}
             </div>
@@ -236,7 +239,7 @@ export function KanbanBoard() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="space-y-5" dir="rtl">
+      <div className="flex gap-4 overflow-x-auto pb-2 h-full" dir="rtl">
         {emptyBanner}
         {KANBAN_GROUPS.map((group) => {
           const groupCount = group.stages.reduce(

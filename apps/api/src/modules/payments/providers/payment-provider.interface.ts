@@ -1,4 +1,4 @@
-import { PaymentStatus, PaymentMethod } from '@hassad/shared';
+import { PaymentStatus, PaymentMethod } from "@hassad/shared";
 
 export interface PaymentIntentResponse {
   providerPaymentId: string;
@@ -26,9 +26,13 @@ export interface ElementPaymentIntentParams {
 }
 
 export interface PaymentProvider {
-  createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResponse>;
+  createPaymentIntent(
+    params: CreatePaymentIntentParams,
+  ): Promise<PaymentIntentResponse>;
 
-  createElementPaymentIntent?(params: ElementPaymentIntentParams): Promise<PaymentIntentResponse>;
+  createElementPaymentIntent?(
+    params: ElementPaymentIntentParams,
+  ): Promise<PaymentIntentResponse>;
 
   verifyWebhook(payload: any, signature: string): Promise<any>;
 

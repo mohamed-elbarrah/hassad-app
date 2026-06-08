@@ -35,6 +35,7 @@ PHASE 4: FIX + VERIFY
 Before touching any code, you must be able to reproduce the problem reliably.
 
 **Checklist:**
+
 - [ ] Can you reproduce it consistently? (not "sometimes")
 - [ ] What is the exact input/action that triggers it?
 - [ ] What is the expected behavior?
@@ -44,6 +45,7 @@ Before touching any code, you must be able to reproduce the problem reliably.
 
 **Output of this phase:**
 A clear one-paragraph description:
+
 > "When [action], the system [actual behavior] instead of [expected behavior].
 > Reproducible by [exact steps]. Started after [commit/change]."
 
@@ -58,6 +60,7 @@ Work backward from the symptom to find where it actually breaks.
 ### Investigation Tools by Layer
 
 **Frontend issues:**
+
 ```
 1. Browser DevTools → Console (errors, warnings)
 2. Browser DevTools → Network (request payload, response, status code)
@@ -67,6 +70,7 @@ Work backward from the symptom to find where it actually breaks.
 ```
 
 **Backend issues:**
+
 ```
 1. Nest.js logs (structured, with request ID)
 2. Browser DevTools → Network (request payload, response, status code)
@@ -76,6 +80,7 @@ Work backward from the symptom to find where it actually breaks.
 ```
 
 **Backend issues:**
+
 ```
 1. Nest.js logs (structured, with request ID)
 2. Prisma query logs → enable with: log: ['query', 'error']
@@ -85,6 +90,7 @@ Work backward from the symptom to find where it actually breaks.
 ```
 
 **Database issues:**
+
 ```
 1. EXPLAIN ANALYZE on slow queries
 2. Check indexes — are the WHERE columns indexed?
@@ -93,6 +99,7 @@ Work backward from the symptom to find where it actually breaks.
 ```
 
 **Integration issues (payments, ad APIs):**
+
 ```
 1. Check webhook logs — did the external service actually send the event?
 2. Check the raw request/response payload (log it temporarily)
@@ -104,13 +111,13 @@ Work backward from the symptom to find where it actually breaks.
 
 Every bug in this system falls into one of these:
 
-| # | Category | Examples |
-|---|---|---|
-| 1 | **Data problem** | Wrong data in DB, missing record, stale cache |
-| 2 | **Logic problem** | Wrong condition, off-by-one, wrong role check |
-| 3 | **Integration problem** | API contract mismatch, wrong field name, missing header |
-| 4 | **State problem** | RTK Query cache stale, Redux state not reset, race condition |
-| 5 | **Environment problem** | Wrong env var, missing migration, different Node version |
+| #   | Category                | Examples                                                     |
+| --- | ----------------------- | ------------------------------------------------------------ |
+| 1   | **Data problem**        | Wrong data in DB, missing record, stale cache                |
+| 2   | **Logic problem**       | Wrong condition, off-by-one, wrong role check                |
+| 3   | **Integration problem** | API contract mismatch, wrong field name, missing header      |
+| 4   | **State problem**       | RTK Query cache stale, Redux state not reset, race condition |
+| 5   | **Environment problem** | Wrong env var, missing migration, different Node version     |
 
 **Output of this phase:**
 A definitive statement: "The root cause is [X] because [evidence]."
@@ -126,13 +133,13 @@ Once the root cause is known, list all possible fixes. Do not jump to the first 
 
 For each proposed fix, assess:
 
-| Criterion | Question |
-|---|---|
-| **Correctness** | Does it actually solve the root cause (not just the symptom)? |
-| **Safety** | Could it break something else? What are the side effects? |
-| **Scope** | Is it the smallest change that solves the problem? |
-| **Reversibility** | Can it be undone easily if it causes new issues? |
-| **Long-term** | Does it create technical debt or introduce a pattern we'd regret? |
+| Criterion         | Question                                                          |
+| ----------------- | ----------------------------------------------------------------- |
+| **Correctness**   | Does it actually solve the root cause (not just the symptom)?     |
+| **Safety**        | Could it break something else? What are the side effects?         |
+| **Scope**         | Is it the smallest change that solves the problem?                |
+| **Reversibility** | Can it be undone easily if it causes new issues?                  |
+| **Long-term**     | Does it create technical debt or introduce a pattern we'd regret? |
 
 ### Decision Template
 
@@ -192,6 +199,7 @@ Closes #[issue number if applicable]
 ```
 
 Example:
+
 ```
 fix(invoices): invoice status not updating after Moyasar webhook
 
@@ -205,54 +213,64 @@ Fix: Added HMAC signature verification before processing webhook payload.
 ## Anti-Patterns — What is Strictly Forbidden
 
 ### ❌ The Patch Without Understanding
+
 ```
 // FORBIDDEN
 // "I don't know why this breaks but adding this || [] fixes it"
 const items = response.data.items || []
 ```
+
 You must know WHY `items` was undefined. Fix the source, not the consequence.
 
 ---
 
 ### ❌ The Shotgun Fix
+
 ```
 // FORBIDDEN — changing 3 things at once without knowing which one fixed it
 // Changed: auth guard, token refresh logic, AND API base URL
 // Now it works but we have no idea why
 ```
+
 Change one thing at a time. Verify. Then move to the next.
 
 ---
 
 ### ❌ The Superstition Fix
+
 ```
 // FORBIDDEN
 // "Let me restart the server / clear cache / reinstall node_modules"
 // without any diagnosis first
 ```
+
 This is not debugging. If a restart fixes it, you must still find out why.
 
 ---
 
 ### ❌ The Copy-Paste Fix
+
 ```
 // FORBIDDEN
 // "Found this answer on Stack Overflow, pasting it in"
 // without understanding what it does and whether it fits our context
 ```
+
 Every line of code you write must be understood.
 
 ---
 
 ### ❌ The Silent Swallow
+
 ```typescript
 // FORBIDDEN
 try {
-  await someOperation()
+  await someOperation();
 } catch (e) {
   // just ignore it for now
 }
 ```
+
 If you catch an error, handle it or re-throw it. Never silently swallow.
 
 ---

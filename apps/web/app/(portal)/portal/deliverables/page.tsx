@@ -25,10 +25,7 @@ import { FormTextarea } from "@/components/design-system/FormTextarea";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { MetricCard } from "@/components/design-system/MetricCard";
 import { PageIntro } from "@/components/design-system/PageIntro";
-import {
-  Pill,
-  type PillTone,
-} from "@/components/design-system/Pill";
+import { Pill, type PillTone } from "@/components/design-system/Pill";
 import { ProgressCard } from "@/components/design-system/ProgressCard";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -52,7 +49,10 @@ export default function PortalDeliverablesPage() {
     isLoading,
     isError,
     refetch: refetchReviewProjects,
-  } = useGetReviewProjectsQuery(undefined, { skip: !clientId, pollingInterval: 30_000 });
+  } = useGetReviewProjectsQuery(undefined, {
+    skip: !clientId,
+    pollingInterval: 30_000,
+  });
 
   const { data: projectProgress } = useGetProjectProgressQuery(undefined, {
     skip: !clientId,
@@ -344,7 +344,11 @@ export default function PortalDeliverablesPage() {
                         rel="noopener noreferrer"
                         className="shrink-0"
                       >
-                        <ActionButton variant="outline" size="sm" className="h-8 px-2">
+                        <ActionButton
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2"
+                        >
                           <Download className="h-4 w-4" />
                         </ActionButton>
                       </a>

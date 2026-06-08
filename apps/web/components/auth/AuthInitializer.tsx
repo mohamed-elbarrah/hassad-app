@@ -16,9 +16,7 @@ const PUBLIC_PATHS = [
 ];
 
 function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(p),
-  );
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));
 }
 
 export function AuthInitializer({ children }: { children: React.ReactNode }) {

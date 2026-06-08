@@ -8,9 +8,20 @@ interface CurrencySymbolProps {
   height?: number;
 }
 
-export function CurrencySymbol({ className, width, height }: CurrencySymbolProps) {
+export function CurrencySymbol({
+  className,
+  width,
+  height,
+}: CurrencySymbolProps) {
   const { currency } = useCurrency();
-  return <SymbolRenderer currency={currency} className={className} width={width} height={height} />;
+  return (
+    <SymbolRenderer
+      currency={currency}
+      className={className}
+      width={width}
+      height={height}
+    />
+  );
 }
 
 export function SymbolRenderer({

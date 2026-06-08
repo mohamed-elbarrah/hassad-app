@@ -9,5 +9,12 @@ export default function SalesError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard/sales" backLabel="العودة لصفحة المبيعات" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/dashboard/sales"
+      backLabel="العودة لصفحة المبيعات"
+    />
+  );
 }

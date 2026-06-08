@@ -1,8 +1,10 @@
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
-interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
+interface InputProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "size"
+> {
   icon?: ReactNode;
   wrapperClassName?: string;
 }

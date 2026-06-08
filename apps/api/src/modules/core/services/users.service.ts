@@ -2,11 +2,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateUserDto, UpdateUserDto } from '../dto/user.dto';
-import { UserRole, TaskDepartment } from '@hassad/shared';
+} from "@nestjs/common";
+import * as bcrypt from "bcrypt";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
+import { UserRole, TaskDepartment } from "@hassad/shared";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -34,9 +34,7 @@ export class UsersService {
     return role.id;
   }
 
-  private async resolveDepartmentId(
-    deptName: TaskDepartment,
-  ): Promise<string> {
+  private async resolveDepartmentId(deptName: TaskDepartment): Promise<string> {
     const dept = await this.prisma.department.findFirst({
       where: { name: deptName },
     });
@@ -50,7 +48,7 @@ export class UsersService {
   private normalise(user: any) {
     // role may be a full object (when included) or a string id
     const roleName =
-      user.role && typeof user.role === 'object'
+      user.role && typeof user.role === "object"
         ? (user.role.name as string)
         : (user.roleId as string);
 
@@ -120,8 +118,8 @@ export class UsersService {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -140,7 +138,7 @@ export class UsersService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           role: true,
           departments: { include: { department: true } },
@@ -266,25 +264,25 @@ export class UsersService {
       monthlyRevenue,
       unpaidInvoicesCount,
     ] = await Promise.all([
-      this.prisma.client.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.client.count({ where: { status: "ACTIVE" } }),
       this.prisma.project.count({
-        where: { status: { in: ['ACTIVE', 'PLANNING'] } },
+        where: { status: { in: ["ACTIVE", "PLANNING"] } },
       }),
       this.prisma.task.count({
         where: {
           dueDate: { lt: now },
-          status: { not: 'DONE' },
+          status: { not: "DONE" },
         },
       }),
       this.prisma.invoice.aggregate({
         where: {
-          status: 'PAID',
+          status: "PAID",
           paidAt: { gte: startOfMonth },
         },
         _sum: { amount: true },
       }),
       this.prisma.invoice.count({
-        where: { status: { in: ['DUE', 'SENT'] } },
+        where: { status: { in: ["DUE", "SENT"] } },
       }),
     ]);
 

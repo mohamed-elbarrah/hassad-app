@@ -9,10 +9,7 @@ import {
   type DataTableColumn,
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
-import {
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+import { TableRow, TableCell } from "@/components/ui/table";
 import { ProposalStatus } from "@hassad/shared";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";
 import { useSendProposalMutation } from "@/features/proposals/proposalsApi";
@@ -46,11 +43,15 @@ interface ProposalsTableProps {
   onCreateContract?: (proposalId: string) => void;
 }
 
-export function ProposalsTable({ proposals, onCreateContract }: ProposalsTableProps) {
+export function ProposalsTable({
+  proposals,
+  onCreateContract,
+}: ProposalsTableProps) {
   const [sendProposal, { isLoading: sending }] = useSendProposalMutation();
   const { data: currentUser } = useGetProfileQuery();
-  const [editProposal, setEditProposal] =
-    useState<ProposalListItem | null>(null);
+  const [editProposal, setEditProposal] = useState<ProposalListItem | null>(
+    null,
+  );
   const [editOpen, setEditOpen] = useState(false);
 
   function getProposalDisplayName(proposal: ProposalListItem) {
@@ -144,7 +145,8 @@ export function ProposalsTable({ proposals, onCreateContract }: ProposalsTablePr
                     <Pencil className="w-4 h-4" />
                   </ActionButton>
                 )}
-                {proposal.status === ProposalStatus.APPROVED && onCreateContract ? (
+                {proposal.status === ProposalStatus.APPROVED &&
+                onCreateContract ? (
                   <ActionButton
                     size="sm"
                     variant="primary"

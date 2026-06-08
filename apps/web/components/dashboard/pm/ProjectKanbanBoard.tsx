@@ -123,7 +123,9 @@ export function ProjectKanbanBoard({
   search,
   status,
 }: ProjectKanbanBoardProps) {
-  const [activeProject, setActiveProject] = useState<ProjectWithMeta | null>(null);
+  const [activeProject, setActiveProject] = useState<ProjectWithMeta | null>(
+    null,
+  );
   const [updateProjectStatus] = useUpdateProjectStatusMutation();
 
   const { data, isLoading, isError, error } = useGetProjectsQuery(
@@ -263,7 +265,9 @@ export function ProjectKanbanBoard({
       </div>
 
       <DragOverlay>
-        {activeProject ? <ProjectKanbanCard project={activeProject} isOverlay /> : null}
+        {activeProject ? (
+          <ProjectKanbanCard project={activeProject} isOverlay />
+        ) : null}
       </DragOverlay>
     </DndContext>
   );

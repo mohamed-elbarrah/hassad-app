@@ -39,7 +39,10 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
   [RequestStatus.CANCELLED]: "ملغي",
 };
 
-const STATUS_TONE: Record<RequestStatus, import("@/components/design-system/Pill").PillTone> = {
+const STATUS_TONE: Record<
+  RequestStatus,
+  import("@/components/design-system/Pill").PillTone
+> = {
   [RequestStatus.SUBMITTED]: "neutral",
   [RequestStatus.QUALIFYING]: "blue",
   [RequestStatus.PROPOSAL_IN_PROGRESS]: "purple",
@@ -269,9 +272,7 @@ export default function RequestDetailPage({
               {request.contactName}
             </h1>
             {request.companyName && (
-              <p className="text-sm text-neutral-300">
-                {request.companyName}
-              </p>
+              <p className="text-sm text-neutral-300">{request.companyName}</p>
             )}
           </div>
         </div>
@@ -350,7 +351,11 @@ export default function RequestDetailPage({
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedServices.map((service) => (
-                      <Pill key={service} tone="neutral" className="text-xs h-6 px-2">
+                      <Pill
+                        key={service}
+                        tone="neutral"
+                        className="text-xs h-6 px-2"
+                      >
                         {service}
                       </Pill>
                     ))}

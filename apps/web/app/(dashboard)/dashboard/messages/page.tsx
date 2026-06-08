@@ -28,23 +28,16 @@ export default function MessagesPage() {
   );
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
 
-  const {
-    data: conversationsData,
-    isLoading: convLoading,
-  } = useGetConversationsQuery({
-    type: filterType,
-    limit: 50,
-  });
+  const { data: conversationsData, isLoading: convLoading } =
+    useGetConversationsQuery({
+      type: filterType,
+      limit: 50,
+    });
 
   const conversations = conversationsData?.data ?? [];
-  const selectedConversation = conversations.find(
-    (c) => c.id === selectedId,
-  );
+  const selectedConversation = conversations.find((c) => c.id === selectedId);
 
-  const {
-    data: messagesData,
-    isLoading: msgLoading,
-  } = useGetMessagesQuery(
+  const { data: messagesData, isLoading: msgLoading } = useGetMessagesQuery(
     { conversationId: selectedId!, limit: 100 },
     { skip: !selectedId },
   );
@@ -78,16 +71,12 @@ export default function MessagesPage() {
     setTypingUser(null);
   }, [selectedId]);
 
-  const displayedMessages = localMessages.length > 0
-    ? localMessages
-    : (messagesData ?? []);
+  const displayedMessages =
+    localMessages.length > 0 ? localMessages : (messagesData ?? []);
 
-  const handleSelectConversation = useCallback(
-    (conv: Conversation) => {
-      setSelectedId(conv.id);
-    },
-    [],
-  );
+  const handleSelectConversation = useCallback((conv: Conversation) => {
+    setSelectedId(conv.id);
+  }, []);
 
   const handleSend = useCallback(
     async (content: string, files?: File[]) => {
@@ -127,7 +116,10 @@ export default function MessagesPage() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] gap-0 overflow-hidden rounded-xl border" dir="rtl">
+    <div
+      className="flex h-[calc(100vh-7rem)] gap-0 overflow-hidden rounded-xl border"
+      dir="rtl"
+    >
       {/* Desktop sidebar */}
       <div className="hidden w-80 shrink-0 border-l md:block">
         {sidebarContent}

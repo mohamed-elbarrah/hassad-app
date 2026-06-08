@@ -44,11 +44,14 @@ export default function PortalActionsPage() {
   const [typeFilter, setTypeFilter] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError } = useGetActionItemsQuery({
-    type: typeFilter || undefined,
-    page,
-    limit: PAGE_SIZE,
-  }, { pollingInterval: 30_000 });
+  const { data, isLoading, isError } = useGetActionItemsQuery(
+    {
+      type: typeFilter || undefined,
+      page,
+      limit: PAGE_SIZE,
+    },
+    { pollingInterval: 30_000 },
+  );
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -114,14 +117,10 @@ export default function PortalActionsPage() {
                   {item.subtitle}
                 </td>
                 <td className="px-5 py-4">
-                  <Pill tone={priorityCfg.tone}>
-                    {priorityCfg.label}
-                  </Pill>
+                  <Pill tone={priorityCfg.tone}>{priorityCfg.label}</Pill>
                 </td>
                 <td className="px-5 py-4">
-                  <Pill
-                    tone={config.color === "purple" ? "purple" : "blue"}
-                  >
+                  <Pill tone={config.color === "purple" ? "purple" : "blue"}>
                     {config.label}
                   </Pill>
                 </td>

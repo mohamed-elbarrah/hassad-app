@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { PaymentMethod, PaymentGatewayType, PaymentStatus } from "../enums/finance";
+import {
+  PaymentMethod,
+  PaymentGatewayType,
+  PaymentStatus,
+} from "../enums/finance";
 
 export const CreatePaymentGatewaySchema = z.object({
   name: z.string().min(1),

@@ -19,18 +19,31 @@ import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 export default function AdminWorkspacePage() {
   const { user } = useAppSelector((state) => state.auth);
   const { data: stats, isLoading: statsLoading } = useGetAdminStatsQuery();
-  const { data: invoicesData, isLoading: invoicesLoading } = useGetInvoicesQuery({
-    status: InvoiceStatus.DUE,
-    limit: 5,
-  });
+  const { data: invoicesData, isLoading: invoicesLoading } =
+    useGetInvoicesQuery({
+      status: InvoiceStatus.DUE,
+      limit: 5,
+    });
 
   if (!user) return null;
 
   const KPI_ITEMS = [
-    { label: "العملاء النشطين", value: statsLoading ? null : formatNumber(stats?.activeClients) },
-    { label: "الإيرادات هذا الشهر", value: statsLoading ? null : formatCurrency(stats?.monthlyRevenue) },
-    { label: "المشاريع الجارية", value: statsLoading ? null : formatNumber(stats?.activeProjects) },
-    { label: "رضا العملاء", value: statsLoading ? null : `${stats?.satisfactionRate ?? 0}%` },
+    {
+      label: "العملاء النشطين",
+      value: statsLoading ? null : formatNumber(stats?.activeClients),
+    },
+    {
+      label: "الإيرادات هذا الشهر",
+      value: statsLoading ? null : formatCurrency(stats?.monthlyRevenue),
+    },
+    {
+      label: "المشاريع الجارية",
+      value: statsLoading ? null : formatNumber(stats?.activeProjects),
+    },
+    {
+      label: "رضا العملاء",
+      value: statsLoading ? null : `${stats?.satisfactionRate ?? 0}%`,
+    },
   ];
 
   return (
@@ -52,7 +65,9 @@ export default function AdminWorkspacePage() {
             {item.value == null ? (
               <Skeleton className="h-8 w-20" />
             ) : (
-              <p className="text-2xl font-semibold" dir="ltr">{item.value}</p>
+              <p className="text-2xl font-semibold" dir="ltr">
+                {item.value}
+              </p>
             )}
           </SurfaceCard>
         ))}
@@ -107,7 +122,9 @@ export default function AdminWorkspacePage() {
                     <TableCell className="font-medium">
                       {invoice.client?.companyName ?? "—"}
                     </TableCell>
-                    <TableCell dir="ltr">{formatCurrency(invoice.amount)}</TableCell>
+                    <TableCell dir="ltr">
+                      {formatCurrency(invoice.amount)}
+                    </TableCell>
                     <TableCell dir="ltr">
                       {formatDate(invoice.dueDate)}
                     </TableCell>

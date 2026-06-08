@@ -27,7 +27,9 @@ export default function ProposalsPage() {
     limit: 20,
   });
 
-  const [contractDialogProposalId, setContractDialogProposalId] = useState<string | null>(null);
+  const [contractDialogProposalId, setContractDialogProposalId] = useState<
+    string | null
+  >(null);
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -53,7 +55,9 @@ export default function ProposalsPage() {
       {!isLoading && !isError && (
         <ProposalsTable
           proposals={data?.items ?? []}
-          onCreateContract={(proposalId) => setContractDialogProposalId(proposalId)}
+          onCreateContract={(proposalId) =>
+            setContractDialogProposalId(proposalId)
+          }
         />
       )}
 

@@ -89,7 +89,10 @@ const navSections: NavSection[] = [
         roles: ["ADMIN"],
         items: [
           { title: "الصلاحيات", url: "/dashboard/admin/settings" },
-          { title: "إعدادات العملة", url: "/dashboard/admin/settings/currency" },
+          {
+            title: "إعدادات العملة",
+            url: "/dashboard/admin/settings/currency",
+          },
           { title: "بوابات الدفع", url: "/dashboard/admin/payments" },
           { title: "الخدمات", url: "/dashboard/admin/settings/services" },
         ],

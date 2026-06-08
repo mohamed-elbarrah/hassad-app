@@ -65,7 +65,9 @@ export default function AccountPage() {
         <div className="flex flex-row items-center gap-4 pb-4">
           <UserAvatar name={user.name} size="lg" variant="rounded" />
           <div className="flex flex-col gap-1">
-            <h2 className="text-xl font-semibold text-natural-100">{user.name}</h2>
+            <h2 className="text-xl font-semibold text-natural-100">
+              {user.name}
+            </h2>
             <div className="flex items-center gap-2">
               <Pill tone="neutral">{roleLabel}</Pill>
               {deptLabel && <Pill tone="blue">{deptLabel}</Pill>}
@@ -79,9 +81,7 @@ export default function AccountPage() {
           <div className="flex items-center gap-3 text-sm">
             <User className="h-4 w-4 text-neutral-300 shrink-0" />
             <div>
-              <p className="text-neutral-300 text-xs mb-0.5">
-                الاسم الكامل
-              </p>
+              <p className="text-neutral-300 text-xs mb-0.5">الاسم الكامل</p>
               <p className="font-medium">{user.name}</p>
             </div>
           </div>

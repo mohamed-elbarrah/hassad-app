@@ -23,7 +23,11 @@ const STATUS_CONFIG: Record<
   PENDING: { label: "معلق", icon: Clock, color: "text-alert-600" },
   SENT: { label: "مرسل", icon: Send, color: "text-action-blue" },
   DUE: { label: "مستحق", icon: AlertCircle, color: "text-alert-600" },
-  PARTIAL: { label: "مدفوع جزئياً", icon: AlertCircle, color: "text-alert-600" },
+  PARTIAL: {
+    label: "مدفوع جزئياً",
+    icon: AlertCircle,
+    color: "text-alert-600",
+  },
   LATE: { label: "متأخر", icon: AlertCircle, color: "text-danger-600" },
   CANCELLED: { label: "ملغي", icon: Ban, color: "text-neutral-600" },
 };
@@ -45,7 +49,12 @@ export function ContractPaymentSummary({
   showPayButton = false,
   onPaymentComplete,
 }: ContractPaymentSummaryProps) {
-  if (!services || services.length === 0 || !invoices || invoices.length === 0) {
+  if (
+    !services ||
+    services.length === 0 ||
+    !invoices ||
+    invoices.length === 0
+  ) {
     return null;
   }
 
@@ -58,7 +67,7 @@ export function ContractPaymentSummary({
 
   return (
     <div className="rounded-xl border bg-card" dir="rtl">
-        <div className="p-4 border-b bg-neutral-50/20">
+      <div className="p-4 border-b bg-neutral-50/20">
         <h3 className="text-sm font-bold flex items-center gap-2">
           <FileText className="w-4 h-4 text-secondary-500" />
           ملخص العقد والدفع
@@ -68,7 +77,9 @@ export function ContractPaymentSummary({
       <div className="p-4 space-y-4">
         {/* Services */}
         <div className="space-y-2">
-          <p className="text-xs text-neutral-300 font-medium">الخدمات المشمولة</p>
+          <p className="text-xs text-neutral-300 font-medium">
+            الخدمات المشمولة
+          </p>
           <div className="rounded-lg border divide-y">
             {services.map((service, idx) => (
               <div
@@ -83,7 +94,9 @@ export function ContractPaymentSummary({
             ))}
             <div className="flex items-center justify-between px-3 py-2.5 text-sm font-bold bg-neutral-50/20">
               <span>الإجمالي</span>
-              <span className="tabular-nums">{totalValue.toLocaleString("en-US")} ر.س</span>
+              <span className="tabular-nums">
+                {totalValue.toLocaleString("en-US")} ر.س
+              </span>
             </div>
           </div>
         </div>
@@ -101,7 +114,8 @@ export function ContractPaymentSummary({
               };
               const Icon = config.icon;
               const isPaid = invoice.status === "PAID";
-              const isPayable = showPayButton && PAYABLE_STATUSES.has(invoice.status);
+              const isPayable =
+                showPayButton && PAYABLE_STATUSES.has(invoice.status);
 
               return (
                 <div key={invoice.id} className="border-b last:border-b-0">
@@ -109,14 +123,14 @@ export function ContractPaymentSummary({
                   <div className="flex items-center justify-between px-3 py-2.5 text-sm">
                     <div className="flex items-center gap-2 min-w-0">
                       <Icon className={`w-4 h-4 shrink-0 ${config.color}`} />
-                       <span className="text-natural-100 truncate font-medium">
+                      <span className="text-natural-100 truncate font-medium">
                         {invoice.invoiceNumber}
                       </span>
                       <span
                         className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
-                        isPaid
-                          ? "bg-success-50 text-success-700"
-                          : "bg-alert-50 text-alert-700"
+                          isPaid
+                            ? "bg-success-50 text-success-700"
+                            : "bg-alert-50 text-alert-700"
                         }`}
                       >
                         {config.label}

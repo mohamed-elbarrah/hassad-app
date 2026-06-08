@@ -25,11 +25,7 @@ const toneClasses: Record<PillTone, string> = {
   blue: "bg-action-blue-soft text-action-blue",
 };
 
-export function Pill({
-  children,
-  tone = "neutral",
-  className,
-}: PillProps) {
+export function Pill({ children, tone = "neutral", className }: PillProps) {
   return (
     <span
       className={cn(

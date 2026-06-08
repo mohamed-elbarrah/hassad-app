@@ -65,10 +65,16 @@ export const servicesApi = createApi({
   baseQuery,
   tagTypes: ["ServiceCatalog"],
   endpoints: (builder) => ({
-    getServices: builder.query<ServiceCatalogItem[], { includeInactive?: boolean } | undefined>({
+    getServices: builder.query<
+      ServiceCatalogItem[],
+      { includeInactive?: boolean } | undefined
+    >({
       query: (params) => ({
         url: "/services",
-        params: params && params.includeInactive ? { includeInactive: "true" } : undefined,
+        params:
+          params && params.includeInactive
+            ? { includeInactive: "true" }
+            : undefined,
       }),
       providesTags: ["ServiceCatalog"],
     }),
@@ -80,20 +86,37 @@ export const servicesApi = createApi({
       query: (body) => ({ url: "/services", method: "POST", body }),
       invalidatesTags: ["ServiceCatalog"],
     }),
-    updateService: builder.mutation<ServiceCatalogItem, { id: string; body: UpdateServicePayload }>({
-      query: ({ id, body }) => ({ url: `/services/${id}`, method: "PATCH", body }),
+    updateService: builder.mutation<
+      ServiceCatalogItem,
+      { id: string; body: UpdateServicePayload }
+    >({
+      query: ({ id, body }) => ({
+        url: `/services/${id}`,
+        method: "PATCH",
+        body,
+      }),
       invalidatesTags: ["ServiceCatalog"],
     }),
     deleteService: builder.mutation<void, string>({
       query: (id) => ({ url: `/services/${id}`, method: "DELETE" }),
       invalidatesTags: ["ServiceCatalog"],
     }),
-    createDeliverableTemplate: builder.mutation<DeliverableTemplateItem, CreateDeliverableTemplatePayload>({
-      query: (body) => ({ url: "/services/deliverable-templates", method: "POST", body }),
+    createDeliverableTemplate: builder.mutation<
+      DeliverableTemplateItem,
+      CreateDeliverableTemplatePayload
+    >({
+      query: (body) => ({
+        url: "/services/deliverable-templates",
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["ServiceCatalog"],
     }),
     deleteDeliverableTemplate: builder.mutation<void, string>({
-      query: (id) => ({ url: `/services/deliverable-templates/${id}`, method: "DELETE" }),
+      query: (id) => ({
+        url: `/services/deliverable-templates/${id}`,
+        method: "DELETE",
+      }),
       invalidatesTags: ["ServiceCatalog"],
     }),
   }),

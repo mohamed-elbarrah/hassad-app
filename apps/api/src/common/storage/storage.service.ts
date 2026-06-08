@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import {
   S3Client,
   PutObjectCommand,
@@ -6,16 +6,16 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadBucketCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { randomBytes } from 'crypto';
-import { extname } from 'path';
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { randomBytes } from "crypto";
+import { extname } from "path";
 import {
   StorageCategory,
   STORAGE_CONFIG,
   PRESIGNED_URL_EXPIRY_SECONDS,
   EXTENSION_MIME_MAP,
-} from './storage.constants';
+} from "./storage.constants";
 
 export interface UploadResult {
   key: string;
@@ -47,20 +47,20 @@ export class StorageService implements OnModuleInit {
     const endpoint = process.env.CLOUDFLARE_R2_ENDPOINT;
     const accessKey = process.env.CLOUDFLARE_R2_ACCESS_KEY;
     const secretKey = process.env.CLOUDFLARE_R2_SECRET_KEY;
-    this.bucket = process.env.CLOUDFLARE_R2_BUCKET || '';
+    this.bucket = process.env.CLOUDFLARE_R2_BUCKET || "";
 
     if (!endpoint || !accessKey || !secretKey || !this.bucket) {
       this.logger.warn(
-        'CLOUDFLARE_R2_* environment variables are not fully configured. File storage will not work until they are set.',
+        "CLOUDFLARE_R2_* environment variables are not fully configured. File storage will not work until they are set.",
       );
     }
 
     this.s3 = new S3Client({
-      region: 'auto',
+      region: "auto",
       endpoint,
       credentials: {
-        accessKeyId: accessKey || '',
-        secretAccessKey: secretKey || '',
+        accessKeyId: accessKey || "",
+        secretAccessKey: secretKey || "",
       },
     });
   }
@@ -68,14 +68,14 @@ export class StorageService implements OnModuleInit {
   async onModuleInit() {
     if (!process.env.CLOUDFLARE_R2_ENDPOINT) {
       this.logger.warn(
-        'R2 storage is not configured. Skipping connectivity check.',
+        "R2 storage is not configured. Skipping connectivity check.",
       );
       return;
     }
 
     try {
       await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
-      this.logger.log('R2 storage connected successfully');
+      this.logger.log("R2 storage connected successfully");
     } catch (error) {
       this.logger.error(
         `Failed to connect to R2 storage: ${error instanceof Error ? error.message : error}`,
@@ -83,9 +83,14 @@ export class StorageService implements OnModuleInit {
     }
   }
 
-  generateKey(category: StorageCategory, entityId: string, fileName: string, subPath?: string): string {
+  generateKey(
+    category: StorageCategory,
+    entityId: string,
+    fileName: string,
+    subPath?: string,
+  ): string {
     const config = STORAGE_CONFIG[category];
-    const unique = randomBytes(16).toString('hex');
+    const unique = randomBytes(16).toString("hex");
     const ext = extname(fileName).toLowerCase();
     const prefix = config.keyPrefix;
 
@@ -119,7 +124,7 @@ export class StorageService implements OnModuleInit {
       const mappedMime = EXTENSION_MIME_MAP[ext];
       if (!mappedMime || !config.allowedMimeTypes.includes(mappedMime)) {
         throw new Error(
-          `File type "${file.mimetype}" is not allowed for category "${category}". Allowed types: ${config.allowedMimeTypes.join(', ')}`,
+          `File type "${file.mimetype}" is not allowed for category "${category}". Allowed types: ${config.allowedMimeTypes.join(", ")}`,
         );
       }
     }
@@ -130,8 +135,16 @@ export class StorageService implements OnModuleInit {
       );
     }
 
-    const key = this.generateKey(category, entityId, file.originalname, subPath);
-    const contentType = file.mimetype || EXTENSION_MIME_MAP[extname(file.originalname).toLowerCase()] || 'application/octet-stream';
+    const key = this.generateKey(
+      category,
+      entityId,
+      file.originalname,
+      subPath,
+    );
+    const contentType =
+      file.mimetype ||
+      EXTENSION_MIME_MAP[extname(file.originalname).toLowerCase()] ||
+      "application/octet-stream";
 
     await this.s3.send(
       new PutObjectCommand({
@@ -178,13 +191,20 @@ export class StorageService implements OnModuleInit {
     }
 
     if (file.size > config.maxFileSize) {
-      throw new Error(
-        `File size exceeds maximum for category "${category}".`,
-      );
+      throw new Error(`File size exceeds maximum for category "${category}".`);
     }
 
-    const key = this.generateKeyForSubEntity(category, parentId, subEntity, subId, file.originalname);
-    const contentType = file.mimetype || EXTENSION_MIME_MAP[extname(file.originalname).toLowerCase()] || 'application/octet-stream';
+    const key = this.generateKeyForSubEntity(
+      category,
+      parentId,
+      subEntity,
+      subId,
+      file.originalname,
+    );
+    const contentType =
+      file.mimetype ||
+      EXTENSION_MIME_MAP[extname(file.originalname).toLowerCase()] ||
+      "application/octet-stream";
 
     await this.s3.send(
       new PutObjectCommand({
@@ -215,13 +235,15 @@ export class StorageService implements OnModuleInit {
         }),
       );
     } catch (error) {
-      this.logger.error(`Failed to delete R2 object "${key}": ${error instanceof Error ? error.message : error}`);
+      this.logger.error(
+        `Failed to delete R2 object "${key}": ${error instanceof Error ? error.message : error}`,
+      );
     }
   }
 
   async deleteByPrefix(prefix: string): Promise<void> {
     try {
-      const { ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+      const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
       const listResponse = await this.s3.send(
         new ListObjectsV2Command({
           Bucket: this.bucket,
@@ -242,11 +264,16 @@ export class StorageService implements OnModuleInit {
         }),
       );
     } catch (error) {
-      this.logger.error(`Failed to delete R2 objects with prefix "${prefix}": ${error instanceof Error ? error.message : error}`);
+      this.logger.error(
+        `Failed to delete R2 objects with prefix "${prefix}": ${error instanceof Error ? error.message : error}`,
+      );
     }
   }
 
-  async getPresignedUrl(key: string, expiresInSeconds: number = PRESIGNED_URL_EXPIRY_SECONDS.DOWNLOAD): Promise<string> {
+  async getPresignedUrl(
+    key: string,
+    expiresInSeconds: number = PRESIGNED_URL_EXPIRY_SECONDS.DOWNLOAD,
+  ): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
@@ -260,7 +287,7 @@ export class StorageService implements OnModuleInit {
     contentType: string,
     expiresInSeconds: number = PRESIGNED_URL_EXPIRY_SECONDS.UPLOAD,
   ): Promise<string> {
-    const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const { PutObjectCommand } = await import("@aws-sdk/client-s3");
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,

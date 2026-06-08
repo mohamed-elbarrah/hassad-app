@@ -65,7 +65,11 @@ const DEFAULT_FORM: CurrencyFormData = {
   exchangeRate: 1,
 };
 
-const SYMBOL_TYPE_OPTIONS: { value: SymbolType; label: string; desc: string }[] = [
+const SYMBOL_TYPE_OPTIONS: {
+  value: SymbolType;
+  label: string;
+  desc: string;
+}[] = [
   { value: "TEXT", label: "نص", desc: "استخدم رمز نصي مثل ر.س أو $" },
   { value: "SVG_URL", label: "رابط SVG", desc: "أدخل رابط ملف SVG مستضاف" },
   { value: "SVG_INLINE", label: "SVG مضمن", desc: "أدخل كود SVG مباشر" },
@@ -75,14 +79,19 @@ const SYMBOL_TYPE_OPTIONS: { value: SymbolType; label: string; desc: string }[] 
 
 export default function CurrencySettingsPage() {
   const { data: currencies, isLoading } = useGetCurrencySettingsQuery();
-  const [createCurrency, { isLoading: creating }] = useCreateCurrencySettingMutation();
-  const [updateCurrency, { isLoading: updating }] = useUpdateCurrencySettingMutation();
-  const [deleteCurrency, { isLoading: deleting }] = useDeleteCurrencySettingMutation();
+  const [createCurrency, { isLoading: creating }] =
+    useCreateCurrencySettingMutation();
+  const [updateCurrency, { isLoading: updating }] =
+    useUpdateCurrencySettingMutation();
+  const [deleteCurrency, { isLoading: deleting }] =
+    useDeleteCurrencySettingMutation();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CurrencyFormData>(DEFAULT_FORM);
-  const [errors, setErrors] = useState<Partial<Record<keyof CurrencyFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof CurrencyFormData, string>>
+  >({});
 
   const resetForm = useCallback(() => {
     setForm(DEFAULT_FORM);
@@ -125,8 +134,7 @@ export default function CurrencySettingsPage() {
     if (form.symbolType !== "TEXT" && !form.svgKey.trim())
       next.svgKey = "الرابط مطلوب عند اختيار SVG";
 
-    if (form.exchangeRate <= 0)
-      next.exchangeRate = "يجب أن يكون أكبر من صفر";
+    if (form.exchangeRate <= 0) next.exchangeRate = "يجب أن يكون أكبر من صفر";
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -219,14 +227,30 @@ export default function CurrencySettingsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-neutral-50/40 hover:bg-neutral-50/40">
-                <TableHead className="text-right font-semibold">الرمز</TableHead>
-                <TableHead className="text-right font-semibold">الاسم</TableHead>
-                <TableHead className="text-right font-semibold">الرمز الظاهر</TableHead>
-                <TableHead className="text-right font-semibold">النوع</TableHead>
-                <TableHead className="text-right font-semibold">سعر الصرف</TableHead>
-                <TableHead className="text-right font-semibold">الحالة</TableHead>
-                <TableHead className="text-right font-semibold">افتراضي</TableHead>
-                <TableHead className="text-right font-semibold w-20"> </TableHead>
+                <TableHead className="text-right font-semibold">
+                  الرمز
+                </TableHead>
+                <TableHead className="text-right font-semibold">
+                  الاسم
+                </TableHead>
+                <TableHead className="text-right font-semibold">
+                  الرمز الظاهر
+                </TableHead>
+                <TableHead className="text-right font-semibold">
+                  النوع
+                </TableHead>
+                <TableHead className="text-right font-semibold">
+                  سعر الصرف
+                </TableHead>
+                <TableHead className="text-right font-semibold">
+                  الحالة
+                </TableHead>
+                <TableHead className="text-right font-semibold">
+                  افتراضي
+                </TableHead>
+                <TableHead className="text-right font-semibold w-20">
+                  {" "}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -258,21 +282,26 @@ export default function CurrencySettingsPage() {
                           height={c.svgHeight ?? 24}
                           className="inline-block object-contain"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
                           }}
                         />
                       ) : (
                         <span
                           dangerouslySetInnerHTML={{ __html: c.svgKey }}
                           className="inline-block"
-                          style={{ width: c.svgWidth ?? 24, height: c.svgHeight ?? 24 }}
+                          style={{
+                            width: c.svgWidth ?? 24,
+                            height: c.svgHeight ?? 24,
+                          }}
                         />
                       )}
                     </TableCell>
                     <TableCell>
                       <Pill tone="neutral" className="font-normal text-xs">
-                        {SYMBOL_TYPE_OPTIONS.find((o) => o.value === c.symbolType)
-                          ?.label ?? c.symbolType}
+                        {SYMBOL_TYPE_OPTIONS.find(
+                          (o) => o.value === c.symbolType,
+                        )?.label ?? c.symbolType}
                       </Pill>
                     </TableCell>
                     <TableCell className="font-mono text-sm">
@@ -280,9 +309,7 @@ export default function CurrencySettingsPage() {
                     </TableCell>
                     <TableCell>
                       {c.isActive ? (
-                        <Pill tone="success">
-                          نشط
-                        </Pill>
+                        <Pill tone="success">نشط</Pill>
                       ) : (
                         <Pill tone="neutral">معطل</Pill>
                       )}
@@ -326,11 +353,15 @@ export default function CurrencySettingsPage() {
       </div>
 
       {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
         title={editingId ? "تعديل العملة" : "إضافة عملة جديدة"}
-        description={editingId
-          ? "عدّل بيانات العملة الحالية."
-          : "أضف عملة جديدة وتحكم في ظهورها على المنصة."}
+        description={
+          editingId
+            ? "عدّل بيانات العملة الحالية."
+            : "أضف عملة جديدة وتحكم في ظهورها على المنصة."
+        }
         contentClassName="sm:max-w-xl"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -388,12 +419,11 @@ export default function CurrencySettingsPage() {
                     code: e.target.value.toUpperCase().slice(0, 3),
                   }))
                 }
-                onBlur={() =>
-                  setErrors((e) => ({ ...e, code: undefined }))
-                }
+                onBlur={() => setErrors((e) => ({ ...e, code: undefined }))}
                 className={cn(
                   "h-10 text-center font-mono font-semibold tracking-wider",
-                  errors.code && "border-danger-500 focus-visible:ring-danger-500"
+                  errors.code &&
+                    "border-danger-500 focus-visible:ring-danger-500",
                 )}
                 required
               />
@@ -419,12 +449,11 @@ export default function CurrencySettingsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
-                onBlur={() =>
-                  setErrors((e) => ({ ...e, name: undefined }))
-                }
+                onBlur={() => setErrors((e) => ({ ...e, name: undefined }))}
                 className={cn(
                   "h-10",
-                  errors.name && "border-danger-500 focus-visible:ring-danger-500"
+                  errors.name &&
+                    "border-danger-500 focus-visible:ring-danger-500",
                 )}
                 required
               />
@@ -448,12 +477,11 @@ export default function CurrencySettingsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, symbol: e.target.value }))
                 }
-                onBlur={() =>
-                  setErrors((e) => ({ ...e, symbol: undefined }))
-                }
+                onBlur={() => setErrors((e) => ({ ...e, symbol: undefined }))}
                 className={cn(
                   "h-10 text-center font-semibold",
-                  errors.symbol && "border-danger-500 focus-visible:ring-danger-500"
+                  errors.symbol &&
+                    "border-danger-500 focus-visible:ring-danger-500",
                 )}
                 required
               />
@@ -466,9 +494,7 @@ export default function CurrencySettingsPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label className="text-sm font-medium">
-                سعر الصرف
-              </Label>
+              <Label className="text-sm font-medium">سعر الصرف</Label>
               <FormInputControl
                 type="number"
                 step="0.0001"
@@ -487,7 +513,7 @@ export default function CurrencySettingsPage() {
                 className={cn(
                   "h-10 font-mono",
                   errors.exchangeRate &&
-                    "border-danger-500 focus-visible:ring-danger-500"
+                    "border-danger-500 focus-visible:ring-danger-500",
                 )}
               />
               {errors.exchangeRate ? (
@@ -508,9 +534,7 @@ export default function CurrencySettingsPage() {
             <>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-sm font-medium">
-                  {form.symbolType === "SVG_URL"
-                    ? "رابط ملف SVG"
-                    : "كود SVG"}
+                  {form.symbolType === "SVG_URL" ? "رابط ملف SVG" : "كود SVG"}
                   <span className="text-danger-500">*</span>
                 </Label>
                 {form.symbolType === "SVG_URL" ? (
@@ -529,7 +553,7 @@ export default function CurrencySettingsPage() {
                     className={cn(
                       "h-10 ltr-dir",
                       errors.svgKey &&
-                        "border-danger-500 focus-visible:ring-danger-500"
+                        "border-danger-500 focus-visible:ring-danger-500",
                     )}
                   />
                 ) : (
@@ -549,7 +573,7 @@ export default function CurrencySettingsPage() {
                     className={cn(
                       "flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-neutral-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-y font-mono ltr-dir",
                       errors.svgKey &&
-                        "border-danger-500 focus-visible:ring-danger-500"
+                        "border-danger-500 focus-visible:ring-danger-500",
                     )}
                   />
                 )}
@@ -585,9 +609,7 @@ export default function CurrencySettingsPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-sm font-medium">
-                    الارتفاع (px)
-                  </Label>
+                  <Label className="text-sm font-medium">الارتفاع (px)</Label>
                   <FormInputControl
                     type="number"
                     min={8}
@@ -612,7 +634,7 @@ export default function CurrencySettingsPage() {
               <div
                 className={cn(
                   "w-11 h-6 rounded-full relative transition-colors",
-                  form.isActive ? "bg-success-500" : "bg-neutral-200"
+                  form.isActive ? "bg-success-500" : "bg-neutral-200",
                 )}
                 onClick={() =>
                   setForm((f) => ({ ...f, isActive: !f.isActive }))
@@ -621,7 +643,7 @@ export default function CurrencySettingsPage() {
                 <div
                   className={cn(
                     "absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200",
-                    form.isActive ? "translate-x-5" : ""
+                    form.isActive ? "translate-x-5" : "",
                   )}
                 />
               </div>
@@ -632,7 +654,7 @@ export default function CurrencySettingsPage() {
               <div
                 className={cn(
                   "w-11 h-6 rounded-full relative transition-colors",
-                  form.isDefault ? "bg-alert-500" : "bg-neutral-200"
+                  form.isDefault ? "bg-alert-500" : "bg-neutral-200",
                 )}
                 onClick={() =>
                   setForm((f) => ({ ...f, isDefault: !f.isDefault }))
@@ -641,7 +663,7 @@ export default function CurrencySettingsPage() {
                 <div
                   className={cn(
                     "absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200",
-                    form.isDefault ? "translate-x-5" : ""
+                    form.isDefault ? "translate-x-5" : "",
                   )}
                 />
               </div>
@@ -661,9 +683,7 @@ export default function CurrencySettingsPage() {
 
           {/* ── Preview ── */}
           <div className="rounded-xl border border-dashed bg-neutral-50/30 p-4 flex flex-col items-center gap-2">
-            <span className="text-xs text-neutral-300 mb-1">
-              معاينة العرض
-            </span>
+            <span className="text-xs text-neutral-300 mb-1">معاينة العرض</span>
             <div className="flex items-baseline gap-2">
               {form.symbolType === "SVG_URL" && previewSvgUrl ? (
                 <>

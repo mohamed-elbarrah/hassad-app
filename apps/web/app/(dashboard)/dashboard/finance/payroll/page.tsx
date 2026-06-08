@@ -83,7 +83,10 @@ export default function PayrollPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <SurfaceCard className="border-none shadow-sm" description="إجمالي رواتب الشهر الحالي">
+        <SurfaceCard
+          className="border-none shadow-sm"
+          description="إجمالي رواتب الشهر الحالي"
+        >
           <h3 className="text-2xl font-bold">
             {totalPayroll.toLocaleString()} ر.س
           </h3>
@@ -101,7 +104,10 @@ export default function PayrollPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="relative max-w-sm flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
-              <FormInputControl placeholder="بحث عن موظف..." className="pr-10" />
+              <FormInputControl
+                placeholder="بحث عن موظف..."
+                className="pr-10"
+              />
             </div>
             <div className="flex items-center gap-2">
               <ActionButton variant="ghost" size="sm">

@@ -9,10 +9,7 @@ export function Skeleton({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <BaseSkeleton
-      className={cn(
-        "bg-neutral-100/80 rounded-xl",
-        className,
-      )}
+      className={cn("bg-neutral-100/80 rounded-xl", className)}
       style={style}
       {...rest}
     >

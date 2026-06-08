@@ -34,19 +34,16 @@ export function ConversationItem({
   onClick,
 }: ConversationItemProps) {
   const user = useAppSelector((s) => s.auth.user);
-  const otherParticipant = getOtherParticipant(
-    conversation,
-    user?.id ?? "",
-  );
+  const otherParticipant = getOtherParticipant(conversation, user?.id ?? "");
   const lastMessage = getLastMessage(conversation);
 
   return (
     <button
       onClick={onClick}
-        className={cn(
-          "flex w-full items-center gap-3 rounded-xl p-3 text-right transition-colors hover:bg-neutral-50/50",
-          isActive && "bg-neutral-50",
-        )}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-xl p-3 text-right transition-colors hover:bg-neutral-50/50",
+        isActive && "bg-neutral-50",
+      )}
     >
       <UserAvatar
         name={otherParticipant?.user?.name ?? conversation.title}

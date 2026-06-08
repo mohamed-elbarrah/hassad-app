@@ -26,11 +26,7 @@ import {
 import { useCreateClientMutation } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { useAppSelector } from "@/lib/hooks";
-import {
-  CreateClientSchema,
-  BusinessType,
-  UserRole,
-} from "@hassad/shared";
+import { CreateClientSchema, BusinessType, UserRole } from "@hassad/shared";
 import type { CreateClientInput } from "@hassad/shared";
 
 // ── Labels ────────────────────────────────────────────────────────────────────
@@ -108,7 +104,10 @@ export function CreateClientDialog() {
                 <FormItem>
                   <FormLabel>اسم الشركة</FormLabel>
                   <FormControl>
-                    <FormInputControl placeholder="مثال: شركة النجوم" {...field} />
+                    <FormInputControl
+                      placeholder="مثال: شركة النجوم"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -123,7 +122,10 @@ export function CreateClientDialog() {
                 <FormItem>
                   <FormLabel>اسم جهة الاتصال</FormLabel>
                   <FormControl>
-                    <FormInputControl placeholder="الاسم الكامل للمسؤول" {...field} />
+                    <FormInputControl
+                      placeholder="الاسم الكامل للمسؤول"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -178,7 +180,10 @@ export function CreateClientDialog() {
                 <FormItem>
                   <FormLabel>اسم النشاط التجاري</FormLabel>
                   <FormControl>
-                    <FormInputControl placeholder="الاسم التجاري المعروف به" {...field} />
+                    <FormInputControl
+                      placeholder="الاسم التجاري المعروف به"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -192,7 +197,10 @@ export function CreateClientDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>نوع النشاط</FormLabel>
-                  <FormSelect onValueChange={field.onChange} value={field.value}>
+                  <FormSelect
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
                     <FormControl>
                       <FormSelectTrigger>
                         <FormSelectValue placeholder="اختر النوع" />
@@ -233,7 +241,9 @@ export function CreateClientDialog() {
                         </FormSelectTrigger>
                       </FormControl>
                       <FormSelectContent>
-                        <FormSelectItem value="AUTO">تعيين تلقائي</FormSelectItem>
+                        <FormSelectItem value="AUTO">
+                          تعيين تلقائي
+                        </FormSelectItem>
                         {(salesUsers?.items ?? []).map((staff) => (
                           <FormSelectItem key={staff.id} value={staff.id}>
                             {staff.name}
@@ -261,11 +271,7 @@ export function CreateClientDialog() {
               >
                 إلغاء
               </ActionButton>
-              <ActionButton
-                type="submit"
-                variant="primary"
-                loading={isLoading}
-              >
+              <ActionButton type="submit" variant="primary" loading={isLoading}>
                 {isLoading ? "جارٍ الحفظ..." : "حفظ"}
               </ActionButton>
             </div>

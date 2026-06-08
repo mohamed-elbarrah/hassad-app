@@ -1,8 +1,15 @@
-import { IsString, IsArray, IsUUID, IsOptional, IsEnum, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsUUID,
+  IsOptional,
+  IsEnum,
+  IsIn,
+} from "class-validator";
 
 export class CreateConversationDto {
-  @IsEnum(['SALES', 'PM'])
-  type: 'SALES' | 'PM';
+  @IsEnum(["SALES", "PM"])
+  type: "SALES" | "PM";
 
   @IsUUID()
   clientId: string;
@@ -11,7 +18,7 @@ export class CreateConversationDto {
   title: string;
 
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsUUID("all", { each: true })
   participantIds: string[];
 }
 
@@ -30,8 +37,8 @@ export class CreateMessageDto {
 
 export class GetConversationsQueryDto {
   @IsOptional()
-  @IsIn(['SALES', 'PM'])
-  type?: 'SALES' | 'PM';
+  @IsIn(["SALES", "PM"])
+  type?: "SALES" | "PM";
 
   @IsOptional()
   @IsUUID()
