@@ -1,52 +1,54 @@
 "use client";
 
-import { Pill } from "@/components/design-system/Pill";
 import { cn } from "@/lib/utils";
 
 interface KanbanGroupProps {
   id: string;
   label: string;
-  accentClass: string;
-  textClass: string;
   totalCount: number;
   children: React.ReactNode;
 }
 
 export function KanbanGroup({
   label,
-  accentClass,
-  textClass,
   totalCount,
   children,
 }: KanbanGroupProps) {
   return (
     <div
       className={cn(
-        "flex-1 min-w-[280px] flex flex-col rounded-2xl border-2 overflow-hidden",
-        accentClass,
+        "flex-1 min-w-[340px] flex flex-col rounded-2xl border-[1.5px] overflow-hidden bg-white",
       )}
+      style={{ borderColor: "#E1E4EA" }}
       dir="rtl"
     >
       {/* ── Group Header ─────────────────────────────────────────────── */}
       <div
-        className={cn(
-          "flex items-center gap-2 px-3 py-2.5 border-b border-inherit",
-          accentClass,
-        )}
+        className="flex items-center gap-2 px-4 py-3"
+        style={{ borderBottom: "1.5px solid #ECEEF2" }}
       >
-        <span className={cn("font-bold text-sm flex-1 truncate", textClass)}>
+        <span
+          className="font-bold text-sm flex-1 truncate"
+          style={{ color: "#000000" }}
+        >
           {label}
         </span>
-        <Pill
-          tone="neutral"
-          className="text-xs h-5 px-2 min-w-[1.5rem] justify-center tabular-nums"
+        <span
+          className="inline-flex items-center justify-center rounded-full text-xs font-semibold tabular-nums shrink-0"
+          style={{
+            backgroundColor: "rgba(18, 25, 54, 0.05)",
+            color: "#121936",
+            minWidth: 28,
+            height: 24,
+            padding: "0 10px",
+          }}
         >
           {totalCount}
-        </Pill>
+        </span>
       </div>
 
       {/* ── Stages Stack (vertical) ─────────────────────────────────── */}
-      <div className="flex flex-col gap-2 p-2 overflow-y-auto flex-1 min-h-0">
+      <div className="flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
         {children}
       </div>
     </div>

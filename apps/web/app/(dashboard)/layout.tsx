@@ -4,14 +4,8 @@ import { useAppSelector } from "@/lib/hooks";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { UserRole } from "@hassad/shared";
-import { AppSidebar } from "@/components/app-sidebar";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { NotificationBell } from "@/components/common/NotificationBell";
+import { DashboardSidebar } from "@/components/design-system/DashboardSidebar";
+import { DashboardAppHeader } from "@/components/design-system/DashboardAppHeader";
 
 export default function DashboardLayout({
   children,
@@ -24,6 +18,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const roleHome: Record<UserRole, string> = {
     [UserRole.ADMIN]: "/dashboard/admin",
@@ -99,19 +94,39 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider dir="rtl">
-      <AppSidebar side="right" />
+    <div
+      className="h-screen overflow-hidden flex w-full"
+      dir="rtl"
+      style={{ background: "#F9FAFB" }}
+    >
+      {/* Desktop sidebar */}
+      <div className="hidden lg:block">
+        <DashboardSidebar />
+      </div>
 
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ms-1" />
-          <Separator orientation="vertical" className="me-2 h-4" />
-          <div className="flex-1" />
-          <NotificationBell />
-        </header>
+      {/* Mobile sidebar overlay */}
+      {mobileSidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div className="fixed right-0 top-0 h-screen z-50 lg:hidden">
+            <DashboardSidebar />
+          </div>
+        </>
+      )}
 
-        <main className="flex-1 p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        <DashboardAppHeader
+          onMenuToggle={() => setMobileSidebarOpen((v) => !v)}
+        />
+
+        <main className="flex-1 overflow-y-auto p-4 lg:p-5">
+          {children}
+        </main>
+      </div>
+    </div>
   );
 }
