@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Pencil, FileText } from "lucide-react";
+import { Pencil, FileText, Send, Link2, AlertCircle } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   DataTable,
@@ -10,19 +10,35 @@ import {
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
 import { TableRow, TableCell } from "@/components/ui/table";
+import { Pill } from "@/components/design-system/Pill";
 import { ProposalStatus } from "@hassad/shared";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";
 import { useSendProposalMutation } from "@/features/proposals/proposalsApi";
 import { useGetProfileQuery } from "@/features/auth/authApi";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 import { ProposalFormDialog } from "./ProposalFormDialog";
 
-const STATUS_LABELS: Record<ProposalStatus, string> = {
-  [ProposalStatus.DRAFT]: "مسودة",
-  [ProposalStatus.SENT]: "مرسل",
-  [ProposalStatus.APPROVED]: "معتمد",
-  [ProposalStatus.REVISION_REQUESTED]: "بحاجة تعديل",
-  [ProposalStatus.REJECTED]: "مرفوض",
+const STATUS_META: Record<
+  ProposalStatus,
+  { label: string; tone: import("@/components/design-system/Pill").PillTone }
+> = {
+  [ProposalStatus.DRAFT]: { label: "مسودة", tone: "neutral" },
+  [ProposalStatus.SENT]: { label: "مرسل", tone: "blue" },
+  [ProposalStatus.APPROVED]: { label: "معتمد", tone: "success" },
+  [ProposalStatus.REVISION_REQUESTED]: { label: "بحاجة تعديل", tone: "warning" },
+  [ProposalStatus.REJECTED]: { label: "مرفوض", tone: "danger" },
 };
+
+const EDITABLE_STATUSES = new Set<ProposalStatus>([
+  ProposalStatus.DRAFT,
+  ProposalStatus.REVISION_REQUESTED,
+  ProposalStatus.REJECTED,
+]);
+
+const SENDABLE_STATUSES = new Set<ProposalStatus>([
+  ProposalStatus.DRAFT,
+  ProposalStatus.REVISION_REQUESTED,
+]);
 
 const PROPOSAL_COLUMNS: DataTableColumn[] = [
   { id: "client", label: "العميل / العميل المحتمل", align: "right" },
@@ -72,7 +88,9 @@ export function ProposalsTable({
 
   function canEdit(proposal: ProposalListItem): boolean {
     if (!currentUser) return false;
-    if ((currentUser as any).role?.name === "ADMIN") return true;
+    if (currentUser.role === "ADMIN") return true;
+    // Only editable statuses
+    if (!EDITABLE_STATUSES.has(proposal.status)) return false;
     return proposal.createdBy === currentUser.id;
   }
 
@@ -121,32 +139,32 @@ export function ProposalsTable({
               {getProposalDisplayName(proposal)}
             </TableCell>
             <TableCell className="text-right">
-              {proposal.totalPrice.toLocaleString("en-US")}
+              {formatCurrency(proposal.totalPrice)}
             </TableCell>
             <TableCell className="text-right">
-              {new Intl.DateTimeFormat("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                numberingSystem: "latn",
-              }).format(new Date(proposal.createdAt))}
+              {formatShortDate(proposal.createdAt)}
             </TableCell>
             <TableCell className="text-right">
-              {STATUS_LABELS[proposal.status]}
+              <Pill tone={STATUS_META[proposal.status].tone} className="text-xs h-6 px-2">
+                {STATUS_META[proposal.status].label}
+              </Pill>
             </TableCell>
             <TableCell className="text-left">
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 items-center">
+                {/* Edit button — only for proposals in editable statuses */}
                 {canEdit(proposal) && (
                   <ActionButton
                     size="sm"
                     variant="ghost"
+                    title="تعديل العرض"
                     onClick={() => handleEditClick(proposal)}
                   >
                     <Pencil className="w-4 h-4" />
                   </ActionButton>
                 )}
-                {proposal.status === ProposalStatus.APPROVED &&
-                onCreateContract ? (
+
+                {/* Primary CTA based on status */}
+                {proposal.status === ProposalStatus.APPROVED && onCreateContract && (
                   <ActionButton
                     size="sm"
                     variant="primary"
@@ -155,24 +173,43 @@ export function ProposalsTable({
                     <FileText className="w-4 h-4 ml-1" />
                     إنشاء عقد
                   </ActionButton>
-                ) : proposal.status === ProposalStatus.DRAFT ||
-                  proposal.status === ProposalStatus.REVISION_REQUESTED ? (
+                )}
+
+                {SENDABLE_STATUSES.has(proposal.status) && (
                   <ActionButton
                     size="sm"
-                    variant="primary"
+                    variant="action-blue"
                     onClick={() => handleSend(proposal.id)}
                     loading={sending}
+                    title="إرسال العرض للعميل"
                   >
+                    <Send className="w-4 h-4 ml-1" />
                     إرسال
                   </ActionButton>
-                ) : (
+                )}
+
+                {proposal.status === ProposalStatus.SENT && (
                   <ActionButton
                     size="sm"
                     variant="outline"
                     onClick={() => handleCopy(proposal.shareLinkToken)}
                     disabled={!proposal.shareLinkToken}
+                    title="نسخ رابط العرض"
                   >
+                    <Link2 className="w-4 h-4 ml-1" />
                     نسخ الرابط
+                  </ActionButton>
+                )}
+
+                {proposal.status === ProposalStatus.REJECTED && (
+                  <ActionButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEditClick(proposal)}
+                    title="تعديل وإعادة إرسال"
+                  >
+                    <AlertCircle className="w-4 h-4 ml-1" />
+                    تعديل وإعادة إرسال
                   </ActionButton>
                 )}
               </div>

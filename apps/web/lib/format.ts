@@ -58,6 +58,23 @@ export function formatDate(
   }
 }
 
+export function formatShortDate(
+  date: string | Date | undefined | null,
+  locale?: string,
+): string {
+  if (!date) return "—";
+  const d = typeof date === "string" ? new Date(date) : date;
+  try {
+    return new Intl.DateTimeFormat(locale || DEFAULT_LOCALE, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(d);
+  } catch {
+    return String(date);
+  }
+}
+
 export function formatDateTime(
   date: string | Date | undefined | null,
   locale?: string,

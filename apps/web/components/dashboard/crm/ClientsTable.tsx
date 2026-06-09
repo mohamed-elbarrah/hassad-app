@@ -24,6 +24,7 @@ import type { Client } from "@hassad/shared";
 import { ClientStatus } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pill } from "@/components/design-system/Pill";
+import { formatShortDate } from "@/lib/format";
 
 // ── Column helper ─────────────────────────────────────────────────────────────
 
@@ -123,13 +124,7 @@ export function ClientsTable({
     columnHelper.accessor("createdAt", {
       id: "createdAt",
       header: "تاريخ الإضافة",
-      cell: (info) =>
-        new Intl.DateTimeFormat("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          numberingSystem: "latn",
-        }).format(new Date(info.getValue())),
+      cell: (info) => formatShortDate(info.getValue()),
     }),
   ] as ColumnDef<Client, unknown>[];
 

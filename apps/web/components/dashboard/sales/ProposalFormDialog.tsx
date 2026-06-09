@@ -657,17 +657,19 @@ export function ProposalFormDialog({
               >
                 إلغاء
               </ActionButton>
-              <button
+              <ActionButton
                 type="submit"
-                disabled={isSubmitting}
-                className="flex-1 h-14 bg-secondary-500 hover:bg-secondary-600 text-white text-[15px] font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-secondary-500/20 hover:shadow-xl hover:shadow-secondary-500/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                variant="submit"
+                size="lg"
+                loading={isSubmitting}
+                className="flex-1 h-14 text-[15px] font-semibold"
               >
                 {isSubmitting
                   ? "جارٍ الإرسال..."
                   : isEdit
                     ? "تحديث العرض"
                     : "ارسال العرض للعميل"}
-              </button>
+              </ActionButton>
             </div>
           </form>
         )}

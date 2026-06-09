@@ -219,13 +219,13 @@ export function UserHeaderDisplay({
 
   return (
     <div className={cn("flex items-center gap-4", className)}>
-      <UserAvatar
+      {/* <UserAvatar
         name={name}
         avatarUrl={avatarUrl}
         size="lg"
         variant="circle"
         showBorder
-      />
+      /> */}
       <div className="text-right hidden md:block">
         <p
           style={{
