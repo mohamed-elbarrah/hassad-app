@@ -23,6 +23,9 @@ import {
 import { useGetRequestsQuery } from "@/features/requests/requestsApi";
 import { useGetProfileQuery } from "@/features/auth/authApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
+import { useCurrency } from "@/hooks/useCurrency";
+import { SymbolRenderer } from "@/components/design-system/CurrencySymbol";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
 const REQUEST_STATUS_LABELS: Record<string, string> = {
   SUBMITTED: "طلب جديد",
@@ -103,6 +106,7 @@ export function ProposalFormDialog({
   const { data: requestsData, isFetching: requestsFetching } =
     useGetRequestsQuery({ limit: 100 }, { skip: !open });
   const { data: currentUser } = useGetProfileQuery(undefined, { skip: !open });
+  const { currency } = useCurrency();
 
   const contactName = proposal?.contactName || currentUser?.name || "";
   const contactEmail = proposal?.contactEmail || currentUser?.email || "";
@@ -548,7 +552,7 @@ export function ProposalFormDialog({
                         className="w-full h-12 px-3 pl-10 text-left text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
                       />
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-200 text-[12px] font-medium pointer-events-none">
-                        رس
+                        <SymbolRenderer currency={currency} width={14} height={14} />
                       </span>
                     </div>
                   </div>
@@ -575,7 +579,7 @@ export function ProposalFormDialog({
             {/* ── Total ──────────────────────────────────────────── */}
             <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between">
               <span className="text-[15px] font-bold text-natural-100">
-                {formatNumber(totalAmount)} رس
+                <CurrencyDisplay amount={totalAmount} />
               </span>
               <span className="text-[14px] font-bold text-natural-100">
                 الإجمالي الكلي

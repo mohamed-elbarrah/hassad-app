@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { FileText } from "lucide-react";
+import { FileText, Eye, Link2, Copy, CheckCheck } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   DataTable,
@@ -9,22 +11,22 @@ import {
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
 import { TableRow, TableCell } from "@/components/ui/table";
+import { Pill } from "@/components/design-system/Pill";
 import { ContractStatus } from "@hassad/shared";
 import type { ContractItem as ContractListItem } from "@/features/contracts/contractsApi";
-import {
-  useSendContractMutation,
-  useSignContractMutation,
-} from "@/features/contracts/contractsApi";
-import { useAppSelector } from "@/lib/hooks";
 import { formatShortDate } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
-const STATUS_LABELS: Record<ContractStatus, string> = {
-  [ContractStatus.DRAFT]: "مسودة",
-  [ContractStatus.SENT]: "مرسل",
-  [ContractStatus.SIGNED]: "موقع",
-  [ContractStatus.ACTIVE]: "نشط",
-  [ContractStatus.EXPIRED]: "منتهي",
-  [ContractStatus.CANCELLED]: "ملغى",
+const STATUS_META: Record<
+  ContractStatus,
+  { label: string; tone: import("@/components/design-system/Pill").PillTone }
+> = {
+  [ContractStatus.DRAFT]: { label: "مسودة", tone: "neutral" },
+  [ContractStatus.SENT]: { label: "مرسل", tone: "warning" },
+  [ContractStatus.SIGNED]: { label: "موقع", tone: "blue" },
+  [ContractStatus.ACTIVE]: { label: "نشط", tone: "success" },
+  [ContractStatus.EXPIRED]: { label: "منتهي", tone: "danger" },
+  [ContractStatus.CANCELLED]: { label: "ملغى", tone: "danger" },
 };
 
 const CONTRACT_COLUMNS: DataTableColumn[] = [
@@ -38,7 +40,7 @@ const CONTRACT_COLUMNS: DataTableColumn[] = [
 const CONTRACT_EMPTY: DataTableEmptyState = {
   icon: FileText,
   message: "لا توجد عقود بعد.",
-  hint: "أنشئ عقداً جديداً من صفحة لوحة المبيعات أو من صفحة العروض.",
+  hint: "أنشئ عقداً جديداً من صفحة العروض بعد اعتمادها.",
 };
 
 interface ContractsTableProps {
@@ -46,38 +48,18 @@ interface ContractsTableProps {
 }
 
 export function ContractsTable({ contracts }: ContractsTableProps) {
-  const { user } = useAppSelector((state) => state.auth);
-  const [sendContract, { isLoading: sending }] = useSendContractMutation();
-  const [signContract, { isLoading: signing }] = useSignContractMutation();
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  async function handleSend(id: string) {
+  async function handleCopyLink(token: string | null | undefined, id: string) {
+    if (!token) return;
+    const url = `${window.location.origin}/contract/${token}`;
     try {
-      await sendContract(id).unwrap();
-      toast.success("تم إرسال العقد بنجاح");
-    } catch (err: unknown) {
-      const message =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "فشل إرسال العقد";
-      toast.error(message);
-    }
-  }
-
-  async function handleSign(id: string) {
-    if (!user) return;
-    try {
-      await signContract({
-        id,
-        body: {
-          signedByName: user.name,
-          signedByEmail: user.email ?? undefined,
-        },
-      }).unwrap();
-      toast.success("تم توقيع العقد بنجاح");
-    } catch (err: unknown) {
-      const message =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "فشل توقيع العقد";
-      toast.error(message);
+      await navigator.clipboard.writeText(url);
+      setCopiedId(id);
+      toast.success("تم نسخ رابط التوقيع");
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error("تعذر نسخ الرابط");
     }
   }
 
@@ -94,41 +76,46 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
             {contract.client?.companyName ?? contract.clientId}
           </TableCell>
           <TableCell className="text-right">
-            {contract.totalValue.toLocaleString("en-US")}
+            <CurrencyDisplay amount={contract.totalValue} />
           </TableCell>
           <TableCell className="text-right">
-            {formatShortDate(contract.startDate)}{" "}
-            -{" "}
+            {formatShortDate(contract.startDate)} —{" "}
             {formatShortDate(contract.endDate)}
           </TableCell>
           <TableCell className="text-right">
-            {STATUS_LABELS[contract.status]}
+            <Pill
+              tone={STATUS_META[contract.status].tone}
+              className="text-xs h-6 px-2"
+            >
+              {STATUS_META[contract.status].label}
+            </Pill>
           </TableCell>
           <TableCell className="text-left">
-            <div className="flex justify-end gap-2">
-              {contract.status === ContractStatus.DRAFT && (
-                <ActionButton
-                  size="sm"
-                  variant="primary"
-                  onClick={() => handleSend(contract.id)}
-                  loading={sending}
-                >
-                  إرسال
+            <div className="flex justify-end gap-2 items-center">
+              {/* View detail — always available */}
+              <Link href={`/dashboard/sales/contracts/${contract.id}`}>
+                <ActionButton size="sm" variant="ghost" title="عرض العقد">
+                  <Eye className="w-4 h-4" />
                 </ActionButton>
-              )}
+              </Link>
+
+              {/* Copy signing link — only for SENT */}
               {contract.status === ContractStatus.SENT && (
                 <ActionButton
                   size="sm"
                   variant="outline"
-                  onClick={() => handleSign(contract.id)}
-                  loading={signing}
+                  onClick={() =>
+                    handleCopyLink(contract.shareLinkToken, contract.id)
+                  }
+                  disabled={!contract.shareLinkToken}
+                  title="نسخ رابط التوقيع للعميل"
                 >
-                  توقيع
-                </ActionButton>
-              )}
-              {contract.status === ContractStatus.SIGNED && (
-                <ActionButton size="sm" variant="ghost" disabled>
-                  تم التوقيع
+                  {copiedId === contract.id ? (
+                    <CheckCheck className="w-4 h-4 ml-1 text-success-600" />
+                  ) : (
+                    <Link2 className="w-4 h-4 ml-1" />
+                  )}
+                  {copiedId === contract.id ? "تم النسخ" : "نسخ الرابط"}
                 </ActionButton>
               )}
             </div>
