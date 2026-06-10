@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  Wrench,
-  Trash2,
-  Pencil,
-  Plus,
-  AlertCircle,
-} from "lucide-react";
+import { Wrench, Trash2, Pencil, Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ServiceCategory } from "@hassad/shared";
 import {
@@ -50,7 +44,9 @@ const DEFAULT_SERVICE_FORM: ServiceFormData = {
 };
 
 export default function ServicesAdminPage() {
-  const { data: services, isLoading } = useGetServicesQuery({ includeInactive: true });
+  const { data: services, isLoading } = useGetServicesQuery({
+    includeInactive: true,
+  });
   const [createService, { isLoading: creating }] = useCreateServiceMutation();
   const [updateService, { isLoading: updating }] = useUpdateServiceMutation();
   const [deleteService] = useDeleteServiceMutation();
@@ -58,7 +54,9 @@ export default function ServicesAdminPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ServiceFormData>(DEFAULT_SERVICE_FORM);
-  const [errors, setErrors] = useState<Partial<Record<keyof ServiceFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof ServiceFormData, string>>
+  >({});
 
   const resetForm = useCallback(() => {
     setForm(DEFAULT_SERVICE_FORM);
@@ -137,12 +135,18 @@ export default function ServicesAdminPage() {
     <div className="flex flex-col gap-6" dir="rtl">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">إدارة الخدمات</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            إدارة الخدمات
+          </h2>
           <p className="text-sm text-neutral-300">
             إنشاء وتعديل وتعطيل خدمات الكتالوج المعروضة للعملاء.
           </p>
         </div>
-        <ActionButton size="sm" onClick={openCreate} className="mt-2 sm:mt-0 gap-1.5 h-9">
+        <ActionButton
+          size="sm"
+          onClick={openCreate}
+          className="mt-2 sm:mt-0 gap-1.5 h-9"
+        >
           <Plus className="h-4 w-4" />
           إضافة خدمة
         </ActionButton>
@@ -159,16 +163,27 @@ export default function ServicesAdminPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-neutral-50/40 hover:bg-neutral-50/40">
-                <TableHead className="text-right font-semibold">الاسم (عربي)</TableHead>
-                <TableHead className="text-right font-semibold">الاسم (EN)</TableHead>
-                <TableHead className="text-right font-semibold">الحالة</TableHead>
-                <TableHead className="text-right font-semibold w-20"> </TableHead>
+                <TableHead className="text-right font-semibold">
+                  الاسم (عربي)
+                </TableHead>
+                <TableHead className="text-right font-semibold">
+                  الاسم (EN)
+                </TableHead>
+                <TableHead className="text-right font-semibold">
+                  الحالة
+                </TableHead>
+                <TableHead className="text-right font-semibold w-20">
+                  {" "}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!services || services.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-neutral-300 py-12">
+                  <TableCell
+                    colSpan={4}
+                    className="text-center text-neutral-300 py-12"
+                  >
                     <Wrench className="h-8 w-8 mx-auto mb-2 opacity-40" />
                     لا توجد خدمات حاليًا.
                   </TableCell>
@@ -176,13 +191,13 @@ export default function ServicesAdminPage() {
               ) : (
                 services.map((svc) => (
                   <TableRow key={svc.id} className="hover:bg-neutral-50/20">
-                    <TableCell className="font-semibold text-sm">{svc.nameAr}</TableCell>
+                    <TableCell className="font-semibold text-sm">
+                      {svc.nameAr}
+                    </TableCell>
                     <TableCell className="text-sm">{svc.name}</TableCell>
                     <TableCell>
                       {svc.isActive ? (
-                        <Pill tone="success">
-                          نشط
-                        </Pill>
+                        <Pill tone="success">نشط</Pill>
                       ) : (
                         <Pill tone="neutral">معطل</Pill>
                       )}
@@ -215,11 +230,15 @@ export default function ServicesAdminPage() {
         )}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
         title={editingId ? "تعديل الخدمة" : "إضافة خدمة جديدة"}
-        description={editingId
-          ? "عدّل بيانات الخدمة الحالية."
-          : "أضف خدمة جديدة إلى كتالوج الخدمات."}
+        description={
+          editingId
+            ? "عدّل بيانات الخدمة الحالية."
+            : "أضف خدمة جديدة إلى كتالوج الخدمات."
+        }
         contentClassName="sm:max-w-xl"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -231,9 +250,15 @@ export default function ServicesAdminPage() {
               <FormInputControl
                 placeholder="الهوية البصرية"
                 value={form.nameAr}
-                onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, nameAr: e.target.value }))
+                }
                 onBlur={() => setErrors((e) => ({ ...e, nameAr: undefined }))}
-                className={cn("h-10", errors.nameAr && "border-danger-500 focus-visible:ring-danger-500")}
+                className={cn(
+                  "h-10",
+                  errors.nameAr &&
+                    "border-danger-500 focus-visible:ring-danger-500",
+                )}
                 required
               />
               {errors.nameAr && (
@@ -251,9 +276,15 @@ export default function ServicesAdminPage() {
               <FormInputControl
                 placeholder="Brand Identity"
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
                 onBlur={() => setErrors((e) => ({ ...e, name: undefined }))}
-                className={cn("h-10", errors.name && "border-danger-500 focus-visible:ring-danger-500")}
+                className={cn(
+                  "h-10",
+                  errors.name &&
+                    "border-danger-500 focus-visible:ring-danger-500",
+                )}
                 required
               />
               {errors.name && (
@@ -270,7 +301,9 @@ export default function ServicesAdminPage() {
             <FormInputControl
               placeholder="وصف مختصر للخدمة بالعربية"
               value={form.descriptionAr}
-              onChange={(e) => setForm((f) => ({ ...f, descriptionAr: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, descriptionAr: e.target.value }))
+              }
               className="h-10"
             />
           </div>
@@ -280,7 +313,9 @@ export default function ServicesAdminPage() {
             <FormInputControl
               placeholder="Brief description in English"
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
               className="h-10"
             />
           </div>
@@ -289,14 +324,14 @@ export default function ServicesAdminPage() {
             <div
               className={cn(
                 "w-11 h-6 rounded-full relative transition-colors",
-                form.isActive ? "bg-success-500" : "bg-neutral-200"
+                form.isActive ? "bg-success-500" : "bg-neutral-200",
               )}
               onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
             >
               <div
                 className={cn(
                   "absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200",
-                  form.isActive ? "translate-x-5" : ""
+                  form.isActive ? "translate-x-5" : "",
                 )}
               />
             </div>
@@ -314,8 +349,16 @@ export default function ServicesAdminPage() {
             >
               إلغاء
             </ActionButton>
-            <ActionButton type="submit" disabled={creating || updating} className="min-w-[120px]">
-              {creating || updating ? "جارٍ الحفظ..." : editingId ? "حفظ التعديلات" : "إضافة الخدمة"}
+            <ActionButton
+              type="submit"
+              disabled={creating || updating}
+              className="min-w-[120px]"
+            >
+              {creating || updating
+                ? "جارٍ الحفظ..."
+                : editingId
+                  ? "حفظ التعديلات"
+                  : "إضافة الخدمة"}
             </ActionButton>
           </div>
         </form>

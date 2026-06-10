@@ -48,62 +48,110 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
   [RequestStatus.CANCELLED]: "ملغي",
 };
 
-const STATUS_COLORS: Record<RequestStatus, { column: string; dot: string }> = {
+/* ── Bright, semantic, unique color per stage ──────────────────────────────── */
+const STATUS_THEME: Record<
+  RequestStatus,
+  {
+    dot: string;
+    bandBg: string;
+    surfaceBg: string;
+    cardBorder: string;
+    countText: string;
+    countBg: string;
+  }
+> = {
   [RequestStatus.SUBMITTED]: {
-    column: "bg-neutral-50 border-neutral-200",
-    dot: "bg-neutral-400",
+    dot: "#64748B",
+    bandBg: "#E2E8F0",
+    surfaceBg: "#F1F5F9",
+    cardBorder: "#94A3B8",
+    countText: "#475569",
+    countBg: "#CBD5E1",
   },
   [RequestStatus.QUALIFYING]: {
-    column: "bg-neutral-50 border-neutral-200",
-    dot: "bg-neutral-500",
+    dot: "#6366F1",
+    bandBg: "#C7D2FE",
+    surfaceBg: "#EEF2FF",
+    cardBorder: "#818CF8",
+    countText: "#4338CA",
+    countBg: "#A5B4FC",
   },
   [RequestStatus.PROPOSAL_IN_PROGRESS]: {
-    column: "bg-secondary-100 border-secondary-200",
-    dot: "bg-secondary-500",
+    dot: "#3B82F6",
+    bandBg: "#BFDBFE",
+    surfaceBg: "#EFF6FF",
+    cardBorder: "#60A5FA",
+    countText: "#1D4ED8",
+    countBg: "#93C5FD",
   },
   [RequestStatus.PROPOSAL_SENT]: {
-    column: "bg-alert-50 border-alert-200",
-    dot: "bg-alert-400",
+    dot: "#D97706",
+    bandBg: "#FDE68A",
+    surfaceBg: "#FFFBEB",
+    cardBorder: "#FBBF24",
+    countText: "#92400E",
+    countBg: "#FCD34D",
   },
   [RequestStatus.NEGOTIATION]: {
-    column: "bg-alert-50 border-alert-200",
-    dot: "bg-alert-500",
+    dot: "#EA580C",
+    bandBg: "#FED7AA",
+    surfaceBg: "#FFF7ED",
+    cardBorder: "#FB923C",
+    countText: "#9A3412",
+    countBg: "#FDBA74",
   },
   [RequestStatus.CONTRACT_PREPARATION]: {
-    column: "bg-alert-50 border-alert-200",
-    dot: "bg-alert-500",
+    dot: "#8B5CF6",
+    bandBg: "#DDD6FE",
+    surfaceBg: "#F5F3FF",
+    cardBorder: "#A78BFA",
+    countText: "#6D28D9",
+    countBg: "#C4B5FD",
   },
   [RequestStatus.CONTRACT_SENT]: {
-    column: "bg-success-50 border-success-200",
-    dot: "bg-success-500",
+    dot: "#0891B2",
+    bandBg: "#CFFAFE",
+    surfaceBg: "#ECFEFF",
+    cardBorder: "#22D3EE",
+    countText: "#155E75",
+    countBg: "#67E8F9",
   },
   [RequestStatus.SIGNED]: {
-    column: "bg-success-100 border-success-200",
-    dot: "bg-success-500",
+    dot: "#059669",
+    bandBg: "#A7F3D0",
+    surfaceBg: "#ECFDF5",
+    cardBorder: "#34D399",
+    countText: "#065F46",
+    countBg: "#6EE7B7",
   },
   [RequestStatus.PROJECT_CREATED]: {
-    column: "bg-success-50 border-success-200",
-    dot: "bg-success-500",
+    dot: "#16A34A",
+    bandBg: "#86EFAC",
+    surfaceBg: "#DCFCE7",
+    cardBorder: "#4ADE80",
+    countText: "#14532D",
+    countBg: "#4ADE80",
   },
   [RequestStatus.CANCELLED]: {
-    column: "bg-danger-50 border-danger-200",
-    dot: "bg-danger-500",
+    dot: "#DC2626",
+    bandBg: "#FECACA",
+    surfaceBg: "#FEF2F2",
+    cardBorder: "#F87171",
+    countText: "#991B1B",
+    countBg: "#FCA5A5",
   },
 };
 
+/* ── Group definitions ──────────────────────────────────────────────────────── */
 const KANBAN_GROUPS = [
   {
     id: "intake",
     label: "الاستقبال والتأهيل",
-    accentClass: "bg-neutral-50 border-neutral-200 text-neutral-600",
-    textClass: "text-neutral-600",
     stages: [RequestStatus.SUBMITTED, RequestStatus.QUALIFYING],
   },
   {
     id: "proposal",
     label: "العرض والتفاوض",
-    accentClass: "bg-secondary-100 border-secondary-200 text-secondary-500",
-    textClass: "text-secondary-500",
     stages: [
       RequestStatus.PROPOSAL_IN_PROGRESS,
       RequestStatus.PROPOSAL_SENT,
@@ -113,15 +161,11 @@ const KANBAN_GROUPS = [
   {
     id: "contract",
     label: "العقد",
-    accentClass: "bg-alert-50 border-alert-200 text-alert-600",
-    textClass: "text-alert-600",
     stages: [RequestStatus.CONTRACT_PREPARATION, RequestStatus.CONTRACT_SENT],
   },
   {
     id: "handoff",
     label: "التوقيع والتحويل",
-    accentClass: "bg-success-100 border-success-200 text-success-700",
-    textClass: "text-success-700",
     stages: [
       RequestStatus.SIGNED,
       RequestStatus.PROJECT_CREATED,
@@ -190,15 +234,18 @@ export function KanbanBoard() {
   // ── Loading skeleton ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="flex gap-6 h-full" dir="rtl">
         {KANBAN_GROUPS.map((group) => (
-          <div key={group.id} className="space-y-2">
-            <div className="h-10 bg-neutral-50 animate-pulse rounded-lg" />
-            <div className="flex gap-3">
+          <div
+            key={group.id}
+            className="flex-1 min-w-[340px] rounded-2xl border-[1.5px] border-portal-card-border p-3 space-y-3 bg-white"
+          >
+            <div className="h-8 bg-white animate-pulse rounded-xl border border-portal-card-border" />
+            <div className="space-y-2">
               {group.stages.map((stage) => (
                 <div
                   key={stage}
-                  className="w-72 shrink-0 h-48 bg-neutral-50 animate-pulse rounded-xl"
+                  className="h-36 bg-white animate-pulse rounded-2xl border border-portal-card-border"
                 />
               ))}
             </div>
@@ -208,7 +255,7 @@ export function KanbanBoard() {
     );
   }
 
-  // ── Error state ────────────────────────────────────────────────────────────
+  // ── Error state ──────────────────────────────────────────────────────────
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
@@ -222,8 +269,8 @@ export function KanbanBoard() {
   const totalRequests = data?.length ?? 0;
 
   const emptyBanner = totalRequests === 0 && data !== undefined && (
-    <div className="mb-4 rounded-xl border-2 border-dashed px-6 py-4 text-center">
-      <p className="text-sm font-medium text-neutral-300">
+    <div className="mb-4 rounded-2xl border-[1.5px] border-dashed border-portal-card-border px-6 py-4 text-center bg-white">
+      <p className="text-sm font-medium text-portal-note-text">
         لا يوجد أي طلب بعد — سيظهر هنا بعد تقديم طلبات جديدة عبر بوابة العملاء
       </p>
     </div>
@@ -236,7 +283,7 @@ export function KanbanBoard() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="space-y-5" dir="rtl">
+      <div className="flex gap-6 overflow-x-auto pb-2 h-full" dir="rtl">
         {emptyBanner}
         {KANBAN_GROUPS.map((group) => {
           const groupCount = group.stages.reduce(
@@ -249,8 +296,6 @@ export function KanbanBoard() {
               key={group.id}
               id={group.id}
               label={group.label}
-              accentClass={group.accentClass}
-              textClass={group.textClass}
               totalCount={groupCount}
             >
               {group.stages.map((stage) => (
@@ -258,8 +303,7 @@ export function KanbanBoard() {
                   key={stage}
                   stage={stage}
                   label={STATUS_LABELS[stage]}
-                  colorClass={STATUS_COLORS[stage].column}
-                  dotClass={STATUS_COLORS[stage].dot}
+                  theme={STATUS_THEME[stage]}
                   clients={requestsByStatus.get(stage) ?? []}
                 />
               ))}
@@ -269,7 +313,13 @@ export function KanbanBoard() {
       </div>
 
       <DragOverlay>
-        {activeRequest ? <KanbanCard client={activeRequest} isOverlay /> : null}
+        {activeRequest ? (
+          <KanbanCard
+            client={activeRequest}
+            isOverlay
+            accentColor={STATUS_THEME[activeRequest.status as RequestStatus]?.cardBorder}
+          />
+        ) : null}
       </DragOverlay>
     </DndContext>
   );

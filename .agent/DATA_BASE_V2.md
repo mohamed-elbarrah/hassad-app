@@ -1,4 +1,5 @@
 # HASAD PLATFORM — DATABASE SCHEMA (V2 FULL)
+
 ## Source of Truth — Strict Implementation (No Assumptions Allowed)
 
 This document defines the **complete database schema** for the Hasad Platform.
@@ -23,6 +24,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🟣 CORE & PERMISSIONS
 
 ## users
+
 - id (PK)
 - name
 - email (unique)
@@ -33,28 +35,34 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## roles
+
 - id (PK)
 - name
 
 ## permissions
+
 - id (PK)
 - name
 
 ## role_permissions
+
 - role_id (FK)
 - permission_id (FK)
 
 ## user_permissions
+
 - user_id (FK)
 - permission_id (FK)
 
 ## departments
+
 - id (PK)
 - name
 - description
 - created_at
 
 ## user_departments
+
 - id (PK)
 - user_id (FK)
 - department_id (FK)
@@ -64,6 +72,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🔵 CRM & PIPELINE
 
 ## leads
+
 - id (PK)
 - company_name
 - contact_name
@@ -82,6 +91,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## lead_pipeline_history
+
 - id (PK)
 - lead_id (FK)
 - from_stage
@@ -90,6 +100,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - changed_at
 
 ## lead_contact_log
+
 - id (PK)
 - lead_id (FK)
 - user_id (FK)
@@ -99,6 +110,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - contacted_at
 
 ## lead_automation_rules
+
 - id (PK)
 - name
 - trigger_type
@@ -108,6 +120,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## lead_automation_logs
+
 - id (PK)
 - lead_id (FK)
 - rule_id (FK)
@@ -116,6 +129,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - response_data (jsonb)
 
 ## clients
+
 - id (PK)
 - lead_id (FK)
 - company_name
@@ -132,6 +146,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## client_history_log
+
 - id (PK)
 - client_id (FK)
 - user_id (FK)
@@ -145,6 +160,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🟠 PROPOSALS & CONTRACTS
 
 ## proposals
+
 - id (PK)
 - lead_id (FK)
 - created_by (FK → users.id)
@@ -161,6 +177,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## contracts
+
 - id (PK)
 - client_id (FK)
 - proposal_id (FK)
@@ -180,6 +197,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## contract_versions
+
 - id (PK)
 - contract_id (FK)
 - version_number
@@ -188,6 +206,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## contract_renewal_alerts
+
 - id (PK)
 - contract_id (FK)
 - alert_type ENUM
@@ -200,6 +219,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🟢 PROJECT MANAGEMENT
 
 ## projects
+
 - id (PK)
 - client_id (FK)
 - contract_id (FK)
@@ -217,6 +237,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## project_members
+
 - id (PK)
 - project_id (FK)
 - user_id (FK)
@@ -224,6 +245,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - joined_at
 
 ## tasks
+
 - id (PK)
 - project_id (FK)
 - department_id (FK)
@@ -245,6 +267,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## task_status_history
+
 - id (PK)
 - task_id (FK)
 - from_status
@@ -253,6 +276,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - changed_at
 
 ## task_files
+
 - id (PK)
 - task_id (FK)
 - uploaded_by (FK)
@@ -264,6 +288,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - uploaded_at
 
 ## task_comments
+
 - id (PK)
 - task_id (FK)
 - user_id (FK)
@@ -272,6 +297,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## task_delay_alerts
+
 - id (PK)
 - task_id (FK)
 - notified_user_id (FK)
@@ -285,6 +311,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🟦 CLIENT PORTAL
 
 ## deliverables
+
 - id (PK)
 - project_id (FK)
 - task_id (FK)
@@ -298,6 +325,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## client_revision_requests
+
 - id (PK)
 - deliverable_id (FK)
 - client_id (FK)
@@ -307,6 +335,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - resolved_at
 
 ## portal_intake_forms
+
 - id (PK)
 - client_id (FK)
 - token
@@ -322,6 +351,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🔴 MARKETING
 
 ## campaigns
+
 - id (PK)
 - client_id (FK)
 - task_id (FK)
@@ -339,6 +369,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## campaign_kpi_snapshots
+
 - id (PK)
 - campaign_id (FK)
 - impressions
@@ -355,6 +386,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## campaign_kpi_audit_logs
+
 - id (PK)
 - campaign_id (FK)
 - snapshot_id? (FK)
@@ -365,6 +397,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## ad_platform_connections
+
 - id (PK)
 - campaign_id (FK)
 - platform ENUM
@@ -377,6 +410,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## ab_tests
+
 - id (PK)
 - campaign_id (FK)
 - created_by (FK)
@@ -394,6 +428,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🟡 FINANCE
 
 ## invoices
+
 - id (PK)
 - client_id (FK)
 - contract_id (FK)
@@ -413,6 +448,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## invoice_items
+
 - id (PK)
 - invoice_id (FK)
 - project_id? (FK)
@@ -423,6 +459,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - total
 
 ## payments
+
 - id (PK)
 - invoice_id (FK)
 - client_id? (FK)
@@ -439,6 +476,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## payment_gateways
+
 - id (PK)
 - name (unique)
 - type ENUM (ONLINE, MANUAL)
@@ -448,6 +486,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## bank_accounts
+
 - id (PK)
 - account_name
 - iban (unique)
@@ -459,6 +498,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## payment_events
+
 - id (PK)
 - payment_id (FK)
 - type ENUM (CREATED, SUCCESS, FAILED, REFUNDED)
@@ -466,6 +506,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## webhook_logs
+
 - id (PK)
 - provider
 - event_type
@@ -475,6 +516,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## payment_tickets
+
 - id (PK)
 - invoice_id (FK)
 - client_id (FK)
@@ -489,6 +531,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🟤 PAYROLL & LEDGER
 
 ## employees
+
 - id (PK)
 - user_id? (FK, unique)
 - name
@@ -499,6 +542,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - updated_at
 
 ## salaries
+
 - id (PK)
 - employee_id (FK)
 - amount
@@ -513,6 +557,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## ledger
+
 - id (PK)
 - action
 - entity
@@ -523,6 +568,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## currency_settings
+
 - id (PK)
 - code (unique)
 - name
@@ -535,6 +581,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🟣 RATINGS & PERFORMANCE
 
 ## satisfaction_ratings
+
 - id (PK)
 - client_id (FK)
 - project_id (FK)
@@ -545,6 +592,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## internal_ratings
+
 - id (PK)
 - task_id (FK)
 - rated_by (FK)
@@ -553,6 +601,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## staff_workload
+
 - id (PK)
 - user_id (FK)
 - active_tasks_count
@@ -566,15 +615,18 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # ⚫ COMMUNICATION (CHAT)
 
 ## conversations
+
 - id (PK)
 - created_at
 
 ## conversation_participants
+
 - id (PK)
 - conversation_id (FK)
 - user_id (FK)
 
 ## messages
+
 - id (PK)
 - conversation_id (FK)
 - sender_id (FK)
@@ -582,6 +634,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## message_attachments
+
 - id (PK)
 - message_id (FK)
 - file_path
@@ -594,6 +647,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # ⚪ NOTIFICATIONS
 
 ## notification_events
+
 - id (PK)
 - entity_id
 - entity_type
@@ -602,6 +656,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - triggered_at
 
 ## notifications
+
 - id (PK)
 - event_id (FK)
 - user_id (FK)
@@ -617,6 +672,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # 🔵 AI LAYER
 
 ## ai_analysis_logs
+
 - id (PK)
 - entity_id
 - entity_type ENUM
@@ -628,6 +684,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 - created_at
 
 ## ai_suggestions
+
 - id (PK)
 - log_id (FK)
 - entity_id
@@ -643,6 +700,7 @@ It MUST be followed exactly. No deviations, no interpretation, no missing relati
 # ✅ FINAL GUARANTEE
 
 This schema:
+
 - Covers 100% of the documented system
 - Includes all missing systems (Automation, Chat, History, Permissions, AI)
 - Has no undefined relationships

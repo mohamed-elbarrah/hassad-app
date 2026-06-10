@@ -3,8 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-export interface FormTextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface FormTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
 }
@@ -39,9 +38,7 @@ export const FormTextarea = React.forwardRef<
           {...props}
         />
       </div>
-      {error && (
-        <p className="text-xs text-danger-500 text-right">{error}</p>
-      )}
+      {error && <p className="text-xs text-danger-500 text-right">{error}</p>}
     </div>
   );
 });

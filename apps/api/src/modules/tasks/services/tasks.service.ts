@@ -12,7 +12,12 @@ import {
   UploadTaskFileDto,
   CreateTaskCommentDto,
 } from "../dto/task.dto";
-import { TaskDepartment, TaskStatus, UserRole, ProjectStatus } from "@hassad/shared";
+import {
+  TaskDepartment,
+  TaskStatus,
+  UserRole,
+  ProjectStatus,
+} from "@hassad/shared";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FilePurpose, Prisma } from "@prisma/client";
 import { StorageService } from "../../../common/storage/storage.service";
@@ -80,7 +85,12 @@ export class TasksService {
 
     const project = await db.project.findUnique({
       where: { id: projectId },
-      select: { status: true, name: true, clientId: true, projectManagerId: true },
+      select: {
+        status: true,
+        name: true,
+        clientId: true,
+        projectManagerId: true,
+      },
     });
 
     if (
@@ -221,7 +231,11 @@ export class TasksService {
     };
   }
 
-  private async resolveAssignableUser(userId: string, departmentId: string, departmentName?: string) {
+  private async resolveAssignableUser(
+    userId: string,
+    departmentId: string,
+    departmentName?: string,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -255,10 +269,12 @@ export class TasksService {
     } else if (assigneeRole === UserRole.MARKETING) {
       const deptName =
         departmentName ??
-        (await this.prisma.department.findUnique({
-          where: { id: departmentId },
-          select: { name: true },
-        }))?.name;
+        (
+          await this.prisma.department.findUnique({
+            where: { id: departmentId },
+            select: { name: true },
+          })
+        )?.name;
       if (deptName !== TaskDepartment.MARKETING) {
         throw new BadRequestException(
           "Marketing users can only be assigned to marketing department tasks",
@@ -308,7 +324,7 @@ export class TasksService {
       return createdTask;
     });
 
-  if (createdTask.assignedTo) {
+    if (createdTask.assignedTo) {
       const departmentLabel = this.getDepartmentArabicLabel(department.name);
 
       this.notificationsService
@@ -442,7 +458,11 @@ export class TasksService {
       });
 
       if (toStatus === TaskStatus.DONE) {
-        const portalDepts = [TaskDepartment.DESIGN, TaskDepartment.CONTENT, TaskDepartment.MARKETING];
+        const portalDepts = [
+          TaskDepartment.DESIGN,
+          TaskDepartment.CONTENT,
+          TaskDepartment.MARKETING,
+        ];
         const deptName = task.department?.name;
         if (deptName && portalDepts.includes(deptName as TaskDepartment)) {
           const existing = await tx.deliverable.findFirst({
@@ -530,7 +550,10 @@ export class TasksService {
 
     if (notificationJobs.length > 0) {
       Promise.allSettled(notificationJobs).catch((err) =>
-        this.logger.error(`Failed to create some status-change notifications for task=${id}`, err),
+        this.logger.error(
+          `Failed to create some status-change notifications for task=${id}`,
+          err,
+        ),
       );
     }
 
@@ -655,7 +678,13 @@ export class TasksService {
   async addFile(
     id: string,
     userId: string,
-    fileData: { key: string; originalName: string; mimeType: string; size: number; purpose?: string },
+    fileData: {
+      key: string;
+      originalName: string;
+      mimeType: string;
+      size: number;
+      purpose?: string;
+    },
   ) {
     const task = await this.prisma.task.findUnique({
       where: { id },
@@ -939,7 +968,9 @@ export class TasksService {
     };
   }
 
-  async toggleArchive(taskId: string): Promise<{ message: string; archived: boolean }> {
+  async toggleArchive(
+    taskId: string,
+  ): Promise<{ message: string; archived: boolean }> {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
       throw new NotFoundException("المهمة غير موجودة");

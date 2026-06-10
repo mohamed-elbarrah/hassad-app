@@ -59,7 +59,10 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
           onClick={onLogout}
         >
           <LogOut className="w-5 h-5" style={{ color: "#FF6161" }} />
-          <span className="font-medium transition-colors" style={{ color: "#FF6161" }}>
+          <span
+            className="font-medium transition-colors"
+            style={{ color: "#FF6161" }}
+          >
             تسجيل الخروج
           </span>
         </DropdownMenuItem>

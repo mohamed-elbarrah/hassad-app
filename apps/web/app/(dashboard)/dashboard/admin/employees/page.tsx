@@ -52,7 +52,10 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.PRODUCTION]: "مونتاج",
 };
 
-const ROLE_PILL_TONE: Record<UserRole, "danger" | "neutral" | "warning" | "success" | "blue"> = {
+const ROLE_PILL_TONE: Record<
+  UserRole,
+  "danger" | "neutral" | "warning" | "success" | "blue"
+> = {
   [UserRole.ADMIN]: "danger",
   [UserRole.PM]: "neutral",
   [UserRole.SALES]: "warning",
@@ -237,9 +240,7 @@ export default function EmployeesPage() {
                             {DEPARTMENT_LABELS[emp.department]}
                           </Pill>
                         ) : (
-                          <span className="text-xs text-neutral-300">
-                            —
-                          </span>
+                          <span className="text-xs text-neutral-300">—</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -288,9 +289,7 @@ export default function EmployeesPage() {
               </Table>
             </div>
           )}
-          <p className="text-xs text-neutral-300">
-            إجمالي {data.total} موظف
-          </p>
+          <p className="text-xs text-neutral-300">إجمالي {data.total} موظف</p>
         </>
       )}
 

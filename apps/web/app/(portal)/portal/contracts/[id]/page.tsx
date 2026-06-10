@@ -54,7 +54,9 @@ export default function PortalContractDetailPage({ params }: PageProps) {
 
 function PortalContractDetailInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
-  const { data, isLoading, isError } = useGetPortalContractByIdQuery(id, { pollingInterval: 30_000 });
+  const { data, isLoading, isError } = useGetPortalContractByIdQuery(id, {
+    pollingInterval: 30_000,
+  });
   const [signContract, { isLoading: signing }] =
     useSignContractByTokenMutation();
 
@@ -73,10 +75,10 @@ function PortalContractDetailInner({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-        <div className="flex flex-col gap-4" dir="rtl">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-80 w-full" />
-        </div>
+      <div className="flex flex-col gap-4" dir="rtl">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-80 w-full" />
+      </div>
     );
   }
 
@@ -189,19 +191,28 @@ function PortalContractDetailInner({ id }: { id: string }) {
           </div>
 
           {fileUrl ? (
-            <InfoPanel variant="bordered" title="ملف العقد" description="راجع العقد كاملاً قبل التوقيع">
+            <InfoPanel
+              variant="bordered"
+              title="ملف العقد"
+              description="راجع العقد كاملاً قبل التوقيع"
+            >
               <div className="flex items-center gap-3">
                 <FileText className="h-8 w-8 shrink-0 text-action-blue" />
-                <div className="min-w-0 flex-1">
-                </div>
-                <ActionButton href={fileUrl} variant="outline" icon={<Download className="h-4 w-4" />}>
+                <div className="min-w-0 flex-1"></div>
+                <ActionButton
+                  href={fileUrl}
+                  variant="outline"
+                  icon={<Download className="h-4 w-4" />}
+                >
                   تحميل العقد
                 </ActionButton>
               </div>
             </InfoPanel>
           ) : (
-            <InfoPanel variant="bordered" description="لا يوجد ملف مرفق لهذا العقد.">
-            </InfoPanel>
+            <InfoPanel
+              variant="bordered"
+              description="لا يوجد ملف مرفق لهذا العقد."
+            ></InfoPanel>
           )}
 
           <ContractPaymentSummary
@@ -230,8 +241,10 @@ function PortalContractDetailInner({ id }: { id: string }) {
               </div>
 
               {!allInvoicesPaid && (
-                <StatusBanner variant="warning" title="يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر &quot;ادفع&quot; بجانب كل فاتورة.">
-                </StatusBanner>
+                <StatusBanner
+                  variant="warning"
+                  title='يجب دفع جميع الفواتير قبل توقيع العقد. اضغط على زر "ادفع" بجانب كل فاتورة.'
+                ></StatusBanner>
               )}
 
               <div className="space-y-3">

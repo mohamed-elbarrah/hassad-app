@@ -9,5 +9,12 @@ export default function DashboardError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard" backLabel="العودة للوحة الرئيسية" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/dashboard"
+      backLabel="العودة للوحة الرئيسية"
+    />
+  );
 }

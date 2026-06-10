@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { AiAnalyzeDto } from '../dto/ai.dto';
-import { AiSuggestionStatus } from '@hassad/shared';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { AiAnalyzeDto } from "../dto/ai.dto";
+import { AiSuggestionStatus } from "@hassad/shared";
 
 @Injectable()
 export class AiService {
@@ -52,7 +52,11 @@ export class AiService {
     });
   }
 
-  async updateSuggestionStatus(id: string, userId: string, status: AiSuggestionStatus) {
+  async updateSuggestionStatus(
+    id: string,
+    userId: string,
+    status: AiSuggestionStatus,
+  ) {
     return this.prisma.aiSuggestion.update({
       where: { id },
       data: {

@@ -7,22 +7,22 @@ import {
   Param,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { NotificationsService } from '../services/notifications.service';
-import { BroadcastNotificationDto, MarkReadDto } from '../dto/notification.dto';
-import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+} from "@nestjs/common";
+import { NotificationsService } from "../services/notifications.service";
+import { BroadcastNotificationDto, MarkReadDto } from "../dto/notification.dto";
+import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
+import { PermissionsGuard } from "../../../common/guards/permissions.guard";
+import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 
-@Controller('notifications')
+@Controller("notifications")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   /** GET /notifications/my — paginated notifications for current user */
-  @Get('my')
-  @RequirePermissions('notifications.read')
+  @Get("my")
+  @RequirePermissions("notifications.read")
   findMine(
     @CurrentUser() user: any,
     @Query() filters: { page?: number; limit?: number; isRead?: boolean },
@@ -31,36 +31,36 @@ export class NotificationsController {
   }
 
   /** GET /notifications/my/unread-count */
-  @Get('my/unread-count')
-  @RequirePermissions('notifications.read')
+  @Get("my/unread-count")
+  @RequirePermissions("notifications.read")
   getUnreadCount(@CurrentUser() user: any) {
     return this.notificationsService.getUnreadCount(user.id);
   }
 
   /** PATCH /notifications/read-all — mark all as read (MUST be before :id route) */
-  @Patch('read-all')
-  @RequirePermissions('notifications.update')
+  @Patch("read-all")
+  @RequirePermissions("notifications.update")
   markAllRead(@CurrentUser() user: any) {
     return this.notificationsService.markAllRead(user.id);
   }
 
   /** POST /notifications/mark-read — mark specific notifications as read by IDs */
-  @Post('mark-read')
-  @RequirePermissions('notifications.update')
+  @Post("mark-read")
+  @RequirePermissions("notifications.update")
   markRead(@CurrentUser() user: any, @Body() dto: MarkReadDto) {
     return this.notificationsService.markRead(user.id, dto.notificationIds);
   }
 
   /** PATCH /notifications/:id/read — mark single notification as read */
-  @Patch(':id/read')
-  @RequirePermissions('notifications.update')
-  markOneRead(@CurrentUser() user: any, @Param('id') id: string) {
+  @Patch(":id/read")
+  @RequirePermissions("notifications.update")
+  markOneRead(@CurrentUser() user: any, @Param("id") id: string) {
     return this.notificationsService.markOneRead(user.id, id);
   }
 
   /** POST /notifications/broadcast — admin only */
-  @Post('broadcast')
-  @RequirePermissions('notifications.broadcast')
+  @Post("broadcast")
+  @RequirePermissions("notifications.broadcast")
   broadcast(@Body() dto: BroadcastNotificationDto) {
     return this.notificationsService.broadcast({
       title: dto.title,

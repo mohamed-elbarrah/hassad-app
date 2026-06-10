@@ -1,8 +1,11 @@
-import { Stripe } from 'stripe';
-import { PaymentProvider, PaymentIntentResponse } from './payment-provider.interface';
-import { PaymentStatus } from '@hassad/shared';
+import { Stripe } from "stripe";
+import {
+  PaymentProvider,
+  PaymentIntentResponse,
+} from "./payment-provider.interface";
+import { PaymentStatus } from "@hassad/shared";
 
-const STRIPE_API_VERSION = '2025-03-31.basil';
+const STRIPE_API_VERSION = "2025-03-31.basil";
 
 export class StripeProvider implements PaymentProvider {
   private stripe: Stripe;
@@ -23,11 +26,13 @@ export class StripeProvider implements PaymentProvider {
     cancelUrl?: string;
     metadata?: any;
   }): Promise<PaymentIntentResponse> {
-    const successUrl = params.successUrl ?? `${process.env.WEB_URL}/portal/finance?success=true`;
-    const cancelUrl = params.cancelUrl ?? `${process.env.WEB_URL}/portal/finance?canceled=true`;
+    const successUrl =
+      params.successUrl ?? `${process.env.WEB_URL}/portal/finance?success=true`;
+    const cancelUrl =
+      params.cancelUrl ?? `${process.env.WEB_URL}/portal/finance?canceled=true`;
 
     const session = await this.stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
@@ -40,7 +45,7 @@ export class StripeProvider implements PaymentProvider {
           quantity: 1,
         },
       ],
-      mode: 'payment',
+      mode: "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
@@ -52,7 +57,7 @@ export class StripeProvider implements PaymentProvider {
 
     return {
       providerPaymentId: session.id,
-      clientSecret: session.url ?? '',
+      clientSecret: session.url ?? "",
       status: PaymentStatus.PENDING,
     };
   }
@@ -72,12 +77,12 @@ export class StripeProvider implements PaymentProvider {
         clientId: params.clientId,
         ...params.metadata,
       },
-      payment_method_types: ['card'],
+      payment_method_types: ["card"],
     });
 
     return {
       providerPaymentId: paymentIntent.id,
-      clientSecret: paymentIntent.client_secret ?? '',
+      clientSecret: paymentIntent.client_secret ?? "",
       status: PaymentStatus.PENDING,
     };
   }
@@ -99,17 +104,17 @@ export class StripeProvider implements PaymentProvider {
     let status: PaymentStatus = PaymentStatus.PENDING;
 
     switch (event.type) {
-      case 'checkout.session.completed':
-      case 'payment_intent.succeeded':
+      case "checkout.session.completed":
+      case "payment_intent.succeeded":
         status = PaymentStatus.SUCCESS;
         break;
-      case 'payment_intent.payment_failed':
+      case "payment_intent.payment_failed":
         status = PaymentStatus.FAILED;
         break;
-      case 'payment_intent.processing':
+      case "payment_intent.processing":
         status = PaymentStatus.PENDING;
         break;
-      case 'payment_intent.canceled':
+      case "payment_intent.canceled":
         status = PaymentStatus.FAILED;
         break;
     }
@@ -123,14 +128,14 @@ export class StripeProvider implements PaymentProvider {
 
   private mapStripeStatus(stripeStatus: string): PaymentStatus {
     switch (stripeStatus) {
-      case 'succeeded':
+      case "succeeded":
         return PaymentStatus.SUCCESS;
-      case 'requires_payment_method':
-      case 'requires_confirmation':
-      case 'requires_action':
-      case 'processing':
+      case "requires_payment_method":
+      case "requires_confirmation":
+      case "requires_action":
+      case "processing":
         return PaymentStatus.PENDING;
-      case 'canceled':
+      case "canceled":
         return PaymentStatus.FAILED;
       default:
         return PaymentStatus.PENDING;

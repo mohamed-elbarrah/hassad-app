@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ClipboardList, FileText, PenTool, PlusCircle, type LucideIcon } from "lucide-react";
+import {
+  ClipboardList,
+  FileText,
+  PenTool,
+  PlusCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { useGetPortalRequestsQuery } from "@/features/portal/portalApi";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { PageIntro } from "@/components/design-system/PageIntro";
@@ -54,7 +60,11 @@ function RequestDocumentPanel({
 
       {href && actionLabel && (
         <div className="mt-4">
-          <ActionButton href={href} variant="outline" icon={<Icon className="ml-2 h-4 w-4" />}>
+          <ActionButton
+            href={href}
+            variant="outline"
+            icon={<Icon className="ml-2 h-4 w-4" />}
+          >
             {actionLabel}
           </ActionButton>
         </div>
@@ -88,10 +98,13 @@ function getRequestNotesText(notes?: string | null) {
 
 export default function PortalRequestsPage() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError } = useGetPortalRequestsQuery({
-    page,
-    limit: PAGE_SIZE,
-  }, { pollingInterval: 30_000 });
+  const { data, isLoading, isError } = useGetPortalRequestsQuery(
+    {
+      page,
+      limit: PAGE_SIZE,
+    },
+    { pollingInterval: 30_000 },
+  );
 
   const requests = data?.data ?? [];
   const total = data?.total ?? 0;
@@ -113,7 +126,7 @@ export default function PortalRequestsPage() {
         {isLoading && (
           <div className="grid gap-4">
             {Array.from({ length: 3 }).map((_, index) => (
-                <div
+              <div
                 key={index}
                 className="space-y-4 rounded-2xl border-[1.5px] border-portal-divider bg-portal-bg p-5"
               >
@@ -136,7 +149,7 @@ export default function PortalRequestsPage() {
         )}
 
         {isError && (
-                <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
+          <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
             <p className="text-base font-medium text-danger-700">
               حدث خطأ أثناء تحميل الطلبات.
             </p>
@@ -147,7 +160,7 @@ export default function PortalRequestsPage() {
         )}
 
         {!isLoading && !isError && requests.length === 0 && (
-            <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
+          <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
               <ClipboardList className="h-8 w-8 text-secondary-500" />
             </div>

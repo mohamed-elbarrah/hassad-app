@@ -1,15 +1,15 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { 
-  Invoice, 
-  Payment, 
-  PaymentTicket, 
-  Employee, 
-  Salary, 
-  Ledger, 
-  InvoiceStatus, 
-  PaymentMethod, 
-  TicketStatus 
+import type {
+  Invoice,
+  Payment,
+  PaymentTicket,
+  Employee,
+  Salary,
+  Ledger,
+  InvoiceStatus,
+  PaymentMethod,
+  TicketStatus,
 } from "@hassad/shared";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export interface FinanceAlert {
   amount: number;
   date: string;
   status: string;
-  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  severity: "HIGH" | "MEDIUM" | "LOW";
 }
 
 export interface PaginatedPayments {
@@ -92,7 +92,17 @@ export interface PaginatedLedger {
 export const financeApi = createApi({
   reducerPath: "financeApi",
   baseQuery,
-  tagTypes: ["Invoice", "PaymentTicket", "Payment", "Employee", "Salary", "Ledger", "FinanceSummary", "PaymentGateway", "BankAccount"],
+  tagTypes: [
+    "Invoice",
+    "PaymentTicket",
+    "Payment",
+    "Employee",
+    "Salary",
+    "Ledger",
+    "FinanceSummary",
+    "PaymentGateway",
+    "BankAccount",
+  ],
   endpoints: (builder) => ({
     // Dashboard & Analytics
     getFinanceSummary: builder.query<FinanceSummary, void>({
@@ -112,7 +122,13 @@ export const financeApi = createApi({
       query: (filters = {}) => ({ url: "/invoices", params: filters }),
       providesTags: (result) =>
         result
-          ? [...result.items.map(({ id }) => ({ type: "Invoice" as const, id })), { type: "Invoice", id: "LIST" }]
+          ? [
+              ...result.items.map(({ id }) => ({
+                type: "Invoice" as const,
+                id,
+              })),
+              { type: "Invoice", id: "LIST" },
+            ]
           : [{ type: "Invoice", id: "LIST" }],
     }),
     getInvoiceById: builder.query<Invoice, string>({
@@ -125,7 +141,10 @@ export const financeApi = createApi({
     }),
     sendInvoice: builder.mutation<Invoice, string>({
       query: (id) => ({ url: `/invoices/${id}/send`, method: "POST" }),
-      invalidatesTags: (_r, _e, id) => [{ type: "Invoice", id }, { type: "Invoice", id: "LIST" }],
+      invalidatesTags: (_r, _e, id) => [
+        { type: "Invoice", id },
+        { type: "Invoice", id: "LIST" },
+      ],
     }),
     getInvoicesByClient: builder.query<Invoice[], string>({
       query: (clientId) => `/invoices/client/${clientId}`,
@@ -137,7 +156,10 @@ export const financeApi = createApi({
     }),
 
     // Payments
-    getPayments: builder.query<PaginatedPayments, { page?: number; limit?: number }>({
+    getPayments: builder.query<
+      PaginatedPayments,
+      { page?: number; limit?: number }
+    >({
       query: (params = {}) => ({ url: "/payments", params }),
       providesTags: ["Payment"],
     }),
@@ -145,12 +167,26 @@ export const financeApi = createApi({
       query: (body) => ({ url: "/payments", method: "POST", body }),
       invalidatesTags: ["Payment", "Invoice", "FinanceSummary", "Ledger"],
     }),
-    payInvoice: builder.mutation<Payment, { id: string; amount: number; method: PaymentMethod; notes?: string }>({
-      query: ({ id, ...body }) => ({ url: `/invoices/${id}/pay`, method: "PATCH", body }),
+    payInvoice: builder.mutation<
+      Payment,
+      { id: string; amount: number; method: PaymentMethod; notes?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/invoices/${id}/pay`,
+        method: "PATCH",
+        body,
+      }),
       invalidatesTags: ["Payment", "Invoice", "FinanceSummary", "Ledger"],
     }),
-    payInvoicePublic: builder.mutation<Payment, { id: string; amount: number; method: PaymentMethod; notes?: string }>({
-      query: ({ id, ...body }) => ({ url: `/invoices/${id}/pay-public`, method: "POST", body }),
+    payInvoicePublic: builder.mutation<
+      Payment,
+      { id: string; amount: number; method: PaymentMethod; notes?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/invoices/${id}/pay-public`,
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["Payment", "Invoice"],
     }),
 
@@ -163,7 +199,10 @@ export const financeApi = createApi({
       query: (id) => `/payroll/${id}`,
       providesTags: (_r, _e, id) => [{ type: "Employee", id }],
     }),
-    runPayroll: builder.mutation<{ generated: number }, { month: number; year: number }>({
+    runPayroll: builder.mutation<
+      { generated: number },
+      { month: number; year: number }
+    >({
       query: (body) => ({ url: "/payroll/run", method: "POST", body }),
       invalidatesTags: ["Salary", "Ledger"],
     }),
@@ -175,13 +214,19 @@ export const financeApi = createApi({
     }),
 
     // Ledger
-    getLedger: builder.query<PaginatedLedger, { page?: number; limit?: number }>({
+    getLedger: builder.query<
+      PaginatedLedger,
+      { page?: number; limit?: number }
+    >({
       query: (params = {}) => ({ url: "/finance/ledger", params }),
       providesTags: ["Ledger"],
     }),
 
     // Payment Tickets (Legacy/Support)
-    getPaymentTickets: builder.query<{ items: PaymentTicket[]; total: number }, any>({
+    getPaymentTickets: builder.query<
+      { items: PaymentTicket[]; total: number },
+      any
+    >({
       query: (params = {}) => ({ url: "/payment-tickets", params }),
       providesTags: ["PaymentTicket"],
     }),
@@ -190,7 +235,10 @@ export const financeApi = createApi({
       invalidatesTags: ["PaymentTicket"],
     }),
     resolvePaymentTicket: builder.mutation<PaymentTicket, string>({
-      query: (id) => ({ url: `/payment-tickets/${id}/resolve`, method: "PATCH" }),
+      query: (id) => ({
+        url: `/payment-tickets/${id}/resolve`,
+        method: "PATCH",
+      }),
       invalidatesTags: ["PaymentTicket"],
     }),
 
@@ -200,7 +248,11 @@ export const financeApi = createApi({
       providesTags: ["PaymentGateway"],
     }),
     updatePaymentGateway: builder.mutation<any, { name: string; body: any }>({
-      query: ({ name, body }) => ({ url: `/payments/gateways/${name}`, method: "POST", body }),
+      query: ({ name, body }) => ({
+        url: `/payments/gateways/${name}`,
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["PaymentGateway"],
     }),
     getPublicGateways: builder.query<string[], void>({
@@ -211,15 +263,26 @@ export const financeApi = createApi({
       providesTags: ["BankAccount"],
     }),
     createBankAccount: builder.mutation<any, any>({
-      query: (body) => ({ url: "/payments/bank-accounts", method: "POST", body }),
+      query: (body) => ({
+        url: "/payments/bank-accounts",
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["BankAccount"],
     }),
     updateBankAccount: builder.mutation<any, { id: string; body: any }>({
-      query: ({ id, body }) => ({ url: `/payments/bank-accounts/${id}`, method: "PATCH", body }),
+      query: ({ id, body }) => ({
+        url: `/payments/bank-accounts/${id}`,
+        method: "PATCH",
+        body,
+      }),
       invalidatesTags: ["BankAccount"],
     }),
     deleteBankAccount: builder.mutation<any, string>({
-      query: (id) => ({ url: `/payments/bank-accounts/${id}`, method: "DELETE" }),
+      query: (id) => ({
+        url: `/payments/bank-accounts/${id}`,
+        method: "DELETE",
+      }),
       invalidatesTags: ["BankAccount"],
     }),
     createPaymentIntent: builder.mutation<
@@ -233,7 +296,11 @@ export const financeApi = createApi({
         cancelUrl?: string;
       }
     >({
-      query: (body) => ({ url: "/payments/create-intent", method: "POST", body }),
+      query: (body) => ({
+        url: "/payments/create-intent",
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["Payment", "Invoice"],
     }),
 
@@ -241,7 +308,11 @@ export const financeApi = createApi({
       { clientSecret: string; id: string },
       { invoiceId: string; amount: number; currency?: string }
     >({
-      query: (body) => ({ url: "/payments/create-element-intent", method: "POST", body }),
+      query: (body) => ({
+        url: "/payments/create-element-intent",
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["Payment", "Invoice"],
     }),
 
@@ -254,9 +325,9 @@ export const financeApi = createApi({
         formData.append("receipt", file);
         formData.append("paymentId", paymentId);
         const apiBase =
-          (typeof window !== "undefined"
+          typeof window !== "undefined"
             ? `${window.location.origin.replace(/\/+$/, "")}/v1`
-            : "");
+            : "";
         const res = await fetch(`${apiBase}/payments/upload-receipt`, {
           method: "POST",
           credentials: "include",

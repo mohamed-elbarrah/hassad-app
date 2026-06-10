@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationsService } from '../../notifications/services/notifications.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  OnModuleInit,
+} from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   PaymentStatus,
   PaymentGatewayType,
@@ -8,15 +13,15 @@ import {
   PaymentEventType,
   InvoiceStatus,
   ContractStatus,
-} from '@hassad/shared';
-import { StripeProvider } from '../providers/stripe.provider';
-import { BankTransferProvider } from '../providers/bank-transfer.provider';
-import { PaymentProvider } from '../providers/payment-provider.interface';
-import * as crypto from 'crypto';
+} from "@hassad/shared";
+import { StripeProvider } from "../providers/stripe.provider";
+import { BankTransferProvider } from "../providers/bank-transfer.provider";
+import { PaymentProvider } from "../providers/payment-provider.interface";
+import * as crypto from "crypto";
 
 @Injectable()
 export class PaymentsService implements OnModuleInit {
-  private readonly ALGORITHM = 'aes-256-cbc';
+  private readonly ALGORITHM = "aes-256-cbc";
   private readonly ENCRYPTION_KEY: string;
   private readonly IV_LENGTH = 16;
 
@@ -27,8 +32,8 @@ export class PaymentsService implements OnModuleInit {
     const key = process.env.PAYMENT_ENCRYPTION_KEY;
     if (!key) {
       throw new Error(
-        'PAYMENT_ENCRYPTION_KEY environment variable is required. ' +
-        'Generate a random 32-character key: openssl rand -base64 32',
+        "PAYMENT_ENCRYPTION_KEY environment variable is required. " +
+          "Generate a random 32-character key: openssl rand -base64 32",
       );
     }
     this.ENCRYPTION_KEY = key;
@@ -37,26 +42,34 @@ export class PaymentsService implements OnModuleInit {
   onModuleInit() {
     if (this.ENCRYPTION_KEY.length < 32) {
       console.warn(
-        'PAYMENT_ENCRYPTION_KEY is shorter than 32 characters. ' +
-        'Consider using a longer key for AES-256-CBC.',
+        "PAYMENT_ENCRYPTION_KEY is shorter than 32 characters. " +
+          "Consider using a longer key for AES-256-CBC.",
       );
     }
   }
 
   private encrypt(text: string): string {
     const iv = crypto.randomBytes(this.IV_LENGTH);
-    const cipher = crypto.createCipheriv(this.ALGORITHM, Buffer.from(this.ENCRYPTION_KEY.padEnd(32).slice(0, 32)), iv);
+    const cipher = crypto.createCipheriv(
+      this.ALGORITHM,
+      Buffer.from(this.ENCRYPTION_KEY.padEnd(32).slice(0, 32)),
+      iv,
+    );
     let encrypted = cipher.update(text);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return iv.toString('hex') + ':' + encrypted.toString('hex');
+    return iv.toString("hex") + ":" + encrypted.toString("hex");
   }
 
   private decrypt(text: string): string {
     try {
-      const textParts = text.split(':');
-      const iv = Buffer.from(textParts.shift()!, 'hex');
-      const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-      const decipher = crypto.createDecipheriv(this.ALGORITHM, Buffer.from(this.ENCRYPTION_KEY.padEnd(32).slice(0, 32)), iv);
+      const textParts = text.split(":");
+      const iv = Buffer.from(textParts.shift()!, "hex");
+      const encryptedText = Buffer.from(textParts.join(":"), "hex");
+      const decipher = crypto.createDecipheriv(
+        this.ALGORITHM,
+        Buffer.from(this.ENCRYPTION_KEY.padEnd(32).slice(0, 32)),
+        iv,
+      );
       let decrypted = decipher.update(encryptedText);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
       return decrypted.toString();
@@ -71,21 +84,23 @@ export class PaymentsService implements OnModuleInit {
     });
 
     if (!gateway || !gateway.isActive) {
-      throw new BadRequestException(`Payment gateway ${gatewayName} is not available`);
+      throw new BadRequestException(
+        `Payment gateway ${gatewayName} is not available`,
+      );
     }
 
     let config: any = gateway.configJson;
-    if (typeof config === 'string') {
+    if (typeof config === "string") {
       config = JSON.parse(this.decrypt(config));
     }
 
     switch (gatewayName) {
-      case 'stripe':
+      case "stripe":
         return new StripeProvider({
           secretKey: config.secretKey,
           webhookSecret: config.webhookSecret,
         });
-      case 'bank_transfer':
+      case "bank_transfer":
         return new BankTransferProvider();
       default:
         throw new BadRequestException(`Unsupported gateway: ${gatewayName}`);
@@ -101,19 +116,21 @@ export class PaymentsService implements OnModuleInit {
       where: { id: dto.invoiceId },
     });
 
-    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (!invoice) throw new NotFoundException("Invoice not found");
 
-    const provider = await this.getProvider('stripe');
-    const gateway = await this.prisma.paymentGateway.findUnique({ where: { name: 'stripe' } });
+    const provider = await this.getProvider("stripe");
+    const gateway = await this.prisma.paymentGateway.findUnique({
+      where: { name: "stripe" },
+    });
 
     if (!provider.createElementPaymentIntent) {
-      throw new BadRequestException('Gateway does not support element payment');
+      throw new BadRequestException("Gateway does not support element payment");
     }
 
     const intent = await provider.createElementPaymentIntent({
       invoiceId: invoice.id,
       amount: dto.amount,
-      currency: dto.currency || 'SAR',
+      currency: dto.currency || "SAR",
       clientId: invoice.clientId,
     });
 
@@ -123,7 +140,7 @@ export class PaymentsService implements OnModuleInit {
         clientId: invoice.clientId,
         gatewayId: gateway!.id,
         amount: dto.amount,
-        currency: dto.currency || 'SAR',
+        currency: dto.currency || "SAR",
         status: intent.status,
         method: PaymentMethod.CARD,
         providerPaymentId: intent.providerPaymentId,
@@ -157,15 +174,17 @@ export class PaymentsService implements OnModuleInit {
       where: { id: dto.invoiceId },
     });
 
-    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (!invoice) throw new NotFoundException("Invoice not found");
 
     const provider = await this.getProvider(dto.gatewayName);
-    const gateway = await this.prisma.paymentGateway.findUnique({ where: { name: dto.gatewayName } });
+    const gateway = await this.prisma.paymentGateway.findUnique({
+      where: { name: dto.gatewayName },
+    });
 
     const intent = await provider.createPaymentIntent({
       invoiceId: invoice.id,
       amount: dto.amount,
-      currency: dto.currency || 'SAR',
+      currency: dto.currency || "SAR",
       clientId: invoice.clientId,
       successUrl: dto.successUrl,
       cancelUrl: dto.cancelUrl,
@@ -177,9 +196,12 @@ export class PaymentsService implements OnModuleInit {
         clientId: invoice.clientId,
         gatewayId: gateway!.id,
         amount: dto.amount,
-        currency: dto.currency || 'SAR',
+        currency: dto.currency || "SAR",
         status: intent.status,
-        method: dto.gatewayName === 'stripe' ? PaymentMethod.CARD : PaymentMethod.BANK_TRANSFER,
+        method:
+          dto.gatewayName === "stripe"
+            ? PaymentMethod.CARD
+            : PaymentMethod.BANK_TRANSFER,
         providerPaymentId: intent.providerPaymentId,
         metadataJson: intent.metadata as any,
       },
@@ -205,16 +227,16 @@ export class PaymentsService implements OnModuleInit {
     let parsedBody: any = rawBody;
     if (Buffer.isBuffer(rawBody)) {
       try {
-        parsedBody = JSON.parse(rawBody.toString('utf-8'));
+        parsedBody = JSON.parse(rawBody.toString("utf-8"));
       } catch {
-        parsedBody = { type: 'unknown' };
+        parsedBody = { type: "unknown" };
       }
     }
 
     const log = await this.prisma.webhookLog.create({
       data: {
         provider,
-        eventType: parsedBody.type || 'unknown',
+        eventType: parsedBody.type || "unknown",
         payload: parsedBody,
       },
     });
@@ -224,7 +246,11 @@ export class PaymentsService implements OnModuleInit {
       const result = await providerInstance.handleWebhookEvent(event);
 
       if (result) {
-        await this.updatePaymentStatus(result.providerPaymentId, result.status, result.metadata);
+        await this.updatePaymentStatus(
+          result.providerPaymentId,
+          result.status,
+          result.metadata,
+        );
       }
 
       await this.prisma.webhookLog.update({
@@ -240,7 +266,11 @@ export class PaymentsService implements OnModuleInit {
     }
   }
 
-  async updatePaymentStatus(providerPaymentId: string, status: PaymentStatus, metadata?: any) {
+  async updatePaymentStatus(
+    providerPaymentId: string,
+    status: PaymentStatus,
+    metadata?: any,
+  ) {
     const payment = await this.prisma.payment.findFirst({
       where: { providerPaymentId },
       include: { invoice: true },
@@ -265,15 +295,21 @@ export class PaymentsService implements OnModuleInit {
 
       if (status === PaymentStatus.SUCCESS) {
         const invoicePayments = await tx.payment.findMany({
-          where: { invoiceId: payment.invoiceId, status: PaymentStatus.SUCCESS },
+          where: {
+            invoiceId: payment.invoiceId,
+            status: PaymentStatus.SUCCESS,
+          },
         });
 
-        const totalPaid = invoicePayments.reduce((sum, pay) => sum + pay.amount, 0);
-        
+        const totalPaid = invoicePayments.reduce(
+          (sum, pay) => sum + pay.amount,
+          0,
+        );
+
         if (totalPaid >= payment.invoice.amount) {
           await tx.invoice.update({
             where: { id: payment.invoiceId },
-            data: { 
+            data: {
               status: InvoiceStatus.PAID,
               paidAt: new Date(),
             },
@@ -281,10 +317,10 @@ export class PaymentsService implements OnModuleInit {
 
           await this.notifications.createNotification({
             entityId: payment.invoiceId,
-            entityType: 'INVOICE',
-            eventType: 'INVOICE_PAID',
+            entityType: "INVOICE",
+            eventType: "INVOICE_PAID",
             userId: payment.invoice.createdBy,
-            title: 'تم دفع الفاتورة',
+            title: "تم دفع الفاتورة",
             body: `تم دفع الفاتورة ${payment.invoice.invoiceNumber} بالكامل`,
           });
 
@@ -302,10 +338,10 @@ export class PaymentsService implements OnModuleInit {
 
               await this.notifications.createNotification({
                 entityId: contract.id,
-                entityType: 'CONTRACT',
-                eventType: 'CONTRACT_ACTIVATED',
+                entityType: "CONTRACT",
+                eventType: "CONTRACT_ACTIVATED",
                 userId: payment.invoice.createdBy,
-                title: 'تم تفعيل العقد تلقائياً',
+                title: "تم تفعيل العقد تلقائياً",
                 body: `تم تفعيل العقد "${contract.title}" بعد دفع الفاتورة`,
               });
             }
@@ -326,10 +362,14 @@ export class PaymentsService implements OnModuleInit {
 
   private mapStatusToEventType(status: PaymentStatus): PaymentEventType {
     switch (status) {
-      case PaymentStatus.SUCCESS: return PaymentEventType.SUCCESS;
-      case PaymentStatus.FAILED: return PaymentEventType.FAILED;
-      case PaymentStatus.REFUNDED: return PaymentEventType.REFUNDED;
-      default: return PaymentEventType.CREATED;
+      case PaymentStatus.SUCCESS:
+        return PaymentEventType.SUCCESS;
+      case PaymentStatus.FAILED:
+        return PaymentEventType.FAILED;
+      case PaymentStatus.REFUNDED:
+        return PaymentEventType.REFUNDED;
+      default:
+        return PaymentEventType.CREATED;
     }
   }
 
@@ -342,12 +382,12 @@ export class PaymentsService implements OnModuleInit {
 
   async getGateways() {
     const gateways = await this.prisma.paymentGateway.findMany();
-    return gateways.map(g => {
+    return gateways.map((g) => {
       let config = g.configJson;
-      if (typeof config === 'string') {
+      if (typeof config === "string") {
         try {
           config = JSON.parse(this.decrypt(config));
-        } catch(e) {}
+        } catch (e) {}
       }
       return { ...g, configJson: config };
     });
@@ -359,12 +399,18 @@ export class PaymentsService implements OnModuleInit {
 
     return this.prisma.paymentGateway.upsert({
       where: { name },
-      update: { configJson: encryptedConfig as any, isActive: isActive ?? true },
-      create: { 
-        name, 
-        type: name === 'stripe' ? PaymentGatewayType.ONLINE : PaymentGatewayType.MANUAL,
+      update: {
         configJson: encryptedConfig as any,
-        isActive: isActive ?? true
+        isActive: isActive ?? true,
+      },
+      create: {
+        name,
+        type:
+          name === "stripe"
+            ? PaymentGatewayType.ONLINE
+            : PaymentGatewayType.MANUAL,
+        configJson: encryptedConfig as any,
+        isActive: isActive ?? true,
       },
     });
   }
@@ -377,7 +423,7 @@ export class PaymentsService implements OnModuleInit {
 
   async getPublicConfig() {
     const gateway = await this.prisma.paymentGateway.findUnique({
-      where: { name: 'stripe' },
+      where: { name: "stripe" },
     });
 
     if (!gateway || !gateway.isActive) {
@@ -385,7 +431,7 @@ export class PaymentsService implements OnModuleInit {
     }
 
     let config: any = gateway.configJson;
-    if (typeof config === 'string') {
+    if (typeof config === "string") {
       try {
         config = JSON.parse(this.decrypt(config));
       } catch {

@@ -1,8 +1,8 @@
-import { IsArray, IsUUID, IsString, IsOptional } from 'class-validator';
+import { IsArray, IsUUID, IsString, IsOptional } from "class-validator";
 
 export class MarkReadDto {
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsUUID("all", { each: true })
   notificationIds: string[];
 }
 

@@ -34,12 +34,21 @@ export function ErrorFallback({
 
       <div className="flex items-center gap-3">
         {reset && (
-          <ActionButton onClick={reset} icon={<RefreshCw className="h-4 w-4" />} className="gap-2">
+          <ActionButton
+            onClick={reset}
+            icon={<RefreshCw className="h-4 w-4" />}
+            className="gap-2"
+          >
             إعادة المحاولة
           </ActionButton>
         )}
         {backHref && (
-          <ActionButton href={backHref} variant="outline" icon={<ArrowRight className="h-4 w-4" />} className="gap-2">
+          <ActionButton
+            href={backHref}
+            variant="outline"
+            icon={<ArrowRight className="h-4 w-4" />}
+            className="gap-2"
+          >
             {backLabel || "العودة"}
           </ActionButton>
         )}

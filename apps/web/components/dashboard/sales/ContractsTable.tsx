@@ -8,10 +8,7 @@ import {
   type DataTableColumn,
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
-import {
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+import { TableRow, TableCell } from "@/components/ui/table";
 import { ContractStatus } from "@hassad/shared";
 import type { ContractItem as ContractListItem } from "@/features/contracts/contractsApi";
 import {
@@ -19,6 +16,7 @@ import {
   useSignContractMutation,
 } from "@/features/contracts/contractsApi";
 import { useAppSelector } from "@/lib/hooks";
+import { formatShortDate } from "@/lib/format";
 
 const STATUS_LABELS: Record<ContractStatus, string> = {
   [ContractStatus.DRAFT]: "مسودة",
@@ -99,19 +97,9 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
             {contract.totalValue.toLocaleString("en-US")}
           </TableCell>
           <TableCell className="text-right">
-            {new Intl.DateTimeFormat("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-              numberingSystem: "latn",
-            }).format(new Date(contract.startDate))}{" "}
+            {formatShortDate(contract.startDate)}{" "}
             -{" "}
-            {new Intl.DateTimeFormat("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-              numberingSystem: "latn",
-            }).format(new Date(contract.endDate))}
+            {formatShortDate(contract.endDate)}
           </TableCell>
           <TableCell className="text-right">
             {STATUS_LABELS[contract.status]}

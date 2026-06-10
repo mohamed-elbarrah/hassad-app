@@ -18,9 +18,7 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 @Controller("portal-notifications")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PortalNotificationsController {
-  constructor(
-    private readonly notificationsService: NotificationsService,
-  ) {}
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
   @RequirePermissions("portal.read")

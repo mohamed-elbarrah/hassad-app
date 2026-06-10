@@ -11,9 +11,7 @@ import { DataTable } from "@/components/design-system/DataTable";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Input } from "@/components/design-system/Input";
-import {
-  Popover,
-} from "@/components/design-system/Popover";
+import { Popover } from "@/components/design-system/Popover";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { mapContractStatusToUI } from "@/lib/utils/statusMapping";
@@ -37,13 +35,16 @@ export default function PortalContractsPage() {
     data: contractsData,
     isLoading,
     isError,
-  } = useGetPortalContractsQuery({
-    page,
-    limit: 10,
-    search,
-    dateFrom: dateRange.from?.toISOString(),
-    dateTo: dateRange.to?.toISOString(),
-  }, { pollingInterval: 30_000 });
+  } = useGetPortalContractsQuery(
+    {
+      page,
+      limit: 10,
+      search,
+      dateFrom: dateRange.from?.toISOString(),
+      dateTo: dateRange.to?.toISOString(),
+    },
+    { pollingInterval: 30_000 },
+  );
 
   const contracts = contractsData?.data ?? [];
   const totalPages = Math.ceil((contractsData?.total ?? 0) / 10);

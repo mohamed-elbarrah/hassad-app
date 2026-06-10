@@ -1,5 +1,12 @@
-import { IsString, IsEmail, IsOptional, IsEnum, IsUUID, IsDateString } from 'class-validator';
-import { ClientStatus, BusinessType } from '@hassad/shared';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsEnum,
+  IsUUID,
+  IsDateString,
+} from "class-validator";
+import { ClientStatus, BusinessType } from "@hassad/shared";
 
 export class CreateClientDto {
   @IsString()

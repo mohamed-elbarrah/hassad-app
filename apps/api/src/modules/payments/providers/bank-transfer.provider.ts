@@ -1,11 +1,17 @@
-import { PaymentProvider, PaymentIntentResponse, CreatePaymentIntentParams } from './payment-provider.interface';
-import { PaymentStatus } from '@hassad/shared';
+import {
+  PaymentProvider,
+  PaymentIntentResponse,
+  CreatePaymentIntentParams,
+} from "./payment-provider.interface";
+import { PaymentStatus } from "@hassad/shared";
 
 export class BankTransferProvider implements PaymentProvider {
-  async createPaymentIntent(params: CreatePaymentIntentParams): Promise<PaymentIntentResponse> {
+  async createPaymentIntent(
+    params: CreatePaymentIntentParams,
+  ): Promise<PaymentIntentResponse> {
     return {
       providerPaymentId: `BT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      clientSecret: '',
+      clientSecret: "",
       status: PaymentStatus.PENDING,
     };
   }

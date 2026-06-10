@@ -101,13 +101,25 @@ export default function InvoiceDetailPage({
           </span>
         </div>
         <div className="flex gap-2">
-          <ActionButton variant="outline" size="sm" icon={<Printer className="w-4 h-4" />}>
+          <ActionButton
+            variant="outline"
+            size="sm"
+            icon={<Printer className="w-4 h-4" />}
+          >
             طباعة
           </ActionButton>
-          <ActionButton variant="outline" size="sm" icon={<Download className="w-4 h-4" />}>
+          <ActionButton
+            variant="outline"
+            size="sm"
+            icon={<Download className="w-4 h-4" />}
+          >
             تحميل PDF
           </ActionButton>
-          <ActionButton variant="primary" size="sm" icon={<Send className="w-4 h-4" />}>
+          <ActionButton
+            variant="primary"
+            size="sm"
+            icon={<Send className="w-4 h-4" />}
+          >
             إرسال للعميل
           </ActionButton>
         </div>
@@ -120,9 +132,7 @@ export default function InvoiceDetailPage({
             <div className="bg-secondary-500 h-2 w-full" />
             <div className="px-5 py-4 border-b border-portal-divider flex flex-row items-start justify-between">
               <div>
-                <h2 className="text-2xl font-mono">
-                  {invoice.invoiceNumber}
-                </h2>
+                <h2 className="text-2xl font-mono">{invoice.invoiceNumber}</h2>
                 <p className="text-portal-note-text">
                   بتاريخ:{" "}
                   {new Date(invoice.createdAt).toLocaleDateString(
@@ -169,25 +179,19 @@ export default function InvoiceDetailPage({
                 </h4>
                 <div className="bg-neutral-50/30 rounded-xl p-6 grid grid-cols-3 gap-4">
                   <div className="text-center">
-                    <p className="text-xs text-neutral-300 mb-1">
-                      الإجمالي
-                    </p>
+                    <p className="text-xs text-neutral-300 mb-1">الإجمالي</p>
                     <p className="text-xl font-bold">
                       {invoice.amount.toLocaleString()} ر.س
                     </p>
                   </div>
                   <div className="text-center border-x border-neutral-300/10">
-                    <p className="text-xs text-neutral-300 mb-1">
-                      المدفوع
-                    </p>
+                    <p className="text-xs text-neutral-300 mb-1">المدفوع</p>
                     <p className="text-xl font-bold text-success-600">
                       {paidAmount.toLocaleString()} ر.س
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-neutral-300 mb-1">
-                      المتبقي
-                    </p>
+                    <p className="text-xs text-neutral-300 mb-1">المتبقي</p>
                     <p className="text-xl font-bold text-danger-600">
                       {remainingAmount.toLocaleString()} ر.س
                     </p>
@@ -201,7 +205,11 @@ export default function InvoiceDetailPage({
                     <History className="w-4 h-4" />
                     تاريخ المدفوعات
                   </h4>
-                  <ActionButton variant="outline" size="sm" icon={<Plus className="w-3 h-3" />}>
+                  <ActionButton
+                    variant="outline"
+                    size="sm"
+                    icon={<Plus className="w-3 h-3" />}
+                  >
                     إضافة دفعة
                   </ActionButton>
                 </div>

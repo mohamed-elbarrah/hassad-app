@@ -9,5 +9,12 @@ export default function MarketingError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard/marketing" backLabel="العودة للوحة التسويق" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/dashboard/marketing"
+      backLabel="العودة للوحة التسويق"
+    />
+  );
 }

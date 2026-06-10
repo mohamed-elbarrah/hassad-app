@@ -78,19 +78,31 @@ export class CampaignsController {
   @Post(":id/start")
   @RequirePermissions("marketing.update")
   start(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.campaignsService.updateStatus(id, CampaignStatus.ACTIVE, user.id);
+    return this.campaignsService.updateStatus(
+      id,
+      CampaignStatus.ACTIVE,
+      user.id,
+    );
   }
 
   @Post(":id/pause")
   @RequirePermissions("marketing.update")
   pause(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.campaignsService.updateStatus(id, CampaignStatus.PAUSED, user.id);
+    return this.campaignsService.updateStatus(
+      id,
+      CampaignStatus.PAUSED,
+      user.id,
+    );
   }
 
   @Post(":id/stop")
   @RequirePermissions("marketing.update")
   stop(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.campaignsService.updateStatus(id, CampaignStatus.STOPPED, user.id);
+    return this.campaignsService.updateStatus(
+      id,
+      CampaignStatus.STOPPED,
+      user.id,
+    );
   }
 
   @Post(":id/end")
@@ -116,7 +128,11 @@ export class CampaignsController {
     @CurrentUser() user: any,
     @Body("needsOptimization") needsOptimization: boolean,
   ) {
-    return this.campaignsService.flagOptimization(id, needsOptimization, user.id);
+    return this.campaignsService.flagOptimization(
+      id,
+      needsOptimization,
+      user.id,
+    );
   }
 }
 

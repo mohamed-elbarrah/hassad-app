@@ -46,13 +46,17 @@ const FormSelectScrollUpButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    className={cn("flex cursor-default items-center justify-center py-1", className)}
+    className={cn(
+      "flex cursor-default items-center justify-center py-1",
+      className,
+    )}
     {...props}
   >
     <ChevronUp className="h-4 w-4" />
   </SelectPrimitive.ScrollUpButton>
 ));
-FormSelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
+FormSelectScrollUpButton.displayName =
+  SelectPrimitive.ScrollUpButton.displayName;
 
 const FormSelectScrollDownButton = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
@@ -60,13 +64,17 @@ const FormSelectScrollDownButton = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    className={cn("flex cursor-default items-center justify-center py-1", className)}
+    className={cn(
+      "flex cursor-default items-center justify-center py-1",
+      className,
+    )}
     {...props}
   >
     <ChevronDown className="h-4 w-4" />
   </SelectPrimitive.ScrollDownButton>
 ));
-FormSelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
+FormSelectScrollDownButton.displayName =
+  SelectPrimitive.ScrollDownButton.displayName;
 
 /* ── Content ────────────────────────────────────────────────────────────────── */
 
@@ -111,7 +119,10 @@ const FormSelectLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
-    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold text-secondary-500", className)}
+    className={cn(
+      "py-1.5 pl-8 pr-2 text-sm font-semibold text-secondary-500",
+      className,
+    )}
     {...props}
   />
 ));

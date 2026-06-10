@@ -30,11 +30,11 @@ export default function PMWorkspacePage() {
       </div>
 
       <SurfaceCard title="تنبيهات">
-          <ul className="space-y-2 text-sm text-neutral-300">
-            {ALERTS.map((alert) => (
-              <li key={alert}>• {alert}</li>
-            ))}
-          </ul>
+        <ul className="space-y-2 text-sm text-neutral-300">
+          {ALERTS.map((alert) => (
+            <li key={alert}>• {alert}</li>
+          ))}
+        </ul>
       </SurfaceCard>
 
       <div>

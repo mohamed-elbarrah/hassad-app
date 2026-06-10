@@ -9,6 +9,7 @@ import { Building2, Clock, GripVertical, Phone } from "lucide-react";
 interface KanbanCardProps {
   client: RequestItem;
   isOverlay?: boolean;
+  accentColor?: string;
 }
 
 /** Parse a short description from the notes JSON (if any) */
@@ -18,7 +19,6 @@ function parseDescription(notes?: string | null): string | null {
     const parsed = JSON.parse(notes) as { description?: string };
     return parsed.description?.trim() || null;
   } catch {
-    // notes is plain text, not JSON
     return notes.trim() || null;
   }
 }
@@ -44,6 +44,7 @@ function formatRelativeTime(dateStr: string): string {
 export function KanbanCard({
   client: request,
   isOverlay = false,
+  accentColor = "#E1E4EA",
 }: KanbanCardProps) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -63,10 +64,21 @@ export function KanbanCard({
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-background rounded-lg border p-3 cursor-grab active:cursor-grabbing",
-        "hover:border-primary/40 hover:shadow-sm transition-all duration-100",
-        (isDragging || isOverlay) && "opacity-50 shadow-xl rotate-1 scale-105",
+        "group bg-white rounded-2xl border-[1.5px] border-portal-card-border p-4 cursor-grab active:cursor-grabbing transition-all duration-150",
+        "hover:border-secondary-500/20",
+        (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
       )}
+      style={
+        isOverlay
+          ? {
+              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
+              borderLeft: ``,
+              borderColor: "#121936",
+            }
+          : {
+              borderLeft: ``,
+            }
+      }
       {...attributes}
       {...listeners}
       onClick={handleClick}
@@ -74,39 +86,60 @@ export function KanbanCard({
       {/* ── Header: Name + Drag Handle ─────────────────────────────── */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight truncate">
+          <p
+            className="text-sm font-semibold leading-tight truncate"
+            style={{ color: "#000000" }}
+          >
             {request.contactName}
           </p>
           {request.companyName && (
             <div className="flex items-center gap-1 mt-1">
-              <Building2 className="w-3 h-3 text-neutral-300 shrink-0" />
-              <p className="text-xs text-neutral-300 truncate">
+              <Building2
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ color: "#A8ABB2" }}
+              />
+              <p className="text-xs truncate" style={{ color: "#A8ABB2" }}>
                 {request.companyName}
               </p>
             </div>
           )}
         </div>
-        <GripVertical className="h-4 w-4 text-neutral-300/40 shrink-0 mt-0.5" />
+        <GripVertical
+          className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity"
+          style={{ color: "#A8ABB2" }}
+        />
       </div>
 
       {/* ── Short Description ──────────────────────────────────────── */}
       {description && (
-        <p className="text-xs text-neutral-300 mt-2 line-clamp-2 leading-relaxed border-t pt-2">
+        <p
+          className="text-xs mt-3 line-clamp-2 leading-relaxed"
+          style={{
+            color: "rgba(0, 0, 0, 0.5)",
+            borderTop: "1.5px solid #ECEEF2",
+            paddingTop: 10,
+          }}
+        >
           {description}
         </p>
       )}
 
       {/* ── Footer: Phone + Last Activity ─────────────────────────── */}
-      <div className="flex items-center justify-between mt-2 pt-1 gap-2">
-        <div className="flex items-center gap-1 text-xs text-neutral-300 min-w-0">
-          <Phone className="w-3 h-3 shrink-0" />
-          <span dir="ltr" className="truncate">
+      <div className="flex items-center justify-between mt-3 pt-2 gap-2">
+        <div className="flex items-center gap-1 text-xs min-w-0">
+          <Phone
+            className="w-3.5 h-3.5 shrink-0"
+            style={{ color: "#A8ABB2" }}
+          />
+          <span dir="ltr" className="truncate" style={{ color: "#A8ABB2" }}>
             {request.phoneWhatsapp}
           </span>
         </div>
-        <div className="flex items-center gap-1 text-xs text-neutral-300 shrink-0">
-          <Clock className="w-3 h-3" />
-          <span>{formatRelativeTime(request.updatedAt)}</span>
+        <div className="flex items-center gap-1 text-xs shrink-0">
+          <Clock className="w-3.5 h-3.5" style={{ color: "#A8ABB2" }} />
+          <span style={{ color: "#A8ABB2" }}>
+            {formatRelativeTime(request.updatedAt)}
+          </span>
         </div>
       </div>
     </div>

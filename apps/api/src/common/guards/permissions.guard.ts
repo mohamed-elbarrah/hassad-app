@@ -3,11 +3,11 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../../prisma/prisma.service';
-import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { PrismaService } from "../../prisma/prisma.service";
+import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -37,11 +37,11 @@ export class PermissionsGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
 
     if (!user) {
-      throw new ForbiddenException('User not authenticated');
+      throw new ForbiddenException("User not authenticated");
     }
 
     // Admin has all permissions
-    if (user.role === 'ADMIN') {
+    if (user.role === "ADMIN") {
       return true;
     }
 
@@ -84,7 +84,7 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!hasPermission) {
-      throw new ForbiddenException('Missing required permissions');
+      throw new ForbiddenException("Missing required permissions");
     }
 
     return true;

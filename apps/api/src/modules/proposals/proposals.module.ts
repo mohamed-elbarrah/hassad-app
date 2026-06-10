@@ -7,7 +7,11 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { RequestsModule } from "../requests/requests.module";
 
 @Module({
-  imports: [NotificationsModule, RequestsModule, MulterModule.register({ storage: memoryStorage() })],
+  imports: [
+    NotificationsModule,
+    RequestsModule,
+    MulterModule.register({ storage: memoryStorage() }),
+  ],
   controllers: [ProposalsController],
   providers: [ProposalsService],
   exports: [ProposalsService],

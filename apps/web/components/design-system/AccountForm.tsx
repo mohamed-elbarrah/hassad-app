@@ -40,7 +40,7 @@ const AccountFormSchema = z
     {
       message: "كلمة المرور الحالية مطلوبة لتغيير كلمة المرور",
       path: ["currentPassword"],
-    }
+    },
   )
   .refine(
     (data) => {
@@ -53,7 +53,7 @@ const AccountFormSchema = z
     {
       message: "كلمات المرور غير متطابقة",
       path: ["confirmPassword"],
-    }
+    },
   );
 
 type AccountFormValues = z.infer<typeof AccountFormSchema>;

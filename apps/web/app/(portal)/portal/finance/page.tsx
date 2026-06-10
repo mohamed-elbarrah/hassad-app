@@ -6,16 +6,16 @@ import {
   useGetPortalFinanceSummaryQuery,
 } from "@/features/portal/portalApi";
 import { PageIntro } from "@/components/design-system/PageIntro";
-import {
-  KpiPill,
-  KpiCurrency,
-} from "@/components/design-system/KpiPill";
+import { KpiPill, KpiCurrency } from "@/components/design-system/KpiPill";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Pagination } from "@/components/design-system/Pagination";
 import { FilterPills } from "@/components/design-system/FilterPills";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { PaymentSheet, type PayableInvoice } from "@/components/payments/PaymentSheet";
+import {
+  PaymentSheet,
+  type PayableInvoice,
+} from "@/components/payments/PaymentSheet";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Input } from "@/components/design-system/Input";
@@ -70,17 +70,22 @@ export default function PortalFinancePage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState<PayableInvoice | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<PayableInvoice | null>(
+    null,
+  );
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
 
   const { data: summaryData, isLoading: summaryLoading } =
     useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: 30_000 });
   const { data: invoicesData, isLoading: invoicesLoading } =
-    useGetPortalInvoicesQuery({
-      status: statusFilter === "ALL" ? undefined : statusFilter,
-      page,
-      limit: PAGE_SIZE,
-    }, { pollingInterval: 30_000 });
+    useGetPortalInvoicesQuery(
+      {
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        page,
+        limit: PAGE_SIZE,
+      },
+      { pollingInterval: 30_000 },
+    );
 
   const invoices = invoicesData?.data ?? [];
   const total = invoicesData?.total ?? 0;

@@ -1,5 +1,15 @@
-import { IsString, IsOptional, IsEnum, IsInt, IsNumber, IsArray, Min, IsUUID, IsBoolean } from 'class-validator';
-import { ServiceCategory } from '@hassad/shared';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsArray,
+  Min,
+  IsUUID,
+  IsBoolean,
+} from "class-validator";
+import { ServiceCategory } from "@hassad/shared";
 
 export class CreateServiceCatalogDto {
   @IsString()

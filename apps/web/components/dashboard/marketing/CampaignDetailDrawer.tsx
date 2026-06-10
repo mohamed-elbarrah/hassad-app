@@ -4,11 +4,11 @@ import { Dialog } from "@/components/design-system/Dialog";
 import { Pill } from "@/components/design-system/Pill";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { 
-  TrendingUp, 
-  Target, 
-  MousePointerClick, 
-  Zap, 
+import {
+  TrendingUp,
+  Target,
+  MousePointerClick,
+  Zap,
   AlertCircle,
   Pause,
   Play,
@@ -17,14 +17,14 @@ import {
   BarChart3,
   DollarSign,
   Activity,
-  ArrowRightLeft
+  ArrowRightLeft,
 } from "lucide-react";
 import { Campaign, computeMetrics } from "@/lib/marketing-mock";
-import { 
-  useUpdateCampaignMetricsMutation, 
+import {
+  useUpdateCampaignMetricsMutation,
   useUpdateCampaignStatusMutation,
   useFlagOptimizationMutation,
-  useDuplicateCampaignMutation 
+  useDuplicateCampaignMutation,
 } from "@/features/marketing/marketingApi";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -41,11 +41,20 @@ function safeNum(n: any): number {
   return typeof n === "number" ? n : 0;
 }
 
-export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: CampaignDetailDrawerProps) {
-  const [updateMetrics, { isLoading: isUpdatingMetrics }] = useUpdateCampaignMetricsMutation();
-  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateCampaignStatusMutation();
-  const [flagOptimization, { isLoading: isFlagging }] = useFlagOptimizationMutation();
-  const [duplicate, { isLoading: isDuplicating }] = useDuplicateCampaignMutation();
+export function CampaignDetailDrawer({
+  campaign,
+  isOpen,
+  onClose,
+  onUpdate,
+}: CampaignDetailDrawerProps) {
+  const [updateMetrics, { isLoading: isUpdatingMetrics }] =
+    useUpdateCampaignMetricsMutation();
+  const [updateStatus, { isLoading: isUpdatingStatus }] =
+    useUpdateCampaignStatusMutation();
+  const [flagOptimization, { isLoading: isFlagging }] =
+    useFlagOptimizationMutation();
+  const [duplicate, { isLoading: isDuplicating }] =
+    useDuplicateCampaignMutation();
 
   if (!campaign) return null;
 
@@ -60,7 +69,9 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
   const metrics = computeMetrics(normalized);
   const isProfitable = parseFloat(metrics.profit) > 0;
 
-  const handleStatusAction = async (action: 'start' | 'pause' | 'stop' | 'end') => {
+  const handleStatusAction = async (
+    action: "start" | "pause" | "stop" | "end",
+  ) => {
     try {
       await updateStatus({ id: campaign.id, action }).unwrap();
       toast.success("تم تحديث حالة الحملة");
@@ -72,7 +83,10 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
 
   const handleFlagOptimization = async () => {
     try {
-      await flagOptimization({ id: campaign.id, needsOptimization: !campaign.needsOptimization }).unwrap();
+      await flagOptimization({
+        id: campaign.id,
+        needsOptimization: !campaign.needsOptimization,
+      }).unwrap();
       toast.success("تم تحديث حالة التحسين");
     } catch (err) {
       toast.error("فشل التحديث");
@@ -91,12 +105,14 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
 
   const handleMetricChange = async (field: string, value: number) => {
     try {
-      await updateMetrics({ id: campaign.id, body: { [field]: value } }).unwrap();
+      await updateMetrics({
+        id: campaign.id,
+        body: { [field]: value },
+      }).unwrap();
     } catch (err) {
       toast.error("فشل تحديث المقاييس");
     }
   };
-
 
   return (
     <Dialog
@@ -111,7 +127,10 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
           <Pill tone="neutral" className="uppercase font-bold tracking-tighter">
             {campaign.platform}
           </Pill>
-          <Pill tone={campaign.status === 'ACTIVE' ? 'success' : 'neutral'} className={`${campaign.status === 'ACTIVE' ? 'bg-success-500 text-white' : 'bg-neutral-300 text-white'}`}>
+          <Pill
+            tone={campaign.status === "ACTIVE" ? "success" : "neutral"}
+            className={`${campaign.status === "ACTIVE" ? "bg-success-500 text-white" : "bg-neutral-300 text-white"}`}
+          >
             {campaign.status}
           </Pill>
         </div>
@@ -124,48 +143,71 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               الإجراءات السريعة
             </h4>
             {isProfitable ? (
-              <Pill tone="success" className="bg-success-100 text-success-700 border-success-200">مربحة ✅</Pill>
+              <Pill
+                tone="success"
+                className="bg-success-100 text-success-700 border-success-200"
+              >
+                مربحة ✅
+              </Pill>
             ) : (
-              <Pill tone="danger" className="bg-danger-100 text-danger-700 border-danger-200">غير مربحة ⚠️</Pill>
+              <Pill
+                tone="danger"
+                className="bg-danger-100 text-danger-700 border-danger-200"
+              >
+                غير مربحة ⚠️
+              </Pill>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <ActionButton 
-              size="sm" 
-              variant={campaign.status === 'ACTIVE' ? 'outline' : 'primary'} 
+            <ActionButton
+              size="sm"
+              variant={campaign.status === "ACTIVE" ? "outline" : "primary"}
               className="gap-2 shadow-sm"
-              onClick={() => handleStatusAction(campaign.status === 'ACTIVE' ? 'pause' : 'start')}
+              onClick={() =>
+                handleStatusAction(
+                  campaign.status === "ACTIVE" ? "pause" : "start",
+                )
+              }
               disabled={isUpdatingStatus}
             >
-              {campaign.status === 'ACTIVE' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              {campaign.status === 'ACTIVE' ? 'إيقاف مؤقت' : 'تفعيل'}
+              {campaign.status === "ACTIVE" ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
+              {campaign.status === "ACTIVE" ? "إيقاف مؤقت" : "تفعيل"}
             </ActionButton>
-            <ActionButton 
-              size="sm" 
-              variant="outline" 
+            <ActionButton
+              size="sm"
+              variant="outline"
               className="gap-2 border-danger-200 text-danger-700 hover:bg-danger-50 shadow-sm"
-              onClick={() => handleStatusAction('stop')}
+              onClick={() => handleStatusAction("stop")}
               disabled={isUpdatingStatus}
             >
               <Square className="w-4 h-4" />
               إنهاء نهائي
             </ActionButton>
-            <ActionButton size="sm" variant="outline" className="gap-2 shadow-sm" onClick={handleDuplicate} disabled={isDuplicating}>
+            <ActionButton
+              size="sm"
+              variant="outline"
+              className="gap-2 shadow-sm"
+              onClick={handleDuplicate}
+              disabled={isDuplicating}
+            >
               <Copy className="w-4 h-4" />
               تكرار
             </ActionButton>
-            <ActionButton 
-              size="sm" 
-              variant={campaign.needsOptimization ? 'primary' : 'outline'} 
+            <ActionButton
+              size="sm"
+              variant={campaign.needsOptimization ? "primary" : "outline"}
               className="gap-2 shadow-sm"
               onClick={handleFlagOptimization}
               disabled={isFlagging}
             >
               <AlertCircle className="w-4 h-4" />
-              {campaign.needsOptimization ? 'تم التحسين' : 'يحتاج تحسين'}
+              {campaign.needsOptimization ? "تم التحسين" : "يحتاج تحسين"}
             </ActionButton>
           </div>
-
         </div>
 
         {/* Deep Analytics Sections */}
@@ -176,10 +218,24 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               <DollarSign className="w-3.5 h-3.5" /> الأداء المالي والربحية
             </h5>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <AnalyticsMetric label="الربح الصافي" value={`$${metrics.profit}`} isGood={isProfitable} />
-              <AnalyticsMetric label="الـ ROAS" value={`${metrics.roas}x`} isGood={parseFloat(metrics.roas) >= 2} />
-              <AnalyticsMetric label="الإنفاق الكلي" value={`$${normalized.budgetSpent}`} />
-              <AnalyticsMetric label="إجمالي العائد" value={`$${normalized.revenue}`} />
+              <AnalyticsMetric
+                label="الربح الصافي"
+                value={`$${metrics.profit}`}
+                isGood={isProfitable}
+              />
+              <AnalyticsMetric
+                label="الـ ROAS"
+                value={`${metrics.roas}x`}
+                isGood={parseFloat(metrics.roas) >= 2}
+              />
+              <AnalyticsMetric
+                label="الإنفاق الكلي"
+                value={`$${normalized.budgetSpent}`}
+              />
+              <AnalyticsMetric
+                label="إجمالي العائد"
+                value={`$${normalized.revenue}`}
+              />
             </div>
           </div>
 
@@ -191,9 +247,20 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               <Target className="w-3.5 h-3.5" /> التحويلات والاستحواذ
             </h5>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <AnalyticsMetric label="التحويلات" value={normalized.conversions.toString()} />
-              <AnalyticsMetric label="الـ CPA" value={`$${metrics.cpa}`} isGood={parseFloat(metrics.cpa) < 50} />
-              <AnalyticsMetric label="معدل التحويل" value={`${metrics.convRate}%`} isGood={parseFloat(metrics.convRate) > 1} />
+              <AnalyticsMetric
+                label="التحويلات"
+                value={normalized.conversions.toString()}
+              />
+              <AnalyticsMetric
+                label="الـ CPA"
+                value={`$${metrics.cpa}`}
+                isGood={parseFloat(metrics.cpa) < 50}
+              />
+              <AnalyticsMetric
+                label="معدل التحويل"
+                value={`${metrics.convRate}%`}
+                isGood={parseFloat(metrics.convRate) > 1}
+              />
               <AnalyticsMetric label="تكلفة العميل" value={`$${metrics.cpa}`} />
             </div>
           </div>
@@ -206,9 +273,19 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               <Activity className="w-3.5 h-3.5" /> التفاعل والوصول
             </h5>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <AnalyticsMetric label="الظهور" value={normalized.impressions.toLocaleString()} />
-              <AnalyticsMetric label="النقرات" value={normalized.clicks.toLocaleString()} />
-              <AnalyticsMetric label="الـ CTR" value={`${metrics.ctr}%`} isGood={parseFloat(metrics.ctr) > 0.8} />
+              <AnalyticsMetric
+                label="الظهور"
+                value={normalized.impressions.toLocaleString()}
+              />
+              <AnalyticsMetric
+                label="النقرات"
+                value={normalized.clicks.toLocaleString()}
+              />
+              <AnalyticsMetric
+                label="الـ CTR"
+                value={`${metrics.ctr}%`}
+                isGood={parseFloat(metrics.ctr) > 0.8}
+              />
               <AnalyticsMetric label="الـ CPM" value={`$${metrics.cpm}`} />
             </div>
           </div>
@@ -220,20 +297,29 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
         <div className="bg-neutral-50/10 p-6 rounded-2xl border border-dashed border-neutral-300/20 space-y-6">
           <div className="flex items-center justify-between">
             <h4 className="font-bold text-sm flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" /> 
+              <BarChart3 className="w-4 h-4" />
               إدخال البيانات الحية (تزامن يدوي)
             </h4>
-            <span className="text-[10px] text-neutral-300">آخر تحديث: الآن</span>
+            <span className="text-[10px] text-neutral-300">
+              آخر تحديث: الآن
+            </span>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <div className="space-y-2">
-              <label className="text-xs text-neutral-300">الإنفاق الفعلي (USD)</label>
+              <label className="text-xs text-neutral-300">
+                الإنفاق الفعلي (USD)
+              </label>
               <div className="relative">
-                <FormInputControl 
-                  type="number" 
-                  defaultValue={normalized.budgetSpent} 
-                  onBlur={(e) => handleMetricChange('budgetSpent', parseFloat(e.target.value))}
+                <FormInputControl
+                  type="number"
+                  defaultValue={normalized.budgetSpent}
+                  onBlur={(e) =>
+                    handleMetricChange(
+                      "budgetSpent",
+                      parseFloat(e.target.value),
+                    )
+                  }
                   disabled={isUpdatingMetrics}
                   className="pl-8"
                 />
@@ -241,12 +327,16 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs text-neutral-300">العائد المحقق (Revenue)</label>
+              <label className="text-xs text-neutral-300">
+                العائد المحقق (Revenue)
+              </label>
               <div className="relative">
-                <FormInputControl 
-                  type="number" 
-                  defaultValue={normalized.revenue} 
-                  onBlur={(e) => handleMetricChange('revenue', parseFloat(e.target.value))}
+                <FormInputControl
+                  type="number"
+                  defaultValue={normalized.revenue}
+                  onBlur={(e) =>
+                    handleMetricChange("revenue", parseFloat(e.target.value))
+                  }
                   disabled={isUpdatingMetrics}
                   className="pl-8"
                 />
@@ -254,12 +344,16 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs text-neutral-300">إجمالي التحويلات</label>
+              <label className="text-xs text-neutral-300">
+                إجمالي التحويلات
+              </label>
               <div className="relative">
-                <FormInputControl 
-                  type="number" 
-                  defaultValue={normalized.conversions} 
-                  onBlur={(e) => handleMetricChange('conversions', parseInt(e.target.value))}
+                <FormInputControl
+                  type="number"
+                  defaultValue={normalized.conversions}
+                  onBlur={(e) =>
+                    handleMetricChange("conversions", parseInt(e.target.value))
+                  }
                   disabled={isUpdatingMetrics}
                   className="pl-8"
                 />
@@ -269,10 +363,12 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
             <div className="space-y-2">
               <label className="text-xs text-neutral-300">إجمالي النقرات</label>
               <div className="relative">
-                <FormInputControl 
-                  type="number" 
-                  defaultValue={normalized.clicks} 
-                  onBlur={(e) => handleMetricChange('clicks', parseInt(e.target.value))}
+                <FormInputControl
+                  type="number"
+                  defaultValue={normalized.clicks}
+                  onBlur={(e) =>
+                    handleMetricChange("clicks", parseInt(e.target.value))
+                  }
                   disabled={isUpdatingMetrics}
                   className="pl-8"
                 />
@@ -280,12 +376,16 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs text-neutral-300">إجمالي مرات الظهور</label>
+              <label className="text-xs text-neutral-300">
+                إجمالي مرات الظهور
+              </label>
               <div className="relative">
-                <FormInputControl 
-                  type="number" 
-                  defaultValue={normalized.impressions} 
-                  onBlur={(e) => handleMetricChange('impressions', parseInt(e.target.value))}
+                <FormInputControl
+                  type="number"
+                  defaultValue={normalized.impressions}
+                  onBlur={(e) =>
+                    handleMetricChange("impressions", parseInt(e.target.value))
+                  }
                   disabled={isUpdatingMetrics}
                   className="pl-8"
                 />
@@ -294,20 +394,33 @@ export function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }: Ca
             </div>
           </div>
 
-          
-          <ActionButton className="w-full shadow-lg" onClick={onClose}>حفظ ومزامنة البيانات</ActionButton>
+          <ActionButton className="w-full shadow-lg" onClick={onClose}>
+            حفظ ومزامنة البيانات
+          </ActionButton>
         </div>
       </div>
     </Dialog>
   );
 }
 
-function AnalyticsMetric({ label, value, isGood }: { label: string; value: string; isGood?: boolean }) {
+function AnalyticsMetric({
+  label,
+  value,
+  isGood,
+}: {
+  label: string;
+  value: string;
+  isGood?: boolean;
+}) {
   return (
     <div className="bg-natural-0 p-3 rounded-xl border shadow-sm transition-all hover:border-secondary-500/20">
-      <p className="text-[10px] text-neutral-300 font-medium mb-1 uppercase tracking-tight">{label}</p>
+      <p className="text-[10px] text-neutral-300 font-medium mb-1 uppercase tracking-tight">
+        {label}
+      </p>
       <div className="flex items-center justify-between">
-        <span className={`text-sm font-bold tracking-tight ${isGood === true ? 'text-success-600' : isGood === false ? 'text-danger-600' : 'text-natural-100'}`}>
+        <span
+          className={`text-sm font-bold tracking-tight ${isGood === true ? "text-success-600" : isGood === false ? "text-danger-600" : "text-natural-100"}`}
+        >
           {value}
         </span>
       </div>

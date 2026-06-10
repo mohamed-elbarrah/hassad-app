@@ -77,8 +77,7 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
 
   const totalValue = data.totalValue;
   const remaining = totalValue - totalPaid;
-  const collectionRate =
-    totalValue > 0 ? (totalPaid / totalValue) * 100 : 0;
+  const collectionRate = totalValue > 0 ? (totalPaid / totalValue) * 100 : 0;
   const invoiceCount = data.invoices?.length ?? 0;
   const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
 
@@ -197,7 +196,11 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
               rel="noopener noreferrer"
               download
             >
-              <ActionButton variant="outline" size="sm" icon={<Download className="w-4 h-4" />}>
+              <ActionButton
+                variant="outline"
+                size="sm"
+                icon={<Download className="w-4 h-4" />}
+              >
                 تحميل العقد
               </ActionButton>
             </a>

@@ -61,10 +61,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const hasAttachments = message.attachments && message.attachments.length > 0;
 
   return (
-    <div className={cn("flex gap-2.5", isOwn ? "flex-row-reverse" : "flex-row")}>
-      {!isOwn && (
-        <UserAvatar name={message.sender?.name ?? "??"} size="sm" />
-      )}
+    <div
+      className={cn("flex gap-2.5", isOwn ? "flex-row-reverse" : "flex-row")}
+    >
+      {!isOwn && <UserAvatar name={message.sender?.name ?? "??"} size="sm" />}
 
       <div
         className={cn(
@@ -108,7 +108,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           {formatRelativeTime(message.createdAt)}
           {hasAttachments && (
             <span className="mr-1">
-              · {message.attachments!.length} مرفق{message.attachments!.length > 1 ? "ات" : ""}
+              · {message.attachments!.length} مرفق
+              {message.attachments!.length > 1 ? "ات" : ""}
             </span>
           )}
         </p>

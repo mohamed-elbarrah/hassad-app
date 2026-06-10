@@ -15,11 +15,7 @@ interface FilePreviewProps {
   className?: string;
 }
 
-export function FilePreview({
-  filePath,
-  title,
-  className,
-}: FilePreviewProps) {
+export function FilePreview({ filePath, title, className }: FilePreviewProps) {
   const fileUrl = buildPortalFileUrl(filePath);
   const fileKind = getPortalFileKind(filePath);
   const extension =

@@ -2,11 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  TrendingUp,
-  AlertCircle,
-} from "lucide-react";
+import { ArrowRight, TrendingUp, AlertCircle } from "lucide-react";
 import {
   useGetPortalCampaignQuery,
   type PortalCampaignDetail,
@@ -163,7 +159,9 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
             <KpiPill
               label="تاريخ البدء"
               value={
-                <span className="text-lg font-semibold text-natural-100">{formatDate(campaignData.startDate)}</span>
+                <span className="text-lg font-semibold text-natural-100">
+                  {formatDate(campaignData.startDate)}
+                </span>
               }
             />
           </div>
@@ -204,13 +202,17 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
                 </p>
               </InfoPanel>
               <InfoPanel variant="default" className="text-center">
-                <p className="text-xs text-portal-note-text">تكلفة النقرة CPC</p>
+                <p className="text-xs text-portal-note-text">
+                  تكلفة النقرة CPC
+                </p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {campaignData.analytics?.cpc?.toFixed(2) ?? "0"} ر.س
                 </p>
               </InfoPanel>
               <InfoPanel variant="default" className="text-center">
-                <p className="text-xs text-portal-note-text">تكلفة التحويل CPA</p>
+                <p className="text-xs text-portal-note-text">
+                  تكلفة التحويل CPA
+                </p>
                 <p className="mt-1 text-sm font-semibold text-natural-100">
                   {campaignData.analytics?.cpa?.toFixed(2) ?? "0"} ر.س
                 </p>
@@ -309,5 +311,3 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
     </div>
   );
 }
-
-

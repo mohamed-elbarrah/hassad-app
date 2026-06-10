@@ -269,7 +269,10 @@ export default function NewOrderPage() {
                       <span className="text-danger-500">*</span>
                     </FormLabel>
                     <FormControl>
-                      <FormInputControl placeholder="مثال: مطعم النخيل" {...field} />
+                      <FormInputControl
+                        placeholder="مثال: مطعم النخيل"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

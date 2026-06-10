@@ -26,7 +26,9 @@ export function useNotificationSocket() {
     });
 
     socket.on("notification", () => {
-      dispatch(portalNotificationsApi.util.invalidateTags(["PortalNotification"]));
+      dispatch(
+        portalNotificationsApi.util.invalidateTags(["PortalNotification"]),
+      );
     });
 
     socket.on("unreadCount", (payload: { count: number }) => {

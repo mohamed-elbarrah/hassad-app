@@ -17,10 +17,7 @@ import {
   FormMessage,
 } from "@/components/design-system/Form";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import {
-  Select,
-  SelectItem,
-} from "@/components/design-system/Select";
+import { Select, SelectItem } from "@/components/design-system/Select";
 import {
   useCreateProjectMutation,
   useUpdateProjectMutation,
@@ -205,14 +202,20 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
           تعديل
         </ActionButton>
       ) : (
-        <ActionButton onClick={() => setOpen(true)} icon={<Plus className="size-4" />}>
+        <ActionButton
+          onClick={() => setOpen(true)}
+          icon={<Plus className="size-4" />}
+        >
           مشروع جديد
         </ActionButton>
       )}
 
       {isEdit ? (
         <Form {...editForm}>
-          <form onSubmit={editForm.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={editForm.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={editForm.control}
               name="description"
@@ -238,9 +241,15 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>الحالة</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} placeholder="اختر الحالة">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      placeholder="اختر الحالة"
+                    >
                       {Object.values(ProjectStatus).map((s) => (
-                        <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                        <SelectItem key={s} value={s}>
+                          {STATUS_LABELS[s]}
+                        </SelectItem>
                       ))}
                     </Select>
                     <FormMessage />
@@ -253,9 +262,15 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>الأولوية</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} placeholder="اختر الأولوية">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      placeholder="اختر الأولوية"
+                    >
                       {Object.values(TaskPriority).map((p) => (
-                        <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
+                        <SelectItem key={p} value={p}>
+                          {PRIORITY_LABELS[p]}
+                        </SelectItem>
                       ))}
                     </Select>
                     <FormMessage />
@@ -309,7 +324,10 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
         </Form>
       ) : (
         <Form {...createForm}>
-          <form onSubmit={createForm.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={createForm.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={createForm.control}
               name="name"
@@ -317,7 +335,10 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
                 <FormItem>
                   <FormLabel>اسم المشروع</FormLabel>
                   <FormControl>
-                    <FormInputControl placeholder="أدخل اسم المشروع" {...field} />
+                    <FormInputControl
+                      placeholder="أدخل اسم المشروع"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -393,9 +414,15 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>الحالة</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} placeholder="اختر الحالة">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      placeholder="اختر الحالة"
+                    >
                       {Object.values(ProjectStatus).map((s) => (
-                        <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                        <SelectItem key={s} value={s}>
+                          {STATUS_LABELS[s]}
+                        </SelectItem>
                       ))}
                     </Select>
                     <FormMessage />
@@ -408,9 +435,15 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>الأولوية</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} placeholder="اختر الأولوية">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      placeholder="اختر الأولوية"
+                    >
                       {Object.values(TaskPriority).map((p) => (
-                        <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
+                        <SelectItem key={p} value={p}>
+                          {PRIORITY_LABELS[p]}
+                        </SelectItem>
                       ))}
                     </Select>
                     <FormMessage />

@@ -25,5 +25,9 @@ export const UpdateCampaignStatusSchema = z.object({
 });
 
 export type CreateCampaignInput = z.infer<typeof CreateCampaignSchema>;
-export type UpdateCampaignMetricsInput = z.infer<typeof UpdateCampaignMetricsSchema>;
-export type UpdateCampaignStatusInput = z.infer<typeof UpdateCampaignStatusSchema>;
+export type UpdateCampaignMetricsInput = z.infer<
+  typeof UpdateCampaignMetricsSchema
+>;
+export type UpdateCampaignStatusInput = z.infer<
+  typeof UpdateCampaignStatusSchema
+>;

@@ -31,7 +31,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private eventEmitter: EventEmitter2,
   ) {
     this.eventEmitter.on("chat.messageCreated", (payload) => {
-      this.server.to(`conversation:${payload.conversationId}`).emit("newMessage", payload);
+      this.server
+        .to(`conversation:${payload.conversationId}`)
+        .emit("newMessage", payload);
     });
   }
 
@@ -44,7 +46,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logger.log(`Chat WS connected: userId=${user.sub || user.id}`);
 
-    const conversations = await this.chatService.getUserConversationIds(user.sub || user.id);
+    const conversations = await this.chatService.getUserConversationIds(
+      user.sub || user.id,
+    );
     for (const convId of conversations) {
       client.join(`conversation:${convId}`);
     }

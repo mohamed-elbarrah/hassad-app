@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
@@ -9,7 +9,8 @@ export default function HomePage() {
           This Home Page
         </h1>
         <p className="max-w-[600px] text-muted-foreground md:text-xl">
-          A full-stack SaaS platform for marketing agencies to manage CRM, projects, clients, finances, and campaigns.
+          A full-stack SaaS platform for marketing agencies to manage CRM,
+          projects, clients, finances, and campaigns.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 mt-8">
           <Link href="/login">

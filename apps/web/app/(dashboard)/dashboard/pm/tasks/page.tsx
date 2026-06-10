@@ -47,7 +47,11 @@ type TasksFilterKey = "ALL" | "IN_REVIEW" | "IN_PROGRESS" | "DONE";
 export default function PMTasksPage() {
   const [activeFilter, setActiveFilter] = useState<TasksFilterKey>("IN_REVIEW");
   const { data: stats, isLoading: statsLoading } = useGetMyTaskStatsQuery();
-  const { data: tasks, isLoading: tasksLoading, isError } = useGetMyTasksQuery({});
+  const {
+    data: tasks,
+    isLoading: tasksLoading,
+    isError,
+  } = useGetMyTasksQuery({});
 
   const tasksCounts = useMemo(() => {
     const allTasks = tasks ?? [];
@@ -86,7 +90,11 @@ export default function PMTasksPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {STAT_CARDS.map((card) => (
-          <SurfaceCard key={card.label} title={card.label} contentClassName="pt-0">
+          <SurfaceCard
+            key={card.label}
+            title={card.label}
+            contentClassName="pt-0"
+          >
             {statsLoading ? (
               <DSSkeleton className="h-8 w-12" />
             ) : (
@@ -155,7 +163,10 @@ export default function PMTasksPage() {
             <TableBody>
               {filteredTasks.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-neutral-300 py-8">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-neutral-300 py-8"
+                  >
                     لا توجد مهام.
                   </TableCell>
                 </TableRow>
@@ -174,7 +185,14 @@ export default function PMTasksPage() {
                     {task.project?.name ?? "—"}
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={STATUS_VARIANT[task.status as string] ?? "PENDING"} label={STATUS_LABELS[task.status as string] ?? task.status} />
+                    <StatusBadge
+                      status={
+                        STATUS_VARIANT[task.status as string] ?? "PENDING"
+                      }
+                      label={
+                        STATUS_LABELS[task.status as string] ?? task.status
+                      }
+                    />
                   </TableCell>
                   <TableCell>
                     {PRIORITY_LABELS[task.priority as string] ?? task.priority}

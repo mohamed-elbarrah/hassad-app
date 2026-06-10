@@ -1,9 +1,17 @@
-import { IsString, IsEnum, IsOptional, IsNumber, IsBoolean, Min, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  Min,
+  IsUUID,
+} from "class-validator";
 
 export enum SymbolType {
-  TEXT = 'TEXT',
-  SVG_URL = 'SVG_URL',
-  SVG_INLINE = 'SVG_INLINE',
+  TEXT = "TEXT",
+  SVG_URL = "SVG_URL",
+  SVG_INLINE = "SVG_INLINE",
 }
 
 export class CreateCurrencySettingDto {

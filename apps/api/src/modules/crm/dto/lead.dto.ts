@@ -1,5 +1,21 @@
-import { IsString, IsEmail, IsOptional, IsEnum, IsUUID, IsJSON, IsArray, IsInt, Min } from 'class-validator';
-import { PipelineStage, BusinessType, ClientSource, ContactLogType, ContactLogResult } from '@hassad/shared';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsEnum,
+  IsUUID,
+  IsJSON,
+  IsArray,
+  IsInt,
+  Min,
+} from "class-validator";
+import {
+  PipelineStage,
+  BusinessType,
+  ClientSource,
+  ContactLogType,
+  ContactLogResult,
+} from "@hassad/shared";
 
 export class LeadServiceItemDto {
   @IsString()

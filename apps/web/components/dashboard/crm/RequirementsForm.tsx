@@ -39,7 +39,11 @@ export function RequirementsForm({ client }: RequirementsFormProps) {
           ? "بيانات العميل النشط"
           : "بيانات العميل المحتمل"
       }
-      action={<Pill tone={statusTone} className="text-xs h-6 px-2">{statusLabel}</Pill>}
+      action={
+        <Pill tone={statusTone} className="text-xs h-6 px-2">
+          {statusLabel}
+        </Pill>
+      }
     >
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
@@ -70,7 +74,9 @@ export function RequirementsForm({ client }: RequirementsFormProps) {
         {client.email && (
           <div>
             <p className="text-neutral-300 mb-1">البريد الإلكتروني</p>
-            <p className="font-medium" dir="ltr">{client.email}</p>
+            <p className="font-medium" dir="ltr">
+              {client.email}
+            </p>
           </div>
         )}
       </div>

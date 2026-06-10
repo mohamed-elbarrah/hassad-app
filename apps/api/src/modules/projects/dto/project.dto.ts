@@ -1,5 +1,11 @@
-import { IsString, IsEnum, IsUUID, IsDateString, IsOptional } from 'class-validator';
-import { ProjectStatus, TaskPriority, ProjectMemberRole } from '@hassad/shared';
+import {
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsDateString,
+  IsOptional,
+} from "class-validator";
+import { ProjectStatus, TaskPriority, ProjectMemberRole } from "@hassad/shared";
 
 export class CreateProjectDto {
   @IsUUID()

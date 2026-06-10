@@ -2,7 +2,18 @@
 
 import { use, useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, User, TrendingUp, Eye, AlertTriangle, Upload, FileText, Trash2, Download } from "lucide-react";
+import {
+  ArrowRight,
+  Calendar,
+  User,
+  TrendingUp,
+  Eye,
+  AlertTriangle,
+  Upload,
+  FileText,
+  Trash2,
+  Download,
+} from "lucide-react";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -14,7 +25,12 @@ import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow"
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
-import { useGetProjectByIdQuery, useGetProjectFilesQuery, useUploadProjectFileMutation, useDeleteProjectFileMutation } from "@/features/projects/projectsApi";
+import {
+  useGetProjectByIdQuery,
+  useGetProjectFilesQuery,
+  useUploadProjectFileMutation,
+  useDeleteProjectFileMutation,
+} from "@/features/projects/projectsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus } from "@hassad/shared";
 import { formatDate } from "@/lib/format";
@@ -31,8 +47,14 @@ const STATUS_CONFIG: Record<
   [ProjectStatus.PLANNING]: { label: "تخطيط", statusKey: "DRAFT" },
   [ProjectStatus.ACTIVE]: { label: "نشط", statusKey: "ACTIVE" },
   [ProjectStatus.ON_HOLD]: { label: "موقوف", statusKey: "STOPPED" },
-  [ProjectStatus.AWAITING_REVIEW]: { label: "بانتظار المراجعة", statusKey: "PENDING" },
-  [ProjectStatus.NEEDS_REVISION]: { label: "مطلوب تعديلات", statusKey: "REJECTED" },
+  [ProjectStatus.AWAITING_REVIEW]: {
+    label: "بانتظار المراجعة",
+    statusKey: "PENDING",
+  },
+  [ProjectStatus.NEEDS_REVISION]: {
+    label: "مطلوب تعديلات",
+    statusKey: "REJECTED",
+  },
   [ProjectStatus.COMPLETED]: { label: "مكتمل", statusKey: "COMPLETED" },
   [ProjectStatus.CANCELLED]: { label: "ملغى", statusKey: "CANCELLED" },
 };
@@ -48,7 +70,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { user } = useAppSelector((state) => state.auth);
   const { data: project, isLoading, isError } = useGetProjectByIdQuery(id);
   const { data: files } = useGetProjectFilesQuery(id);
-  const [uploadFile, { isLoading: isUploading }] = useUploadProjectFileMutation();
+  const [uploadFile, { isLoading: isUploading }] =
+    useUploadProjectFileMutation();
   const [deleteFile] = useDeleteProjectFileMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,10 +109,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
 
   const statusConfig = STATUS_CONFIG[project.status];
   const progressValue = Math.round(
-    (project.progress ??
+    project.progress ??
       (project as typeof project & { completionPercentage?: number })
         .completionPercentage ??
-      0),
+      0,
   );
 
   return (
@@ -110,7 +133,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-          <StatusBadge status={statusConfig.statusKey} label={statusConfig.label} />
+          <StatusBadge
+            status={statusConfig.statusKey}
+            label={statusConfig.label}
+          />
         </div>
         <ProjectForm project={project} currentUserId={user.id} />
       </div>
@@ -242,7 +268,13 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <ActionButton variant="ghost" size="sm" icon={<Download className="size-4" />}>{''}</ActionButton>
+                      <ActionButton
+                        variant="ghost"
+                        size="sm"
+                        icon={<Download className="size-4" />}
+                      >
+                        {""}
+                      </ActionButton>
                     </a>
                     <ActionButton
                       variant="ghost"
@@ -250,11 +282,16 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                       className="text-danger-500 hover:text-danger-500"
                       onClick={async () => {
                         try {
-                          await deleteFile({ projectId: id, fileId: file.id }).unwrap();
+                          await deleteFile({
+                            projectId: id,
+                            fileId: file.id,
+                          }).unwrap();
                         } catch {}
                       }}
                       icon={<Trash2 className="size-4" />}
-                    >{''}</ActionButton>
+                    >
+                      {""}
+                    </ActionButton>
                   </div>
                 }
               />

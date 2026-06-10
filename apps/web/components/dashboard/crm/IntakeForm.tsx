@@ -138,7 +138,9 @@ export function IntakeForm({
       const error = err as { data?: { message?: string | string[] } };
       const msg = error?.data?.message;
       toast.error(
-        Array.isArray(msg) ? msg.join("; ") : msg || "حدث خطأ. يرجى المحاولة مرة أخرى.",
+        Array.isArray(msg)
+          ? msg.join("; ")
+          : msg || "حدث خطأ. يرجى المحاولة مرة أخرى.",
       );
     }
   }
@@ -240,7 +242,10 @@ export function IntakeForm({
                     <span className="text-danger-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <FormInputControl placeholder="مثال: مطعم النخيل" {...field} />
+                    <FormInputControl
+                      placeholder="مثال: مطعم النخيل"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

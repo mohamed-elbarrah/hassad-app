@@ -1,4 +1,4 @@
-import { IsString, IsArray, IsUUID } from 'class-validator';
+import { IsString, IsArray, IsUUID } from "class-validator";
 
 export class CreateRoleDto {
   @IsString()
@@ -7,7 +7,7 @@ export class CreateRoleDto {
 
 export class AssignPermissionsDto {
   @IsArray()
-  @IsUUID('all', { each: true })
+  @IsUUID("all", { each: true })
   permissionIds: string[];
 }
 

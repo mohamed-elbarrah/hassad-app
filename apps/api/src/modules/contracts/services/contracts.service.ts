@@ -521,7 +521,9 @@ export class ContractsService {
       },
     });
 
-    const notifyUserIds = [contract.client.accountManager].filter(Boolean) as string[];
+    const notifyUserIds = [contract.client.accountManager].filter(
+      Boolean,
+    ) as string[];
     if (notifyUserIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: notifyUserIds,
@@ -745,7 +747,12 @@ export class ContractsService {
     });
   }
 
-  async createVersion(id: string, userId: string, storageKey: string, dto: CreateVersionDto) {
+  async createVersion(
+    id: string,
+    userId: string,
+    storageKey: string,
+    dto: CreateVersionDto,
+  ) {
     const contract = await this.findOne(id);
 
     return this.prisma.$transaction(async (tx) => {

@@ -19,10 +19,7 @@ export function AppHeader() {
     >
       {/* ── Left side: User Avatar + Welcome ──────────────────────────── */}
       {user && (
-        <UserHeaderDisplay
-          name={user.name}
-          avatarUrl={user.avatarUrl}
-        />
+        <UserHeaderDisplay name={user.name} avatarUrl={user.avatarUrl} />
       )}
 
       {/* ── Right side: Welcome + Avatar ──────────────────────────── */}

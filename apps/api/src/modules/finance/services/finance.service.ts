@@ -1,9 +1,25 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateInvoiceDto, CreateTicketDto, RegisterPaymentDto, CreateEmployeeDto, RunPayrollDto } from '../dto/finance.dto';
-import { InvoiceStatus, TicketStatus, PaymentStatus, SalaryStatus, PaymentMethod } from '@hassad/shared';
-import type { ServiceItem } from '@hassad/shared';
-import { NotificationsService } from '../../notifications/services/notifications.service';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import {
+  CreateInvoiceDto,
+  CreateTicketDto,
+  RegisterPaymentDto,
+  CreateEmployeeDto,
+  RunPayrollDto,
+} from "../dto/finance.dto";
+import {
+  InvoiceStatus,
+  TicketStatus,
+  PaymentStatus,
+  SalaryStatus,
+  PaymentMethod,
+} from "@hassad/shared";
+import type { ServiceItem } from "@hassad/shared";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 
 @Injectable()
 export class FinanceService {
@@ -34,7 +50,7 @@ export class FinanceService {
 
   private generateInvoiceNumber(): string {
     const now = new Date();
-    const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
     const rand = Math.floor(1000 + Math.random() * 9000);
     return `INV-${ymd}-${rand}`;
   }
@@ -70,8 +86,8 @@ export class FinanceService {
     });
 
     await this.logToLedger({
-      action: 'CREATE_INVOICE',
-      entity: 'INVOICE',
+      action: "CREATE_INVOICE",
+      entity: "INVOICE",
       entityId: invoice.id,
       userId,
       after: invoice,
@@ -85,10 +101,10 @@ export class FinanceService {
     if (clientUser?.userId) {
       await this.notificationsService.createNotification({
         entityId: invoice.id,
-        entityType: 'INVOICE',
-        eventType: 'INVOICE_CREATED',
+        entityType: "INVOICE",
+        eventType: "INVOICE_CREATED",
         userId: clientUser.userId,
-        title: 'فاتورة جديدة',
+        title: "فاتورة جديدة",
         body: `تم إنشاء فاتورة جديدة بمبلغ ${invoice.amount} ر.س`,
       });
     }
@@ -110,7 +126,7 @@ export class FinanceService {
     });
 
     if (!contract) {
-      throw new NotFoundException('Contract not found');
+      throw new NotFoundException("Contract not found");
     }
 
     const services = (contract.servicesList as ServiceItem[]) || [];
@@ -144,8 +160,8 @@ export class FinanceService {
       });
 
       await this.logToLedger({
-        action: 'AUTO_GENERATE_INVOICE',
-        entity: 'INVOICE',
+        action: "AUTO_GENERATE_INVOICE",
+        entity: "INVOICE",
         entityId: invoice.id,
         userId,
         after: invoice,
@@ -179,8 +195,8 @@ export class FinanceService {
     });
 
     await this.logToLedger({
-      action: 'AUTO_GENERATE_INVOICE',
-      entity: 'INVOICE',
+      action: "AUTO_GENERATE_INVOICE",
+      entity: "INVOICE",
       entityId: invoice.id,
       userId,
       after: invoice,
@@ -195,10 +211,10 @@ export class FinanceService {
       this.notificationsService
         .createNotification({
           entityId: invoice.id,
-          entityType: 'invoice',
-          eventType: 'INVOICE_CREATED',
+          entityType: "invoice",
+          eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          title: 'تم إنشاء فاتورة تلقائية',
+          title: "تم إنشاء فاتورة تلقائية",
           body: `تم إنشاء فاتورة تلقائية رقم ${invoiceNumber} للعقد "${contract.title}"`,
         })
         .catch(() => undefined);
@@ -215,8 +231,9 @@ export class FinanceService {
         contract: true,
         tickets: true,
         payments: true,
-        items: { include: { project: true, task: true } } },
-      });
+        items: { include: { project: true, task: true } },
+      },
+    });
 
     if (!invoice) {
       throw new NotFoundException(`Invoice with ID ${id} not found`);
@@ -224,7 +241,7 @@ export class FinanceService {
 
     const history = await this.prisma.ledger.findMany({
       where: { entityId: id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return { ...invoice, history };
@@ -245,7 +262,8 @@ export class FinanceService {
         },
       });
 
-      const totalPaid = invoice.payments.reduce((sum, pay) => sum + pay.amount, 0) + dto.amount;
+      const totalPaid =
+        invoice.payments.reduce((sum, pay) => sum + pay.amount, 0) + dto.amount;
       let newStatus: InvoiceStatus = InvoiceStatus.PARTIAL;
       if (totalPaid >= invoice.amount) {
         newStatus = InvoiceStatus.PAID;
@@ -263,8 +281,8 @@ export class FinanceService {
     });
 
     await this.logToLedger({
-      action: 'REGISTER_PAYMENT',
-      entity: 'PAYMENT',
+      action: "REGISTER_PAYMENT",
+      entity: "PAYMENT",
       entityId: payment.id,
       userId,
       after: payment,
@@ -278,10 +296,10 @@ export class FinanceService {
     if (clientUser?.userId) {
       await this.notificationsService.createNotification({
         entityId: payment.id,
-        entityType: 'PAYMENT',
-        eventType: 'PAYMENT_RECEIVED',
+        entityType: "PAYMENT",
+        eventType: "PAYMENT_RECEIVED",
         userId: clientUser.userId,
-        title: 'تم استلام دفع',
+        title: "تم استلام دفع",
         body: `تم تسجيل دفعة بقيمة ${payment.amount} ر.س للفاتورة ${invoice.invoiceNumber}`,
       });
     }
@@ -319,8 +337,8 @@ export class FinanceService {
           salaries.push(s);
 
           await this.logToLedger({
-            action: 'GENERATE_SALARY',
-            entity: 'SALARY',
+            action: "GENERATE_SALARY",
+            entity: "SALARY",
             entityId: s.id,
             userId,
             after: s,
@@ -340,7 +358,11 @@ export class FinanceService {
     });
 
     const pendingInvoices = await this.prisma.invoice.aggregate({
-      where: { status: { in: [InvoiceStatus.DUE, InvoiceStatus.PARTIAL, InvoiceStatus.SENT] } },
+      where: {
+        status: {
+          in: [InvoiceStatus.DUE, InvoiceStatus.PARTIAL, InvoiceStatus.SENT],
+        },
+      },
       _sum: { amount: true },
     });
 
@@ -361,7 +383,7 @@ export class FinanceService {
 
   async getCashFlow() {
     // Simple mock grouping for now, can be expanded with real date grouping
-    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو'];
+    const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو"];
     const data = months.map((m, i) => ({
       month: m,
       income: 100000 + i * 10000,
@@ -377,18 +399,24 @@ export class FinanceService {
       take: 5,
     });
 
-    return lateInvoices.map(inv => ({
+    return lateInvoices.map((inv) => ({
       id: inv.id,
-      type: 'OVERDUE',
+      type: "OVERDUE",
       client: inv.client.companyName,
       amount: inv.amount,
-      date: inv.dueDate.toISOString().split('T')[0],
-      status: 'UNPAID',
-      severity: 'HIGH',
+      date: inv.dueDate.toISOString().split("T")[0],
+      status: "UNPAID",
+      severity: "HIGH",
     }));
   }
 
-  async findAllInvoices(filters: { status?: string; clientId?: string; contractId?: string; page?: number; limit?: number }) {
+  async findAllInvoices(filters: {
+    status?: string;
+    clientId?: string;
+    contractId?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
     const where: any = {};
@@ -398,12 +426,12 @@ export class FinanceService {
     const [items, total] = await Promise.all([
       this.prisma.invoice.findMany({
         where,
-        include: { 
+        include: {
           client: { select: { id: true, companyName: true } },
           payments: true,
-          contract: { select: { id: true, title: true } }
+          contract: { select: { id: true, title: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -418,7 +446,7 @@ export class FinanceService {
     const [items, total] = await Promise.all([
       this.prisma.payment.findMany({
         include: { invoice: { include: { client: true } } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -429,12 +457,12 @@ export class FinanceService {
 
   async findAllEmployees() {
     return this.prisma.employee.findMany({
-      include: { 
+      include: {
         user: true,
         salaries: {
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
     });
   }
@@ -444,13 +472,13 @@ export class FinanceService {
       include: {
         client: true,
         invoices: {
-          include: { payments: true }
-        }
+          include: { payments: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
-    return contracts.map(contract => {
+    return contracts.map((contract) => {
       const totalPaid = contract.invoices.reduce((acc, inv) => {
         return acc + inv.payments.reduce((sum, p) => sum + p.amount, 0);
       }, 0);
@@ -459,7 +487,8 @@ export class FinanceService {
         ...contract,
         paid: totalPaid,
         remaining: contract.totalValue - totalPaid,
-        collectionRate: contract.totalValue > 0 ? (totalPaid / contract.totalValue) * 100 : 0
+        collectionRate:
+          contract.totalValue > 0 ? (totalPaid / contract.totalValue) * 100 : 0,
       };
     });
   }
@@ -468,7 +497,7 @@ export class FinanceService {
     const limit = Number(filters.limit) || 20;
     const [items, total] = await Promise.all([
       this.prisma.ledger.findMany({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -480,7 +509,7 @@ export class FinanceService {
   // Legacy support or wrap
   async markInvoicePaid(id: string, paymentReference?: string) {
     const invoice = await this.findInvoice(id);
-    return this.registerPayment('system', {
+    return this.registerPayment("system", {
       invoiceId: id,
       amount: invoice.amount,
       method: invoice.paymentMethod as any,
@@ -500,8 +529,8 @@ export class FinanceService {
     });
 
     await this.logToLedger({
-      action: 'SEND_INVOICE',
-      entity: 'INVOICE',
+      action: "SEND_INVOICE",
+      entity: "INVOICE",
       entityId: invoice.id,
       after: updated,
     });
@@ -514,10 +543,10 @@ export class FinanceService {
     if (clientUser?.userId) {
       await this.notificationsService.createNotification({
         entityId: invoice.id,
-        entityType: 'invoice',
-        eventType: 'INVOICE_SENT',
+        entityType: "invoice",
+        eventType: "INVOICE_SENT",
         userId: clientUser.userId,
-        title: 'تم إرسال فاتورة',
+        title: "تم إرسال فاتورة",
         body: `تم إرسال الفاتورة "${invoice.invoiceNumber}" إليك للمراجعة والدفع`,
       });
     }
@@ -525,7 +554,11 @@ export class FinanceService {
     return updated;
   }
 
-  async findAllTickets(filters: { status?: string; page?: number; limit?: number }) {
+  async findAllTickets(filters: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
     const where: any = {};
@@ -534,7 +567,7 @@ export class FinanceService {
       this.prisma.paymentTicket.findMany({
         where,
         include: { invoice: true, client: true, assignee: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -546,7 +579,7 @@ export class FinanceService {
   async findInvoicesByClient(clientId: string) {
     return this.prisma.invoice.findMany({
       where: { clientId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 

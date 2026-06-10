@@ -20,7 +20,10 @@ export const UpdateUserSchema = z
       .string()
       .min(8, "Password must be at least 8 characters")
       .optional(),
-    phoneWhatsapp: z.string().min(5, "Phone must be at least 5 characters").optional(),
+    phoneWhatsapp: z
+      .string()
+      .min(5, "Phone must be at least 5 characters")
+      .optional(),
     avatarUrl: z.string().url("Invalid URL").optional().nullable(),
     role: z.nativeEnum(UserRole).optional(),
     department: z.nativeEnum(TaskDepartment).optional().nullable(),

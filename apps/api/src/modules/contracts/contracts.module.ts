@@ -11,7 +11,14 @@ import { FinanceModule } from "../finance/finance.module";
 import { ChatModule } from "../chat/chat.module";
 
 @Module({
-  imports: [NotificationsModule, CrmModule, RequestsModule, FinanceModule, ChatModule, MulterModule.register({ storage: memoryStorage() })],
+  imports: [
+    NotificationsModule,
+    CrmModule,
+    RequestsModule,
+    FinanceModule,
+    ChatModule,
+    MulterModule.register({ storage: memoryStorage() }),
+  ],
   controllers: [ContractsController],
   providers: [ContractsService, ContractCronService],
   exports: [ContractsService],

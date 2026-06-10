@@ -11,12 +11,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex justify-center">
           <div className="flex flex-col items-center gap-1">
-            <Image
-              src="/masar.svg"
-              alt="Logo"
-              width={100}
-              height={100}
-            />
+            <Image src="/masar.svg" alt="Logo" width={100} height={100} />
           </div>
         </div>
 

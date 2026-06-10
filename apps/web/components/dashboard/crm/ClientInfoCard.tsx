@@ -9,7 +9,10 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { useAppSelector } from "@/lib/hooks";
 import { HandoverModal } from "./HandoverModal";
 
-const STATUS_TONE: Record<ClientStatus, import("@/components/design-system/Pill").PillTone> = {
+const STATUS_TONE: Record<
+  ClientStatus,
+  import("@/components/design-system/Pill").PillTone
+> = {
   [ClientStatus.LEAD]: "purple",
   [ClientStatus.ACTIVE]: "success",
   [ClientStatus.STOPPED]: "danger",
@@ -42,7 +45,8 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
   const canHandover = canManageSales && client.status === ClientStatus.ACTIVE;
 
   const tone = STATUS_TONE[client.status as ClientStatus] ?? "neutral";
-  const statusLabel = STATUS_LABELS[client.status as ClientStatus] ?? client.status;
+  const statusLabel =
+    STATUS_LABELS[client.status as ClientStatus] ?? client.status;
 
   return (
     <SurfaceCard
@@ -72,7 +76,9 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
           {client.email && (
             <div>
               <p className="text-neutral-300 mb-1">البريد الإلكتروني</p>
-              <p className="font-medium" dir="ltr">{client.email}</p>
+              <p className="font-medium" dir="ltr">
+                {client.email}
+              </p>
             </div>
           )}
           <div>

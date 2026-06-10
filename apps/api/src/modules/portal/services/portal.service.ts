@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
@@ -767,7 +771,7 @@ export class PortalService {
     });
 
     if (!contract) {
-      throw new NotFoundException('العقد غير موجود');
+      throw new NotFoundException("العقد غير موجود");
     }
 
     return contract;
@@ -775,15 +779,15 @@ export class PortalService {
 
   async getContracts(
     clientId: string,
-    query: { 
-      status?: string; 
-      search?: string; 
-      dateFrom?: string; 
-      dateTo?: string; 
-      sortBy?: string; 
-      sortOrder?: "asc" | "desc"; 
-      page: number; 
-      limit: number 
+    query: {
+      status?: string;
+      search?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+      page: number;
+      limit: number;
     },
   ) {
     const where: any = { clientId };
@@ -803,14 +807,14 @@ export class PortalService {
     const [data, total] = await Promise.all([
       this.prisma.contract.findMany({
         where,
-        include: { 
+        include: {
           proposal: { select: { id: true, title: true } },
           projects: {
             select: {
-              manager: { select: { name: true } }
+              manager: { select: { name: true } },
             },
-            take: 1
-          }
+            take: 1,
+          },
         },
         orderBy: { [sortField]: sortOrder },
         skip: (query.page - 1) * query.limit,
@@ -819,9 +823,9 @@ export class PortalService {
       this.prisma.contract.count({ where }),
     ]);
 
-    const items = data.map(c => ({
+    const items = data.map((c) => ({
       ...c,
-      projectManager: c.projects[0]?.manager?.name ?? null
+      projectManager: c.projects[0]?.manager?.name ?? null,
     }));
 
     return { data: items, total, page: query.page, limit: query.limit };
@@ -903,7 +907,11 @@ export class PortalService {
     return { data: items, total, page: query.page, limit: query.limit };
   }
 
-  async createDeliverable(userId: string, dto: CreateDeliverableDto, filePath: string) {
+  async createDeliverable(
+    userId: string,
+    dto: CreateDeliverableDto,
+    filePath: string,
+  ) {
     return this.prisma.deliverable.create({
       data: {
         projectId: dto.projectId,
@@ -931,7 +939,9 @@ export class PortalService {
     }
 
     if (deliverable.filePath) {
-      const url = await this.storageService.getPresignedUrl(deliverable.filePath);
+      const url = await this.storageService.getPresignedUrl(
+        deliverable.filePath,
+      );
       (deliverable as any).url = url;
     }
 
@@ -1037,7 +1047,8 @@ export class PortalService {
       .map((d) => d.filePath);
 
     if (fileKeys.length > 0) {
-      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      const urlMap =
+        await this.storageService.getMultiplePresignedUrls(fileKeys);
       for (const d of deliverables) {
         if (d.filePath) {
           (d as any).url = urlMap.get(d.filePath) || null;
@@ -1068,7 +1079,8 @@ export class PortalService {
       .map((d) => d.filePath);
 
     if (fileKeys.length > 0) {
-      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      const urlMap =
+        await this.storageService.getMultiplePresignedUrls(fileKeys);
       for (const d of deliverables) {
         if (d.filePath) {
           (d as any).url = urlMap.get(d.filePath) || null;
@@ -1082,7 +1094,11 @@ export class PortalService {
   async createIntakeForm(
     clientId: string,
     dto: CreateIntakeFormDto,
-    uploadedFiles: { key: string; originalName: string; mimeType: string }[] = [],
+    uploadedFiles: {
+      key: string;
+      originalName: string;
+      mimeType: string;
+    }[] = [],
   ) {
     const token = randomBytes(32).toString("hex");
     return this.prisma.portalIntakeForm.create({
@@ -1103,7 +1119,9 @@ export class PortalService {
 
     const allFileKeys: string[] = [];
     for (const form of forms) {
-      const files = form.uploadedFiles as { key: string; originalName: string; mimeType: string }[] | null;
+      const files = form.uploadedFiles as
+        | { key: string; originalName: string; mimeType: string }[]
+        | null;
       if (Array.isArray(files)) {
         for (const f of files) {
           if (f.key) allFileKeys.push(f.key);
@@ -1112,9 +1130,17 @@ export class PortalService {
     }
 
     if (allFileKeys.length > 0) {
-      const urlMap = await this.storageService.getMultiplePresignedUrls(allFileKeys);
+      const urlMap =
+        await this.storageService.getMultiplePresignedUrls(allFileKeys);
       for (const form of forms) {
-        const files = form.uploadedFiles as { key: string; originalName: string; mimeType: string; url?: string }[] | null;
+        const files = form.uploadedFiles as
+          | {
+              key: string;
+              originalName: string;
+              mimeType: string;
+              url?: string;
+            }[]
+          | null;
         if (Array.isArray(files)) {
           (form as any).uploadedFiles = files.map((f) => ({
             ...f,
@@ -1263,29 +1289,29 @@ export class PortalService {
 
     const kpiCards = [
       {
-        metric: 'conversionRate',
-        label: 'معدل التحويل',
+        metric: "conversionRate",
+        label: "معدل التحويل",
         value: aggregates.current.conversionRate,
         previousValue: aggregates.previous?.conversionRate ?? 0,
         trendPercent: aggregates.trends.conversionRate,
       },
       {
-        metric: 'clicks',
-        label: 'عدد النقرات',
+        metric: "clicks",
+        label: "عدد النقرات",
         value: aggregates.current.clicks,
         previousValue: aggregates.previous?.clicks ?? 0,
         trendPercent: aggregates.trends.clicks,
       },
       {
-        metric: 'impressions',
-        label: 'عدد مرات الظهور',
+        metric: "impressions",
+        label: "عدد مرات الظهور",
         value: aggregates.current.impressions,
         previousValue: aggregates.previous?.impressions ?? 0,
         trendPercent: aggregates.trends.impressions,
       },
       {
-        metric: 'spend',
-        label: 'إجمالي الإنفاق',
+        metric: "spend",
+        label: "إجمالي الإنفاق",
         value: aggregates.current.spend,
         previousValue: aggregates.previous?.spend ?? 0,
         trendPercent: aggregates.trends.spend,
@@ -1316,40 +1342,56 @@ export class PortalService {
   private generateDateRangeKeys(
     dateFrom: Date,
     dateTo: Date,
-    granularity: 'day' | 'week' | 'month',
+    granularity: "day" | "week" | "month",
   ): string[] {
     const keys: string[] = [];
 
     switch (granularity) {
-      case 'day': {
-        const cursor = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
-        const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+      case "day": {
+        const cursor = new Date(
+          dateFrom.getFullYear(),
+          dateFrom.getMonth(),
+          dateFrom.getDate(),
+        );
+        const end = new Date(
+          dateTo.getFullYear(),
+          dateTo.getMonth(),
+          dateTo.getDate(),
+        );
         while (cursor <= end) {
-          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
           keys.push(key);
           cursor.setDate(cursor.getDate() + 1);
         }
         break;
       }
-      case 'month': {
+      case "month": {
         const cursor = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 1);
         const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), 1);
         while (cursor <= end) {
           keys.push(
-            `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`,
+            `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`,
           );
           cursor.setMonth(cursor.getMonth() + 1);
         }
         break;
       }
-      case 'week':
+      case "week":
       default: {
-        const startOfWeek = new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate());
+        const startOfWeek = new Date(
+          dateFrom.getFullYear(),
+          dateFrom.getMonth(),
+          dateFrom.getDate(),
+        );
         startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-        const end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate());
+        const end = new Date(
+          dateTo.getFullYear(),
+          dateTo.getMonth(),
+          dateTo.getDate(),
+        );
         const cursor = new Date(startOfWeek);
         while (cursor <= end) {
-          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+          const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
           keys.push(key);
           cursor.setDate(cursor.getDate() + 7);
         }
@@ -1359,28 +1401,31 @@ export class PortalService {
     return keys;
   }
 
-  private formatTimelineLabel(key: string, granularity: 'day' | 'week' | 'month'): string {
+  private formatTimelineLabel(
+    key: string,
+    granularity: "day" | "week" | "month",
+  ): string {
     switch (granularity) {
-      case 'day': {
-        const [y, m, d] = key.split('-');
+      case "day": {
+        const [y, m, d] = key.split("-");
         const date = new Date(Number(y), Number(m) - 1, Number(d));
-        return new Intl.DateTimeFormat('ar-SA', {
-          day: 'numeric',
-          month: 'short',
+        return new Intl.DateTimeFormat("ar-SA", {
+          day: "numeric",
+          month: "short",
         }).format(date);
       }
-      case 'month': {
-        const [y, m] = key.split('-');
+      case "month": {
+        const [y, m] = key.split("-");
         const d = new Date(Number(y), Number(m) - 1, 1);
-        return new Intl.DateTimeFormat('ar-SA', { month: 'short' }).format(d);
+        return new Intl.DateTimeFormat("ar-SA", { month: "short" }).format(d);
       }
-      case 'week':
+      case "week":
       default: {
-        const [y, m, d] = key.split('-');
+        const [y, m, d] = key.split("-");
         const date = new Date(Number(y), Number(m) - 1, Number(d));
-        return new Intl.DateTimeFormat('ar-SA', {
-          day: 'numeric',
-          month: 'short',
+        return new Intl.DateTimeFormat("ar-SA", {
+          day: "numeric",
+          month: "short",
         }).format(date);
       }
     }
@@ -1397,7 +1442,7 @@ export class PortalService {
     clientId: string,
     dateFrom: Date,
     dateTo: Date,
-    granularity: 'day' | 'week' | 'month',
+    granularity: "day" | "week" | "month",
   ): Promise<any> {
     const campaigns = await this.prisma.campaign.findMany({
       where: { clientId },
@@ -1416,12 +1461,17 @@ export class PortalService {
         campaignId: { in: campaignIds },
         recordedAt: { gte: dateFrom, lte: dateTo },
       },
-      orderBy: { recordedAt: 'asc' },
+      orderBy: { recordedAt: "asc" },
     });
 
     const buckets: Record<
       string,
-      { impressions: number; clicks: number; conversions: number; spend: number }
+      {
+        impressions: number;
+        clicks: number;
+        conversions: number;
+        spend: number;
+      }
     > = {};
 
     for (const key of allKeys) {
@@ -1433,17 +1483,17 @@ export class PortalService {
       let key: string;
 
       switch (granularity) {
-        case 'day':
-          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        case "day":
+          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
           break;
-        case 'month':
-          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        case "month":
+          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
           break;
-        case 'week':
+        case "week":
         default:
           const weekStart = new Date(d);
           weekStart.setDate(d.getDate() - d.getDay());
-          key = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+          key = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
           break;
       }
 
@@ -1463,24 +1513,24 @@ export class PortalService {
       labels,
       datasets: [
         {
-          label: 'عدد مرات الظهور',
+          label: "عدد مرات الظهور",
           data: allKeys.map((k) => buckets[k].impressions),
-          metric: 'impressions',
+          metric: "impressions",
         },
         {
-          label: 'عدد النقرات',
+          label: "عدد النقرات",
           data: allKeys.map((k) => buckets[k].clicks),
-          metric: 'clicks',
+          metric: "clicks",
         },
         {
-          label: 'عدد التحويلات',
+          label: "عدد التحويلات",
           data: allKeys.map((k) => buckets[k].conversions),
-          metric: 'conversions',
+          metric: "conversions",
         },
         {
-          label: 'إجمالي الإنفاق',
+          label: "إجمالي الإنفاق",
           data: allKeys.map((k) => buckets[k].spend),
-          metric: 'spend',
+          metric: "spend",
         },
       ],
     };
@@ -1530,16 +1580,16 @@ export class PortalService {
           campaignId: { in: campaignIds },
           recordedAt: { gte: dateFrom, lte: dateTo },
         },
-        orderBy: { recordedAt: 'desc' },
-        distinct: ['campaignId'],
+        orderBy: { recordedAt: "desc" },
+        distinct: ["campaignId"],
       }),
       this.prisma.campaignKpiSnapshot.findMany({
         where: {
           campaignId: { in: campaignIds },
           recordedAt: { gte: prevDateFrom, lte: prevDateTo },
         },
-        orderBy: { recordedAt: 'desc' },
-        distinct: ['campaignId'],
+        orderBy: { recordedAt: "desc" },
+        distinct: ["campaignId"],
       }),
     ]);
 
@@ -1596,7 +1646,7 @@ export class PortalService {
     clientId: string,
     dateFrom: Date,
     dateTo: Date,
-    sortBy: string = 'conversions',
+    sortBy: string = "conversions",
     limit: number = 10,
   ): Promise<any[]> {
     const campaigns = await this.prisma.campaign.findMany({
@@ -1647,13 +1697,13 @@ export class PortalService {
     }
 
     const validSortKeys = [
-      'impressions',
-      'clicks',
-      'conversions',
-      'spend',
-      'conversionRate',
+      "impressions",
+      "clicks",
+      "conversions",
+      "spend",
+      "conversionRate",
     ];
-    const sortKey = validSortKeys.includes(sortBy) ? sortBy : 'conversions';
+    const sortKey = validSortKeys.includes(sortBy) ? sortBy : "conversions";
 
     return Object.values(campaignMetrics)
       .sort((a: any, b: any) => (b[sortKey] > a[sortKey] ? 1 : -1))
@@ -1672,10 +1722,8 @@ export class PortalService {
 
     if (campaigns.length === 0) return [];
 
-    const byPlatform: Record<
-      string,
-      { campaignIds: string[]; spend: number }
-    > = {};
+    const byPlatform: Record<string, { campaignIds: string[]; spend: number }> =
+      {};
     for (const c of campaigns) {
       if (!byPlatform[c.platform]) {
         byPlatform[c.platform] = { campaignIds: [], spend: 0 };
@@ -1707,10 +1755,10 @@ export class PortalService {
     );
 
     const platformAr: Record<string, string> = {
-      GOOGLE: 'جوجل',
-      META: 'ميتا',
-      TIKTOK: 'تيكتوك',
-      SNAPCHAT: 'سناب شات',
+      GOOGLE: "جوجل",
+      META: "ميتا",
+      TIKTOK: "تيكتوك",
+      SNAPCHAT: "سناب شات",
     };
 
     return Object.entries(byPlatform)
@@ -1732,33 +1780,33 @@ export class PortalService {
 
     if (current.conversionRate > 5) {
       tips.push({
-        type: 'budget',
-        title: 'الميزانية',
-        description: 'زيادة الميزانية على ميتا بنسبة 20%',
+        type: "budget",
+        title: "الميزانية",
+        description: "زيادة الميزانية على ميتا بنسبة 20%",
       });
     }
 
     if (trends.conversionRate != null && trends.conversionRate < 0) {
       tips.push({
-        type: 'warning',
-        title: 'تنبيه',
-        description: 'تقليل الإنفاق على تيكتوك',
+        type: "warning",
+        title: "تنبيه",
+        description: "تقليل الإنفاق على تيكتوك",
       });
     }
 
     if (current.clicks < 100) {
       tips.push({
-        type: 'insight',
-        title: 'نصيحة',
-        description: 'الاستثمار أكثر في محتوى الفيديو',
+        type: "insight",
+        title: "نصيحة",
+        description: "الاستثمار أكثر في محتوى الفيديو",
       });
     }
 
     if (current.ctr < 1) {
       tips.push({
-        type: 'insight',
-        title: 'تحذير',
-        description: 'الاستثمار أكثر في محتوى الفيديو',
+        type: "insight",
+        title: "تحذير",
+        description: "الاستثمار أكثر في محتوى الفيديو",
       });
     }
 
@@ -1769,7 +1817,9 @@ export class PortalService {
     };
 
     return tips
-      .sort((a, b) => (priorityOrder[a.type] ?? 3) - (priorityOrder[b.type] ?? 3))
+      .sort(
+        (a, b) => (priorityOrder[a.type] ?? 3) - (priorityOrder[b.type] ?? 3),
+      )
       .slice(0, 4);
   }
 
@@ -1805,7 +1855,9 @@ export class PortalService {
 
     return projects.map((p) => ({
       ...p,
-      statusAr: PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ?? p.status,
+      statusAr:
+        PROJECT_STATUS_AR[p.status as keyof typeof PROJECT_STATUS_AR] ??
+        p.status,
       taskCount: p._count.tasks,
       deliverableCount: p._count.deliverables,
       _count: undefined,
@@ -1846,7 +1898,8 @@ export class PortalService {
 
     if (project.files && project.files.length > 0) {
       const fileKeys = project.files.map((f) => f.filePath);
-      const urlMap = await this.storageService.getMultiplePresignedUrls(fileKeys);
+      const urlMap =
+        await this.storageService.getMultiplePresignedUrls(fileKeys);
       project.files = project.files.map((f) => ({
         ...f,
         url: urlMap.get(f.filePath) || null,

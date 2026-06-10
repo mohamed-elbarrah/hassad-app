@@ -69,11 +69,7 @@ export function ClientFiltersBar({ filters, onChange }: ClientFiltersBarProps) {
 
       {/* Reset */}
       {hasActiveFilters && (
-        <ActionButton
-          variant="ghost"
-          size="sm"
-          onClick={handleReset}
-        >
+        <ActionButton variant="ghost" size="sm" onClick={handleReset}>
           مسح الفلاتر
         </ActionButton>
       )}

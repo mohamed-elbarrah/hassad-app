@@ -17,10 +17,7 @@ import {
   FormMessage,
 } from "@/components/design-system/Form";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import {
-  Select,
-  SelectItem,
-} from "@/components/design-system/Select";
+import { Select, SelectItem } from "@/components/design-system/Select";
 import { useCreateTaskMutation } from "@/features/tasks/tasksApi";
 import { useSearchTaskAssigneesQuery } from "@/features/users/usersApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
@@ -89,10 +86,11 @@ export function TaskForm({ projectId }: TaskFormProps) {
     setAssigneeSearch("");
   }, [watchedDept, form]);
 
-  const { data: usersData, isFetching: usersLoading } = useSearchTaskAssigneesQuery(
-    { dept: watchedDept, search: assigneeSearch, limit: 20 },
-    { skip: !open || !watchedDept },
-  );
+  const { data: usersData, isFetching: usersLoading } =
+    useSearchTaskAssigneesQuery(
+      { dept: watchedDept, search: assigneeSearch, limit: 20 },
+      { skip: !open || !watchedDept },
+    );
 
   const assigneeOptions =
     usersData?.items.map((u) => ({
@@ -127,7 +125,11 @@ export function TaskForm({ projectId }: TaskFormProps) {
       title="إنشاء مهمة جديدة"
       contentClassName="sm:max-w-md"
     >
-      <ActionButton size="sm" onClick={() => setOpen(true)} icon={<Plus className="size-4" />}>
+      <ActionButton
+        size="sm"
+        onClick={() => setOpen(true)}
+        icon={<Plus className="size-4" />}
+      >
         مهمة جديدة
       </ActionButton>
 
@@ -140,7 +142,10 @@ export function TaskForm({ projectId }: TaskFormProps) {
               <FormItem>
                 <FormLabel>عنوان المهمة</FormLabel>
                 <FormControl>
-                  <FormInputControl placeholder="أدخل عنوان المهمة" {...field} />
+                  <FormInputControl
+                    placeholder="أدخل عنوان المهمة"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -160,7 +165,9 @@ export function TaskForm({ projectId }: TaskFormProps) {
                     placeholder="اختر القسم"
                   >
                     {Object.values(TaskDepartment).map((d) => (
-                      <SelectItem key={d} value={d}>{DEPT_LABELS[d]}</SelectItem>
+                      <SelectItem key={d} value={d}>
+                        {DEPT_LABELS[d]}
+                      </SelectItem>
                     ))}
                   </Select>
                   <FormMessage />
@@ -180,7 +187,9 @@ export function TaskForm({ projectId }: TaskFormProps) {
                     placeholder="عادي"
                   >
                     {Object.values(TaskPriority).map((p) => (
-                      <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
+                      <SelectItem key={p} value={p}>
+                        {PRIORITY_LABELS[p]}
+                      </SelectItem>
                     ))}
                   </Select>
                   <FormMessage />

@@ -1,10 +1,10 @@
+import { PipeTransform, Injectable, BadRequestException } from "@nestjs/common";
 import {
-  PipeTransform,
-  Injectable,
-  BadRequestException,
-} from '@nestjs/common';
-import { StorageCategory, STORAGE_CONFIG, EXTENSION_MIME_MAP } from './storage.constants';
-import { extname } from 'path';
+  StorageCategory,
+  STORAGE_CONFIG,
+  EXTENSION_MIME_MAP,
+} from "./storage.constants";
+import { extname } from "path";
 
 export interface FileValidationOptions {
   category: StorageCategory;
@@ -18,12 +18,13 @@ export class FileValidationPipe implements PipeTransform {
 
   transform(file: Express.Multer.File | undefined): Express.Multer.File {
     if (!file) {
-      throw new BadRequestException('File is required');
+      throw new BadRequestException("File is required");
     }
 
     const config = STORAGE_CONFIG[this.options.category];
     const maxSize = this.options.maxFileSize ?? config.maxFileSize;
-    const allowedTypes = this.options.allowedMimeTypes ?? config.allowedMimeTypes;
+    const allowedTypes =
+      this.options.allowedMimeTypes ?? config.allowedMimeTypes;
 
     if (file.size > maxSize) {
       throw new BadRequestException(
@@ -35,9 +36,12 @@ export class FileValidationPipe implements PipeTransform {
     const declaredMime = file.mimetype;
     const expectedMime = EXTENSION_MIME_MAP[ext];
 
-    if (!allowedTypes.includes(declaredMime) && (!expectedMime || !allowedTypes.includes(expectedMime))) {
+    if (
+      !allowedTypes.includes(declaredMime) &&
+      (!expectedMime || !allowedTypes.includes(expectedMime))
+    ) {
       throw new BadRequestException(
-        `File type "${declaredMime}" is not allowed. Allowed types: ${allowedTypes.join(', ')}`,
+        `File type "${declaredMime}" is not allowed. Allowed types: ${allowedTypes.join(", ")}`,
       );
     }
 

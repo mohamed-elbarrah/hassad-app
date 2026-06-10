@@ -1,15 +1,15 @@
 "use client";
 
-import { 
+import {
   CampaignPlatform as Platform,
   CampaignStatus,
   TaskStatus,
-  Campaign as SharedCampaign
+  Campaign as SharedCampaign,
 } from "@hassad/shared";
 
 export type { Platform };
 
-export interface Campaign extends Omit<SharedCampaign, 'status' | 'platform'> {
+export interface Campaign extends Omit<SharedCampaign, "status" | "platform"> {
   platform: Platform;
   status: string;
   budgetTotal: number;
@@ -23,7 +23,6 @@ export interface Campaign extends Omit<SharedCampaign, 'status' | 'platform'> {
   startDate: string | Date;
   endDate?: string | Date | null;
 }
-
 
 export interface MarketingTask {
   id: string;
@@ -48,7 +47,8 @@ export const MOCK_MARKETING_DATA: MarketingTask[] = [
     client: "مطعم ريف العرب",
     project: "التسويق الرقمي Q1",
     dueDate: "2024-04-10",
-    description: "إعداد وإدارة الحملات الإعلانية لمنصة سناب شات وجوجل للترويج لعروض رمضان.",
+    description:
+      "إعداد وإدارة الحملات الإعلانية لمنصة سناب شات وجوجل للترويج لعروض رمضان.",
     campaigns: [
       {
         id: "cmp1",
@@ -77,8 +77,8 @@ export const MOCK_MARKETING_DATA: MarketingTask[] = [
         revenue: 2000,
         needsOptimization: true,
         startDate: "2024-03-05",
-      }
-    ]
+      },
+    ],
   },
   {
     id: "t2",
@@ -89,8 +89,9 @@ export const MOCK_MARKETING_DATA: MarketingTask[] = [
     client: "شركة أبعاد",
     project: "تطوير العلامة التجارية",
     dueDate: "2024-05-15",
-    description: "إعداد حملات توعوية للهوية البصرية الجديدة عبر منصات التواصل الاجتماعي.",
-    campaigns: []
+    description:
+      "إعداد حملات توعوية للهوية البصرية الجديدة عبر منصات التواصل الاجتماعي.",
+    campaigns: [],
   },
   {
     id: "t3",
@@ -116,10 +117,9 @@ export const MOCK_MARKETING_DATA: MarketingTask[] = [
         revenue: 500,
         needsOptimization: true,
         startDate: "2024-02-15",
-      }
-    ]
-  }
-
+      },
+    ],
+  },
 ];
 
 // Analytics Logic
@@ -132,7 +132,6 @@ export const computeMetrics = (c: Campaign) => {
   const profit = (c.revenue || 0) - c.budgetSpent;
   const cpm = c.impressions > 0 ? (c.budgetSpent / c.impressions) * 1000 : 0;
 
-
   return {
     cpc: cpc.toFixed(2),
     cpa: cpa.toFixed(2),
@@ -144,20 +143,26 @@ export const computeMetrics = (c: Campaign) => {
   };
 };
 
-
 export const getAggregatedMetrics = (tasks: MarketingTask[]) => {
-  const allCampaigns = tasks.flatMap(t => t.campaigns);
-  const totalBudgetUsed = allCampaigns.reduce((acc, c) => acc + c.budgetSpent, 0);
+  const allCampaigns = tasks.flatMap((t) => t.campaigns);
+  const totalBudgetUsed = allCampaigns.reduce(
+    (acc, c) => acc + c.budgetSpent,
+    0,
+  );
   const totalRevenue = allCampaigns.reduce((acc, c) => acc + c.revenue, 0);
-  const totalConversions = allCampaigns.reduce((acc, c) => acc + c.conversions, 0);
-  
+  const totalConversions = allCampaigns.reduce(
+    (acc, c) => acc + c.conversions,
+    0,
+  );
+
   const avgRoas = totalBudgetUsed > 0 ? totalRevenue / totalBudgetUsed : 0;
-  
+
   return {
-    totalActiveTasks: tasks.filter(t => t.status !== "DONE").length,
-    totalActiveCampaigns: allCampaigns.filter(c => c.status === "ACTIVE").length,
+    totalActiveTasks: tasks.filter((t) => t.status !== "DONE").length,
+    totalActiveCampaigns: allCampaigns.filter((c) => c.status === "ACTIVE")
+      .length,
     totalBudgetUsed,
     avgRoas: avgRoas.toFixed(2),
-    totalConversions
+    totalConversions,
   };
 };

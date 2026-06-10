@@ -11,7 +11,13 @@ export interface QuickLinkCardProps {
   className?: string;
 }
 
-export function QuickLinkCard({ href, title, description, icon: Icon, className }: QuickLinkCardProps) {
+export function QuickLinkCard({
+  href,
+  title,
+  description,
+  icon: Icon,
+  className,
+}: QuickLinkCardProps) {
   return (
     <Link
       href={href}
@@ -26,7 +32,9 @@ export function QuickLinkCard({ href, title, description, icon: Icon, className 
       </div>
       <div>
         <h3 className="font-medium text-natural-100">{title}</h3>
-        {description && <p className="text-sm text-neutral-300">{description}</p>}
+        {description && (
+          <p className="text-sm text-neutral-300">{description}</p>
+        )}
       </div>
     </Link>
   );

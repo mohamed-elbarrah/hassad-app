@@ -17,10 +17,21 @@ const IMAGE_EXTENSIONS = new Set([
 ]);
 
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "m4v", "avi"]);
-const DOCUMENT_EXTENSIONS = new Set(["doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt"]);
+const DOCUMENT_EXTENSIONS = new Set([
+  "doc",
+  "docx",
+  "ppt",
+  "pptx",
+  "xls",
+  "xlsx",
+  "txt",
+]);
 const ARCHIVE_EXTENSIONS = new Set(["zip", "rar", "7z"]);
 
-export function buildPortalFileUrl(filePath: string, url?: string | null): string {
+export function buildPortalFileUrl(
+  filePath: string,
+  url?: string | null,
+): string {
   if (url) {
     return url;
   }

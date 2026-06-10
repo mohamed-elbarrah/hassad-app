@@ -153,8 +153,10 @@ export const contractsApi = createApi({
         formData.append("requestId", input.requestId);
         formData.append("title", input.title);
         formData.append("type", input.type);
-        if (input.monthlyValue !== undefined) formData.append("monthlyValue", String(input.monthlyValue));
-        if (input.totalValue !== undefined) formData.append("totalValue", String(input.totalValue));
+        if (input.monthlyValue !== undefined)
+          formData.append("monthlyValue", String(input.monthlyValue));
+        if (input.totalValue !== undefined)
+          formData.append("totalValue", String(input.totalValue));
         if (input.startDate) formData.append("startDate", input.startDate);
         if (input.endDate) formData.append("endDate", input.endDate);
         formData.append("file", input.file, input.file.name);

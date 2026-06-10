@@ -9,5 +9,12 @@ export default function PmError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard/pm" backLabel="العودة للوحة المشاريع" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/dashboard/pm"
+      backLabel="العودة للوحة المشاريع"
+    />
+  );
 }

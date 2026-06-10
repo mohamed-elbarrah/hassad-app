@@ -6,12 +6,12 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
-} from 'class-validator';
+} from "class-validator";
 
 export enum ReportGranularity {
-  DAY = 'day',
-  WEEK = 'week',
-  MONTH = 'month',
+  DAY = "day",
+  WEEK = "week",
+  MONTH = "month",
 }
 
 export class ReportTimelineQueryDto {
@@ -25,7 +25,7 @@ export class ReportTimelineQueryDto {
 
   @IsOptional()
   @IsEnum(ReportGranularity)
-  granularity?: 'day' | 'week' | 'month';
+  granularity?: "day" | "week" | "month";
 }
 
 export class ReportKpiCardDto {
@@ -37,7 +37,7 @@ export class ReportKpiCardDto {
 }
 
 export class ReportSmartTipDto {
-  type!: 'budget' | 'warning' | 'insight';
+  type!: "budget" | "warning" | "insight";
   title!: string;
   description!: string;
 }

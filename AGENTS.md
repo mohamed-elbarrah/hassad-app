@@ -2,12 +2,12 @@
 
 ## Read first
 
-| File | What it covers |
-|---|---|
-| `ROADMAP.md` | Full 7-phase improvement plan. Check this before making any change — your task may be part of a phase. |
-| `.agent/NESTJS_API_V2.md` | Full API spec: module structure, all endpoints, permission keys, workflow rules. |
-| `.agent/DATA_BASE_V2.md` | Prisma schema spec. **Stale** — actual schema has 50 models with payments, payroll, ledger, and bank accounts not in this doc. |
-| `.agent/PROBLEM_SOLVING.md` | Required debugging protocol and commit message format. |
+| File                        | What it covers                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `ROADMAP.md`                | Full 7-phase improvement plan. Check this before making any change — your task may be part of a phase.                         |
+| `.agent/NESTJS_API_V2.md`   | Full API spec: module structure, all endpoints, permission keys, workflow rules.                                               |
+| `.agent/DATA_BASE_V2.md`    | Prisma schema spec. **Stale** — actual schema has 50 models with payments, payroll, ledger, and bank accounts not in this doc. |
+| `.agent/PROBLEM_SOLVING.md` | Required debugging protocol and commit message format.                                                                         |
 
 Always read the relevant `.agent/` spec before touching API or DB code. Validate spec claims against actual code — some endpoints/paths/methods differ.
 
@@ -25,6 +25,7 @@ Always read the relevant `.agent/` spec before touching API or DB code. Validate
 ## Essential commands
 
 ### Monorepo root
+
 ```bash
 npx turbo dev            # start both api (port 3001) and web (port 3000)
 turbo build              # build everything (shared → api/web)
@@ -32,6 +33,7 @@ npm run format           # prettier --write "**/*.{ts,tsx,md}"
 ```
 
 ### Scoped via Turbo
+
 ```bash
 npx turbo run dev --filter=api
 npx turbo run dev --filter=web
@@ -39,6 +41,7 @@ npx turbo run build --filter=shared
 ```
 
 ### Database (run from `apps/api`)
+
 ```bash
 docker compose up -d postgres          # start PostgreSQL 17
 npx prisma db push --skip-generate     # sync schema — use this, NOT migrate dev
@@ -49,10 +52,12 @@ npx prisma db seed                     # seed dev data (ts-node, see below)
 **Never run `prisma migrate dev`** — migration drift exists; `db push` is the correct workflow.
 
 ### Shared package
+
 ```bash
 npm run build   # tsc → dist/  (must be built before api or web)
 npm run watch   # tsc -w
 ```
+
 Both apps have `predev`/`prebuild` scripts that build shared automatically. When working on shared in isolation, build it explicitly first.
 
 ---
@@ -62,6 +67,7 @@ Both apps have `predev`/`prebuild` scripts that build shared automatically. When
 Copy `.env.example` → `.env` in `apps/api` and `apps/web`.
 
 **`apps/api/.env` required vars:**
+
 ```
 DATABASE_URL=postgresql://hassad:hassad_dev_password@localhost:5432/hassad
 JWT_SECRET=<random>
@@ -69,6 +75,7 @@ JWT_REFRESH_SECRET=<random>
 ```
 
 **`apps/web/.env.local` required vars:**
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3001/v1
 ```
@@ -89,12 +96,14 @@ features/       Feature planning markdown docs
 ```
 
 ### API internals (`apps/api/src/`)
+
 - `main.ts` — bootstrap: global `/v1` prefix, cookie-parser, CORS, `ValidationPipe(whitelist:true, forbidNonWhitelisted:true)`
 - `app.module.ts` — wires all 14 modules
 - `common/` — global `ResponseInterceptor`, `HttpExceptionFilter`, `PermissionsGuard`, decorators
 - `modules/` — grouped: `core/`, `crm/`, `proposals/`, `contracts/`, `projects/`, `tasks/`, `portal/`, `marketing/`, `finance/`, `chat/`, `notifications/`, `ai/`, `sales/`
 
 ### Web internals (`apps/web/`)
+
 - `app/(dashboard)/` — auth-protected; sub-routes per role: `sales/`, `pm/`, `employee/`, `marketing/`, `accountant/`, `admin/`
 - `app/(portal)/` — client portal
 - `app/contract/[token]` and `app/proposal/[token]` — public token-based share pages
@@ -117,9 +126,11 @@ features/       Feature planning markdown docs
 ## API response envelope
 
 All responses are wrapped:
+
 ```json
 { "success": true, "data": <payload>, "error": null }
 ```
+
 `baseQuery.ts` unwraps this — RTK Query slices receive the inner `data` directly. Do not double-unwrap.
 
 ---
@@ -130,7 +141,7 @@ All responses are wrapped:
 - **State machines are server-side** — invalid transitions return 400. Lead stages, task statuses (TODO→IN_PROGRESS→IN_REVIEW→DONE with REVISION loop), contract statuses, deliverable statuses.
 - **Every state change writes a history row** — `lead_pipeline_history`, `task_status_history`, `client_history_log`.
 - **Multi-table operations** must use `prisma.$transaction()`.
-- **Notifications** are written *after* the core transaction commits; a notification failure must never roll back business data.
+- **Notifications** are written _after_ the core transaction commits; a notification failure must never roll back business data.
 - Every business event creates two rows: one in `notification_events` and one in `notifications`.
 
 ---

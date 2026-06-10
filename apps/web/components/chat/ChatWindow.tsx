@@ -11,7 +11,11 @@ interface ChatWindowProps {
   typingUser?: { userId: string; userName: string } | null;
 }
 
-export function ChatWindow({ messages, isLoading, typingUser }: ChatWindowProps) {
+export function ChatWindow({
+  messages,
+  isLoading,
+  typingUser,
+}: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

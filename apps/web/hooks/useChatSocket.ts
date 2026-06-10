@@ -48,7 +48,13 @@ export function useChatSocket(conversationId?: string) {
   );
 
   const onUserTyping = useCallback(
-    (handler: (data: { conversationId: string; userId: string; userName: string }) => void) => {
+    (
+      handler: (data: {
+        conversationId: string;
+        userId: string;
+        userName: string;
+      }) => void,
+    ) => {
       socket?.on("userTyping", handler);
       return () => {
         socket?.off("userTyping", handler);

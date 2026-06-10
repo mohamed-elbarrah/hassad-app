@@ -8,12 +8,7 @@ import {
 } from "@/features/finance/financeApi";
 import { Dialog } from "./Dialog";
 import { ActionButton } from "./ActionButton";
-import {
-  CreditCard,
-  Landmark,
-  Loader2,
-  ChevronRight,
-} from "lucide-react";
+import { CreditCard, Landmark, Loader2, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface PaymentModalProps {
@@ -65,9 +60,7 @@ export function PaymentModal({
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={<>
-        دفع الفاتورة {invoice.invoiceNumber}
-      </>}
+      title={<>دفع الفاتورة {invoice.invoiceNumber}</>}
       description="اختر وسيلة الدفع المفضلة لديك"
       footer={footer}
       contentClassName="sm:max-w-[425px]"

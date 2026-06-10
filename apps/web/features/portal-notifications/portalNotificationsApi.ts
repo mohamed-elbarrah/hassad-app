@@ -34,7 +34,10 @@ export const portalNotificationsApi = createApi({
   refetchOnFocus: true,
   refetchOnReconnect: true,
   endpoints: (builder) => ({
-    getMyNotifications: builder.query<PaginatedNotifications, GetNotificationsParams>({
+    getMyNotifications: builder.query<
+      PaginatedNotifications,
+      GetNotificationsParams
+    >({
       query: ({ page = 1, limit = 20, isRead } = {}) => {
         const params = new URLSearchParams({
           page: String(page),

@@ -4,8 +4,10 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 
-export interface FormInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
+export interface FormInputProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "size"
+> {
   label?: string;
   icon?: React.ReactNode;
   showPasswordToggle?: boolean;
@@ -82,9 +84,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
             </button>
           )}
         </div>
-        {error && (
-          <p className="text-xs text-danger-500 text-right">{error}</p>
-        )}
+        {error && <p className="text-xs text-danger-500 text-right">{error}</p>}
       </div>
     );
   },

@@ -1,7 +1,4 @@
-import {
-  Pill,
-  type PillTone,
-} from "@/components/design-system/Pill";
+import { Pill, type PillTone } from "@/components/design-system/Pill";
 import { cn } from "@/lib/utils";
 
 interface MetricCardProps {
@@ -35,11 +32,7 @@ export function MetricCard({
           {value}
         </p>
 
-        {pillText ? (
-          <Pill tone={pillTone}>{pillText}</Pill>
-        ) : (
-          <span />
-        )}
+        {pillText ? <Pill tone={pillTone}>{pillText}</Pill> : <span />}
       </div>
     </div>
   );

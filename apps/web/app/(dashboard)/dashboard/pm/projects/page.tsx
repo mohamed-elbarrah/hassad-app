@@ -34,15 +34,18 @@ export default function ProjectsPage() {
   );
   const [view, setView] = useState<"kanban" | "cards">("kanban");
 
-  const { data, isLoading, isError } = useGetProjectsQuery({
-    search: search || undefined,
-    status:
-      statusFilter === "all" ? undefined : (statusFilter as ProjectStatus),
-    projectManagerId: user?.role === "PM" ? user.id : undefined,
-    limit: 100,
-  }, {
-    skip: view !== "cards",
-  });
+  const { data, isLoading, isError } = useGetProjectsQuery(
+    {
+      search: search || undefined,
+      status:
+        statusFilter === "all" ? undefined : (statusFilter as ProjectStatus),
+      projectManagerId: user?.role === "PM" ? user.id : undefined,
+      limit: 100,
+    },
+    {
+      skip: view !== "cards",
+    },
+  );
 
   if (!user) return null;
 
@@ -108,9 +111,7 @@ export default function ProjectsPage() {
           projectManagerId={user.role === "PM" ? user.id : undefined}
           search={search || undefined}
           status={
-            statusFilter === "all"
-              ? undefined
-              : (statusFilter as ProjectStatus)
+            statusFilter === "all" ? undefined : (statusFilter as ProjectStatus)
           }
         />
       )}
@@ -144,9 +145,7 @@ export default function ProjectsPage() {
               ))}
             </div>
           )}
-          <p className="text-xs text-neutral-300">
-            إجمالي {data.total} مشروع
-          </p>
+          <p className="text-xs text-neutral-300">إجمالي {data.total} مشروع</p>
         </>
       )}
     </div>

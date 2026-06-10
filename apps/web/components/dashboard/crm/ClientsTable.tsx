@@ -24,6 +24,7 @@ import type { Client } from "@hassad/shared";
 import { ClientStatus } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pill } from "@/components/design-system/Pill";
+import { formatShortDate } from "@/lib/format";
 
 // ── Column helper ─────────────────────────────────────────────────────────────
 
@@ -37,7 +38,10 @@ const STATUS_LABELS: Record<ClientStatus, string> = {
   [ClientStatus.LEAD]: "عميل محتمل",
 };
 
-const STATUS_TONE: Record<ClientStatus, import("@/components/design-system/Pill").PillTone> = {
+const STATUS_TONE: Record<
+  ClientStatus,
+  import("@/components/design-system/Pill").PillTone
+> = {
   [ClientStatus.ACTIVE]: "success",
   [ClientStatus.STOPPED]: "danger",
   [ClientStatus.LEAD]: "purple",
@@ -75,7 +79,9 @@ export function ClientsTable({
         <div className="flex flex-col">
           <span className="font-medium text-sm">{info.getValue()}</span>
           {info.row.original.businessName && (
-            <span className="text-xs text-neutral-300">{info.row.original.businessName}</span>
+            <span className="text-xs text-neutral-300">
+              {info.row.original.businessName}
+            </span>
           )}
         </div>
       ),
@@ -89,14 +95,18 @@ export function ClientsTable({
       id: "phoneWhatsapp",
       header: "الجوّال / واتساب",
       cell: (info) => (
-        <span dir="ltr" className="font-mono text-sm">{info.getValue()}</span>
+        <span dir="ltr" className="font-mono text-sm">
+          {info.getValue()}
+        </span>
       ),
     }),
     columnHelper.accessor("email", {
       id: "email",
       header: "البريد الإلكتروني",
       cell: (info) => (
-        <span dir="ltr" className="font-mono text-sm">{info.getValue() || "—"}</span>
+        <span dir="ltr" className="font-mono text-sm">
+          {info.getValue() || "—"}
+        </span>
       ),
     }),
     columnHelper.accessor("status", {
@@ -114,13 +124,7 @@ export function ClientsTable({
     columnHelper.accessor("createdAt", {
       id: "createdAt",
       header: "تاريخ الإضافة",
-      cell: (info) =>
-        new Intl.DateTimeFormat("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          numberingSystem: "latn",
-        }).format(new Date(info.getValue())),
+      cell: (info) => formatShortDate(info.getValue()),
     }),
   ] as ColumnDef<Client, unknown>[];
 

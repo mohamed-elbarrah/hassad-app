@@ -6,8 +6,8 @@ import {
   IsOptional,
   IsBoolean,
   IsNumber,
-} from 'class-validator';
-import { TaskPriority, TaskDepartment, FilePurpose } from '@hassad/shared';
+} from "class-validator";
+import { TaskPriority, TaskDepartment, FilePurpose } from "@hassad/shared";
 
 export class CreateTaskDto {
   @IsUUID()

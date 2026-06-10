@@ -18,7 +18,10 @@ interface TimelineComponentProps {
   className?: string;
 }
 
-export function TimelineComponent({ items, className }: TimelineComponentProps) {
+export function TimelineComponent({
+  items,
+  className,
+}: TimelineComponentProps) {
   return (
     <div className={className}>
       {items.map((item, index) => {

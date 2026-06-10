@@ -9,5 +9,12 @@ export default function AccountantError({
   error: Error;
   reset: () => void;
 }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard/accountant" backLabel="العودة للوحة المحاسب" />;
+  return (
+    <ErrorFallback
+      error={error}
+      reset={reset}
+      backHref="/dashboard/accountant"
+      backLabel="العودة للوحة المحاسب"
+    />
+  );
 }

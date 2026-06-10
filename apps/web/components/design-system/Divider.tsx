@@ -6,8 +6,6 @@ interface DividerProps {
 
 export function Divider({ className }: DividerProps) {
   return (
-    <div
-      className={cn("border-t-[1.5px] border-portal-divider", className)}
-    />
+    <div className={cn("border-t-[1.5px] border-portal-divider", className)} />
   );
 }

@@ -50,7 +50,10 @@ export default function InvoicesPage() {
             <Skeleton className="h-10 w-36" />
           </div>
         </div>
-        <SurfaceCard className="border-none shadow-md" contentClassName="space-y-3">
+        <SurfaceCard
+          className="border-none shadow-md"
+          contentClassName="space-y-3"
+        >
           <Skeleton className="h-10 w-full" />
           {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
@@ -72,7 +75,10 @@ export default function InvoicesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <ActionButton variant="outline" icon={<Download className="w-4 h-4" />}>
+          <ActionButton
+            variant="outline"
+            icon={<Download className="w-4 h-4" />}
+          >
             تصدير الكل
           </ActionButton>
           <ActionButton variant="primary" icon={<Plus className="w-4 h-4" />}>
@@ -92,7 +98,11 @@ export default function InvoicesPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <ActionButton variant="outline" size="sm" icon={<Filter className="w-4 h-4" />}>
+              <ActionButton
+                variant="outline"
+                size="sm"
+                icon={<Filter className="w-4 h-4" />}
+              >
                 تصفية
               </ActionButton>
             </div>

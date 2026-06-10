@@ -27,11 +27,7 @@ export function PmCard({ name, role, status }: PmCardProps) {
             {role}
           </p>
         </div>
-        <UserAvatar
-          name={name}
-          size="xl"
-          className="shrink-0"
-        />
+        <UserAvatar name={name} size="xl" className="shrink-0" />
       </div>
 
       <ActionButton

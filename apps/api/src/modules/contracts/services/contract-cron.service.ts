@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { ContractStatus } from '@hassad/shared';
-import { NotificationsService } from '../../notifications/services/notifications.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { Cron } from "@nestjs/schedule";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { ContractStatus } from "@hassad/shared";
+import { NotificationsService } from "../../notifications/services/notifications.service";
 
 @Injectable()
 export class ContractCronService {
@@ -13,9 +13,9 @@ export class ContractCronService {
     private notificationsService: NotificationsService,
   ) {}
 
-  @Cron('0 8 * * *')
+  @Cron("0 8 * * *")
   async handleExpiringContracts() {
-    this.logger.log('Checking for expiring contracts...');
+    this.logger.log("Checking for expiring contracts...");
 
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
@@ -26,7 +26,14 @@ export class ContractCronService {
         endDate: { lte: sevenDaysFromNow, gte: new Date() },
       },
       include: {
-        client: { select: { id: true, companyName: true, accountManager: true, userId: true } },
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            accountManager: true,
+            userId: true,
+          },
+        },
       },
     });
 
@@ -43,21 +50,25 @@ export class ContractCronService {
       await this.prisma.contractRenewalAlert.create({
         data: {
           contractId: contract.id,
-          alertType: 'SEVEN_DAYS',
+          alertType: "SEVEN_DAYS",
           isSent: false,
           scheduledAt: new Date(),
         },
       });
 
-      const recipientIds = [contract.createdBy, contract.client.accountManager, contract.client.userId].filter(Boolean) as string[];
+      const recipientIds = [
+        contract.createdBy,
+        contract.client.accountManager,
+        contract.client.userId,
+      ].filter(Boolean) as string[];
       if (recipientIds.length > 0) {
         await this.notificationsService.notifyUsers({
           userIds: recipientIds,
-          title: 'عقد يقترب من الانتهاء',
+          title: "عقد يقترب من الانتهاء",
           message: `العقد "${contract.title}" مع ${contract.client.companyName} ينتهي خلال 7 أيام`,
           entityId: contract.id,
-          entityType: 'CONTRACT',
-          eventType: 'CONTRACT_EXPIRING',
+          entityType: "CONTRACT",
+          eventType: "CONTRACT_EXPIRING",
         });
       }
     }
@@ -68,7 +79,14 @@ export class ContractCronService {
         endDate: { lt: new Date() },
       },
       include: {
-        client: { select: { id: true, companyName: true, accountManager: true, userId: true } },
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            accountManager: true,
+            userId: true,
+          },
+        },
       },
     });
 
@@ -78,19 +96,25 @@ export class ContractCronService {
         data: { status: ContractStatus.EXPIRED },
       });
 
-      const recipientIds = [contract.createdBy, contract.client.accountManager, contract.client.userId].filter(Boolean) as string[];
+      const recipientIds = [
+        contract.createdBy,
+        contract.client.accountManager,
+        contract.client.userId,
+      ].filter(Boolean) as string[];
       if (recipientIds.length > 0) {
         await this.notificationsService.notifyUsers({
           userIds: recipientIds,
-          title: 'انتهى العقد',
+          title: "انتهى العقد",
           message: `انتهى العقد "${contract.title}" مع ${contract.client.companyName}. يرجى التواصل مع العميل للتجديد.`,
           entityId: contract.id,
-          entityType: 'CONTRACT',
-          eventType: 'CONTRACT_EXPIRED',
+          entityType: "CONTRACT",
+          eventType: "CONTRACT_EXPIRED",
         });
       }
     }
 
-    this.logger.log(`Processed ${expiringContracts.length} expiring and ${expiredContracts.length} expired contracts`);
+    this.logger.log(
+      `Processed ${expiringContracts.length} expiring and ${expiredContracts.length} expired contracts`,
+    );
   }
 }

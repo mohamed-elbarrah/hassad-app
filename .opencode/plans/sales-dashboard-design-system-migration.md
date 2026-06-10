@@ -4,11 +4,12 @@
 
 **Goal:** Replace every raw shadcn/ui primitive used in the sales dashboard (`dashboard/sales/*` + `dashboard/crm/*`) with the unified `@/components/design-system/*` wrapper layer, so the sales dashboard visually matches the client portal.
 
-**Architecture:** The `components/design-system/` directory already contains styled wrappers (renamed from `components/portal/`). We will import those wrappers into sales pages/components instead of `@/components/ui/*`. No new wrappers are created — all migration is done with existing `ActionButton`, `SurfaceCard`, `DataTable`, `Dialog`, `Form`, `Input`, `FormTextarea`, `Checkbox`, `Select`, `Skeleton`, `Pill`, `StatusBadge`, `Divider`, `PageIntro`, `IconCircle`, `InfoPanel`, `Popover`, `KpiPill`, `NotificationBell`, `UserAvatar`, `Toast` etc.  The Kanban keeps its color-coded columns but borders/padding/shadows are updated to DS tokens.
+**Architecture:** The `components/design-system/` directory already contains styled wrappers (renamed from `components/portal/`). We will import those wrappers into sales pages/components instead of `@/components/ui/*`. No new wrappers are created — all migration is done with existing `ActionButton`, `SurfaceCard`, `DataTable`, `Dialog`, `Form`, `Input`, `FormTextarea`, `Checkbox`, `Select`, `Skeleton`, `Pill`, `StatusBadge`, `Divider`, `PageIntro`, `IconCircle`, `InfoPanel`, `Popover`, `KpiPill`, `NotificationBell`, `UserAvatar`, `Toast` etc. The Kanban keeps its color-coded columns but borders/padding/shadows are updated to DS tokens.
 
 **Tech Stack:** Next.js 16, React 19, Tailwind CSS 4, shadcn/ui (wrappers), TypeScript, `cn()` from `@/lib/utils`, `zod`, `react-hook-form`.
 
 **Key Constraints:**
+
 - Do **not** touch `app/(dashboard)/layout.tsx` or `components/app-sidebar.tsx` — shell migration is out of scope.
 - Do **not** create new wrappers — only use existing `design-system/` components.
 - Kanban color-coded columns **must** be preserved (blue, violet, amber, etc.). Only borders/padding are updated.
@@ -22,26 +23,26 @@
 
 Files modified in this migration:
 
-| # | File | Type | Raw shadcn replaced |
-|---|---|---|---|
-| 1 | `app/(dashboard)/dashboard/sales/loading.tsx` | Page | `Skeleton` |
-| 2 | `app/(dashboard)/dashboard/sales/pipeline/page.tsx` | Page | `Button` |
-| 3 | `app/(dashboard)/dashboard/sales/proposals/page.tsx` | Page | loading/error divs |
-| 4 | `app/(dashboard)/dashboard/sales/contracts/page.tsx` | Page | loading/error divs |
-| 5 | `app/(dashboard)/dashboard/sales/requests/new/page.tsx` | Page | `Button`, `Input`, `Textarea`, `Checkbox`, `Form`, `Select` |
-| 6 | `app/(dashboard)/dashboard/sales/requests/[id]/page.tsx` | Page | `Badge`, `Card`, `Skeleton`, `Button` |
-| 7 | `app/(dashboard)/dashboard/sales/clients/[id]/page.tsx` | Page | `Skeleton`, `Button` |
-| 8 | `components/dashboard/sales/ContractsTable.tsx` | Component | `Button`, `Table` |
-| 9 | `components/dashboard/sales/ProposalsTable.tsx` | Component | `Button`, `Table` |
-| 10 | `components/dashboard/sales/CreateContractDialog.tsx` | Component | `Dialog`, `Form`, `Input`, `Select`, `Button`, `Badge`, `Skeleton` |
-| 11 | `components/dashboard/sales/ProposalFormDialog.tsx` | Component | `Dialog`, raw `<button>`, raw `<input>` (full restyle) |
-| 12 | `components/dashboard/crm/KanbanBoard.tsx` | Component | loading skeletons |
-| 13 | `components/dashboard/crm/KanbanColumn.tsx` | Component | border/padding re-skin |
-| 14 | `components/dashboard/crm/KanbanCard.tsx` | Component | border/padding re-skin |
-| 15 | `components/dashboard/crm/KanbanGroup.tsx` | Component | `Badge` |
-| 16 | `components/dashboard/crm/ClientInfoCard.tsx` | Component | `Card`, `Badge`, `Button` |
-| 17 | `components/dashboard/crm/ClientTimeline.tsx` | Component | `Card` |
-| 18 | `components/dashboard/crm/ClientsTable.tsx` | Component | `Table`, `Button`, `Badge` |
+| #   | File                                                     | Type      | Raw shadcn replaced                                                |
+| --- | -------------------------------------------------------- | --------- | ------------------------------------------------------------------ |
+| 1   | `app/(dashboard)/dashboard/sales/loading.tsx`            | Page      | `Skeleton`                                                         |
+| 2   | `app/(dashboard)/dashboard/sales/pipeline/page.tsx`      | Page      | `Button`                                                           |
+| 3   | `app/(dashboard)/dashboard/sales/proposals/page.tsx`     | Page      | loading/error divs                                                 |
+| 4   | `app/(dashboard)/dashboard/sales/contracts/page.tsx`     | Page      | loading/error divs                                                 |
+| 5   | `app/(dashboard)/dashboard/sales/requests/new/page.tsx`  | Page      | `Button`, `Input`, `Textarea`, `Checkbox`, `Form`, `Select`        |
+| 6   | `app/(dashboard)/dashboard/sales/requests/[id]/page.tsx` | Page      | `Badge`, `Card`, `Skeleton`, `Button`                              |
+| 7   | `app/(dashboard)/dashboard/sales/clients/[id]/page.tsx`  | Page      | `Skeleton`, `Button`                                               |
+| 8   | `components/dashboard/sales/ContractsTable.tsx`          | Component | `Button`, `Table`                                                  |
+| 9   | `components/dashboard/sales/ProposalsTable.tsx`          | Component | `Button`, `Table`                                                  |
+| 10  | `components/dashboard/sales/CreateContractDialog.tsx`    | Component | `Dialog`, `Form`, `Input`, `Select`, `Button`, `Badge`, `Skeleton` |
+| 11  | `components/dashboard/sales/ProposalFormDialog.tsx`      | Component | `Dialog`, raw `<button>`, raw `<input>` (full restyle)             |
+| 12  | `components/dashboard/crm/KanbanBoard.tsx`               | Component | loading skeletons                                                  |
+| 13  | `components/dashboard/crm/KanbanColumn.tsx`              | Component | border/padding re-skin                                             |
+| 14  | `components/dashboard/crm/KanbanCard.tsx`                | Component | border/padding re-skin                                             |
+| 15  | `components/dashboard/crm/KanbanGroup.tsx`               | Component | `Badge`                                                            |
+| 16  | `components/dashboard/crm/ClientInfoCard.tsx`            | Component | `Card`, `Badge`, `Button`                                          |
+| 17  | `components/dashboard/crm/ClientTimeline.tsx`            | Component | `Card`                                                             |
+| 18  | `components/dashboard/crm/ClientsTable.tsx`              | Component | `Table`, `Button`, `Badge`                                         |
 
 ---
 
@@ -58,7 +59,11 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 // title, description?, icon?, action?, contentClassName
 
 // Tables
-import { DataTable, type DataTableColumn, type DataTableEmptyState } from "@/components/design-system/DataTable";
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableEmptyState,
+} from "@/components/design-system/DataTable";
 
 // Dialogs
 import { Dialog } from "@/components/design-system/Dialog";
@@ -66,7 +71,12 @@ import { Dialog } from "@/components/design-system/Dialog";
 
 // Forms
 import {
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/design-system/Form";
 import { FormInput } from "@/components/design-system/FormInput";
 // label?, placeholder?, type?, error?, icon?, dir?
@@ -102,24 +112,24 @@ import { PageIntro } from "@/components/design-system/PageIntro";
 
 ## Token Mapping Reference
 
-| Raw shadcn / Tailwind | Design-System Token |
-|---|---|
-| `bg-muted` / `bg-muted/30` | `bg-neutral-100/50` or `bg-badge-gray-bg` |
-| `bg-primary` | `bg-secondary-500` |
-| `text-primary-foreground` | `text-white` |
-| `bg-emerald-500` | `bg-success-500` |
-| `text-foreground` | `text-natural-100` |
-| `text-muted-foreground` | `text-portal-note-text` |
-| `border` | `border-[1.5px] border-portal-card-border` |
-| `rounded-md` | `rounded-xl` or `rounded-2xl` |
-| `rounded-lg` | `rounded-xl` |
-| `rounded-xl` | `rounded-2xl` or `rounded-[16px]` |
-| `shadow-sm` | remove (cards have no shadow in DS) |
-| `text-destructive` / `bg-destructive/10` | `text-danger-500` / `bg-danger-100` |
-| `text-muted-foreground/60` | `text-portal-note-text/60` |
-| `border-dashed` | keep `border-dashed` but change color to `border-portal-card-border` |
-| `bg-background` | `bg-natural-0` |
-| `hover:bg-muted` | `hover:bg-portal-bg` |
+| Raw shadcn / Tailwind                    | Design-System Token                                                  |
+| ---------------------------------------- | -------------------------------------------------------------------- |
+| `bg-muted` / `bg-muted/30`               | `bg-neutral-100/50` or `bg-badge-gray-bg`                            |
+| `bg-primary`                             | `bg-secondary-500`                                                   |
+| `text-primary-foreground`                | `text-white`                                                         |
+| `bg-emerald-500`                         | `bg-success-500`                                                     |
+| `text-foreground`                        | `text-natural-100`                                                   |
+| `text-muted-foreground`                  | `text-portal-note-text`                                              |
+| `border`                                 | `border-[1.5px] border-portal-card-border`                           |
+| `rounded-md`                             | `rounded-xl` or `rounded-2xl`                                        |
+| `rounded-lg`                             | `rounded-xl`                                                         |
+| `rounded-xl`                             | `rounded-2xl` or `rounded-[16px]`                                    |
+| `shadow-sm`                              | remove (cards have no shadow in DS)                                  |
+| `text-destructive` / `bg-destructive/10` | `text-danger-500` / `bg-danger-100`                                  |
+| `text-muted-foreground/60`               | `text-portal-note-text/60`                                           |
+| `border-dashed`                          | keep `border-dashed` but change color to `border-portal-card-border` |
+| `bg-background`                          | `bg-natural-0`                                                       |
+| `hover:bg-muted`                         | `hover:bg-portal-bg`                                                 |
 
 ---
 
@@ -141,6 +151,7 @@ import { Skeleton } from "@/components/design-system/Skeleton";
 - [ ] **Step 2: Adjust Skeleton class names**
 
 Current:
+
 ```tsx
 <Skeleton className="h-9 w-64" />
 ```
@@ -188,6 +199,7 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 - [ ] **Step 2: Update markup**
 
 Current:
+
 ```tsx
 <Button asChild variant="outline" size="sm">
   <Link href="/dashboard/sales/proposals">العروض الفنية</Link>
@@ -203,10 +215,18 @@ export default function PipelinePage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-3xl font-bold tracking-tight">لوحة خط المبيعات</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <ActionButton variant="outline" size="sm" href="/dashboard/sales/proposals">
+          <ActionButton
+            variant="outline"
+            size="sm"
+            href="/dashboard/sales/proposals"
+          >
             العروض الفنية
           </ActionButton>
-          <ActionButton variant="outline" size="sm" href="/dashboard/sales/contracts">
+          <ActionButton
+            variant="outline"
+            size="sm"
+            href="/dashboard/sales/contracts"
+          >
             العقود
           </ActionButton>
         </div>
@@ -242,48 +262,61 @@ import { StatusBanner } from "@/components/design-system/StatusBanner";
 - [ ] **Step 2: Replace loading spinner div**
 
 Current:
+
 ```tsx
-{isLoading && (
-  <div className="h-32 rounded-md border bg-muted/30 animate-pulse" />
-)}
+{
+  isLoading && (
+    <div className="h-32 rounded-md border bg-muted/30 animate-pulse" />
+  );
+}
 ```
 
 Replace:
+
 ```tsx
-{isLoading && (
-  <div className="h-32 rounded-2xl border-[1.5px] border-portal-card-border bg-neutral-100/50 animate-pulse" />
-)}
+{
+  isLoading && (
+    <div className="h-32 rounded-2xl border-[1.5px] border-portal-card-border bg-neutral-100/50 animate-pulse" />
+  );
+}
 ```
 
 Or better, use a skeleton stack:
+
 ```tsx
-{isLoading && (
-  <div className="space-y-3">
-    <Skeleton className="h-8 w-48" />
-    <Skeleton className="h-20 w-full" />
-    <Skeleton className="h-20 w-full" />
-  </div>
-)}
+{
+  isLoading && (
+    <div className="space-y-3">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-20 w-full" />
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 3: Replace error div**
 
 Current:
+
 ```tsx
-{isError && (
-  <div className="rounded-md border p-4 text-sm text-destructive">
-    {resolveProposalError(error)}
-  </div>
-)}
+{
+  isError && (
+    <div className="rounded-md border p-4 text-sm text-destructive">
+      {resolveProposalError(error)}
+    </div>
+  );
+}
 ```
 
 Replace with `StatusBanner` (danger variant):
+
 ```tsx
-{isError && (
-  <StatusBanner variant="danger">
-    {resolveProposalError(error)}
-  </StatusBanner>
-)}
+{
+  isError && (
+    <StatusBanner variant="danger">{resolveProposalError(error)}</StatusBanner>
+  );
+}
 ```
 
 Note: The DS `StatusBanner` does not accept string children directly in the current API. Let’s check its props: it takes `variant`, `title?`, `children?`, `className?`, `icon?`. We can pass the message as children.
@@ -308,21 +341,23 @@ import { StatusBanner } from "@/components/design-system/StatusBanner";
 - [ ] **Step 2: Replace loading div**
 
 ```tsx
-{isLoading && (
-  <div className="space-y-3">
-    <Skeleton className="h-8 w-48" />
-    <Skeleton className="h-20 w-full" />
-    <Skeleton className="h-20 w-full" />
-  </div>
-)}
+{
+  isLoading && (
+    <div className="space-y-3">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-20 w-full" />
+      <Skeleton className="h-20 w-full" />
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 3: Replace error div**
 
 ```tsx
-{isError && (
-  <StatusBanner variant="danger">فشل تحميل العقود.</StatusBanner>
-)}
+{
+  isError && <StatusBanner variant="danger">فشل تحميل العقود.</StatusBanner>;
+}
 ```
 
 - [ ] **Step 4: Build verification**
@@ -338,14 +373,21 @@ import { StatusBanner } from "@/components/design-system/StatusBanner";
 - [ ] **Step 1: Import replacements**
 
 Remove:
+
 ```tsx
 import { Button } from "@/components/ui/button";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 ```
 
 Add:
+
 ```tsx
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
@@ -360,6 +402,7 @@ import {
 The current table has 5 columns: العميل, القيمة, الفترة, الحالة, إجراءات.
 
 Add at top of file:
+
 ```tsx
 const CONTRACT_COLUMNS: DataTableColumn[] = [
   { id: "client", label: "العميل", align: "right" },
@@ -406,13 +449,9 @@ function renderContractRow(contract: ContractListItem) {
     <TableRow key={contract.id}>
       <TableCell>{contract.client?.companyName ?? contract.clientId}</TableCell>
       <TableCell>{contract.totalValue.toLocaleString("en-US")}</TableCell>
-      <TableCell>
-        {/* period formatting */}
-      </TableCell>
+      <TableCell>{/* period formatting */}</TableCell>
       <TableCell>{STATUS_LABELS[contract.status]}</TableCell>
-      <TableCell className="text-left">
-        {/* action buttons */}
-      </TableCell>
+      <TableCell className="text-left">{/* action buttons */}</TableCell>
     </TableRow>
   );
 }
@@ -420,17 +459,18 @@ function renderContractRow(contract: ContractListItem) {
 
 But we need to import `TableRow` and `TableCell` for the `renderRow` function. The DS `DataTable` already imports `Table`, `TableBody`, `TableCell`, `TableHead`, `TableHeader`, `TableRow` from `@/components/ui/table` internally. In our consumer file, we need to import these for the `renderRow` JSX.
 
-However, the README says *"Never import `@/components/ui/*` in page files"*. For a table row render function, we need `TableRow` and `TableCell`. The DS does not export these. The cleanest solution is to import them from `@/components/ui/table` **only in this component file** because we need them to build the row markup that `DataTable` expects. This is structural, not styling.
+However, the README says _"Never import `@/components/ui/_`in page files"*. For a table row render function, we need`TableRow`and`TableCell`. The DS does not export these. The cleanest solution is to import them from `@/components/ui/table`**only in this component file** because we need them to build the row markup that`DataTable` expects. This is structural, not styling.
 
 Wait — actually `DataTable` renders `renderRow(row, idx)` as children of `TableBody`. The return value of `renderRow` must be a valid `ReactNode`, not necessarily a `<TableRow>`. Looking at the current `DataTable`:
 
 ```tsx
-{renderRow
-  ? data.map((row, idx) => renderRow(row, idx))
-  : (
-      <TableRow>...
-      </TableRow>
-    )}
+{
+  renderRow ? (
+    data.map((row, idx) => renderRow(row, idx))
+  ) : (
+    <TableRow>...</TableRow>
+  );
+}
 ```
 
 So `renderRow` must return a `<TableRow>` element. We need `TableRow` + `TableCell` imported in `ContractsTable.tsx`.
@@ -473,22 +513,41 @@ export function ContractsTable({ contracts }: ContractsTableProps) {
           </TableCell>
           <TableCell className="text-right">
             {new Intl.DateTimeFormat("en-GB", {
-              day: "2-digit", month: "short", year: "numeric", numberingSystem: "latn",
-            }).format(new Date(contract.startDate))}{" "}-{" "}
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              numberingSystem: "latn",
+            }).format(new Date(contract.startDate))}{" "}
+            -{" "}
             {new Intl.DateTimeFormat("en-GB", {
-              day: "2-digit", month: "short", year: "numeric", numberingSystem: "latn",
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              numberingSystem: "latn",
             }).format(new Date(contract.endDate))}
           </TableCell>
-          <TableCell className="text-right">{STATUS_LABELS[contract.status]}</TableCell>
+          <TableCell className="text-right">
+            {STATUS_LABELS[contract.status]}
+          </TableCell>
           <TableCell className="text-left">
             <div className="flex justify-end gap-2">
               {contract.status === ContractStatus.DRAFT && (
-                <ActionButton size="sm" variant="primary" onClick={() => handleSend(contract.id)} loading={sending}>
+                <ActionButton
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleSend(contract.id)}
+                  loading={sending}
+                >
                   إرسال
                 </ActionButton>
               )}
               {contract.status === ContractStatus.SENT && (
-                <ActionButton size="sm" variant="outline" onClick={() => handleSign(contract.id)} loading={signing}>
+                <ActionButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleSign(contract.id)}
+                  loading={signing}
+                >
                   توقيع
                 </ActionButton>
               )}
@@ -564,14 +623,23 @@ return (
       emptyState={PROPOSAL_EMPTY}
       renderRow={(proposal) => (
         <TableRow key={proposal.id}>
-          <TableCell className="text-right">{getProposalDisplayName(proposal)}</TableCell>
-          <TableCell className="text-right">{proposal.totalPrice.toLocaleString("en-US")}</TableCell>
+          <TableCell className="text-right">
+            {getProposalDisplayName(proposal)}
+          </TableCell>
+          <TableCell className="text-right">
+            {proposal.totalPrice.toLocaleString("en-US")}
+          </TableCell>
           <TableCell className="text-right">
             {new Intl.DateTimeFormat("en-GB", {
-              day: "2-digit", month: "short", year: "numeric", numberingSystem: "latn",
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              numberingSystem: "latn",
             }).format(new Date(proposal.createdAt))}
           </TableCell>
-          <TableCell className="text-right">{STATUS_LABELS[proposal.status]}</TableCell>
+          <TableCell className="text-right">
+            {STATUS_LABELS[proposal.status]}
+          </TableCell>
           <TableCell className="text-left">
             <div className="flex justify-end gap-2">
               {canEdit(proposal) && (
@@ -584,17 +652,33 @@ return (
                   <Pencil className="w-4 h-4" />
                 </ActionButton>
               )}
-              {proposal.status === ProposalStatus.APPROVED && onCreateContract ? (
-                <ActionButton size="sm" variant="primary" onClick={() => onCreateContract(proposal.id)}>
+              {proposal.status === ProposalStatus.APPROVED &&
+              onCreateContract ? (
+                <ActionButton
+                  size="sm"
+                  variant="primary"
+                  onClick={() => onCreateContract(proposal.id)}
+                >
                   <FileText className="w-4 h-4 ml-1" />
                   إنشاء عقد
                 </ActionButton>
-              ) : proposal.status === ProposalStatus.DRAFT || proposal.status === ProposalStatus.REVISION_REQUESTED ? (
-                <ActionButton size="sm" variant="primary" onClick={() => handleSend(proposal.id)} loading={isLoading}>
+              ) : proposal.status === ProposalStatus.DRAFT ||
+                proposal.status === ProposalStatus.REVISION_REQUESTED ? (
+                <ActionButton
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleSend(proposal.id)}
+                  loading={isLoading}
+                >
                   إرسال
                 </ActionButton>
               ) : (
-                <ActionButton size="sm" variant="outline" onClick={() => handleCopy(proposal.shareLinkToken)} disabled={!proposal.shareLinkToken}>
+                <ActionButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleCopy(proposal.shareLinkToken)}
+                  disabled={!proposal.shareLinkToken}
+                >
                   نسخ الرابط
                 </ActionButton>
               )}
@@ -631,6 +715,7 @@ Note: `isLoading` is from `[sendProposal, { isLoading }]` — rename if needed t
 This page uses: `Badge`, `Card`, `CardContent`, `CardHeader`, `CardTitle`, `Skeleton`, `Button` (from `components/ui`). Also `Badge` hardcoded status colors.
 
 We need to:
+
 1. Replace `Badge` with `Pill` for status labels (custom tones needed).
 2. Replace `Card` family with `SurfaceCard`.
 3. Replace `Skeleton` with DS `Skeleton`.
@@ -650,6 +735,7 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 - [ ] **Step 2: Define status pill mapping**
 
 The old page uses hardcoded shadcn classes for request status badges:
+
 ```
 bg-slate-100 text-slate-700, bg-blue-100 text-blue-700, etc.
 ```
@@ -674,6 +760,7 @@ const STATUS_PILL: Record<RequestStatus, PillTone> = {
 ```
 
 Import `PillTone` from `Pill.tsx`:
+
 ```tsx
 import type { PillTone } from "@/components/design-system/Pill";
 ```
@@ -681,15 +768,18 @@ import type { PillTone } from "@/components/design-system/Pill";
 - [ ] **Step 3: Replace `Badge` in `RelatedRecords` and inline status**
 
 In `RelatedRecords`:
+
 - Replace `<Badge variant="outline">{proposal.status}</Badge>` → `<Pill tone="neutral">{proposal.status}</Pill>`
 - Replace `<Badge variant="secondary">{project.status}</Badge>` → `<Pill tone="neutral">{project.status}</Pill>`
 
 Inline status on the page header:
+
 ```tsx
 <span className={cn("px-3 py-1 rounded-full text-xs font-semibold shrink-0", statusBadgeClass)}>
 ```
 
 Replace with `<Pill>`:
+
 ```tsx
 <Pill tone={STATUS_PILL[request.status] ?? "neutral"} className="shrink-0">
   {statusLabel}
@@ -697,11 +787,13 @@ Replace with `<Pill>`:
 ```
 
 Timeline badge spans:
+
 ```tsx
 <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", STATUS_BADGE[entry.toStatus] ?? "bg-muted text-muted-foreground")}>
 ```
 
 Replace with:
+
 ```tsx
 <Pill tone={STATUS_PILL[entry.toStatus] ?? "neutral"} className="text-[10px]">
   {STATUS_LABELS[entry.toStatus] ?? entry.toStatus}
@@ -709,6 +801,7 @@ Replace with:
 ```
 
 The timeline bullet dot `bg-slate-400` and `bg-primary` should stay semantic — `bg-primary` maps to `bg-secondary-500`. Change:
+
 ```tsx
 bg-slate-400 → bg-portal-note-text
 bg-primary → bg-secondary-500
@@ -719,13 +812,15 @@ bg-primary → bg-secondary-500
 The page has multiple `<Card>` sections. Replace each with `SurfaceCard`. `SurfaceCard` accepts `title`, `description?`, `icon?`, `action?`, `children`, `className`, `contentClassName`.
 
 Example for "بيانات التواصل":
+
 ```tsx
-<SurfaceCard
-  title="بيانات التواصل"
-  icon={User}
->
+<SurfaceCard title="بيانات التواصل" icon={User}>
   <div className="space-y-4">
-    <InfoRow icon={<User className="w-4 h-4" />} label="الاسم" value={request.contactName} />
+    <InfoRow
+      icon={<User className="w-4 h-4" />}
+      label="الاسم"
+      value={request.contactName}
+    />
     {/* ... */}
   </div>
 </SurfaceCard>
@@ -738,10 +833,13 @@ Note: `SurfaceCard` uses `rounded-[30px] border-[1.5px] border-portal-card-borde
 - [ ] **Step 5: Replace `Skeleton` with DS `Skeleton`**
 
 Change:
+
 ```tsx
 import { Skeleton } from "@/components/ui/skeleton";
 ```
+
 →
+
 ```tsx
 import { Skeleton } from "@/components/design-system/Skeleton";
 ```
@@ -751,13 +849,18 @@ The existing skeleton classes in `DetailSkeleton` remain the same (`h-8 w-8 roun
 - [ ] **Step 6: Replace back link button with `ActionButton`**
 
 Current:
+
 ```tsx
-<Link href="/dashboard/sales/pipeline" className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0">
+<Link
+  href="/dashboard/sales/pipeline"
+  className="p-1.5 rounded-md hover:bg-muted transition-colors shrink-0"
+>
   <ArrowRight className="w-5 h-5" />
 </Link>
 ```
 
 Replace with an icon-only `ActionButton`:
+
 ```tsx
 <ActionButton
   variant="ghost"
@@ -784,13 +887,21 @@ Wait — `ActionButton` doesn't have a `p-1` class in sizeStyles. The sizes are 
 ```
 
 Actually looking at `ActionButton` implementation, `iconPosition` defaults to "left". Let's just use:
+
 ```tsx
-<ActionButton variant="ghost" size="sm" href="/dashboard/sales/pipeline" icon={<ArrowRight className="w-5 h-5" />} className="shrink-0" />
+<ActionButton
+  variant="ghost"
+  size="sm"
+  href="/dashboard/sales/pipeline"
+  icon={<ArrowRight className="w-5 h-5" />}
+  className="shrink-0"
+/>
 ```
 
 - [ ] **Step 7: Replace `text-muted-foreground` → `text-portal-note-text`**
 
 Global search-replace within this file:
+
 - `text-muted-foreground` → `text-portal-note-text`
 - `border-muted` → `border-portal-divider`
 - `border-background` → `border-natural-0`
@@ -819,6 +930,7 @@ All map directly to existing DS wrappers.
 - [ ] **Step 1: Replace imports**
 
 Remove:
+
 ```tsx
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -833,11 +945,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 ```
 
 Add:
+
 ```tsx
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
@@ -861,13 +978,16 @@ However, the page uses `FormField` from `react-hook-form` with `render={({ field
 We can replace the entire `FormField` + `FormItem` + `FormLabel` + `FormControl` + `<Input>` + `FormMessage` block with a single `<FormField>` that returns `<FormInput>`.
 
 Example current block:
+
 ```tsx
 <FormField
   control={form.control}
   name="contactName"
   render={({ field, fieldState }) => (
     <FormItem>
-      <FormLabel>الاسم الكامل <span className="text-danger-500">*</span></FormLabel>
+      <FormLabel>
+        الاسم الكامل <span className="text-danger-500">*</span>
+      </FormLabel>
       <FormControl>
         <Input placeholder="مثال: أحمد محمد العمري" autoFocus {...field} />
       </FormControl>
@@ -878,6 +998,7 @@ Example current block:
 ```
 
 Replace with:
+
 ```tsx
 <FormField
   control={form.control}
@@ -905,6 +1026,7 @@ Read `FormInput.tsx`:
 I need to know if `FormInput` wraps itself in `<FormItem>`. Let me assume it does since it's a form field wrapper. Then using it inside `FormField` would indeed double-wrap. The correct pattern for the DS `FormInput` is to NOT wrap it in `FormField` — instead pass `name` and `control`? But `FormInput` likely doesn't take `control`/`name`.
 
 Looking at the portal `new-order/page.tsx` pattern, it does EXACTLY what we want:
+
 ```tsx
 <FormField
   control={form.control}
@@ -927,6 +1049,7 @@ For the `Select` inside form, the DS `Select` already has `label` and `error` pr
 So for selects, we keep the `FormField` + `FormItem` + `FormLabel` + `FormControl` wrapper and just swap the inner `<Select>` to DS `Select`.
 
 Wait, let me read the portal new-order page to see how it handles Select inside FormField. I already read that file. It does:
+
 ```tsx
 <FormField
   control={form.control}
@@ -948,6 +1071,7 @@ Wait, let me read the portal new-order page to see how it handles Select inside 
 The DS `Select` includes its own `<label>` and wraps in `<div className="space-y-2">`. So it does NOT need `FormItem` / `FormLabel` / `FormControl` inside `FormField`. We just put `Select` directly inside `FormField` render.
 
 For `Checkbox` inside multi-select services, the portal page uses:
+
 ```tsx
 <FormField
   control={form.control}
@@ -978,6 +1102,7 @@ So we keep the `FormItem` / `FormLabel` / `FormControl` wrapper for the checkbox
 - [ ] **Step 2: Update stepper styling**
 
 Current stepper uses:
+
 ```tsx
 bg-primary text-primary-foreground
 bg-emerald-500 text-white
@@ -985,6 +1110,7 @@ bg-muted text-muted-foreground
 ```
 
 Replace with DS tokens:
+
 ```tsx
 bg-secondary-500 text-white
 bg-success-500 text-white
@@ -992,6 +1118,7 @@ bg-portal-divider text-portal-icon
 ```
 
 And the connecting line:
+
 ```tsx
 bg-emerald-400 → bg-success-500
 bg-muted → bg-portal-divider
@@ -1002,63 +1129,108 @@ Also `text-foreground` → `text-natural-100`.
 - [ ] **Step 3: Replace Textarea with FormTextarea**
 
 Block:
+
 ```tsx
-<FormField name="description" render={({ field, fieldState }) => (
-  <FormItem>
-    <FormLabel>وصف المشروع (اختياري)</FormLabel>
-    <FormControl>
-      <Textarea placeholder="..." className="resize-none h-24" {...field} />
-    </FormControl>
-    <FormMessage />
-  </FormItem>
-)} />
+<FormField
+  name="description"
+  render={({ field, fieldState }) => (
+    <FormItem>
+      <FormLabel>وصف المشروع (اختياري)</FormLabel>
+      <FormControl>
+        <Textarea placeholder="..." className="resize-none h-24" {...field} />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 ```
 
 Replace:
+
 ```tsx
-<FormField name="description" render={({ field, fieldState }) => (
-  <FormTextarea
-    label="وصف المشروع (اختياري)"
-    placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
-    rows={3}
-    error={fieldState.error?.message}
-    {...field}
-  />
-)} />
+<FormField
+  name="description"
+  render={({ field, fieldState }) => (
+    <FormTextarea
+      label="وصف المشروع (اختياري)"
+      placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
+      rows={3}
+      error={fieldState.error?.message}
+      {...field}
+    />
+  )}
+/>
 ```
 
 - [ ] **Step 4: Replace navigation `Button`s with `ActionButton`**
 
 ```tsx
-{step === 2 ? (
-  <ActionButton type="button" variant="ghost" onClick={() => setStep(1)} disabled={isLoading} className="gap-2">
-    <ChevronRight className="w-4 h-4" /> السابق
-  </ActionButton>
-) : <div />}
+{
+  step === 2 ? (
+    <ActionButton
+      type="button"
+      variant="ghost"
+      onClick={() => setStep(1)}
+      disabled={isLoading}
+      className="gap-2"
+    >
+      <ChevronRight className="w-4 h-4" /> السابق
+    </ActionButton>
+  ) : (
+    <div />
+  );
+}
 
-<ActionButton type="button" variant="ghost" onClick={() => router.back()} disabled={isLoading}>
+<ActionButton
+  type="button"
+  variant="ghost"
+  onClick={() => router.back()}
+  disabled={isLoading}
+>
   إلغاء
-</ActionButton>
+</ActionButton>;
 
-{step === 1 ? (
-  <ActionButton type="button" variant="primary" onClick={handleNext} className="gap-2">
-    التالي <ChevronLeft className="w-4 h-4" />
-  </ActionButton>
-) : (
-  <ActionButton type="submit" variant="primary" disabled={isLoading} className="gap-2">
-    {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري الإنشاء...</> : <>إنشاء الطلب <ArrowRight className="w-4 h-4" /></>}
-  </ActionButton>
-)}
+{
+  step === 1 ? (
+    <ActionButton
+      type="button"
+      variant="primary"
+      onClick={handleNext}
+      className="gap-2"
+    >
+      التالي <ChevronLeft className="w-4 h-4" />
+    </ActionButton>
+  ) : (
+    <ActionButton
+      type="submit"
+      variant="primary"
+      disabled={isLoading}
+      className="gap-2"
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" /> جاري الإنشاء...
+        </>
+      ) : (
+        <>
+          إنشاء الطلب <ArrowRight className="w-4 h-4" />
+        </>
+      )}
+    </ActionButton>
+  );
+}
 ```
 
 - [ ] **Step 5: Replace checkbox card border styling**
 
 Current service checkbox card:
+
 ```tsx
 rounded-lg border p-3 hover:bg-muted/40
 ```
 
 Replace:
+
 ```tsx
 rounded-2xl border-[1.5px] border-portal-card-border p-3 hover:bg-portal-bg transition-colors cursor-pointer
 ```
@@ -1082,17 +1254,20 @@ npx tsc --noEmit --project tsconfig.json 2>&1 | grep requests/new
 - [ ] **Step 1: Replace loading skeletons**
 
 Replace the loading block divs with DS `Skeleton`:
+
 ```tsx
 import { Skeleton } from "@/components/design-system/Skeleton";
 ```
 
 Current loading:
+
 ```tsx
 <div className="h-10 bg-muted animate-pulse rounded-lg" />
 <div className="w-72 shrink-0 h-48 bg-muted animate-pulse rounded-xl" />
 ```
 
 Replace:
+
 ```tsx
 <Skeleton className="h-10 rounded-xl w-full" />
 <Skeleton className="w-72 shrink-0 h-48 rounded-[16px]" />
@@ -1122,6 +1297,7 @@ Replace:
 - [ ] **Step 1: Update border/padding tokens**
 
 Current:
+
 ```tsx
 "w-72 shrink-0 rounded-xl border-2 flex flex-col transition-all duration-150",
 colorClass,
@@ -1129,6 +1305,7 @@ isOver && "ring-2 ring-primary ring-offset-2 scale-[1.01]",
 ```
 
 Replace:
+
 ```tsx
 "w-72 shrink-0 rounded-[16px] border-[1.5px] flex flex-col transition-all duration-150",
 colorClass,
@@ -1147,6 +1324,7 @@ Keep `colorClass` (e.g. `bg-blue-50 border-blue-200`) passed from parent — tho
 Replace `text-foreground` → `text-natural-100`, `bg-background/70` → `bg-natural-0/70`, `text-muted-foreground` → `text-portal-note-text`.
 
 For empty state:
+
 ```tsx
 <p className="text-xs text-portal-note-text/60 text-center select-none">
 ```
@@ -1162,12 +1340,14 @@ For empty state:
 - [ ] **Step 1: Update card surface tokens**
 
 Current:
+
 ```tsx
 "bg-background rounded-lg border p-3 cursor-grab active:cursor-grabbing",
 "hover:border-primary/40 hover:shadow-sm transition-all duration-100",
 ```
 
 Replace:
+
 ```tsx
 "bg-natural-0 rounded-xl border-[1.5px] border-portal-card-border p-3 cursor-grab active:cursor-grabbing",
 "hover:border-secondary-500/40 transition-all duration-100",
@@ -1178,9 +1358,9 @@ Remove `shadow-sm` — DS cards don't have shadow.
 - [ ] **Step 2: Update text tokens**
 
 ```tsx
-"text-xs text-portal-note-text truncate"
-"text-xs text-portal-note-text mt-2 line-clamp-2 leading-relaxed border-t border-portal-divider pt-2"
-"text-xs text-portal-note-text min-w-0"
+"text-xs text-portal-note-text truncate";
+"text-xs text-portal-note-text mt-2 line-clamp-2 leading-relaxed border-t border-portal-divider pt-2";
+"text-xs text-portal-note-text min-w-0";
 ```
 
 - [ ] **Step 3: Build verification**
@@ -1199,15 +1379,30 @@ import { Pill } from "@/components/design-system/Pill";
 ```
 
 Replace:
+
 ```tsx
-<Badge variant="secondary" className={cn("text-xs font-medium min-w-[1.5rem] justify-center", accentClass, "border-0")}>
+<Badge
+  variant="secondary"
+  className={cn(
+    "text-xs font-medium min-w-[1.5rem] justify-center",
+    accentClass,
+    "border-0",
+  )}
+>
   {totalCount}
 </Badge>
 ```
 
 With:
+
 ```tsx
-<Pill tone="neutral" className={cn("min-w-[1.5rem] justify-center text-xs font-medium", accentClass)}>
+<Pill
+  tone="neutral"
+  className={cn(
+    "min-w-[1.5rem] justify-center text-xs font-medium",
+    accentClass,
+  )}
+>
   {totalCount}
 </Pill>
 ```
@@ -1248,7 +1443,15 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
     <SurfaceCard
       title="معلومات العميل"
       action={
-        <Pill tone={STATUS_VARIANT[client.status as ClientStatus] === "destructive" ? "danger" : STATUS_VARIANT[client.status as ClientStatus] === "secondary" ? "neutral" : "success"}>
+        <Pill
+          tone={
+            STATUS_VARIANT[client.status as ClientStatus] === "destructive"
+              ? "danger"
+              : STATUS_VARIANT[client.status as ClientStatus] === "secondary"
+                ? "neutral"
+                : "success"
+          }
+        >
           {STATUS_LABELS[client.status as ClientStatus] ?? client.status}
         </Pill>
       }
@@ -1259,7 +1462,11 @@ export function ClientInfoCard({ client }: ClientInfoCardProps) {
 
       {canHandover && (
         <div className="pt-4 border-t border-portal-divider flex justify-end mt-4">
-          <ActionButton variant="primary" size="sm" onClick={() => setHandoverOpen(true)}>
+          <ActionButton
+            variant="primary"
+            size="sm"
+            onClick={() => setHandoverOpen(true)}
+          >
             تسليم للعمليات
           </ActionButton>
         </div>
@@ -1380,16 +1587,32 @@ Map `Badge` → `Pill`. Map `Button` → `ActionButton`.
   emptyState={CLIENT_EMPTY}
   renderRow={(client) => (
     <TableRow key={client.id}>
-      <TableCell className="text-right font-medium">{client.companyName}</TableCell>
+      <TableCell className="text-right font-medium">
+        {client.companyName}
+      </TableCell>
       <TableCell className="text-right">{client.contactName}</TableCell>
-      <TableCell className="text-right font-mono" dir="ltr">{client.phoneWhatsapp}</TableCell>
+      <TableCell className="text-right font-mono" dir="ltr">
+        {client.phoneWhatsapp}
+      </TableCell>
       <TableCell className="text-right">
-        <Pill tone={client.status === ClientStatus.ACTIVE ? "success" : client.status === ClientStatus.LEAD ? "neutral" : "danger"}>
+        <Pill
+          tone={
+            client.status === ClientStatus.ACTIVE
+              ? "success"
+              : client.status === ClientStatus.LEAD
+                ? "neutral"
+                : "danger"
+          }
+        >
           {STATUS_LABELS[client.status as ClientStatus] ?? client.status}
         </Pill>
       </TableCell>
       <TableCell className="text-left">
-        <ActionButton size="sm" variant="ghost" href={`/dashboard/sales/clients/${client.id}`}>
+        <ActionButton
+          size="sm"
+          variant="ghost"
+          href={`/dashboard/sales/clients/${client.id}`}
+        >
           عرض
         </ActionButton>
       </TableCell>
@@ -1411,22 +1634,48 @@ Map `Badge` → `Pill`. Map `Button` → `ActionButton`.
 - [ ] **Step 1: Replace imports**
 
 Remove:
+
 ```tsx
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 ```
 
 Add:
+
 ```tsx
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Dialog } from "@/components/design-system/Dialog";
 import {
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/design-system/Form";
 import { FormInput } from "@/components/design-system/FormInput";
 import { Select, SelectItem } from "@/components/design-system/Select";
@@ -1439,24 +1688,34 @@ import { Pill } from "@/components/design-system/Pill";
 The DS `Dialog` takes `open`, `onOpenChange`, `title`, `description?`, `footer?`, `children`, `contentClassName`.
 
 Old wrapper:
+
 ```tsx
 <Dialog open={open} onOpenChange={handleOpenChange}>
-  <DialogTrigger asChild><Button>إنشاء عقد</Button></DialogTrigger>
+  <DialogTrigger asChild>
+    <Button>إنشاء عقد</Button>
+  </DialogTrigger>
   <DialogContent className="sm:max-w-lg" dir="rtl">
-    <DialogHeader><DialogTitle>...</DialogTitle></DialogHeader>
+    <DialogHeader>
+      <DialogTitle>...</DialogTitle>
+    </DialogHeader>
     {/* body */}
   </DialogContent>
 </Dialog>
 ```
 
 Replace with:
+
 ```tsx
-{/* Trigger outside the dialog wrapper so it can be placed anywhere */}
-{isControlled ? null : (
-  <ActionButton variant="primary" onClick={() => handleOpenChange(true)}>
-    إنشاء عقد
-  </ActionButton>
-)}
+{
+  /* Trigger outside the dialog wrapper so it can be placed anywhere */
+}
+{
+  isControlled ? null : (
+    <ActionButton variant="primary" onClick={() => handleOpenChange(true)}>
+      إنشاء عقد
+    </ActionButton>
+  );
+}
 
 <Dialog
   open={open}
@@ -1465,18 +1724,20 @@ Replace with:
   contentClassName="sm:max-w-lg"
 >
   {/* body */}
-</Dialog>
+</Dialog>;
 ```
 
 Note: The trigger `ActionButton` must be placed outside the `Dialog` component because DS `Dialog` does not have a `DialogTrigger` slot. In the page that uses `<CreateContractDialog />`, it was the trigger itself. We need to update the page (`contracts/page.tsx`) to show the button and manage open state, OR keep a trigger inside the component. The simplest approach: keep the dialog self-contained by rendering the trigger button conditionally alongside the `Dialog`.
 
 But `CreateContractDialog` is used in two ways:
+
 1. As a standalone trigger: `<CreateContractDialog />` in `contracts/page.tsx`
 2. As a controlled dialog: `contractDialogProposalId && <CreateContractDialog proposalId={...} open={...} />`
 
 For case 1 (uncontrolled), we need a trigger button visible. For case 2 (controlled), no trigger needed.
 
 So modify `CreateContractDialog` to:
+
 - If not controlled, render an `ActionButton` before the `Dialog`.
 - The `Dialog` itself has no trigger slot.
 
@@ -1509,6 +1770,7 @@ However, the `Dialog` component might already internally wrap in a `Dialog` prim
 Replace all `FormField` + `FormItem` + `FormLabel` + `FormControl` + `<Input>` blocks with `FormInput` (or `FormField` + `Select` for selects).
 
 For selects:
+
 ```tsx
 <FormField name="type" render={({ field }) => (
   <FormItem>
@@ -1523,43 +1785,59 @@ For selects:
 ```
 
 Replace with DS `Select` (has built-in label/error):
+
 ```tsx
-<FormField name="type" render={({ field, fieldState }) => (
-  <Select
-    label="نوع العقد"
-    onValueChange={field.onChange}
-    value={field.value}
-    placeholder="اختر النوع"
-    error={fieldState.error?.message}
-  >
-    {Object.values(ContractType).map((t) => (
-      <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>
-    ))}
-  </Select>
-)} />
+<FormField
+  name="type"
+  render={({ field, fieldState }) => (
+    <Select
+      label="نوع العقد"
+      onValueChange={field.onChange}
+      value={field.value}
+      placeholder="اختر النوع"
+      error={fieldState.error?.message}
+    >
+      {Object.values(ContractType).map((t) => (
+        <SelectItem key={t} value={t}>
+          {TYPE_LABELS[t]}
+        </SelectItem>
+      ))}
+    </Select>
+  )}
+/>
 ```
 
 For inputs (e.g. "عنوان العقد"):
+
 ```tsx
-<FormField name="title" render={({ field, fieldState }) => (
-  <FormItem>
-    <FormLabel>عنوان العقد</FormLabel>
-    <FormControl><Input placeholder="..." {...field} /></FormControl>
-    <FormMessage />
-  </FormItem>
-)} />
+<FormField
+  name="title"
+  render={({ field, fieldState }) => (
+    <FormItem>
+      <FormLabel>عنوان العقد</FormLabel>
+      <FormControl>
+        <Input placeholder="..." {...field} />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
 ```
 
 Replace:
+
 ```tsx
-<FormField name="title" render={({ field, fieldState }) => (
-  <FormInput
-    label="عنوان العقد"
-    placeholder="عقد خدمات التسويق الرقمي..."
-    error={fieldState.error?.message}
-    {...field}
-  />
-)} />
+<FormField
+  name="title"
+  render={({ field, fieldState }) => (
+    <FormInput
+      label="عنوان العقد"
+      placeholder="عقد خدمات التسويق الرقمي..."
+      error={fieldState.error?.message}
+      {...field}
+    />
+  )}
+/>
 ```
 
 For number inputs (monthlyValue, totalValue):
@@ -1570,6 +1848,7 @@ Actually, let me read it:
 `FormInput.tsx` uses `PortalInput` which is `Input` — an `<input>` with a wrapper div. It takes all HTML input props via `...props`. So passing `type="number"` works.
 
 However, the current code has custom `onChange` handling for number fields:
+
 ```tsx
 onChange={(e) => {
   const n = e.target.valueAsNumber;
@@ -1618,6 +1897,7 @@ Note: `Input` now imported from DS, not raw shadcn.
 All `Button` elements inside the dialog body (cancel, submit, copy link, etc.) become `ActionButton`.
 
 The success state icon circle:
+
 ```tsx
 <div className="h-14 w-14 rounded-full bg-success-100/15 flex items-center justify-center">
   <CheckCheck className="h-7 w-7 text-success-500" />
@@ -1637,13 +1917,15 @@ There is only a `Badge` in the proposal info summary block inside the dialog. Ac
 - [ ] **Step 7: Replace file drop zone styling**
 
 Current:
+
 ```tsx
-"flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer hover:bg-muted/40 transition-colors"
+"flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer hover:bg-muted/40 transition-colors";
 ```
 
 Replace:
+
 ```tsx
-"flex flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-portal-card-border p-5 cursor-pointer hover:bg-portal-bg transition-colors"
+"flex flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-portal-card-border p-5 cursor-pointer hover:bg-portal-bg transition-colors";
 ```
 
 Also inside the drop zone `text-blue-600` → `text-action-blue`, `text-muted-foreground` → `text-portal-note-text`.
@@ -1651,6 +1933,7 @@ Also inside the drop zone `text-blue-600` → `text-action-blue`, `text-muted-fo
 - [ ] **Step 8: Update page that uses this dialog (`contracts/page.tsx`)**
 
 Since the dialog no longer has a built-in trigger, the page that renders `<CreateContractDialog />` uncontrolled will now see a trigger button from the component itself (the fragment includes it). However, the page currently places it in the header layout:
+
 ```tsx
 <div className="flex items-center justify-between">
   <h1>العقود</h1>
@@ -1677,6 +1960,7 @@ However, the `Dialog` component might already internally wrap in a `Dialog` prim
 This is the most complex file — 700 lines, heavily custom-styled with hardcoded gray hex colors, raw `<input>`, `<button>`, `<select>`, custom `<style dangerouslySetInnerHTML>`, inline scrollbar CSS, `@keyframes`.
 
 The raw shadcn imports used:
+
 - `Dialog`, `DialogContent`, `DialogTitle`, `DialogTrigger` from `@/components/ui/dialog`
 - `SearchCombobox` from `@/components/common/SearchCombobox` (not a shadcn primitive, but it wraps Command+Popover internally)
 
@@ -1687,11 +1971,18 @@ However, the `Dialog` wrapper from DS already gives us `rounded-[30px]`, `border
 - [ ] **Step 1: Replace `Dialog` imports**
 
 Remove:
+
 ```tsx
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 ```
 
 Add:
+
 ```tsx
 import { Dialog } from "@/components/design-system/Dialog";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -1704,6 +1995,7 @@ Note: we still need `SearchCombobox` as-is (can't migrate internals). But we can
 - [ ] **Step 2: Restyle dialog wrapper**
 
 Old:
+
 ```tsx
 <Dialog open={open} onOpenChange={handleOpenChange}>
   {!isControlled && (
@@ -1722,6 +2014,7 @@ Old:
 ```
 
 New:
+
 ```tsx
 <>
   {!isControlled && (
@@ -1740,9 +2033,7 @@ New:
     contentClassName="sm:max-w-[520px]"
   >
     <div className="max-h-[90vh] overflow-y-auto modal-scroll">
-      <div className="space-y-6">
-        {/* body */}
-      </div>
+      <div className="space-y-6">{/* body */}</div>
     </div>
   </Dialog>
 </>
@@ -1756,38 +2047,39 @@ The `modal-scroll` class is in the `<style>` block. We should keep the style blo
 
 Current hardcoded tokens to replace globally within this file:
 
-| Current | Replacement |
-|---|---|
-| `bg-[#1e293b]` | `bg-secondary-500` |
-| `hover:bg-[#0f172a]` | `hover:bg-secondary-600` |
-| `text-gray-900` | `text-natural-100` |
-| `text-gray-700` | `text-natural-100` |
-| `text-gray-500` | `text-portal-note-text` |
-| `text-gray-400` | `text-portal-icon` |
-| `border-gray-200` | `border-portal-card-border` |
-| `border-gray-300` | `border-portal-card-border` |
-| `bg-gray-50` | `bg-portal-bg` |
-| `bg-gray-100` | `bg-portal-bg` |
-| `hover:bg-gray-50` | `hover:bg-portal-bg` |
-| `bg-white` | `bg-natural-0` |
-| `bg-emerald-100` | `bg-success-100/15` |
-| `text-emerald-600` / `text-emerald-700` | `text-success-500` |
-| `text-red-500` | `text-danger-500` |
-| `bg-blue-600` | `text-action-blue` |
-| `shadow-slate-800/20` | remove shadow |
-| `rounded-[24px]` on card wrapper | `rounded-[30px]` (DS Dialog handles it) |
-| `rounded-xl` | `rounded-2xl` |
-| `text-[22px]` | `text-2xl` |
-| `text-[15px]` | `text-base` |
-| `text-[14px]` | `text-sm` |
-| `text-[13px]` | `text-sm` |
-| `text-[12px]` | `text-xs` |
-| `text-[11px]` | `text-xs` |
-| `h-12` / `h-14` inputs | keep sizes, but assign wrapper classes |
+| Current                                 | Replacement                             |
+| --------------------------------------- | --------------------------------------- |
+| `bg-[#1e293b]`                          | `bg-secondary-500`                      |
+| `hover:bg-[#0f172a]`                    | `hover:bg-secondary-600`                |
+| `text-gray-900`                         | `text-natural-100`                      |
+| `text-gray-700`                         | `text-natural-100`                      |
+| `text-gray-500`                         | `text-portal-note-text`                 |
+| `text-gray-400`                         | `text-portal-icon`                      |
+| `border-gray-200`                       | `border-portal-card-border`             |
+| `border-gray-300`                       | `border-portal-card-border`             |
+| `bg-gray-50`                            | `bg-portal-bg`                          |
+| `bg-gray-100`                           | `bg-portal-bg`                          |
+| `hover:bg-gray-50`                      | `hover:bg-portal-bg`                    |
+| `bg-white`                              | `bg-natural-0`                          |
+| `bg-emerald-100`                        | `bg-success-100/15`                     |
+| `text-emerald-600` / `text-emerald-700` | `text-success-500`                      |
+| `text-red-500`                          | `text-danger-500`                       |
+| `bg-blue-600`                           | `text-action-blue`                      |
+| `shadow-slate-800/20`                   | remove shadow                           |
+| `rounded-[24px]` on card wrapper        | `rounded-[30px]` (DS Dialog handles it) |
+| `rounded-xl`                            | `rounded-2xl`                           |
+| `text-[22px]`                           | `text-2xl`                              |
+| `text-[15px]`                           | `text-base`                             |
+| `text-[14px]`                           | `text-sm`                               |
+| `text-[13px]`                           | `text-sm`                               |
+| `text-[12px]`                           | `text-xs`                               |
+| `text-[11px]`                           | `text-xs`                               |
+| `h-12` / `h-14` inputs                  | keep sizes, but assign wrapper classes  |
 
 For all raw `<input>` and `<select>` elements:
 
 Current pattern:
+
 ```tsx
 <input
   type="text"
@@ -1799,6 +2091,7 @@ Current pattern:
 ```
 
 Replace with DS `Input`:
+
 ```tsx
 <Input
   type="text"
@@ -1822,6 +2115,7 @@ For the PDF upload row and the link display input, using raw `<input>` is accept
 For the number inputs (duration, offer validity) and date picker, we can keep raw `<input>` with updated class names (remove hardcoded gray, use DS tokens). Alternatively, if we want to avoid any raw input, we can wrap them with a minimal inline style. The instructions say "use our design system" — using raw `<input>` for a number field is a basic HTML element, not a shadcn primitive. That's acceptable.
 
 But to be fully consistent, we can style raw inputs with DS token classes:
+
 ```tsx
 <input
   type="number"
@@ -1832,6 +2126,7 @@ But to be fully consistent, we can style raw inputs with DS token classes:
 - [ ] **Step 4: Replace action `<button>` elements with `ActionButton`**
 
 There are several inline `<button>` elements in the form:
+
 1. File upload row click target
 2. Remove service X button
 3. Add service button
@@ -1843,7 +2138,9 @@ There are several inline `<button>` elements in the form:
 Replace all that are visible UI actions:
 
 ```tsx
-{/* Remove service */}
+{
+  /* Remove service */
+}
 <ActionButton
   variant="ghost"
   size="sm"
@@ -1851,39 +2148,76 @@ Replace all that are visible UI actions:
   disabled={services.length <= 1}
   icon={<X className="w-4 h-4" />}
   className="rounded-full border border-portal-card-border w-10 h-10 p-0"
-/>
+/>;
 
-{/* Add service */}
-<ActionButton variant="outline" size="lg" fullWidth onClick={addService} icon={<Plus className="w-4 h-4" />}>
+{
+  /* Add service */
+}
+<ActionButton
+  variant="outline"
+  size="lg"
+  fullWidth
+  onClick={addService}
+  icon={<Plus className="w-4 h-4" />}
+>
   اضافة خدمة اخرى
-</ActionButton>
+</ActionButton>;
 
-{/* Cancel */}
-<ActionButton variant="outline" size="lg" fullWidth onClick={() => handleOpenChange(false)}>
+{
+  /* Cancel */
+}
+<ActionButton
+  variant="outline"
+  size="lg"
+  fullWidth
+  onClick={() => handleOpenChange(false)}
+>
   إلغاء
-</ActionButton>
+</ActionButton>;
 
-{/* Submit */}
-<ActionButton variant="primary" size="lg" fullWidth type="submit" disabled={isSubmitting} loading={isSubmitting}>
+{
+  /* Submit */
+}
+<ActionButton
+  variant="primary"
+  size="lg"
+  fullWidth
+  type="submit"
+  disabled={isSubmitting}
+  loading={isSubmitting}
+>
   {isEdit ? "تحديث العرض" : "ارسال العرض للعميل"}
-</ActionButton>
+</ActionButton>;
 ```
 
 For the copy link success state:
+
 ```tsx
 <ActionButton
   size="sm"
   variant={copied ? "secondary" : "primary"}
   onClick={copyLink}
-  icon={copied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+  icon={
+    copied ? (
+      <CheckCheck className="w-3.5 h-3.5" />
+    ) : (
+      <Copy className="w-3.5 h-3.5" />
+    )
+  }
 >
   {copied ? "تم النسخ ✓" : "نسخ الرابط"}
 </ActionButton>
 ```
 
 For close success:
+
 ```tsx
-<ActionButton variant="outline" size="lg" fullWidth onClick={() => handleOpenChange(false)}>
+<ActionButton
+  variant="outline"
+  size="lg"
+  fullWidth
+  onClick={() => handleOpenChange(false)}
+>
   إغلاق
 </ActionButton>
 ```
@@ -1891,14 +2225,20 @@ For close success:
 - [ ] **Step 5: Replace `<select>` for duration unit with DS `Select`**
 
 Current:
+
 ```tsx
-<select value={durationUnit} onChange={(e) => setDurationUnit(e.target.value)} className="h-12 px-2 ...">
+<select
+  value={durationUnit}
+  onChange={(e) => setDurationUnit(e.target.value)}
+  className="h-12 px-2 ..."
+>
   <option value="DAYS">أيام</option>
   ...
 </select>
 ```
 
 Replace with DS `Select`:
+
 ```tsx
 <Select
   value={durationUnit}
@@ -1916,17 +2256,33 @@ Note: `Select` takes `value` and `onValueChange`, not `onChange`. The `setDurati
 - [ ] **Step 6: Update the `<style>` block colors**
 
 Current style block:
+
 ```css
-.modal-scroll::-webkit-scrollbar { width: 6px; }
-.modal-scroll::-webkit-scrollbar-track { background: transparent; }
-.modal-scroll::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 20px; }
-.modal-scroll::-webkit-scrollbar-thumb:hover { background-color: #d1d5db; }
+.modal-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modal-scroll::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb;
+  border-radius: 20px;
+}
+.modal-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #d1d5db;
+}
 ```
 
 Replace scrollbar colors with portal tokens:
+
 ```css
-.modal-scroll::-webkit-scrollbar-thumb { background-color: #E1E4EA; border-radius: 20px; }
-.modal-scroll::-webkit-scrollbar-thumb:hover { background-color: #CFD0D6; }
+.modal-scroll::-webkit-scrollbar-thumb {
+  background-color: #e1e4ea;
+  border-radius: 20px;
+}
+.modal-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #cfd0d6;
+}
 ```
 
 Where `#E1E4EA` = `var(--color-portal-card-border)`, `#CFD0D6` = `var(--color-neutral-100)`.
@@ -1963,6 +2319,7 @@ Keep markup but change import path. No class changes needed.
 - [ ] **Step 3: Update error back button**
 
 Current:
+
 ```tsx
 <Button variant="outline" onClick={() => router.back()}>
   <ArrowRight className="h-4 w-4 me-2" />
@@ -1971,8 +2328,13 @@ Current:
 ```
 
 Replace:
+
 ```tsx
-<ActionButton variant="outline" onClick={() => router.back()} icon={<ArrowRight className="h-4 w-4" />}>
+<ActionButton
+  variant="outline"
+  onClick={() => router.back()}
+  icon={<ArrowRight className="h-4 w-4" />}
+>
   رجوع
 </ActionButton>
 ```
@@ -1980,16 +2342,29 @@ Replace:
 - [ ] **Step 4: Update header back button**
 
 Current:
+
 ```tsx
-<Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={() => router.back()}
+  className="gap-2"
+>
   <ArrowRight className="h-4 w-4" />
   رجوع
 </Button>
 ```
 
 Replace:
+
 ```tsx
-<ActionButton variant="ghost" size="sm" onClick={() => router.back()} icon={<ArrowRight className="h-4 w-4" />} className="gap-2">
+<ActionButton
+  variant="ghost"
+  size="sm"
+  onClick={() => router.back()}
+  icon={<ArrowRight className="h-4 w-4" />}
+  className="gap-2"
+>
   رجوع
 </ActionButton>
 ```

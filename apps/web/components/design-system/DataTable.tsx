@@ -68,15 +68,19 @@ export function DataTable<T>({
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
           <EmptyIcon className="h-8 w-8 text-secondary-500" />
         </div>
-        <p className="text-lg font-medium text-natural-100">{emptyState.message}</p>
-        <p className="max-w-md text-sm leading-6 text-portal-note-text">{emptyState.hint}</p>
+        <p className="text-lg font-medium text-natural-100">
+          {emptyState.message}
+        </p>
+        <p className="max-w-md text-sm leading-6 text-portal-note-text">
+          {emptyState.hint}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className={cn("overflow-x-auto", className)}>
-      <Table className={cn(minWidth ?? "min-w-full", "border-collapse")}>
+    <div className={cn("overflow-hidden rounded-xl border border-gry", className)}>
+      <Table className={cn(minWidth ?? "min-w-full")}>
         <TableHeader className="[tr]:border-b-[1.5px] [tr]:border-portal-divider">
           <TableRow className="hover:bg-transparent">
             {columns.map((col) => (
@@ -96,34 +100,32 @@ export function DataTable<T>({
           </TableRow>
         </TableHeader>
 
-        <TableBody
-          className="[&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-[#f0f2f5] [&_tr:hover]:bg-black/[0.03]"
-        >
-          {isLoading
-            ? Array.from({ length: skeletonRows }).map((_, idx) => (
-                <TableRow
-                  key={`skeleton-${idx}`}
-                  className="border-b-[1.5px] border-portal-divider hover:bg-transparent"
-                >
-                  {columns.map((col, cellIdx) => (
-                    <TableCell key={`${col.id}-${cellIdx}`} className="px-5 py-4">
-                      <Skeleton className="h-5 w-full rounded-lg" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            : renderRow
-              ? data.map((row, idx) => renderRow(row, idx))
-              : (
-                  <TableRow className="border-b-[1.5px] border-portal-divider">
-                    <TableCell
-                      colSpan={columns.length}
-                      className="px-5 py-4 text-center text-sm text-portal-note-text"
-                    >
-                      —
-                    </TableCell>
-                  </TableRow>
-                )}
+        <TableBody className="[&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-[#f0f2f5] [&_tr:hover]:bg-black/[0.03]">
+          {isLoading ? (
+            Array.from({ length: skeletonRows }).map((_, idx) => (
+              <TableRow
+                key={`skeleton-${idx}`}
+                className="border-b-[1.5px] border-portal-divider hover:bg-transparent"
+              >
+                {columns.map((col, cellIdx) => (
+                  <TableCell key={`${col.id}-${cellIdx}`} className="px-5 py-4">
+                    <Skeleton className="h-5 w-full rounded-lg" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : renderRow ? (
+            data.map((row, idx) => renderRow(row, idx))
+          ) : (
+            <TableRow className="border-b-[1.5px] border-portal-divider">
+              <TableCell
+                colSpan={columns.length}
+                className="px-5 py-4 text-center text-sm text-portal-note-text"
+              >
+                —
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>

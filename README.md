@@ -222,15 +222,15 @@ flowchart TD
 
 #### Handoff Summary
 
-| #  | Handoff         | From → To            | What triggers it                                  |
-|----|-----------------|----------------------|---------------------------------------------------|
-| ①  | New Request     | Client → Sales       | Client submits intake form via portal             |
-| ②  | Proposal        | Sales → Client       | Sales sends shareable proposal link               |
-| ③  | Contract        | Sales → Client       | Sales sends shareable contract link               |
-| ④  | Project         | Sales → PM           | System auto-creates project after contract signed |
-| ⑤  | Payment         | Client → Finance     | Client pays invoice (online or manual)            |
-| ⑥  | Campaign request| PM → Marketing       | PM adds marketing team member → auto-task created |
-| ⑦  | Deliverables    | PM → Client          | PM approves task → deliverable visible in portal  |
+| #   | Handoff          | From → To        | What triggers it                                  |
+| --- | ---------------- | ---------------- | ------------------------------------------------- |
+| ①   | New Request      | Client → Sales   | Client submits intake form via portal             |
+| ②   | Proposal         | Sales → Client   | Sales sends shareable proposal link               |
+| ③   | Contract         | Sales → Client   | Sales sends shareable contract link               |
+| ④   | Project          | Sales → PM       | System auto-creates project after contract signed |
+| ⑤   | Payment          | Client → Finance | Client pays invoice (online or manual)            |
+| ⑥   | Campaign request | PM → Marketing   | PM adds marketing team member → auto-task created |
+| ⑦   | Deliverables     | PM → Client      | PM approves task → deliverable visible in portal  |
 
 ### Client — State Machine
 
@@ -359,7 +359,7 @@ stateDiagram-v2
 ## Tech Stack
 
 | Layer          | Technology                                                 |
-|----------------|------------------------------------------------------------|
+| -------------- | ---------------------------------------------------------- |
 | Monorepo       | npm workspaces + Turborepo                                 |
 | API            | NestJS 11, TypeScript 5, Prisma 6                          |
 | Web            | Next.js 16 App Router, React 19, Tailwind CSS 4, shadcn/ui |
@@ -446,7 +446,7 @@ The frontend base query unwraps this automatically — RTK Query slices receive 
 - **State machines are server-side** — invalid transitions return 400.
 - **Every state change writes a history row** — `lead_pipeline_history`, `task_status_history`, `client_history_log`.
 - **Multi-table operations** must use `prisma.$transaction()`.
-- **Notifications** are written *after* the core transaction commits; a notification failure must never roll back business data.
+- **Notifications** are written _after_ the core transaction commits; a notification failure must never roll back business data.
 - Every business event creates two rows: one in `notification_events` and one in `notifications`.
 
 ## Local Setup
@@ -517,6 +517,7 @@ npm run dev
 ```
 
 Default URLs:
+
 - Web: `http://localhost:3000`
 - API: `http://localhost:3001/v1`
 
@@ -524,15 +525,15 @@ Default URLs:
 
 Password for all seeded users: `password123`
 
-| Email                  | Role        |
-|------------------------|-------------|
-| admin@hassad.com       | Admin       |
-| pm@hassad.com          | PM          |
-| sales@hassad.com       | Sales       |
-| employee@hassad.com    | Employee    |
-| marketing@hassad.com   | Marketing   |
-| accountant@hassad.com  | Finance     |
-| client@hassad.com      | Client      |
+| Email                 | Role      |
+| --------------------- | --------- |
+| admin@hassad.com      | Admin     |
+| pm@hassad.com         | PM        |
+| sales@hassad.com      | Sales     |
+| employee@hassad.com   | Employee  |
+| marketing@hassad.com  | Marketing |
+| accountant@hassad.com | Finance   |
+| client@hassad.com     | Client    |
 
 ## Useful Commands
 

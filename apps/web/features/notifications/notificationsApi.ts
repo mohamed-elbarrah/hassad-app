@@ -1,10 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type {
-  Notification,
-  UserRole,
-  TaskDepartment,
-} from "@hassad/shared";
+import type { Notification, UserRole, TaskDepartment } from "@hassad/shared";
 
 // ── Local types ──────────────────────────────────────────────────────────────
 

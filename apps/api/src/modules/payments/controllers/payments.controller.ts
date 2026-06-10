@@ -1,26 +1,39 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { PaymentsService } from '../services/payments.service';
-import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { StorageService } from '../../../common/storage/storage.service';
-import { StorageCategory } from '../../../common/storage/storage.constants';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { PaymentsService } from "../services/payments.service";
+import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
+import { PermissionsGuard } from "../../../common/guards/permissions.guard";
+import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { StorageService } from "../../../common/storage/storage.service";
+import { StorageCategory } from "../../../common/storage/storage.constants";
 
-@Controller('payments')
+@Controller("payments")
 export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
     private readonly storageService: StorageService,
   ) {}
 
-  @Post('create-intent')
+  @Post("create-intent")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions('invoices.pay_public')
+  @RequirePermissions("invoices.pay_public")
   async createIntent(
     @CurrentUser() user: any,
-    @Body() dto: {
+    @Body()
+    dto: {
       invoiceId: string;
       gatewayName: string;
       amount: number;
@@ -32,12 +45,13 @@ export class PaymentsController {
     return this.paymentsService.createPayment(dto);
   }
 
-  @Post('create-element-intent')
+  @Post("create-element-intent")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions('invoices.pay_public')
+  @RequirePermissions("invoices.pay_public")
   async createElementIntent(
     @CurrentUser() user: any,
-    @Body() dto: {
+    @Body()
+    dto: {
       invoiceId: string;
       amount: number;
       currency?: string;
@@ -46,17 +60,17 @@ export class PaymentsController {
     return this.paymentsService.createElementPayment(dto);
   }
 
-  @Post('upload-receipt')
+  @Post("upload-receipt")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions('invoices.pay_public')
-  @UseInterceptors(FileInterceptor('receipt'))
+  @RequirePermissions("invoices.pay_public")
+  @UseInterceptors(FileInterceptor("receipt"))
   async uploadReceipt(
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,
-    @Body('paymentId') paymentId: string,
+    @Body("paymentId") paymentId: string,
   ) {
-    if (!file) throw new BadRequestException('Receipt image is required');
-    if (!paymentId) throw new BadRequestException('paymentId is required');
+    if (!file) throw new BadRequestException("Receipt image is required");
+    if (!paymentId) throw new BadRequestException("paymentId is required");
     const uploadResult = await this.storageService.upload({
       category: StorageCategory.RECEIPT,
       entityId: paymentId,
@@ -66,57 +80,57 @@ export class PaymentsController {
         mimetype: file.mimetype,
         size: file.size,
       },
-      subPath: 'receipts',
+      subPath: "receipts",
     });
     return this.paymentsService.attachReceipt(paymentId, uploadResult.key);
   }
 
-  @Get('gateways')
-  @RequirePermissions('finance.read')
+  @Get("gateways")
+  @RequirePermissions("finance.read")
   async getGateways() {
     return this.paymentsService.getGateways();
   }
 
-  @Post('gateways/:name')
-  @RequirePermissions('finance.admin')
-  async updateGateway(@Param('name') name: string, @Body() dto: any) {
+  @Post("gateways/:name")
+  @RequirePermissions("finance.admin")
+  async updateGateway(@Param("name") name: string, @Body() dto: any) {
     return this.paymentsService.updateGatewayConfig(name, dto);
   }
 
-  @Get('bank-accounts')
+  @Get("bank-accounts")
   async getBankAccounts() {
     return this.paymentsService.getBankAccounts();
   }
 
-  @Get('public-config')
+  @Get("public-config")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions('invoices.pay_public')
+  @RequirePermissions("invoices.pay_public")
   async getPublicConfig() {
     return this.paymentsService.getPublicConfig();
   }
 
-  @Get('gateways-public')
+  @Get("gateways-public")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @RequirePermissions('invoices.pay_public')
+  @RequirePermissions("invoices.pay_public")
   async getPublicGateways() {
     return this.paymentsService.getPublicGateways();
   }
 
-  @Post('bank-accounts')
-  @RequirePermissions('finance.admin')
+  @Post("bank-accounts")
+  @RequirePermissions("finance.admin")
   async createBankAccount(@Body() dto: any) {
     return this.paymentsService.createBankAccount(dto);
   }
 
-  @Patch('bank-accounts/:id')
-  @RequirePermissions('finance.admin')
-  async updateBankAccount(@Param('id') id: string, @Body() dto: any) {
+  @Patch("bank-accounts/:id")
+  @RequirePermissions("finance.admin")
+  async updateBankAccount(@Param("id") id: string, @Body() dto: any) {
     return this.paymentsService.updateBankAccount(id, dto);
   }
 
-  @Delete('bank-accounts/:id')
-  @RequirePermissions('finance.admin')
-  async deleteBankAccount(@Param('id') id: string) {
+  @Delete("bank-accounts/:id")
+  @RequirePermissions("finance.admin")
+  async deleteBankAccount(@Param("id") id: string) {
     return this.paymentsService.deleteBankAccount(id);
   }
 }
