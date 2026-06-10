@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Calendar, GripVertical, User } from "lucide-react";
+import { formatShortDate } from "@/lib/format";
 
 interface TaskWithAssignee extends Task {
   assignee?: { id: string; name: string };
@@ -181,11 +182,7 @@ function DraggableTaskCard({
             style={{ color: "#A8ABB2" }}
           />
           <span style={{ color: "#A8ABB2" }}>
-            {new Intl.DateTimeFormat("en-GB", {
-              month: "short",
-              day: "numeric",
-              numberingSystem: "latn",
-            }).format(new Date(task.dueDate))}
+            {formatShortDate(task.dueDate)}
           </span>
         </div>
       </div>

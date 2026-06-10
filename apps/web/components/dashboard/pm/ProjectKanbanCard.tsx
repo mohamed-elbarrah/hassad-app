@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Building2, Calendar, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjectStatus } from "@hassad/shared";
+import { formatDate } from "@/lib/format";
 
 interface ProjectKanbanItem {
   id: string;
@@ -41,17 +42,8 @@ export function ProjectKanbanCard({
     router.push(`/dashboard/pm/projects/${project.id}`);
   }
 
-  const startDate = new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    numberingSystem: "latn",
-  }).format(new Date(project.startDate));
-
-  const endDate = new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    numberingSystem: "latn",
-  }).format(new Date(project.endDate));
+  const startDate = formatDate(project.startDate);
+  const endDate = formatDate(project.endDate);
 
   return (
     <div

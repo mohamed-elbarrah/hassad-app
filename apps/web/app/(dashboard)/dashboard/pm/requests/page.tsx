@@ -6,6 +6,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import type { Project } from "@hassad/shared";
+import { formatShortDate } from "@/lib/format";
 
 function ProjectRevisions({ project }: { project: Project }) {
   const { data: deliverables, isLoading } = useGetDeliverablesByProjectQuery(
@@ -40,7 +41,7 @@ function ProjectRevisions({ project }: { project: Project }) {
                   {rev.description}
                 </span>
                 <span className="text-neutral-300 text-xs" dir="ltr">
-                  {new Date(rev.createdAt).toLocaleDateString("ar-DZ")}
+                  {formatShortDate(rev.createdAt)}
                 </span>
               </div>
               <StatusBadge

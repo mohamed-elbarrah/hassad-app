@@ -23,6 +23,7 @@ import {
   useAddTaskCommentMutation,
 } from "@/features/tasks/tasksApi";
 import { useAppSelector } from "@/lib/hooks";
+import { formatShortDate } from "@/lib/format";
 import {
   TaskStatus,
   TaskPriority,
@@ -309,7 +310,7 @@ export default function PMTaskDetailPage({ params }: TaskDetailPageProps) {
           <div>
             <p className="text-neutral-300 text-xs mb-1">تاريخ الاستحقاق</p>
             <p className="font-medium">
-              {new Date(task.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}
+              {formatShortDate(task.dueDate)}
             </p>
           </div>
         </div>

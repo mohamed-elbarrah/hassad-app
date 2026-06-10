@@ -37,6 +37,18 @@ export class TasksController {
     private readonly storageService: StorageService,
   ) {}
 
+  @Get("pm")
+  @RequirePermissions("tasks.read")
+  getPmTasks(@CurrentUser() user: any, @Query() filters: any) {
+    return this.tasksService.findPmTasks(user.id, filters);
+  }
+
+  @Get("pm/stats")
+  @RequirePermissions("tasks.read")
+  getPmStats(@CurrentUser() user: any) {
+    return this.tasksService.pmStats(user.id);
+  }
+
   @Get("my")
   @RequirePermissions("tasks.read")
   getMyTasks(@CurrentUser() user: any, @Query() filters: any) {

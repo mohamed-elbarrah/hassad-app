@@ -3,208 +3,253 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  useGetMyTasksQuery,
-  useGetMyTaskStatsQuery,
+  useGetPmTasksQuery,
+  useGetPmTaskStatsQuery,
 } from "@/features/tasks/tasksApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  DataTable,
+  type DataTableColumn,
+  type DataTableEmptyState,
+} from "@/components/design-system/DataTable";
+import { TableRow, TableCell } from "@/components/ui/table";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import { TaskStatus } from "@hassad/shared";
+import { Pill } from "@/components/design-system/Pill";
+import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import { ClipboardList } from "lucide-react";
+import { TaskStatus, TaskPriority } from "@hassad/shared";
+import { formatShortDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+// ── Labels ──────────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
-  TODO: "للتنفيذ",
-  IN_PROGRESS: "جارٍ",
-  IN_REVIEW: "مراجعة",
-  REVISION: "تعديل",
-  DONE: "منجزة",
+  [TaskStatus.TODO]: "للتنفيذ",
+  [TaskStatus.IN_PROGRESS]: "جارية",
+  [TaskStatus.IN_REVIEW]: "قيد المراجعة",
+  [TaskStatus.REVISION]: "تعديل",
+  [TaskStatus.DONE]: "منجزة",
 };
 
-const STATUS_VARIANT: Record<string, string> = {
-  TODO: "secondary",
-  IN_PROGRESS: "default",
-  IN_REVIEW: "secondary",
-  REVISION: "destructive",
-  DONE: "secondary",
+const STATUS_BADGE_MAP: Record<string, string> = {
+  [TaskStatus.TODO]: "PENDING",
+  [TaskStatus.IN_PROGRESS]: "ACTIVE",
+  [TaskStatus.IN_REVIEW]: "WARNING",
+  [TaskStatus.REVISION]: "DANGER",
+  [TaskStatus.DONE]: "COMPLETED",
+};
+
+const PRIORITY_PILL_TONE: Record<string, import("@/components/design-system/Pill").PillTone> = {
+  [TaskPriority.LOW]: "neutral",
+  [TaskPriority.NORMAL]: "neutral",
+  [TaskPriority.HIGH]: "warning",
+  [TaskPriority.URGENT]: "danger",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
-  LOW: "منخفضة",
-  NORMAL: "عادية",
-  HIGH: "عالية",
+  [TaskPriority.LOW]: "منخفضة",
+  [TaskPriority.NORMAL]: "عادية",
+  [TaskPriority.HIGH]: "عالية",
+  [TaskPriority.URGENT]: "عاجلة",
 };
 
-type TasksFilterKey = "ALL" | "IN_REVIEW" | "IN_PROGRESS" | "DONE";
+// ── Table columns ────────────────────────────────────────────────────────────
+
+const COLUMNS: DataTableColumn[] = [
+  { id: "title", label: "المهمة", align: "right" },
+  { id: "project", label: "المشروع", align: "right" },
+  { id: "assignee", label: "المسؤول", align: "right" },
+  { id: "status", label: "الحالة", align: "right" },
+  { id: "priority", label: "الأولوية", align: "right" },
+  { id: "dueDate", label: "تاريخ الاستحقاق", align: "right" },
+];
+
+const EMPTY_STATE: DataTableEmptyState = {
+  icon: ClipboardList,
+  message: "لا توجد مهام",
+  hint: "لا توجد مهام مطابقة للفلتر المحدد.",
+};
+
+// ── Stat card tones ──────────────────────────────────────────────────────────
+
+const STAT_TONES = [
+  { key: "total", label: "إجمالي المهام", bg: "bg-action-blue-soft", border: "border-action-blue/30", text: "text-action-blue" },
+  { key: "inProgress", label: "جارية", bg: "bg-success-100/50", border: "border-success-200", text: "text-success-600" },
+  { key: "inReview", label: "بانتظار المراجعة", bg: "bg-alert-100/50", border: "border-alert-200", text: "text-alert-600" },
+  { key: "overdue", label: "متأخرة", bg: "bg-danger-100/50", border: "border-danger-200", text: "text-danger-600" },
+] as const;
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PMTasksPage() {
-  const [activeFilter, setActiveFilter] = useState<TasksFilterKey>("IN_REVIEW");
-  const { data: stats, isLoading: statsLoading } = useGetMyTaskStatsQuery();
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({
+    status: [],
+    priority: [],
+  });
+
+  const { data: stats, isLoading: statsLoading } = useGetPmTaskStatsQuery();
   const {
-    data: tasks,
+    data: tasks = [],
     isLoading: tasksLoading,
     isError,
-  } = useGetMyTasksQuery({});
+  } = useGetPmTasksQuery({});
 
-  const tasksCounts = useMemo(() => {
-    const allTasks = tasks ?? [];
-    return {
-      ALL: allTasks.length,
-      IN_REVIEW: allTasks.filter((task) => task.status === TaskStatus.IN_REVIEW)
-        .length,
-      IN_PROGRESS: allTasks.filter(
-        (task) => task.status === TaskStatus.IN_PROGRESS,
-      ).length,
-      DONE: allTasks.filter((task) => task.status === TaskStatus.DONE).length,
-    };
+  const overdueCount = useMemo(() => {
+    const now = new Date();
+    return tasks.filter(
+      (t) => new Date(t.dueDate) < now && t.status !== TaskStatus.DONE,
+    ).length;
   }, [tasks]);
 
-  const filteredTasks = useMemo(() => {
-    if (!tasks) return [];
-    if (activeFilter === "ALL") return tasks;
-    return tasks.filter((task) => task.status === activeFilter);
-  }, [tasks, activeFilter]);
+  const filterGroups: FilterGroup[] = useMemo(
+    () => [
+      {
+        key: "status",
+        label: "الحالة",
+        options: [
+          { label: "قيد المراجعة", value: TaskStatus.IN_REVIEW, count: stats?.inReview },
+          { label: "جارية", value: TaskStatus.IN_PROGRESS, count: stats?.inProgress },
+          { label: "للتنفيذ", value: TaskStatus.TODO, count: stats?.todo },
+          { label: "تعديل", value: TaskStatus.REVISION },
+          { label: "منجزة", value: TaskStatus.DONE, count: stats?.done },
+          { label: "متأخرة", value: "OVERDUE", count: overdueCount },
+        ],
+      },
+      {
+        key: "priority",
+        label: "الأولوية",
+        options: [
+          { label: "عاجلة", value: TaskPriority.URGENT },
+          { label: "عالية", value: TaskPriority.HIGH },
+          { label: "عادية", value: TaskPriority.NORMAL },
+          { label: "منخفضة", value: TaskPriority.LOW },
+        ],
+      },
+    ],
+    [stats, overdueCount],
+  );
 
-  const STAT_CARDS = [
-    { label: "إجمالي", value: stats?.total ?? 0 },
-    { label: "جارية", value: stats?.inProgress ?? 0 },
-    { label: "مراجعة", value: stats?.inReview ?? 0 },
-    { label: "متأخرة", value: stats?.overdue ?? 0 },
-  ];
+  const filteredTasks = useMemo(() => {
+    let result = [...tasks];
+
+    // Status filter
+    const statusFilters = activeFilters.status ?? [];
+    if (statusFilters.length > 0) {
+      if (statusFilters.includes("OVERDUE")) {
+        const now = new Date();
+        const nonOverdueStatuses = statusFilters.filter((s) => s !== "OVERDUE");
+        result = result.filter((t) => {
+          const matchesOverdue = new Date(t.dueDate) < now && t.status !== TaskStatus.DONE;
+          const matchesStatus = nonOverdueStatuses.length > 0 && nonOverdueStatuses.includes(t.status);
+          if (statusFilters.includes("OVERDUE") && nonOverdueStatuses.length === 0) {
+            return matchesOverdue;
+          }
+          if (nonOverdueStatuses.length > 0 && statusFilters.includes("OVERDUE")) {
+            return matchesOverdue || matchesStatus;
+          }
+          return matchesStatus;
+        });
+      } else {
+        result = result.filter((t) => statusFilters.includes(t.status));
+      }
+    }
+
+    // Priority filter
+    const priorityFilters = activeFilters.priority ?? [];
+    if (priorityFilters.length > 0) {
+      result = result.filter((t) => priorityFilters.includes(t.priority));
+    }
+
+    return result;
+  }, [tasks, activeFilters]);
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       <div>
-        <h1 className="text-2xl font-semibold">مهامي</h1>
+        <h1 className="text-2xl font-semibold">مهام المشاريع</h1>
         <p className="text-sm text-neutral-300 mt-1">
-          جميع المهام المسندة إليك.
+          جميع المهام في مشاريعك، تابع تقدم الفريق ووافق على المراجعات.
         </p>
       </div>
 
+      {/* ── Stat Cards ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {STAT_CARDS.map((card) => (
-          <SurfaceCard
-            key={card.label}
-            title={card.label}
-            contentClassName="pt-0"
-          >
-            {statsLoading ? (
-              <DSSkeleton className="h-8 w-12" />
-            ) : (
-              <p className="text-2xl font-semibold">{card.value}</p>
-            )}
-          </SurfaceCard>
-        ))}
+        {STAT_TONES.map((tone) => {
+          const value =
+            tone.key === "total"
+              ? stats?.total ?? 0
+              : tone.key === "inProgress"
+                ? stats?.inProgress ?? 0
+                : tone.key === "inReview"
+                  ? stats?.inReview ?? 0
+                  : stats?.overdue ?? 0;
+
+          return (
+            <div
+              key={tone.key}
+              className={cn(
+                "rounded-[30px] border-[1.5px] p-5",
+                tone.bg,
+                tone.border,
+              )}
+            >
+              <p className="text-sm text-neutral-300">{tone.label}</p>
+              <p className={cn("text-2xl font-semibold mt-2", tone.text)}>
+                {statsLoading ? "—" : value}
+              </p>
+            </div>
+          );
+        })}
       </div>
 
+      {/* ── Task Table ───────────────────────────────────────────────────── */}
       <SurfaceCard
         title="قائمة المهام"
-        action={
-          <div className="flex flex-wrap gap-2">
-            <ActionButton
-              size="sm"
-              variant={activeFilter === "IN_REVIEW" ? "primary" : "outline"}
-              onClick={() => setActiveFilter("IN_REVIEW")}
-            >
-              قيد المراجعة ({tasksCounts.IN_REVIEW})
-            </ActionButton>
-            <ActionButton
-              size="sm"
-              variant={activeFilter === "IN_PROGRESS" ? "primary" : "outline"}
-              onClick={() => setActiveFilter("IN_PROGRESS")}
-            >
-              جارية ({tasksCounts.IN_PROGRESS})
-            </ActionButton>
-            <ActionButton
-              size="sm"
-              variant={activeFilter === "DONE" ? "primary" : "outline"}
-              onClick={() => setActiveFilter("DONE")}
-            >
-              منجزة ({tasksCounts.DONE})
-            </ActionButton>
-            <ActionButton
-              size="sm"
-              variant={activeFilter === "ALL" ? "primary" : "outline"}
-              onClick={() => setActiveFilter("ALL")}
-            >
-              الكل ({tasksCounts.ALL})
-            </ActionButton>
-          </div>
-        }
+        action={<FilterBar groups={filterGroups} activeFilters={activeFilters} onFilterChange={(key, values) => setActiveFilters((prev) => ({ ...prev, [key]: values }))} />}
       >
-        {tasksLoading && (
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <DSSkeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        )}
-        {isError && (
-          <p className="text-sm text-danger-500">حدث خطأ أثناء تحميل المهام.</p>
-        )}
-        {!tasksLoading && !isError && tasks && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-right">المهمة</TableHead>
-                <TableHead className="text-right">المشروع</TableHead>
-                <TableHead className="text-right">الحالة</TableHead>
-                <TableHead className="text-right">الأولوية</TableHead>
-                <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center text-neutral-300 py-8"
-                  >
-                    لا توجد مهام.
-                  </TableCell>
-                </TableRow>
-              )}
-              {filteredTasks.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/dashboard/pm/tasks/${task.id}`}
-                      className="hover:underline text-secondary-500"
-                    >
-                      {task.title}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-neutral-300">
-                    {task.project?.name ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      status={
-                        STATUS_VARIANT[task.status as string] ?? "PENDING"
-                      }
-                      label={
-                        STATUS_LABELS[task.status as string] ?? task.status
-                      }
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {PRIORITY_LABELS[task.priority as string] ?? task.priority}
-                  </TableCell>
-                  <TableCell dir="ltr">
-                    {new Date(task.dueDate).toLocaleDateString("ar-DZ")}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <DataTable
+          columns={COLUMNS}
+          data={filteredTasks}
+          isLoading={tasksLoading}
+          isError={isError}
+          errorMessage="حدث خطأ أثناء تحميل المهام."
+          emptyState={EMPTY_STATE}
+          renderRow={(task) => (
+            <TableRow key={task.id}>
+              <TableCell className="text-right">
+                <Link
+                  href={`/dashboard/pm/tasks/${task.id}`}
+                  className="hover:underline text-secondary-500 font-medium"
+                >
+                  {task.title}
+                </Link>
+              </TableCell>
+              <TableCell className="text-right text-neutral-300">
+                {task.project?.name ?? "—"}
+              </TableCell>
+              <TableCell className="text-right text-neutral-300">
+                {task.assignee?.name ?? "—"}
+              </TableCell>
+              <TableCell className="text-right">
+                <StatusBadge
+                  status={STATUS_BADGE_MAP[task.status] ?? "PENDING"}
+                  label={STATUS_LABELS[task.status] ?? task.status}
+                />
+              </TableCell>
+              <TableCell className="text-right">
+                <Pill
+                  tone={PRIORITY_PILL_TONE[task.priority] ?? "neutral"}
+                  className="text-xs h-6 px-2"
+                >
+                  {PRIORITY_LABELS[task.priority] ?? task.priority}
+                </Pill>
+              </TableCell>
+              <TableCell className="text-right" dir="ltr">
+                {formatShortDate(task.dueDate)}
+              </TableCell>
+            </TableRow>
+          )}
+        />
       </SurfaceCard>
     </div>
   );

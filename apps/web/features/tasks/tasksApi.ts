@@ -51,6 +51,26 @@ export interface TaskStats {
   overdue: number;
 }
 
+export interface PmTaskStats {
+  total: number;
+  todo: number;
+  inProgress: number;
+  inReview: number;
+  done: number;
+  overdue: number;
+  projects: number;
+}
+
+export interface PmTasksFilters {
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  projectId?: string;
+  dept?: string;
+  deptName?: string;
+  dueBefore?: string;
+  dueAfter?: string;
+}
+
 // ── API slice ─────────────────────────────────────────────────────────────────
 
 export const tasksApi = createApi({
@@ -88,7 +108,9 @@ export const tasksApi = createApi({
       }),
       invalidatesTags: (_result, _error, body) => [
         { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "PM_TASKS" },
         { type: "Task", id: "MY_STATS" },
+        { type: "Task", id: "PM_STATS" },
         {
           type: "Task",
           id: `PROJECT_${"projectId" in body ? (body as any).projectId : ""}`,
@@ -134,6 +156,8 @@ export const tasksApi = createApi({
         { type: "Task", id },
         { type: "Task", id: "MY_TASKS" },
         { type: "Task", id: "MY_STATS" },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
       ],
     }),
 
@@ -208,6 +232,8 @@ export const tasksApi = createApi({
       invalidatesTags: (_r, _e, id) => [
         { type: "Task", id },
         { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
       ],
     }),
 
@@ -217,6 +243,8 @@ export const tasksApi = createApi({
       invalidatesTags: (_r, _e, id) => [
         { type: "Task", id },
         { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
       ],
     }),
 
@@ -226,6 +254,8 @@ export const tasksApi = createApi({
       invalidatesTags: (_r, _e, id) => [
         { type: "Task", id },
         { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
       ],
     }),
 
@@ -243,7 +273,24 @@ export const tasksApi = createApi({
         { type: "Task", id },
         { type: "Task", id: "MY_TASKS" },
         { type: "Task", id: "MY_STATS" },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
       ],
+    }),
+
+    /** GET /v1/tasks/pm — all tasks across PM's projects */
+    getPmTasks: builder.query<TaskWithProject[], PmTasksFilters>({
+      query: (filters = {}) => ({
+        url: "/tasks/pm",
+        params: filters,
+      }),
+      providesTags: [{ type: "Task", id: "PM_TASKS" }],
+    }),
+
+    /** GET /v1/tasks/pm/stats — aggregated stats for PM's projects */
+    getPmTaskStats: builder.query<PmTaskStats, void>({
+      query: () => "/tasks/pm/stats",
+      providesTags: [{ type: "Task", id: "PM_STATS" }],
     }),
 
     /** POST /v1/tasks/:id/reject — move IN_REVIEW→REVISION */
@@ -252,6 +299,8 @@ export const tasksApi = createApi({
       invalidatesTags: (_r, _e, id) => [
         { type: "Task", id },
         { type: "Task", id: "MY_TASKS" },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
       ],
     }),
 
@@ -266,6 +315,8 @@ export const tasksApi = createApi({
         { type: "Task", id },
         { type: "Task", id: "MY_TASKS" },
         { type: "Task", id: "MY_STATS" },
+        { type: "Task", id: "PM_TASKS" },
+        { type: "Task", id: "PM_STATS" },
       ],
     }),
   }),
@@ -291,4 +342,6 @@ export const {
   useChangeTaskStatusMutation,
   useRejectTaskMutation,
   useAssignTaskMutation,
+  useGetPmTasksQuery,
+  useGetPmTaskStatsQuery,
 } = tasksApi;

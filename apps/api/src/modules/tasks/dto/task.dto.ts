@@ -7,7 +7,7 @@ import {
   IsBoolean,
   IsNumber,
 } from "class-validator";
-import { TaskPriority, TaskDepartment, FilePurpose } from "@hassad/shared";
+import { TaskPriority, TaskDepartment, TaskStatus, FilePurpose } from "@hassad/shared";
 
 export class CreateTaskDto {
   @IsUUID()
@@ -111,4 +111,30 @@ export class CreateTaskCommentDto {
   @IsOptional()
   @IsBoolean()
   isInternal?: boolean;
+}
+
+export class PmTasksQueryDto {
+  @IsOptional()
+  @IsEnum(TaskStatus)
+  status?: TaskStatus;
+
+  @IsOptional()
+  @IsEnum(TaskPriority)
+  priority?: TaskPriority;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
+  @IsEnum(TaskDepartment)
+  dept?: TaskDepartment;
+
+  @IsOptional()
+  @IsDateString()
+  dueBefore?: string;
+
+  @IsOptional()
+  @IsDateString()
+  dueAfter?: string;
 }
