@@ -15,7 +15,8 @@ import { ProposalStatus } from "@hassad/shared";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";
 import { useSendProposalMutation } from "@/features/proposals/proposalsApi";
 import { useGetProfileQuery } from "@/features/auth/authApi";
-import { formatCurrency, formatShortDate } from "@/lib/format";
+import { formatShortDate } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { ProposalFormDialog } from "./ProposalFormDialog";
 
 const STATUS_META: Record<
@@ -139,7 +140,7 @@ export function ProposalsTable({
               {getProposalDisplayName(proposal)}
             </TableCell>
             <TableCell className="text-right">
-              {formatCurrency(proposal.totalPrice)}
+              <CurrencyDisplay amount={proposal.totalPrice} />
             </TableCell>
             <TableCell className="text-right">
               {formatShortDate(proposal.createdAt)}

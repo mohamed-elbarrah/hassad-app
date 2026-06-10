@@ -819,6 +819,114 @@ export class TasksService {
     });
   }
 
+  async findPmTasks(
+    userId: string,
+    filters: {
+      status?: string;
+      priority?: string;
+      projectId?: string;
+      dept?: string;
+      deptName?: string;
+      dueBefore?: string;
+      dueAfter?: string;
+    },
+  ) {
+    const where: Record<string, unknown> = {
+      project: { projectManagerId: userId },
+    };
+    if (filters.status) where["status"] = filters.status;
+    if (filters.priority) where["priority"] = filters.priority;
+    if (filters.projectId) where["projectId"] = filters.projectId;
+    if (filters.dept) where["departmentId"] = filters.dept;
+    if (filters.deptName) {
+      where["department"] = { name: filters.deptName };
+    }
+
+    if (filters.dueBefore || filters.dueAfter) {
+      const dueDateFilter: Record<string, Date> = {};
+      if (filters.dueBefore) dueDateFilter["lte"] = new Date(filters.dueBefore);
+      if (filters.dueAfter) dueDateFilter["gte"] = new Date(filters.dueAfter);
+      where["dueDate"] = dueDateFilter;
+    }
+
+    return this.prisma.task.findMany({
+      where,
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            clientId: true,
+            client: {
+              select: {
+                companyName: true,
+                businessType: true,
+              },
+            },
+          },
+        },
+        assignee: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async pmStats(userId: string) {
+    // Get all project IDs where this user is the project manager
+    const pmProjects = await this.prisma.project.findMany({
+      where: { projectManagerId: userId },
+      select: { id: true },
+    });
+    const projectIds = pmProjects.map((p) => p.id);
+
+    if (projectIds.length === 0) {
+      return {
+        total: 0,
+        todo: 0,
+        inProgress: 0,
+        inReview: 0,
+        done: 0,
+        overdue: 0,
+        projects: projectIds.length,
+      };
+    }
+
+    const whereInPmProjects = { projectId: { in: projectIds } };
+
+    const [grouped, overdue] = await Promise.all([
+      this.prisma.task.groupBy({
+        by: ["status"],
+        where: whereInPmProjects,
+        _count: { status: true },
+      }),
+      this.prisma.task.count({
+        where: {
+          ...whereInPmProjects,
+          dueDate: { lt: new Date() },
+          status: { not: TaskStatus.DONE },
+        },
+      }),
+    ]);
+
+    const counts: Record<string, number> = {};
+    for (const g of grouped) {
+      counts[g.status] = g._count.status;
+    }
+
+    const total = grouped.reduce((sum, g) => sum + g._count.status, 0);
+
+    return {
+      total,
+      todo: counts[TaskStatus.TODO] ?? 0,
+      inProgress: counts[TaskStatus.IN_PROGRESS] ?? 0,
+      inReview: counts[TaskStatus.IN_REVIEW] ?? 0,
+      done: counts[TaskStatus.DONE] ?? 0,
+      overdue,
+      projects: projectIds.length,
+    };
+  }
+
   async findMine(
     userId: string,
     filters: {

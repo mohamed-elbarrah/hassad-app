@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Calendar, User } from "lucide-react";
 import type { Task } from "@hassad/shared";
+import { formatShortDate } from "@/lib/format";
 import { TaskStatus, TaskPriority } from "@hassad/shared";
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -83,11 +84,7 @@ export function TaskCard({ task }: TaskCardProps) {
             <div className="flex items-center gap-1">
               <Calendar className="size-3 shrink-0" />
               <span>
-                {new Intl.DateTimeFormat("en-GB", {
-                  month: "short",
-                  day: "numeric",
-                  numberingSystem: "latn",
-                }).format(new Date(task.dueDate))}
+                {formatShortDate(task.dueDate)}
               </span>
             </div>
           </div>

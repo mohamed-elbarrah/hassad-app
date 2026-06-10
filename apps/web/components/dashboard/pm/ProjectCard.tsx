@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Calendar, Users, TrendingUp } from "lucide-react";
+import { formatDate } from "@/lib/format";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
@@ -52,18 +53,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
       0,
   );
 
-  const startDate = new Intl.DateTimeFormat("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    numberingSystem: "latn",
-  }).format(new Date(project.startDate));
-  const endDate = new Intl.DateTimeFormat("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    numberingSystem: "latn",
-  }).format(new Date(project.endDate));
+  const startDate = formatDate(project.startDate);
+  const endDate = formatDate(project.endDate);
 
   return (
     <Link href={`/dashboard/pm/projects/${project.id}`}>
