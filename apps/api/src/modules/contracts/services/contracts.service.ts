@@ -22,6 +22,7 @@ import {
 } from "@hassad/shared";
 import { RequestsService } from "../../requests/requests.service";
 import { AutoConversationService } from "../../chat/services/auto-conversation.service";
+import { PmAssignmentService } from "./pm-assignment.service";
 
 @Injectable()
 export class ContractsService {
@@ -30,6 +31,7 @@ export class ContractsService {
     private notificationsService: NotificationsService,
     private requestsService: RequestsService,
     private autoConversationService: AutoConversationService,
+    private pmAssignmentService: PmAssignmentService,
   ) {}
 
   private async createProjectFromSignedContract(contractId: string) {
@@ -78,46 +80,19 @@ export class ContractsService {
       contract.createdBy,
     ].filter((value): value is string => !!value);
 
-    const preferredManagers =
-      managerCandidates.length === 0
-        ? []
-        : await this.prisma.user.findMany({
-            where: {
-              id: { in: managerCandidates },
-              isActive: true,
-              role: { name: "PM" },
-            },
-            select: { id: true },
-          });
+    const assignment = await this.pmAssignmentService.findBestPm(
+      managerCandidates,
+      contract.clientId,
+    );
 
-    let projectManagerId =
-      preferredManagers.find(
-        (candidate) => candidate.id === contract.client.accountManager,
-      )?.id ??
-      preferredManagers.find((candidate) => candidate.id === contract.createdBy)
-        ?.id;
-
-    let fallbackUsed = false;
-
-    if (!projectManagerId) {
-      const fallbackPm = await this.prisma.user.findFirst({
-        where: {
-          isActive: true,
-          role: { name: "PM" },
-        },
-        orderBy: { createdAt: "asc" },
-        select: { id: true },
-      });
-
-      if (!fallbackPm) {
-        throw new BadRequestException(
-          "Cannot auto-create project without an active PM account",
-        );
-      }
-
-      fallbackUsed = true;
-      projectManagerId = fallbackPm.id;
+    if (!assignment) {
+      throw new BadRequestException(
+        "Cannot auto-create project without an active PM account",
+      );
     }
+
+    const projectManagerId = assignment.pmId;
+    const fallbackUsed = assignment.isFallback;
 
     const projectName = contract.proposal
       ? `${contract.client.companyName} — ${contract.proposal.title}`
@@ -248,9 +223,17 @@ export class ContractsService {
     if (fallbackUsed) {
       this.notificationsService
         .broadcast({
-          title: "تعيين مدير مشروع احتياطي",
-          message: `تم إنشاء مشروع تلقائياً من العقد "${contract.title}" وتم تعيين مدير مشروع احتياطي بسبب عدم توفر PM مرتبط بالعميل.`,
+          title: "تعيين مدير مشروع تلقائي",
+          message: `تم إنشاء مشروع تلقائياً من العقد "${contract.title}" وتم تعيينه لـ "${assignment.pmName}" تلقائياً (أقل عبء مشاريع: ${assignment.currentLoad} مشاريع نشطة).`,
           roles: ["ADMIN", "SALES"],
+        })
+        .catch(() => undefined);
+    } else if (assignment.isAccountManager) {
+      this.notificationsService
+        .broadcast({
+          title: "تعيين مدير مشروع",
+          message: `تم إنشاء مشروع من العقد "${contract.title}" وتم تعيينه لمدير حساب العميل "${assignment.pmName}" (${assignment.currentLoad} مشاريع نشطة).`,
+          roles: ["ADMIN"],
         })
         .catch(() => undefined);
     }

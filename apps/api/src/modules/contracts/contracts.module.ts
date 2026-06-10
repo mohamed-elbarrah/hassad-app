@@ -4,6 +4,7 @@ import { memoryStorage } from "multer";
 import { ContractsController } from "./controllers/contracts.controller";
 import { ContractsService } from "./services/contracts.service";
 import { ContractCronService } from "./services/contract-cron.service";
+import { PmAssignmentService } from "./services/pm-assignment.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { CrmModule } from "../crm/crm.module";
 import { RequestsModule } from "../requests/requests.module";
@@ -20,7 +21,7 @@ import { ChatModule } from "../chat/chat.module";
     MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [ContractsController],
-  providers: [ContractsService, ContractCronService],
+  providers: [ContractsService, ContractCronService, PmAssignmentService],
   exports: [ContractsService],
 })
 export class ContractsModule {}
