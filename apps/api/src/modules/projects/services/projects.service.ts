@@ -316,4 +316,46 @@ export class ProjectsService {
     await this.prisma.projectFile.delete({ where: { id: fileId } });
     return { success: true };
   }
+
+  /**
+   * Get all revision requests across all projects managed by a given PM.
+   * Returns deliverables that have at least one revision request,
+   * grouped by project.
+   */
+  async findPmRevisions(userId: string) {
+    // Get all project IDs managed by this PM
+    const pmProjects = await this.prisma.project.findMany({
+      where: { projectManagerId: userId },
+      select: { id: true },
+    });
+    const projectIds = pmProjects.map((p) => p.id);
+
+    if (projectIds.length === 0) {
+      return [];
+    }
+
+    // Get all deliverables with revision requests in those projects
+    const deliverables = await this.prisma.deliverable.findMany({
+      where: {
+        projectId: { in: projectIds },
+        revisionRequests: { some: {} },
+      },
+      include: {
+        project: {
+          select: { id: true, name: true },
+        },
+        revisionRequests: {
+          include: {
+            client: {
+              select: { id: true, companyName: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return deliverables;
+  }
 }

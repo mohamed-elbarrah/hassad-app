@@ -40,12 +40,35 @@ export interface ProjectFile {
   url?: string;
 }
 
+export interface PmRevisionRequest {
+  id: string;
+  deliverableId: string;
+  clientId: string;
+  requestDescription: string;
+  status: string;
+  resolvedAt?: string | null;
+  createdAt: string;
+  client?: { id: string; companyName: string };
+}
+
+export interface PmDeliverableWithRevisions {
+  id: string;
+  projectId: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  isVisibleToClient: boolean;
+  createdAt: string;
+  project?: { id: string; name: string };
+  revisionRequests: PmRevisionRequest[];
+}
+
 // ── API slice ─────────────────────────────────────────────────────────────────
 
 export const projectsApi = createApi({
   reducerPath: "projectsApi",
   baseQuery,
-  tagTypes: ["Project", "ProjectFile"],
+  tagTypes: ["Project", "ProjectFile", "PmRevision"],
   endpoints: (builder) => ({
     /** GET /v1/projects — paginated + filtered list */
     getProjects: builder.query<PaginatedProjects, ProjectFilters>({
@@ -155,6 +178,12 @@ export const projectsApi = createApi({
         { type: "ProjectFile", id: projectId },
       ],
     }),
+
+    /** GET /v1/projects/pm/revisions — all revision requests across PM's projects */
+    getPmRevisions: builder.query<PmDeliverableWithRevisions[], void>({
+      query: () => "/projects/pm/revisions",
+      providesTags: [{ type: "PmRevision", id: "LIST" }],
+    }),
   }),
 });
 
@@ -168,4 +197,5 @@ export const {
   useGetProjectFilesQuery,
   useUploadProjectFileMutation,
   useDeleteProjectFileMutation,
+  useGetPmRevisionsQuery,
 } = projectsApi;
