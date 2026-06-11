@@ -15,9 +15,13 @@ import { StatCard } from "@/components/design-system/StatCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { EmptyState } from "@/components/common/EmptyState";
 import { formatShortDate, formatRelativeTime } from "@/lib/format";
-import { ProjectStatus, TaskStatus, TaskPriority } from "@hassad/shared";
+import { ProjectStatus, TaskStatus, TaskPriority, TASK_PRIORITY_AR } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
 import type { Notification } from "@hassad/shared";
+import {
+  PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_BADGE_KEY,
+} from "@/lib/utils/project-status";
 import {
   FolderKanban,
   CheckCircle2,
@@ -38,15 +42,7 @@ import Link from "next/link";
 
 // ── Status Config ────────────────────────────────────────────────────────────
 
-const PROJECT_STATUS_AR: Record<ProjectStatus, string> = {
-  [ProjectStatus.PLANNING]: "تخطيط",
-  [ProjectStatus.ACTIVE]: "نشط",
-  [ProjectStatus.ON_HOLD]: "معلق",
-  [ProjectStatus.AWAITING_REVIEW]: "بانتظار المراجعة",
-  [ProjectStatus.NEEDS_REVISION]: "يحتاج تعديل",
-  [ProjectStatus.COMPLETED]: "مكتمل",
-  [ProjectStatus.CANCELLED]: "ملغى",
-};
+const PROJECT_STATUS_AR = PROJECT_STATUS_LABELS;
 
 const TASK_STATUS_AR: Record<TaskStatus, string> = {
   [TaskStatus.TODO]: "للتنفيذ",
@@ -56,12 +52,7 @@ const TASK_STATUS_AR: Record<TaskStatus, string> = {
   [TaskStatus.DONE]: "منجز",
 };
 
-const TASK_PRIORITY_AR: Record<TaskPriority, string> = {
-  [TaskPriority.LOW]: "منخفض",
-  [TaskPriority.NORMAL]: "عادي",
-  [TaskPriority.HIGH]: "عالي",
-  [TaskPriority.URGENT]: "عاجل",
-};
+const TASK_PRIORITY_LABELS = TASK_PRIORITY_AR;
 
 const PRIORITY_STATUS_MAP: Record<TaskPriority, string> = {
   [TaskPriority.LOW]: "PENDING",
@@ -374,7 +365,7 @@ export default function PMWorkspacePage() {
                               status={
                                 PRIORITY_STATUS_MAP[task.priority as TaskPriority]
                               }
-                              label={TASK_PRIORITY_AR[task.priority as TaskPriority]}
+                              label={TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
                               className="text-xs"
                             />
                           )}

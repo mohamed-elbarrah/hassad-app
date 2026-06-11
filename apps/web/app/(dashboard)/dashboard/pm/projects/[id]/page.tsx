@@ -10,7 +10,6 @@ import {
   Eye,
   AlertTriangle,
   Upload,
-  FileText,
   Trash2,
   Download,
 } from "lucide-react";
@@ -22,6 +21,7 @@ import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { AlertCard } from "@/components/design-system/AlertCard";
 import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow";
+import { EmptyState } from "@/components/common/EmptyState";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
@@ -34,30 +34,11 @@ import {
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus } from "@hassad/shared";
 import { formatDate } from "@/lib/format";
-
-// ── Status config ─────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<
-  ProjectStatus,
-  {
-    label: string;
-    statusKey: string;
-  }
-> = {
-  [ProjectStatus.PLANNING]: { label: "تخطيط", statusKey: "DRAFT" },
-  [ProjectStatus.ACTIVE]: { label: "نشط", statusKey: "ACTIVE" },
-  [ProjectStatus.ON_HOLD]: { label: "موقوف", statusKey: "STOPPED" },
-  [ProjectStatus.AWAITING_REVIEW]: {
-    label: "بانتظار المراجعة",
-    statusKey: "PENDING",
-  },
-  [ProjectStatus.NEEDS_REVISION]: {
-    label: "مطلوب تعديلات",
-    statusKey: "REJECTED",
-  },
-  [ProjectStatus.COMPLETED]: { label: "مكتمل", statusKey: "COMPLETED" },
-  [ProjectStatus.CANCELLED]: { label: "ملغى", statusKey: "CANCELLED" },
-};
+import {
+  PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_BADGE_KEY,
+  type ProjectWithMeta,
+} from "@/lib/utils/project-status";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -93,32 +74,22 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
 
   if (isError || !project) {
     return (
-      <div className="flex flex-col gap-4">
-        <Link href="/dashboard/pm/projects">
-          <ActionButton variant="ghost" size="sm">
-            <ArrowRight className="size-4 mr-1" />
-            العودة للمشاريع
-          </ActionButton>
-        </Link>
-        <p className="text-danger-500">
-          المشروع غير موجود أو لا يمكن الوصول إليه.
-        </p>
-      </div>
+      <EmptyState
+        title="المشروع غير موجود"
+        description="لا يمكن الوصول إلى هذا المشروع. ربما تم حذفه أو ليس لديك صلاحية."
+        actionLabel="العودة للمشاريع"
+        actionHref="/dashboard/pm/projects"
+      />
     );
   }
 
-  const statusConfig = STATUS_CONFIG[project.status];
-  const progressValue = Math.round(
-    project.progress ??
-      (project as typeof project & { completionPercentage?: number })
-        .completionPercentage ??
-      0,
-  );
+  const p = project as ProjectWithMeta;
+  const progressValue = Math.round(p.progress ?? p.completionPercentage ?? 0);
 
   return (
     <div className="flex flex-col gap-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-neutral-300">
+      <nav className="flex items-center gap-2 text-sm text-neutral-300">
         <Link
           href="/dashboard/pm/projects"
           className="hover:text-natural-100 transition-colors"
@@ -127,15 +98,15 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         </Link>
         <span>/</span>
         <span className="text-natural-100 font-medium">{project.name}</span>
-      </div>
+      </nav>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
           <StatusBadge
-            status={statusConfig.statusKey}
-            label={statusConfig.label}
+            status={PROJECT_STATUS_BADGE_KEY[project.status as ProjectStatus]}
+            label={PROJECT_STATUS_LABELS[project.status as ProjectStatus]}
           />
         </div>
         <ProjectForm project={project} currentUserId={user.id} />
@@ -186,10 +157,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
 
         <SurfaceCard title="المدير" icon={User}>
           <div className="text-sm space-y-1">
-            {"manager" in project && project.manager ? (
-              <p className="font-medium">
-                {(project as { manager: { name: string } }).manager.name}
-              </p>
+            {p.manager ? (
+              <p className="font-medium">{p.manager.name}</p>
             ) : (
               <p className="text-neutral-300">—</p>
             )}

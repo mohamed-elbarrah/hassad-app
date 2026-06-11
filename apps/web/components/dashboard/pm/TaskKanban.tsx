@@ -11,9 +11,13 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Calendar, GripVertical, User } from "lucide-react";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import { KanbanGroup } from "@/components/dashboard/crm/KanbanGroup";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { EmptyState } from "@/components/common/EmptyState";
 import { useGetTasksByProjectQuery } from "@/features/tasks/tasksApi";
 import {
   useStartTaskMutation,
@@ -23,226 +27,189 @@ import {
 } from "@/features/tasks/tasksApi";
 import type { Task } from "@hassad/shared";
 import { TaskStatus } from "@hassad/shared";
-import { useDroppable } from "@dnd-kit/core";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { Calendar, GripVertical, User } from "lucide-react";
 import { formatShortDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import {
+  TASK_STATUS_COLOR,
+  TASK_STATUS_LABELS,
+  TASK_KANBAN_ORDER,
+  TASK_PRIORITY_LABELS,
+  type TaskWithMeta,
+} from "@/lib/utils/task-status";
 
-interface TaskWithAssignee extends Task {
-  assignee?: { id: string; name: string };
-}
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface TaskKanbanProps {
   projectId: string;
 }
 
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  [TaskStatus.TODO]: "للتنفيذ",
-  [TaskStatus.IN_PROGRESS]: "قيد التنفيذ",
-  [TaskStatus.IN_REVIEW]: "قيد المراجعة",
-  [TaskStatus.REVISION]: "يحتاج تعديل",
-  [TaskStatus.DONE]: "منجز",
-};
+// ── Task Card Component ─────────────────────────────────────────────────────────
 
-const STATUS_MAP: Record<TaskStatus, string> = {
-  [TaskStatus.TODO]: "PENDING",
-  [TaskStatus.IN_PROGRESS]: "IN_PROGRESS",
-  [TaskStatus.IN_REVIEW]: "PENDING",
-  [TaskStatus.REVISION]: "REJECTED",
-  [TaskStatus.DONE]: "COMPLETED",
-};
-
-/* ── Softer status dot colors (design tokens) ─────────────────────────────── */
-const STATUS_DOT_COLORS: Record<TaskStatus, string> = {
-  [TaskStatus.TODO]: "#A8ABB2",
-  [TaskStatus.IN_PROGRESS]: "#2684FC",
-  [TaskStatus.IN_REVIEW]: "#F8AF01",
-  [TaskStatus.REVISION]: "#FB3748",
-  [TaskStatus.DONE]: "#0ED589",
-};
-
-const TASK_GROUPS = [
-  {
-    id: "backlog",
-    label: "التحضير",
-    statuses: [TaskStatus.TODO],
-  },
-  {
-    id: "execution",
-    label: "التنفيذ",
-    statuses: [TaskStatus.IN_PROGRESS, TaskStatus.REVISION],
-  },
-  {
-    id: "review_done",
-    label: "المراجعة والإغلاق",
-    statuses: [TaskStatus.IN_REVIEW, TaskStatus.DONE],
-  },
-] as const;
-
-const PRIORITY_LABELS: Record<string, string> = {
-  LOW: "منخفض",
-  NORMAL: "عادي",
-  HIGH: "عالي",
-  URGENT: "عاجل",
-};
-
-const PRIORITY_MAP: Record<string, string> = {
-  LOW: "neutral",
-  NORMAL: "neutral",
-  HIGH: "warning",
-  URGENT: "danger",
-};
-
-interface DraggableTaskCardProps {
-  task: TaskWithAssignee;
+interface TaskKanbanCardProps {
+  task: TaskWithMeta;
   isOverlay?: boolean;
 }
 
-function DraggableTaskCard({
-  task,
-  isOverlay = false,
-}: DraggableTaskCardProps) {
+function TaskKanbanCard({ task, isOverlay = false }: TaskKanbanCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
     data: { status: task.status },
   });
 
+  // Status color for visual indicator
+  const statusColor = TASK_STATUS_COLOR[task.status as TaskStatus];
+
+  // Priority badge tone
+  const priorityTone =
+    task.priority === "URGENT"
+      ? "danger"
+      : task.priority === "HIGH"
+      ? "warning"
+      : "neutral";
+
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "group bg-white rounded-2xl border-[1.5px] border-portal-card-border p-4 cursor-grab active:cursor-grabbing transition-all duration-150",
-        "hover:border-secondary-500/20",
+        "group bg-white rounded-2xl border border-portal-card-border p-4 cursor-grab active:cursor-grabbing transition-all duration-150",
+        "hover:border-secondary-500/20 hover:shadow-sm",
         (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
+        isOverlay && "shadow-lg border-natural-100"
       )}
-      style={
-        isOverlay
-          ? {
-              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
-              borderColor: "#121936",
-            }
-          : undefined
-      }
       {...attributes}
       {...listeners}
     >
+      {/* Header: Title + Drag Handle */}
       <div className="flex items-start justify-between gap-2">
         <Link
           href={`/dashboard/pm/tasks/${task.id}`}
-          className="text-sm font-semibold hover:underline line-clamp-2 block flex-1 min-w-0"
-          style={{ color: "#000000" }}
+          className="text-sm font-semibold text-natural-100 hover:text-secondary-500 hover:underline line-clamp-2 block flex-1 min-w-0 transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
           {task.title}
         </Link>
-        <GripVertical
-          className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity"
-          style={{ color: "#A8ABB2" }}
-        />
+        <GripVertical className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity text-neutral-300" />
       </div>
 
+      {/* Description */}
       {task.description && (
-        <p
-          className="text-xs mt-2 line-clamp-2 leading-relaxed"
-          style={{ color: "rgba(0, 0, 0, 0.5)" }}
-        >
+        <p className="text-xs text-neutral-400 mt-2 line-clamp-2 leading-relaxed">
           {task.description}
         </p>
       )}
 
+      {/* Status indicator bar */}
+      <div className="mt-3 flex items-center gap-2">
+        <div
+          className="h-1.5 flex-1 rounded-full"
+          style={{ backgroundColor: `${statusColor}20` }}
+        >
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: task.status === TaskStatus.DONE ? "100%" : task.status === TaskStatus.IN_PROGRESS ? "50%" : "15%",
+              backgroundColor: statusColor,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Priority & Status badges */}
       <div className="mt-3 flex items-center justify-between gap-2">
         <StatusBadge
-          status={PRIORITY_MAP[task.priority as string] ?? "neutral"}
-          label={PRIORITY_LABELS[task.priority as string] ?? task.priority}
+          status={priorityTone}
+          label={TASK_PRIORITY_LABELS[task.priority as keyof typeof TASK_PRIORITY_LABELS] ?? task.priority}
           className="text-[10px]"
         />
         <span
-          className="text-[11px] font-medium"
-          style={{ color: "#A8ABB2" }}
+          className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+          style={{
+            color: statusColor,
+            backgroundColor: `${statusColor}15`,
+          }}
         >
-          {STATUS_LABELS[task.status as TaskStatus]}
+          {TASK_STATUS_LABELS[task.status as TaskStatus]}
         </span>
       </div>
 
-      <div className="mt-2 flex flex-col gap-1 text-[11px]">
+      {/* Meta: Assignee & Due Date */}
+      <div className="mt-2 flex flex-col gap-1 text-[11px] text-neutral-400">
         {task.assignee && (
-          <div className="flex items-center gap-1">
-            <User
-              className="w-3.5 h-3.5 shrink-0"
-              style={{ color: "#A8ABB2" }}
-            />
-            <span style={{ color: "#A8ABB2" }}>{task.assignee.name}</span>
+          <div className="flex items-center gap-1.5">
+            <User className="w-3.5 h-3.5 shrink-0" />
+            <span>{task.assignee.name}</span>
           </div>
         )}
-        <div className="flex items-center gap-1">
-          <Calendar
-            className="w-3.5 h-3.5 shrink-0"
-            style={{ color: "#A8ABB2" }}
-          />
-          <span style={{ color: "#A8ABB2" }}>
-            {formatShortDate(task.dueDate)}
-          </span>
+        <div className="flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 shrink-0" />
+          <span>{formatShortDate(task.dueDate)}</span>
         </div>
       </div>
     </div>
   );
 }
 
+// ── Task Column Component ─────────────────────────────────────────────────────
+
 interface TaskKanbanColumnProps {
   status: TaskStatus;
-  tasks: TaskWithAssignee[];
+  color: string;
+  tasks: TaskWithMeta[];
 }
 
-function TaskKanbanColumn({ status, tasks }: TaskKanbanColumnProps) {
+function TaskKanbanColumn({ status, color, tasks }: TaskKanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+
+  // Light tint colors
+  const tintColor = `${color}0D`; // ~5% opacity
+  const borderColor = `${color}33`; // 20% opacity
+  const headerBorder = `${color}26`; // 15% opacity
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "w-72 shrink-0 rounded-xl flex flex-col transition-all duration-150",
-        isOver && "ring-2 ring-secondary-500/30 ring-offset-2 scale-[1.01]",
+        "w-72 shrink-0 flex flex-col rounded-xl border transition-all duration-150",
+        isOver && "ring-2 ring-offset-2"
       )}
+      style={{
+        "--status-color": color,
+        backgroundColor: tintColor,
+        borderColor: borderColor,
+      } as React.CSSProperties}
     >
-      <div className="flex items-center gap-2 justify-between px-1 py-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: STATUS_DOT_COLORS[status] }}
-          />
-          <h3
-            className="text-xs font-semibold truncate"
-            style={{ color: "#000000" }}
-          >
-            {STATUS_LABELS[status]}
-          </h3>
-        </div>
+      {/* Column Header */}
+      <div
+        className="flex items-center gap-2 px-3 py-3 border-b"
+        style={{ borderColor: headerBorder }}
+      >
         <span
-          className="text-xs font-medium rounded-full shrink-0 tabular-nums"
+          className="w-2.5 h-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: color }}
+        />
+        <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+          {TASK_STATUS_LABELS[status]}
+        </span>
+        <span
+          className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
-            color: "#A8ABB2",
-            padding: "2px 8px",
+            color: color,
+            backgroundColor: `${color}1A`, // 10% opacity
+            border: `1px solid ${color}33`,
           }}
         >
           {tasks.length}
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 min-h-20 flex-1">
+      {/* Cards Container */}
+      <div className="flex flex-col gap-2 p-3 min-h-96">
         {tasks.map((task) => (
-          <DraggableTaskCard key={task.id} task={task} />
+          <TaskKanbanCard key={task.id} task={task} />
         ))}
         {tasks.length === 0 && (
-          <div className="flex items-center justify-center flex-1 min-h-16">
-            <p
-              className="text-xs text-center select-none"
-              style={{ color: "#A8ABB2" }}
-            >
-              لا توجد مهام
-            </p>
+          <div className="flex items-center justify-center py-8">
+            <p className="text-xs text-neutral-400 text-center">لا توجد مهام</p>
           </div>
         )}
       </div>
@@ -250,31 +217,30 @@ function TaskKanbanColumn({ status, tasks }: TaskKanbanColumnProps) {
   );
 }
 
-export function TaskKanban({ projectId }: TaskKanbanProps) {
-  const {
-    data: tasks,
-    isLoading,
-    isError,
-  } = useGetTasksByProjectQuery(projectId);
+// ── Main Component ────────────────────────────────────────────────────────────
 
-  const [activeTask, setActiveTask] = useState<TaskWithAssignee | null>(null);
+export function TaskKanban({ projectId }: TaskKanbanProps) {
+  const { data: tasks, isLoading, isError } = useGetTasksByProjectQuery(projectId);
+
+  const [activeTask, setActiveTask] = useState<TaskWithMeta | null>(null);
   const [startTask] = useStartTaskMutation();
   const [submitTask] = useSubmitTaskMutation();
   const [approveTask] = useApproveTaskMutation();
   const [rejectTask] = useRejectTaskMutation();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  const typedTasks = (tasks ?? []) as TaskWithAssignee[];
+  const typedTasks = (tasks ?? []) as TaskWithMeta[];
 
+  // Group tasks by status
   const tasksByStatus = useMemo(() => {
-    const map = new Map<TaskStatus, TaskWithAssignee[]>();
+    const map = new Map<TaskStatus, TaskWithMeta[]>();
     Object.values(TaskStatus).forEach((status) => map.set(status, []));
     typedTasks.forEach((task) => {
-      const status = task.status as TaskStatus;
-      map.set(status, [...(map.get(status) ?? []), task]);
+      const s = task.status as TaskStatus;
+      map.set(s, [...(map.get(s) ?? []), task]);
     });
     return map;
   }, [typedTasks]);
@@ -298,8 +264,7 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
 
     try {
       if (
-        (currentStatus === TaskStatus.TODO ||
-          currentStatus === TaskStatus.REVISION) &&
+        (currentStatus === TaskStatus.TODO || currentStatus === TaskStatus.REVISION) &&
         newStatus === TaskStatus.IN_PROGRESS
       ) {
         await startTask(taskId).unwrap();
@@ -329,17 +294,26 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
     }
   }
 
+  // ── Loading skeleton ─────────────────────────────────────────────────────
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {TASK_GROUPS.map((group) => (
-          <div key={group.id} className="space-y-2">
-            <div className="h-10 bg-portal-bg animate-pulse rounded-xl border border-portal-card-border" />
-            <div className="flex gap-3">
-              {group.statuses.map((status) => (
+      <div className="flex gap-4 overflow-x-auto pb-4 px-2" dir="rtl">
+        {TASK_KANBAN_ORDER.map((s) => (
+          <div
+            key={s}
+            className="w-72 shrink-0 rounded-xl border border-neutral-200 animate-pulse"
+          >
+            <div className="flex items-center gap-2 px-3 py-3 border-b border-neutral-200">
+              <div className="w-2.5 h-2.5 rounded-full bg-neutral-300" />
+              <div className="h-4 w-16 bg-neutral-200 rounded" />
+              <div className="ml-auto h-5 w-8 bg-neutral-200 rounded-full" />
+            </div>
+            <div className="p-3 space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
                 <div
-                  key={status}
-                  className="w-72 shrink-0 h-44 bg-white animate-pulse rounded-2xl border border-portal-card-border"
+                  key={i}
+                  className="h-28 bg-white rounded-lg border border-neutral-200"
                 />
               ))}
             </div>
@@ -349,11 +323,29 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
     );
   }
 
+  // ── Error state ──────────────────────────────────────────────────────────
+
   if (isError) {
     return (
-      <p className="text-danger-500 text-sm">حدث خطأ أثناء تحميل المهام.</p>
+      <EmptyState
+        title="حدث خطأ أثناء تحميل المهام"
+        description="يرجى تحديث الصفحة والمحاولة مرة أخرى."
+      />
     );
   }
+
+  // ── Empty state ──────────────────────────────────────────────────────────
+
+  if (typedTasks.length === 0) {
+    return (
+      <EmptyState
+        title="لا توجد مهام"
+        description="ابدأ بإضافة مهمة جديدة لهذا المشروع."
+      />
+    );
+  }
+
+  // ── Kanban board ─────────────────────────────────────────────────────────
 
   return (
     <DndContext
@@ -361,36 +353,22 @@ export function TaskKanban({ projectId }: TaskKanbanProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="space-y-5" dir="rtl">
-        {TASK_GROUPS.map((group) => {
-          const groupCount = group.statuses.reduce(
-            (sum, status) => sum + (tasksByStatus.get(status)?.length ?? 0),
-            0,
-          );
-
-          return (
-            <KanbanGroup
-              key={group.id}
-              id={group.id}
-              label={group.label}
-              totalCount={groupCount}
-            >
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {group.statuses.map((status) => (
-                  <TaskKanbanColumn
-                    key={status}
-                    status={status}
-                    tasks={tasksByStatus.get(status) ?? []}
-                  />
-                ))}
-              </div>
-            </KanbanGroup>
-          );
-        })}
+      <div
+        className="flex gap-4 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-transparent"
+        dir="rtl"
+      >
+        {TASK_KANBAN_ORDER.map((s) => (
+          <TaskKanbanColumn
+            key={s}
+            status={s}
+            color={TASK_STATUS_COLOR[s]}
+            tasks={tasksByStatus.get(s) ?? []}
+          />
+        ))}
       </div>
 
       <DragOverlay>
-        {activeTask ? <DraggableTaskCard task={activeTask} isOverlay /> : null}
+        {activeTask ? <TaskKanbanCard task={activeTask} isOverlay /> : null}
       </DragOverlay>
     </DndContext>
   );

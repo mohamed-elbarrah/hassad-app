@@ -6,20 +6,11 @@ import { Building2, Calendar, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjectStatus } from "@hassad/shared";
 import { formatDate } from "@/lib/format";
-
-interface ProjectKanbanItem {
-  id: string;
-  name: string;
-  status: ProjectStatus;
-  startDate: string | Date;
-  endDate: string | Date;
-  progress?: number;
-  completionPercentage?: number;
-  client?: { id: string; companyName: string };
-}
+import type { ProjectWithMeta } from "@/lib/utils/project-status";
+import { PROJECT_STATUS_COLOR } from "@/lib/utils/project-status";
 
 interface ProjectKanbanCardProps {
-  project: ProjectKanbanItem;
+  project: ProjectWithMeta;
   isOverlay?: boolean;
 }
 
@@ -36,6 +27,7 @@ export function ProjectKanbanCard({
   const progressValue = Math.round(
     project.progress ?? project.completionPercentage ?? 0,
   );
+  const statusColor = PROJECT_STATUS_COLOR[project.status as ProjectStatus];
 
   function onOpen() {
     if (isDragging) return;
@@ -50,44 +42,25 @@ export function ProjectKanbanCard({
       ref={setNodeRef}
       onClick={onOpen}
       className={cn(
-        "group bg-white rounded-2xl border-[1.5px] border-portal-card-border p-4 cursor-grab active:cursor-grabbing transition-all duration-150",
-        "hover:border-secondary-500/20",
+        "group bg-white rounded-2xl border border-portal-card-border p-4 cursor-grab active:cursor-grabbing transition-all duration-150",
+        "hover:border-secondary-500/20 hover:shadow-sm",
         (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
+        isOverlay && "shadow-lg border-natural-100",
       )}
-      style={
-        isOverlay
-          ? {
-              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
-              borderColor: "#121936",
-            }
-          : undefined
-      }
       {...attributes}
       {...listeners}
     >
       <div className="flex items-start justify-between gap-2">
-        <p
-          className="text-sm font-semibold leading-tight line-clamp-2 flex-1 min-w-0"
-          style={{ color: "#000000" }}
-        >
+        <p className="text-sm font-semibold leading-tight line-clamp-2 flex-1 min-w-0 text-natural-100">
           {project.name}
         </p>
-        <GripVertical
-          className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity"
-          style={{ color: "#A8ABB2" }}
-        />
+        <GripVertical className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity text-neutral-300" />
       </div>
 
       {project.client?.companyName && (
         <div className="flex items-center gap-1 mt-2">
-          <Building2
-            className="w-3.5 h-3.5 shrink-0"
-            style={{ color: "#A8ABB2" }}
-          />
-          <span
-            className="text-xs truncate"
-            style={{ color: "#A8ABB2" }}
-          >
+          <Building2 className="w-3.5 h-3.5 shrink-0 text-neutral-300" />
+          <span className="text-xs truncate text-neutral-300">
             {project.client.companyName}
           </span>
         </div>
@@ -95,31 +68,25 @@ export function ProjectKanbanCard({
 
       <div className="mt-3">
         <div className="flex items-center justify-between text-xs mb-1">
-          <span style={{ color: "#A8ABB2" }}>التقدم</span>
-          <span style={{ color: "#121936", fontWeight: 600 }}>
+          <span className="text-neutral-300">التقدم</span>
+          <span className="text-natural-100 font-semibold">
             {progressValue}%
           </span>
         </div>
-        <div
-          className="h-1.5 rounded-full overflow-hidden"
-          style={{ backgroundColor: "#F5F7FA" }}
-        >
+        <div className="h-1.5 rounded-full overflow-hidden bg-neutral-50">
           <div
             className="h-full rounded-full transition-all"
             style={{
               width: `${progressValue}%`,
-              backgroundColor: "#121936",
+              backgroundColor: statusColor,
             }}
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-1 mt-3 text-xs">
-        <Calendar
-          className="w-3.5 h-3.5 shrink-0"
-          style={{ color: "#A8ABB2" }}
-        />
-        <span style={{ color: "#A8ABB2" }}>
+      <div className="flex items-center gap-1 mt-3 text-xs text-neutral-300">
+        <Calendar className="w-3.5 h-3.5 shrink-0" />
+        <span>
           {startDate} - {endDate}
         </span>
       </div>

@@ -1,56 +1,92 @@
 "use client";
 
-import { useState } from "react";
-import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Search, LayoutGrid, Columns3 } from "lucide-react";
 import { Input } from "@/components/design-system/Input";
-import { Select, SelectItem } from "@/components/design-system/Select";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
+import { Pagination } from "@/components/design-system/Pagination";
+import { EmptyState } from "@/components/common/EmptyState";
+import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
 import { ProjectCard } from "@/components/dashboard/pm/ProjectCard";
 import { ProjectKanbanBoard } from "@/components/dashboard/pm/ProjectKanbanBoard";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { useGetProjectsQuery } from "@/features/projects/projectsApi";
 import { useAppSelector } from "@/lib/hooks";
+import {
+  PROJECT_STATUS_LABELS,
+} from "@/lib/utils/project-status";
 import { ProjectStatus } from "@hassad/shared";
-
-// ── Status filter labels ──────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  [ProjectStatus.PLANNING]: "تخطيط",
-  [ProjectStatus.ACTIVE]: "نشط",
-  [ProjectStatus.ON_HOLD]: "موقوف",
-  [ProjectStatus.AWAITING_REVIEW]: "بانتظار المراجعة",
-  [ProjectStatus.NEEDS_REVISION]: "مطلوب تعديلات",
-  [ProjectStatus.COMPLETED]: "مكتمل",
-  [ProjectStatus.CANCELLED]: "ملغى",
-};
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/design-system/Tabs";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 12;
 
 export default function ProjectsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | "all">(
-    "all",
-  );
   const [view, setView] = useState<"kanban" | "cards">("kanban");
+  const [page, setPage] = useState(1);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({
+    status: [],
+  });
+
+  // Fetch all projects for kanban + counting; cards view is paginated
+  const { data: allData } = useGetProjectsQuery(
+    {
+      projectManagerId: user?.role === "PM" ? user.id : undefined,
+      limit: 100,
+    },
+    { skip: !user },
+  );
+
+  const statusFilters = activeFilters.status ?? [];
+  const effectiveStatus =
+    statusFilters.length === 1 ? (statusFilters[0] as ProjectStatus) : undefined;
 
   const { data, isLoading, isError } = useGetProjectsQuery(
     {
       search: search || undefined,
-      status:
-        statusFilter === "all" ? undefined : (statusFilter as ProjectStatus),
+      status: effectiveStatus,
       projectManagerId: user?.role === "PM" ? user.id : undefined,
-      limit: 100,
+      page: view === "cards" ? page : undefined,
+      limit: view === "cards" ? PAGE_SIZE : 100,
     },
-    {
-      skip: view !== "cards",
-    },
+    { skip: !user },
   );
+
+  // Derive status counts from all-data for the filter bar
+  const filterGroups: FilterGroup[] = useMemo(() => {
+    const counts = new Map<ProjectStatus, number>();
+    Object.values(ProjectStatus).forEach((s) => counts.set(s, 0));
+    (allData?.items ?? []).forEach((p) => {
+      const s = p.status as ProjectStatus;
+      counts.set(s, (counts.get(s) ?? 0) + 1);
+    });
+
+    return [
+      {
+        key: "status",
+        label: "الحالة",
+        options: Object.values(ProjectStatus).map((s) => ({
+          label: PROJECT_STATUS_LABELS[s],
+          value: s,
+          count: counts.get(s) ?? 0,
+        })),
+      },
+    ];
+  }, [allData]);
+
+  const totalPages = data?.totalPages ?? 1;
 
   if (!user) return null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" dir="rtl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">المشاريع</h1>
@@ -63,60 +99,53 @@ export default function ProjectsPage() {
           <Input
             placeholder="ابحث عن مشروع..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             icon={<Search className="size-4 text-neutral-300" />}
           />
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => setStatusFilter(v as ProjectStatus | "all")}
-          placeholder="كل الحالات"
-          triggerClassName="w-full sm:w-44"
+
+        <FilterBar
+          groups={filterGroups}
+          activeFilters={activeFilters}
+          onFilterChange={(key, values) => {
+            setActiveFilters((prev) => ({ ...prev, [key]: values }));
+            setPage(1);
+          }}
+        />
+
+        {/* View toggle */}
+        <Tabs
+          value={view}
+          onValueChange={(v) => {
+            setView(v as "kanban" | "cards");
+            setPage(1);
+          }}
         >
-          <SelectItem value="all">كل الحالات</SelectItem>
-          {Object.values(ProjectStatus).map((s) => (
-            <SelectItem key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </SelectItem>
-          ))}
-        </Select>
-        <div className="flex rounded-md border p-1 gap-1">
-          <button
-            type="button"
-            onClick={() => setView("kanban")}
-            className={`px-3 py-1.5 text-sm rounded ${
-              view === "kanban"
-                ? "bg-secondary-500 text-white"
-                : "text-neutral-300"
-            }`}
-          >
-            كانبان
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("cards")}
-            className={`px-3 py-1.5 text-sm rounded ${
-              view === "cards"
-                ? "bg-secondary-500 text-white"
-                : "text-neutral-300"
-            }`}
-          >
-            بطاقات
-          </button>
-        </div>
+          <TabsList className="h-9">
+            <TabsTrigger value="kanban" className="gap-1.5 text-xs">
+              <Columns3 className="size-3.5" />
+              كانبان
+            </TabsTrigger>
+            <TabsTrigger value="cards" className="gap-1.5 text-xs">
+              <LayoutGrid className="size-3.5" />
+              بطاقات
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
+      {/* Content */}
       {view === "kanban" && (
         <ProjectKanbanBoard
           projectManagerId={user.role === "PM" ? user.id : undefined}
           search={search || undefined}
-          status={
-            statusFilter === "all" ? undefined : (statusFilter as ProjectStatus)
-          }
+          status={effectiveStatus}
         />
       )}
 
-      {/* Content */}
       {view === "cards" && isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -126,26 +155,39 @@ export default function ProjectsPage() {
       )}
 
       {view === "cards" && isError && (
-        <p className="text-danger-500 text-sm">
-          حدث خطأ أثناء تحميل المشاريع. يرجى تحديث الصفحة.
-        </p>
+        <EmptyState
+          title="حدث خطأ أثناء تحميل المشاريع"
+          description="يرجى تحديث الصفحة والمحاولة مرة أخرى."
+        />
       )}
 
       {view === "cards" && !isLoading && !isError && data && (
         <>
           {data.items.length === 0 ? (
-            <div className="text-center py-16 text-neutral-300">
-              <p className="text-lg font-medium">لا توجد مشاريع</p>
-              <p className="text-sm mt-1">ابدأ بإنشاء مشروع جديد</p>
-            </div>
+            <EmptyState
+              title="لا توجد مشاريع"
+              description="ابدأ بإنشاء مشروع جديد من خلال زر مشروع جديد"
+            />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {data.items.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.items.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center pt-4">
+                  <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                  />
+                </div>
+              )}
+            </>
           )}
-          <p className="text-xs text-neutral-300">إجمالي {data.total} مشروع</p>
         </>
       )}
     </div>

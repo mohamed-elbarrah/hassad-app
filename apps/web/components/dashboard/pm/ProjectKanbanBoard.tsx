@@ -12,83 +12,31 @@ import {
 } from "@dnd-kit/core";
 import { toast } from "sonner";
 import { ProjectStatus } from "@hassad/shared";
-import type { Project } from "@hassad/shared";
 import {
   useGetProjectsQuery,
   useUpdateProjectStatusMutation,
 } from "@/features/projects/projectsApi";
-import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { KanbanGroup } from "@/components/dashboard/crm/KanbanGroup";
 import { ProjectKanbanColumn } from "./ProjectKanbanColumn";
 import { ProjectKanbanCard } from "./ProjectKanbanCard";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
+import { EmptyState } from "@/components/common/EmptyState";
+import {
+  PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_COLOR,
+  KANBAN_STATUS_ORDER,
+  type ProjectWithMeta,
+} from "@/lib/utils/project-status";
 
-interface ProjectWithMeta extends Project {
-  client?: { id: string; companyName: string };
-  completionPercentage?: number;
-}
-
-function resolveKanbanError(error: unknown): string {
-  const e = error as FetchBaseQueryError | undefined;
-  if (!e) return "حدث خطأ غير متوقع.";
-  if (e.status === 401) return "انتهت صلاحية جلستك. يرجى تسجيل الدخول مجدداً.";
-  if (e.status === 403) return "لا تملك صلاحية الوصول إلى بيانات المشاريع.";
-  if (typeof e.status === "number" && e.status >= 500)
-    return "خطأ في الخادم. يرجى المحاولة لاحقاً.";
-  if (e.status === "FETCH_ERROR")
-    return "تعذّر الاتصال بالخادم. تحقق من الشبكة.";
-  return "فشل تحميل لوحة المشاريع.";
-}
-
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  [ProjectStatus.PLANNING]: "تخطيط",
-  [ProjectStatus.ACTIVE]: "نشط",
-  [ProjectStatus.ON_HOLD]: "موقوف",
-  [ProjectStatus.AWAITING_REVIEW]: "بانتظار المراجعة",
-  [ProjectStatus.NEEDS_REVISION]: "مطلوب تعديلات",
-  [ProjectStatus.COMPLETED]: "مكتمل",
-  [ProjectStatus.CANCELLED]: "ملغى",
-};
-
-/* ── Softer status dot colors (design tokens) ─────────────────────────────── */
-const STATUS_DOT_COLORS: Record<ProjectStatus, string> = {
-  [ProjectStatus.PLANNING]: "#A8ABB2",
-  [ProjectStatus.ACTIVE]: "#2684FC",
-  [ProjectStatus.ON_HOLD]: "#F8AF01",
-  [ProjectStatus.AWAITING_REVIEW]: "#F8AF01",
-  [ProjectStatus.NEEDS_REVISION]: "#FB3748",
-  [ProjectStatus.COMPLETED]: "#0ED589",
-  [ProjectStatus.CANCELLED]: "#FB3748",
-};
-
-const KANBAN_GROUPS = [
-  {
-    id: "planning",
-    label: "التخطيط",
-    statuses: [ProjectStatus.PLANNING],
-  },
-  {
-    id: "execution",
-    label: "التنفيذ",
-    statuses: [ProjectStatus.ACTIVE, ProjectStatus.ON_HOLD],
-  },
-  {
-    id: "review",
-    label: "المراجعة",
-    statuses: [ProjectStatus.AWAITING_REVIEW, ProjectStatus.NEEDS_REVISION],
-  },
-  {
-    id: "closure",
-    label: "الإغلاق",
-    statuses: [ProjectStatus.COMPLETED, ProjectStatus.CANCELLED],
-  },
-] as const;
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface ProjectKanbanBoardProps {
   projectManagerId?: string;
   search?: string;
   status?: ProjectStatus;
 }
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function ProjectKanbanBoard({
   projectManagerId,
@@ -100,7 +48,7 @@ export function ProjectKanbanBoard({
   );
   const [updateProjectStatus] = useUpdateProjectStatusMutation();
 
-  const { data, isLoading, isError, error } = useGetProjectsQuery(
+  const { data, isLoading, isError } = useGetProjectsQuery(
     {
       limit: 100,
       projectManagerId,
@@ -116,17 +64,25 @@ export function ProjectKanbanBoard({
 
   const projects = (data?.items ?? []) as ProjectWithMeta[];
 
+  // Group projects by status
   const projectsByStatus = useMemo(() => {
     const map = new Map<ProjectStatus, ProjectWithMeta[]>();
-    Object.values(ProjectStatus).forEach((status) => map.set(status, []));
+    Object.values(ProjectStatus).forEach((s) => map.set(s, []));
     projects.forEach((project) => {
-      const status = project.status as ProjectStatus;
-      if (map.has(status)) {
-        map.set(status, [...(map.get(status) ?? []), project]);
+      const projectStatus = project.status as ProjectStatus;
+      if (map.has(projectStatus)) {
+        map.set(projectStatus, [...(map.get(projectStatus) ?? []), project]);
       }
     });
     return map;
   }, [projects]);
+
+  // Filter visible statuses when a status filter is active
+  const visibleStatuses = useMemo(() => {
+    if (!status) return KANBAN_STATUS_ORDER;
+    // When a specific status is filtered, only show that one
+    return KANBAN_STATUS_ORDER.filter((s) => s === status);
+  }, [status]);
 
   function handleDragStart(event: DragStartEvent) {
     const projectId = event.active.id as string;
@@ -158,17 +114,26 @@ export function ProjectKanbanBoard({
     }
   }
 
+  // ── Loading skeleton ─────────────────────────────────────────────────────
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {KANBAN_GROUPS.map((group) => (
-          <div key={group.id} className="space-y-2">
-            <div className="h-10 bg-portal-bg animate-pulse rounded-xl border border-portal-card-border" />
-            <div className="flex gap-3">
-              {group.statuses.map((status) => (
+      <div className="flex gap-4 overflow-x-auto pb-2">
+        {KANBAN_STATUS_ORDER.map((s) => (
+          <div
+            key={s}
+            className="w-72 shrink-0 rounded-xl bg-neutral-50/50 border border-neutral-200 animate-pulse"
+          >
+            <div className="flex items-center gap-2 px-3 py-3 border-b border-neutral-200/60">
+              <div className="w-2.5 h-2.5 rounded-full bg-neutral-300" />
+              <div className="h-4 w-16 bg-neutral-200 rounded" />
+              <div className="ml-auto h-5 w-8 bg-neutral-200 rounded-full" />
+            </div>
+            <div className="p-3 space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
                 <div
-                  key={status}
-                  className="w-72 shrink-0 h-48 bg-white animate-pulse rounded-2xl border border-portal-card-border"
+                  key={i}
+                  className="h-24 bg-white rounded-lg border border-neutral-200"
                 />
               ))}
             </div>
@@ -178,24 +143,29 @@ export function ProjectKanbanBoard({
     );
   }
 
+  // ── Error state ──────────────────────────────────────────────────────────
+
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-        <p className="text-danger-500 font-medium">
-          {resolveKanbanError(error)}
-        </p>
-      </div>
+      <EmptyState
+        title="حدث خطأ أثناء تحميل المشاريع"
+        description="يرجى تحديث الصفحة والمحاولة مرة أخرى."
+      />
     );
   }
 
-  const totalProjects = projects.length;
-  const emptyBanner = totalProjects === 0 && (
-    <div className="mb-4 rounded-2xl border-[1.5px] border-dashed border-portal-card-border px-6 py-4 text-center bg-white">
-      <p className="text-sm font-medium text-portal-note-text">
-        لا توجد مشاريع حالياً — ستظهر المشاريع الجديدة تلقائياً بعد توقيع العقود
-      </p>
-    </div>
-  );
+  // ── Empty state ──────────────────────────────────────────────────────────
+
+  if (projects.length === 0) {
+    return (
+      <EmptyState
+        title="لا توجد مشاريع حالياً"
+        description="ستظهر المشاريع الجديدة تلقائياً بعد توقيع العقود."
+      />
+    );
+  }
+
+  // ── Kanban board ─────────────────────────────────────────────────────────
 
   return (
     <DndContext
@@ -203,36 +173,18 @@ export function ProjectKanbanBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="space-y-5" dir="rtl">
-        {emptyBanner}
-
-        {KANBAN_GROUPS.map((group) => {
-          const groupCount = group.statuses.reduce(
-            (sum, status) => sum + (projectsByStatus.get(status)?.length ?? 0),
-            0,
-          );
-
-          return (
-            <KanbanGroup
-              key={group.id}
-              id={group.id}
-              label={group.label}
-              totalCount={groupCount}
-            >
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {group.statuses.map((status) => (
-                  <ProjectKanbanColumn
-                    key={status}
-                    status={status}
-                    label={STATUS_LABELS[status]}
-                    dotColor={STATUS_DOT_COLORS[status]}
-                    projects={projectsByStatus.get(status) ?? []}
-                  />
-                ))}
-              </div>
-            </KanbanGroup>
-          );
-        })}
+      <div
+        className="flex gap-4 overflow-x-auto  p-2 scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-transparent"
+        dir="rtl"
+      >
+        {visibleStatuses.map((s) => (
+          <ProjectKanbanColumn
+            key={s}
+            status={s}
+            color={PROJECT_STATUS_COLOR[s]}
+            projects={projectsByStatus.get(s) ?? []}
+          />
+        ))}
       </div>
 
       <DragOverlay>

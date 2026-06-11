@@ -3,78 +3,73 @@
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import { ProjectStatus } from "@hassad/shared";
+import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
+import type { ProjectWithMeta } from "@/lib/utils/project-status";
 import { ProjectKanbanCard } from "./ProjectKanbanCard";
-
-interface ProjectKanbanItem {
-  id: string;
-  name: string;
-  status: ProjectStatus;
-  startDate: string | Date;
-  endDate: string | Date;
-  progress?: number;
-  completionPercentage?: number;
-  client?: { id: string; companyName: string };
-}
 
 interface ProjectKanbanColumnProps {
   status: ProjectStatus;
-  label: string;
-  dotColor: string;
-  projects: ProjectKanbanItem[];
+  color: string;
+  projects: ProjectWithMeta[];
 }
 
 export function ProjectKanbanColumn({
   status,
-  label,
-  dotColor,
+  color,
   projects,
 }: ProjectKanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+
+  // Create light tint color (5% opacity) for column background
+  const tintColor = `${color}0D`; // 0D = ~5% opacity in hex
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "w-72 shrink-0 rounded-xl flex flex-col transition-all duration-150",
-        isOver && "ring-2 ring-secondary-500/30 ring-offset-2 scale-[1.01]",
+        "w-72 shrink-0 flex flex-col rounded-xl border transition-all duration-150",
+        isOver && "ring-2 ring-offset-2",
+        isOver && "ring-[var(--status-color)]"
       )}
+      style={{
+        "--status-color": color,
+        backgroundColor: tintColor,
+        borderColor: `${color}33`, // 20% opacity border
+      } as React.CSSProperties}
     >
-      <div className="flex items-center gap-2 justify-between px-1 py-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: dotColor }}
-          />
-          <h3
-            className="text-xs font-semibold truncate"
-            style={{ color: "#000000" }}
-          >
-            {label}
-          </h3>
-        </div>
+      {/* Column Header */}
+      <div
+        className="flex items-center gap-2 px-3 py-3 border-b"
+        style={{ borderColor: `${color}26` }} // 15% opacity
+      >
         <span
-          className="text-xs font-medium rounded-full shrink-0 tabular-nums"
+          className="w-2.5 h-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: color }}
+        />
+        <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+          {PROJECT_STATUS_LABELS[status]}
+        </span>
+        <span
+          className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full border"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
-            color: "#A8ABB2",
-            padding: "2px 8px",
+            color: color,
+            backgroundColor: `${color}1A`, // 10% opacity
+            borderColor: `${color}33`, // 20% opacity
           }}
         >
           {projects.length}
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 min-h-20 flex-1">
+      {/* Cards Container */}
+      <div className="flex flex-col gap-2 p-3 min-h-32">
         {projects.map((project) => (
           <ProjectKanbanCard key={project.id} project={project} />
         ))}
 
         {projects.length === 0 && (
-          <div className="flex items-center justify-center flex-1 min-h-16">
-            <p
-              className="text-xs text-center select-none"
-              style={{ color: "#A8ABB2" }}
-            >
+          <div className="flex items-center justify-center py-8">
+            <p className="text-xs text-neutral-400 text-center">
               لا يوجد مشاريع
             </p>
           </div>

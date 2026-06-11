@@ -25,27 +25,12 @@ import {
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
-import { UserRole, ProjectStatus, TaskPriority } from "@hassad/shared";
+import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
+import { UserRole, ProjectStatus, TaskPriority, TASK_PRIORITY_AR } from "@hassad/shared";
 import type { Project } from "@hassad/shared";
 
-// ── Labels ────────────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  [ProjectStatus.PLANNING]: "تخطيط",
-  [ProjectStatus.ACTIVE]: "نشط",
-  [ProjectStatus.ON_HOLD]: "متوقف مؤقتاً",
-  [ProjectStatus.AWAITING_REVIEW]: "بانتظار المراجعة",
-  [ProjectStatus.NEEDS_REVISION]: "مطلوب تعديلات",
-  [ProjectStatus.COMPLETED]: "مكتمل",
-  [ProjectStatus.CANCELLED]: "ملغي",
-};
-
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  [TaskPriority.LOW]: "منخفض",
-  [TaskPriority.NORMAL]: "عادي",
-  [TaskPriority.HIGH]: "عالي",
-  [TaskPriority.URGENT]: "عاجل",
-};
+const STATUS_LABELS = PROJECT_STATUS_LABELS;
+const PRIORITY_LABELS = TASK_PRIORITY_AR;
 
 // ── Form schemas ──────────────────────────────────────────────────────────────
 
