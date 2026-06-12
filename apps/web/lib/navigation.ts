@@ -140,7 +140,7 @@ export const navSections: NavSection[] = [
     label: "الموظف التنفيذي",
     items: [
       {
-        title: "لوحة الموظف التنفيذي",
+        title: "قائمة المهام",
         url: "/dashboard/employee",
         icon: ClipboardList,
         roles: ["EMPLOYEE"],

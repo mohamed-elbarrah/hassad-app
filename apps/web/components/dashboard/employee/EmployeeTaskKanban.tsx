@@ -5,14 +5,18 @@ import Link from "next/link";
 import {
   DndContext,
   DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
   useDroppable,
   useDraggable,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Lock } from "lucide-react";
 import { Pill } from "@/components/design-system/Pill";
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { toast } from "sonner";
 import { TaskStatus, TaskPriority, UserRole } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
@@ -23,6 +27,13 @@ import {
   useRejectTaskMutation,
 } from "@/features/tasks/tasksApi";
 import { useAppSelector } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
+import {
+  TASK_STATUS_COLOR,
+  TASK_STATUS_LABELS,
+  TASK_KANBAN_ORDER,
+  TASK_PRIORITY_LABELS,
+} from "@/lib/utils/task-status";
 
 // Allowed status transitions per role (mirrors API workflow)
 const TASK_STATUS_TRANSITIONS: Partial<
@@ -34,56 +45,7 @@ const TASK_STATUS_TRANSITIONS: Partial<
   [TaskStatus.REVISION]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
 };
 
-// ── Column config ─────────────────────────────────────────────────────────────
-
-interface ColumnConfig {
-  status: TaskStatus;
-  label: string;
-  bg: string;
-  headerColor: string;
-}
-
-const COLUMNS: ColumnConfig[] = [
-  {
-    status: TaskStatus.TODO,
-    label: "للتنفيذ",
-    bg: "bg-neutral-100",
-    headerColor: "text-neutral-700",
-  },
-  {
-    status: TaskStatus.IN_PROGRESS,
-    label: "قيد التنفيذ",
-    bg: "bg-action-blue/10",
-    headerColor: "text-action-blue",
-  },
-  {
-    status: TaskStatus.IN_REVIEW,
-    label: "قيد المراجعة",
-    bg: "bg-alert-50",
-    headerColor: "text-alert-700",
-  },
-  {
-    status: TaskStatus.REVISION,
-    label: "يحتاج تعديل",
-    bg: "bg-danger-50",
-    headerColor: "text-danger-700",
-  },
-  {
-    status: TaskStatus.DONE,
-    label: "منجز",
-    bg: "bg-success-50",
-    headerColor: "text-success-700",
-  },
-];
-
 // ── Priority config ───────────────────────────────────────────────────────────
-
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  [TaskPriority.LOW]: "منخفض",
-  [TaskPriority.NORMAL]: "عادي",
-  [TaskPriority.HIGH]: "عالي",
-  [TaskPriority.URGENT]: "عاجل",
-};
 
 const PRIORITY_TONE: Record<
   TaskPriority,
@@ -152,7 +114,9 @@ function DraggableCard({
         <span
           {...(canDrag ? attributes : {})}
           {...(canDrag ? listeners : {})}
-          className={`mt-0.5 text-neutral-300 shrink-0 ${canDrag ? "" : "cursor-not-allowed opacity-60"}`}
+          className={`mt-0.5 text-neutral-300 shrink-0 ${
+            canDrag ? "" : "cursor-not-allowed opacity-60"
+          }`}
           aria-label={canDrag ? "اسحب للتحريك" : "غير مسموح بالتحريك"}
         >
           {canDrag ? (
@@ -179,11 +143,15 @@ function DraggableCard({
 
       <div className="flex items-center justify-between gap-1 flex-wrap">
         <Pill tone={PRIORITY_TONE[task.priority]} className="text-xs">
-          {PRIORITY_LABELS[task.priority]}
+          {TASK_PRIORITY_LABELS[task.priority]}
         </Pill>
         {dueDateFormatted && (
           <span
-            className={`text-xs ${isOverdue ? "text-danger-500 font-medium" : "text-neutral-300"}`}
+            className={`text-xs ${
+              isOverdue
+                ? "text-danger-500 font-medium"
+                : "text-neutral-300"
+            }`}
           >
             {dueDateFormatted}
           </span>
@@ -196,62 +164,88 @@ function DraggableCard({
 // ── Droppable column ──────────────────────────────────────────────────────────
 
 interface DroppableColumnProps {
-  config: ColumnConfig;
+  status: TaskStatus;
   tasks: TaskWithProject[];
   pmOnly?: boolean;
   currentUser?: { id: string; role: UserRole } | null;
 }
 
 function DroppableColumn({
-  config,
+  status,
   tasks,
   pmOnly,
   currentUser,
 }: DroppableColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: config.status });
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+
+  const color = TASK_STATUS_COLOR[status];
+  const tintColor = `${color}0D`; // ~5% opacity
+  const borderColor = `${color}33`; // 20% opacity
+  const headerBorder = `${color}26`; // 15% opacity
 
   return (
-    <div className="flex flex-col min-w-56 shrink-0">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <h3 className={`text-sm font-semibold ${config.headerColor}`}>
-            {config.label}
-          </h3>
-          {pmOnly && (
-            <Lock
-              className="size-3 text-neutral-300"
-              aria-label="يحتاج موافقة المدير"
-            />
-          )}
-        </div>
-        <span className="text-xs text-neutral-300 bg-neutral-50 rounded-full px-2 py-0.5">
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "w-72 shrink-0 flex flex-col rounded-xl border transition-all duration-150",
+        isOver && "ring-2 ring-offset-2",
+        isOver && "ring-[var(--status-color)]",
+      )}
+      style={{
+        "--status-color": color,
+        backgroundColor: tintColor,
+        borderColor: borderColor,
+      } as React.CSSProperties}
+    >
+      {/* Column Header */}
+      <div
+        className="flex items-center gap-2 px-3 py-3 border-b"
+        style={{ borderColor: headerBorder }}
+      >
+        <span
+          className="w-2.5 h-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: color }}
+        />
+        <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+          {TASK_STATUS_LABELS[status]}
+        </span>
+        {pmOnly && (
+          <Lock
+            className="size-3 text-neutral-300"
+            aria-label="يحتاج موافقة المدير"
+          />
+        )}
+        <span
+          className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full"
+          style={{
+            color: color,
+            backgroundColor: `${color}1A`, // 10% opacity
+            border: `1px solid ${color}33`,
+          }}
+        >
           {tasks.length}
         </span>
       </div>
 
-      {/* Cards container */}
-      <div
-        ref={setNodeRef}
-        className={`rounded-xl p-2 flex flex-col gap-2 min-h-32 transition-colors ${config.bg} ${
-          isOver ? "ring-2 ring-secondary-500 ring-offset-1" : ""
-        }`}
-      >
-        {tasks.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center border border-dashed border-neutral-300/30 rounded-lg min-h-20">
-            <p className="text-xs text-neutral-300">اسحب هنا</p>
+      {/* Cards Container */}
+      <div className="flex flex-col gap-2 p-3 min-h-95">
+        {tasks.map((task) => {
+          const canDrag =
+            !!currentUser &&
+            (currentUser.role === UserRole.ADMIN ||
+              currentUser.role === UserRole.PM ||
+              task.assignedTo === currentUser.id);
+          return (
+            <DraggableCard key={task.id} task={task} canDrag={canDrag} />
+          );
+        })}
+
+        {tasks.length === 0 && (
+          <div className="flex items-center justify-center py-8">
+            <p className="text-xs text-neutral-400 text-center">
+              لا توجد مهام
+            </p>
           </div>
-        ) : (
-          tasks.map((task) => {
-            const canDrag =
-              !!currentUser &&
-              (currentUser.role === UserRole.ADMIN ||
-                currentUser.role === UserRole.PM ||
-                task.assignedTo === currentUser.id);
-            return (
-              <DraggableCard key={task.id} task={task} canDrag={canDrag} />
-            );
-          })
         )}
       </div>
     </div>
@@ -273,20 +267,37 @@ export function EmployeeTaskKanban({
   const [activeTask, setActiveTask] = useState<TaskWithProject | null>(null);
   const [localTasks, setLocalTasks] = useState<TaskWithProject[]>(tasks);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+
   useEffect(() => {
     setLocalTasks(tasks);
   }, [tasks]);
 
   if (isLoading) {
     return (
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {COLUMNS.map((col) => (
-          <div key={col.status} className="min-w-56 shrink-0">
-            <Skeleton className="h-5 w-24 mb-3" />
-            <div className="space-y-2">
-              <Skeleton className="h-20 rounded-lg" />
-              <Skeleton className="h-16 rounded-lg" />
-              <Skeleton className="h-24 rounded-lg" />
+      <div
+        className="flex gap-4 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-transparent"
+        dir="rtl"
+      >
+        {TASK_KANBAN_ORDER.map((s) => (
+          <div
+            key={s}
+            className="w-72 shrink-0 rounded-xl border border-neutral-200 animate-pulse"
+          >
+            <div className="flex items-center gap-2 px-3 py-3 border-b border-neutral-200">
+              <div className="w-2.5 h-2.5 rounded-full bg-neutral-300" />
+              <div className="h-4 w-16 bg-neutral-200 rounded" />
+              <div className="ml-auto h-5 w-8 bg-neutral-200 rounded-full" />
+            </div>
+            <div className="p-3 space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-28 bg-white rounded-lg border border-neutral-200"
+                />
+              ))}
             </div>
           </div>
         ))}
@@ -294,15 +305,17 @@ export function EmployeeTaskKanban({
     );
   }
 
-  const tasksByStatus = COLUMNS.reduce<Record<TaskStatus, TaskWithProject[]>>(
-    (acc, col) => {
-      acc[col.status] = localTasks.filter((t) => t.status === col.status);
+  const tasksByStatus = TASK_KANBAN_ORDER.reduce<
+    Record<TaskStatus, TaskWithProject[]>
+  >(
+    (acc, status) => {
+      acc[status] = localTasks.filter((t) => t.status === status);
       return acc;
     },
     {} as Record<TaskStatus, TaskWithProject[]>,
   );
 
-  function handleDragStart(event: { active: { id: string | number } }) {
+  function handleDragStart(event: DragStartEvent) {
     const task = localTasks.find((t) => t.id === String(event.active.id));
     setActiveTask(task ?? null);
   }
@@ -389,15 +402,22 @@ export function EmployeeTaskKanban({
   }
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {COLUMNS.map((col) => (
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div
+        className="flex gap-4 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-transparent"
+        dir="rtl"
+      >
+        {TASK_KANBAN_ORDER.map((s) => (
           <DroppableColumn
-            key={col.status}
-            config={col}
-            tasks={tasksByStatus[col.status] ?? []}
+            key={s}
+            status={s}
+            tasks={tasksByStatus[s] ?? []}
             pmOnly={
-              col.status === TaskStatus.DONE &&
+              s === TaskStatus.DONE &&
               user?.role !== UserRole.ADMIN &&
               user?.role !== UserRole.PM
             }
