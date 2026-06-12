@@ -10,6 +10,10 @@ import {
 } from "@nestjs/common";
 import { FinanceService } from "../services/finance.service";
 import {
+  FinanceMetricsDto,
+  DateRangeDto,
+  TopClientsDto,
+  RevenueTrendDto,
   CreateInvoiceDto,
   CreateTicketDto,
   RegisterPaymentDto,
@@ -31,10 +35,44 @@ export class FinanceController {
     return this.financeService.getSummary();
   }
 
+  @Get("finance/metrics")
+  @RequirePermissions("finance.read")
+  getMetrics(@Query() dto: FinanceMetricsDto) {
+    return this.financeService.getMetrics(dto);
+  }
+
+  @Get("finance/aging")
+  @RequirePermissions("finance.read")
+  getAging() {
+    return this.financeService.getAging();
+  }
+
+  @Get("finance/actions")
+  @RequirePermissions("finance.read")
+  getActions() {
+    return this.financeService.getActions();
+  }
+
+  @Get("finance/payment-methods")
+  @RequirePermissions("finance.read")
+  getPaymentMethods(@Query() dto: DateRangeDto) {
+    return this.financeService.getPaymentMethodDistribution(dto);
+  }
+  @RequirePermissions("finance.read")
+  getTopClients(@Query() dto: TopClientsDto) {
+    return this.financeService.getTopClients(dto);
+  }
+
+  @Get("finance/revenue-trend")
+  @RequirePermissions("finance.read")
+  getRevenueTrend(@Query() dto: RevenueTrendDto) {
+    return this.financeService.getRevenueTrend(dto);
+  }
+
   @Get("finance/cashflow")
   @RequirePermissions("finance.read")
-  getCashFlow() {
-    return this.financeService.getCashFlow();
+  getCashFlow(@Query() dto: DateRangeDto) {
+    return this.financeService.getCashFlow(dto);
   }
 
   @Get("finance/alerts")
