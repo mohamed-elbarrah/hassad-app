@@ -11,6 +11,29 @@ import {
 import { Type } from "class-transformer";
 import { PaymentMethod } from "@hassad/shared";
 
+export class DateRangeDto {
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  to?: string;
+}
+
+export class TopClientsDto extends DateRangeDto {
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  limit?: number = 5;
+}
+
+export class RevenueTrendDto extends DateRangeDto {
+  @IsOptional()
+  @IsString()
+  groupBy?: "day" | "week" | "month" = "month";
+}
+
 export class InvoiceItemDto {
   @IsOptional()
   @IsUUID()
@@ -127,4 +150,10 @@ export class CreateTicketDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+export class FinanceMetricsDto extends DateRangeDto {
+  @IsOptional()
+  @IsString()
+  compareTo?: "previous_period" | "previous_year" = "previous_period";
 }

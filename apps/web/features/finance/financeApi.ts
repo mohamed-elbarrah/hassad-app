@@ -48,17 +48,69 @@ export interface RegisterPaymentInput {
   date?: string;
 }
 
-export interface FinanceSummary {
-  totalRevenue: number;
-  pendingInvoices: number;
-  failedPayments: number;
-  monthlyProfit: number;
+export interface FinanceMetrics {
+  revenue: number;
+  revenueChange: number;
+  pending: number;
+  pendingLateCount: number;
+  collectionRate: number;
+  failedPaymentsValue: number;
+  failedPaymentsCount: number;
+  invoicesTotal: number;
+  invoicesCount: number;
+  invoicesChange: number;
+  salariesTotal: number;
+  salariesChange: number;
+  activeClients: number;
+  netProfit: number;
+  netProfitChange: number;
+  averageInvoice: number;
+  period: { from: string; to: string };
 }
 
 export interface CashFlowItem {
-  month: string;
+  label: string;
   income: number;
   expenses: number;
+}
+
+export interface AgingBucket {
+  label: string;
+  amount: number;
+  count: number;
+}
+
+export interface FinanceAction {
+  id: string;
+  type: "LATE_INVOICE" | "UNSENT_INVOICE" | "FAILED_PAYMENT" | "PENDING_SALARY";
+  title: string;
+  description: string;
+  amount?: number;
+  entityId: string;
+  priority: "HIGH" | "MEDIUM" | "LOW";
+}
+
+export interface TopClient {
+  clientId: string;
+  companyName: string;
+  revenue: number;
+  paymentCount: number;
+  invoiceCount: number;
+  collectionRate: number;
+}
+
+export interface RevenueTrendItem {
+  label: string;
+  income: number;
+  invoiced: number;
+}
+
+export interface PaymentMethodDist {
+  method: string;
+  label: string;
+  amount: number;
+  count: number;
+  percentage: number;
 }
 
 export interface FinanceAlert {
@@ -105,16 +157,52 @@ export const financeApi = createApi({
   ],
   endpoints: (builder) => ({
     // Dashboard & Analytics
-    getFinanceSummary: builder.query<FinanceSummary, void>({
+    getFinanceSummary: builder.query<FinanceMetrics, void>({
       query: () => "/finance/summary",
       providesTags: ["FinanceSummary"],
     }),
-    getCashFlow: builder.query<CashFlowItem[], void>({
-      query: () => "/finance/cashflow",
+    getFinanceMetrics: builder.query<
+      FinanceMetrics,
+      { from?: string; to?: string; compareTo?: string }
+    >({
+      query: (params = {}) => ({ url: "/finance/metrics", params }),
+      providesTags: ["FinanceSummary"],
+    }),
+    getCashFlow: builder.query<CashFlowItem[], { from?: string; to?: string }>({
+      query: (params = {}) => ({ url: "/finance/cashflow", params }),
     }),
     getFinanceAlerts: builder.query<FinanceAlert[], void>({
       query: () => "/finance/alerts",
       providesTags: ["Invoice"],
+    }),
+    getAging: builder.query<AgingBucket[], void>({
+      query: () => "/finance/aging",
+      providesTags: ["Invoice"],
+    }),
+    getFinanceActions: builder.query<FinanceAction[], void>({
+      query: () => "/finance/actions",
+      providesTags: ["Invoice", "Payment", "Salary"],
+    }),
+    getTopClients: builder.query<
+      TopClient[],
+      { from?: string; to?: string; limit?: number }
+    >({
+      query: (params = {}) => ({ url: "/finance/top-clients", params }),
+      providesTags: ["Payment"],
+    }),
+    getRevenueTrend: builder.query<
+      RevenueTrendItem[],
+      { from?: string; to?: string; groupBy?: "day" | "week" | "month" }
+    >({
+      query: (params = {}) => ({ url: "/finance/revenue-trend", params }),
+      providesTags: ["Payment", "Invoice"],
+    }),
+    getPaymentMethods: builder.query<
+      PaymentMethodDist[],
+      { from?: string; to?: string }
+    >({
+      query: (params = {}) => ({ url: "/finance/payment-methods", params }),
+      providesTags: ["Payment"],
     }),
 
     // Invoices
@@ -352,8 +440,14 @@ export const financeApi = createApi({
 
 export const {
   useGetFinanceSummaryQuery,
+  useGetFinanceMetricsQuery,
   useGetCashFlowQuery,
   useGetFinanceAlertsQuery,
+  useGetAgingQuery,
+  useGetFinanceActionsQuery,
+  useGetTopClientsQuery,
+  useGetRevenueTrendQuery,
+  useGetPaymentMethodsQuery,
   useGetInvoicesQuery,
   useGetInvoiceByIdQuery,
   useCreateInvoiceMutation,

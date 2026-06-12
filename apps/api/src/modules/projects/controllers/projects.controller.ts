@@ -47,6 +47,12 @@ export class ProjectsController {
     return this.projectsService.findAll(filters);
   }
 
+  @Get("pm/revisions")
+  @RequirePermissions("projects.read")
+  findPmRevisions(@CurrentUser() user: any) {
+    return this.projectsService.findPmRevisions(user.id);
+  }
+
   @Get(":id")
   @RequirePermissions("projects.read")
   findOne(@Param("id") id: string) {

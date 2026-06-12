@@ -1,406 +1,353 @@
 "use client";
 
+import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
-  useGetFinanceSummaryQuery,
-  useGetCashFlowQuery,
-  useGetFinanceAlertsQuery,
-  useGetPaymentsQuery,
+  useGetFinanceMetricsQuery,
+  useGetRevenueTrendQuery,
+  useGetAgingQuery,
+  useGetFinanceActionsQuery,
+  useGetTopClientsQuery,
+  useGetPaymentMethodsQuery,
+  useGetLedgerQuery,
   useGetInvoicesQuery,
-  useGetEmployeesQuery,
 } from "@/features/finance/financeApi";
-import { KPIStatCard } from "@/components/dashboard/finance/KPIStatCard";
-import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
+import { FinanceDateRangePicker } from "@/components/dashboard/finance/FinanceDateRangePicker";
+import { FinanceKPICard } from "@/components/dashboard/finance/FinanceKPICard";
+import { RevenueTrendChart } from "@/components/dashboard/finance/RevenueTrendChart";
+import { PaymentMethodChart } from "@/components/dashboard/finance/PaymentMethodChart";
+import { AgingChart } from "@/components/dashboard/finance/AgingChart";
+import { ActionQueue } from "@/components/dashboard/finance/ActionQueue";
+import { TopClientsTable } from "@/components/dashboard/finance/TopClientsTable";
+import { ModuleQuickCard } from "@/components/dashboard/finance/ModuleQuickCard";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Skeleton } from "@/components/design-system/Skeleton";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  AreaChart,
-  Area,
-} from "recharts";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { DataTable } from "@/components/design-system/DataTable";
 import {
   DollarSign,
-  FileText,
   Clock,
   AlertTriangle,
   TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
   Wallet,
+  Users,
+  FileText,
+  Receipt,
   Calendar,
+  ShieldCheck,
+  CreditCard,
+  ArrowUpLeft,
 } from "lucide-react";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
-import Link from "next/link";
+
+type RangeValue = "today" | "week" | "month" | "quarter" | "year";
+
+interface DateRange {
+  from: string;
+  to: string;
+}
 
 export default function FinanceDashboardPage() {
-  const { data: summary, isLoading: loadingSummary } =
-    useGetFinanceSummaryQuery();
-  const { data: cashFlow, isLoading: loadingCashFlow } = useGetCashFlowQuery();
-  const { data: alerts, isLoading: loadingAlerts } = useGetFinanceAlertsQuery();
-  const { data: paymentsData, isLoading: loadingPayments } =
-    useGetPaymentsQuery({ limit: 5 });
+  const [range, setRange] = useState<RangeValue>("month");
+  const [dates, setDates] = useState<DateRange>(() => {
+    const to = new Date().toISOString().split("T")[0];
+    const from = new Date();
+    from.setDate(1);
+    return { from: from.toISOString().split("T")[0], to };
+  });
+
+  const handleRangeChange = (value: RangeValue, newDates: DateRange) => {
+    setRange(value);
+    setDates(newDates);
+  };
+
+  const params = useMemo(
+    () => ({ from: dates.from, to: dates.to }),
+    [dates],
+  );
+
+  const groupBy = useMemo(() => {
+    switch (range) {
+      case "week": return "day";
+      case "month": return "day";
+      case "quarter": return "month";
+      case "year": return "month";
+      default: return "day";
+    }
+  }, [range]);
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
+  const { data: metrics, isLoading: metricsLoading } =
+    useGetFinanceMetricsQuery(params);
+
+  const { data: trend, isLoading: trendLoading } =
+    useGetRevenueTrendQuery({ ...params, groupBy });
+
+  const { data: aging, isLoading: agingLoading } =
+    useGetAgingQuery();
+
+  const { data: actions, isLoading: actionsLoading } =
+    useGetFinanceActionsQuery();
+
+  const { data: topClients, isLoading: clientsLoading } =
+    useGetTopClientsQuery({ ...params, limit: 5 });
+
+  const { data: paymentMethods, isLoading: methodsLoading } =
+    useGetPaymentMethodsQuery(params);
+
+  const { data: ledgerData, isLoading: ledgerLoading } =
+    useGetLedgerQuery({ limit: 6, page: 1 });
+
   const { data: invoicesData } = useGetInvoicesQuery({ limit: 1 });
-  const { data: employeesData } = useGetEmployeesQuery();
 
   const isLoading =
-    loadingSummary || loadingCashFlow || loadingAlerts || loadingPayments;
-
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-9 w-64" />
-          <Skeleton className="h-5 w-48" />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-          <Skeleton className="lg:col-span-4 h-[450px] rounded-xl" />
-          <Skeleton className="lg:col-span-3 h-[450px] rounded-xl" />
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          <Skeleton className="h-[300px] rounded-xl" />
-          <Skeleton className="h-[300px] rounded-xl" />
-        </div>
-      </div>
-    );
-  }
-
-  const payments = paymentsData?.items || [];
+    metricsLoading ||
+    trendLoading ||
+    agingLoading ||
+    actionsLoading ||
+    clientsLoading ||
+    methodsLoading ||
+    ledgerLoading;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">
-          لوحة التحكم المالية
-        </h1>
-        <p className="text-neutral-300">
-          نظرة عامة على الإيرادات والمصروفات والتدفق النقدي.
-        </p>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* ── Header ───────────────────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-natural-100">
+            لوحة التحكم المالية
+          </h1>
+          <p className="text-sm text-neutral-400 mt-1">
+            نظرة شاملة على الأداء المالي للفترة المختارة
+          </p>
+        </div>
+        <FinanceDateRangePicker value={range} onChange={handleRangeChange} />
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <KPIStatCard
-          title="إجمالي الإيرادات"
-          value={formatCurrency(summary?.totalRevenue)}
+      {/* ── KPI Row 1 ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <FinanceKPICard
+          title="الإيرادات"
+          value={metrics?.revenue ?? 0}
+          format="currency"
           icon={DollarSign}
-          trend={{ value: "12%", isUp: true }}
+          change={metrics?.revenueChange}
+          description="إجمالي المدفوعات الناجحة"
         />
-        <KPIStatCard
-          title="فواتير مدفوعة"
-          value={formatCurrency(summary?.totalRevenue)}
-          icon={TrendingUp}
-          className="bg-success-50/50 dark:bg-success-500/5"
-        />
-        <KPIStatCard
-          title="فواتير معلقة"
-          value={formatCurrency(summary?.pendingInvoices)}
+        <FinanceKPICard
+          title="المبالغ المستحقة"
+          value={metrics?.pending ?? 0}
+          format="currency"
           icon={Clock}
-          className="bg-alert-50/50 dark:bg-alert-500/5"
+          description={`${metrics?.pendingLateCount ?? 0} فاتورة متأخرة`}
         />
-        <KPIStatCard
-          title="مدفوعات فاشلة"
-          value={formatCurrency(summary?.failedPayments)}
-          icon={AlertTriangle}
-          className="bg-danger-50/50 dark:bg-danger-500/5"
+        <FinanceKPICard
+          title="نسبة التحصيل"
+          value={metrics?.collectionRate ?? 0}
+          format="percent"
+          icon={TrendingUp}
+          description="نسبة الفواتير المحصلة من الإجمالي"
         />
-        <KPIStatCard
-          title="أرباح الشهر"
-          value={formatCurrency(summary?.monthlyProfit)}
-          icon={ArrowUpRight}
-        />
-        <KPIStatCard
-          title="إجمالي المصروفات"
-          value={formatCurrency(70000)}
+        <FinanceKPICard
+          title="صافي الربح"
+          value={metrics?.netProfit ?? 0}
+          format="currency"
           icon={Wallet}
+          change={metrics?.netProfitChange}
+          description="الإيرادات ناقص المصروفات"
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        {/* Cash Flow Chart */}
-        <SurfaceCard
-          className="lg:col-span-4 border-none shadow-md"
-          title="التدفق النقدي"
-          description="مقارنة الدخل والمصروفات على مدار الأشهر الماضية"
-          contentClassName="h-[350px]"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={cashFlow}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="hsl(var(--primary))"
-                    stopOpacity={0.1}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="hsl(var(--primary))"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-                <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="hsl(var(--muted))"
-              />
-              <XAxis
-                dataKey="month"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12 }}
-                dy={10}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => `${value / 1000}k`}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "8px",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-                formatter={(value: number) => [
-                  `${value.toLocaleString("ar-SA-u-nu-latn")} ر.س`,
-                ]}
-              />
-              <Legend verticalAlign="top" height={36} />
-              <Area
-                type="monotone"
-                dataKey="income"
-                name="الدخل"
-                stroke="hsl(var(--primary))"
-                fillOpacity={1}
-                fill="url(#colorIncome)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="expenses"
-                name="المصروفات"
-                stroke="#f43f5e"
-                fillOpacity={1}
-                fill="url(#colorExpenses)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </SurfaceCard>
+      {/* ── KPI Row 2 ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <FinanceKPICard
+          title="المدفوعات الفاشلة"
+          value={metrics?.failedPaymentsValue ?? 0}
+          format="currency"
+          icon={AlertTriangle}
+          description={`${metrics?.failedPaymentsCount ?? 0} عملية فاشلة`}
+        />
+        <FinanceKPICard
+          title="متوسط قيمة الفاتورة"
+          value={metrics?.averageInvoice ?? 0}
+          format="currency"
+          icon={Receipt}
+          description="متوسط قيمة الفواتير المصدرة"
+        />
+        <FinanceKPICard
+          title="العملاء النشطون"
+          value={metrics?.activeClients ?? 0}
+          format="number"
+          icon={Users}
+          description="عدد العملاء ذوي الفواتير"
+        />
+        <FinanceKPICard
+          title="إجمالي الرواتب"
+          value={metrics?.salariesTotal ?? 0}
+          format="currency"
+          icon={CreditCard}
+          change={metrics?.salariesChange}
+          description="الرواتب المصروفة في الفترة"
+        />
+      </div>
 
-        {/* Alerts Section */}
-        <div className="lg:col-span-3 rounded-[30px] border border-portal-card-border bg-natural-0 shadow-sm overflow-hidden">
-          <div className="p-6 pb-0 bg-danger-50/50 dark:bg-danger-500/5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-danger-500 dark:text-danger-400">
-                  تنبيهات مالية
-                </h3>
-                <p className="text-sm text-neutral-300">
-                  مشكلات تتطلب تدخلًا فوريًا
-                </p>
-              </div>
-              <AlertTriangle className="w-5 h-5 text-danger-500" />
-            </div>
-          </div>
-          <div className="p-0">
-            <div className="divide-y divide-neutral-50/50">
-              {alerts?.map((alert) => (
-                <div
-                  key={alert.id}
-                  className="p-4 flex items-center justify-between hover:bg-neutral-50/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "w-2 h-2 rounded-full",
-                        alert.severity === "HIGH"
-                          ? "bg-danger-500 animate-pulse"
-                          : alert.severity === "MEDIUM"
-                            ? "bg-alert-500"
-                            : "bg-action-blue",
-                      )}
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{alert.client}</p>
-                      <p className="text-xs text-neutral-300">{alert.date}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-danger-500">
-                      {formatCurrency(alert.amount)}
-                    </p>
-                    <Link href={`/dashboard/finance/invoices/${alert.id}`}>
-                      <ActionButton
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-xs"
-                      >
-                        عرض التفاصيل
-                      </ActionButton>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-              {alerts?.length === 0 && (
-                <div className="p-8 text-center text-neutral-300">
-                  لا توجد تنبيهات حالياً.
-                </div>
-              )}
-            </div>
-          </div>
+      {/* ── Charts Row ────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <RevenueTrendChart data={trend || []} isLoading={trendLoading} />
+        </div>
+        <div className="lg:col-span-1">
+          <PaymentMethodChart data={paymentMethods || []} isLoading={methodsLoading} />
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Recent Transactions */}
+      {/* ── Intelligence Row ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <AgingChart data={aging || []} isLoading={agingLoading} />
+        <ActionQueue actions={actions || []} isLoading={actionsLoading} />
+        <TopClientsTable clients={topClients || []} isLoading={clientsLoading} />
+      </div>
+
+      {/* ── Bottom Row: Activity + Quick Links ───────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Ledger Activity */}
         <SurfaceCard
-          className="border-none shadow-md"
-          title="أحدث العمليات"
-          description="آخر المدفوعات والتحويلات المسجلة"
+          className="lg:col-span-2 border-none shadow-md"
+          title="آخر النشاطات المالية"
+          description="سجل العمليات المالية الأخيرة"
+          icon={ShieldCheck}
           action={
-            <Link href="/dashboard/finance/payments">
+            <Link href="/dashboard/finance/ledger">
               <ActionButton variant="outline" size="sm">
-                عرض الكل
+                عرض السجل الكامل
               </ActionButton>
             </Link>
           }
         >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>العميل</TableHead>
-                <TableHead>المبلغ</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead className="text-left">التاريخ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-medium">
-                    {payment.invoice.client?.companyName || "عميل غير معروف"}
-                  </TableCell>
-                  <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                  <TableCell>
-                    <FinanceStatusBadge status={payment.status as any} />
-                  </TableCell>
-                  <TableCell className="text-left text-neutral-300 text-xs">
-                    {formatDate(payment.date)}
-                  </TableCell>
-                </TableRow>
+          {ledgerLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
               ))}
-              {payments.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center py-8 text-neutral-300"
-                  >
-                    لا توجد عمليات مسجلة.
-                  </TableCell>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pr-4">العملية</TableHead>
+                  <TableHead>الكيان</TableHead>
+                  <TableHead>المستخدم</TableHead>
+                  <TableHead className="text-left pl-4">التاريخ</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {(ledgerData?.items || []).map((log) => (
+                  <TableRow
+                    key={log.id}
+                    className="group transition-colors border-b last:border-0"
+                  >
+                    <TableCell className="pr-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-secondary-500" />
+                        <span className="font-bold text-sm">{log.action}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-[10px] uppercase bg-neutral-100 px-2 py-0.5 rounded">
+                        {log.entity}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-neutral-500">
+                      {log.userId || "System"}
+                    </TableCell>
+                    <TableCell className="text-left pl-4 text-xs text-neutral-400 font-mono">
+                      {formatDate(log.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(!ledgerData?.items || ledgerData.items.length === 0) && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center py-8 text-neutral-400"
+                    >
+                      لا توجد سجلات حالياً
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </SurfaceCard>
 
-        {/* Quick Links / Navigation */}
-        <div className="grid gap-4 grid-cols-2">
-          <QuickLinkCard
-            title="إدارة الفواتير"
+        {/* Quick Links */}
+        <div className="grid grid-cols-2 gap-4">
+          <ModuleQuickCard
+            title="الفواتير"
             href="/dashboard/finance/invoices"
             icon={FileText}
-            count={invoicesData?.total}
+            badge={metrics?.pendingLateCount}
             description="إصدار ومتابعة الفواتير"
+            meta={[
+              { value: metrics?.invoicesCount ?? 0, label: "مصدرة", accent: "neutral" },
+              { value: metrics?.pendingLateCount ?? 0, label: "متأخرة", accent: metrics?.pendingLateCount > 0 ? "danger" : "neutral" },
+            ]}
+            progress={metrics?.collectionRate}
+            progressLabel="نسبة التحصيل"
+            tint="blue"
           />
-          <QuickLinkCard
-            title="الرواتب والعمليات"
+          <ModuleQuickCard
+            title="الرواتب"
             href="/dashboard/finance/payroll"
             icon={Wallet}
-            count={employeesData?.length}
             description="صرف الرواتب والمستحقات"
+            meta={[
+              {
+                value: actions?.filter((a) => a.type === "PENDING_SALARY").length ?? 0,
+                label: "معلق للصرف",
+                accent: "alert",
+              },
+            ]}
+            tint="amber"
           />
-          <QuickLinkCard
-            title="سجل العمليات"
+          <ModuleQuickCard
+            title="سجل التدقيق"
             href="/dashboard/finance/ledger"
             icon={Calendar}
             description="مراجعة التدقيق المالي"
+            meta={[
+              {
+                value: ledgerData?.items?.filter(
+                  (l) => new Date(l.createdAt).toDateString() === new Date().toDateString(),
+                ).length ?? 0,
+                label: "عملية اليوم",
+                accent: "neutral",
+              },
+            ]}
+            tint="slate"
           />
-          <QuickLinkCard
-            title="العملاء"
+          <ModuleQuickCard
+            title="العقود"
             href="/dashboard/finance/contracts"
             icon={TrendingUp}
             description="الوضع المالي للعقود"
+            meta={[
+              {
+                value: `${Math.round(metrics?.collectionRate ?? 0)}%`,
+                label: "نسبة التحصيل",
+                accent:
+                  metrics?.collectionRate >= 80
+                    ? "success"
+                    : metrics?.collectionRate >= 50
+                      ? "alert"
+                      : "danger",
+              },
+            ]}
+            tint="rose"
           />
         </div>
       </div>
     </div>
-  );
-}
-
-function QuickLinkCard({
-  title,
-  href,
-  icon: Icon,
-  count,
-  description,
-}: {
-  title: string;
-  href: string;
-  icon: any;
-  count?: number;
-  description: string;
-}) {
-  return (
-    <Link href={href}>
-      <div className="h-full rounded-xl border border-portal-card-border bg-natural-0 shadow-sm hover:shadow-md transition-all group cursor-pointer">
-        <div className="p-6 flex flex-col items-center justify-center text-center space-y-2">
-          <div className="p-3 rounded-xl bg-secondary-500/5 text-secondary-500 group-hover:bg-secondary-500 group-hover:text-white transition-colors">
-            <Icon className="w-6 h-6" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="font-bold text-lg flex items-center justify-center gap-2">
-              {title}
-              {count !== undefined && (
-                <span className="text-xs bg-neutral-50 px-1.5 py-0.5 rounded-full">
-                  {count}
-                </span>
-              )}
-            </h3>
-            <p className="text-xs text-neutral-300">{description}</p>
-          </div>
-        </div>
-      </div>
-    </Link>
   );
 }

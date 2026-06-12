@@ -33,6 +33,13 @@ export enum TaskPriority {
   URGENT = "URGENT",
 }
 
+export const TASK_PRIORITY_AR: Record<TaskPriority, string> = {
+  LOW: "منخفض",
+  NORMAL: "عادي",
+  HIGH: "عالي",
+  URGENT: "عاجل",
+};
+
 export enum TaskDepartment {
   DESIGN = "DESIGN",
   CONTENT = "CONTENT",

@@ -6,38 +6,13 @@ import { formatDate } from "@/lib/format";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import type { Project } from "@hassad/shared";
-import { ProjectStatus } from "@hassad/shared";
-
-// ── Status config ─────────────────────────────────────────────────────────────
-
-const STATUS_MAP: Record<ProjectStatus, string> = {
-  [ProjectStatus.PLANNING]: "DRAFT",
-  [ProjectStatus.ACTIVE]: "ACTIVE",
-  [ProjectStatus.ON_HOLD]: "STOPPED",
-  [ProjectStatus.AWAITING_REVIEW]: "PENDING",
-  [ProjectStatus.NEEDS_REVISION]: "REJECTED",
-  [ProjectStatus.COMPLETED]: "COMPLETED",
-  [ProjectStatus.CANCELLED]: "CANCELLED",
-};
-
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  [ProjectStatus.PLANNING]: "تخطيط",
-  [ProjectStatus.ACTIVE]: "نشط",
-  [ProjectStatus.ON_HOLD]: "موقوف",
-  [ProjectStatus.AWAITING_REVIEW]: "بانتظار المراجعة",
-  [ProjectStatus.NEEDS_REVISION]: "مطلوب تعديلات",
-  [ProjectStatus.COMPLETED]: "مكتمل",
-  [ProjectStatus.CANCELLED]: "ملغى",
-};
+import {
+  PROJECT_STATUS_BADGE_KEY,
+  PROJECT_STATUS_LABELS,
+  type ProjectWithMeta,
+} from "@/lib/utils/project-status";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-interface ProjectWithMeta extends Project {
-  client?: { id: string; companyName: string };
-  manager?: { id: string; name: string };
-  _count?: { tasks: number };
-}
 
 interface ProjectCardProps {
   project: ProjectWithMeta;
@@ -47,10 +22,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const progressValue = Math.round(
-    project.progress ??
-      (project as ProjectWithMeta & { completionPercentage?: number })
-        .completionPercentage ??
-      0,
+    project.progress ?? project.completionPercentage ?? 0,
   );
 
   const startDate = formatDate(project.startDate);
@@ -64,8 +36,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {project.name}
           </h3>
           <StatusBadge
-            status={STATUS_MAP[project.status]}
-            label={STATUS_LABELS[project.status]}
+            status={PROJECT_STATUS_BADGE_KEY[project.status]}
+            label={PROJECT_STATUS_LABELS[project.status]}
             className="shrink-0 text-xs"
           />
         </div>

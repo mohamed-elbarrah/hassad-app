@@ -7,14 +7,7 @@ import { TimelineComponent } from "@/components/dashboard/finance/TimelineCompon
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Separator } from "@/components/ui/separator";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/design-system/DataTable";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import {
   ChevronRight,
@@ -167,48 +160,36 @@ export default function SalaryDetailPage({
               </div>
             </div>
             <div className="p-6 pt-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>الشهر / السنة</TableHead>
-                    <TableHead>المبلغ المصروف</TableHead>
-                    <TableHead>تاريخ الصرف</TableHead>
-                    <TableHead>الحالة</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {employee.salaries?.map((h) => (
-                    <TableRow key={h.id}>
-                      <TableCell className="font-medium">
-                        {h.month}/{h.year}
-                      </TableCell>
-                      <TableCell className="font-bold">
-                        {h.amount.toLocaleString()} ر.س
-                      </TableCell>
-                      <TableCell>
-                        {h.paymentDate
-                          ? new Date(h.paymentDate).toLocaleDateString(
-                              "ar-SA-u-nu-latn",
-                            )
-                          : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <FinanceStatusBadge status={h.status as any} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(!employee.salaries || employee.salaries.length === 0) && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="text-center py-6 text-neutral-300"
-                      >
-                        لا توجد سجلات رواتب.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <DataTable
+              columns={[
+                { id: "month", label: "الشهر / السنة" },
+                { id: "amount", label: "المبلغ المصروف" },
+                { id: "date", label: "تاريخ الصرف" },
+                { id: "status", label: "الحالة" },
+              ]}
+              data={employee.salaries || []}
+              isLoading={isLoading}
+              isError={false}
+              emptyState={{
+                icon: History,
+                message: "لا توجد سجلات رواتب",
+                hint: "سيتم عرض سجل الرواتب بعد أول صرف.",
+              }}
+              renderRow={(h) => (
+                <tr className="border-b-[1.5px] border-portal-divider">
+                  <td className="px-5 py-4 font-medium">{h.month}/{h.year}</td>
+                  <td className="px-5 py-4 font-bold">{h.amount.toLocaleString()} ر.س</td>
+                  <td className="px-5 py-4">
+                    {h.paymentDate
+                      ? new Date(h.paymentDate).toLocaleDateString("ar-SA-u-nu-latn")
+                      : "—"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <FinanceStatusBadge status={h.status as any} />
+                  </td>
+                </tr>
+              )}
+            />
             </div>
           </div>
         </div>

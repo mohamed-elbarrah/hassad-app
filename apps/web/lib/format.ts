@@ -119,3 +119,18 @@ export function formatNumber(
     return String(n);
   }
 }
+
+/**
+ * Calculate days until a target date from today.
+ * Returns positive number for future dates, negative for past dates.
+ */
+export function daysUntil(date: string | Date | undefined | null): number | null {
+  if (!date) return null;
+  const target = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+  // Reset time to midnight for accurate day calculation
+  target.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+  const diffTime = target.getTime() - now.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}

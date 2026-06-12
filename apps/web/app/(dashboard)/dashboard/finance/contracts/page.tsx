@@ -2,14 +2,7 @@
 
 import { useGetFinanceContractsQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/design-system/DataTable";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -18,21 +11,12 @@ import {
   TrendingUp,
   DollarSign,
   PieChart,
-  Loader2,
 } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import Link from "next/link";
 
 export default function ContractsFinancePage() {
   const { data: contracts = [], isLoading } = useGetFinanceContractsQuery();
-
-  if (isLoading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-      </div>
-    );
-  }
 
   const totalValue = contracts.reduce((sum, c) => sum + c.totalValue, 0);
   const totalPaid = contracts.reduce((sum, c) => sum + c.paid, 0);
@@ -112,72 +96,67 @@ export default function ContractsFinancePage() {
             />
           </div>
         </div>
-        <div className="p-5">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>العقد</TableHead>
-                <TableHead>العميل</TableHead>
-                <TableHead>القيمة الإجمالية</TableHead>
-                <TableHead>المحصل</TableHead>
-                <TableHead>المتبقي</TableHead>
-                <TableHead>نسبة التحصيل</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead className="text-left">الإجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contracts.map((contract) => (
-                <TableRow key={contract.id}>
-                  <TableCell className="font-medium">
-                    <div>{contract.title}</div>
-                    <div className="text-[10px] text-neutral-300 font-mono">
-                      {contract.id.substring(0, 8)}...
-                    </div>
-                  </TableCell>
-                  <TableCell>{contract.client?.companyName || "N/A"}</TableCell>
-                  <TableCell className="font-bold">
-                    {contract.totalValue.toLocaleString()} ر.س
-                  </TableCell>
-                  <TableCell className="text-success-600 font-medium">
-                    {contract.paid.toLocaleString()} ر.س
-                  </TableCell>
-                  <TableCell className="text-danger-600 font-medium">
-                    {contract.remaining.toLocaleString()} ر.س
-                  </TableCell>
-                  <TableCell className="w-[150px]">
-                    <div className="space-y-1">
-                      <ProgressBar value={contract.collectionRate} size="sm" />
-                      <span className="text-[10px] text-neutral-300">
-                        {contract.collectionRate.toFixed(1)}%
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <FinanceStatusBadge status={contract.status} />
-                  </TableCell>
-                  <TableCell className="text-left">
-                    <Link href={`/dashboard/finance/contracts/${contract.id}`}>
-                      <ActionButton variant="ghost" size="sm">
-                        التفاصيل
-                      </ActionButton>
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {contracts.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={8}
-                    className="text-center py-10 text-neutral-300"
-                  >
-                    لا توجد عقود مسجلة.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+
+        <DataTable
+          columns={[
+            { id: "contract", label: "العقد" },
+            { id: "client", label: "العميل" },
+            { id: "value", label: "القيمة الإجمالية" },
+            { id: "paid", label: "المحصل" },
+            { id: "remaining", label: "المتبقي" },
+            { id: "rate", label: "نسبة التحصيل", width: "150px" },
+            { id: "status", label: "الحالة" },
+            { id: "actions", label: "الإجراءات", align: "left" },
+          ]}
+          data={contracts}
+          isLoading={isLoading}
+          isError={false}
+          emptyState={{
+            icon: PieChart,
+            message: "لا توجد عقود مسجلة",
+            hint: "ستظهر العقود هنا بعد توقيعها.",
+          }}
+          renderRow={(contract) => (
+            <tr className="border-b-[1.5px] border-portal-divider">
+              <td className="px-5 py-4 font-medium">
+                <div>{contract.title}</div>
+                <div className="text-[10px] text-neutral-400 font-mono">
+                  {contract.id.substring(0, 8)}...
+                </div>
+              </td>
+              <td className="px-5 py-4">
+                {contract.client?.companyName || "N/A"}
+              </td>
+              <td className="px-5 py-4 font-bold">
+                {contract.totalValue.toLocaleString()} ر.س
+              </td>
+              <td className="px-5 py-4 text-success-600 font-medium">
+                {contract.paid.toLocaleString()} ر.س
+              </td>
+              <td className="px-5 py-4 text-danger-600 font-medium">
+                {contract.remaining.toLocaleString()} ر.س
+              </td>
+              <td className="px-5 py-4">
+                <div className="space-y-1">
+                  <ProgressBar value={contract.collectionRate} size="sm" />
+                  <span className="text-[10px] text-neutral-400">
+                    {contract.collectionRate.toFixed(1)}%
+                  </span>
+                </div>
+              </td>
+              <td className="px-5 py-4">
+                <FinanceStatusBadge status={contract.status} />
+              </td>
+              <td className="px-5 py-4 text-left">
+                <Link href={`/dashboard/finance/contracts/${contract.id}`}>
+                  <ActionButton variant="ghost" size="sm">
+                    التفاصيل
+                  </ActionButton>
+                </Link>
+              </td>
+            </tr>
+          )}
+        />
       </div>
     </div>
   );

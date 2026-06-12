@@ -10,6 +10,10 @@ import {
   RegisterPaymentDto,
   CreateEmployeeDto,
   RunPayrollDto,
+  DateRangeDto,
+  TopClientsDto,
+  RevenueTrendDto,
+  FinanceMetricsDto,
 } from "../dto/finance.dto";
 import {
   InvoiceStatus,
@@ -351,45 +355,560 @@ export class FinanceService {
     return { generated: results.length };
   }
 
-  async getSummary() {
-    const successfulPayments = await this.prisma.payment.aggregate({
-      where: { status: PaymentStatus.SUCCESS },
-      _sum: { amount: true },
+  // ── Date helpers ───────────────────────────────────────────────────────────
+
+  private getDateRange(dto?: DateRangeDto): { from: Date; to: Date } {
+    const to = dto?.to ? new Date(dto.to) : new Date();
+    to.setHours(23, 59, 59, 999);
+    const from = dto?.from
+      ? new Date(dto.from)
+      : new Date(to.getFullYear(), to.getMonth(), 1);
+    from.setHours(0, 0, 0, 0);
+    return { from, to };
+  }
+
+  private getPreviousPeriod(from: Date, to: Date): { prevFrom: Date; prevTo: Date } {
+    const duration = to.getTime() - from.getTime();
+    const prevTo = new Date(from.getTime() - 1);
+    const prevFrom = new Date(prevTo.getTime() - duration);
+    return { prevFrom, prevTo };
+  }
+
+  // ── Metrics ───────────────────────────────────────────────────────────────
+
+  async getMetrics(dto: FinanceMetricsDto) {
+    const { from, to } = this.getDateRange(dto);
+    const { prevFrom, prevTo } = this.getPreviousPeriod(from, to);
+
+    const buildWhere = (start: Date, end: Date) => ({
+      gte: start,
+      lte: end,
     });
 
-    const pendingInvoices = await this.prisma.invoice.aggregate({
-      where: {
-        status: {
-          in: [InvoiceStatus.DUE, InvoiceStatus.PARTIAL, InvoiceStatus.SENT],
+    // Current period
+    const [revenueAgg, pendingAgg, failedAgg, invoiceAgg, salaryAgg] =
+      await Promise.all([
+        this.prisma.payment.aggregate({
+          where: {
+            status: PaymentStatus.SUCCESS,
+            date: buildWhere(from, to),
+          },
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        this.prisma.invoice.aggregate({
+          where: {
+            status: { in: [InvoiceStatus.DUE, InvoiceStatus.PARTIAL, InvoiceStatus.SENT, InvoiceStatus.LATE] },
+          },
+          _sum: { amount: true },
+        }),
+        this.prisma.payment.aggregate({
+          where: {
+            status: PaymentStatus.FAILED,
+            date: buildWhere(from, to),
+          },
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        this.prisma.invoice.aggregate({
+          where: {
+            createdAt: buildWhere(from, to),
+          },
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+        this.prisma.salary.aggregate({
+          where: {
+            status: SalaryStatus.PAID,
+            paymentDate: buildWhere(from, to),
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+    // Previous period for comparison
+    const [prevRevenueAgg, prevInvoiceAgg, prevSalaryAgg] = await Promise.all([
+      this.prisma.payment.aggregate({
+        where: {
+          status: PaymentStatus.SUCCESS,
+          date: buildWhere(prevFrom, prevTo),
         },
-      },
-      _sum: { amount: true },
+        _sum: { amount: true },
+      }),
+      this.prisma.invoice.aggregate({
+        where: {
+          createdAt: buildWhere(prevFrom, prevTo),
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.salary.aggregate({
+        where: {
+          status: SalaryStatus.PAID,
+          paymentDate: buildWhere(prevFrom, prevTo),
+        },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const revenue = revenueAgg._sum.amount || 0;
+    const prevRevenue = prevRevenueAgg._sum.amount || 0;
+    const pending = pendingAgg._sum.amount || 0;
+    const failedValue = failedAgg._sum.amount || 0;
+    const failedCount = failedAgg._count.id || 0;
+    const invoiceTotal = invoiceAgg._sum.amount || 0;
+    const invoiceCount = invoiceAgg._count.id || 0;
+    const salaryTotal = salaryAgg._sum.amount || 0;
+    const prevSalaryTotal = prevSalaryAgg._sum.amount || 0;
+    const prevInvoiceTotal = prevInvoiceAgg._sum.amount || 0;
+
+    // Collection rate: all-time paid / all-time invoiced
+    const [allTimePaid, allTimeInvoiced] = await Promise.all([
+      this.prisma.payment.aggregate({
+        where: { status: PaymentStatus.SUCCESS },
+        _sum: { amount: true },
+      }),
+      this.prisma.invoice.aggregate({
+        _sum: { amount: true },
+      }),
+    ]);
+    const collectionRate =
+      (allTimeInvoiced._sum.amount || 0) > 0
+        ? ((allTimePaid._sum.amount || 0) / (allTimeInvoiced._sum.amount || 0)) * 100
+        : 0;
+
+    // Active clients (unique clients with invoices in range)
+    const activeClients = await this.prisma.invoice.groupBy({
+      by: ["clientId"],
+      where: { createdAt: buildWhere(from, to) },
+      _count: { clientId: true },
     });
 
-    const failedPaymentsCount = await this.prisma.payment.count({
-      where: { status: PaymentStatus.FAILED },
+    // Late count
+    const lateCount = await this.prisma.invoice.count({
+      where: { status: InvoiceStatus.LATE },
     });
 
-    const totalRevenue = successfulPayments._sum.amount || 0;
-    const totalPending = pendingInvoices._sum.amount || 0;
+    const pctChange = (curr: number, prev: number) =>
+      prev > 0 ? Number((((curr - prev) / prev) * 100).toFixed(1)) : curr > 0 ? 100 : 0;
 
     return {
-      totalRevenue,
-      pendingInvoices: totalPending,
-      failedPayments: failedPaymentsCount,
-      monthlyProfit: totalRevenue * 0.15, // Mock profit logic
+      revenue,
+      revenueChange: pctChange(revenue, prevRevenue),
+      pending,
+      pendingLateCount: lateCount,
+      collectionRate: Number(collectionRate.toFixed(1)),
+      failedPaymentsValue: failedValue,
+      failedPaymentsCount: failedCount,
+      invoicesTotal: invoiceTotal,
+      invoicesCount: invoiceCount,
+      invoicesChange: pctChange(invoiceTotal, prevInvoiceTotal),
+      salariesTotal: salaryTotal,
+      salariesChange: pctChange(salaryTotal, prevSalaryTotal),
+      activeClients: activeClients.length,
+      // Net "profit" placeholder: revenue - salaries (until expense tracking is built)
+      netProfit: revenue - salaryTotal,
+      netProfitChange: pctChange(revenue - salaryTotal, prevRevenue - prevSalaryTotal),
+      averageInvoice: invoiceCount > 0 ? Math.round(invoiceTotal / invoiceCount) : 0,
+      period: { from: from.toISOString(), to: to.toISOString() },
     };
   }
 
-  async getCashFlow() {
-    // Simple mock grouping for now, can be expanded with real date grouping
-    const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو"];
-    const data = months.map((m, i) => ({
-      month: m,
-      income: 100000 + i * 10000,
-      expenses: 70000 + i * 5000,
+  // ── Cash Flow (real data) ─────────────────────────────────────────────────
+
+  async getCashFlow(dto?: DateRangeDto) {
+    const { from, to } = this.getDateRange(dto);
+    const months: { label: string; income: number; expenses: number }[] = [];
+
+    let cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+    const end = new Date(to.getFullYear(), to.getMonth(), 1);
+
+    while (cursor <= end) {
+      const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+      const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      const [incomeAgg, expenseAgg] = await Promise.all([
+        this.prisma.payment.aggregate({
+          where: {
+            status: PaymentStatus.SUCCESS,
+            date: { gte: monthStart, lte: monthEnd },
+          },
+          _sum: { amount: true },
+        }),
+        this.prisma.salary.aggregate({
+          where: {
+            status: SalaryStatus.PAID,
+            paymentDate: { gte: monthStart, lte: monthEnd },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      const monthNames = [
+        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+      ];
+
+      months.push({
+        label: `${monthNames[cursor.getMonth()]} ${cursor.getFullYear()}`,
+        income: incomeAgg._sum.amount || 0,
+        expenses: expenseAgg._sum.amount || 0,
+      });
+
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return months;
+  }
+
+  // ── Aging ───────────────────────────────────────────────────────────────────
+
+  async getAging() {
+    const now = new Date();
+
+    const unpaid = await this.prisma.invoice.findMany({
+      where: {
+        status: { in: [InvoiceStatus.DUE, InvoiceStatus.PARTIAL, InvoiceStatus.SENT, InvoiceStatus.LATE] },
+      },
+      include: {
+        payments: true,
+        client: { select: { companyName: true } },
+      },
+    });
+
+    const buckets = {
+      current: { label: "0-30 يوم", amount: 0, count: 0 },
+      thirty: { label: "31-60 يوم", amount: 0, count: 0 },
+      sixty: { label: "61-90 يوم", amount: 0, count: 0 },
+      ninety: { label: "+90 يوم", amount: 0, count: 0 },
+    };
+
+    for (const inv of unpaid) {
+      const paid = inv.payments.reduce((s, p) => s + p.amount, 0);
+      const remaining = inv.amount - paid;
+      if (remaining <= 0) continue;
+
+      const days = Math.floor(
+        (now.getTime() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      if (days <= 30) {
+        buckets.current.amount += remaining;
+        buckets.current.count += 1;
+      } else if (days <= 60) {
+        buckets.thirty.amount += remaining;
+        buckets.thirty.count += 1;
+      } else if (days <= 90) {
+        buckets.sixty.amount += remaining;
+        buckets.sixty.count += 1;
+      } else {
+        buckets.ninety.amount += remaining;
+        buckets.ninety.count += 1;
+      }
+    }
+
+    return Object.values(buckets);
+  }
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
+
+  async getActions() {
+    const now = new Date();
+
+    const [lateInvoices, unsentInvoices, failedPayments, pendingSalaries] =
+      await Promise.all([
+        this.prisma.invoice.findMany({
+          where: { status: InvoiceStatus.LATE },
+          include: { client: { select: { companyName: true } } },
+          take: 5,
+          orderBy: { dueDate: "asc" },
+        }),
+        this.prisma.invoice.findMany({
+          where: { status: InvoiceStatus.DUE, sentAt: null },
+          include: { client: { select: { companyName: true } } },
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        }),
+        this.prisma.payment.findMany({
+          where: { status: PaymentStatus.FAILED },
+          include: { invoice: { include: { client: { select: { companyName: true } } } } },
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        }),
+        this.prisma.salary.findMany({
+          where: { status: SalaryStatus.PENDING },
+          include: { employee: { select: { name: true } } },
+          take: 5,
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
+
+    const actions: Array<{
+      id: string;
+      type: "LATE_INVOICE" | "UNSENT_INVOICE" | "FAILED_PAYMENT" | "PENDING_SALARY";
+      title: string;
+      description: string;
+      amount?: number;
+      entityId: string;
+      priority: "HIGH" | "MEDIUM" | "LOW";
+    }> = [];
+
+    for (const inv of lateInvoices) {
+      actions.push({
+        id: `late-${inv.id}`,
+        type: "LATE_INVOICE",
+        title: `فاتورة متأخرة: ${inv.invoiceNumber}`,
+        description: inv.client?.companyName || "عميل غير معروف",
+        amount: inv.amount,
+        entityId: inv.id,
+        priority: "HIGH",
+      });
+    }
+
+    for (const inv of unsentInvoices) {
+      actions.push({
+        id: `unsent-${inv.id}`,
+        type: "UNSENT_INVOICE",
+        title: `فاتورة غير مرسلة: ${inv.invoiceNumber}`,
+        description: inv.client?.companyName || "عميل غير معروف",
+        amount: inv.amount,
+        entityId: inv.id,
+        priority: "MEDIUM",
+      });
+    }
+
+    for (const p of failedPayments) {
+      actions.push({
+        id: `failed-${p.id}`,
+        type: "FAILED_PAYMENT",
+        title: `عملية دفع فاشلة`,
+        description: p.invoice?.client?.companyName || "عميل غير معروف",
+        amount: p.amount,
+        entityId: p.id,
+        priority: "HIGH",
+      });
+    }
+
+    for (const s of pendingSalaries) {
+      actions.push({
+        id: `salary-${s.id}`,
+        type: "PENDING_SALARY",
+        title: `راتب معلق: ${s.employee?.name || "موظف"}`,
+        description: `${s.month}/${s.year}`,
+        amount: s.amount,
+        entityId: s.id,
+        priority: "MEDIUM",
+      });
+    }
+
+    return actions;
+  }
+
+  // ── Top Clients ─────────────────────────────────────────────────────────────
+
+  async getTopClients(dto: TopClientsDto) {
+    const { from, to } = this.getDateRange(dto);
+    const limit = dto.limit || 5;
+
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        status: PaymentStatus.SUCCESS,
+        date: { gte: from, lte: to },
+      },
+      include: {
+        invoice: {
+          include: {
+            client: { select: { id: true, companyName: true } },
+          },
+        },
+      },
+    });
+
+    const map = new Map<
+      string,
+      { clientId: string; companyName: string; revenue: number; paymentCount: number }
+    >();
+
+    for (const p of payments) {
+      const cid = p.invoice?.client?.id;
+      if (!cid) continue;
+      const existing = map.get(cid);
+      if (existing) {
+        existing.revenue += p.amount;
+        existing.paymentCount += 1;
+      } else {
+        map.set(cid, {
+          clientId: cid,
+          companyName: p.invoice.client.companyName || "—",
+          revenue: p.amount,
+          paymentCount: 1,
+        });
+      }
+    }
+
+    const clients = Array.from(map.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, limit);
+
+    // Attach invoice count and collection rate per client
+    const enriched = await Promise.all(
+      clients.map(async (c) => {
+        const invoices = await this.prisma.invoice.findMany({
+          where: { clientId: c.clientId },
+          include: { payments: true },
+        });
+        const totalInvoiced = invoices.reduce((s, i) => s + i.amount, 0);
+        const totalPaid = invoices.reduce(
+          (s, i) => s + i.payments.reduce((ps, p) => ps + p.amount, 0),
+          0,
+        );
+        return {
+          ...c,
+          invoiceCount: invoices.length,
+          collectionRate:
+            totalInvoiced > 0 ? Number(((totalPaid / totalInvoiced) * 100).toFixed(1)) : 0,
+        };
+      }),
+    );
+
+    return enriched;
+  }
+
+  // ── Revenue Trend ───────────────────────────────────────────────────────────
+
+  async getRevenueTrend(dto: RevenueTrendDto) {
+    const { from, to } = this.getDateRange(dto);
+    const groupBy = dto.groupBy || "month";
+
+    // ── 1. Generate all date buckets in range (0-padded) ────────────────────
+    const allBuckets = new Map<string, { label: string; income: number; invoiced: number }>();
+
+    const monthNames = [
+      "يناير","فبراير","مارس","أبريل","مايو","يونيو",
+      "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+    ];
+
+    let cursor = new Date(from);
+    cursor.setHours(0,0,0,0);
+
+    while (cursor <= to) {
+      let key: string;
+      let label: string;
+
+      if (groupBy === "day") {
+        key = cursor.toISOString().split("T")[0];
+        label = `${cursor.getDate()} ${monthNames[cursor.getMonth()]}`;
+      } else if (groupBy === "week") {
+        const weekStart = new Date(cursor);
+        weekStart.setDate(cursor.getDate() - cursor.getDay());
+        key = weekStart.toISOString().split("T")[0];
+        label = `${weekStart.getDate()} ${monthNames[weekStart.getMonth()]}`;
+      } else {
+        key = `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,"0")}`;
+        label = `${monthNames[cursor.getMonth()]} ${cursor.getFullYear()}`;
+      }
+
+      if (!allBuckets.has(key)) {
+        allBuckets.set(key, { label, income: 0, invoiced: 0 });
+      }
+
+      // Advance cursor
+      if (groupBy === "day") {
+        cursor.setDate(cursor.getDate() + 1);
+      } else if (groupBy === "week") {
+        cursor.setDate(cursor.getDate() + 7);
+      } else {
+        cursor.setMonth(cursor.getMonth() + 1);
+        cursor.setDate(1);
+      }
+    }
+
+    // ── 2. Fetch real data ──────────────────────────────────────────────────
+    const [payments, invoices] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: {
+          status: PaymentStatus.SUCCESS,
+          date: { gte: from, lte: to },
+        },
+        select: { amount: true, date: true },
+      }),
+      this.prisma.invoice.findMany({
+        where: {
+          createdAt: { gte: from, lte: to },
+        },
+        select: { amount: true, createdAt: true },
+      }),
+    ]);
+
+    // ── 3. Aggregate into buckets ───────────────────────────────────────────
+    const keyFor = (d: Date) => {
+      if (groupBy === "day") return d.toISOString().split("T")[0];
+      if (groupBy === "week") {
+        const start = new Date(d);
+        start.setDate(d.getDate() - d.getDay());
+        return start.toISOString().split("T")[0];
+      }
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    };
+
+    for (const p of payments) {
+      const k = keyFor(new Date(p.date));
+      const b = allBuckets.get(k);
+      if (b) b.income += p.amount;
+    }
+
+    for (const inv of invoices) {
+      const k = keyFor(new Date(inv.createdAt));
+      const b = allBuckets.get(k);
+      if (b) b.invoiced += inv.amount;
+    }
+
+    // ── 4. Return sorted ──────────────────────────────────────────────────────
+    return Array.from(allBuckets.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, v]) => v);
+  }
+
+  // ── Payment Method Distribution ───────────────────────────────────────────
+
+  async getPaymentMethodDistribution(dto?: DateRangeDto) {
+    const { from, to } = this.getDateRange(dto);
+
+    const payments = await this.prisma.payment.groupBy({
+      by: ["method"],
+      where: {
+        status: PaymentStatus.SUCCESS,
+        date: { gte: from, lte: to },
+      },
+      _sum: { amount: true },
+      _count: { id: true },
+    });
+
+    const total = payments.reduce((s, p) => s + (p._sum.amount || 0), 0);
+
+    const methodLabels: Record<string, string> = {
+      APPLE_PAY: "Apple Pay",
+      MADA: "مدى",
+      VISA_MC: "Visa / Mastercard",
+      TABBY: "تابي",
+      TAMARA: "تمارا",
+      BANK_TRANSFER: "تحويل بنكي",
+      CARD: "بطاقة",
+      CASH: "نقدي",
+    };
+
+    return payments.map((p) => ({
+      method: p.method,
+      label: methodLabels[p.method] || p.method,
+      amount: p._sum.amount || 0,
+      count: p._count.id || 0,
+      percentage: total > 0 ? Number((((p._sum.amount || 0) / total) * 100).toFixed(1)) : 0,
     }));
-    return data;
+  }
+
+  // ── Legacy summary (backward compat) ────────────────────────────────────────
+
+  async getSummary() {
+    return this.getMetrics({});
   }
 
   async getAlerts() {

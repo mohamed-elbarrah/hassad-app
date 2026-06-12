@@ -3,7 +3,17 @@ import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+interface TabsProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> {
+  dir?: "rtl" | "ltr";
+}
+
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  TabsProps
+>(({ dir, ...props }, ref) => (
+  <TabsPrimitive.Root ref={ref} dir={dir} {...props} />
+));
+Tabs.displayName = TabsPrimitive.Root.displayName;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
@@ -12,7 +22,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-xl bg-neutral-50 p-1 text-neutral-300",
+      "inline-flex h-10 items-center justify-center rounded-2xl bg-[#1219360d] p-1 text-neutral-300",
       className,
     )}
     {...props}
@@ -27,7 +37,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+      "inline-flex items-center justify-center whitespace-nowrap rounded-xl px-3 py-1.5 text-sm font-medium transition-all",
       "data-[state=active]:bg-natural-0 data-[state=active]:text-secondary-500 data-[state=active]:shadow-sm",
       "data-[state=inactive]:text-neutral-300 hover:text-secondary-500",
       className,

@@ -18,14 +18,7 @@ import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatus
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/design-system/DataTable";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
 
@@ -214,56 +207,49 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
           description="جميع الدفعات المسجلة عبر فواتير هذا العقد"
           className="border-none shadow-md"
         >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>رقم الفاتورة</TableHead>
-                <TableHead>التاريخ</TableHead>
-                <TableHead>المبلغ</TableHead>
-                <TableHead>طريقة الدفع</TableHead>
-                <TableHead>الحالة</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.invoices.flatMap((inv) =>
-                (inv.payments ?? []).map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-mono text-xs">
-                      {inv.invoiceNumber}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(payment.date).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell className="font-medium text-success-600">
-                      {payment.amount.toLocaleString()} ر.س
-                    </TableCell>
-                    <TableCell className="text-neutral-300 text-xs">
-                      BANK_TRANSFER
-                    </TableCell>
-                    <TableCell>
-                      <FinanceStatusBadge status={payment.status} />
-                    </TableCell>
-                  </TableRow>
-                )),
-              )}
-              {data.invoices.every(
-                (inv) => (inv.payments ?? []).length === 0,
-              ) && (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-10 text-neutral-300"
-                  >
-                    لا توجد دفعات مسجلة بعد.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <DataTable
+            columns={[
+              { id: "invoice", label: "رقم الفاتورة" },
+              { id: "date", label: "التاريخ" },
+              { id: "amount", label: "المبلغ" },
+              { id: "method", label: "طريقة الدفع" },
+              { id: "status", label: "الحالة" },
+            ]}
+            data={data.invoices?.flatMap((inv) =>
+              (inv.payments ?? []).map((payment) => ({
+                ...payment,
+                invoiceNumber: inv.invoiceNumber,
+              })),
+            ) || []}
+            isLoading={isLoading}
+            isError={false}
+            emptyState={{
+              icon: FileText,
+              message: "لا توجد دفعات مسجلة بعد",
+              hint: "ستظهر الدفعات هنا فور تسجيلها على الفواتير.",
+            }}
+            renderRow={(payment) => (
+              <tr className="border-b-[1.5px] border-portal-divider">
+                <td className="px-5 py-4 font-mono text-xs">{payment.invoiceNumber}</td>
+                <td className="px-5 py-4">
+                  {new Date(payment.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </td>
+                <td className="px-5 py-4 font-medium text-success-600">
+                  {payment.amount.toLocaleString()} ر.س
+                </td>
+                <td className="px-5 py-4 text-neutral-400 text-xs">
+                  BANK_TRANSFER
+                </td>
+                <td className="px-5 py-4">
+                  <FinanceStatusBadge status={payment.status} />
+                </td>
+              </tr>
+            )}
+          />
         </SurfaceCard>
       )}
     </div>

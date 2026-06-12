@@ -1,14 +1,7 @@
 "use client";
 
 import { useGetLedgerQuery } from "@/features/finance/financeApi";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/design-system/DataTable";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
@@ -30,7 +23,7 @@ export default function LedgerPage() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useGetLedgerQuery({ page });
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
@@ -118,74 +111,67 @@ export default function LedgerPage() {
             </div>
           </div>
         </div>
-        <div className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="pr-6">العملية</TableHead>
-                <TableHead>الكيان المتأثر</TableHead>
-                <TableHead>المستخدم</TableHead>
-                <TableHead>القيمة السابقة</TableHead>
-                <TableHead>القيمة الجديدة</TableHead>
-                <TableHead className="text-left pl-6">التاريخ والوقت</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ledger.map((log) => (
-                <TableRow
-                  key={log.id}
-                  className="group transition-colors border-b last:border-0"
-                >
-                  <TableCell className="pr-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-secondary-500" />
-                      <span className="font-bold text-sm">{log.action}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      status={log.entity}
-                      className="font-mono text-[10px] uppercase"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <User className="w-3 h-3 text-neutral-300" />
-                      <span className="text-sm">{log.userId || "System"}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-neutral-300 text-xs">
-                    {log.before
-                      ? typeof log.before === "string"
-                        ? log.before
-                        : JSON.stringify(log.before).substring(0, 30) + "..."
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="font-semibold text-xs text-secondary-500">
-                    {log.after
-                      ? typeof log.after === "string"
-                        ? log.after
-                        : JSON.stringify(log.after).substring(0, 30) + "..."
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-left pl-6 text-neutral-300 text-xs font-mono">
-                    {new Date(log.createdAt).toLocaleString("ar-SA-u-nu-latn")}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {ledger.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-10 text-neutral-300"
-                  >
-                    لا توجد سجلات حالياً.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+
+        <DataTable
+          columns={[
+            { id: "action", label: "العملية" },
+            { id: "entity", label: "الكيان المتأثر" },
+            { id: "user", label: "المستخدم" },
+            { id: "before", label: "القيمة السابقة" },
+            { id: "after", label: "القيمة الجديدة" },
+            { id: "date", label: "التاريخ والوقت", align: "left" },
+          ]}
+          data={ledger}
+          isLoading={isLoading}
+          isError={false}
+          emptyState={{
+            icon: ShieldCheck,
+            message: "لا توجد سجلات حالياً",
+            hint: "ستظهر العمليات المالية هنا فور حدوثها.",
+          }}
+          renderRow={(log) => (
+            <tr
+              key={log.id}
+              className="border-b-[1.5px] border-portal-divider"
+            >
+              <td className="px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-secondary-500" />
+                  <span className="font-bold text-sm">{log.action}</span>
+                </div>
+              </td>
+              <td className="px-5 py-4">
+                <StatusBadge
+                  status={log.entity}
+                  className="font-mono text-[10px] uppercase"
+                />
+              </td>
+              <td className="px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <User className="w-3 h-3 text-neutral-300" />
+                  <span className="text-sm">{log.userId || "System"}</span>
+                </div>
+              </td>
+              <td className="px-5 py-4 text-neutral-300 text-xs">
+                {log.before
+                  ? typeof log.before === "string"
+                    ? log.before
+                    : JSON.stringify(log.before).substring(0, 30) + "..."
+                  : "-"}
+              </td>
+              <td className="px-5 py-4 font-semibold text-xs text-secondary-500">
+                {log.after
+                  ? typeof log.after === "string"
+                    ? log.after
+                    : JSON.stringify(log.after).substring(0, 30) + "..."
+                  : "-"}
+              </td>
+              <td className="px-5 py-4 text-left text-neutral-300 text-xs font-mono">
+                {new Date(log.createdAt).toLocaleString("ar-SA-u-nu-latn")}
+              </td>
+            </tr>
+          )}
+        />
       </div>
     </div>
   );

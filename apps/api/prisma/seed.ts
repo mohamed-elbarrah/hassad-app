@@ -2344,6 +2344,7 @@ async function main() {
       "tasks.assign",
       "tasks.update",
       "tasks.approve",
+      "tasks.comment",
       "proposals.read",
       "proposals.update",
       "proposals.approve",
