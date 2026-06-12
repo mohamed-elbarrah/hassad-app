@@ -23,14 +23,7 @@ import { ModuleQuickCard } from "@/components/dashboard/finance/ModuleQuickCard"
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/design-system/DataTable";
 import {
   DollarSign,
   Clock,

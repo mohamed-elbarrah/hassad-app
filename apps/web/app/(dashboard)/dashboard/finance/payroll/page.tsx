@@ -5,14 +5,7 @@ import {
   useRunPayrollMutation,
 } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/design-system/DataTable";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
@@ -20,10 +13,7 @@ import {
   Search,
   Wallet,
   CheckCircle,
-  Clock,
-  AlertCircle,
   ChevronLeft,
-  Loader2,
 } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import Link from "next/link";
@@ -46,14 +36,6 @@ export default function PayrollPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-      </div>
-    );
-  }
-
   const totalPayroll = employees.reduce((sum, emp) => sum + emp.baseSalary, 0);
 
   return (
@@ -73,7 +55,7 @@ export default function PayrollPage() {
             disabled={isRunning}
           >
             {isRunning ? (
-              <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+              <Wallet className="w-4 h-4 ml-2 animate-spin" />
             ) : (
               <Wallet className="w-4 h-4 ml-2" />
             )}
@@ -116,84 +98,72 @@ export default function PayrollPage() {
             </div>
           </div>
         </div>
-        <div className="p-6 pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الموظف</TableHead>
-                <TableHead>الراتب الأساسي</TableHead>
-                <TableHead>آخر تاريخ صرف</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead className="text-left">الإجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employees.map((employee) => {
-                const latestSalary = (employee as any).salaries?.[0];
-                return (
-                  <TableRow
-                    key={employee.id}
-                    className="group hover:bg-neutral-50/50 transition-colors"
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <UserAvatar
-                          name={employee.name}
-                          size="md"
-                          variant="circle"
-                          showBorder
-                          className="h-9 w-9"
-                        />
-                        <div>
-                          <p className="font-bold text-sm">{employee.name}</p>
-                          <p className="text-xs text-neutral-300">
-                            {employee.role}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {employee.baseSalary.toLocaleString()} ر.س
-                    </TableCell>
-                    <TableCell className="text-neutral-300 text-sm">
-                      {latestSalary?.paymentDate
-                        ? new Date(latestSalary.paymentDate).toLocaleDateString(
-                            "ar-SA-u-nu-latn",
-                          )
-                        : "لم يتم الصرف"}
-                    </TableCell>
-                    <TableCell>
-                      <FinanceStatusBadge
-                        status={latestSalary?.status || "PENDING"}
-                      />
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <Link href={`/dashboard/finance/payroll/${employee.id}`}>
-                        <ActionButton
-                          variant="ghost"
-                          size="sm"
-                          className="group-hover:bg-secondary-500/10 group-hover:text-secondary-500 transition-all"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </ActionButton>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {employees.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-10 text-neutral-300"
-                  >
-                    لا يوجد موظفون مسجلون.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+
+        <DataTable
+          columns={[
+            { id: "employee", label: "الموظف" },
+            { id: "salary", label: "الراتب الأساسي" },
+            { id: "lastPaid", label: "آخر تاريخ صرف" },
+            { id: "status", label: "الحالة" },
+            { id: "actions", label: "الإجراءات", align: "left" },
+          ]}
+          data={employees}
+          isLoading={isLoading}
+          isError={false}
+          emptyState={{
+            icon: Wallet,
+            message: "لا يوجد موظفون مسجلون",
+            hint: "قم بإضافة موظفين من إعدادات النظام.",
+          }}
+          renderRow={(employee) => {
+            const latestSalary = (employee as any).salaries?.[0];
+            return (
+              <tr className="border-b-[1.5px] border-portal-divider">
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      name={employee.name}
+                      size="md"
+                      variant="circle"
+                      showBorder
+                      className="h-9 w-9"
+                    />
+                    <div>
+                      <p className="font-bold text-sm">{employee.name}</p>
+                      <p className="text-xs text-neutral-400">{employee.role}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  {employee.baseSalary.toLocaleString()} ر.س
+                </td>
+                <td className="px-5 py-4 text-neutral-400 text-sm">
+                  {latestSalary?.paymentDate
+                    ? new Date(latestSalary.paymentDate).toLocaleDateString(
+                        "ar-SA-u-nu-latn",
+                      )
+                    : "لم يتم الصرف"}
+                </td>
+                <td className="px-5 py-4">
+                  <FinanceStatusBadge
+                    status={latestSalary?.status || "PENDING"}
+                  />
+                </td>
+                <td className="px-5 py-4 text-left">
+                  <Link href={`/dashboard/finance/payroll/${employee.id}`}>
+                    <ActionButton
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-secondary-500/10 hover:text-secondary-500 transition-all"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </ActionButton>
+                  </Link>
+                </td>
+              </tr>
+            );
+          }}
+        />
       </div>
     </div>
   );

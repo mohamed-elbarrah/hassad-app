@@ -2,15 +2,7 @@
 
 import { useGetPaymentsQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { DataTable } from "@/components/design-system/DataTable";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
@@ -21,7 +13,6 @@ import {
   CreditCard,
   Banknote,
   Landmark,
-  Loader2,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
 import Link from "next/link";
@@ -31,6 +22,11 @@ export default function PaymentsPage() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useGetPaymentsQuery({ page });
 
+  const payments = data?.items || [];
+  const totalSuccessful = payments
+    .filter((p) => p.status === "SUCCESS")
+    .reduce((sum, p) => sum + p.amount, 0);
+
   const getMethodIcon = (method: string) => {
     if (method.includes("VISA") || method.includes("MADA"))
       return <CreditCard className="w-4 h-4 ml-2 text-action-blue" />;
@@ -38,19 +34,6 @@ export default function PaymentsPage() {
       return <Landmark className="w-4 h-4 ml-2 text-neutral-500" />;
     return <Banknote className="w-4 h-4 ml-2 text-success-500" />;
   };
-
-  if (isLoading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-      </div>
-    );
-  }
-
-  const payments = data?.items || [];
-  const totalSuccessful = payments
-    .filter((p) => p.status === "SUCCESS")
-    .reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -106,67 +89,60 @@ export default function PaymentsPage() {
             </div>
           </div>
         </div>
-        <div className="p-6 pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>رقم العملية</TableHead>
-                <TableHead>الفاتورة</TableHead>
-                <TableHead>العميل</TableHead>
-                <TableHead>المبلغ</TableHead>
-                <TableHead>طريقة الدفع</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead className="text-left">التاريخ</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-mono text-[10px] font-semibold">
-                    {p.id.substring(0, 8)}...
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/dashboard/finance/invoices/${p.invoiceId}`}
-                      className="flex items-center hover:text-secondary-500 transition-colors"
-                    >
-                      {p.invoice?.invoiceNumber || "N/A"}
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {p.invoice?.client?.companyName || "N/A"}
-                  </TableCell>
-                  <TableCell className="font-bold">
-                    {p.amount.toLocaleString()} ر.س
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      {getMethodIcon(p.method)}
-                      {p.method}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <FinanceStatusBadge status={p.status as any} />
-                  </TableCell>
-                  <TableCell className="text-left text-xs text-neutral-300">
-                    {new Date(p.date).toLocaleDateString("ar-SA-u-nu-latn")}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {payments.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-10 text-neutral-300"
-                  >
-                    لا توجد عمليات مسجلة.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+
+        <DataTable
+          columns={[
+            { id: "id", label: "رقم العملية" },
+            { id: "invoice", label: "الفاتورة" },
+            { id: "client", label: "العميل" },
+            { id: "amount", label: "المبلغ" },
+            { id: "method", label: "طريقة الدفع" },
+            { id: "status", label: "الحالة" },
+            { id: "date", label: "التاريخ", align: "left" },
+          ]}
+          data={payments}
+          isLoading={isLoading}
+          isError={false}
+          emptyState={{
+            icon: CreditCard,
+            message: "لا توجد عمليات مسجلة",
+            hint: "ستظهر المدفوعات هنا عند تسجيلها.",
+          }}
+          renderRow={(p) => (
+            <tr className="border-b-[1.5px] border-portal-divider">
+              <td className="px-5 py-4 font-mono text-[10px] font-semibold">
+                {p.id.substring(0, 8)}...
+              </td>
+              <td className="px-5 py-4">
+                <Link
+                  href={`/dashboard/finance/invoices/${p.invoiceId}`}
+                  className="flex items-center hover:text-secondary-500 transition-colors"
+                >
+                  {p.invoice?.invoiceNumber || "N/A"}
+                  <ExternalLink className="w-3 h-3 mr-1" />
+                </Link>
+              </td>
+              <td className="px-5 py-4 font-medium">
+                {p.invoice?.client?.companyName || "N/A"}
+              </td>
+              <td className="px-5 py-4 font-bold">
+                {p.amount.toLocaleString()} ر.س
+              </td>
+              <td className="px-5 py-4">
+                <div className="flex items-center">
+                  {getMethodIcon(p.method)}
+                  {p.method}
+                </div>
+              </td>
+              <td className="px-5 py-4">
+                <FinanceStatusBadge status={p.status as any} />
+              </td>
+              <td className="px-5 py-4 text-left text-xs text-neutral-400">
+                {new Date(p.date).toLocaleDateString("ar-SA-u-nu-latn")}
+              </td>
+            </tr>
+          )}
+        />
       </div>
     </div>
   );
