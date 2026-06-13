@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
   Patch,
+  Delete,
 } from "@nestjs/common";
 import { FinanceService } from "../services/finance.service";
 import {
@@ -18,6 +19,10 @@ import {
   CreateTicketDto,
   RegisterPaymentDto,
   RunPayrollDto,
+  PaySalaryDto,
+  UpdateSalaryDto,
+  CreateEmployeeDto,
+  UpdateEmployeeDto,
 } from "../dto/finance.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -157,6 +162,68 @@ export class FinanceController {
   @RequirePermissions("finance.manage_payroll")
   runPayroll(@CurrentUser() user: any, @Body() dto: RunPayrollDto) {
     return this.financeService.runPayroll(user.id, dto);
+  }
+
+  @Get("payroll/:id")
+  @RequirePermissions("finance.read")
+  findEmployeeById(@Param("id") id: string) {
+    return this.financeService.findEmployeeById(id);
+  }
+
+  @Post("payroll/salaries/:id/pay")
+  @RequirePermissions("finance.manage_payroll")
+  paySalary(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Body() dto: PaySalaryDto,
+  ) {
+    return this.financeService.paySalary(user.id, id, dto);
+  }
+
+  @Patch("payroll/salaries/:id")
+  @RequirePermissions("finance.manage_payroll")
+  updateSalary(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Body() dto: UpdateSalaryDto,
+  ) {
+    return this.financeService.updateSalary(user.id, id, dto);
+  }
+
+  @Post("payroll/pay-all")
+  @RequirePermissions("finance.manage_payroll")
+  payAllSalaries(
+    @CurrentUser() user: any,
+    @Body() dto: RunPayrollDto,
+  ) {
+    return this.financeService.payAllSalaries(user.id, dto);
+  }
+
+  @Get("payroll/preview")
+  @RequirePermissions("finance.read")
+  previewPayroll(@Query() dto: RunPayrollDto) {
+    return this.financeService.previewPayroll(dto);
+  }
+
+  @Post("employees")
+  @RequirePermissions("finance.manage_payroll")
+  createEmployee(@Body() dto: CreateEmployeeDto) {
+    return this.financeService.createEmployee(dto);
+  }
+
+  @Patch("employees/:id")
+  @RequirePermissions("finance.manage_payroll")
+  updateEmployee(
+    @Param("id") id: string,
+    @Body() dto: UpdateEmployeeDto,
+  ) {
+    return this.financeService.updateEmployee(id, dto);
+  }
+
+  @Delete("employees/:id")
+  @RequirePermissions("finance.manage_payroll")
+  deleteEmployee(@Param("id") id: string) {
+    return this.financeService.deleteEmployee(id);
   }
 
   @Get("finance/contracts")

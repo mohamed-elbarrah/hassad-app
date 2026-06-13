@@ -50,3 +50,10 @@ export enum PaymentEventType {
   FAILED = "FAILED",
   REFUNDED = "REFUNDED",
 }
+
+export enum PayType {
+  FIXED = "FIXED",
+  HOURLY = "HOURLY",
+  COMMISSION = "COMMISSION",
+  HYBRID = "HYBRID",
+}

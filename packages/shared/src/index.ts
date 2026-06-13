@@ -50,6 +50,7 @@ import {
   PaymentGatewayType,
   PaymentStatus,
   PaymentEventType,
+  PayType,
 } from "./enums/finance";
 import { CampaignPlatform, CampaignStatus } from "./enums/campaign";
 import { ServiceCategory } from "./enums/service";
@@ -351,6 +352,11 @@ export interface Employee {
   role: string;
   baseSalary: number;
   isActive: boolean;
+  payType?: string;
+  hourlyRate?: number | null;
+  commissionRate?: number | null;
+  monthlyTarget?: number | null;
+  currency?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
   salaries?: Salary[];

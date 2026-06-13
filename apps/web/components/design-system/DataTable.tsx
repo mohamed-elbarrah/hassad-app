@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { Fragment } from "react";
 import {
   Table,
   TableBody,
@@ -115,7 +116,14 @@ export function DataTable<T>({
               </TableRow>
             ))
           ) : renderRow ? (
-            data.map((row, idx) => renderRow(row, idx))
+            data.map((row, idx) => {
+              const key = String((row as any).id ?? `row-${idx}`);
+              return (
+                <Fragment key={key}>
+                  {renderRow(row, idx)}
+                </Fragment>
+              );
+            })
           ) : (
             <TableRow className="border-b-[1.5px] border-portal-divider">
               <TableCell

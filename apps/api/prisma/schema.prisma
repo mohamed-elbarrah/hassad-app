@@ -14,6 +14,7 @@ model User {
   passwordHash         String?                   @map("password_hash")
   roleId               String                    @map("role_id")
   isActive             Boolean                   @default(true) @map("is_active")
+  isPayrollEligible    Boolean                   @default(false) @map("is_payroll_eligible")
   phoneWhatsapp        String?                   @map("phone_whatsapp")
   avatarUrl            String?                   @map("avatar_url")
   createdAt            DateTime                  @default(now()) @map("created_at")
@@ -31,6 +32,7 @@ model User {
   clientProfile        Client?                   @relation("ClientUser")
   contractVersions     ContractVersion[]
   createdContracts     Contract[]                @relation("ContractCreator")
+  soldContracts        Contract[]                @relation("ContractSalesPerson")
   chatParticipants     ConversationParticipant[]
   approvedDelivs       Deliverable[]
   employee             Employee?
@@ -445,6 +447,7 @@ model Contract {
   clientId       String                 @map("client_id")
   proposalId     String?                @unique @map("proposal_id")
   createdBy      String                 @map("created_by")
+  salesPersonId  String?                @map("sales_person_id")
   title          String
   type           ContractType
   status         ContractStatus
@@ -465,6 +468,7 @@ model Contract {
   versions       ContractVersion[]
   client         Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   creator        User                   @relation("ContractCreator", fields: [createdBy], references: [id])
+  salesPerson    User?                  @relation("ContractSalesPerson", fields: [salesPersonId], references: [id])
   proposal       Proposal?              @relation(fields: [proposalId], references: [id])
   request        Request?               @relation(fields: [requestId], references: [id])
   invoices       Invoice[]
@@ -472,6 +476,7 @@ model Contract {
 
   @@index([requestId])
   @@index([clientId])
+  @@index([salesPersonId])
   @@index([status])
   @@map("contracts")
 }
@@ -972,14 +977,28 @@ model Employee {
   userId     String?  @unique @map("user_id")
   name       String
   role       String
-  baseSalary Float    @map("base_salary")
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  baseSalary      Float    @map("base_salary")
+  isActive        Boolean  @default(true) @map("is_active")
+  payType         PayType  @default(FIXED) @map("pay_type")
+  hourlyRate      Float?   @map("hourly_rate")
+  commissionRate  Float?   @map("commission_rate")
+  monthlyTarget   Float?   @map("monthly_target")
+  currency        String   @default("SAR") @map("currency")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
   user       User?    @relation(fields: [userId], references: [id])
   salaries   Salary[]
 
   @@map("employees")
+}
+
+enum PayType {
+  FIXED
+  HOURLY
+  COMMISSION
+  HYBRID
+
+  @@map("pay_types")
 }
 
 model Salary {

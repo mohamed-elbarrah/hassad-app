@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsArray,
   ValidateNested,
+  IsBoolean,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { PaymentMethod } from "@hassad/shared";
@@ -134,6 +135,62 @@ export class RunPayrollDto {
 
   @IsNumber()
   year: number;
+}
+
+export class PaySalaryDto {
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateSalaryDto {
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  bonuses?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  deductions?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateEmployeeDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  role?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  baseSalary?: number;
+
+  @IsOptional()
+  @IsString()
+  payType?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  commissionRate?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  hourlyRate?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  isActive?: boolean;
 }
 
 export class CreateTicketDto {

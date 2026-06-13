@@ -287,12 +287,93 @@ export const financeApi = createApi({
       query: (id) => `/payroll/${id}`,
       providesTags: (_r, _e, id) => [{ type: "Employee", id }],
     }),
+    paySalary: builder.mutation<
+      Salary,
+      { id: string; notes?: string }
+    >({
+      query: ({ id, notes }) => ({
+        url: `/payroll/salaries/${id}/pay`,
+        method: "POST",
+        body: { notes },
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Salary", id },
+        { type: "Salary", id: "LIST" },
+        "FinanceSummary",
+        "Ledger",
+      ],
+    }),
+    updateSalary: builder.mutation<
+      Salary,
+      { id: string; bonuses?: number; deductions?: number; notes?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/payroll/salaries/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Salary", id },
+        { type: "Salary", id: "LIST" },
+        "FinanceSummary",
+        "Ledger",
+      ],
+    }),
     runPayroll: builder.mutation<
       { generated: number },
       { month: number; year: number }
     >({
       query: (body) => ({ url: "/payroll/run", method: "POST", body }),
       invalidatesTags: ["Salary", "Ledger"],
+    }),
+    payAllSalaries: builder.mutation<
+      { paid: number; total: number },
+      { month: number; year: number }
+    >({
+      query: (body) => ({ url: "/payroll/pay-all", method: "POST", body }),
+      invalidatesTags: ["Salary", "Ledger", "FinanceSummary"],
+    }),
+    previewPayroll: builder.query<
+      {
+        month: number;
+        year: number;
+        totalCost: number;
+        pendingCount: number;
+        notGenerated: number;
+        employees: Array<{
+          employeeId: string;
+          name: string;
+          role: string;
+          payType: string;
+          baseSalary: number;
+          commissionRate?: number | null;
+          amount: number;
+          status: string;
+          source: string;
+          salaryId: string | null;
+        }>;
+      },
+      { month: number; year: number }
+    >({
+      query: (params) => ({ url: "/payroll/preview", params }),
+    }),
+    createEmployee: builder.mutation<
+      Employee,
+      { name: string; role: string; baseSalary: number; userId?: string }
+    >({
+      query: (body) => ({ url: "/employees", method: "POST", body }),
+      invalidatesTags: ["Employee"],
+    }),
+    updateEmployee: builder.mutation<
+      Employee,
+      { id: string; name?: string; role?: string; baseSalary?: number; payType?: string; commissionRate?: number; hourlyRate?: number; isActive?: boolean }
+    >({
+      query: ({ id, ...body }) => ({ url: `/employees/${id}`, method: "PATCH", body }),
+      invalidatesTags: (_r, _e, { id }) => [{ type: "Employee", id }, "Employee"],
+    }),
+    deleteEmployee: builder.mutation<Employee, string>({
+      query: (id) => ({ url: `/employees/${id}`, method: "DELETE" }),
+      invalidatesTags: ["Employee"],
     }),
 
     // Contracts
@@ -462,7 +543,14 @@ export const {
   useGetStripePublishableKeyQuery,
   useGetEmployeesQuery,
   useGetEmployeeByIdQuery,
+  usePaySalaryMutation,
+  useUpdateSalaryMutation,
   useRunPayrollMutation,
+  usePayAllSalariesMutation,
+  usePreviewPayrollQuery,
+  useCreateEmployeeMutation,
+  useUpdateEmployeeMutation,
+  useDeleteEmployeeMutation,
   useGetFinanceContractsQuery,
   useGetLedgerQuery,
   useGetPaymentTicketsQuery,
