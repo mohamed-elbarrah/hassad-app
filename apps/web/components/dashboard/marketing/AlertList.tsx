@@ -11,7 +11,24 @@ import {
   MousePointerClick,
 } from "lucide-react";
 import Link from "next/link";
-import { computeMetrics } from "@/lib/marketing-mock";
+function computeMetrics(c: any) {
+  const cpc = c.clicks > 0 ? c.budgetSpent / c.clicks : 0;
+  const cpa = c.conversions > 0 ? c.budgetSpent / c.conversions : 0;
+  const ctr = c.impressions > 0 ? (c.clicks / c.impressions) * 100 : 0;
+  const convRate = c.clicks > 0 ? (c.conversions / c.clicks) * 100 : 0;
+  const roas = c.budgetSpent > 0 ? (c.revenue || 0) / c.budgetSpent : 0;
+  const profit = (c.revenue || 0) - c.budgetSpent;
+  const cpm = c.impressions > 0 ? (c.budgetSpent / c.impressions) * 1000 : 0;
+  return {
+    cpc: cpc.toFixed(2),
+    cpa: cpa.toFixed(2),
+    ctr: ctr.toFixed(2),
+    convRate: convRate.toFixed(2),
+    roas: roas.toFixed(2),
+    profit: profit.toFixed(2),
+    cpm: cpm.toFixed(2),
+  };
+}
 
 export function AlertList({ tasks }: { tasks: any[] }) {
   const alerts = tasks.flatMap((task) =>
