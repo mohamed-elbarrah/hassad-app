@@ -1,8 +1,9 @@
 import { ConflictException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { BusinessType, ClientStatus, UserRole } from "@hassad/shared";
+import { BusinessType, ClientStatus } from "@hassad/shared";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AutoConversationService } from "../chat/services/auto-conversation.service";
+import { SalesAssignmentService } from "./sales-assignment.service";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
 
@@ -26,6 +27,7 @@ export class CanonicalClientService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly autoConversationService: AutoConversationService,
+    private readonly salesAssignmentService: SalesAssignmentService,
   ) {}
 
   private normalizeEmail(email?: string | null) {
@@ -35,48 +37,6 @@ export class CanonicalClientService {
 
   private hasUsablePhone(phoneWhatsapp: string) {
     return !!phoneWhatsapp && phoneWhatsapp !== PLACEHOLDER_PHONE;
-  }
-
-  private async resolveAccountManager(
-    db: DbClient,
-    preferredIds: Array<string | null | undefined>,
-  ) {
-    const uniquePreferredIds = [
-      ...new Set(preferredIds.filter(Boolean)),
-    ] as string[];
-
-    if (uniquePreferredIds.length > 0) {
-      const preferredUsers = await db.user.findMany({
-        where: {
-          id: { in: uniquePreferredIds },
-          isActive: true,
-          role: { name: { in: [UserRole.SALES, UserRole.ADMIN] } },
-        },
-        select: { id: true },
-      });
-
-      if (preferredUsers.length > 0) {
-        return preferredUsers[0].id;
-      }
-    }
-
-    const salesUser = await db.user.findFirst({
-      where: { isActive: true, role: { name: UserRole.SALES } },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    });
-
-    if (salesUser) {
-      return salesUser.id;
-    }
-
-    const adminUser = await db.user.findFirst({
-      where: { isActive: true, role: { name: UserRole.ADMIN } },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    });
-
-    return adminUser?.id ?? null;
   }
 
   private async findExistingClient(
@@ -193,9 +153,16 @@ export class CanonicalClientService {
       email: normalizedEmail,
     });
 
+    const assignment = existingClient?.accountManager
+      ? null
+      : await this.salesAssignmentService.findBestSales(
+          [params.preferredManagerId],
+          existingClient?.id,
+          db,
+        );
+
     const accountManagerId =
-      existingClient?.accountManager ??
-      (await this.resolveAccountManager(db, [params.preferredManagerId]));
+      existingClient?.accountManager ?? assignment?.salesId ?? null;
 
     if (
       existingClient?.userId &&
