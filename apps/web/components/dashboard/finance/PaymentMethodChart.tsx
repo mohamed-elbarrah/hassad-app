@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { CreditCard } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface PaymentMethodItem {
   method: string;
@@ -29,6 +30,22 @@ const COLORS = [
   "#ec4899",
   "#64748b",
 ];
+
+function ChartTooltip({ active, payload }: any) {
+  const { fmtAmount, currency } = useCurrency();
+  if (!active || !payload?.length) return null;
+  const item = payload[0].payload as PaymentMethodItem;
+  return (
+    <div className="rounded-lg border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[140px]">
+      <p className="text-xs font-bold text-natural-100 mb-1">{item.label}</p>
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-neutral-500">{fmtAmount(item.amount)}</span>
+        <span className="text-xs text-neutral-400">· {item.percentage}%</span>
+      </div>
+      <p className="text-[10px] text-neutral-400 mt-0.5">{item.count} عملية</p>
+    </div>
+  );
+}
 
 export function PaymentMethodChart({ data, isLoading }: Props) {
   const total = useMemo(() => data.reduce((s, d) => s + d.amount, 0), [data]);
@@ -67,18 +84,7 @@ export function PaymentMethodChart({ data, isLoading }: Props) {
                   <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                formatter={(value: number, _name: string, props: any) => [
-                  formatCurrency(value),
-                  props.payload.label,
-                ]}
-                contentStyle={{
-                  borderRadius: "8px",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  fontSize: 12,
-                }}
-              />
+              <Tooltip content={<ChartTooltip />} />
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -97,7 +103,8 @@ export function PaymentMethodChart({ data, isLoading }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="truncate text-natural-100 font-medium">{item.label}</p>
                 <p className="text-neutral-400">
-                  {formatCurrency(item.amount)} · {item.percentage}%
+                  <CurrencyDisplay amount={item.amount} size="sm" />
+                  {" · "}{item.percentage}%
                 </p>
               </div>
             </div>

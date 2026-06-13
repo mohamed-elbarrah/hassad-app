@@ -30,6 +30,7 @@ export function DashboardSidebar() {
   const visibleItems = useMemo(() => {
     if (!user) return [];
     const role = user.role;
+    const seen = new Set<string>();
     return navSections.flatMap((section) =>
       section.items
         .filter((item) => item.roles.includes(role))
@@ -46,7 +47,11 @@ export function DashboardSidebar() {
           }
           return [];
         }),
-    );
+    ).filter((item) => {
+      if (seen.has(item.url)) return false;
+      seen.add(item.url);
+      return true;
+    });
   }, [user]);
 
   const settingsUrl =

@@ -11,15 +11,9 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
+import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
-
-const PLATFORM_LABELS: Record<string, string> = {
-  GOOGLE: "Google Ads",
-  META: "Meta (Facebook/Instagram)",
-  TIKTOK: "TikTok",
-  SNAPCHAT: "Snapchat",
-};
 
 function fmt(n: number) {
   return n.toLocaleString("ar-SA-u-nu-latn");

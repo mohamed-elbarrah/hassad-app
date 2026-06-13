@@ -9,8 +9,9 @@ import {
 } from "@/components/dashboard/finance/TimelineComponent";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Separator } from "@/components/ui/separator";
+import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { DataTable } from "@/components/design-system/DataTable";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import {
   ChevronRight,
   Download,
@@ -21,6 +22,13 @@ import {
   History,
   AlertCircle,
   Loader2,
+  Copy,
+  Building2,
+  CalendarClock,
+  FileText,
+  Hash,
+  CheckCircle2,
+  Bell,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -62,6 +70,8 @@ export default function InvoiceDetailPage({
   const payments = invoice.payments || [];
   const paidAmount = payments.reduce((sum, p) => sum + p.amount, 0);
   const remainingAmount = invoice.amount - paidAmount;
+  const collectionRate =
+    invoice.amount > 0 ? Math.round((paidAmount / invoice.amount) * 100) : 0;
 
   // Map ledger history to timeline
   const timeline: TimelineItem[] =
@@ -73,11 +83,15 @@ export default function InvoiceDetailPage({
       status: "success",
     })) || [];
 
+  const handleCopyNumber = () => {
+    navigator.clipboard.writeText(invoice.invoiceNumber);
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Breadcrumbs / Header */}
+    <div className="space-y-5 animate-in fade-in duration-500">
+      {/* Breadcrumb + Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm text-neutral-300">
+        <div className="flex items-center gap-2 text-sm text-neutral-400">
           <Link href="/dashboard/finance" className="hover:text-secondary-500">
             المالية
           </Link>
@@ -89,15 +103,14 @@ export default function InvoiceDetailPage({
             الفواتير
           </Link>
           <ChevronRight className="w-4 h-4 rotate-180" />
-          <span className="text-natural-100 font-medium">
-            {invoice.invoiceNumber}
-          </span>
+          <span className="text-natural-100 font-medium">{invoice.invoiceNumber}</span>
         </div>
         <div className="flex gap-2">
           <ActionButton
             variant="outline"
             size="sm"
             icon={<Printer className="w-4 h-4" />}
+            onClick={() => window.print()}
           >
             طباعة
           </ActionButton>
@@ -118,163 +131,236 @@ export default function InvoiceDetailPage({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Details */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm overflow-hidden">
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* ─── Main Column (2/3) ─── */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Invoice Header Card */}
+          <SurfaceCard className="border-none shadow-md overflow-hidden">
             <div className="bg-secondary-500 h-2 w-full" />
-            <div className="px-5 py-4 border-b border-portal-divider flex flex-row items-start justify-between">
-              <div>
-                <h2 className="text-2xl font-mono">{invoice.invoiceNumber}</h2>
-                <p className="text-portal-note-text">
-                  بتاريخ:{" "}
-                  {new Date(invoice.createdAt).toLocaleDateString(
-                    "ar-SA-u-nu-latn",
-                  )}
+            <div className="px-6 py-5 border-b border-portal-divider flex flex-row items-start justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-neutral-400" />
+                  <h2 className="text-2xl font-mono font-bold">
+                    {invoice.invoiceNumber}
+                  </h2>
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 hover:bg-secondary-50"
+                    onClick={handleCopyNumber}
+                    title="نسخ الرقم"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-neutral-400" />
+                  </ActionButton>
+                </div>
+                <p className="text-sm text-neutral-400">
+                  أُنشئت بتاريخ:{" "}
+                  {new Date(invoice.createdAt).toLocaleDateString("ar-SA-u-nu-latn")}
                 </p>
               </div>
               <FinanceStatusBadge
                 status={invoice.status}
-                className="text-lg px-4 py-1"
+                className="text-base px-4 py-1.5 shrink-0"
               />
             </div>
-            <div className="p-5 space-y-8">
-              <div className="grid grid-cols-2 gap-8">
+
+            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-secondary-50">
+                  <Building2 className="w-4 h-4 text-secondary-600" />
+                </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-neutral-300 mb-2">
-                    العميل
-                  </h4>
-                  <p className="text-lg font-bold">
+                  <p className="text-xs text-neutral-400 mb-0.5">العميل</p>
+                  <p className="text-sm font-bold">
                     {invoice.client?.companyName || "N/A"}
                   </p>
-                  <p className="text-sm text-neutral-300">
-                    العقد: {invoice.contract?.title || "N/A"}
-                  </p>
-                </div>
-                <div className="text-left">
-                  <h4 className="text-sm font-semibold text-neutral-300 mb-2">
-                    تاريخ الاستحقاق
-                  </h4>
-                  <p className="text-lg font-bold text-danger-600">
-                    {new Date(invoice.dueDate).toLocaleDateString(
-                      "ar-SA-u-nu-latn",
-                    )}
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    العقد:{" "}
+                    <span className="font-medium">
+                      {invoice.contract?.title || "N/A"}
+                    </span>
                   </p>
                 </div>
               </div>
 
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  تفاصيل المبالغ
-                </h4>
-                <div className="bg-neutral-50/30 rounded-xl p-6 grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <p className="text-xs text-neutral-300 mb-1">الإجمالي</p>
-                    <p className="text-xl font-bold">
-                      {invoice.amount.toLocaleString()} ر.س
-                    </p>
-                  </div>
-                  <div className="text-center border-x border-neutral-300/10">
-                    <p className="text-xs text-neutral-300 mb-1">المدفوع</p>
-                    <p className="text-xl font-bold text-success-600">
-                      {paidAmount.toLocaleString()} ر.س
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-neutral-300 mb-1">المتبقي</p>
-                    <p className="text-xl font-bold text-danger-600">
-                      {remainingAmount.toLocaleString()} ر.س
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-danger-50">
+                  <CalendarClock className="w-4 h-4 text-danger-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-400 mb-0.5">تاريخ الاستحقاق</p>
+                  <p className="text-sm font-bold text-danger-600">
+                    {new Date(invoice.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}
+                  </p>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <History className="w-4 h-4" />
-                    تاريخ المدفوعات
-                  </h4>
-                  <ActionButton
-                    variant="outline"
-                    size="sm"
-                    icon={<Plus className="w-3 h-3" />}
-                  >
-                    إضافة دفعة
-                  </ActionButton>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-success-50">
+                  <FileText className="w-4 h-4 text-success-600" />
                 </div>
-                <DataTable
-                  columns={[
-                    { id: "id", label: "رقم العملية" },
-                    { id: "amount", label: "المبلغ" },
-                    { id: "method", label: "الطريقة" },
-                    { id: "status", label: "الحالة" },
-                    { id: "date", label: "التاريخ", align: "left" },
-                  ]}
-                  data={payments}
-                  isLoading={isLoading}
-                  isError={false}
-                  emptyState={{
-                    icon: CreditCard,
-                    message: "لا توجد عمليات دفع مسجلة بعد",
-                    hint: "قم بتسجيل دفعة جديدة للفاتورة.",
-                  }}
-                  renderRow={(p) => (
-                    <tr className="border-b-[1.5px] border-portal-divider">
-                      <td className="px-5 py-4 font-mono text-[10px]">
-                        {p.id.substring(0, 8)}...
-                      </td>
-                      <td className="px-5 py-4 font-bold">
-                        {p.amount.toLocaleString()} ر.س
-                      </td>
-                      <td className="px-5 py-4">{p.method}</td>
-                      <td className="px-5 py-4">
-                        <FinanceStatusBadge status={p.status as any} />
-                      </td>
-                      <td className="px-5 py-4 text-left text-xs text-neutral-400">
-                        {new Date(p.date).toLocaleDateString("ar-SA-u-nu-latn")}
-                      </td>
-                    </tr>
-                  )}
-                />
+                <div>
+                  <p className="text-xs text-neutral-400 mb-0.5">القيمة الإجمالية</p>
+                  <p className="text-sm font-bold">
+                    <CurrencyDisplay amount={invoice.amount} />
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </SurfaceCard>
+
+          {/* Amount Summary with Progress */}
+          <SurfaceCard
+            title="تفاصيل المبالغ"
+            icon={CreditCard}
+            className="border-none shadow-sm"
+          >
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-400">نسبة التحصيل</span>
+                  <span className="font-bold">{collectionRate}%</span>
+                </div>
+                <ProgressBar value={collectionRate} size="md" />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                <div className="text-center p-4 rounded-2xl bg-neutral-50/50">
+                  <p className="text-xs text-neutral-400 mb-1">الإجمالي</p>
+                  <p className="text-xl font-bold">
+                    <CurrencyDisplay amount={invoice.amount} />
+                  </p>
+                </div>
+                <div className="text-center p-4 rounded-2xl bg-success-50/50">
+                  <p className="text-xs text-success-600 mb-1">المدفوع</p>
+                  <p className="text-xl font-bold text-success-600">
+                    <CurrencyDisplay amount={paidAmount} />
+                  </p>
+                </div>
+                <div className="text-center p-4 rounded-2xl bg-danger-50/50">
+                  <p className="text-xs text-danger-600 mb-1">المتبقي</p>
+                  <p className="text-xl font-bold text-danger-600">
+                    <CurrencyDisplay amount={remainingAmount} />
+                  </p>
+                </div>
+              </div>
+            </div>
+          </SurfaceCard>
+
+          {/* Payment History */}
+          <SurfaceCard
+            title="تاريخ المدفوعات"
+            description={`${payments.length} دفعة مسجلة`}
+            icon={History}
+            action={
+              <ActionButton
+                variant="outline"
+                size="sm"
+                icon={<Plus className="w-3 h-3" />}
+                onClick={() => alert("سيتم فتح نموذج تسجيل الدفعة")}
+              >
+                إضافة دفعة
+              </ActionButton>
+            }
+            className="border-none shadow-md"
+          >
+            <DataTable
+              columns={[
+                { id: "id", label: "رقم العملية" },
+                { id: "amount", label: "المبلغ" },
+                { id: "method", label: "الطريقة" },
+                { id: "status", label: "الحالة" },
+                { id: "date", label: "التاريخ", align: "left" },
+              ]}
+              data={payments}
+              isLoading={isLoading}
+              isError={false}
+              emptyState={{
+                icon: CreditCard,
+                message: "لا توجد عمليات دفع مسجلة بعد",
+                hint: "قم بتسجيل دفعة جديدة للفاتورة.",
+              }}
+              renderRow={(p) => (
+                <tr className="border-b-[1.5px] border-portal-divider">
+                  <td className="px-5 py-4 font-mono text-[10px]">
+                    {p.id.substring(0, 8)}...
+                  </td>
+                  <td className="px-5 py-4 font-bold">
+                    <CurrencyDisplay amount={p.amount} />
+                  </td>
+                  <td className="px-5 py-4">{p.method}</td>
+                  <td className="px-5 py-4">
+                    <FinanceStatusBadge status={p.status} />
+                  </td>
+                  <td className="px-5 py-4 text-left text-xs text-neutral-400">
+                    {new Date(p.date).toLocaleDateString("ar-SA-u-nu-latn")}
+                  </td>
+                </tr>
+              )}
+            />
+          </SurfaceCard>
         </div>
 
-        {/* Sidebar: Timeline & Actions */}
-        <div className="space-y-6">
+        {/* ─── Sidebar (1/3) ─── */}
+        <div className="space-y-5">
+          <SurfaceCard className="border-none shadow-sm">
+            <div className="p-4 space-y-2">
+              <ActionButton
+                variant="primary"
+                className="w-full justify-center"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={() => alert("سيتم فتح نموذج تسجيل الدفعة")}
+              >
+                تسجيل دفعة جديدة
+              </ActionButton>
+              <ActionButton
+                variant="outline"
+                className="w-full justify-center"
+                icon={<Bell className="w-4 h-4" />}
+                onClick={() => alert("سيتم إرسال تذكير للعميل")}
+              >
+                إرسال تذكير
+              </ActionButton>
+              <ActionButton
+                variant="outline"
+                className="w-full justify-center"
+                icon={<CheckCircle2 className="w-4 h-4" />}
+                onClick={() => alert("سيتم تحديث حالة الفاتورة")}
+              >
+                تحديث الحالة
+              </ActionButton>
+            </div>
+          </SurfaceCard>
+
           <SurfaceCard
-            title="الجدول الزمني للفاتورة"
-            description="تتبع جميع الأحداث المرتبطة بالفاتورة"
+            title="سجل الأحداث"
+            description="جميع التغييرات على الفاتورة"
             className="border-none shadow-md"
           >
             <TimelineComponent items={timeline} />
           </SurfaceCard>
 
-          <div className="rounded-xl border border-portal-card-border bg-alert-50/50 dark:bg-alert-500/5 shadow-sm">
-            <div className="px-5 py-4 border-b border-portal-divider">
-              <h3 className="text-lg flex items-center gap-2 text-alert-700 dark:text-alert-400">
-                <AlertCircle className="w-5 h-5" />
-                ملاحظات التدقيق
-              </h3>
-            </div>
-            <div className="p-5">
+          <SurfaceCard
+            title="ملاحظات التدقيق"
+            icon={AlertCircle}
+            className="border-none shadow-sm"
+            contentClassName="bg-alert-50/30 dark:bg-alert-500/5"
+          >
+            <div className="space-y-3">
               <p className="text-sm text-alert-800 dark:text-alert-300">
                 هذه الفاتورة جزء من عقد توريد مستمر. يرجى التأكد من مطابقة
                 الدفعات مع تسليمات المشروع.
               </p>
               <ActionButton
                 variant="ghost"
-                className="text-alert-700 p-0 h-auto mt-4 text-xs"
+                size="sm"
+                className="text-alert-700 h-auto p-0 text-xs"
               >
                 إضافة ملاحظة جديدة
               </ActionButton>
             </div>
-          </div>
+          </SurfaceCard>
         </div>
       </div>
     </div>

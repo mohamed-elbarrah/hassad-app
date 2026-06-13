@@ -12,7 +12,11 @@ import {
   useGetLedgerQuery,
   useGetInvoicesQuery,
 } from "@/features/finance/financeApi";
-import { FinanceDateRangePicker } from "@/components/dashboard/finance/FinanceDateRangePicker";
+import {
+  FinanceDateRangePicker,
+  type RangeValue,
+  type DateRange,
+} from "@/components/dashboard/finance/FinanceDateRangePicker";
 import { FinanceKPICard } from "@/components/dashboard/finance/FinanceKPICard";
 import { RevenueTrendChart } from "@/components/dashboard/finance/RevenueTrendChart";
 import { PaymentMethodChart } from "@/components/dashboard/finance/PaymentMethodChart";
@@ -38,22 +42,18 @@ import {
   CreditCard,
   ArrowUpLeft,
 } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { cn } from "@/lib/utils";
 
-type RangeValue = "today" | "week" | "month" | "quarter" | "year";
 
-interface DateRange {
-  from: string;
-  to: string;
-}
 
 export default function FinanceDashboardPage() {
-  const [range, setRange] = useState<RangeValue>("month");
+  const [range, setRange] = useState<RangeValue>("year");
   const [dates, setDates] = useState<DateRange>(() => {
     const to = new Date().toISOString().split("T")[0];
     const from = new Date();
-    from.setDate(1);
+    from.setMonth(0, 1);
     return { from: from.toISOString().split("T")[0], to };
   });
 
@@ -225,60 +225,43 @@ export default function FinanceDashboardPage() {
             </Link>
           }
         >
-          {ledgerLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="pr-4">العملية</TableHead>
-                  <TableHead>الكيان</TableHead>
-                  <TableHead>المستخدم</TableHead>
-                  <TableHead className="text-left pl-4">التاريخ</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(ledgerData?.items || []).map((log) => (
-                  <TableRow
-                    key={log.id}
-                    className="group transition-colors border-b last:border-0"
-                  >
-                    <TableCell className="pr-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-secondary-500" />
-                        <span className="font-bold text-sm">{log.action}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-[10px] uppercase bg-neutral-100 px-2 py-0.5 rounded">
-                        {log.entity}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm text-neutral-500">
-                      {log.userId || "System"}
-                    </TableCell>
-                    <TableCell className="text-left pl-4 text-xs text-neutral-400 font-mono">
-                      {formatDate(log.createdAt)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(!ledgerData?.items || ledgerData.items.length === 0) && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center py-8 text-neutral-400"
-                    >
-                      لا توجد سجلات حالياً
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+          <DataTable
+            columns={[
+              { id: "action", label: "العملية" },
+              { id: "entity", label: "الكيان" },
+              { id: "user", label: "المستخدم" },
+              { id: "date", label: "التاريخ", align: "left" },
+            ]}
+            data={ledgerData?.items || []}
+            isLoading={ledgerLoading}
+            isError={false}
+            emptyState={{
+              icon: ShieldCheck,
+              message: "لا توجد سجلات حالياً",
+              hint: "ستظهر العمليات المالية هنا فور حدوثها.",
+            }}
+            renderRow={(log) => (
+              <tr className="border-b-[1.5px] border-portal-divider">
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-secondary-500" />
+                    <span className="font-bold text-sm">{log.action}</span>
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  <span className="font-mono text-[10px] uppercase bg-neutral-100 px-2 py-0.5 rounded">
+                    {log.entity}
+                  </span>
+                </td>
+                <td className="px-5 py-4 text-sm text-neutral-500">
+                  {log.userId || "System"}
+                </td>
+                <td className="px-5 py-4 text-left text-xs text-neutral-400 font-mono">
+                  {formatDate(log.createdAt)}
+                </td>
+              </tr>
+            )}
+          />
         </SurfaceCard>
 
         {/* Quick Links */}

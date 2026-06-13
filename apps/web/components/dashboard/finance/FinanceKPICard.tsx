@@ -2,7 +2,8 @@
 
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency, formatNumber } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { formatNumber } from "@/lib/format";
 import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 
 interface FinanceKPICardProps {
@@ -28,13 +29,6 @@ export function FinanceKPICard({
   className,
   onClick,
 }: FinanceKPICardProps) {
-  const formattedValue =
-    format === "currency"
-      ? formatCurrency(value)
-      : format === "percent"
-        ? `${value.toFixed(1)}%`
-        : formatNumber(value);
-
   const isPositive = change !== undefined ? change >= 0 : undefined;
 
   return (
@@ -56,7 +50,13 @@ export function FinanceKPICard({
       {/* Middle: value + inline trend badge */}
       <div className="flex items-center gap-2.5 mb-1">
         <span className="text-[26px] font-bold text-natural-100 tracking-tight leading-none">
-          {formattedValue}
+          {format === "currency" ? (
+            <CurrencyDisplay amount={value} />
+          ) : format === "percent" ? (
+            `${value.toFixed(1)}%`
+          ) : (
+            formatNumber(value)
+          )}
         </span>
 
         {change !== undefined && (

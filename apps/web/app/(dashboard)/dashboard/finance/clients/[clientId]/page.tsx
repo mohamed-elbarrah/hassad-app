@@ -25,6 +25,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
 export default function ClientFinanceDetailPage({
   params,
@@ -99,11 +100,11 @@ export default function ClientFinanceDetailPage({
             <div className="flex gap-4">
               <div className="bg-white dark:bg-neutral-900 px-4 py-2 rounded-xl shadow-sm border">
                 <p className="text-xs text-neutral-400 mb-1">إجمالي قيمة العقود</p>
-                <p className="text-xl font-bold">{totalValue.toLocaleString()} ر.س</p>
+                <p className="text-xl font-bold"><CurrencyDisplay amount={totalValue} /></p>
               </div>
               <div className="bg-white dark:bg-neutral-900 px-4 py-2 rounded-xl shadow-sm border">
                 <p className="text-xs text-neutral-400 mb-1">المبالغ المحصلة</p>
-                <p className="text-xl font-bold text-success-600">{totalPaid.toLocaleString()} ر.س</p>
+                <p className="text-xl font-bold text-success-600"><CurrencyDisplay amount={totalPaid} /></p>
               </div>
             </div>
           </div>
@@ -118,7 +119,7 @@ export default function ClientFinanceDetailPage({
                 <TrendingUp className="w-5 h-5 text-success-500 mb-1" />
               </div>
               <ProgressBar value={collectionRate} size="md" />
-              <p className="text-xs text-neutral-400">المتبقي: {remaining.toLocaleString()} ر.س</p>
+              <p className="text-xs text-neutral-400">المتبقي: <CurrencyDisplay amount={remaining} /></p>
             </div>
           </div>
         </div>
@@ -161,15 +162,16 @@ export default function ClientFinanceDetailPage({
               renderRow={(inv) => (
                 <tr className="border-b-[1.5px] border-portal-divider">
                   <td className="px-5 py-4 font-mono font-bold text-xs">{inv.id}</td>
-                  <td className="px-5 py-4">{inv.amount.toLocaleString()} ر.س</td>
+                  <td className="px-5 py-4"><CurrencyDisplay amount={inv.amount} /></td>
                   <td className="px-5 py-4 text-success-600">
-                    {(
-                      (inv as any).payments?.reduce(
-                        (s: number, p: any) => s + p.amount,
-                        0,
-                      ) || 0
-                    ).toLocaleString()}{" "}
-                    ر.س
+                    <CurrencyDisplay
+                      amount={
+                        (inv as any).payments?.reduce(
+                          (s: number, p: any) => s + p.amount,
+                          0,
+                        ) || 0
+                      }
+                    />
                   </td>
                   <td className="px-5 py-4">
                     <FinanceStatusBadge status={inv.status} />
@@ -204,7 +206,7 @@ export default function ClientFinanceDetailPage({
               renderRow={(p) => (
                 <tr className="border-b-[1.5px] border-portal-divider">
                   <td className="px-5 py-4 font-mono text-xs">{p.id}</td>
-                  <td className="px-5 py-4 font-bold">{p.amount.toLocaleString()} ر.س</td>
+                  <td className="px-5 py-4 font-bold"><CurrencyDisplay amount={p.amount} /></td>
                   <td className="px-5 py-4">{p.method}</td>
                   <td className="px-5 py-4">
                     <FinanceStatusBadge status={p.status} />

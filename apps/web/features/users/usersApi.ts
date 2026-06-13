@@ -15,6 +15,8 @@ export interface UserSearchResult {
   role: UserRole;
   isActive: boolean;
   department?: TaskDepartment | null;
+  activeRequestsCount?: number;
+  activeProjectsCount?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -30,6 +32,7 @@ export interface PaginatedUsers {
 export interface UserSearchFilters {
   search?: string;
   role?: UserRole;
+  excludeRole?: UserRole;
   department?: TaskDepartment;
   page?: number;
   limit?: number;

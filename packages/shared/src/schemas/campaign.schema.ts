@@ -3,8 +3,6 @@ import { CampaignPlatform, CampaignStatus } from "../enums/campaign";
 
 export const CreateCampaignSchema = z.object({
   taskId: z.string().uuid(),
-  clientId: z.string().uuid(),
-  projectId: z.string().uuid().optional(),
   name: z.string().min(3),
   platform: z.nativeEnum(CampaignPlatform),
   startDate: z.string().or(z.date()),

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AlertTriangle } from "lucide-react";
 
@@ -52,7 +52,7 @@ export function AgingChart({ data, isLoading }: Props) {
                 <span className="font-medium text-natural-100">{bucket.label}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-neutral-400 text-xs">{bucket.count} فاتورة</span>
-                  <span className="font-bold text-natural-100">{formatCurrency(bucket.amount)}</span>
+                  <span className="font-bold text-natural-100"><CurrencyDisplay amount={bucket.amount} size="sm" /></span>
                 </div>
               </div>
               <div className="h-2.5 rounded-full bg-neutral-100 overflow-hidden">

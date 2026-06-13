@@ -14,6 +14,7 @@ model User {
   passwordHash         String?                   @map("password_hash")
   roleId               String                    @map("role_id")
   isActive             Boolean                   @default(true) @map("is_active")
+  isPayrollEligible    Boolean                   @default(false) @map("is_payroll_eligible")
   phoneWhatsapp        String?                   @map("phone_whatsapp")
   avatarUrl            String?                   @map("avatar_url")
   createdAt            DateTime                  @default(now()) @map("created_at")
@@ -25,12 +26,14 @@ model User {
   triggeredAiLogs      AiAnalysisLog[]
   actionedAiSuggs      AiSuggestion[]
   kpiAuditLogs         CampaignKpiAuditLog[]     @relation("KpiAuditChanger")
+  campaignStatusChanges CampaignStatusHistory[]    @relation("CampaignStatusChanger")
   managedCampaigns     Campaign[]                @relation("CampaignManager")
   clientHistory        ClientHistoryLog[]
   managedClients       Client[]                  @relation("AccountManager")
   clientProfile        Client?                   @relation("ClientUser")
   contractVersions     ContractVersion[]
   createdContracts     Contract[]                @relation("ContractCreator")
+  soldContracts        Contract[]                @relation("ContractSalesPerson")
   chatParticipants     ConversationParticipant[]
   approvedDelivs       Deliverable[]
   employee             Employee?
@@ -445,6 +448,7 @@ model Contract {
   clientId       String                 @map("client_id")
   proposalId     String?                @unique @map("proposal_id")
   createdBy      String                 @map("created_by")
+  salesPersonId  String?                @map("sales_person_id")
   title          String
   type           ContractType
   status         ContractStatus
@@ -465,6 +469,7 @@ model Contract {
   versions       ContractVersion[]
   client         Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   creator        User                   @relation("ContractCreator", fields: [createdBy], references: [id])
+  salesPerson    User?                  @relation("ContractSalesPerson", fields: [salesPersonId], references: [id])
   proposal       Proposal?              @relation(fields: [proposalId], references: [id])
   request        Request?               @relation(fields: [requestId], references: [id])
   invoices       Invoice[]
@@ -472,6 +477,7 @@ model Contract {
 
   @@index([requestId])
   @@index([clientId])
+  @@index([salesPersonId])
   @@index([status])
   @@map("contracts")
 }
@@ -669,12 +675,14 @@ model Campaign {
   budgetTotal         Float                  @default(0) @map("budget_total")
   budgetSpent         Float                  @default(0) @map("budget_spent")
   needsOptimization   Boolean                @default(false) @map("needs_optimization")
+  isArchived          Boolean                @default(false) @map("is_archived")
   createdAt           DateTime               @default(now()) @map("created_at")
   updatedAt           DateTime               @updatedAt @map("updated_at")
   currency            String                 @default("SAR") @map("currency")
   platformConnections AdPlatformConnection[]
   auditLogs           CampaignKpiAuditLog[]
   kpiSnapshots        CampaignKpiSnapshot[]
+  statusHistory       CampaignStatusHistory[]
   client              Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   manager             User                   @relation("CampaignManager", fields: [managedBy], references: [id])
   project             Project?               @relation(fields: [projectId], references: [id])
@@ -698,6 +706,9 @@ model CampaignKpiSnapshot {
   conversionRate Float                 @default(0)
   roas           Float                 @default(0)
   source         String?
+  externalId     String?             @map("external_id")
+  periodStart    DateTime?           @map("period_start")
+  periodEnd      DateTime?           @map("period_end")
   recordedAt     DateTime              @default(now()) @map("recorded_at")
   createdAt      DateTime              @default(now()) @map("created_at")
   auditLogs      CampaignKpiAuditLog[]
@@ -725,6 +736,22 @@ model CampaignKpiAuditLog {
   @@map("campaign_kpi_audit_logs")
 }
 
+model CampaignStatusHistory {
+  id          String         @id @default(uuid())
+  campaignId  String         @map("campaign_id")
+  fromStatus  CampaignStatus @map("from_status")
+  toStatus    CampaignStatus @map("to_status")
+  changedBy   String?        @map("changed_by")
+  reason      String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  campaign    Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  changer     User?          @relation("CampaignStatusChanger", fields: [changedBy], references: [id])
+
+  @@index([campaignId])
+  @@map("campaign_status_history")
+}
+
 model AdPlatformConnection {
   id                 String           @id @default(uuid())
   campaignId         String           @map("campaign_id")
@@ -732,7 +759,7 @@ model AdPlatformConnection {
   externalCampaignId String?          @map("external_campaign_id")
   accessToken        String?          @map("access_token")
   refreshToken       String?          @map("refresh_token")
-  syncStatus         String           @default("PENDING") @map("sync_status")
+  syncStatus         SyncStatus       @default(PENDING) @map("sync_status")
   lastSyncedAt       DateTime?        @map("last_synced_at")
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
@@ -972,14 +999,28 @@ model Employee {
   userId     String?  @unique @map("user_id")
   name       String
   role       String
-  baseSalary Float    @map("base_salary")
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  baseSalary      Float    @map("base_salary")
+  isActive        Boolean  @default(true) @map("is_active")
+  payType         PayType  @default(FIXED) @map("pay_type")
+  hourlyRate      Float?   @map("hourly_rate")
+  commissionRate  Float?   @map("commission_rate")
+  monthlyTarget   Float?   @map("monthly_target")
+  currency        String   @default("SAR") @map("currency")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
   user       User?    @relation(fields: [userId], references: [id])
   salaries   Salary[]
 
   @@map("employees")
+}
+
+enum PayType {
+  FIXED
+  HOURLY
+  COMMISSION
+  HYBRID
+
+  @@map("pay_types")
 }
 
 model Salary {
@@ -1410,6 +1451,14 @@ enum CampaignPlatform {
   META
   TIKTOK
   SNAPCHAT
+}
+
+enum SyncStatus {
+  PENDING
+  CONNECTED
+  SYNCING
+  ERROR
+  DISCONNECTED
 }
 
 enum InvoiceStatus {

@@ -9,6 +9,7 @@ import { NotificationsService } from "../../notifications/services/notifications
 import {
   CampaignStatus,
   CampaignPlatform,
+  KpiSource,
   TaskDepartment,
 } from "@hassad/shared";
 import {
@@ -16,6 +17,7 @@ import {
   UpdateCampaignDto,
   UpdateCampaignMetricsDto,
   CampaignQueryDto,
+  KpiSnapshotQueryDto,
 } from "../dto/campaign.dto";
 
 @Injectable()
@@ -50,15 +52,22 @@ export class CampaignsService {
       throw new BadRequestException("يجب إسناد المهمة لمسوق أولاً");
     }
 
-    const { clientId: _, ...campaignData } = data as any;
+    if (!task.project?.clientId) {
+      throw new BadRequestException("المهمة غير مرتبطة بمشروع أو عميل");
+    }
+
+    const { taskId, name, platform, startDate, endDate, budgetTotal } = data;
 
     const campaign = await this.prisma.campaign.create({
       data: {
-        ...campaignData,
+        taskId,
+        name,
+        platform,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : null,
+        budgetTotal,
         clientId: task.project.clientId,
         managedBy: task.assignedTo,
-        startDate: new Date(data.startDate),
-        endDate: data.endDate ? new Date(data.endDate) : null,
       },
     });
 
@@ -93,7 +102,7 @@ export class CampaignsService {
   async findAll(query: CampaignQueryDto) {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
-    const where: any = {};
+    const where: any = { isArchived: false };
 
     if (query.status) {
       where.status = query.status;
@@ -136,9 +145,25 @@ export class CampaignsService {
       throw new NotFoundException("الحملة غير موجودة");
     }
 
+    if (
+      campaign.status === CampaignStatus.STOPPED ||
+      campaign.status === CampaignStatus.COMPLETED
+    ) {
+      throw new BadRequestException(
+        "لا يمكن تعديل حملة منتهية أو مكتملة",
+      );
+    }
+
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name;
-    if (dto.platform !== undefined) data.platform = dto.platform;
+    if (dto.platform !== undefined) {
+      if (campaign.status !== CampaignStatus.PLANNING) {
+        throw new BadRequestException(
+          "لا يمكن تغيير منصة الحملة بعد تفعيلها",
+        );
+      }
+      data.platform = dto.platform;
+    }
     if (dto.budgetTotal !== undefined) data.budgetTotal = dto.budgetTotal;
     if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
     if (dto.endDate !== undefined)
@@ -155,7 +180,7 @@ export class CampaignsService {
 
   async findByTask(taskId: string) {
     const campaigns = await this.prisma.campaign.findMany({
-      where: { taskId },
+      where: { taskId, isArchived: false },
       orderBy: { createdAt: "desc" },
     });
 
@@ -181,13 +206,23 @@ export class CampaignsService {
     return { ...campaign, analytics };
   }
 
-  async myStats(userId: string) {
+  async myStats(userId: string, userRole?: string) {
+    // PMs and admins see all campaigns across projects they manage
+    // Marketers see only their assigned campaigns
+    const where: any = { isArchived: false };
+
+    if (userRole === 'ADMIN' || userRole === 'PM') {
+      where.task = {
+        createdBy: userId,
+      };
+    } else {
+      where.task = {
+        assignedTo: userId,
+      };
+    }
+
     const campaigns = await this.prisma.campaign.findMany({
-      where: {
-        task: {
-          assignedTo: userId,
-        },
-      },
+      where,
       include: {
         kpiSnapshots: {
           orderBy: { recordedAt: "desc" },
@@ -234,6 +269,12 @@ export class CampaignsService {
       throw new NotFoundException("الحملة غير موجودة");
     }
 
+    if (campaign.isArchived) {
+      throw new BadRequestException(
+        "لا يمكن تحديث بيانات حملة مؤرشفة",
+      );
+    }
+
     const latest: any = campaign.kpiSnapshots[0] ?? {};
     const impressions = data.impressions ?? latest.impressions ?? 0;
     const clicks = data.clicks ?? latest.clicks ?? 0;
@@ -254,7 +295,7 @@ export class CampaignsService {
           ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
           conversionRate: clicks > 0 ? (conversions / clicks) * 100 : 0,
           roas: budgetSpent > 0 ? revenue / budgetSpent : 0,
-          source: "manual",
+          source: KpiSource.MANUAL,
         },
       });
 
@@ -336,7 +377,7 @@ export class CampaignsService {
     return snapshot;
   }
 
-  async getKpiSnapshots(id: string, query?: { from?: string; to?: string }) {
+  async getKpiSnapshots(id: string, query?: KpiSnapshotQueryDto) {
     const where: any = { campaignId: id };
     if (query?.from || query?.to) {
       where.recordedAt = {};
@@ -344,9 +385,12 @@ export class CampaignsService {
       if (query.to) where.recordedAt.lte = new Date(query.to);
     }
 
+    const limit = query?.limit ? Math.min(query.limit, 500) : 500;
+
     return this.prisma.campaignKpiSnapshot.findMany({
       where,
       orderBy: { recordedAt: "asc" },
+      take: limit,
     });
   }
 
@@ -360,6 +404,10 @@ export class CampaignsService {
       throw new NotFoundException("الحملة غير موجودة");
     }
 
+    if (campaign.isArchived) {
+      throw new BadRequestException("لا يمكن تغيير حالة حملة مؤرشفة");
+    }
+
     this.validateStatusTransition(
       campaign.status as unknown as CampaignStatus,
       status,
@@ -370,13 +418,31 @@ export class CampaignsService {
       data: { status },
     });
 
+    // Write status transition history
+    await this.prisma.campaignStatusHistory.create({
+      data: {
+        campaignId: id,
+        fromStatus: campaign.status as unknown as CampaignStatus,
+        toStatus: status,
+        changedBy: userId,
+      },
+    });
+
+    const STATUS_AR: Record<string, string> = {
+      PLANNING: "تخطيط",
+      ACTIVE: "نشطة",
+      PAUSED: "متوقفة",
+      STOPPED: "منتهية",
+      COMPLETED: "مكتملة",
+    };
+
     const pmId = campaign.task?.createdBy;
     if (pmId) {
       await this.notifications.notifyUsers({
         userIds: [pmId],
         excludeUserIds: [userId],
         title: "تحديث حالة الحملة",
-        message: `تم تغيير حالة الحملة "${campaign.name}" إلى ${status}`,
+        message: `تم تغيير حالة الحملة "${campaign.name}" إلى ${STATUS_AR[status] ?? status}`,
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_CAMPAIGN_STATUS_CHANGED",
@@ -387,7 +453,7 @@ export class CampaignsService {
       id,
       "MARKETING_CAMPAIGN_STATUS_CHANGED",
       "تحديث حالة الحملة",
-      `تم تغيير حالة حملة "${campaign.name}" إلى ${status}`,
+      `تم تغيير حالة حملة "${campaign.name}" إلى ${STATUS_AR[status] ?? status}`,
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about status change: campaignId=${id}, eventType=MARKETING_CAMPAIGN_STATUS_CHANGED`,
@@ -445,6 +511,44 @@ export class CampaignsService {
     return updated;
   }
 
+  async archive(id: string, userId: string) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException("الحملة غير موجودة");
+    }
+
+    if (campaign.isArchived) {
+      throw new BadRequestException("الحملة مؤرشفة بالفعل");
+    }
+
+    return this.prisma.campaign.update({
+      where: { id },
+      data: { isArchived: true },
+    });
+  }
+
+  async unarchive(id: string, userId: string) {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id },
+    });
+
+    if (!campaign) {
+      throw new NotFoundException("الحملة غير موجودة");
+    }
+
+    if (!campaign.isArchived) {
+      throw new BadRequestException("الحملة غير مؤرشفة");
+    }
+
+    return this.prisma.campaign.update({
+      where: { id },
+      data: { isArchived: false },
+    });
+  }
+
   async duplicate(id: string, userId: string) {
     const original = await this.prisma.campaign.findUnique({
       where: { id },
@@ -454,7 +558,14 @@ export class CampaignsService {
       throw new NotFoundException("الحملة الأصلية غير موجودة");
     }
 
-    const { id: _, createdAt: __, updatedAt: ___, ...data } = original;
+    const {
+      id: _,
+      createdAt: __,
+      updatedAt: ___,
+      budgetSpent,
+      needsOptimization,
+      ...data
+    } = original;
 
     return this.prisma.campaign.create({
       data: {
@@ -462,6 +573,8 @@ export class CampaignsService {
         name: `${original.name} (نسخة)`,
         status: CampaignStatus.PLANNING,
         budgetSpent: 0,
+        needsOptimization: false,
+        managedBy: userId,
       },
     });
   }

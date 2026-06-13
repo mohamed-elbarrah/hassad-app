@@ -974,6 +974,7 @@ export class TasksService {
 
     if (includeCampaigns) {
       include.campaigns = {
+        where: { isArchived: false },
         include: {
           kpiSnapshots: {
             orderBy: { recordedAt: "desc" },

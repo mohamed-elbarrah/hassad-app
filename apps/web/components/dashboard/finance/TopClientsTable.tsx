@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { TrendingUp, ChevronLeft } from "lucide-react";
@@ -57,7 +57,7 @@ export function TopClientsTable({ clients, isLoading }: Props) {
               <div className="flex-1 min-w-0 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-natural-100 truncate">{client.companyName}</span>
-                  <span className="text-sm font-bold text-natural-100">{formatCurrency(client.revenue)}</span>
+                  <span className="text-sm font-bold text-natural-100"><CurrencyDisplay amount={client.revenue} size="sm" /></span>
                 </div>
                 <div className="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
                   <div

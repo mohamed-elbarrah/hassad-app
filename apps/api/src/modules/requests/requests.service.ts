@@ -8,6 +8,7 @@ import { PipelineStage, RequestStatus, UserRole } from "@hassad/shared";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CanonicalClientService } from "./canonical-client.service";
 import { NotificationsService } from "../notifications/services/notifications.service";
+import { SalesAssignmentService } from "./sales-assignment.service";
 import { CreateRequestDto } from "./dto/request.dto";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
@@ -59,6 +60,7 @@ export class RequestsService {
     private readonly prisma: PrismaService,
     private readonly canonicalClientService: CanonicalClientService,
     private readonly notificationsService: NotificationsService,
+    private readonly salesAssignmentService: SalesAssignmentService,
   ) {}
 
   private getDbClient(tx?: Prisma.TransactionClient): DbClient {
@@ -81,48 +83,6 @@ export class RequestsService {
       default:
         return RequestStatus.QUALIFYING;
     }
-  }
-
-  private async resolveAssignee(
-    db: DbClient,
-    preferredIds: Array<string | null | undefined>,
-  ) {
-    const uniquePreferredIds = [
-      ...new Set(preferredIds.filter(Boolean)),
-    ] as string[];
-
-    if (uniquePreferredIds.length > 0) {
-      const preferredUsers = await db.user.findMany({
-        where: {
-          id: { in: uniquePreferredIds },
-          isActive: true,
-          role: { name: { in: [UserRole.SALES, UserRole.ADMIN] } },
-        },
-        select: { id: true },
-      });
-
-      if (preferredUsers.length > 0) {
-        return preferredUsers[0].id;
-      }
-    }
-
-    const salesUser = await db.user.findFirst({
-      where: { isActive: true, role: { name: UserRole.SALES } },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    });
-
-    if (salesUser) {
-      return salesUser.id;
-    }
-
-    const adminUser = await db.user.findFirst({
-      where: { isActive: true, role: { name: UserRole.ADMIN } },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    });
-
-    return adminUser?.id ?? null;
   }
 
   private assertValidTransition(
@@ -377,16 +337,12 @@ export class RequestsService {
           businessType: dto.businessType,
         });
 
-      const assignedSalesId = await this.resolveAssignee(tx, [
-        client.accountManager,
-      ]);
-
-      if (assignedSalesId && !client.accountManager) {
-        await tx.client.update({
-          where: { id: client.id },
-          data: { accountManager: assignedSalesId },
-        });
-      }
+      const assignment = await this.salesAssignmentService.findBestSales(
+        [client.accountManager],
+        client.id,
+        tx,
+      );
+      const assignedSalesId = assignment?.salesId ?? null;
 
       const request = await tx.request.create({
         data: {
@@ -440,6 +396,13 @@ export class RequestsService {
               userId: true,
             },
           },
+          assignee: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
           services: {
             include: {
               service: { select: { id: true, name: true, nameAr: true } },
@@ -453,13 +416,18 @@ export class RequestsService {
       throw new BadRequestException("Unable to create request");
     }
 
-    await this.notificationsService
-      .broadcast({
-        title: "طلب جديد",
-        message: `تم استلام طلب جديد من ${createdRequest.contactName} - ${createdRequest.companyName}`,
-        roles: [UserRole.SALES],
-      })
-      .catch(() => undefined);
+    if (createdRequest.assignee) {
+      await this.notificationsService
+        .notifyUsers({
+          userIds: [createdRequest.assignee.id],
+          title: "طلب جديد",
+          message: `تم استلام طلب جديد من ${createdRequest.contactName} - ${createdRequest.companyName}`,
+          entityId: createdRequest.id,
+          entityType: "request",
+          eventType: "REQUEST_SUBMITTED",
+        })
+        .catch(() => undefined);
+    }
 
     return createdRequest;
   }
@@ -513,11 +481,18 @@ export class RequestsService {
 
     const requestStatus = this.getStatusFromLeadStage(lead.pipelineStage);
 
+    const assignment = await this.salesAssignmentService.findBestSales(
+      [lead.assignedTo, client.accountManager].filter(Boolean) as string[],
+      client.id,
+      db,
+    );
+    const assignedSalesId = assignment?.salesId ?? null;
+
     const request = await db.request.create({
       data: {
         clientId: client.id,
         submittedBy: lead.createdBy ?? undefined,
-        assignedSalesId: lead.assignedTo ?? client.accountManager ?? undefined,
+        assignedSalesId: assignedSalesId ?? undefined,
         companyName: lead.companyName,
         contactName: lead.contactName,
         phoneWhatsapp: lead.phoneWhatsapp,

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type RangeValue = "today" | "week" | "month" | "quarter" | "year" | "custom";
+export type RangeValue = "week" | "month" | "quarter" | "year" | "custom";
 
 export interface DateRange {
   from: string;
@@ -12,7 +12,6 @@ export interface DateRange {
 }
 
 const RANGE_OPTIONS: { value: RangeValue; label: string }[] = [
-  { value: "today", label: "اليوم" },
   { value: "week", label: "هذا الأسبوع" },
   { value: "month", label: "هذا الشهر" },
   { value: "quarter", label: "هذا الربع" },
@@ -26,8 +25,6 @@ function getRangeDates(value: RangeValue): DateRange {
   from.setHours(0, 0, 0, 0);
 
   switch (value) {
-    case "today":
-      break;
     case "week":
       from.setDate(to.getDate() - to.getDay());
       break;
@@ -65,7 +62,7 @@ export function FinanceDateRangePicker({ value, onChange, className }: Props) {
     setOpen(false);
   };
 
-  const activeLabel = RANGE_OPTIONS.find((o) => o.value === value)?.label || "هذا الشهر";
+  const activeLabel = RANGE_OPTIONS.find((o) => o.value === value)?.label || "هذه السنة";
 
   return (
     <div className={cn("relative", className)}>

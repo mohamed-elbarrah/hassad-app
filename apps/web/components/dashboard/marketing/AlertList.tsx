@@ -11,7 +11,10 @@ import {
   MousePointerClick,
 } from "lucide-react";
 import Link from "next/link";
-import { computeMetrics } from "@/lib/marketing-mock";
+import { computeCampaignMetrics } from "@/lib/utils/campaign-constants";
+
+// Re-export metrics result type for local use
+type CampaignMetrics = ReturnType<typeof computeCampaignMetrics>;
 
 export function AlertList({ tasks }: { tasks: any[] }) {
   const alerts = tasks.flatMap((task) =>
@@ -27,7 +30,7 @@ export function AlertList({ tasks }: { tasks: any[] }) {
           revenue: snapshot.revenue ?? c.revenue ?? 0,
           budgetSpent: c.budgetSpent ?? 0,
         };
-        const metrics = computeMetrics(campaignWithMetrics);
+        const metrics = computeCampaignMetrics(campaignWithMetrics);
 
         let reason = "";
         let type: "WARNING" | "CRITICAL" = "WARNING";
@@ -36,7 +39,7 @@ export function AlertList({ tasks }: { tasks: any[] }) {
           reason = "تم تحديدها يدوياً كـ 'تحتاج تحسين'";
           type = "WARNING";
         } else if (
-          parseFloat(metrics.roas) < 1 &&
+          metrics.roas < 1 &&
           campaignWithMetrics.budgetSpent > 500
         ) {
           reason = "عائد منخفض جداً (ROAS < 1.0)";
@@ -48,7 +51,7 @@ export function AlertList({ tasks }: { tasks: any[] }) {
           reason = "لا توجد تحويلات رغم وجود نقرات عالية";
           type = "CRITICAL";
         } else if (
-          parseFloat(metrics.ctr) < 0.5 &&
+          metrics.ctr < 0.5 &&
           campaignWithMetrics.impressions > 1000
         ) {
           reason = "معدل نقر منخفض جداً (CTR < 0.5%)";
@@ -102,11 +105,11 @@ export function AlertList({ tasks }: { tasks: any[] }) {
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-[10px] text-neutral-300 flex items-center gap-1">
-                    <Target className="w-3 h-3" /> ROAS: {alert.metrics.roas}
+                    <Target className="w-3 h-3" /> ROAS: {alert.metrics.roas.toFixed(1)}x
                   </span>
                   <span className="text-[10px] text-neutral-300 flex items-center gap-1">
                     <MousePointerClick className="w-3 h-3" /> CTR:{" "}
-                    {alert.metrics.ctr}%
+                    {alert.metrics.ctr.toFixed(2)}%
                   </span>
                 </div>
               </div>

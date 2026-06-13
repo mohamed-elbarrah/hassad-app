@@ -308,6 +308,7 @@ async function main() {
         name: u.name,
         passwordHash,
         role: { connect: { name: u.role } },
+        isPayrollEligible: u.role !== "CLIENT",
       },
     });
     userIds[u.role] = created.id;
@@ -342,26 +343,37 @@ async function main() {
   });
 
   // ── Employees ─────────────────────────────────────────────────────────────────
-  const employee1 = await prisma.employee.upsert({
-    where: { userId: userIds["EMPLOYEE"] },
-    update: {},
-    create: {
-      userId: userIds["EMPLOYEE"],
-      name: "Hana Designer",
-      role: "Designer",
-      baseSalary: 7000,
-    },
-  });
-  const employee2 = await prisma.employee.upsert({
-    where: { userId: userIds["MARKETING"] },
-    update: {},
-    create: {
-      userId: userIds["MARKETING"],
-      name: "Ziad Marketing",
-      role: "Marketing Specialist",
-      baseSalary: 8500,
-    },
-  });
+  const payrollUsers = [
+    { role: "EMPLOYEE",  name: "Hana Designer",       baseSalary: 7000,  payType: "FIXED" },
+    { role: "MARKETING", name: "Ziad Marketing",        baseSalary: 8500,  payType: "FIXED" },
+    { role: "SALES",     name: "Omar Sales",            baseSalary: 5000,  payType: "HYBRID", commissionRate: 0.05 },
+    { role: "PM",        name: "Layla PM",              baseSalary: 12000, payType: "FIXED" },
+    { role: "ACCOUNTANT",name: "Sara Accountant",       baseSalary: 9000,  payType: "FIXED" },
+    { role: "ADMIN",     name: "Super Admin",           baseSalary: 15000, payType: "FIXED" },
+  ];
+
+  const employeeIds: Record<string, string> = {};
+  for (const u of payrollUsers) {
+    const emp = await prisma.employee.upsert({
+      where: { userId: userIds[u.role] },
+      update: {
+        name: u.name,
+        baseSalary: u.baseSalary,
+        payType: u.payType as any,
+        commissionRate: u.commissionRate ?? null,
+      },
+      create: {
+        userId: userIds[u.role],
+        name: u.name,
+        role: u.role,
+        baseSalary: u.baseSalary,
+        payType: u.payType as any,
+        commissionRate: u.commissionRate ?? null,
+        isActive: true,
+      },
+    });
+    employeeIds[u.role] = emp.id;
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // CLIENT A: TechVentures — FULL coverage of every enum value
@@ -2214,7 +2226,7 @@ async function main() {
   await prisma.salary.createMany({
     data: [
       {
-        employeeId: employee1.id,
+        employeeId: employeeIds["EMPLOYEE"],
         amount: 7000,
         baseSalary: 7000,
         status: "PAID",
@@ -2223,7 +2235,7 @@ async function main() {
         paymentDate: new Date("2026-05-01"),
       },
       {
-        employeeId: employee2.id,
+        employeeId: employeeIds["MARKETING"],
         amount: 8500,
         baseSalary: 8500,
         status: "PAID",

@@ -14,6 +14,9 @@ import {
   TopClientsDto,
   RevenueTrendDto,
   FinanceMetricsDto,
+  PaySalaryDto,
+  UpdateSalaryDto,
+  UpdateEmployeeDto,
 } from "../dto/finance.dto";
 import {
   InvoiceStatus,
@@ -328,10 +331,12 @@ export class FinanceService {
         });
 
         if (!existing) {
+          const amount = await this.calculateEmployeePay(emp, dto.month, dto.year);
+
           const s = await tx.salary.create({
             data: {
               employeeId: emp.id,
-              amount: emp.baseSalary,
+              amount,
               baseSalary: emp.baseSalary,
               status: SalaryStatus.PENDING,
               month: dto.month,
@@ -353,6 +358,241 @@ export class FinanceService {
     });
 
     return { generated: results.length };
+  }
+
+  private async calculateEmployeePay(employee: any, month: number, year: number) {
+    const base = employee.baseSalary || 0;
+
+    let commission = 0;
+    if (employee.payType === "HYBRID" || employee.payType === "COMMISSION") {
+      const sold = await this.getMonthlySales(employee.userId, month, year);
+      commission = sold * (employee.commissionRate || 0);
+    }
+
+    let hoursPay = 0;
+    if (employee.payType === "HOURLY") {
+      // For now, hours are not tracked — fallback to monthly estimate
+      // TODO: integrate with attendance system
+      hoursPay = base;
+    }
+
+    return base + commission + hoursPay;
+  }
+
+  private async getMonthlySales(userId: string | null, month: number, year: number) {
+    if (!userId) return 0;
+    const from = new Date(year, month - 1, 1);
+    const to = new Date(year, month, 0, 23, 59, 59);
+
+    const result = await this.prisma.contract.aggregate({
+      where: {
+        salesPersonId: userId,
+        status: "ACTIVE",
+        signedAt: { gte: from, lte: to },
+      },
+      _sum: { totalValue: true },
+    });
+
+    return result._sum.totalValue || 0;
+  }
+
+  async findEmployeeById(id: string) {
+    const employee = await this.prisma.employee.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        salaries: { orderBy: { createdAt: "desc" } },
+      },
+    });
+    if (!employee) throw new NotFoundException(`Employee with ID ${id} not found`);
+    return employee;
+  }
+
+  async paySalary(userId: string, salaryId: string, dto: PaySalaryDto) {
+    const salary = await this.prisma.salary.findUnique({
+      where: { id: salaryId },
+      include: { employee: true },
+    });
+    if (!salary) throw new NotFoundException("Salary record not found");
+
+    const updated = await this.prisma.salary.update({
+      where: { id: salaryId },
+      data: {
+        status: SalaryStatus.PAID,
+        paymentDate: new Date(),
+        notes: dto.notes || salary.notes,
+      },
+    });
+
+    await this.logToLedger({
+      action: "PAY_SALARY",
+      entity: "SALARY",
+      entityId: salaryId,
+      userId,
+      before: salary,
+      after: updated,
+    });
+
+    return updated;
+  }
+
+  async updateSalary(userId: string, salaryId: string, dto: UpdateSalaryDto) {
+    const salary = await this.prisma.salary.findUnique({
+      where: { id: salaryId },
+      include: { employee: true },
+    });
+    if (!salary) throw new NotFoundException("Salary record not found");
+
+    const bonuses = dto.bonuses ?? salary.bonuses;
+    const deductions = dto.deductions ?? salary.deductions;
+    const amount = salary.baseSalary + bonuses - deductions;
+
+    const updated = await this.prisma.salary.update({
+      where: { id: salaryId },
+      data: {
+        bonuses,
+        deductions,
+        amount,
+        notes: dto.notes !== undefined ? dto.notes : salary.notes,
+      },
+    });
+
+    await this.logToLedger({
+      action: "UPDATE_SALARY",
+      entity: "SALARY",
+      entityId: salaryId,
+      userId,
+      before: salary,
+      after: updated,
+    });
+
+    return updated;
+  }
+
+  async payAllSalaries(userId: string, dto: RunPayrollDto) {
+    const salaries = await this.prisma.salary.findMany({
+      where: {
+        status: SalaryStatus.PENDING,
+        month: dto.month,
+        year: dto.year,
+      },
+      include: { employee: true },
+    });
+
+    const results = await this.prisma.$transaction(async (tx) => {
+      const updated = [];
+      for (const s of salaries) {
+        const u = await tx.salary.update({
+          where: { id: s.id },
+          data: {
+            status: SalaryStatus.PAID,
+            paymentDate: new Date(),
+          },
+        });
+        updated.push(u);
+
+        await tx.ledger.create({
+          data: {
+            action: "PAY_SALARY",
+            entity: "SALARY",
+            entityId: s.id,
+            userId,
+            before: s,
+            after: u,
+          },
+        });
+      }
+      return updated;
+    });
+
+    return { paid: results.length, total: salaries.length };
+  }
+
+  async previewPayroll(dto: RunPayrollDto) {
+    const employees = await this.prisma.employee.findMany({
+      where: { isActive: true },
+      include: {
+        user: true,
+        salaries: {
+          where: { month: dto.month, year: dto.year },
+          take: 1,
+        },
+      },
+    });
+
+    const previews = [];
+    for (const emp of employees) {
+      const existing = emp.salaries[0];
+      let amount = 0;
+      let source = "existing";
+
+      if (existing) {
+        amount = existing.amount;
+      } else {
+        amount = await this.calculateEmployeePay(emp, dto.month, dto.year);
+        source = "calculated";
+      }
+
+      previews.push({
+        employeeId: emp.id,
+        name: emp.name,
+        role: emp.role,
+        payType: emp.payType,
+        baseSalary: emp.baseSalary,
+        commissionRate: emp.commissionRate,
+        amount,
+        status: existing?.status || "NOT_GENERATED",
+        source,
+        salaryId: existing?.id || null,
+      });
+    }
+
+    const totalCost = previews.reduce((s, p) => s + p.amount, 0);
+    const pendingCount = previews.filter((p) => p.status === "PENDING").length;
+    const notGenerated = previews.filter((p) => p.status === "NOT_GENERATED").length;
+
+    return { month: dto.month, year: dto.year, totalCost, pendingCount, notGenerated, employees: previews };
+  }
+
+  async createEmployee(dto: CreateEmployeeDto) {
+    return this.prisma.employee.create({
+      data: {
+        name: dto.name,
+        role: dto.role,
+        baseSalary: dto.baseSalary,
+        userId: dto.userId || null,
+        isActive: true,
+        payType: "FIXED",
+      },
+    });
+  }
+
+  async updateEmployee(id: string, dto: UpdateEmployeeDto) {
+    const emp = await this.prisma.employee.findUnique({ where: { id } });
+    if (!emp) throw new NotFoundException("Employee not found");
+
+    return this.prisma.employee.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        role: dto.role,
+        baseSalary: dto.baseSalary,
+        payType: dto.payType as any,
+        commissionRate: dto.commissionRate,
+        hourlyRate: dto.hourlyRate,
+        isActive: dto.isActive,
+      },
+    });
+  }
+
+  async deleteEmployee(id: string) {
+    const emp = await this.prisma.employee.findUnique({ where: { id } });
+    if (!emp) throw new NotFoundException("Employee not found");
+
+    return this.prisma.employee.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   // ── Date helpers ───────────────────────────────────────────────────────────
@@ -975,7 +1215,31 @@ export class FinanceService {
   }
 
   async findAllEmployees() {
+    // Auto-sync: create Employee records for payroll-eligible users who don't have one
+    const eligibleUsers = await this.prisma.user.findMany({
+      where: {
+        isPayrollEligible: true,
+        employee: { is: null },
+        role: { name: { not: "CLIENT" } },
+      },
+      include: { role: true },
+    });
+
+    for (const user of eligibleUsers) {
+      await this.prisma.employee.create({
+        data: {
+          userId: user.id,
+          name: user.name,
+          role: user.role?.name || "Employee",
+          baseSalary: 0,
+          isActive: true,
+          payType: "FIXED",
+        },
+      });
+    }
+
     return this.prisma.employee.findMany({
+      where: { isActive: true },
       include: {
         user: true,
         salaries: {

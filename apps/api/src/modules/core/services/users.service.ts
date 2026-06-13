@@ -6,13 +6,14 @@ import {
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
-import { UserRole, TaskDepartment } from "@hassad/shared";
+import { UserRole, TaskDepartment, RequestStatus, ProjectStatus } from "@hassad/shared";
 
 const BCRYPT_ROUNDS = 12;
 
 export interface UserListFilters {
   search?: string;
   role?: UserRole;
+  excludeRole?: UserRole;
   department?: TaskDepartment;
   page?: number;
   limit?: number;
@@ -59,6 +60,12 @@ export class UsersService {
         : null;
     const department = deptEntry?.department?.name ?? null;
 
+    // workload counts (only present when included by findAll)
+    const activeRequestsCount =
+      user.assignedRequests?.length ?? 0;
+    const activeProjectsCount =
+      user.managedProjects?.length ?? 0;
+
     return {
       id: user.id,
       name: user.name,
@@ -68,6 +75,8 @@ export class UsersService {
       phoneWhatsapp: user.phoneWhatsapp,
       avatarUrl: user.avatarUrl,
       department,
+      activeRequestsCount,
+      activeProjectsCount,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -110,7 +119,7 @@ export class UsersService {
   }
 
   async findAll(filters: UserListFilters = {}) {
-    const { search, role, department, page = 1, limit = 20 } = filters;
+    const { search, role, excludeRole, department, page = 1, limit = 20 } = filters;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -125,6 +134,8 @@ export class UsersService {
 
     if (role) {
       where.role = { name: role };
+    } else if (excludeRole) {
+      where.role = { name: { not: excludeRole } };
     }
 
     if (department) {
@@ -142,6 +153,18 @@ export class UsersService {
         include: {
           role: true,
           departments: { include: { department: true } },
+          assignedRequests: {
+            where: {
+              status: { notIn: [RequestStatus.PROJECT_CREATED, RequestStatus.CANCELLED] },
+            },
+            select: { id: true },
+          },
+          managedProjects: {
+            where: {
+              status: { in: [ProjectStatus.ACTIVE, ProjectStatus.PLANNING] },
+            },
+            select: { id: true },
+          },
         },
       }),
       this.prisma.user.count({ where }),
