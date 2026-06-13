@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { StatusFilter } from "@/components/dashboard/finance/InvoiceToolbar";
 import Link from "next/link";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
 export default function InvoicesPage() {
   const [page, setPage] = useState(1);
@@ -133,7 +134,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-xs text-neutral-400">المحصل</p>
               <p className="text-xl font-bold text-success-600">
-                {stats.totalPaid.toLocaleString()} ر.س
+                <CurrencyDisplay amount={stats.totalPaid} />
               </p>
             </div>
           </div>
@@ -146,7 +147,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-xs text-neutral-400">متأخرة</p>
               <p className="text-xl font-bold text-danger-600">
-                {stats.overdueCount} ({stats.overdueAmount.toLocaleString()} ر.س)
+                {stats.overdueCount} (<CurrencyDisplay amount={stats.overdueAmount} />)
               </p>
             </div>
           </div>
@@ -212,10 +213,10 @@ export default function InvoicesPage() {
                 {(invoice as any).contract?.title || "N/A"}
               </td>
               <td className="px-5 py-4 font-bold">
-                {invoice.amount.toLocaleString()} ر.س
+                <CurrencyDisplay amount={invoice.amount} />
               </td>
               <td className="px-5 py-4 text-success-600 dark:text-success-400 font-medium">
-                {paidAmount.toLocaleString()} ر.س
+                <CurrencyDisplay amount={paidAmount} />
               </td>
               <td className="px-5 py-4">
                 <FinanceStatusBadge status={invoice.status} />

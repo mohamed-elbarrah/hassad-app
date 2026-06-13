@@ -19,6 +19,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { DataTable } from "@/components/design-system/DataTable";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
 import { buildPortalFileUrl } from "@/lib/portal-files";
 
@@ -114,7 +115,7 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
           <div>
             <p className="text-portal-note-text text-sm">القيمة الإجمالية</p>
             <h3 className="text-2xl font-bold mt-1">
-              {totalValue.toLocaleString()} ر.س
+              <CurrencyDisplay amount={totalValue} />
             </h3>
           </div>
           <div className="flex items-center text-xs text-neutral-300 mt-3">
@@ -127,7 +128,7 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
           <div>
             <p className="text-portal-note-text text-sm">المحصل</p>
             <h3 className="text-2xl font-bold text-success-600 mt-1">
-              {totalPaid.toLocaleString()} ر.س
+              <CurrencyDisplay amount={totalPaid} />
             </h3>
           </div>
           <div className="mt-3 space-y-1">
@@ -142,7 +143,7 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
           <div>
             <p className="text-portal-note-text text-sm">المتبقي</p>
             <h3 className="text-2xl font-bold text-danger-600 mt-1">
-              {remaining.toLocaleString()} ر.س
+              <CurrencyDisplay amount={remaining} />
             </h3>
           </div>
           <div className="flex items-center text-xs text-neutral-300 mt-3">
@@ -239,7 +240,7 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
                   })}
                 </td>
                 <td className="px-5 py-4 font-medium text-success-600">
-                  {payment.amount.toLocaleString()} ر.س
+                  <CurrencyDisplay amount={payment.amount} />
                 </td>
                 <td className="px-5 py-4 text-neutral-400 text-xs">
                   BANK_TRANSFER

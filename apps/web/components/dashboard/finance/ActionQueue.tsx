@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
@@ -97,7 +97,7 @@ export function ActionQueue({ actions, isLoading }: Props) {
                 <div className="flex items-center gap-2 text-xs text-neutral-400">
                   <span>{action.description}</span>
                   {action.amount !== undefined && (
-                    <span className="font-semibold text-natural-100">{formatCurrency(action.amount)}</span>
+                    <span className="font-semibold text-natural-100"><CurrencyDisplay amount={action.amount} size="sm" /></span>
                   )}
                 </div>
               </div>

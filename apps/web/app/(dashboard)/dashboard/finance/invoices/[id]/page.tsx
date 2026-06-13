@@ -11,6 +11,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { DataTable } from "@/components/design-system/DataTable";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import {
   ChevronRight,
   Download,
@@ -135,10 +136,7 @@ export default function InvoiceDetailPage({
         <div className="lg:col-span-2 space-y-5">
           {/* Invoice Header Card */}
           <SurfaceCard className="border-none shadow-md overflow-hidden">
-            {/* Top accent bar */}
             <div className="bg-secondary-500 h-2 w-full" />
-
-            {/* Header row */}
             <div className="px-6 py-5 border-b border-portal-divider flex flex-row items-start justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -167,7 +165,6 @@ export default function InvoiceDetailPage({
               />
             </div>
 
-            {/* Info Grid */}
             <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-xl bg-secondary-50">
@@ -206,7 +203,7 @@ export default function InvoiceDetailPage({
                 <div>
                   <p className="text-xs text-neutral-400 mb-0.5">القيمة الإجمالية</p>
                   <p className="text-sm font-bold">
-                    {invoice.amount.toLocaleString()} ر.س
+                    <CurrencyDisplay amount={invoice.amount} />
                   </p>
                 </div>
               </div>
@@ -220,7 +217,6 @@ export default function InvoiceDetailPage({
             className="border-none shadow-sm"
           >
             <div className="space-y-5">
-              {/* Progress bar */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-neutral-400">نسبة التحصيل</span>
@@ -229,28 +225,24 @@ export default function InvoiceDetailPage({
                 <ProgressBar value={collectionRate} size="md" />
               </div>
 
-              {/* Three values */}
               <div className="grid grid-cols-3 gap-4 pt-2">
                 <div className="text-center p-4 rounded-2xl bg-neutral-50/50">
                   <p className="text-xs text-neutral-400 mb-1">الإجمالي</p>
                   <p className="text-xl font-bold">
-                    {invoice.amount.toLocaleString()}
+                    <CurrencyDisplay amount={invoice.amount} />
                   </p>
-                  <p className="text-xs text-neutral-400">ر.س</p>
                 </div>
                 <div className="text-center p-4 rounded-2xl bg-success-50/50">
                   <p className="text-xs text-success-600 mb-1">المدفوع</p>
                   <p className="text-xl font-bold text-success-600">
-                    {paidAmount.toLocaleString()}
+                    <CurrencyDisplay amount={paidAmount} />
                   </p>
-                  <p className="text-xs text-success-500">ر.س</p>
                 </div>
                 <div className="text-center p-4 rounded-2xl bg-danger-50/50">
                   <p className="text-xs text-danger-600 mb-1">المتبقي</p>
                   <p className="text-xl font-bold text-danger-600">
-                    {remainingAmount.toLocaleString()}
+                    <CurrencyDisplay amount={remainingAmount} />
                   </p>
-                  <p className="text-xs text-danger-500">ر.س</p>
                 </div>
               </div>
             </div>
@@ -295,7 +287,7 @@ export default function InvoiceDetailPage({
                     {p.id.substring(0, 8)}...
                   </td>
                   <td className="px-5 py-4 font-bold">
-                    {p.amount.toLocaleString()} ر.س
+                    <CurrencyDisplay amount={p.amount} />
                   </td>
                   <td className="px-5 py-4">{p.method}</td>
                   <td className="px-5 py-4">
@@ -312,7 +304,6 @@ export default function InvoiceDetailPage({
 
         {/* ─── Sidebar (1/3) ─── */}
         <div className="space-y-5">
-          {/* Quick Actions */}
           <SurfaceCard className="border-none shadow-sm">
             <div className="p-4 space-y-2">
               <ActionButton
@@ -342,7 +333,6 @@ export default function InvoiceDetailPage({
             </div>
           </SurfaceCard>
 
-          {/* Timeline */}
           <SurfaceCard
             title="سجل الأحداث"
             description="جميع التغييرات على الفاتورة"
@@ -351,7 +341,6 @@ export default function InvoiceDetailPage({
             <TimelineComponent items={timeline} />
           </SurfaceCard>
 
-          {/* Audit Notes */}
           <SurfaceCard
             title="ملاحظات التدقيق"
             icon={AlertCircle}

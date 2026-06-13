@@ -5,6 +5,7 @@ import { usePreviewPayrollQuery } from "@/features/finance/financeApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton } from "@/components/design-system/Skeleton";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { X, Wallet, DollarSign, Users, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,20 +36,16 @@ export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPa
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div className="bg-natural-0 rounded-3xl border border-portal-card-border shadow-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col pointer-events-auto">
-          {/* Header */}
           <div className="px-6 py-5 border-b border-portal-divider flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">معاينة مسير الرواتب</h2>
-              <p className="text-sm text-neutral-400">
-                {MONTHS[month - 1]} {year}
-              </p>
+              <p className="text-sm text-neutral-400">{MONTHS[month - 1]} {year}</p>
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-neutral-100">
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Stats */}
           {isLoading ? (
             <div className="p-6 space-y-4">
               <Skeleton className="h-16 w-full" />
@@ -61,7 +58,7 @@ export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPa
                 <div className="p-4 rounded-xl bg-secondary-50/50 text-center">
                   <DollarSign className="w-5 h-5 text-secondary-600 mx-auto mb-1" />
                   <p className="text-xs text-neutral-400">إجمالي التكلفة</p>
-                  <p className="text-xl font-bold">{data?.totalCost.toLocaleString()} ر.س</p>
+                  <p className="text-xl font-bold"><CurrencyDisplay amount={data?.totalCost} size="sm" /></p>
                 </div>
                 <div className="p-4 rounded-xl bg-warning-50/50 text-center">
                   <Clock className="w-5 h-5 text-warning-600 mx-auto mb-1" />
@@ -75,7 +72,6 @@ export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPa
                 </div>
               </div>
 
-              {/* Employee List */}
               <div className="flex-1 overflow-y-auto px-6 pb-6">
                 <div className="space-y-2">
                   {data?.employees.map((emp) => (
@@ -109,7 +105,7 @@ export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPa
                         </div>
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-bold">{emp.amount.toLocaleString()} ر.س</p>
+                        <p className="text-sm font-bold"><CurrencyDisplay amount={emp.amount} size="sm" /></p>
                         <span
                           className={cn(
                             "text-[10px] px-2 py-0.5 rounded-full font-medium",
@@ -130,7 +126,6 @@ export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPa
                 </div>
               </div>
 
-              {/* Footer */}
               <div className="px-6 py-4 border-t border-portal-divider flex justify-between items-center">
                 <p className="text-sm text-neutral-400">
                   {data?.pendingCount > 0

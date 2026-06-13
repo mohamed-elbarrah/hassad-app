@@ -2,6 +2,7 @@
 
 import { TimelineItem as DSTimelineItem } from "@/components/design-system/Timeline";
 import { Circle, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 
 export interface TimelineItem {
   id: string;
@@ -46,7 +47,7 @@ export function TimelineComponent({
         const description = [
           item.user && `بواسطة: ${item.user}`,
           item.description,
-          item.amount && `المبلغ: ${item.amount.toLocaleString()} ر.س`,
+          item.amount && `المبلغ: ${formatCurrency(item.amount)}`,
         ]
           .filter(Boolean)
           .join(" — ");

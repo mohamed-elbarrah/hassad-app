@@ -42,7 +42,8 @@ import {
   CreditCard,
   ArrowUpLeft,
 } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { cn } from "@/lib/utils";
 
 

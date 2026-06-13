@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { TrendingUp } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { useMemo } from "react";
 
 interface TrendItem {
@@ -42,14 +42,14 @@ function CustomTooltip({ active, payload, label }: any) {
             <div className="w-2 h-2 rounded-full bg-[hsl(var(--primary))]" />
             <span className="text-xs text-neutral-500">المدفوعات</span>
           </div>
-          <span className="text-xs font-bold text-natural-100">{formatCurrency(income)}</span>
+          <span className="text-xs font-bold text-natural-100"><CurrencyDisplay amount={income} size="sm" /></span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-[#f43f5e]" />
             <span className="text-xs text-neutral-500">الفواتير</span>
           </div>
-          <span className="text-xs font-bold text-natural-100">{formatCurrency(invoiced)}</span>
+          <span className="text-xs font-bold text-natural-100"><CurrencyDisplay amount={invoiced} size="sm" /></span>
         </div>
       </div>
     </div>
@@ -57,10 +57,8 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function RevenueTrendChart({ data, isLoading }: Props) {
-  // RTL: reverse data so newest is on the LEFT, oldest on the RIGHT
   const chartData = useMemo(() => [...data].reverse(), [data]);
 
-  // Calculate smart tick interval so labels never overlap
   const tickInterval = useMemo(() => {
     const count = chartData.length;
     if (count <= 7) return 0;
@@ -86,7 +84,6 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
       description="مقارنة المدفوعات الواردة بالفواتير المصدرة"
       icon={TrendingUp}
     >
-      {/* Legend */}
       <div className="flex items-center gap-5 mb-4 px-1">
         <div className="flex items-center gap-2">
           <div className="w-3 h-[2px] bg-[hsl(var(--primary))] rounded-full" />
@@ -116,8 +113,6 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
                 vertical={false}
                 stroke="#F0F1F5"
               />
-
-              {/* X-axis: dates now flow right-to-left visually */}
               <XAxis
                 dataKey="label"
                 axisLine={false}
@@ -127,8 +122,6 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
                 interval={tickInterval}
                 minTickGap={24}
               />
-
-              {/* Y-axis: moved to RIGHT for RTL */}
               <YAxis
                 orientation="right"
                 axisLine={false}
@@ -139,13 +132,10 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
                 }
                 width={48}
               />
-
               <Tooltip
                 content={<CustomTooltip />}
                 cursor={{ stroke: "#E1E4EA", strokeWidth: 1 }}
               />
-
-              {/* Income — solid smooth line */}
               <Line
                 type="monotone"
                 dataKey="income"
@@ -161,8 +151,6 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
                 animationDuration={800}
                 animationEasing="ease-in-out"
               />
-
-              {/* Invoiced — dashed smooth line */}
               <Line
                 type="monotone"
                 dataKey="invoiced"

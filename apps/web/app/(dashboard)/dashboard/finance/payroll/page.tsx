@@ -35,6 +35,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
 const MONTHS = [
   "يناير","فبراير","مارس","أبريل","مايو","يونيو",
@@ -228,7 +229,7 @@ export default function PayrollPage() {
             </div>
             <div>
               <p className="text-xs text-neutral-400">إجمالي التكلفة</p>
-              <p className="text-xl font-bold">{stats.totalCost.toLocaleString()} ر.س</p>
+              <p className="text-xl font-bold"><CurrencyDisplay amount={stats.totalCost} /></p>
             </div>
           </div>
         </SurfaceCard>
@@ -343,11 +344,11 @@ export default function PayrollPage() {
                 </span>
               </td>
               <td className="px-5 py-4">
-                {employee.baseSalary.toLocaleString()} ر.س
+                <CurrencyDisplay amount={employee.baseSalary} />
               </td>
               <td className="px-5 py-4 font-bold">
                 {salary ? (
-                  <span>{salary.amount.toLocaleString()} ر.س</span>
+                  <span><CurrencyDisplay amount={salary.amount} /></span>
                 ) : (
                   <span className="text-neutral-400 text-sm">—</span>
                 )}

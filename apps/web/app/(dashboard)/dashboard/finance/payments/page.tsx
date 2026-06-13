@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { PaymentStatus } from "@hassad/shared";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
 const TABS: { value: "all" | PaymentStatus; label: string }[] = [
   { value: "all", label: "الكل" },
@@ -143,7 +144,7 @@ export default function PaymentsPage() {
             <div>
               <p className="text-xs text-neutral-400">الناجحة</p>
               <p className="text-xl font-bold text-success-600">
-                {stats.successfulAmount.toLocaleString()} ر.س
+                <CurrencyDisplay amount={stats.successfulAmount} />
               </p>
             </div>
           </div>
@@ -265,7 +266,7 @@ export default function PaymentsPage() {
               {p.invoice?.client?.companyName || "N/A"}
             </td>
             <td className="px-5 py-4 font-bold">
-              {p.amount.toLocaleString()} ر.س
+              <CurrencyDisplay amount={p.amount} />
             </td>
             <td className="px-5 py-4">
               <div className="flex items-center gap-2">

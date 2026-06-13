@@ -13,6 +13,7 @@ import {
   PieChart,
 } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import Link from "next/link";
 
 export default function ContractsFinancePage() {
@@ -40,7 +41,7 @@ export default function ContractsFinancePage() {
           <div>
             <p className="text-portal-note-text text-sm">إجمالي قيمة العقود</p>
             <h3 className="text-2xl font-bold mt-1">
-              {totalValue.toLocaleString()} ر.س
+              \u003cCurrencyDisplay amount={totalValue} /\u003e
             </h3>
           </div>
           <div className="flex items-center text-xs text-neutral-300 mt-3">
@@ -52,7 +53,7 @@ export default function ContractsFinancePage() {
           <div>
             <p className="text-portal-note-text text-sm">المبالغ المحصلة</p>
             <h3 className="text-2xl font-bold text-success-600 mt-1">
-              {totalPaid.toLocaleString()} ر.س
+              \u003cCurrencyDisplay amount={totalPaid} /\u003e
             </h3>
           </div>
           <div className="mt-3 space-y-1">
@@ -66,7 +67,7 @@ export default function ContractsFinancePage() {
           <div>
             <p className="text-portal-note-text text-sm">المبالغ المتبقية</p>
             <h3 className="text-2xl font-bold text-danger-600 mt-1">
-              {totalRemaining.toLocaleString()} ر.س
+              \u003cCurrencyDisplay amount={totalRemaining} /\u003e
             </h3>
           </div>
           <div className="flex items-center text-xs text-neutral-300 mt-3">
@@ -128,13 +129,13 @@ export default function ContractsFinancePage() {
                 {contract.client?.companyName || "N/A"}
               </td>
               <td className="px-5 py-4 font-bold">
-                {contract.totalValue.toLocaleString()} ر.س
+                \u003cCurrencyDisplay amount={contract.totalValue} /\u003e
               </td>
               <td className="px-5 py-4 text-success-600 font-medium">
-                {contract.paid.toLocaleString()} ر.س
+                \u003cCurrencyDisplay amount={contract.paid} /\u003e
               </td>
               <td className="px-5 py-4 text-danger-600 font-medium">
-                {contract.remaining.toLocaleString()} ر.س
+                \u003cCurrencyDisplay amount={contract.remaining} /\u003e
               </td>
               <td className="px-5 py-4">
                 <div className="space-y-1">

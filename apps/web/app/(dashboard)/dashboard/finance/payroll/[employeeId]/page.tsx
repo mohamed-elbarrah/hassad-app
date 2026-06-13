@@ -8,6 +8,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { DataTable } from "@/components/design-system/DataTable";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import {
   ChevronRight,
   Wallet,
@@ -158,7 +159,7 @@ export default function SalaryDetailPage({
                     <Hash className="w-3 h-3 inline ml-1" />{employee.id}
                   </span>
                   <span className="bg-neutral-50 px-3 py-1 rounded-lg text-xs">
-                    الراتب الأساسي: {employee.baseSalary.toLocaleString()} ر.س
+                    الراتب الأساسي: <CurrencyDisplay amount={employee.baseSalary} />
                   </span>
                 </div>
               </div>
@@ -201,7 +202,6 @@ export default function SalaryDetailPage({
                   size="sm"
                   className="mt-3"
                   onClick={() => {
-                    // Navigate back to payroll page to generate
                     window.location.href = "/dashboard/finance/payroll";
                   }}
                 >
@@ -213,27 +213,23 @@ export default function SalaryDetailPage({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center p-4 rounded-2xl bg-neutral-50/50">
                     <p className="text-xs text-neutral-400 mb-1">الأساسي</p>
-                    <p className="text-lg font-bold">{salary.baseSalary.toLocaleString()}</p>
-                    <p className="text-xs text-neutral-400">ر.س</p>
+                    <p className="text-lg font-bold"><CurrencyDisplay amount={salary.baseSalary} /></p>
                   </div>
                   <div className="text-center p-4 rounded-2xl bg-success-50/50">
                     <p className="text-xs text-success-600 mb-1 flex items-center justify-center gap-1">
                       <ArrowUp className="w-3 h-3" />البدلات
                     </p>
-                    <p className="text-lg font-bold text-success-600">{salary.bonuses?.toLocaleString() || "0"}</p>
-                    <p className="text-xs text-success-500">ر.س</p>
+                    <p className="text-lg font-bold text-success-600"><CurrencyDisplay amount={salary.bonuses || 0} /></p>
                   </div>
                   <div className="text-center p-4 rounded-2xl bg-danger-50/50">
                     <p className="text-xs text-danger-600 mb-1 flex items-center justify-center gap-1">
                       <ArrowDown className="w-3 h-3" />الاستقطاعات
                     </p>
-                    <p className="text-lg font-bold text-danger-600">{salary.deductions?.toLocaleString() || "0"}</p>
-                    <p className="text-xs text-danger-500">ر.س</p>
+                    <p className="text-lg font-bold text-danger-600"><CurrencyDisplay amount={salary.deductions || 0} /></p>
                   </div>
                   <div className="text-center p-4 rounded-2xl bg-secondary-50/50">
                     <p className="text-xs text-secondary-600 mb-1">الصافي</p>
-                    <p className="text-lg font-bold text-secondary-600">{salary.amount.toLocaleString()}</p>
-                    <p className="text-xs text-secondary-500">ر.س</p>
+                    <p className="text-lg font-bold text-secondary-600"><CurrencyDisplay amount={salary.amount} /></p>
                   </div>
                 </div>
 
@@ -306,10 +302,10 @@ export default function SalaryDetailPage({
                   <td className="px-5 py-4 font-medium">
                     {MONTHS[s.month - 1]} {s.year}
                   </td>
-                  <td className="px-5 py-4">{s.baseSalary.toLocaleString()} ر.س</td>
-                  <td className="px-5 py-4 text-success-600">+{s.bonuses?.toLocaleString() || "0"}</td>
-                  <td className="px-5 py-4 text-danger-600">-{s.deductions?.toLocaleString() || "0"}</td>
-                  <td className="px-5 py-4 font-bold">{s.amount.toLocaleString()} ر.س</td>
+                  <td className="px-5 py-4"><CurrencyDisplay amount={s.baseSalary} /></td>
+                  <td className="px-5 py-4 text-success-600">+<CurrencyDisplay amount={s.bonuses || 0} /></td>
+                  <td className="px-5 py-4 text-danger-600">-<CurrencyDisplay amount={s.deductions || 0} /></td>
+                  <td className="px-5 py-4 font-bold"><CurrencyDisplay amount={s.amount} /></td>
                   <td className="px-5 py-4">
                     <FinanceStatusBadge status={s.status} />
                   </td>
@@ -347,7 +343,7 @@ export default function SalaryDetailPage({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-neutral-400">الراتب الأساسي</span>
-                <span className="text-sm font-bold">{employee.baseSalary.toLocaleString()} ر.س</span>
+                <span className="text-sm font-bold"><CurrencyDisplay amount={employee.baseSalary} /></span>
               </div>
               {employee.commissionRate && employee.commissionRate > 0 && (
                 <div className="flex items-center justify-between">
@@ -358,7 +354,7 @@ export default function SalaryDetailPage({
               {employee.hourlyRate && employee.hourlyRate > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-400">الأجر بالساعة</span>
-                  <span className="text-sm font-bold">{employee.hourlyRate.toLocaleString()} ر.س</span>
+                  <span className="text-sm font-bold"><CurrencyDisplay amount={employee.hourlyRate} /></span>
                 </div>
               )}
               <div className="pt-2 border-t border-portal-divider">
