@@ -47,7 +47,8 @@ export const navSections: NavSection[] = [
         roles: ["ADMIN"],
         items: [
           { title: "الموظفون", url: "/dashboard/admin/employees" },
-          { title: "العملاء (CRM)", url: "/dashboard/admin/clients" },
+          { title: "العملاء", url: "/dashboard/admin/clients" },
+          { title: "الأقسام", url: "/dashboard/admin/departments" },
         ],
       },
       {

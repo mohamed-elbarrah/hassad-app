@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Search, Plus, Pencil, PowerOff, Power } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
-  FormSelect,
-  FormSelectContent,
-  FormSelectItem,
-  FormSelectTrigger,
-  FormSelectValue,
-} from "@/components/design-system/FormSelectControl";
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pill } from "@/components/design-system/Pill";
 import { Skeleton } from "@/components/design-system/Skeleton";
@@ -65,6 +62,15 @@ const ROLE_PILL_TONE: Record<
   [UserRole.CLIENT]: "neutral",
 };
 
+const STAFF_ROLES: UserRole[] = [
+  UserRole.SALES,
+  UserRole.PM,
+  UserRole.EMPLOYEE,
+  UserRole.MARKETING,
+  UserRole.ACCOUNTANT,
+  UserRole.ADMIN,
+];
+
 // ── Debounce hook ─────────────────────────────────────────────────────────────
 
 function useDebounce<T>(value: T, delay = 400): T {
@@ -82,15 +88,25 @@ function useDebounce<T>(value: T, delay = 400): T {
 
 export default function EmployeesPage() {
   const [searchInput, setSearchInput] = useState("");
-  const [deptFilter, setDeptFilter] = useState<TaskDepartment | "all">("all");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState<UserDetail | null>(null);
 
   const debouncedSearch = useDebounce(searchInput, 400);
 
+  // Extract single-select values from FilterBar multi-select state
+  const roleFilter = activeFilters["role"]?.[0] as UserRole | undefined;
+  const deptFilter = activeFilters["department"]?.[0] as TaskDepartment | undefined;
+
+  // Department filter ONLY visible when EMPLOYEE is explicitly selected
+  const showDeptGroup = roleFilter === UserRole.EMPLOYEE;
+
   const filters: UserSearchFilters = {
     search: debouncedSearch || undefined,
-    department: deptFilter === "all" ? undefined : deptFilter,
+    role: roleFilter,
+    excludeRole: UserRole.CLIENT, // Never show clients on employees page
+    department: showDeptGroup ? deptFilter : undefined,
+    limit: 50,
   };
 
   const { data, isLoading, isError } = useSearchUsersQuery(filters);
@@ -115,6 +131,52 @@ export default function EmployeesPage() {
     }
   }
 
+  // Enforce single selection for roles (radio-like). Auto-clear dept when role != EMPLOYEE.
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      if (groupKey === "role") {
+        const newRole = values.length > 0 ? values[values.length - 1] : undefined;
+        setActiveFilters((prev) => {
+          const next: Record<string, string[]> = {
+            ...prev,
+            [groupKey]: values.length > 0 ? [newRole as string] : [],
+          };
+          // Clear department if new role is not EMPLOYEE
+          if (newRole !== UserRole.EMPLOYEE && next["department"]) {
+            delete next["department"];
+          }
+          return next;
+        });
+      } else {
+        setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      }
+    },
+    [],
+  );
+
+  // Build filter groups dynamically
+  const filterGroups: FilterGroup[] = [
+    {
+      key: "role",
+      label: "الدور",
+      options: STAFF_ROLES.map((role) => ({
+        label: ROLE_LABELS[role],
+        value: role,
+      })),
+    },
+  ];
+
+  if (showDeptGroup) {
+    filterGroups.push({
+      key: "department",
+      label: "القسم",
+      options: Object.values(TaskDepartment).map((dept) => ({
+        label: DEPARTMENT_LABELS[dept],
+        value: dept,
+      })),
+    });
+  }
+
   const employees = (data?.items ?? []) as UserDetail[];
 
   return (
@@ -128,8 +190,8 @@ export default function EmployeesPage() {
         </ActionButton>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* Filters bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-neutral-300" />
           <FormInputControl
@@ -139,29 +201,34 @@ export default function EmployeesPage() {
             className="pr-9"
           />
         </div>
-        <FormSelect
-          value={deptFilter}
-          onValueChange={(v) => setDeptFilter(v as TaskDepartment | "all")}
-        >
-          <FormSelectTrigger className="w-full sm:w-44">
-            <FormSelectValue placeholder="كل الأقسام" />
-          </FormSelectTrigger>
-          <FormSelectContent>
-            <FormSelectItem value="all">كل الأقسام</FormSelectItem>
-            {Object.values(TaskDepartment).map((dept) => (
-              <FormSelectItem key={dept} value={dept}>
-                {DEPARTMENT_LABELS[dept]}
-              </FormSelectItem>
-            ))}
-          </FormSelectContent>
-        </FormSelect>
+        <FilterBar
+          groups={filterGroups}
+          activeFilters={activeFilters}
+          onFilterChange={handleFilterChange}
+        />
       </div>
+
+      {/* Active filter pills */}
+      {(roleFilter || deptFilter) && (
+        <div className="flex flex-wrap gap-2">
+          {roleFilter && (
+            <Pill tone="blue" className="text-xs">
+              {ROLE_LABELS[roleFilter]}
+            </Pill>
+          )}
+          {deptFilter && (
+            <Pill tone="blue" className="text-xs">
+              {DEPARTMENT_LABELS[deptFilter]}
+            </Pill>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       {isLoading && (
         <div className="rounded-lg border overflow-hidden">
           <div className="bg-neutral-50/50 px-4 py-3 flex gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 7 }).map((_, i) => (
               <Skeleton key={i} className="h-4 w-20" />
             ))}
           </div>
@@ -171,6 +238,7 @@ export default function EmployeesPage() {
               <Skeleton className="h-4 w-40" />
               <Skeleton className="h-4 w-16" />
               <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-12" />
               <Skeleton className="h-4 w-12" />
               <Skeleton className="h-4 w-16" />
             </div>
@@ -196,39 +264,21 @@ export default function EmployeesPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-neutral-50/50">
-                    <TableHead className="text-right font-semibold">
-                      الاسم
-                    </TableHead>
-                    <TableHead className="text-right font-semibold">
-                      البريد الإلكتروني
-                    </TableHead>
-                    <TableHead className="text-right font-semibold">
-                      الدور
-                    </TableHead>
-                    <TableHead className="text-right font-semibold">
-                      القسم
-                    </TableHead>
-                    <TableHead className="text-right font-semibold">
-                      ضغط العمل
-                    </TableHead>
-                    <TableHead className="text-right font-semibold">
-                      الأداء %
-                    </TableHead>
-                    <TableHead className="text-right font-semibold">
-                      الحالة
-                    </TableHead>
-                    <TableHead className="text-right font-semibold">
-                      الإجراءات
-                    </TableHead>
+                    <TableHead className="text-right font-semibold">الاسم</TableHead>
+                    <TableHead className="text-right font-semibold">البريد الإلكتروني</TableHead>
+                    <TableHead className="text-right font-semibold">الدور</TableHead>
+                    <TableHead className="text-right font-semibold">القسم</TableHead>
+                    <TableHead className="text-right font-semibold">طلبات نشطة</TableHead>
+                    <TableHead className="text-right font-semibold">مشاريع نشطة</TableHead>
+                    <TableHead className="text-right font-semibold">الحالة</TableHead>
+                    <TableHead className="text-right font-semibold">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {employees.map((emp) => (
                     <TableRow key={emp.id} className="hover:bg-neutral-50/50">
                       <TableCell className="font-medium">{emp.name}</TableCell>
-                      <TableCell className="text-neutral-300 text-sm">
-                        {emp.email}
-                      </TableCell>
+                      <TableCell className="text-neutral-300 text-sm">{emp.email}</TableCell>
                       <TableCell>
                         <Pill tone={ROLE_PILL_TONE[emp.role]}>
                           {ROLE_LABELS[emp.role]}
@@ -236,18 +286,46 @@ export default function EmployeesPage() {
                       </TableCell>
                       <TableCell>
                         {emp.department ? (
-                          <Pill tone="neutral">
-                            {DEPARTMENT_LABELS[emp.department]}
+                          <Pill tone="neutral">{DEPARTMENT_LABELS[emp.department]}</Pill>
+                        ) : (
+                          <span className="text-xs text-neutral-300">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {typeof emp.activeRequestsCount === "number" &&
+                        emp.activeRequestsCount > 0 ? (
+                          <Pill
+                            tone={
+                              emp.activeRequestsCount >= 5
+                                ? "danger"
+                                : emp.activeRequestsCount >= 3
+                                  ? "warning"
+                                  : "success"
+                            }
+                          >
+                            {emp.activeRequestsCount}
                           </Pill>
                         ) : (
                           <span className="text-xs text-neutral-300">—</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs text-neutral-300">—</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs text-neutral-300">—</span>
+                        {typeof emp.activeProjectsCount === "number" &&
+                        emp.activeProjectsCount > 0 ? (
+                          <Pill
+                            tone={
+                              emp.activeProjectsCount >= 5
+                                ? "danger"
+                                : emp.activeProjectsCount >= 3
+                                  ? "warning"
+                                  : "success"
+                            }
+                          >
+                            {emp.activeProjectsCount}
+                          </Pill>
+                        ) : (
+                          <span className="text-xs text-neutral-300">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Pill tone={emp.isActive ? "success" : "danger"}>
@@ -268,11 +346,13 @@ export default function EmployeesPage() {
                           <ActionButton
                             variant="ghost"
                             size="sm"
-                            className={`size-8 ${emp.isActive ? "text-danger-500 hover:text-danger-500" : "text-success-600 hover:text-success-600"}`}
+                            className={`size-8 ${
+                              emp.isActive
+                                ? "text-danger-500 hover:text-danger-500"
+                                : "text-success-600 hover:text-success-600"
+                            }`}
                             disabled={isToggling}
-                            onClick={() =>
-                              handleToggleActive(emp.id, emp.isActive)
-                            }
+                            onClick={() => handleToggleActive(emp.id, emp.isActive)}
                             aria-label={emp.isActive ? "تعطيل" : "تفعيل"}
                           >
                             {emp.isActive ? (
@@ -289,7 +369,9 @@ export default function EmployeesPage() {
               </Table>
             </div>
           )}
-          <p className="text-xs text-neutral-300">إجمالي {data.total} موظف</p>
+          <p className="text-xs text-neutral-300">
+            إجمالي {data.total} موظف
+          </p>
         </>
       )}
 

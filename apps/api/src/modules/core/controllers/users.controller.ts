@@ -41,6 +41,7 @@ export class UsersController {
   findAll(
     @Query("search") search?: string,
     @Query("role") role?: UserRole,
+    @Query("excludeRole") excludeRole?: UserRole,
     @Query("department") department?: TaskDepartment,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
@@ -48,6 +49,7 @@ export class UsersController {
     const filters: UserListFilters = {
       search: search || undefined,
       role: role || undefined,
+      excludeRole: excludeRole || undefined,
       department: department || undefined,
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
