@@ -13,19 +13,13 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { KpiPill, KpiCurrency } from "@/components/design-system/KpiPill";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
+import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 import { useCurrency } from "@/hooks/useCurrency";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
-
-const PLATFORM_LABELS: Record<string, string> = {
-  GOOGLE: "Google Ads",
-  META: "Meta (Facebook/Instagram)",
-  TIKTOK: "TikTok",
-  SNAPCHAT: "Snapchat",
-};
 
 function fmt(n: number) {
   return n.toLocaleString("ar-SA-u-nu-latn");

@@ -46,44 +46,13 @@ import {
   FolderKanban,
 } from "lucide-react";
 
-// ── Constants ───────────────────────────────────────────────────────────────
-
-const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
-  [CampaignStatus.PLANNING]: "تخطيط",
-  [CampaignStatus.ACTIVE]: "نشطة",
-  [CampaignStatus.PAUSED]: "متوقفة",
-  [CampaignStatus.STOPPED]: "منتهية",
-  [CampaignStatus.COMPLETED]: "مكتملة",
-};
-
-const CAMPAIGN_STATUS_BADGE: Record<string, string> = {
-  [CampaignStatus.PLANNING]: "PENDING",
-  [CampaignStatus.ACTIVE]: "ACTIVE",
-  [CampaignStatus.PAUSED]: "WARNING",
-  [CampaignStatus.STOPPED]: "DANGER",
-  [CampaignStatus.COMPLETED]: "COMPLETED",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  [CampaignPlatform.GOOGLE]: "Google Ads",
-  [CampaignPlatform.META]: "Meta Ads",
-  [CampaignPlatform.TIKTOK]: "TikTok Ads",
-  [CampaignPlatform.SNAPCHAT]: "Snapchat Ads",
-};
-
-const PLATFORM_COLORS: Record<string, string> = {
-  [CampaignPlatform.GOOGLE]: "#4285F4",
-  [CampaignPlatform.META]: "#0668E1",
-  [CampaignPlatform.TIKTOK]: "#000000",
-  [CampaignPlatform.SNAPCHAT]: "#FFFC00",
-};
-
-const PLATFORM_BG_COLORS: Record<string, string> = {
-  [CampaignPlatform.GOOGLE]: "bg-blue-500",
-  [CampaignPlatform.META]: "bg-indigo-500",
-  [CampaignPlatform.TIKTOK]: "bg-neutral-800",
-  [CampaignPlatform.SNAPCHAT]: "bg-yellow-400",
-};
+import {
+  CAMPAIGN_STATUS_LABELS,
+  CAMPAIGN_STATUS_BADGE,
+  PLATFORM_LABELS,
+  PLATFORM_COLORS,
+  PLATFORM_BG_COLORS,
+} from "@/lib/utils/campaign-constants";
 
 const NOTIFICATION_ICON_MAP: Record<string, React.ElementType> = {
   MARKETING_CAMPAIGN_CREATED: Megaphone,

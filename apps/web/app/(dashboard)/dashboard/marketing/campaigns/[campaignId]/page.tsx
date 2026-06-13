@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
@@ -25,6 +25,8 @@ import {
   useUpdateCampaignStatusMutation,
   useFlagOptimizationMutation,
   useDuplicateCampaignMutation,
+  useArchiveCampaignMutation,
+  useUnarchiveCampaignMutation,
 } from "@/features/marketing/marketingApi";
 
 // Format
@@ -54,52 +56,16 @@ import {
   Megaphone,
   Gauge,
   Calendar,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 
-// ── Constants ───────────────────────────────────────────────────────────────
-
-const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
-  PLANNING: "تخطيط",
-  ACTIVE: "نشطة",
-  PAUSED: "متوقفة",
-  STOPPED: "منتهية",
-  COMPLETED: "مكتملة",
-};
-
-const CAMPAIGN_STATUS_BADGE: Record<string, string> = {
-  PLANNING: "PENDING",
-  ACTIVE: "ACTIVE",
-  PAUSED: "WARNING",
-  STOPPED: "DANGER",
-  COMPLETED: "COMPLETED",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  GOOGLE: "Google Ads",
-  META: "Meta Ads",
-  TIKTOK: "TikTok Ads",
-  SNAPCHAT: "Snapchat Ads",
-};
-
-// ── Helper: compute metrics from raw campaign data ────────────────────────────
-
-function computeCampaignMetrics(c: any) {
-  const budgetSpent = Number(c.budgetSpent ?? 0);
-  const revenue = Number(c.revenue ?? 0);
-  const impressions = Number(c.impressions ?? 0);
-  const clicks = Number(c.clicks ?? 0);
-  const conversions = Number(c.conversions ?? 0);
-
-  const roas = budgetSpent > 0 ? revenue / budgetSpent : 0;
-  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
-  const cpc = clicks > 0 ? budgetSpent / clicks : 0;
-  const cpa = conversions > 0 ? budgetSpent / conversions : 0;
-  const convRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
-  const cpm = impressions > 0 ? (budgetSpent / impressions) * 1000 : 0;
-  const profit = revenue - budgetSpent;
-
-  return { roas, ctr, cpc, cpa, convRate, cpm, profit, budgetSpent, revenue, impressions, clicks, conversions };
-}
+import {
+  CAMPAIGN_STATUS_LABELS,
+  CAMPAIGN_STATUS_BADGE,
+  PLATFORM_LABELS,
+  computeCampaignMetrics,
+} from "@/lib/utils/campaign-constants";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -113,6 +79,8 @@ export default function CampaignDetailPage() {
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateCampaignStatusMutation();
   const [flagOptimization, { isLoading: isFlagging }] = useFlagOptimizationMutation();
   const [duplicate, { isLoading: isDuplicating }] = useDuplicateCampaignMutation();
+  const [archiveCampaign, { isLoading: isArchiving }] = useArchiveCampaignMutation();
+  const [unarchiveCampaign, { isLoading: isUnarchiving }] = useUnarchiveCampaignMutation();
 
   // Form state (controlled — batch save)
   const [form, setForm] = useState<Record<string, number>>({});
@@ -120,18 +88,21 @@ export default function CampaignDetailPage() {
 
   const resetForm = useCallback(() => {
     if (!campaign) return;
+    const analytics = campaign.analytics ?? {};
     setForm({
       budgetSpent: Number(campaign.budgetSpent ?? 0),
-      revenue: Number(campaign.revenue ?? 0),
-      impressions: Number(campaign.impressions ?? 0),
-      clicks: Number(campaign.clicks ?? 0),
-      conversions: Number(campaign.conversions ?? 0),
+      revenue: Number(analytics.revenue ?? 0),
+      impressions: Number(analytics.impressions ?? 0),
+      clicks: Number(analytics.clicks ?? 0),
+      conversions: Number(analytics.conversions ?? 0),
     });
     setHasChanges(false);
   }, [campaign]);
 
-  // Initialise on first load
-  useState(() => resetForm());
+  // Sync form when campaign data loads
+  useEffect(() => {
+    if (campaign) resetForm();
+  }, [campaign?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <PageSkeleton />;
   if (!campaign)
@@ -147,7 +118,16 @@ export default function CampaignDetailPage() {
       </div>
     );
 
-  const m = computeCampaignMetrics({ ...campaign, ...form });
+  const m = computeCampaignMetrics({
+    ...campaign,
+    analytics: {
+      ...(campaign.analytics ?? {}),
+      impressions: form.impressions ?? campaign.analytics?.impressions ?? 0,
+      clicks: form.clicks ?? campaign.analytics?.clicks ?? 0,
+      conversions: form.conversions ?? campaign.analytics?.conversions ?? 0,
+      revenue: form.revenue ?? campaign.analytics?.revenue ?? 0,
+    },
+  });
   const budgetPct = campaign.budgetTotal > 0 ? Math.min(100, (m.budgetSpent / campaign.budgetTotal) * 100) : 0;
 
   const isProfitable = m.profit > 0;
@@ -157,6 +137,7 @@ export default function CampaignDetailPage() {
   const canStart = campaign.status === "PLANNING";
   const canPause = campaign.status === "ACTIVE";
   const canStop = campaign.status === "ACTIVE" || campaign.status === "PAUSED";
+  const canComplete = campaign.status === "ACTIVE" || campaign.status === "PAUSED";
 
   const backHref = campaign.taskId
     ? `/dashboard/marketing/tasks/${campaign.taskId}`
@@ -188,6 +169,24 @@ export default function CampaignDetailPage() {
       toast.success("تم تكرار الحملة بنجاح");
     } catch {
       toast.error("فشل تكرار الحملة");
+    }
+  };
+
+  const handleArchive = async () => {
+    try {
+      await archiveCampaign(campaign.id).unwrap();
+      toast.success("تم أرشفة الحملة");
+    } catch {
+      toast.error("فشل أرشفة الحملة");
+    }
+  };
+
+  const handleUnarchive = async () => {
+    try {
+      await unarchiveCampaign(campaign.id).unwrap();
+      toast.success("تم استعادة الحملة من الأرشيف");
+    } catch {
+      toast.error("فشل استعادة الحملة");
     }
   };
 
@@ -372,6 +371,17 @@ export default function CampaignDetailPage() {
               إنهاء نهائي
             </ActionButton>
           )}
+          {canComplete && (
+            <ActionButton
+              size="sm"
+              className="gap-2"
+              onClick={() => handleStatusAction("end")}
+              disabled={isUpdatingStatus}
+              icon={<CheckCircle2 className="w-4 h-4" />}
+            >
+              إكمال
+            </ActionButton>
+          )}
           <ActionButton
             size="sm"
             variant="outline"
@@ -392,6 +402,29 @@ export default function CampaignDetailPage() {
           >
             {campaign.needsOptimization ? "إلغاء علامة التحسين" : "يحتاج تحسين"}
           </ActionButton>
+          {campaign.isArchived ? (
+            <ActionButton
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={handleUnarchive}
+              disabled={isUnarchiving}
+              icon={<ArchiveRestore className="w-4 h-4" />}
+            >
+              استعادة من الأرشيف
+            </ActionButton>
+          ) : (
+            <ActionButton
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={handleArchive}
+              disabled={isArchiving}
+              icon={<Archive className="w-4 h-4" />}
+            >
+              أرشفة
+            </ActionButton>
+          )}
         </div>
       </SurfaceCard>
 

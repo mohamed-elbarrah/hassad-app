@@ -7,6 +7,23 @@ import {
   UpdateCampaignStatusInput,
 } from "@hassad/shared";
 
+/** Flatten analytics fields from API response into campaign object */
+function flattenCampaignAnalytics(c: any) {
+  const { analytics, ...rest } = c;
+  return {
+    ...rest,
+    impressions: analytics?.impressions ?? 0,
+    clicks: analytics?.clicks ?? 0,
+    conversions: analytics?.conversions ?? 0,
+    revenue: analytics?.revenue ?? 0,
+    roas: analytics?.roas ?? 0,
+    ctr: analytics?.ctr ?? 0,
+    cpc: analytics?.cpc ?? 0,
+    cpa: analytics?.cpa ?? 0,
+    conversionRate: analytics?.conversionRate ?? 0,
+  };
+}
+
 export const marketingApi = createApi({
   reducerPath: "marketingApi",
   baseQuery,
@@ -18,18 +35,22 @@ export const marketingApi = createApi({
         { type: "TaskCampaigns", id: taskId },
       ],
       transformResponse: (baseQueryReturnValue: any) => {
-        return (baseQueryReturnValue || []).map((c: any) => ({
-          ...c,
-          impressions: c.analytics?.impressions ?? 0,
-          clicks: c.analytics?.clicks ?? 0,
-          conversions: c.analytics?.conversions ?? 0,
-          revenue: c.analytics?.revenue ?? 0,
-        }));
+        return (baseQueryReturnValue || []).map(flattenCampaignAnalytics);
       },
     }),
     getCampaign: builder.query<Campaign & { analytics: any }, string>({
       query: (id) => `campaigns/${id}`,
       providesTags: (result, error, id) => [{ type: "Campaign", id }],
+      // Keep analytics as a separate object for the detail page,
+      // but also flatten for convenience
+      transformResponse: (baseQueryReturnValue: any) => {
+        const flattened = flattenCampaignAnalytics(baseQueryReturnValue);
+        return {
+          ...flattened,
+          // Keep analytics intact for the form reset
+          analytics: baseQueryReturnValue.analytics,
+        };
+      },
     }),
     getMyCampaignStats: builder.query<
       { activeCampaigns: number; totalBudgetUsed: number; avgRoas: number },
@@ -46,6 +67,7 @@ export const marketingApi = createApi({
       }),
       invalidatesTags: (result, error, { taskId }) => [
         { type: "TaskCampaigns", id: taskId },
+        "Campaign",
       ],
     }),
     updateCampaignMetrics: builder.mutation<
@@ -59,7 +81,8 @@ export const marketingApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "Campaign", id },
-        { type: "TaskCampaigns" },
+        "TaskCampaigns",
+        "Campaign",
       ],
     }),
     updateCampaignStatus: builder.mutation<
@@ -72,7 +95,8 @@ export const marketingApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "Campaign", id },
-        { type: "TaskCampaigns" },
+        "TaskCampaigns",
+        "Campaign",
       ],
     }),
     flagOptimization: builder.mutation<
@@ -84,14 +108,43 @@ export const marketingApi = createApi({
         method: "POST",
         body: { needsOptimization },
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: "Campaign", id }],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Campaign", id },
+        "TaskCampaigns",
+      ],
     }),
     duplicateCampaign: builder.mutation<Campaign, string>({
       query: (id) => ({
         url: `campaigns/${id}/duplicate`,
         method: "POST",
       }),
-      invalidatesTags: ["TaskCampaigns"],
+      invalidatesTags: (result, error, id) => [
+        "TaskCampaigns",
+        "Campaign",
+        { type: "Campaign", id },
+      ],
+    }),
+    archiveCampaign: builder.mutation<Campaign, string>({
+      query: (id) => ({
+        url: `campaigns/${id}/archive`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Campaign", id },
+        "TaskCampaigns",
+        "Campaign",
+      ],
+    }),
+    unarchiveCampaign: builder.mutation<Campaign, string>({
+      query: (id) => ({
+        url: `campaigns/${id}/unarchive`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Campaign", id },
+        "TaskCampaigns",
+        "Campaign",
+      ],
     }),
   }),
 });
@@ -105,4 +158,6 @@ export const {
   useUpdateCampaignStatusMutation,
   useFlagOptimizationMutation,
   useDuplicateCampaignMutation,
+  useArchiveCampaignMutation,
+  useUnarchiveCampaignMutation,
 } = marketingApi;

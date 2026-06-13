@@ -98,37 +98,12 @@ import {
   Legend,
 } from "recharts";
 
-// ── Constants ───────────────────────────────────────────────────────────────
-
-const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
-  PLANNING: "تخطيط",
-  ACTIVE: "نشطة",
-  PAUSED: "متوقفة",
-  STOPPED: "منتهية",
-  COMPLETED: "مكتملة",
-};
-
-const CAMPAIGN_STATUS_BADGE: Record<string, string> = {
-  PLANNING: "PENDING",
-  ACTIVE: "ACTIVE",
-  PAUSED: "WARNING",
-  STOPPED: "DANGER",
-  COMPLETED: "COMPLETED",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  GOOGLE: "Google Ads",
-  META: "Meta Ads",
-  TIKTOK: "TikTok Ads",
-  SNAPCHAT: "Snapchat Ads",
-};
-
-const PLATFORM_ICON_BG: Record<string, string> = {
-  GOOGLE: "bg-blue-50 text-blue-600",
-  META: "bg-indigo-50 text-indigo-600",
-  TIKTOK: "bg-neutral-100 text-neutral-700",
-  SNAPCHAT: "bg-yellow-50 text-yellow-700",
-};
+import {
+  CAMPAIGN_STATUS_LABELS,
+  CAMPAIGN_STATUS_BADGE,
+  PLATFORM_LABELS,
+  PLATFORM_ICON_BG,
+} from "@/lib/utils/campaign-constants";
 
 const TASK_STATUS_MAP: Record<TaskStatus, string> = {
   [TaskStatus.TODO]: "PENDING",
@@ -632,8 +607,6 @@ export default function MarketingTaskDetailPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         taskId={taskId}
-        clientId={task.project?.clientId}
-        projectId={task.projectId}
       />
     </div>
   );
@@ -664,6 +637,9 @@ function CampaignCard({
   const canStart = campaign.status === CampaignStatus.PLANNING;
   const canPause = campaign.status === CampaignStatus.ACTIVE;
   const canStop =
+    campaign.status === CampaignStatus.ACTIVE ||
+    campaign.status === CampaignStatus.PAUSED;
+  const canComplete =
     campaign.status === CampaignStatus.ACTIVE ||
     campaign.status === CampaignStatus.PAUSED;
 
@@ -810,6 +786,16 @@ function CampaignCard({
             icon={<StopCircle className="w-3.5 h-3.5" />}
           >
             إنهاء
+          </ActionButton>
+        )}
+        {canComplete && (
+          <ActionButton
+            size="sm"
+            className="gap-1"
+            onClick={() => updateStatus({ id: campaign.id, action: "end" })}
+            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+          >
+            إكمال
           </ActionButton>
         )}
       </div>

@@ -103,7 +103,7 @@ export class PortalService {
         take: 5,
       }),
       this.prisma.campaign.findMany({
-        where: { clientId },
+        where: { clientId, isArchived: false },
         select: { id: true, name: true, status: true, platform: true },
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -665,7 +665,7 @@ export class PortalService {
 
   async getCampaignSummary(clientId: string) {
     const campaigns = await this.prisma.campaign.findMany({
-      where: { clientId },
+      where: { clientId, isArchived: false },
       select: { id: true, status: true },
     });
 
@@ -1155,7 +1155,7 @@ export class PortalService {
 
   async findCampaignsByClient(clientId: string) {
     const campaigns = await this.prisma.campaign.findMany({
-      where: { clientId },
+      where: { clientId, isArchived: false },
       orderBy: { createdAt: "desc" },
     });
 
@@ -1168,7 +1168,7 @@ export class PortalService {
 
   async findCampaignOne(id: string, clientId: string) {
     const campaign = await this.prisma.campaign.findFirst({
-      where: { id, clientId },
+      where: { id, clientId, isArchived: false },
       include: {
         kpiSnapshots: {
           orderBy: { recordedAt: "desc" },

@@ -52,7 +52,7 @@ import {
   PaymentEventType,
   PayType,
 } from "./enums/finance";
-import { CampaignPlatform, CampaignStatus } from "./enums/campaign";
+import { CampaignPlatform, CampaignStatus, KpiSource, SyncStatus } from "./enums/campaign";
 import { ServiceCategory } from "./enums/service";
 
 export interface User {
@@ -390,10 +390,10 @@ export interface Ledger {
 
 export interface Campaign {
   id: string;
-  taskId?: string;
-  clientId?: string;
+  taskId: string;
+  clientId: string;
   projectId?: string | null;
-  managedBy?: string;
+  managedBy: string;
   name: string;
   platform: CampaignPlatform;
   status: CampaignStatus;
@@ -401,24 +401,27 @@ export interface Campaign {
   endDate?: Date | string | null;
   budgetTotal: number;
   budgetSpent: number;
-  impressions: number;
-  clicks: number;
-  conversions: number;
-  revenue?: number | null;
-  cpcOverride?: number | null;
-  cpaOverride?: number | null;
   needsOptimization: boolean;
-  externalCampaignId?: string | null;
+  isArchived: boolean;
+  currency: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
 
 export interface CampaignAnalytics {
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  revenue: number;
   cpc: number;
   cpa: number;
   ctr: number;
   conversionRate: number;
   roas: number;
+}
+
+export interface CampaignWithAnalytics extends Campaign {
+  analytics: CampaignAnalytics;
 }
 
 export interface ServiceCatalog {

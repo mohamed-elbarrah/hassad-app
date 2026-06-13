@@ -19,16 +19,12 @@ interface CampaignFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   taskId: string;
-  clientId: string;
-  projectId?: string;
 }
 
 export function CampaignFormModal({
   isOpen,
   onClose,
   taskId,
-  clientId,
-  projectId,
 }: CampaignFormModalProps) {
   const [createCampaign, { isLoading }] = useCreateCampaignMutation();
   const [formData, setFormData] = useState({
@@ -44,8 +40,6 @@ export function CampaignFormModal({
       await createCampaign({
         ...formData,
         taskId,
-        clientId,
-        projectId,
       }).unwrap();
       toast.success("تم إنشاء الحملة بنجاح");
       onClose();
@@ -102,7 +96,7 @@ export function CampaignFormModal({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="budget">الميزانية الكلية (USD)</label>
+          <label htmlFor="budget">الميزانية الكلية (ر.س)</label>
           <FormInputControl
             id="budget"
             type="number"

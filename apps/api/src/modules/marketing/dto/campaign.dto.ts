@@ -14,13 +14,6 @@ export class CreateCampaignDto {
   @IsUUID()
   taskId: string;
 
-  @IsUUID()
-  clientId: string;
-
-  @IsOptional()
-  @IsUUID()
-  projectId?: string;
-
   @IsString()
   name: string;
 
@@ -112,4 +105,17 @@ export class CampaignQueryDto {
   @IsOptional()
   @IsUUID()
   taskId?: string;
+}
+
+export class KpiSnapshotQueryDto {
+  @IsOptional()
+  from?: string;
+
+  @IsOptional()
+  to?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  limit?: number;
 }

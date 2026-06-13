@@ -14,6 +14,7 @@ import {
   UpdateCampaignDto,
   UpdateCampaignMetricsDto,
   CampaignQueryDto,
+  KpiSnapshotQueryDto,
 } from "../dto/campaign.dto";
 import { CampaignStatus } from "@hassad/shared";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
@@ -41,7 +42,7 @@ export class CampaignsController {
   @Get("my-stats")
   @RequirePermissions("marketing.read")
   getMyStats(@CurrentUser() user: any) {
-    return this.campaignsService.myStats(user.id);
+    return this.campaignsService.myStats(user.id, user.role);
   }
 
   @Get(":id")
@@ -70,7 +71,7 @@ export class CampaignsController {
   @RequirePermissions("marketing.read")
   getKpiSnapshots(
     @Param("id") id: string,
-    @Query() query: { from?: string; to?: string },
+    @Query() query: KpiSnapshotQueryDto,
   ) {
     return this.campaignsService.getKpiSnapshots(id, query);
   }
@@ -133,6 +134,18 @@ export class CampaignsController {
       needsOptimization,
       user.id,
     );
+  }
+
+  @Patch(":id/archive")
+  @RequirePermissions("marketing.update")
+  archive(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.campaignsService.archive(id, user.id);
+  }
+
+  @Patch(":id/unarchive")
+  @RequirePermissions("marketing.update")
+  unarchive(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.campaignsService.unarchive(id, user.id);
   }
 }
 

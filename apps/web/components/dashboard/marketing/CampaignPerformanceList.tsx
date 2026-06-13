@@ -26,35 +26,12 @@ interface CampaignWithMetrics {
   clientName?: string;
 }
 
-const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
-  PLANNING: "تخطيط",
-  ACTIVE: "نشطة",
-  PAUSED: "متوقفة",
-  STOPPED: "منتهية",
-  COMPLETED: "مكتملة",
-};
-
-const CAMPAIGN_STATUS_BADGE: Record<string, string> = {
-  PLANNING: "PENDING",
-  ACTIVE: "ACTIVE",
-  PAUSED: "WARNING",
-  STOPPED: "DANGER",
-  COMPLETED: "COMPLETED",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  GOOGLE: "Google",
-  META: "Meta",
-  TIKTOK: "TikTok",
-  SNAPCHAT: "Snapchat",
-};
-
-const PLATFORM_DOT: Record<string, string> = {
-  GOOGLE: "bg-blue-500",
-  META: "bg-indigo-500",
-  TIKTOK: "bg-neutral-800",
-  SNAPCHAT: "bg-yellow-400",
-};
+import {
+  CAMPAIGN_STATUS_LABELS,
+  CAMPAIGN_STATUS_BADGE,
+  PLATFORM_LABELS,
+  PLATFORM_DOT,
+} from "@/lib/utils/campaign-constants";
 
 function RoasIndicator({ roas }: { roas: number }) {
   if (roas >= 2)
