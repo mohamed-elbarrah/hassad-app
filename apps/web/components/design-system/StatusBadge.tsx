@@ -1,12 +1,97 @@
 "use client";
 import { cn } from "@/lib/utils";
 
-const STATUS_MAP = {
+const STATUS_MAP: Record<string, { bg: string; text: string; border: string; label: string }> = {
+  // Finance statuses
   PAID: {
     bg: "bg-success-100",
     text: "text-success-600",
     border: "border-success-200",
     label: "مدفوع",
+  },
+  UNPAID: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "غير مدفوع",
+  },
+  PARTIAL: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "مدفوع جزئياً",
+  },
+  DUE: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "مستحق",
+  },
+  LATE: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "متأخر",
+  },
+  
+  // Blue/Purple statuses - "Under Review" states (distinct from gray)
+  AWAITING_REVIEW: {
+    bg: "bg-blue-100",
+    text: "text-blue-600",
+    border: "border-blue-200",
+    label: "بانتظار المراجعة",
+  },
+  IN_REVIEW: {
+    bg: "bg-purple-100",
+    text: "text-purple-600",
+    border: "border-purple-200",
+    label: "قيد المراجعة",
+  },
+  SENT: {
+    bg: "bg-blue-100",
+    text: "text-blue-600",
+    border: "border-blue-200",
+    label: "مرسل",
+  },
+  
+  // Orange/Yellow - "Warning/Attention" states
+  PENDING: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "معلق",
+  },
+  ON_HOLD: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "معلق",
+  },
+  NEEDS_REVISION: {
+    bg: "bg-orange-100",
+    text: "text-orange-600",
+    border: "border-orange-200",
+    label: "مطلوب تعديلات",
+  },
+  REVISION: {
+    bg: "bg-orange-100",
+    text: "text-orange-600",
+    border: "border-orange-200",
+    label: "تعديل مطلوب",
+  },
+  PAUSED: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "متوقف مؤقتاً",
+  },
+  
+  // Green - "Success/Active" states
+  ACTIVE: {
+    bg: "bg-success-100",
+    text: "text-success-600",
+    border: "border-success-200",
+    label: "نشط",
   },
   COMPLETED: {
     bg: "bg-success-100",
@@ -14,53 +99,11 @@ const STATUS_MAP = {
     border: "border-success-200",
     label: "مكتمل",
   },
-  ACTIVE: {
+  DONE: {
     bg: "bg-success-100",
     text: "text-success-600",
     border: "border-success-200",
-    label: "نشط",
-  },
-  PENDING: {
-    bg: "bg-alert-100",
-    text: "text-alert-600",
-    border: "border-alert-200",
-    label: "معلق",
-  },
-  IN_PROGRESS: {
-    bg: "bg-alert-100",
-    text: "text-alert-600",
-    border: "border-alert-200",
-    label: "قيد التنفيذ",
-  },
-  OVERDUE: {
-    bg: "bg-danger-100",
-    text: "text-danger-600",
-    border: "border-danger-200",
-    label: "متأخر",
-  },
-  CANCELLED: {
-    bg: "bg-danger-100",
-    text: "text-danger-600",
-    border: "border-danger-200",
-    label: "ملغي",
-  },
-  STOPPED: {
-    bg: "bg-danger-100",
-    text: "text-danger-600",
-    border: "border-danger-200",
-    label: "متوقف",
-  },
-  DRAFT: {
-    bg: "bg-neutral-50",
-    text: "text-neutral-300",
-    border: "border-neutral-200",
-    label: "مسودة",
-  },
-  NEW: {
-    bg: "bg-neutral-50",
-    text: "text-neutral-300",
-    border: "border-neutral-200",
-    label: "جديد",
+    label: "مكتمل",
   },
   SIGNED: {
     bg: "bg-success-100",
@@ -68,19 +111,33 @@ const STATUS_MAP = {
     border: "border-success-200",
     label: "موقع",
   },
-  SENT: {
-    bg: "bg-alert-100",
-    text: "text-alert-600",
-    border: "border-alert-200",
-    label: "مرسل",
-  },
   APPROVED: {
     bg: "bg-success-100",
     text: "text-success-600",
     border: "border-success-200",
     label: "معتمد",
   },
+  IN_PROGRESS: {
+    bg: "bg-primary-100",
+    text: "text-primary-600",
+    border: "border-primary-200",
+    label: "قيد التنفيذ",
+  },
+  
+  // Red - "Danger/Error" states
+  CANCELLED: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "ملغي",
+  },
   REJECTED: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "مرفوض",
+  },
+  REJECT: {
     bg: "bg-danger-100",
     text: "text-danger-600",
     border: "border-danger-200",
@@ -92,7 +149,261 @@ const STATUS_MAP = {
     border: "border-danger-200",
     label: "منتهي",
   },
-} as const;
+  OVERDUE: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "متأخر",
+  },
+  STOPPED: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "متوقف",
+  },
+  
+  // Gray - "Neutral/Info" states
+  PLANNING: {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "تخطيط",
+  },
+  TODO: {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "لم يبدأ",
+  },
+  DRAFT: {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "مسودة",
+  },
+  NEW: {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "جديد",
+  },
+  
+  // Proposal statuses - Additional uppercase
+  REVISION_REQUESTED: {
+    bg: "bg-orange-100",
+    text: "text-orange-600",
+    border: "border-orange-200",
+    label: "مطلوب مراجعة",
+  },
+  
+  // Lowercase - Blue/Purple (Review states)
+  "awaiting-review": {
+    bg: "bg-blue-100",
+    text: "text-blue-600",
+    border: "border-blue-200",
+    label: "بانتظار المراجعة",
+  },
+  "in-review": {
+    bg: "bg-purple-100",
+    text: "text-purple-600",
+    border: "border-purple-200",
+    label: "قيد المراجعة",
+  },
+  sent: {
+    bg: "bg-blue-100",
+    text: "text-blue-600",
+    border: "border-blue-200",
+    label: "مرسل",
+  },
+  awaiting: {
+    bg: "bg-blue-100",
+    text: "text-blue-600",
+    border: "border-blue-200",
+    label: "بانتظار المراجعة",
+  },
+  inreview: {
+    bg: "bg-purple-100",
+    text: "text-purple-600",
+    border: "border-purple-200",
+    label: "قيد المراجعة",
+  },
+  
+  // Lowercase - Orange (Warning/Attention states)
+  "needs-revision": {
+    bg: "bg-orange-100",
+    text: "text-orange-600",
+    border: "border-orange-200",
+    label: "مطلوب تعديلات",
+  },
+  needsrevision: {
+    bg: "bg-orange-100",
+    text: "text-orange-600",
+    border: "border-orange-200",
+    label: "مطلوب تعديلات",
+  },
+  revision: {
+    bg: "bg-orange-100",
+    text: "text-orange-600",
+    border: "border-orange-200",
+    label: "تعديل مطلوب",
+  },
+  "on-hold": {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "معلق",
+  },
+  pending: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "معلق",
+  },
+  partial: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "مدفوع جزئياً",
+  },
+  due: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "مستحق",
+  },
+  hold: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "معلق",
+  },
+  
+  // Lowercase - Green (Success states)
+  completed: {
+    bg: "bg-success-100",
+    text: "text-success-600",
+    border: "border-success-200",
+    label: "مكتمل",
+  },
+  active: {
+    bg: "bg-success-100",
+    text: "text-success-600",
+    border: "border-success-200",
+    label: "نشط",
+  },
+  done: {
+    bg: "bg-success-100",
+    text: "text-success-600",
+    border: "border-success-200",
+    label: "مكتمل",
+  },
+  signed: {
+    bg: "bg-success-100",
+    text: "text-success-600",
+    border: "border-success-200",
+    label: "موقع",
+  },
+  approved: {
+    bg: "bg-success-100",
+    text: "text-success-600",
+    border: "border-success-200",
+    label: "معتمد",
+  },
+  paid: {
+    bg: "bg-success-100",
+    text: "text-success-600",
+    border: "border-success-200",
+    label: "مدفوع",
+  },
+  "in-progress": {
+    bg: "bg-primary-100",
+    text: "text-primary-600",
+    border: "border-primary-200",
+    label: "قيد التنفيذ",
+  },
+  progress: {
+    bg: "bg-primary-100",
+    text: "text-primary-600",
+    border: "border-primary-200",
+    label: "قيد التنفيذ",
+  },
+  
+  // Lowercase - Red (Danger/Error states)
+  cancelled: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "ملغي",
+  },
+  rejected: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "مرفوض",
+  },
+  expired: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "منتهي",
+  },
+  overdue: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "متأخر",
+  },
+  stopped: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "متوقف",
+  },
+  late: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "متأخر",
+  },
+  unpaid: {
+    bg: "bg-danger-100",
+    text: "text-danger-600",
+    border: "border-danger-200",
+    label: "غير مدفوع",
+  },
+  
+  // Lowercase - Gray (Neutral states)
+  planning: {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "تخطيط",
+  },
+  "not-started": {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "لم يبدأ",
+  },
+  todo: {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "لم يبدأ",
+  },
+  draft: {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "مسودة",
+  },
+  new: {
+    bg: "bg-neutral-100",
+    text: "text-neutral-600",
+    border: "border-neutral-200",
+    label: "جديد",
+  },
+};
 
 export type StatusType = string;
 
@@ -103,6 +414,11 @@ export interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, label, className }: StatusBadgeProps) {
+  // Debug: Log unknown statuses in development
+  if (process.env.NODE_ENV === 'development' && !STATUS_MAP[status]) {
+    console.warn(`[StatusBadge] Unknown status: "${status}"`);
+  }
+  
   const style = STATUS_MAP[status] ?? STATUS_MAP.DRAFT;
   return (
     <span
