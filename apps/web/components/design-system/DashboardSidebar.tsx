@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Settings, Leaf } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
@@ -100,18 +101,8 @@ export function DashboardSidebar() {
     >
       {/* ── Logo ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-center py-6">
-        <div className="flex items-center gap-2">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary-500 text-white shrink-0"
-          >
-            <Leaf className="h-5 w-5" />
-          </div>
-          <span
-            className="text-xl font-bold"
-            style={{ color: "#000000" }}
-          >
-            حصاد
-          </span>
+        <div className="flex flex-col items-center gap-1">
+          <Image src="/masar.svg" alt="Logo" width={100} height={100} />
         </div>
       </div>
 

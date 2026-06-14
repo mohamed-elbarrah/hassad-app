@@ -5,6 +5,8 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { StorageModule } from "./common/storage/storage.module";
+import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { RobustErrorLoggerService } from "./modules/health/services/robust-error-logger.service";
 
 // V2 Modules
 import { CoreModule } from "./modules/core/core.module";
@@ -26,6 +28,7 @@ import { PaymentsModule } from "./modules/payments/payments.module";
 import { ServicesModule } from "./modules/services/services.module";
 import { SettingsModule } from "./modules/settings/settings.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { HealthModule } from "./modules/health/health.module";
 
 @Module({
   imports: [
@@ -62,6 +65,15 @@ import { AdminModule } from "./modules/admin/admin.module";
     NotificationsModule,
     AiModule,
     SalesModule,
+    HealthModule,
   ],
+  providers: [
+    RobustErrorLoggerService,
+    {
+      provide: 'APP_FILTER',
+      useClass: HttpExceptionFilter,
+    },
+  ],
+  exports: [RobustErrorLoggerService],
 })
 export class AppModule {}

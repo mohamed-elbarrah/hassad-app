@@ -26,6 +26,7 @@ import { departmentsApi } from "@/features/departments/departmentsApi";
 import { rolesApi } from "@/features/roles/rolesApi";
 import { permissionsApi } from "@/features/permissions/permissionsApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
+import { healthApi } from "@/features/health/healthApi";
 
 export const store = configureStore({
   reducer: {
@@ -55,6 +56,7 @@ export const store = configureStore({
     [departmentsApi.reducerPath]: departmentsApi.reducer,
     [rolesApi.reducerPath]: rolesApi.reducer,
     [permissionsApi.reducerPath]: permissionsApi.reducer,
+    [healthApi.reducerPath]: healthApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -85,6 +87,7 @@ export const store = configureStore({
       departmentsApi.middleware,
       rolesApi.middleware,
       permissionsApi.middleware,
+      healthApi.middleware,
     ),
 });
 
