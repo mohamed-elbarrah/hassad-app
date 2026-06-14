@@ -10,7 +10,7 @@ import { KpiPill, KpiCurrency } from "@/components/design-system/KpiPill";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Pagination } from "@/components/design-system/Pagination";
-import { FilterPills } from "@/components/design-system/FilterPills";
+import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import {
   PaymentSheet,
@@ -25,17 +25,23 @@ import { Search, CreditCard, Receipt } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
 import { SymbolRenderer } from "@/components/design-system/CurrencySymbol";
 
-const PAGE_SIZE = 7;
-
-const STATUS_FILTER_OPTIONS = [
-  { value: "ALL", label: "الكل" },
-  { value: "PAID", label: "مدفوعة" },
-  { value: "PARTIAL", label: "مدفوعة جزئياً" },
-  { value: "DUE", label: "قيد الانتظار" },
-  { value: "LATE", label: "متأخرة" },
-  { value: "SENT", label: "مُرسلة" },
-  { value: "CANCELLED", label: "ملغاة" },
+const FILTER_GROUPS: FilterGroup[] = [
+  {
+    key: "status",
+    label: "الحالة",
+    options: [
+      { value: "ALL", label: "الكل" },
+      { value: "PAID", label: "مدفوعة" },
+      { value: "PARTIAL", label: "مدفوعة جزئياً" },
+      { value: "DUE", label: "قيد الانتظار" },
+      { value: "LATE", label: "متأخرة" },
+      { value: "SENT", label: "مُرسلة" },
+      { value: "CANCELLED", label: "ملغاة" },
+    ],
+  },
 ];
+
+const PAGE_SIZE = 7;
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -68,12 +74,14 @@ function getInvoiceStatus(status?: string) {
 export default function PortalFinancePage() {
   const { currency, fmtAmount } = useCurrency();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<PayableInvoice | null>(
     null,
   );
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
+
+  const statusFilter = activeFilters["status"]?.[0] ?? "ALL";
 
   const { data: summaryData, isLoading: summaryLoading } =
     useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: 30_000 });
@@ -91,10 +99,10 @@ export default function PortalFinancePage() {
   const total = invoicesData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const handleFilterChange = (value: string) => {
-    setStatusFilter(value);
+  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
+    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
     setPage(1);
-  };
+  }, []);
 
   const filteredInvoices = useMemo(() => {
     if (!searchQuery.trim()) return invoices;
@@ -178,27 +186,23 @@ export default function PortalFinancePage() {
         description="جميع فواتيرك مع حالة الدفع والإجراءات المتاحة"
         icon={Receipt}
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 py-2">
-              <Search className="h-4 w-4 text-portal-icon" />
-              <Input
-                placeholder="البحث برقم الفاتورة..."
-                className="text-sm h-8 w-[200px]"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-            <FilterPills
-              options={STATUS_FILTER_OPTIONS}
-              active={statusFilter}
-              onChange={handleFilterChange}
-            />
-          </div>
+          <FilterBar groups={FILTER_GROUPS} activeFilters={activeFilters} onFilterChange={handleFilterChange} />
         }
       >
+        {/* Toolbar inside card */}
+        <div className="relative flex-1 mb-4">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
+          <Input
+            placeholder="ابحث برقم الفاتورة..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
+            className="pr-9 h-10"
+          />
+        </div>
+
         <DataTable
           columns={[
             { id: "number", label: "رقم الفاتورة" },
@@ -265,11 +269,13 @@ export default function PortalFinancePage() {
         />
 
         {!invoicesLoading && filteredInvoices.length > 0 && (
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
+          <div className="mt-6">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
         )}
       </SurfaceCard>
 

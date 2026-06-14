@@ -143,6 +143,134 @@ export class PortalService {
     };
   }
 
+  /**
+   * Get all team members responsible for client's projects and requests
+   * Includes: Sales reps from requests and PMs from projects
+   */
+  async getClientTeamMembers(clientId: string) {
+    // Get the client with their user account
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: {
+        userId: true,
+        accountManager: true,
+      },
+    });
+
+    if (!client) {
+      return { members: [] };
+    }
+
+    const members: Array<{
+      id: string;
+      name: string;
+      role: string;
+      roleType: "SALES" | "PM" | "ACCOUNT_MANAGER";
+      isOnline: boolean;
+      avatarUrl?: string | null;
+    }> = [];
+
+    // Get all requests with assigned sales reps
+    const requests = await this.prisma.request.findMany({
+      where: { clientId },
+      select: {
+        assignedSalesId: true,
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      distinct: ["assignedSalesId"],
+    });
+
+    // Add sales reps
+    const salesIds = new Set<string>();
+    for (const request of requests) {
+      if (request.assignee && request.assignedSalesId && !salesIds.has(request.assignedSalesId)) {
+        salesIds.add(request.assignedSalesId);
+        members.push({
+          id: request.assignee.id,
+          name: request.assignee.name,
+          role: "المشرف",
+          roleType: "SALES",
+          isOnline: request.assignee.isActive ?? false,
+          avatarUrl: request.assignee.avatarUrl,
+        });
+      }
+    }
+
+    // Get account manager from client if exists and is different from sales reps
+    if (client.accountManager) {
+      const accountManagerUser = await this.prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: client.accountManager },
+            { name: { contains: client.accountManager, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          avatarUrl: true,
+        },
+      });
+
+      if (accountManagerUser && !salesIds.has(accountManagerUser.id)) {
+        members.push({
+          id: accountManagerUser.id,
+          name: accountManagerUser.name,
+          role: "مدير الحساب",
+          roleType: "ACCOUNT_MANAGER",
+          isOnline: accountManagerUser.isActive ?? false,
+          avatarUrl: accountManagerUser.avatarUrl,
+        });
+      }
+    }
+
+    // Get all project managers from projects
+    const projects = await this.prisma.project.findMany({
+      where: { clientId, isArchived: false },
+      select: {
+        projectManagerId: true,
+        manager: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      distinct: ["projectManagerId"],
+    });
+
+    // Add PMs
+    const pmIds = new Set<string>();
+    for (const project of projects) {
+      if (project.manager && project.projectManagerId && !pmIds.has(project.projectManagerId)) {
+        pmIds.add(project.projectManagerId);
+        // Check if this PM is not already added as sales/account manager
+        if (!salesIds.has(project.projectManagerId)) {
+          members.push({
+            id: project.manager.id,
+            name: project.manager.name,
+            role: "مدير المشروع",
+            roleType: "PM",
+            isOnline: project.manager.isActive ?? false,
+            avatarUrl: project.manager.avatarUrl,
+          });
+        }
+      }
+    }
+
+    return { members };
+  }
+
   async getProjectProgress(clientId: string) {
     const projects = await this.prisma.project.findMany({
       where: { clientId, isArchived: false },

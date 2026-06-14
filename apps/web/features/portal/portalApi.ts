@@ -291,6 +291,19 @@ export interface ProjectReviewDetail {
   revisionRequests: ProjectReviewRevision[];
 }
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  roleType: "SALES" | "PM" | "ACCOUNT_MANAGER";
+  isOnline: boolean;
+  avatarUrl?: string | null;
+}
+
+export interface TeamMembersResponse {
+  members: TeamMember[];
+}
+
 export const portalApi = createApi({
   reducerPath: "portalApi",
   baseQuery,
@@ -308,6 +321,7 @@ export const portalApi = createApi({
     "PortalContracts",
     "PortalReports",
     "ReviewProjects",
+    "TeamMembers",
   ],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
@@ -473,6 +487,11 @@ export const portalApi = createApi({
     getProjectRevisions: builder.query<ProjectReviewRevision[], string>({
       query: (id) => `/portal/projects/${id}/revisions`,
     }),
+
+    getTeamMembers: builder.query<TeamMembersResponse, void>({
+      query: () => "/portal/team-members",
+      providesTags: ["TeamMembers"],
+    }),
   }),
 });
 
@@ -499,4 +518,5 @@ export const {
   useApproveProjectMutation,
   useRequestProjectRevisionMutation,
   useGetProjectRevisionsQuery,
+  useGetTeamMembersQuery,
 } = portalApi;

@@ -15,10 +15,10 @@ import {
   Receipt,
   CheckCircle,
   PenTool,
+  MessageCircle,
 } from "lucide-react";
 
 import { useAppSelector } from "@/lib/hooks";
-import { useGetDeliverablesByClientQuery } from "@/features/deliverables/deliverablesApi";
 import {
   useGetPortalRequestsQuery,
   useGetProjectProgressQuery,
@@ -26,6 +26,7 @@ import {
   useGetActivityFeedQuery,
   useGetCampaignSummaryQuery,
   useSnoozeActionItemMutation,
+  useGetTeamMembersQuery,
 } from "@/features/portal/portalApi";
 
 import { DashboardCard } from "@/components/design-system/DashboardCard";
@@ -34,12 +35,7 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionItemCard } from "@/components/design-system/ActionItemCard";
 import { KpiRow } from "@/components/design-system/KpiRow";
 import { TimelineItem } from "@/components/design-system/TimelineItem";
-import { DeliverableItem } from "@/components/design-system/DeliverableItem";
-import { PmCard } from "@/components/design-system/PmCard";
-import {
-  mapTaskStatusToUI,
-  mapProjectStatusToUI,
-} from "@/lib/utils/statusMapping";
+import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { cn } from "@/lib/utils";
 
@@ -88,10 +84,6 @@ export default function PortalPage() {
 
   const [snoozeActionItem] = useSnoozeActionItemMutation();
 
-  const { data: deliverables } = useGetDeliverablesByClientQuery(clientId, {
-    skip: !clientId,
-    pollingInterval: 30_000,
-  });
   const { data: pendingRequestsData, error: pendingRequestsError } =
     useGetPortalRequestsQuery(
       { page: 1, limit: 3 },
@@ -123,19 +115,16 @@ export default function PortalPage() {
     skip: !clientId,
     pollingInterval: 30_000,
   });
+  const { data: teamMembersData } = useGetTeamMembersQuery(undefined, {
+    skip: !clientId,
+    pollingInterval: 30_000,
+  });
 
   const projects = projectProgress?.projects ?? [];
   const pendingRequests = pendingRequestsData?.data ?? [];
   const gaugeValue = projectProgress?.overallProgress ?? 0;
   const actionItems = actionItemsData?.items ?? [];
   const activityItems = activityFeedData?.items ?? [];
-
-  const totalDeliverables = deliverables?.length ?? 0;
-
-  const activePm =
-    projects.find((p) => p.status === "ACTIVE")?.projectManager ??
-    projects[0]?.projectManager ??
-    null;
 
   const handleSnooze = async (item: { id: string; type: string }) => {
     const itemId = item.id.replace(/^(del|inv|prop|con)-/, "");
@@ -459,17 +448,67 @@ export default function PortalPage() {
           )}
         </DashboardCard> */}
 
-        {/* ── مدير المشروع ──────────────────────────── */}
+        {/* ── المسؤولون عن مشروعي ──────────────────────────── */}
         <DashboardCard
-          title="مدير المشروع"
-          icon={ClipboardList}
+          title="المسؤولون عن مشروعي"
+          icon={Users}
           showAll={false}
         >
-          <PmCard
-            name={activePm?.name ?? "غير معين"}
-            role="مدير المشروع المسؤول"
-            status={activePm?.isOnline ? "online" : "offline"}
-          />
+          {teamMembersData?.members && teamMembersData.members.length > 0 ? (
+            <div className="space-y-3">
+              {teamMembersData.members.map((member) => (
+                <div
+                  key={member.id}
+                  className="p-4 bg-white border-[1.5px] border-portal-card-border rounded-2xl space-y-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      {member.avatarUrl ? (
+                        <img
+                          src={member.avatarUrl}
+                          alt={member.name}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-secondary-500 text-white flex items-center justify-center text-lg font-semibold">
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      {member.isOnline && (
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-success-500 rounded-full border-2 border-white" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-base font-semibold text-natural-100 truncate">
+                        {member.name}
+                      </h4>
+                      <p className="text-sm text-portal-note-text">{member.role}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/portal/chat?userId=${member.id}`)}
+                    className="w-full h-12 px-4 flex items-center justify-center gap-2 rounded-xl bg-pm-button-bg text-pm-button-text hover:bg-pm-button-bg/80 transition-colors font-semibold"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    تواصل معه
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-5 text-center">
+              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-badge-gray-bg flex items-center justify-center">
+                <Users className="w-8 h-8 text-secondary-500" />
+              </div>
+              <p className="text-base font-medium text-natural-100 mb-1">
+                لم يتم تعيين فريق بعد
+              </p>
+              <p className="text-sm text-portal-note-text">
+                سيظهر فريق العمل المسؤول عن مشروعك هنا
+              </p>
+            </div>
+          )}
         </DashboardCard>
       </div>
     </div>
