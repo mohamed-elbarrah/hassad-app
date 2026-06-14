@@ -238,6 +238,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { id } = use(params);
   const { user } = useAppSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState("overview");
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
 
   const { data: project, isLoading: projectLoading, isError: projectError } = useGetProjectByIdQuery(id);
   const { data: files, isLoading: filesLoading } = useGetProjectFilesQuery(id);
@@ -341,7 +342,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
       <div className="flex flex-wrap items-center gap-2">
         <ActionButton
           size="sm"
-          onClick={() => setActiveTab("tasks")}
+          onClick={() => {
+            setActiveTab("tasks");
+            setTaskFormOpen(true);
+          }}
           icon={<Plus className="w-4 h-4" />}
         >
           مهمة جديدة
@@ -602,7 +606,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             title="المهام"
             description="إدارة وتوزيع مهام المشروع"
             icon={FolderKanban}
-            action={<TaskForm projectId={id} />}
+            action={<TaskForm projectId={id} open={taskFormOpen} onOpenChange={setTaskFormOpen} />}
           >
             {tasksLoading ? (
               <div className="h-96 flex items-center justify-center">
@@ -614,7 +618,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 title="لا توجد مهام"
                 description="ابدأ بإنشاء أول مهمة لهذا المشروع"
                 actionLabel="مهمة جديدة"
-                onAction={() => {}}
+                onAction={() => setTaskFormOpen(true)}
               />
             ) : (
               <TaskKanban projectId={id} />

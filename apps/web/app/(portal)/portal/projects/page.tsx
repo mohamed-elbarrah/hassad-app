@@ -205,7 +205,7 @@ export default function PortalProjectsPage() {
 
                 {/* Card Footer */}
                 <div className="mt-4 pt-3 border-t border-portal-divider">
-                  <Link href={`/portal/projects/${project.id}`}>
+                  <Link href="/portal/deliverables">
                     <ActionButton
                       variant="outline"
                       size="sm"

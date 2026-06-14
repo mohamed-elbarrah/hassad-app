@@ -175,17 +175,22 @@ export class TasksService {
         }
       : {};
 
-    const roleAndDeptFilter: Prisma.UserWhereInput =
-      dept === TaskDepartment.MARKETING
-        ? { role: { name: { in: [UserRole.EMPLOYEE, UserRole.MARKETING] } } }
-        : {
-            role: { name: UserRole.EMPLOYEE },
-            departments: {
-              some: {
-                department: { name: dept },
-              },
+    const roleAndDeptFilter: Prisma.UserWhereInput = {
+      OR: [
+        // Anyone explicitly linked to this department
+        {
+          departments: {
+            some: {
+              department: { name: dept },
             },
-          };
+          },
+        },
+        // For marketing, also include users whose role is MARKETING
+        ...(dept === TaskDepartment.MARKETING
+          ? [{ role: { name: UserRole.MARKETING } }]
+          : []),
+      ],
+    };
 
     const where: Prisma.UserWhereInput = {
       isActive: true,

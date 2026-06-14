@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, X, Search, ChevronDown, User } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Dialog } from "@/components/design-system/Dialog";
 import {
@@ -17,11 +17,12 @@ import {
   FormMessage,
 } from "@/components/design-system/Form";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { Select, SelectItem } from "@/components/design-system/Select";
 import { useCreateTaskMutation } from "@/features/tasks/tasksApi";
 import { useSearchTaskAssigneesQuery } from "@/features/users/usersApi";
-import { SearchCombobox } from "@/components/common/SearchCombobox";
 import { TaskDepartment, TaskPriority } from "@hassad/shared";
+import { cn } from "@/lib/utils";
 
 // ── Labels ────────────────────────────────────────────────────────────────────
 
@@ -57,13 +58,206 @@ type TaskFormValues = z.infer<typeof TaskFormSchema>;
 
 interface TaskFormProps {
   projectId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+interface AssigneeOption {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department?: string | null;
+}
+
+// ── Assignee Dropdown with Search ─────────────────────────────────────────────
+
+function AssigneeDropdown({
+  value,
+  onChange,
+  dept,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  dept?: TaskDepartment;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const { data, isFetching } = useSearchTaskAssigneesQuery(
+    { dept, limit: 50 },
+    { skip: !dept || !open },
+  );
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Reset search when dropdown opens
+  useEffect(() => {
+    if (open) setSearch("");
+  }, [open]);
+
+  const users: AssigneeOption[] = useMemo(() => {
+    return (data?.items ?? []).map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      department: u.department,
+    }));
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return users;
+    const q = search.trim().toLowerCase();
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q),
+    );
+  }, [users, search]);
+
+  const selected = users.find((u) => u.id === value);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      {/* Trigger */}
+      {selected ? (
+        <div
+          className="flex items-center gap-2 rounded-xl border border-portal-card-border bg-neutral-50 px-3 py-2 cursor-pointer"
+          onClick={() => setOpen(true)}
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-100 text-secondary-600 text-sm font-semibold shrink-0">
+            {selected.name.charAt(0)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-natural-100 truncate">
+              {selected.name}
+            </div>
+            <div className="text-[11px] text-neutral-400">{selected.role}</div>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange("");
+            }}
+            className="rounded-full p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-600 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => dept && setOpen(true)}
+          disabled={!dept}
+          className={cn(
+            "flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm transition-colors",
+            !dept
+              ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
+              : "border-portal-card-border bg-white text-natural-100 hover:border-secondary-300 cursor-pointer",
+          )}
+        >
+          <span className={cn(!dept && "text-neutral-400")}>
+            {!dept ? "اختر القسم أولاً" : "اختر المسند إليه"}
+          </span>
+          <ChevronDown className="h-4 w-4 text-neutral-400" />
+        </button>
+      )}
+
+      {/* Dropdown */}
+      {open && dept && (
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-portal-card-border bg-white shadow-lg overflow-hidden">
+          {/* Search box inside dropdown */}
+          <div className="border-b border-portal-divider p-2">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="ابحث بالاسم أو الدور..."
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2 pr-9 pl-3 text-sm text-natural-100 placeholder:text-neutral-400 focus:border-secondary-500 focus:outline-none focus:ring-1 focus:ring-secondary-500/20"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {/* List */}
+          <div className="max-h-60 overflow-y-auto">
+            {isFetching ? (
+              <div className="px-3 py-4 text-sm text-neutral-400 text-center">
+                جارٍ التحميل...
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="px-3 py-4 text-sm text-neutral-400 text-center">
+                {users.length === 0
+                  ? "لا يوجد مستخدمون في هذا القسم"
+                  : "لا توجد نتائج مطابقة"}
+              </div>
+            ) : (
+              <div className="py-1">
+                {filtered.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(user.id);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-3 px-3 py-2.5 text-right transition-colors hover:bg-neutral-50",
+                      user.id === value && "bg-secondary-50",
+                    )}
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 text-sm font-semibold shrink-0">
+                      {user.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0 text-right">
+                      <div className="text-sm font-medium text-natural-100">
+                        {user.name}
+                      </div>
+                      <div className="text-[11px] text-neutral-400 flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        {user.role}
+                        {user.department && (
+                          <>
+                            <span className="mx-1">·</span>
+                            {user.department}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function TaskForm({ projectId }: TaskFormProps) {
-  const [open, setOpen] = useState(false);
-  const [assigneeSearch, setAssigneeSearch] = useState("");
+export function TaskForm({ projectId, open: openProp, onOpenChange }: TaskFormProps) {
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = openProp ?? openInternal;
+  const setOpen = (value: boolean) => {
+    if (openProp === undefined) setOpenInternal(value);
+    onOpenChange?.(value);
+  };
   const [createTask, { isLoading }] = useCreateTaskMutation();
 
   const form = useForm<TaskFormValues>({
@@ -83,20 +277,7 @@ export function TaskForm({ projectId }: TaskFormProps) {
   // Reset assignee whenever department changes
   useEffect(() => {
     form.setValue("assignedTo", "");
-    setAssigneeSearch("");
   }, [watchedDept, form]);
-
-  const { data: usersData, isFetching: usersLoading } =
-    useSearchTaskAssigneesQuery(
-      { dept: watchedDept, search: assigneeSearch, limit: 20 },
-      { skip: !open || !watchedDept },
-    );
-
-  const assigneeOptions =
-    usersData?.items.map((u) => ({
-      id: u.id,
-      label: u.name,
-    })) ?? [];
 
   async function onSubmit(values: TaskFormValues) {
     try {
@@ -111,7 +292,6 @@ export function TaskForm({ projectId }: TaskFormProps) {
       }).unwrap();
       toast.success("تم إنشاء المهمة بنجاح.");
       form.reset();
-      setAssigneeSearch("");
       setOpen(false);
     } catch {
       toast.error("فشل إنشاء المهمة. يرجى المحاولة مجدداً.");
@@ -119,12 +299,7 @@ export function TaskForm({ projectId }: TaskFormProps) {
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-      title="إنشاء مهمة جديدة"
-      contentClassName="sm:max-w-md"
-    >
+    <>
       <ActionButton
         size="sm"
         onClick={() => setOpen(true)}
@@ -133,7 +308,13 @@ export function TaskForm({ projectId }: TaskFormProps) {
         مهمة جديدة
       </ActionButton>
 
-      <Form {...form}>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        title="إنشاء مهمة جديدة"
+        contentClassName="sm:max-w-md"
+      >
+        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
@@ -205,17 +386,10 @@ export function TaskForm({ projectId }: TaskFormProps) {
               <FormItem>
                 <FormLabel>المسند إليه</FormLabel>
                 <FormControl>
-                  <SearchCombobox
+                  <AssigneeDropdown
                     value={field.value}
                     onChange={field.onChange}
-                    options={assigneeOptions}
-                    onSearchChange={setAssigneeSearch}
-                    placeholder={
-                      watchedDept ? "اختر المسند إليه" : "اختر القسم أولاً"
-                    }
-                    searchPlaceholder="ابحث بالاسم..."
-                    isLoading={usersLoading}
-                    disabled={!watchedDept}
+                    dept={watchedDept}
                   />
                 </FormControl>
                 <FormMessage />
@@ -244,8 +418,9 @@ export function TaskForm({ projectId }: TaskFormProps) {
               <FormItem>
                 <FormLabel>الوصف (اختياري)</FormLabel>
                 <FormControl>
-                  <FormInputControl
+                  <FormTextareaControl
                     placeholder="وصف المهمة"
+                    rows={3}
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -269,6 +444,7 @@ export function TaskForm({ projectId }: TaskFormProps) {
           </div>
         </form>
       </Form>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }
