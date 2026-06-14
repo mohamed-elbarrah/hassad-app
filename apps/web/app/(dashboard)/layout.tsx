@@ -39,10 +39,10 @@ export default function DashboardLayout({
   ];
 
   const rolePrefixes: Record<UserRole, string[]> = {
-    [UserRole.ADMIN]: ["/dashboard"],
+    [UserRole.ADMIN]: ["/dashboard/admin"],
     [UserRole.PM]: ["/dashboard/pm"],
     [UserRole.SALES]: ["/dashboard/sales"],
-    [UserRole.ACCOUNTANT]: ["/dashboard/accountant", "/dashboard/finance"],
+    [UserRole.ACCOUNTANT]: ["/dashboard/finance"],
     [UserRole.MARKETING]: ["/dashboard/marketing"],
     [UserRole.EMPLOYEE]: ["/dashboard/employee", "/dashboard/designer"],
     [UserRole.CLIENT]: ["/portal"],

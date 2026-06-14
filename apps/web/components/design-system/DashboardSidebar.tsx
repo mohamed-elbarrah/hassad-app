@@ -9,13 +9,24 @@ import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
 import { UserRole } from "@hassad/shared";
-import { navSections } from "@/lib/navigation";
+import { navSections, adminNavSections, roleNavSections } from "@/lib/navigation";
 import { UserInfoCard } from "./UserAvatar";
 
 function isActiveLink(href: string, pathname: string) {
-  if (href === "/dashboard") {
-    return pathname === "/dashboard";
+  // Role home pages: only active when exactly on that page
+  const roleHomes = [
+    "/dashboard/admin",
+    "/dashboard/pm",
+    "/dashboard/sales",
+    "/dashboard/finance",
+    "/dashboard/marketing",
+    "/dashboard/employee",
+    "/dashboard",
+  ];
+  if (roleHomes.includes(href)) {
+    return pathname === href;
   }
+  // Sub-pages: active when pathname matches exactly or is a child route
   return pathname === href || pathname.startsWith(href + "/");
 }
 
@@ -30,8 +41,13 @@ export function DashboardSidebar() {
   const visibleItems = useMemo(() => {
     if (!user) return [];
     const role = user.role;
+    const isAdmin = role === UserRole.ADMIN;
+
+    // Admin gets their own dedicated nav; everyone else gets role-specific
+    const sections = isAdmin ? adminNavSections : roleNavSections;
     const seen = new Set<string>();
-    return navSections.flatMap((section) =>
+
+    return sections.flatMap((section) =>
       section.items
         .filter((item) => item.roles.includes(role))
         .flatMap((item) => {

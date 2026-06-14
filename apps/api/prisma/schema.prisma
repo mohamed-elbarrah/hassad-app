@@ -1051,12 +1051,14 @@ model Ledger {
   userId    String?  @map("user_id")
   before    Json?
   after     Json?
+  metadata  Json?    @map("metadata")
   createdAt DateTime @default(now()) @map("created_at")
   user      User?    @relation(fields: [userId], references: [id])
 
   @@index([entity, entityId])
   @@index([userId])
   @@index([createdAt])
+  @@index([action])
   @@map("ledger")
 }
 
