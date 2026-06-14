@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,7 +8,8 @@ import { BusinessType, ClientSource } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
-import { Checkbox } from "@/components/design-system/Checkbox";
+// Radix Checkbox removed — causes infinite re-render loops with
+// react-hook-form Controller. Replaced with styled div below.
 import {
   Form,
   FormControl,
@@ -17,18 +18,26 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/design-system/Form";
-import {
-  FormSelect,
-  FormSelectContent,
-  FormSelectItem,
-  FormSelectTrigger,
-  FormSelectValue,
-} from "@/components/design-system/FormSelectControl";
+// Radix Select removed — causes infinite re-render loops with
+// react-hook-form Controller when value starts as undefined.
 import { useCreateRequestMutation } from "@/features/requests/requestsApi";
 import { useGetServicesQuery } from "@/features/services/servicesApi";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+  Building2,
+  Phone,
+  User,
+  Briefcase,
+  FileText,
+  ShoppingCart,
+  ChevronDown,
+  Check,
+} from "lucide-react";
 
 // ─── Business Type Labels ──────────────────────────────────────────────────────
 const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
@@ -93,152 +102,185 @@ export function IntakeForm({
       description: "",
       services: [],
     },
-    mode: "onChange",
+    mode: "onBlur",
+    reValidateMode: "onBlur",
   });
 
-  async function handleNext() {
+  const handleNext = useCallback(async () => {
     const valid = await form.trigger([
       "contactName",
       "phoneWhatsapp",
       "companyName",
     ]);
     if (valid) setStep(2);
-  }
+  }, [form]);
 
-  async function onSubmit(values: IntakeFormValues) {
-    try {
-      const selectedServices = services.filter((s) =>
-        values.services.includes(s.id),
-      );
+  const handleBack = useCallback(() => {
+    setStep(1);
+  }, []);
 
-      const notes = JSON.stringify({
-        description: values.description || "",
-        services: selectedServices.map((s) => s.nameAr),
-      });
+  const onSubmit = useCallback(
+    async (values: IntakeFormValues) => {
+      try {
+        const selectedServices = services.filter((s) =>
+          values.services.includes(s.id)
+        );
 
-      await createRequest({
-        contactName: values.contactName,
-        companyName: values.companyName,
-        businessName: values.companyName,
-        phoneWhatsapp: values.phoneWhatsapp,
-        businessType: values.businessType,
-        source: ClientSource.PLATFORM,
-        notes,
-        services: values.services.map((serviceId) => ({
-          serviceId,
-          quantity: 1,
-        })),
-      }).unwrap();
+        const notes = JSON.stringify({
+          description: values.description || "",
+          services: selectedServices.map((s) => s.nameAr),
+        });
 
-      toast.success(
-        "تم إرسال بياناتك بنجاح! سيتواصل معك فريق المبيعات قريباً.",
-      );
-      onSuccess();
-    } catch (err: unknown) {
-      const error = err as { data?: { message?: string | string[] } };
-      const msg = error?.data?.message;
-      toast.error(
-        Array.isArray(msg)
-          ? msg.join("; ")
-          : msg || "حدث خطأ. يرجى المحاولة مرة أخرى.",
-      );
-    }
-  }
+        await createRequest({
+          contactName: values.contactName,
+          companyName: values.companyName,
+          businessName: values.companyName,
+          phoneWhatsapp: values.phoneWhatsapp,
+          businessType: values.businessType,
+          source: ClientSource.PLATFORM,
+          notes,
+          services: values.services.map((serviceId) => ({
+            serviceId,
+            quantity: 1,
+          })),
+        }).unwrap();
+
+        toast.success(
+          "تم إرسال بياناتك بنجاح! سيتواصل معك فريق المبيعات قريباً.",
+          { duration: 5000 }
+        );
+        onSuccess();
+      } catch (err: unknown) {
+        const error = err as { data?: { message?: string | string[] } };
+        const msg = error?.data?.message;
+        toast.error(
+          Array.isArray(msg)
+            ? msg.join("; ")
+            : msg || "حدث خطأ. يرجى المحاولة مرة أخرى."
+        );
+      }
+    },
+    [createRequest, onSuccess, services]
+  );
+
+  // Memoized service items
+  const serviceItems = useMemo(() => {
+    return services.map((service) => ({
+      id: service.id,
+      name: service.nameAr,
+    }));
+  }, [services]);
 
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-6"
+        className="flex flex-col"
       >
-        {/* ── Stepper ──────────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3">
-          {[1, 2].map((s) => (
-            <div key={s} className="flex items-center gap-2 flex-1">
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors",
-                  step === s
-                    ? "bg-secondary-500 text-natural-0"
-                    : step > s
-                      ? "bg-success-500 text-white"
-                      : "bg-neutral-50 text-neutral-300",
+        {/* ── Progress Stepper ─────────────────────────────────────────── */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {[1, 2].map((s, index) => (
+              <div key={s} className="flex items-center flex-1">
+                {/* Step Circle + Label */}
+                <div className="flex flex-col items-center gap-2 shrink-0">
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300",
+                      step === s
+                        ? "bg-secondary-500 text-white shadow-lg shadow-secondary-500/25"
+                        : step > s
+                        ? "bg-success-500 text-white"
+                        : "bg-neutral-100 text-neutral-400"
+                    )}
+                  >
+                    {step > s ? <CheckCircle2 className="w-5 h-5" /> : s}
+                  </div>
+                  <span
+                    className={cn(
+                      "text-xs font-medium transition-colors whitespace-nowrap",
+                      step >= s ? "text-natural-100" : "text-neutral-300"
+                    )}
+                  >
+                    {s === 1 ? "بيانات التواصل" : "تفاصيل المشروع"}
+                  </span>
+                </div>
+
+                {/* Connecting Line */}
+                {index < 1 && (
+                  <div className="flex-1 mx-4 flex items-center self-start mt-5">
+                    <div
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-500 flex-1",
+                        step > s ? "bg-success-400" : "bg-neutral-100"
+                      )}
+                    />
+                  </div>
                 )}
-              >
-                {step > s ? <CheckCircle2 className="w-4 h-4" /> : s}
               </div>
-              <span
-                className={cn(
-                  "text-sm font-medium transition-colors",
-                  step >= s ? "text-natural-100" : "text-neutral-300",
-                )}
-              >
-                {s === 1 ? "المعلومات الأساسية" : "تفاصيل المشروع"}
-              </span>
-              {s < 2 && (
-                <div
-                  className={cn(
-                    "flex-1 h-0.5 rounded transition-colors",
-                    step > s ? "bg-success-400" : "bg-neutral-50",
-                  )}
-                />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* ── Step 1: Basic Information ─────────────────────────────────── */}
+        {/* ── Step 1: Basic Information ─────────────────────────────── */}
         {step === 1 && (
-          <div className="flex flex-col gap-4">
-            <FormField
-              control={form.control}
-              name="contactName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    الاسم الكامل <span className="text-danger-500">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <FormInputControl
-                      placeholder="مثال: أحمد محمد العمري"
-                      autoFocus
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-left-4 duration-300">
+            {/* Name and Phone Side by Side */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="contactName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-neutral-400" />
+                      الاسم الكامل
+                      <span className="text-danger-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <FormInputControl
+                        placeholder="مثال: أحمد محمد"
+                        autoFocus
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="phoneWhatsapp"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    رقم الهاتف (واتساب){" "}
-                    <span className="text-danger-500">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <FormInputControl
-                      placeholder="+966 5X XXX XXXX"
-                      type="tel"
-                      dir="ltr"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="phoneWhatsapp"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2 text-sm">
+                      <Phone className="w-4 h-4 text-neutral-400" />
+                      رقم الهاتف (واتساب)
+                      <span className="text-danger-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <FormInputControl
+                        placeholder="+966 5X XXX XXXX"
+                        type="tel"
+                        dir="ltr"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
               name="companyName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    اسم الشركة / المشروع{" "}
+                  <FormLabel className="flex items-center gap-2 text-sm">
+                    <Building2 className="w-4 h-4 text-neutral-400" />
+                    اسم الشركة / المشروع
                     <span className="text-danger-500">*</span>
                   </FormLabel>
                   <FormControl>
@@ -254,50 +296,67 @@ export function IntakeForm({
           </div>
         )}
 
-        {/* ── Step 2: Business & Needs ──────────────────────────────────── */}
+        {/* ── Step 2: Business & Needs ───────────────────────────────── */}
         {step === 2 && (
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-left-4 duration-300">
+            {/* Business Type — native <select> avoids Radix infinite loop */}
             <FormField
               control={form.control}
               name="businessType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    نوع النشاط التجاري{" "}
+                  <FormLabel className="flex items-center gap-2 text-sm">
+                    <Briefcase className="w-4 h-4 text-neutral-400" />
+                    نوع النشاط التجاري
                     <span className="text-danger-500">*</span>
                   </FormLabel>
-                  <FormSelect
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <FormSelectTrigger>
-                        <FormSelectValue placeholder="اختر نوع نشاطك التجاري" />
-                      </FormSelectTrigger>
-                    </FormControl>
-                    <FormSelectContent>
-                      {Object.values(BusinessType).map((type) => (
-                        <FormSelectItem key={type} value={type}>
-                          {BUSINESS_TYPE_LABELS[type]}
-                        </FormSelectItem>
-                      ))}
-                    </FormSelectContent>
-                  </FormSelect>
+                  <FormControl>
+                    <div className="relative">
+                      <select
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val || undefined);
+                        }}
+                        className={cn(
+                          "flex h-11 w-full items-center rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-right appearance-none",
+                          "focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 focus:border-secondary-500",
+                          "disabled:cursor-not-allowed disabled:opacity-50",
+                          !field.value && "text-neutral-400",
+                        )}
+                      >
+                        <option value="" disabled>
+                          اختر نوع نشاطك التجاري
+                        </option>
+                        {Object.values(BusinessType).map((type) => (
+                          <option key={type} value={type}>
+                            {BUSINESS_TYPE_LABELS[type]}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Description Textarea */}
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>وصف المشروع (اختياري)</FormLabel>
+                  <FormLabel className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4 text-neutral-400" />
+                    وصف المشروع (اختياري)
+                  </FormLabel>
                   <FormControl>
                     <FormTextareaControl
                       placeholder="أخبرنا باختصار عن نشاطك وما تريد تحقيقه..."
-                      className="resize-none h-24"
+                      className="resize-none h-20"
                       {...field}
                     />
                   </FormControl>
@@ -306,52 +365,62 @@ export function IntakeForm({
               )}
             />
 
+            {/* Services Selection */}
             <FormField
               control={form.control}
               name="services"
-              render={() => (
+              render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    الخدمات المطلوبة <span className="text-danger-500">*</span>
+                  <FormLabel className="flex items-center gap-2 text-sm">
+                    <ShoppingCart className="w-4 h-4 text-neutral-400" />
+                    الخدمات المطلوبة
+                    <span className="text-danger-500">*</span>
                   </FormLabel>
                   {servicesLoading ? (
-                    <div className="flex items-center justify-center p-4">
-                      <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
+                    <div className="flex items-center justify-center p-6 bg-neutral-50 rounded-xl">
+                      <Loader2 className="w-5 h-5 animate-spin text-secondary-500" />
+                      <span className="mr-2 text-sm text-neutral-400">
+                        جاري تحميل الخدمات...
+                      </span>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                      {services.map((service) => (
-                        <FormField
-                          key={service.id}
-                          control={form.control}
-                          name="services"
-                          render={({ field }) => (
-                            <FormItem
-                              key={service.id}
-                              className="flex flex-row items-center gap-3 space-y-0 rounded-lg border p-3 hover:bg-neutral-50/40 transition-colors cursor-pointer"
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {serviceItems.map((service) => {
+                        const isSelected = field.value?.includes(service.id);
+                        return (
+                          <div
+                            key={service.id}
+                            onClick={() => {
+                              const current = field.value || [];
+                              const newValue = current.includes(service.id)
+                                ? current.filter((v) => v !== service.id)
+                                : [...current, service.id];
+                              field.onChange(newValue);
+                            }}
+                            className={cn(
+                              "flex flex-row items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all duration-200",
+                              isSelected
+                                ? "border-secondary-500 bg-secondary-50/50 shadow-sm"
+                                : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/40"
+                            )}
+                          >
+                            {/* Purely-visual checkmark — no Radix primitive */}
+                            <span
+                              className={cn(
+                                "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-[1.5px] transition-colors",
+                                isSelected
+                                  ? "border-secondary-500 bg-secondary-500 text-white"
+                                  : "border-portal-card-border bg-white"
+                              )}
                             >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(service.id)}
-                                  onCheckedChange={(checked) => {
-                                    const current = field.value ?? [];
-                                    if (checked) {
-                                      field.onChange([...current, service.id]);
-                                    } else {
-                                      field.onChange(
-                                        current.filter((v) => v !== service.id),
-                                      );
-                                    }
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal cursor-pointer text-sm leading-tight">
-                                {service.nameAr}
-                              </FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      ))}
+                              {isSelected && <Check className="h-3 w-3" />}
+                            </span>
+                            <span className="font-medium text-sm leading-tight flex-1 cursor-pointer select-none">
+                              {service.name}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   <FormMessage />
@@ -361,15 +430,16 @@ export function IntakeForm({
           </div>
         )}
 
-        {/* ── Navigation Buttons ────────────────────────────────────────── */}
-        <div className="flex items-center justify-between pt-2 border-t gap-3">
+        {/* ── Navigation Buttons ─────────────────────────────────────── */}
+        <div className="flex items-center justify-between mt-10 gap-3">
           {step === 2 ? (
             <ActionButton
               type="button"
               variant="outline"
-              onClick={() => setStep(1)}
+              onClick={handleBack}
               disabled={isLoading}
               icon={<ChevronRight className="w-4 h-4" />}
+              className="min-w-[100px]"
             >
               السابق
             </ActionButton>
@@ -385,6 +455,7 @@ export function IntakeForm({
               disabled={servicesLoading}
               icon={<ChevronLeft className="w-4 h-4" />}
               iconPosition="right"
+              className="min-w-[120px]"
             >
               التالي
             </ActionButton>
@@ -393,10 +464,17 @@ export function IntakeForm({
               type="submit"
               variant="primary"
               loading={isLoading}
-              icon={<Loader2 className="w-4 h-4" />}
-              iconPosition="right"
+              disabled={isLoading}
+              className="min-w-[140px]"
             >
-              {isLoading ? "جاري الإرسال..." : submitLabel}
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  جاري الإرسال...
+                </>
+              ) : (
+                submitLabel
+              )}
             </ActionButton>
           )}
         </div>

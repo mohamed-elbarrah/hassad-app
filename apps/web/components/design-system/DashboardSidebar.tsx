@@ -3,19 +3,31 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Settings, Leaf } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
 import { UserRole } from "@hassad/shared";
-import { navSections } from "@/lib/navigation";
+import { navSections, adminNavSections, roleNavSections } from "@/lib/navigation";
 import { UserInfoCard } from "./UserAvatar";
 
 function isActiveLink(href: string, pathname: string) {
-  if (href === "/dashboard") {
-    return pathname === "/dashboard";
+  // Role home pages: only active when exactly on that page
+  const roleHomes = [
+    "/dashboard/admin",
+    "/dashboard/pm",
+    "/dashboard/sales",
+    "/dashboard/finance",
+    "/dashboard/marketing",
+    "/dashboard/employee",
+    "/dashboard",
+  ];
+  if (roleHomes.includes(href)) {
+    return pathname === href;
   }
+  // Sub-pages: active when pathname matches exactly or is a child route
   return pathname === href || pathname.startsWith(href + "/");
 }
 
@@ -30,8 +42,13 @@ export function DashboardSidebar() {
   const visibleItems = useMemo(() => {
     if (!user) return [];
     const role = user.role;
+    const isAdmin = role === UserRole.ADMIN;
+
+    // Admin gets their own dedicated nav; everyone else gets role-specific
+    const sections = isAdmin ? adminNavSections : roleNavSections;
     const seen = new Set<string>();
-    return navSections.flatMap((section) =>
+
+    return sections.flatMap((section) =>
       section.items
         .filter((item) => item.roles.includes(role))
         .flatMap((item) => {
@@ -84,18 +101,8 @@ export function DashboardSidebar() {
     >
       {/* ── Logo ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-center py-6">
-        <div className="flex items-center gap-2">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary-500 text-white shrink-0"
-          >
-            <Leaf className="h-5 w-5" />
-          </div>
-          <span
-            className="text-xl font-bold"
-            style={{ color: "#000000" }}
-          >
-            حصاد
-          </span>
+        <div className="flex flex-col items-center gap-1">
+          <Image src="/masar.svg" alt="Logo" width={100} height={100} />
         </div>
       </div>
 

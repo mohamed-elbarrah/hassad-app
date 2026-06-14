@@ -1014,6 +1014,84 @@ model Employee {
   @@map("employees")
 }
 
+// ============================================================================
+// SYSTEM HEALTH MONITORING MODELS
+// ============================================================================
+
+model SystemHealthCheck {
+  id              String   @id @default(uuid())
+  status          String   // HEALTHY, DEGRADED, UNHEALTHY
+  overallScore    Int      @map("overall_score") // 0-100 aggregated health score
+  
+  // Component statuses (stored as JSON for flexibility)
+  components      Json
+  
+  // Metrics snapshot
+  memoryUsed      Float?   @map("memory_used")
+  memoryTotal     Float?   @map("memory_total")
+  uptime          Float
+  cpuUsage        Float?   @map("cpu_usage")
+  
+  // Response times (ms)
+  totalResponseTime Int    @map("total_response_time")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@index([createdAt])
+  @@index([status])
+  @@map("system_health_checks")
+}
+
+// System error logs (actual application errors)
+model SystemError {
+  id              String   @id @default(uuid())
+  level           String   // ERROR, WARN, INFO
+  category        String   // DATABASE, EXTERNAL_API, AUTH, STORAGE, etc.
+  message         String
+  stackTrace      String?  @map("stack_trace")
+  context         Json?    // Additional context (userId, requestId, etc.)
+  
+  // Source tracking
+  service         String   // Which service/module
+  endpoint        String?  // API endpoint if applicable
+  
+  // Resolution tracking
+  resolved        Boolean  @default(false)
+  resolvedAt      DateTime? @map("resolved_at")
+  resolutionNote  String?   @map("resolution_note")
+  resolvedBy      String?   @map("resolved_by")
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@index([createdAt])
+  @@index([level])
+  @@index([category])
+  @@index([resolved])
+  @@index([service])
+  @@map("system_errors")
+}
+
+// External service health tracking
+model ExternalServiceHealth {
+  id              String   @id @default(uuid())
+  serviceName     String   @unique @map("service_name") // R2_STORAGE, SMTP, STRIPE, GEMINI_AI
+  
+  status          String   // UP, DEGRADED, DOWN
+  responseTime    Int      @map("response_time") // ms
+  lastCheckedAt   DateTime @map("last_checked_at")
+  lastError       String?  @map("last_error")
+  lastErrorAt     DateTime? @map("last_error_at")
+  
+  // Consecutive failures for alerting
+  consecutiveFailures Int @default(0) @map("consecutive_failures")
+  
+  // Threshold configuration (can be overridden per service)
+  timeoutThreshold    Int    @default(5000) @map("timeout_threshold") // ms
+  degradationThreshold Int   @default(2000) @map("degradation_threshold") // ms - when to mark as degraded
+  
+  @@map("external_service_health")
+}
+
 enum PayType {
   FIXED
   HOURLY
@@ -1051,12 +1129,14 @@ model Ledger {
   userId    String?  @map("user_id")
   before    Json?
   after     Json?
+  metadata  Json?    @map("metadata")
   createdAt DateTime @default(now()) @map("created_at")
   user      User?    @relation(fields: [userId], references: [id])
 
   @@index([entity, entityId])
   @@index([userId])
   @@index([createdAt])
+  @@index([action])
   @@map("ledger")
 }
 

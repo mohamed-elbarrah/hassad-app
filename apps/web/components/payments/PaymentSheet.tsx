@@ -4,7 +4,9 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js";
 import {
   Elements,
-  PaymentElement,
+  CardNumberElement,
+  CardExpiryElement,
+  CardCvcElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
@@ -16,15 +18,11 @@ import {
   Upload,
   AlertCircle,
   Receipt,
+  CheckCircle2,
+  X,
+  ShieldCheck,
 } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
   useCreateElementPaymentIntentMutation,
@@ -66,7 +64,123 @@ function buildAvailableMethods(activeGateways: string[]) {
   return methods;
 }
 
-/* ═════════════ Shared sub-components ═════════════ */
+function fmtAmount(n: number) {
+  return n.toLocaleString("ar-SA-u-nu-latn");
+}
+
+/* ═════════════ Simple Checkout Card (inline, no sheet) ═════════════════ */
+
+export interface InlinePaymentProps {
+  invoice: PayableInvoice;
+  stripeKey?: string;
+  bankAccounts?: any[];
+  onPaymentComplete?: () => void;
+  compact?: boolean;
+}
+
+export function InlinePaymentCard({
+  invoice,
+  stripeKey: stripeKeyProp,
+  bankAccounts: bankAccountsProp,
+  onPaymentComplete,
+  compact = false,
+}: InlinePaymentProps) {
+  const { data: activeGateways = [] } = useGetPublicGatewaysQuery(undefined);
+  const { data: stripeConfig } = useGetStripePublishableKeyQuery(undefined, {
+    skip: !!stripeKeyProp,
+  });
+  const { data: bankData } = useGetBankAccountsQuery(undefined, {
+    skip: !!(bankAccountsProp && bankAccountsProp.length > 0),
+  });
+
+  const resolvedStripeKey = stripeKeyProp ?? stripeConfig?.publishableKey ?? "";
+  const resolvedMethods = useMemo(
+    () => buildAvailableMethods(activeGateways),
+    [activeGateways],
+  );
+  const resolvedBankAccounts = bankAccountsProp ?? bankData ?? [];
+
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (resolvedMethods.length > 0 && !selectedMethod) {
+      setSelectedMethod(resolvedMethods[0].key);
+    }
+  }, [resolvedMethods, selectedMethod]);
+
+  const showTabs = resolvedMethods.length > 1;
+  const loadingGateways = !(stripeKeyProp ?? stripeConfig?.publishableKey);
+
+  return (
+    <div className="space-y-4" dir="rtl">
+      {/* Invoice summary */}
+      <div className="flex items-center justify-between rounded-xl border border-portal-divider bg-portal-bg p-4">
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium text-natural-100">
+            {invoice.invoiceNumber}
+          </p>
+          <p className="text-xs text-portal-note-text">المبلغ المستحق</p>
+        </div>
+        <p className="text-lg font-bold text-natural-100">
+          {fmtAmount(invoice.amount)}{" "}
+          <span className="text-sm font-normal text-portal-note-text">ر.س</span>
+        </p>
+      </div>
+
+      {/* Payment method tabs */}
+      {showTabs && (
+        <div className="flex gap-1 rounded-xl bg-portal-bg p-1">
+          {resolvedMethods.map((m) => {
+            const Icon = m.icon;
+            return (
+              <button
+                key={m.key}
+                onClick={() => setSelectedMethod(m.key)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+                  selectedMethod === m.key
+                    ? "bg-natural-0 text-natural-100 shadow-sm"
+                    : "text-portal-note-text hover:text-natural-100",
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {loadingGateways ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
+          <p className="text-sm text-portal-note-text">جاري تحميل طرق الدفع...</p>
+        </div>
+      ) : (
+        <>
+          {selectedMethod === PaymentMethod.CARD && resolvedStripeKey && (
+            <CardPaymentForm
+              invoice={invoice}
+              stripeKey={resolvedStripeKey}
+              onPaymentComplete={onPaymentComplete}
+            />
+          )}
+          {selectedMethod === PaymentMethod.BANK_TRANSFER && (
+            <BankTransferForm
+              invoice={invoice}
+              bankAccounts={resolvedBankAccounts}
+              onPaymentComplete={onPaymentComplete}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ═════════════ Card Payment Form ═══════════════════════════════ */
 
 export function CardPaymentForm({
   invoice,
@@ -102,12 +216,9 @@ export function CardPaymentForm({
 
   if (!clientSecret) {
     return (
-      <div
-        className="flex flex-col items-center gap-3 py-8 text-center"
-        dir="rtl"
-      >
+      <div className="flex flex-col items-center gap-3 py-8 text-center">
         <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-        <p className="text-sm text-neutral-300">جاري تجهيز نموذج الدفع...</p>
+        <p className="text-sm text-portal-note-text">جاري تجهيز نموذج الدفع...</p>
       </div>
     );
   }
@@ -137,22 +248,22 @@ function StripeElementsWrapper({
     appearance: {
       theme: "stripe",
       variables: {
-        colorPrimary: "#2563eb",
-        colorText: "#1e293b",
+        colorPrimary: "#121936",
+        colorText: "#121936",
         fontFamily: "system-ui, sans-serif",
-        borderRadius: "8px",
+        borderRadius: "12px",
       },
     },
   };
 
   return (
     <Elements stripe={stripePromise} options={options}>
-      <StripePaymentForm onComplete={onComplete} />
+      <StripePaymentForm clientSecret={clientSecret} onComplete={onComplete} />
     </Elements>
   );
 }
 
-function StripePaymentForm({ onComplete }: { onComplete?: () => void }) {
+function StripePaymentForm({ clientSecret, onComplete }: { clientSecret: string; onComplete?: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -165,13 +276,19 @@ function StripePaymentForm({ onComplete }: { onComplete?: () => void }) {
     setProcessing(true);
     setError(null);
 
-    const { error: submitError } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}${window.location.pathname}?stripe_success=true`,
+    const cardElement = elements.getElement(CardNumberElement);
+    if (!cardElement) {
+      setError("لم يتم تحميل نموذج الدفع");
+      setProcessing(false);
+      return;
+    }
+
+    const { error: submitError, paymentIntent } = await stripe.confirmCardPayment(
+      clientSecret,
+      {
+        payment_method: { card: cardElement },
       },
-      redirect: "if_required",
-    });
+    );
 
     if (submitError) {
       setError(submitError.message ?? "فشل الدفع");
@@ -179,13 +296,79 @@ function StripePaymentForm({ onComplete }: { onComplete?: () => void }) {
       return;
     }
 
-    toast.success("تم الدفع بنجاح!");
-    onComplete?.();
+    if (paymentIntent?.status === "succeeded") {
+      toast.success("تم الدفع بنجاح!");
+      onComplete?.();
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
-      <PaymentElement />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Card number */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-portal-note-text">
+          رقم البطاقة
+        </label>
+        <div className="rounded-xl border border-portal-divider bg-natural-0 px-4 py-3">
+          <CardNumberElement
+            options={{
+              style: {
+                base: {
+                  fontSize: "16px",
+                  color: "#121936",
+                  fontFamily: "system-ui, sans-serif",
+                  "::placeholder": { color: "#a0a5ae" },
+                },
+                invalid: { color: "#dc2626" },
+              },
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Expiry + CVC in a grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-portal-note-text">
+            تاريخ الانتهاء
+          </label>
+          <div className="rounded-xl border border-portal-divider bg-natural-0 px-4 py-3">
+            <CardExpiryElement
+              options={{
+                style: {
+                  base: {
+                    fontSize: "16px",
+                    color: "#121936",
+                    fontFamily: "system-ui, sans-serif",
+                    "::placeholder": { color: "#a0a5ae" },
+                  },
+                  invalid: { color: "#dc2626" },
+                },
+              }}
+            />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-portal-note-text">
+            رمز الأمان (CVV)
+          </label>
+          <div className="rounded-xl border border-portal-divider bg-natural-0 px-4 py-3">
+            <CardCvcElement
+              options={{
+                style: {
+                  base: {
+                    fontSize: "16px",
+                    color: "#121936",
+                    fontFamily: "system-ui, sans-serif",
+                    "::placeholder": { color: "#a0a5ae" },
+                  },
+                  invalid: { color: "#dc2626" },
+                },
+              }}
+            />
+          </div>
+        </div>
+      </div>
 
       {error && (
         <p className="text-xs text-danger-500 flex items-center gap-1">
@@ -193,10 +376,11 @@ function StripePaymentForm({ onComplete }: { onComplete?: () => void }) {
           {error}
         </p>
       )}
+
       <ActionButton
         type="submit"
         disabled={!stripe || processing}
-        className="w-full gap-2"
+        className="w-full h-11 rounded-2xl gap-2 text-sm font-medium"
       >
         {processing ? (
           <>
@@ -210,12 +394,16 @@ function StripePaymentForm({ onComplete }: { onComplete?: () => void }) {
           </>
         )}
       </ActionButton>
-      <p className="text-[10px] text-neutral-300 text-center">
+
+      <div className="flex items-center justify-center gap-1.5 text-[10px] text-portal-note-text">
+        <ShieldCheck className="w-3 h-3" />
         جميع المدفوعات مشفرة وآمنة 100%
-      </p>
+      </div>
     </form>
   );
 }
+
+/* ═════════════ Bank Transfer Form ═══════════════════════════════ */
 
 export function BankTransferForm({
   invoice,
@@ -262,29 +450,30 @@ export function BankTransferForm({
   };
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="space-y-4">
+      {/* Bank accounts */}
       {bankAccounts.length > 0 ? (
         <div className="space-y-3">
           {bankAccounts.map((acc: any) => (
             <div
               key={acc.id}
-              className="rounded-xl border bg-neutral-50/20 p-4 space-y-2"
+              className="rounded-xl border border-portal-divider bg-portal-bg p-4 space-y-2"
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-secondary-500">
                   {acc.bankName}
                 </span>
-                <Landmark className="w-4 h-4 text-neutral-300" />
+                <Landmark className="w-4 h-4 text-portal-icon" />
               </div>
               <div>
-                <p className="text-[10px] text-neutral-300 uppercase">
-                  اسم الحساب
+                <p className="text-[10px] text-portal-note-text">اسم الحساب</p>
+                <p className="text-sm font-semibold text-natural-100">
+                  {acc.accountName}
                 </p>
-                <p className="text-sm font-semibold">{acc.accountName}</p>
               </div>
               <div>
-                <p className="text-[10px] text-neutral-300 uppercase">IBAN</p>
-                <p className="text-sm font-mono bg-natural-0 p-2 rounded border select-all text-center">
+                <p className="text-[10px] text-portal-note-text">IBAN</p>
+                <p className="text-sm font-mono bg-natural-0 p-2 rounded-lg border border-portal-divider select-all text-center text-natural-100">
                   {acc.iban}
                 </p>
               </div>
@@ -292,17 +481,18 @@ export function BankTransferForm({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-neutral-300 text-center py-4">
+        <p className="text-sm text-portal-note-text text-center py-4">
           لا توجد حسابات بنكية متاحة حالياً
         </p>
       )}
 
-      <div className="rounded-lg bg-alert-50 border border-alert-200 p-3 text-xs text-alert-800 space-y-1">
+      {/* Instructions */}
+      <div className="rounded-xl bg-alert-50 border border-alert-200 p-3 text-xs text-alert-800 space-y-1">
         <p className="font-bold">تعليمات التحويل:</p>
         <p>
           قم بتحويل المبلغ{" "}
           <span className="font-bold">
-            {invoice.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س
+            {fmtAmount(invoice.amount)} ر.س
           </span>{" "}
           إلى أحد الحسابات أعلاه. يرجى إرفاق رقم الفاتورة{" "}
           <span className="font-bold">{invoice.invoiceNumber}</span> في ملاحظات
@@ -310,25 +500,29 @@ export function BankTransferForm({
         </p>
       </div>
 
+      {/* Receipt upload */}
       <div className="space-y-2">
-        <label className="text-xs font-medium text-neutral-300 block">
+        <label className="text-xs font-medium text-portal-note-text">
           إرفاق صورة الإيصال
         </label>
-        <div className="flex items-center gap-2">
-          <ActionButton
+        <div className="flex items-center gap-3">
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2 relative"
             onClick={() =>
-              document.getElementById(`receipt-sheet-${invoice.id}`)?.click()
+              document.getElementById(`receipt-${invoice.id}`)?.click()
             }
+            className={cn(
+              "flex items-center gap-2 rounded-xl border-[1.5px] px-4 py-2.5 text-sm transition-colors cursor-pointer",
+              receiptFile
+                ? "border-success-500 bg-success-50 text-success-700"
+                : "border-portal-card-border bg-natural-0 text-portal-icon hover:bg-badge-gray-bg",
+            )}
           >
             <Upload className="w-4 h-4" />
             {receiptFile ? receiptFile.name : "اختيار ملف"}
-          </ActionButton>
+          </button>
           <input
-            id={`receipt-sheet-${invoice.id}`}
+            id={`receipt-${invoice.id}`}
             type="file"
             accept="image/*"
             className="hidden"
@@ -339,7 +533,7 @@ export function BankTransferForm({
             }}
           />
           {receiptFile && (
-            <span className="text-xs text-neutral-300">
+            <span className="text-xs text-portal-note-text">
               {(receiptFile.size / 1024 / 1024).toFixed(1)} MB
             </span>
           )}
@@ -349,7 +543,7 @@ export function BankTransferForm({
       <ActionButton
         onClick={handleConfirm}
         disabled={confirming || !receiptFile}
-        className="w-full gap-2"
+        className="w-full h-11 rounded-2xl gap-2 text-sm font-medium"
       >
         {confirming ? (
           <>
@@ -358,133 +552,11 @@ export function BankTransferForm({
           </>
         ) : (
           <>
-            <Landmark className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4" />
             تأكيد الدفع
           </>
         )}
       </ActionButton>
-    </div>
-  );
-}
-
-/* ═══════════════ INLINE PAYMENT CARD (for contract pages) ═════════════════ */
-
-export interface InlinePaymentProps {
-  invoice: PayableInvoice;
-  stripeKey?: string;
-  bankAccounts?: any[];
-  onPaymentComplete?: () => void;
-  compact?: boolean;
-}
-
-export function InlinePaymentCard({
-  invoice,
-  stripeKey: stripeKeyProp,
-  bankAccounts: bankAccountsProp,
-  onPaymentComplete,
-  compact = false,
-}: InlinePaymentProps) {
-  const { data: activeGateways = [] } = useGetPublicGatewaysQuery(undefined);
-  const { data: stripeConfig } = useGetStripePublishableKeyQuery(undefined, {
-    skip: !!stripeKeyProp,
-  });
-  const { data: bankData } = useGetBankAccountsQuery(undefined, {
-    skip: !!(bankAccountsProp && bankAccountsProp.length > 0),
-  });
-
-  const resolvedStripeKey = stripeKeyProp ?? stripeConfig?.publishableKey ?? "";
-  const resolvedMethods = useMemo(
-    () => buildAvailableMethods(activeGateways),
-    [activeGateways],
-  );
-  const resolvedBankAccounts = bankAccountsProp ?? bankData ?? [];
-
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (resolvedMethods.length > 0 && !selectedMethod) {
-      setSelectedMethod(resolvedMethods[0].key);
-    }
-  }, [resolvedMethods, selectedMethod]);
-
-  const showTabs = resolvedMethods.length > 1;
-  const loadingGateways = !(stripeKeyProp ?? stripeConfig?.publishableKey);
-
-  const wrapperClass = compact
-    ? "bg-neutral-50/30 rounded-lg p-3 space-y-3"
-    : "rounded-xl border bg-white p-4 space-y-4";
-
-  return (
-    <div className={wrapperClass} dir="rtl">
-      {!compact && (
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-natural-100">
-              {invoice.invoiceNumber}
-            </p>
-            <p className="text-xs text-neutral-300">المبلغ المستحق</p>
-          </div>
-          <p className="text-lg font-bold text-natural-100">
-            {invoice.amount.toLocaleString("ar-SA-u-nu-latn")}{" "}
-            <span className="text-sm font-normal text-neutral-300">ر.س</span>
-          </p>
-        </div>
-      )}
-
-      {showTabs && (
-        <div
-          className={
-            compact
-              ? "flex gap-1 rounded-lg bg-neutral-50"
-              : "flex gap-1 p-1 rounded-lg bg-neutral-50"
-          }
-        >
-          {resolvedMethods.map((m) => {
-            const Icon = m.icon;
-            return (
-              <button
-                key={m.key}
-                onClick={() => setSelectedMethod(m.key)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors",
-                  selectedMethod === m.key
-                    ? "bg-natural-0 text-natural-100 shadow-sm"
-                    : "text-neutral-300 hover:text-natural-100",
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {loadingGateways ? (
-        <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-          <p className="text-sm text-neutral-300">جاري تحميل طرق الدفع...</p>
-        </div>
-      ) : (
-        <>
-          {selectedMethod === PaymentMethod.CARD && resolvedStripeKey && (
-            <CardPaymentForm
-              invoice={invoice}
-              stripeKey={resolvedStripeKey}
-              onPaymentComplete={onPaymentComplete}
-            />
-          )}
-          {selectedMethod === PaymentMethod.BANK_TRANSFER && (
-            <BankTransferForm
-              invoice={invoice}
-              bankAccounts={resolvedBankAccounts}
-              onPaymentComplete={onPaymentComplete}
-            />
-          )}
-        </>
-      )}
     </div>
   );
 }
@@ -542,84 +614,107 @@ export function PaymentSheet({
   const showTabs = availableMethods.length > 1;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-md overflow-y-auto"
-        dir="rtl"
-      >
-        <SheetHeader className="text-right mb-4">
-          <SheetTitle className="flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-secondary-500" />
-            دفع الفاتورة
-          </SheetTitle>
-          <SheetDescription>
-            الفاتورة {invoice.invoiceNumber} —{" "}
-            {invoice.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="rounded-xl border bg-neutral-50/30 p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-natural-100">
-                {invoice.invoiceNumber}
-              </p>
-              <p className="text-xs text-neutral-300 mt-0.5">المبلغ المستحق</p>
+    <>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+          dir="rtl"
+          onClick={() => onOpenChange(false)}
+        >
+          <div
+            className="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-[30px] sm:rounded-[30px] bg-natural-0 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-natural-0 border-b border-portal-divider px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-secondary-500" />
+                  <h2 className="text-base font-semibold text-natural-100">
+                    دفع الفاتورة
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-badge-gray-bg transition-colors cursor-pointer"
+                >
+                  <X className="h-4 w-4 text-portal-icon" />
+                </button>
+              </div>
             </div>
-            <p className="text-lg font-bold text-natural-100">
-              {invoice.amount.toLocaleString("ar-SA-u-nu-latn")}{" "}
-              <span className="text-sm font-normal text-neutral-300">ر.س</span>
-            </p>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Invoice summary */}
+              <div className="flex items-center justify-between rounded-xl border border-portal-divider bg-portal-bg p-4">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-natural-100">
+                    {invoice.invoiceNumber}
+                  </p>
+                  <p className="text-xs text-portal-note-text">
+                    المبلغ المستحق
+                  </p>
+                </div>
+                <p className="text-lg font-bold text-natural-100">
+                  {fmtAmount(invoice.amount)}{" "}
+                  <span className="text-sm font-normal text-portal-note-text">
+                    ر.س
+                  </span>
+                </p>
+              </div>
+
+              {/* Payment method tabs */}
+              {showTabs && (
+                <div className="flex gap-1 rounded-xl bg-portal-bg p-1">
+                  {availableMethods.map((m) => {
+                    const Icon = m.icon;
+                    return (
+                      <button
+                        key={m.key}
+                        onClick={() => setSelectedMethod(m.key)}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+                          selectedMethod === m.key
+                            ? "bg-natural-0 text-natural-100 shadow-sm"
+                            : "text-portal-note-text hover:text-natural-100",
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Payment form */}
+              {selectedMethod === PaymentMethod.CARD &&
+                stripeConfig?.publishableKey && (
+                  <CardPaymentForm
+                    invoice={invoice}
+                    stripeKey={stripeConfig.publishableKey}
+                    onPaymentComplete={() => {
+                      onPaymentComplete?.();
+                      onOpenChange(false);
+                    }}
+                  />
+                )}
+
+              {selectedMethod === PaymentMethod.BANK_TRANSFER && (
+                <BankTransferForm
+                  invoice={invoice}
+                  bankAccounts={bankAccounts ?? []}
+                  onPaymentComplete={() => {
+                    onPaymentComplete?.();
+                    onOpenChange(false);
+                  }}
+                />
+              )}
+            </div>
           </div>
         </div>
-
-        {showTabs && (
-          <div className="flex gap-1 p-1 rounded-lg bg-neutral-50 mb-6">
-            {availableMethods.map((m) => {
-              const Icon = m.icon;
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => setSelectedMethod(m.key)}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors",
-                    selectedMethod === m.key
-                      ? "bg-natural-0 text-natural-100 shadow-sm"
-                      : "text-neutral-300 hover:text-natural-100",
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {selectedMethod === PaymentMethod.CARD &&
-          stripeConfig?.publishableKey && (
-            <CardPaymentForm
-              invoice={invoice}
-              stripeKey={stripeConfig.publishableKey}
-              onPaymentComplete={() => {
-                onPaymentComplete?.();
-                onOpenChange(false);
-              }}
-            />
-          )}
-
-        {selectedMethod === PaymentMethod.BANK_TRANSFER && (
-          <BankTransferForm
-            invoice={invoice}
-            bankAccounts={bankAccounts ?? []}
-            onPaymentComplete={() => {
-              onPaymentComplete?.();
-              onOpenChange(false);
-            }}
-          />
-        )}
-      </SheetContent>
-    </Sheet>
+      )}
+    </>
   );
 }

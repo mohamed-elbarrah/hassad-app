@@ -2,7 +2,6 @@
 
 import { Dialog } from "@/components/design-system/Dialog";
 import { IntakeForm } from "./IntakeForm";
-import { ClipboardList } from "lucide-react";
 
 interface IntakeFormModalProps {
   /**
@@ -25,37 +24,42 @@ export function IntakeFormModal({
     if (!open) onClose?.();
   }
 
+  const title = mandatory 
+    ? "مرحباً بك في حصاد! 👋" 
+    : "طلب خدمة جديد";
+    
+  const description = mandatory
+    ? "نحن متحمسون للعمل معك! أخبرنا قليلاً عن مشروعك حتى نتمكن من مساعدتك بشكل أفضل."
+    : "املأ البيانات التالية لبدء مشروعك معنا. فريق المبيعات سيتواصل معك خلال 24 ساعة.";
+
   return (
     <Dialog
       open
       onOpenChange={handleOpenChange}
-      contentClassName="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+      title={
+        <div className="text-right">
+          <h2 className="text-xl font-bold text-natural-100 leading-tight">
+            {title}
+          </h2>
+          <p className="text-sm text-neutral-400 mt-1.5 leading-relaxed">
+            {description}
+          </p>
+        </div>
+      }
+      description={null}
+      contentClassName="sm:max-w-[560px] max-h-[90vh]"
       onInteractOutside={mandatory ? (e) => e.preventDefault() : undefined}
       onEscapeKeyDown={mandatory ? (e) => e.preventDefault() : undefined}
       hideClose={mandatory}
-      className="space-y-4"
+      className="space-y-0"
+      headerClassName="pb-0"
     >
-      {/* ── Custom header (matches original visual layout) ─────────── */}
-      <div className="flex items-center gap-3 mb-1" dir="rtl">
-        <div className="w-10 h-10 rounded-lg bg-secondary-500/10 flex items-center justify-center shrink-0">
-          <ClipboardList className="w-5 h-5 text-secondary-500" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold text-natural-100">
-            {mandatory ? "مرحباً بك! أخبرنا عن مشروعك" : "صفقة جديدة"}
-          </h1>
-          <p className="text-sm text-neutral-300 mt-0.5">
-            {mandatory
-              ? "يرجى تعبئة البيانات التالية حتى يتمكن فريقنا من التواصل معك بأسرع وقت."
-              : "أدخل بيانات العميل الجديد لإضافته إلى خط المبيعات."}
-          </p>
-        </div>
+      <div className="mt-2">
+        <IntakeForm
+          onSuccess={onSuccess}
+          submitLabel={mandatory ? "إرسال الطلب والبدء 🚀" : "إرسال الطلب"}
+        />
       </div>
-
-      <IntakeForm
-        onSuccess={onSuccess}
-        submitLabel={mandatory ? "إرسال الطلب" : "إضافة إلى خط المبيعات"}
-      />
     </Dialog>
   );
 }

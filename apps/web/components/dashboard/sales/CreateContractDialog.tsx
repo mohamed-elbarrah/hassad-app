@@ -1,24 +1,21 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
   FileText,
-  Upload,
   Copy,
   CheckCheck,
   X,
-  Plus,
   Calculator,
   Calendar,
   Clock,
 } from "lucide-react";
 import { Dialog } from "@/components/design-system/Dialog";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import {
   Form,
   FormControl,
@@ -37,10 +34,12 @@ import {
 } from "@/components/design-system/FormSelectControl";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
 import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
-import { useGetRequestsQuery } from "@/features/requests/requestsApi";
-import { useCreateContractMutation } from "@/features/contracts/contractsApi";
-import { ContractType, ProposalStatus, RequestStatus } from "@hassad/shared";
-import { formatCurrency } from "@/lib/format";
+import {
+  useCreateContractMutation,
+  useUpdateContractMutation,
+  type ContractItem,
+} from "@/features/contracts/contractsApi";
+import { ContractType, ProposalStatus } from "@hassad/shared";
 import { useCurrency } from "@/hooks/useCurrency";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
@@ -65,11 +64,6 @@ const REQUEST_STATUS_LABELS: Record<string, string> = {
   CANCELLED: "ملغي",
 };
 
-const CONTRACT_READY_STATUSES = new Set<RequestStatus>([
-  RequestStatus.CONTRACT_PREPARATION,
-  RequestStatus.CONTRACT_SENT,
-]);
-
 // ── Schema ───────────────────────────────────────────────────────────────────
 
 const contractFormSchema = z.object({
@@ -90,12 +84,21 @@ interface CreateContractDialogProps {
   proposalId?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** "create" (default) or "edit" */
+  mode?: "create" | "edit";
+  /** Existing contract data for edit mode */
+  contract?: ContractItem | null;
+  /** Pre-select a request (used from pipeline) */
+  preSelectedRequestId?: string;
 }
 
 export function CreateContractDialog({
   proposalId: initialProposalId,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
+  mode = "create",
+  contract,
+  preSelectedRequestId,
 }: CreateContractDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -103,6 +106,9 @@ export function CreateContractDialog({
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [createContract, { isLoading }] = useCreateContractMutation();
+  const [updateContract, { isLoading: isUpdating }] = useUpdateContractMutation();
+  const isEdit = mode === "edit";
+  const isSubmitting = isEdit ? isUpdating : isLoading;
   const { currency, fmtAmount } = useCurrency();
 
   // Proposal picker state
@@ -113,13 +119,6 @@ export function CreateContractDialog({
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
-
-  useEffect(() => {
-    if (initialProposalId && !isControlled) {
-      setInternalOpen(true);
-      setSelectedProposalId(initialProposalId);
-    }
-  }, [initialProposalId, isControlled]);
 
   const form = useForm<ContractFormValues>({
     resolver: zodResolver(contractFormSchema),
@@ -133,6 +132,44 @@ export function CreateContractDialog({
       endDate: "",
     },
   });
+
+  // Auto-open when preSelectedRequestId is provided (pipeline flow)
+  useEffect(() => {
+    if (preSelectedRequestId && !isControlled) {
+      setInternalOpen(true);
+    }
+  }, [preSelectedRequestId, isControlled]);
+
+  useEffect(() => {
+    if (initialProposalId && !isControlled) {
+      setInternalOpen(true);
+      setSelectedProposalId(initialProposalId);
+    }
+  }, [initialProposalId, isControlled]);
+
+  // ── Pre-fill for edit mode ────────────────────────────────────────────
+  useEffect(() => {
+    if (!open || !isEdit || !contract) return;
+    form.reset({
+      requestId: contract.clientId || "",
+      title: contract.title ?? "",
+      type: contract.type ?? undefined,
+      monthlyValue: contract.monthlyValue ?? undefined,
+      totalValue: contract.totalValue ?? undefined,
+      startDate: contract.startDate
+        ? typeof contract.startDate === "string"
+          ? contract.startDate.split("T")[0]
+          : ""
+        : "",
+      endDate: contract.endDate
+        ? typeof contract.endDate === "string"
+          ? contract.endDate.split("T")[0]
+          : ""
+        : "",
+    });
+    setFile(null);
+    setSelectedProposalId(contract.proposalId ?? "");
+  }, [open, isEdit, contract, form]);
 
   function handleOpenChange(val: boolean) {
     if (isControlled) {
@@ -158,33 +195,46 @@ export function CreateContractDialog({
       { skip: !open },
     );
 
-  const { data: requestsData, isFetching: requestsFetching } =
-    useGetRequestsQuery({ limit: 100 }, { skip: !open });
-
   const selectedProposal = proposalsData?.items.find(
     (p) => p.id === selectedProposalId,
   );
 
-  const contractRequests = (requestsData ?? []).filter((request) =>
-    CONTRACT_READY_STATUSES.has(request.status),
-  );
+  // Proposal options for SearchCombobox — filter by request when preSelected
+  const proposalOptions = (() => {
+    let items = proposalsData?.items ?? [];
 
-  // Proposal options for SearchCombobox
-  const proposalOptions =
-    proposalsData?.items
-      .filter((p) => {
-        if (!proposalSearch) return true;
-        const q = proposalSearch.toLowerCase();
-        return (
+    // When coming from pipeline, only show proposals linked to that request
+    if (preSelectedRequestId) {
+      items = items.filter((p) => p.requestId === preSelectedRequestId);
+    }
+
+    if (proposalSearch) {
+      const q = proposalSearch.toLowerCase();
+      items = items.filter(
+        (p) =>
           p.title?.toLowerCase().includes(q) ||
           p.request?.companyName?.toLowerCase().includes(q) ||
-          p.lead?.companyName?.toLowerCase().includes(q)
-        );
-      })
-      .map((p) => ({
-        id: p.id,
-        label: `${p.request?.companyName ?? p.lead?.companyName ?? "—"} — ${p.title} (${fmtAmount(p.totalPrice ?? 0)} ${currency.symbol})`,
-      })) ?? [];
+          p.lead?.companyName?.toLowerCase().includes(q),
+      );
+    }
+
+    return items.map((p) => ({
+      id: p.id,
+      label: `${p.request?.companyName ?? p.lead?.companyName ?? "—"} — ${p.title} (${fmtAmount(p.totalPrice ?? 0)} ${currency.symbol})`,
+    }));
+  })();
+
+  // ── Auto-select proposal from pipeline ──────────────────────────────
+  useEffect(() => {
+    if (!open || isEdit || !preSelectedRequestId) return;
+    // Find the approved proposal linked to this request and auto-select it
+    const matchingProposal = proposalsData?.items.find(
+      (p) => p.requestId === preSelectedRequestId && p.status === ProposalStatus.APPROVED,
+    );
+    if (matchingProposal && !selectedProposalId) {
+      setSelectedProposalId(matchingProposal.id);
+    }
+  }, [open, isEdit, preSelectedRequestId, proposalsData, selectedProposalId]);
 
   // ── Auto-fill when proposal selected ───────────────────────────────────────
 
@@ -229,54 +279,60 @@ export function CreateContractDialog({
     setFile(f);
   }
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    const f = e.dataTransfer.files?.[0] ?? null;
-    if (f?.type === "application/pdf") setFile(f);
-    else toast.error("يُقبل ملفات PDF فقط");
-  }
-
   async function onSubmit(values: ContractFormValues) {
-    if (!file) {
+    // Proposal required for create mode
+    if (!isEdit && !hasProposal) {
+      toast.error("يرجى اختيار عرض معتمد أولاً");
+      return;
+    }
+    // PDF required for create, optional for edit
+    if (!isEdit && !file) {
       toast.error("يرجى رفع ملف العقد (PDF)");
       return;
     }
 
     try {
-      const payload: any = {
-        requestId: values.requestId,
-        title: values.title,
-        type: values.type,
-        file,
-      };
+      if (isEdit && contract) {
+        // Edit mode: use updateContract
+        const body: any = {
+          title: values.title,
+          type: values.type,
+        };
+        if (!selectedProposalId) {
+          body.monthlyValue = values.monthlyValue ?? 0;
+          body.totalValue = values.totalValue ?? 0;
+          body.startDate = values.startDate ?? "";
+          body.endDate = values.endDate ?? "";
+        }
+        await updateContract({ id: contract.id, body }).unwrap();
+        toast.success("تم تحديث العقد بنجاح");
+        handleOpenChange(false);
+      } else {
+        // Create mode
+        const payload: any = {
+          requestId: values.requestId,
+          title: values.title,
+          type: values.type,
+          file,
+          proposalId: selectedProposalId,
+        };
 
-      // Only send manual values when no proposal is selected
-      if (!selectedProposalId) {
-        payload.monthlyValue = values.monthlyValue ?? 0;
-        payload.totalValue = values.totalValue ?? 0;
-        payload.startDate = values.startDate ?? "";
-        payload.endDate = values.endDate ?? "";
+        const result = await createContract(payload).unwrap();
+
+        const origin =
+          typeof window !== "undefined" ? window.location.origin : "";
+        const token = result.shareLinkToken;
+        if (token) setShareLink(`${origin}/contract/${token}`);
+
+        toast.success("تم إنشاء العقد وإرساله إلى العميل");
+        form.reset();
+        setFile(null);
       }
-
-      if (selectedProposalId) {
-        payload.proposalId = selectedProposalId;
-      }
-
-      const result = await createContract(payload).unwrap();
-
-      const origin =
-        typeof window !== "undefined" ? window.location.origin : "";
-      const token = result.shareLinkToken;
-      if (token) setShareLink(`${origin}/contract/${token}`);
-
-      toast.success("تم إنشاء العقد وإرساله إلى العميل");
-      form.reset();
-      setFile(null);
     } catch (err: unknown) {
       const msg =
         (err as { data?: { message?: string } })?.data?.message ??
-        "فشل إنشاء العقد";
-      console.error("createContract error:", err);
+        (isEdit ? "فشل تحديث العقد" : "فشل إنشاء العقد");
+      console.error("contract error:", err);
       toast.error(msg);
     }
   }
@@ -296,14 +352,14 @@ export function CreateContractDialog({
     <>
       {!isControlled && (
         <ActionButton variant="primary" onClick={() => setInternalOpen(true)}>
-          إنشاء عقد
+          {isEdit ? "تعديل العقد" : "إنشاء عقد"}
         </ActionButton>
       )}
 
       <Dialog
         open={open}
         onOpenChange={handleOpenChange}
-        title="إنشاء عقد جديد"
+        title={isEdit ? "تعديل العقد" : "إنشاء عقد جديد"}
         contentClassName="sm:max-w-[520px] p-0 gap-0 rounded-[24px] overflow-hidden"
         className="space-y-6 max-h-[90vh] overflow-y-auto modal-scroll p-6"
       >
@@ -361,11 +417,12 @@ export function CreateContractDialog({
               {/* Header */}
               <div className="text-center space-y-1.5">
                 <h1 className="text-[22px] font-bold text-natural-100 leading-tight">
-                  إنشاء عقد جديد
+                  {isEdit ? "تعديل العقد" : "إنشاء عقد جديد"}
                 </h1>
                 <p className="text-[13px] text-neutral-300 leading-relaxed px-2">
-                  اختر عرضاً معتمداً لإنشاء العقد تلقائياً، أو املأ البيانات
-                  يدوياً
+                  {isEdit
+                    ? "عدّل بيانات العقد الحالي"
+                    : "اختر عرضاً معتمداً لإنشاء العقد تلقائياً"}
                 </p>
               </div>
 
@@ -379,7 +436,8 @@ export function CreateContractDialog({
                   <div>
                     <label className="text-[13px] font-bold text-natural-100 block mb-1.5"
                     >
-                      عرض معتمد (اختياري)
+                      عرض معتمد
+                      {!isEdit && <span className="text-danger-500 mr-1">*</span>}
                     </label>
                     <SearchCombobox
                       value={selectedProposalId}
@@ -389,10 +447,13 @@ export function CreateContractDialog({
                       placeholder="اختر عرضاً معتمداً..."
                       searchPlaceholder="ابحث باسم العميل أو عنوان العرض..."
                       isLoading={proposalsFetching}
+                      disabled={isEdit}
                     />
-                    <p className="text-[11px] text-neutral-300 mt-1">
-                      اختيار عرض معتمد يملأ البيانات تلقائياً من العرض
-                    </p>
+                    {!isEdit && (
+                      <p className="text-[11px] text-neutral-300 mt-1">
+                        اختيار عرض معتمد يملأ البيانات تلقائياً من العرض
+                      </p>
+                    )}
                   </div>
 
                   {/* Proposal summary card */}
@@ -462,63 +523,11 @@ export function CreateContractDialog({
                 </h2>
                 <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0"
                 >
-                  {/* Request picker — only when no proposal */}
-                  {!hasProposal && (
-                    <FormField
-                      control={form.control}
-                      name="requestId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>الطلب</FormLabel>
-                          <FormSelect
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <FormSelectTrigger>
-                                <FormSelectValue
-                                  placeholder={
-                                    requestsFetching
-                                      ? "جارٍ التحميل..."
-                                      : contractRequests.length === 0
-                                        ? "لا توجد طلبات جاهزة"
-                                        : "اختر الطلب"
-                                  }
-                                />
-                              </FormSelectTrigger>
-                            </FormControl>
-                            <FormSelectContent>
-                              {contractRequests.map((request) => (
-                                <FormSelectItem
-                                  key={request.id}
-                                  value={request.id}
-                                >
-                                  {request.companyName}
-                                  {request.contactName
-                                    ? ` — ${request.contactName}`
-                                    : ""}
-                                  {" "}
-                                  (
-                                  {REQUEST_STATUS_LABELS[request.status] ??
-                                    request.status}
-                                  )
-                                </FormSelectItem>
-                              ))}
-                            </FormSelectContent>
-                          </FormSelect>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-
-                  {/* Hidden requestId when proposal selected */}
-                  {hasProposal && (
-                    <input
-                      type="hidden"
-                      {...form.register("requestId")}
-                    />
-                  )}
+                  {/* Hidden requestId from proposal */}
+                  <input
+                    type="hidden"
+                    {...form.register("requestId")}
+                  />
 
                   <FormField
                     control={form.control}
@@ -567,118 +576,28 @@ export function CreateContractDialog({
                     )}
                   />
 
-                  {/* Values — only when no proposal */}
-                  {!hasProposal && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="monthlyValue"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>القيمة الشهرية ({currency.symbol})</FormLabel>
-                            <FormControl>
-                              <FormInputControl
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                {...field}
-                                value={field.value ?? ""}
-                                onChange={(e) => {
-                                  const n = e.target.valueAsNumber;
-                                  field.onChange(
-                                    Number.isNaN(n) ? undefined : n,
-                                  );
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="totalValue"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>إجمالي القيمة ({currency.symbol})</FormLabel>
-                            <FormControl>
-                              <FormInputControl
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                {...field}
-                                value={field.value ?? ""}
-                                onChange={(e) => {
-                                  const n = e.target.valueAsNumber;
-                                  field.onChange(
-                                    Number.isNaN(n) ? undefined : n,
-                                  );
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-
-                  {/* Total display when proposal selected */}
-                  {hasProposal && (
-                    <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between"
+                  {/* Total display */}
+                  <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between"
+                  >
+                    <span className="text-[15px] font-bold text-natural-100"
                     >
-                      <span className="text-[15px] font-bold text-natural-100"
-                      >
-                      <CurrencyDisplay
-                        amount={selectedProposal?.totalPrice ?? 0}
-                        className="text-[15px] font-bold text-natural-100"
-                      />
-                      </span>
-                      <span className="text-[14px] font-bold text-natural-100"
-                      >
-                        الإجمالي الكلي
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Dates — only when no proposal */}
-                  {!hasProposal && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>تاريخ البداية</FormLabel>
-                            <FormControl>
-                              <FormInputControl type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="endDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>تاريخ النهاية</FormLabel>
-                            <FormControl>
-                              <FormInputControl type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
+                    <CurrencyDisplay
+                      amount={selectedProposal?.totalPrice ?? 0}
+                      className="text-[15px] font-bold text-natural-100"
+                    />
+                    </span>
+                    <span className="text-[14px] font-bold text-natural-100"
+                    >
+                      الإجمالي الكلي
+                    </span>
+                  </div>
 
                   {/* PDF Upload */}
                   <div>
                     <p className="text-[13px] font-bold text-natural-100 mb-1.5"
                     >
                       ملف العقد (PDF)
-                      <span className="text-danger-500 mr-1">*</span>
+                      {!isEdit && <span className="text-danger-500 mr-1">*</span>}
                     </p>
                     <div
                       className="flex items-center gap-3 rounded-xl border border-neutral-200 h-12 px-4 cursor-pointer hover:bg-neutral-50 transition-colors"
@@ -689,7 +608,9 @@ export function CreateContractDialog({
                       >
                         {file
                           ? file.name
-                          : "انقر لاختيار ملف PDF..."}
+                          : isEdit
+                            ? "اختر ملف PDF جديد (اتركه فارغاً للإبقاء على الملف الحالي)"
+                            : "انقر لاختيار ملف PDF..."}
                       </span>
                       {file && (
                         <button
@@ -731,11 +652,15 @@ export function CreateContractDialog({
                   type="submit"
                   variant="submit"
                   size="lg"
-                  loading={isLoading}
-                  disabled={!file}
+                  loading={isSubmitting}
+                  disabled={(!isEdit && !file) || (!isEdit && !hasProposal)}
                   className="flex-1 h-14 text-[15px] font-semibold"
                 >
-                  {isLoading ? "جارٍ الإرسال..." : "إنشاء وإرسال"}
+                  {isSubmitting
+                    ? "جارٍ الإرسال..."
+                    : isEdit
+                      ? "تحديث العقد"
+                      : "إنشاء وإرسال"}
                 </ActionButton>
               </div>
             </form>

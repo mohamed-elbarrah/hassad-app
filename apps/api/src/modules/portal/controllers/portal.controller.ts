@@ -83,6 +83,14 @@ export class PortalController {
     return this.portalService.getDashboard(clientId);
   }
 
+  @Get("portal/team-members")
+  @RequirePermissions("portal.read")
+  async getTeamMembers(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return { members: [] };
+    return this.portalService.getClientTeamMembers(clientId);
+  }
+
   @Get("portal/contracts")
   @RequirePermissions("portal.read")
   async getContracts(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -17,10 +17,14 @@ import {
   useGetRequestsQuery,
   useUpdateRequestStatusMutation,
 } from "@/features/requests/requestsApi";
+import { useGetProposalByIdQuery } from "@/features/proposals/proposalsApi";
+import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCard } from "./KanbanCard";
 import { KanbanGroup } from "./KanbanGroup";
+import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
+import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
 
 // ─── Error resolver ──────────────────────────────────────────────────────────
 function resolveKanbanError(error: unknown): string {
@@ -178,10 +182,36 @@ export function KanbanBoard() {
   const [activeRequest, setActiveRequest] = useState<RequestItem | null>(null);
   const [updateRequestStatus] = useUpdateRequestStatusMutation();
 
+  // ── Pipeline dialog state ────────────────────────────────────────────
+  const [pipelineDialog, setPipelineDialog] = useState<{
+    type: "proposal" | "contract";
+    mode: "create" | "edit";
+    requestId: string;
+    proposalId?: string;
+    contractId?: string;
+  } | null>(null);
+
   const { data, isLoading, isError, error } = useGetRequestsQuery(
     { limit: 100 },
     { pollingInterval: 30_000 },
   );
+
+  // ── Fetch proposal/contract data for edit modes ──────────────────────
+  const editProposalId =
+    pipelineDialog?.type === "proposal" && pipelineDialog?.mode === "edit"
+      ? pipelineDialog.proposalId
+      : undefined;
+  const editContractId =
+    pipelineDialog?.type === "contract" && pipelineDialog?.mode === "edit"
+      ? pipelineDialog.contractId
+      : undefined;
+
+  const { data: editProposalData } = useGetProposalByIdQuery(editProposalId!, {
+    skip: !editProposalId,
+  });
+  const { data: editContractData } = useGetContractByIdQuery(editContractId!, {
+    skip: !editContractId,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -200,6 +230,55 @@ export function KanbanBoard() {
     }
     return map;
   }, [data]);
+
+  // ── Pipeline action handlers ────────────────────────────────────────
+  const handleCreateProposal = useCallback((request: RequestItem) => {
+    setPipelineDialog({
+      type: "proposal",
+      mode: "create",
+      requestId: request.id,
+    });
+  }, []);
+
+  const handleEditProposal = useCallback((request: RequestItem) => {
+    const proposalId = request.proposals?.[0]?.id;
+    if (!proposalId) {
+      toast.error("لا يوجد عرض مرتبط بهذا الطلب");
+      return;
+    }
+    setPipelineDialog({
+      type: "proposal",
+      mode: "edit",
+      requestId: request.id,
+      proposalId,
+    });
+  }, []);
+
+  const handleCreateContract = useCallback((request: RequestItem) => {
+    setPipelineDialog({
+      type: "contract",
+      mode: "create",
+      requestId: request.id,
+    });
+  }, []);
+
+  const handleEditContract = useCallback((request: RequestItem) => {
+    const contractId = request.contracts?.[0]?.id;
+    if (!contractId) {
+      toast.error("لا يوجد عقد مرتبط بهذا الطلب");
+      return;
+    }
+    setPipelineDialog({
+      type: "contract",
+      mode: "edit",
+      requestId: request.id,
+      contractId,
+    });
+  }, []);
+
+  const closePipelineDialog = useCallback(() => {
+    setPipelineDialog(null);
+  }, []);
 
   function handleDragStart(event: DragStartEvent) {
     const requestId = event.active.id as string;
@@ -305,6 +384,10 @@ export function KanbanBoard() {
                   label={STATUS_LABELS[stage]}
                   theme={STATUS_THEME[stage]}
                   clients={requestsByStatus.get(stage) ?? []}
+                  onCreateProposal={handleCreateProposal}
+                  onEditProposal={handleEditProposal}
+                  onCreateContract={handleCreateContract}
+                  onEditContract={handleEditContract}
                 />
               ))}
             </KanbanGroup>
@@ -321,6 +404,43 @@ export function KanbanBoard() {
           />
         ) : null}
       </DragOverlay>
+
+      {/* ── Pipeline Dialogs ──────────────────────────────────────── */}
+      {pipelineDialog?.type === "proposal" && pipelineDialog.mode === "create" && (
+        <ProposalFormDialog
+          mode="create"
+          preSelectedRequestId={pipelineDialog.requestId}
+          open={true}
+          onOpenChange={(open) => { if (!open) closePipelineDialog(); }}
+        />
+      )}
+
+      {pipelineDialog?.type === "proposal" && pipelineDialog.mode === "edit" && editProposalData && (
+        <ProposalFormDialog
+          mode="edit"
+          proposal={editProposalData}
+          open={true}
+          onOpenChange={(open) => { if (!open) closePipelineDialog(); }}
+        />
+      )}
+
+      {pipelineDialog?.type === "contract" && pipelineDialog.mode === "create" && (
+        <CreateContractDialog
+          mode="create"
+          preSelectedRequestId={pipelineDialog.requestId}
+          open={true}
+          onOpenChange={(open) => { if (!open) closePipelineDialog(); }}
+        />
+      )}
+
+      {pipelineDialog?.type === "contract" && pipelineDialog.mode === "edit" && editContractData && (
+        <CreateContractDialog
+          mode="edit"
+          contract={editContractData}
+          open={true}
+          onOpenChange={(open) => { if (!open) closePipelineDialog(); }}
+        />
+      )}
     </DndContext>
   );
 }

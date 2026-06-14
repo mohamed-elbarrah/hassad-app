@@ -1,23 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, CheckCircle2, Clock, ExternalLink } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pagination } from "@/components/design-system/Pagination";
-import { FilterPills } from "@/components/design-system/FilterPills";
+import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
 import { Pill } from "@/components/design-system/Pill";
 import { DataTable } from "@/components/design-system/DataTable";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { useGetActionItemsQuery } from "@/features/portal/portalApi";
 
-const TYPE_FILTERS = [
-  { label: "الكل", value: "" },
-  { label: "مراجعة تسليمات", value: "DELIVERABLE_APPROVAL" },
-  { label: "دفع فواتير", value: "INVOICE_PAYMENT" },
-  { label: "مراجعة عروض", value: "PROPOSAL_REVIEW" },
-  { label: "توقيع عقود", value: "CONTRACT_SIGN" },
+const FILTER_GROUPS: FilterGroup[] = [
+  {
+    key: "type",
+    label: "النوع",
+    options: [
+      { label: "الكل", value: "" },
+      { label: "مراجعة تسليمات", value: "DELIVERABLE_APPROVAL" },
+      { label: "دفع فواتير", value: "INVOICE_PAYMENT" },
+      { label: "مراجعة عروض", value: "PROPOSAL_REVIEW" },
+      { label: "توقيع عقود", value: "CONTRACT_SIGN" },
+    ],
+  },
 ];
 
 const TYPE_CONFIG: Record<string, { label: string; color: "purple" | "blue" }> =
@@ -41,8 +47,10 @@ const PAGE_SIZE = 6;
 
 export default function PortalActionsPage() {
   const router = useRouter();
-  const [typeFilter, setTypeFilter] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [page, setPage] = useState(1);
+
+  const typeFilter = activeFilters["type"]?.[0] ?? "";
 
   const { data, isLoading, isError } = useGetActionItemsQuery(
     {
@@ -57,10 +65,10 @@ export default function PortalActionsPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const handleFilterChange = (value: string) => {
-    setTypeFilter(value);
+  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
+    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
     setPage(1);
-  };
+  }, []);
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
@@ -75,11 +83,7 @@ export default function PortalActionsPage() {
         description="راجع ما يتطلب تدخلك واتخذ الإجراء المناسب"
         icon={Settings}
         action={
-          <FilterPills
-            options={TYPE_FILTERS}
-            active={typeFilter}
-            onChange={handleFilterChange}
-          />
+          <FilterBar groups={FILTER_GROUPS} activeFilters={activeFilters} onFilterChange={handleFilterChange} />
         }
       >
         <DataTable
@@ -154,11 +158,13 @@ export default function PortalActionsPage() {
         />
 
         {!isLoading && !isError && items.length > 0 && (
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={setPage}
-          />
+          <div className="mt-6">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
         )}
       </SurfaceCard>
     </div>

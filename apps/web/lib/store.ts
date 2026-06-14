@@ -23,7 +23,10 @@ import { servicesApi } from "@/features/services/servicesApi";
 import { chatApi } from "@/features/chat/chatApi";
 import { settingsApi } from "@/features/settings/settingsApi";
 import { departmentsApi } from "@/features/departments/departmentsApi";
+import { rolesApi } from "@/features/roles/rolesApi";
+import { permissionsApi } from "@/features/permissions/permissionsApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
+import { healthApi } from "@/features/health/healthApi";
 
 export const store = configureStore({
   reducer: {
@@ -51,6 +54,9 @@ export const store = configureStore({
     [chatApi.reducerPath]: chatApi.reducer,
     [settingsApi.reducerPath]: settingsApi.reducer,
     [departmentsApi.reducerPath]: departmentsApi.reducer,
+    [rolesApi.reducerPath]: rolesApi.reducer,
+    [permissionsApi.reducerPath]: permissionsApi.reducer,
+    [healthApi.reducerPath]: healthApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -79,6 +85,9 @@ export const store = configureStore({
       chatApi.middleware,
       settingsApi.middleware,
       departmentsApi.middleware,
+      rolesApi.middleware,
+      permissionsApi.middleware,
+      healthApi.middleware,
     ),
 });
 

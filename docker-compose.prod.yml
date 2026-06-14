@@ -1,0 +1,119 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: hassad-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - hassad_network
+    # No ports exposed — internal Docker network only
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: hassad-api
+    restart: always
+    env_file: .env.production
+    environment:
+      - WEB_URL=https://${DOMAIN:-${SERVER_IP}}
+      - FRONTEND_URL=https://${DOMAIN:-${SERVER_IP}}
+      - GOOGLE_CALLBACK_URL=https://${DOMAIN:-${SERVER_IP}}/v1/auth/google/callback
+      - SNAPCHAT_CALLBACK_URL=https://${DOMAIN:-${SERVER_IP}}/v1/auth/snapchat/callback
+      - SMTP_FROM=Hassad Platform <noreply@${DOMAIN:-${SERVER_IP}}>
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - hassad_network
+    # No ports exposed
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://${DOMAIN:-${SERVER_IP}}/v1
+    container_name: hassad-web
+    restart: always
+    env_file: .env.production
+    environment:
+      - APP_URL=https://${DOMAIN:-${SERVER_IP}}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - hassad_network
+    # No ports exposed
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: hassad-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - SERVER_IP=${SERVER_IP}
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/hassad.conf.https.template:/etc/nginx/conf.d/hassad.conf.https.template:ro
+      - ./nginx/conf.d/hassad.conf.http.template:/etc/nginx/conf.d/hassad.conf.http.template:ro
+      - /etc/letsencrypt/live/${DOMAIN:-dummy}/fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro
+      - /etc/letsencrypt/live/${DOMAIN:-dummy}/privkey.pem:/etc/nginx/ssl/privkey.pem:ro
+    command: /bin/sh -c "if [ -n \"$${DOMAIN}\" ]; then envsubst '$${DOMAIN}' < /etc/nginx/conf.d/hassad.conf.https.template > /etc/nginx/conf.d/hassad.conf; else envsubst '$${SERVER_IP}' < /etc/nginx/conf.d/hassad.conf.http.template > /etc/nginx/conf.d/hassad.conf; fi && nginx -g 'daemon off;'"
+    depends_on:
+      - api
+      - web
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - hassad_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  hassad_network:
+    driver: bridge

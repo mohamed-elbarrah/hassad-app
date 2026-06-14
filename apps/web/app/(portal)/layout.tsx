@@ -22,6 +22,7 @@ export default function PortalLayout({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showIntakeForm, setShowIntakeForm] = useState(false);
+  const [intakeDismissed, setIntakeDismissed] = useState(false);
 
   useNotificationSocket();
 
@@ -45,13 +46,15 @@ export default function PortalLayout({
     if (!mounted || !isInitialized || !isAuthenticated) return;
     if (user?.role !== UserRole.CLIENT || !user?.id) return;
 
-    if (!user.intakeCompleted) {
+    if (!user.intakeCompleted && !intakeDismissed) {
       setShowIntakeForm(true);
+    } else {
+      setShowIntakeForm(false);
     }
-  }, [mounted, isInitialized, isAuthenticated, user]);
+  }, [mounted, isInitialized, isAuthenticated, user, intakeDismissed]);
 
   const handleIntakeSuccess = useCallback(() => {
-    setShowIntakeForm(false);
+    setIntakeDismissed(true);
   }, []);
 
   if (!mounted || !isInitialized) {

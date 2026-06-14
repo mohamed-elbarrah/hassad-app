@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, BellOff, CheckCheck, ExternalLink } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
 import {
   useGetMyNotificationsQuery,
   useMarkAsReadMutation,
@@ -12,6 +13,18 @@ import {
   type PortalNotificationItem,
 } from "@/features/portal-notifications/portalNotificationsApi";
 import { formatRelativeTime } from "@/lib/format";
+
+const FILTER_GROUPS: FilterGroup[] = [
+  {
+    key: "filter",
+    label: "نوع الإشعار",
+    options: [
+      { label: "الكل", value: "all" },
+      { label: "إجراءات مطلوبة", value: "action" },
+      { label: "معلومات عامة", value: "info" },
+    ],
+  },
+];
 
 type FilterTab = "all" | "action" | "info";
 
@@ -302,16 +315,16 @@ function isActionRequired(
   return false;
 }
 
-const TABS: { key: FilterTab; label: string }[] = [
-  { key: "all", label: "الكل" },
-  { key: "action", label: "إجراءات مطلوبة" },
-  { key: "info", label: "معلومات عامة" },
-];
-
 export default function PortalNotificationsPage() {
   const router = useRouter();
-  const [filter, setFilter] = useState<FilterTab>("all");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const filter = (activeFilters["filter"]?.[0] ?? "all") as FilterTab;
+
+  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
+    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+  }, []);
 
   const isReadFilter =
     filter === "action" ? false : filter === "info" ? true : undefined;
@@ -397,27 +410,11 @@ export default function PortalNotificationsPage() {
         }
         icon={Bell}
         action={
-          <div className="flex gap-2">
-            {TABS.map((tab) => {
-              const isActive = filter === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  className="px-4 py-2 rounded-2xl transition-colors border-0 cursor-pointer text-sm font-medium"
-                  style={{
-                    backgroundColor: isActive ? "#121936" : "transparent",
-                    color: isActive ? "#FFFFFF" : "#525866",
-                    border: isActive ? "none" : "1.5px solid #E1E4EA",
-                    fontWeight: 500,
-                  }}
-                  onClick={() => setFilter(tab.key)}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+          <FilterBar
+            groups={FILTER_GROUPS}
+            activeFilters={activeFilters}
+            onFilterChange={handleFilterChange}
+          />
         }
       >
         {isLoading ? (

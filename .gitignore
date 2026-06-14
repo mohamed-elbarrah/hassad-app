@@ -51,3 +51,7 @@ tmp/
 
 # Local file uploads (now stored in R2)
 apps/api/uploads/
+
+# Production
+.env.production
+nginx/ssl/
