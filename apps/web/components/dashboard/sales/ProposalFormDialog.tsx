@@ -41,10 +41,7 @@ const REQUEST_STATUS_LABELS: Record<string, string> = {
 };
 
 const PROPOSAL_READY_STATUSES = new Set<string>([
-  "QUALIFYING",
   "PROPOSAL_IN_PROGRESS",
-  "PROPOSAL_SENT",
-  "NEGOTIATION",
 ]);
 
 function formatNumber(num: number): string {
@@ -61,6 +58,8 @@ export interface ProposalFormDialogProps {
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Pre-select a request (used from pipeline) */
+  preSelectedRequestId?: string;
 }
 
 // ── Main Component ──────────────────────────────────────────────────────────
@@ -71,6 +70,7 @@ export function ProposalFormDialog({
   trigger,
   open: externalOpen,
   onOpenChange: externalOnOpenChange,
+  preSelectedRequestId,
 }: ProposalFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled =
@@ -147,7 +147,7 @@ export function ProposalFormDialog({
       setCopied(false);
       setFieldErrors({});
     } else {
-      setSelectedRequestId("");
+      setSelectedRequestId(preSelectedRequestId ?? "");
       setTitle("");
       setStartDate("");
       setDurationDays("0");
@@ -159,7 +159,7 @@ export function ProposalFormDialog({
       setCopied(false);
       setFieldErrors({});
     }
-  }, [open, proposal, isEdit, currentUser]);
+  }, [open, proposal, isEdit, currentUser, preSelectedRequestId]);
 
   // ── Derived ────────────────────────────────────────────────────────────
   const proposalRequests = (requestsData ?? []).filter((r: any) =>
@@ -420,15 +420,26 @@ export function ProposalFormDialog({
                   <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
                     الطلب
                   </label>
-                  <SearchCombobox
-                    value={selectedRequestId}
-                    onChange={setSelectedRequestId}
-                    options={requestOptions}
-                    onSearchChange={setRequestSearch}
-                    placeholder="ابحث عن طلب جاهز للعرض..."
-                    searchPlaceholder="اكتب اسم الشركة أو العميل"
-                    isLoading={requestsFetching}
-                  />
+                  {preSelectedRequestId ? (
+                    <FormInputControl
+                      readOnly
+                      value={(() => {
+                        const req = requestsData?.find((r: any) => r.id === preSelectedRequestId);
+                        return req ? `${req.companyName} — ${req.contactName} (${REQUEST_STATUS_LABELS[req.status] ?? req.status})` : preSelectedRequestId;
+                      })()}
+                      className="w-full h-12 px-4 text-[13px] bg-neutral-50"
+                    />
+                  ) : (
+                    <SearchCombobox
+                      value={selectedRequestId}
+                      onChange={setSelectedRequestId}
+                      options={requestOptions}
+                      onSearchChange={setRequestSearch}
+                      placeholder="ابحث عن طلب جاهز للعرض..."
+                      searchPlaceholder="اكتب اسم الشركة أو العميل"
+                      isLoading={requestsFetching}
+                    />
+                  )}
                   {fieldErrors.requestId && (
                     <p className="text-[11px] text-danger-500 mt-1">
                       {fieldErrors.requestId}

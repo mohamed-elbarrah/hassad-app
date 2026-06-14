@@ -4,12 +4,21 @@ import { useDraggable } from "@dnd-kit/core";
 import { useRouter } from "next/navigation";
 import type { RequestItem } from "@/features/requests/requestsApi";
 import { cn } from "@/lib/utils";
-import { Building2, Clock, GripVertical, Phone } from "lucide-react";
+import { Building2, Clock, GripVertical, Phone, FileText, PenLine } from "lucide-react";
+import { RequestStatus } from "@hassad/shared";
 
 interface KanbanCardProps {
   client: RequestItem;
   isOverlay?: boolean;
   accentColor?: string;
+  /** Called when user clicks "Create Proposal" (PROPOSAL_IN_PROGRESS stage) */
+  onCreateProposal?: (request: RequestItem) => void;
+  /** Called when user clicks "Edit Proposal" (PROPOSAL_SENT stage) */
+  onEditProposal?: (request: RequestItem) => void;
+  /** Called when user clicks "Create Contract" (CONTRACT_PREPARATION stage) */
+  onCreateContract?: (request: RequestItem) => void;
+  /** Called when user clicks "Edit Contract" (CONTRACT_SENT stage) */
+  onEditContract?: (request: RequestItem) => void;
 }
 
 /** Parse a short description from the notes JSON (if any) */
@@ -45,6 +54,10 @@ export function KanbanCard({
   client: request,
   isOverlay = false,
   accentColor = "#E1E4EA",
+  onCreateProposal,
+  onEditProposal,
+  onCreateContract,
+  onEditContract,
 }: KanbanCardProps) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -142,6 +155,79 @@ export function KanbanCard({
           </span>
         </div>
       </div>
+
+      {/* ── Pipeline Action Buttons ───────────────────────────────── */}
+      {request.status === RequestStatus.PROPOSAL_IN_PROGRESS && onCreateProposal && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreateProposal(request);
+          }}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
+          style={{
+            backgroundColor: "#EFF6FF",
+            color: "#1D4ED8",
+            border: "1px solid #BFDBFE",
+          }}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          إنشاء عرض فني
+        </button>
+      )}
+
+      {request.status === RequestStatus.PROPOSAL_SENT && onEditProposal && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditProposal(request);
+          }}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
+          style={{
+            backgroundColor: "#FFFBEB",
+            color: "#92400E",
+            border: "1px solid #FDE68A",
+          }}
+        >
+          <PenLine className="w-3.5 h-3.5" />
+          تعديل العرض
+        </button>
+      )}
+
+      {request.status === RequestStatus.CONTRACT_PREPARATION && onCreateContract && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreateContract(request);
+          }}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
+          style={{
+            backgroundColor: "#F5F3FF",
+            color: "#6D28D9",
+            border: "1px solid #DDD6FE",
+          }}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          إنشاء عقد
+        </button>
+      )}
+
+      {request.status === RequestStatus.CONTRACT_SENT && onEditContract && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditContract(request);
+          }}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
+          style={{
+            backgroundColor: "#ECFEFF",
+            color: "#155E75",
+            border: "1px solid #CFFAFE",
+          }}
+        >
+          <PenLine className="w-3.5 h-3.5" />
+          تعديل العقد
+        </button>
+      )}
     </div>
   );
 }

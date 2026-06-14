@@ -18,6 +18,10 @@ interface KanbanColumnProps {
     countBg: string;
   };
   clients: RequestItem[];
+  onCreateProposal?: (request: RequestItem) => void;
+  onEditProposal?: (request: RequestItem) => void;
+  onCreateContract?: (request: RequestItem) => void;
+  onEditContract?: (request: RequestItem) => void;
 }
 
 export function KanbanColumn({
@@ -25,6 +29,10 @@ export function KanbanColumn({
   label,
   theme,
   clients,
+  onCreateProposal,
+  onEditProposal,
+  onCreateContract,
+  onEditContract,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
 
@@ -83,6 +91,10 @@ export function KanbanColumn({
             key={client.id}
             client={client}
             accentColor={theme.cardBorder}
+            onCreateProposal={onCreateProposal}
+            onEditProposal={onEditProposal}
+            onCreateContract={onCreateContract}
+            onEditContract={onEditContract}
           />
         ))}
         {clients.length === 0 && (
