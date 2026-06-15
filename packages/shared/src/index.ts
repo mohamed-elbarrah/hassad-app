@@ -84,6 +84,39 @@ export interface Client {
   portalTokenExpiresAt?: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  userId?: string | null;
+  intakeCompleted?: boolean;
+  totalProjects?: number;
+  activeProjects?: number;
+  completedProjects?: number;
+  cancelledProjects?: number;
+  totalContractValue?: number;
+  totalInvoiced?: number;
+  totalPaid?: number;
+  avgSatisfactionScore?: number | null;
+  profile?: ClientProfile | null;
+}
+
+export interface ClientProfile {
+  id: string;
+  clientId: string;
+  industry?: string | null;
+  businessDescription?: string | null;
+  targetAudience?: string | null;
+  budgetRangeMin?: number | null;
+  budgetRangeMax?: number | null;
+  communicationPreference?: string | null;
+  preferredLanguage?: string | null;
+  timezone?: string | null;
+  preferredPlatforms?: string | null;
+  competitors?: { name: string; url?: string; notes?: string }[] | null;
+  brandAssets?: {
+    logoUrl?: string;
+    brandColors?: string[];
+    fonts?: string[];
+    guidelinesUrl?: string;
+  } | null;
+  customFields?: Record<string, unknown> | null;
 }
 
 export interface Request {

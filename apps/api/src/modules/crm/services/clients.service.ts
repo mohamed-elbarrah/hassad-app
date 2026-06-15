@@ -57,6 +57,7 @@ export class ClientsService {
     search?: string;
     page?: number;
     limit?: number;
+    includeCounters?: boolean;
   }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
@@ -72,7 +73,10 @@ export class ClientsService {
     const [items, total] = await Promise.all([
       this.prisma.client.findMany({
         where,
-        include: { manager: { select: { id: true, name: true } } },
+        include: {
+          manager: { select: { id: true, name: true } },
+          profile: filters.includeCounters ? true : undefined,
+        },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
@@ -89,7 +93,12 @@ export class ClientsService {
       include: {
         manager: true,
         contracts: true,
-        projects: true,
+        projects: {
+          where: { isArchived: false },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
+        profile: true,
       },
     });
 

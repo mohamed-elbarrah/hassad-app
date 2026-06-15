@@ -38,3 +38,42 @@ export const UpdateClientSchema = z
   });
 
 export type UpdateClientInput = z.infer<typeof UpdateClientSchema>;
+
+/**
+ * UpsertClientProfileSchema — validates profile upsert input.
+ */
+export const UpsertClientProfileSchema = z.object({
+  industry: z.string().optional(),
+  businessDescription: z.string().optional(),
+  targetAudience: z.string().optional(),
+  budgetRangeMin: z.number().positive().optional(),
+  budgetRangeMax: z.number().positive().optional(),
+  communicationPreference: z
+    .enum(["email", "whatsapp", "phone", "chat"])
+    .optional(),
+  preferredLanguage: z.string().optional(),
+  timezone: z.string().optional(),
+  preferredPlatforms: z.string().optional(),
+  competitors: z
+    .array(
+      z.object({
+        name: z.string(),
+        url: z.string().url().optional(),
+        notes: z.string().optional(),
+      }),
+    )
+    .optional(),
+  brandAssets: z
+    .object({
+      logoUrl: z.string().url().optional(),
+      brandColors: z.array(z.string()).optional(),
+      fonts: z.array(z.string()).optional(),
+      guidelinesUrl: z.string().url().optional(),
+    })
+    .optional(),
+  customFields: z.record(z.string(), z.unknown()).optional(),
+});
+
+export type UpsertClientProfileInput = z.infer<
+  typeof UpsertClientProfileSchema
+>;
