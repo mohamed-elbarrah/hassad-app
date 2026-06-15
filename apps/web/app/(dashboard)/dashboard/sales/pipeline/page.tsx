@@ -15,6 +15,13 @@ export default function PipelinePage() {
             <ActionButton
               variant="outline"
               size="md"
+              href="/dashboard/sales/clients"
+            >
+              العملاء
+            </ActionButton>
+            <ActionButton
+              variant="outline"
+              size="md"
               href="/dashboard/sales/proposals"
             >
               العروض الفنية
