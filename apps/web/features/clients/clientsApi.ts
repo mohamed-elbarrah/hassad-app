@@ -3,8 +3,10 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import type {
   Client,
+  ClientProfile,
   CreateClientInput,
   UpdateClientInput,
+  UpsertClientProfileInput,
   Project,
 } from "@hassad/shared";
 import type { ClientStatus } from "@hassad/shared";
@@ -43,7 +45,7 @@ export interface HandoverResult {
 export const clientsApi = createApi({
   reducerPath: "clientsApi",
   baseQuery,
-  tagTypes: ["Client", "Project"],
+  tagTypes: ["Client", "ClientProfile", "Project"],
   endpoints: (builder) => ({
     /** GET /v1/clients — paginated + filtered list */
     getClients: builder.query<PaginatedClients, ClientFilters>({
@@ -110,6 +112,28 @@ export const clientsApi = createApi({
         { type: "Project", id: "LIST" },
       ],
     }),
+
+    /** GET /v1/clients/:id/profile */
+    getClientProfile: builder.query<ClientProfile, string>({
+      query: (id) => `/clients/${id}/profile`,
+      providesTags: (_result, _err, id) => [{ type: "ClientProfile", id }],
+    }),
+
+    /** PUT /v1/clients/:id/profile */
+    upsertClientProfile: builder.mutation<
+      ClientProfile,
+      { id: string; data: UpsertClientProfileInput }
+    >({
+      query: ({ id, data }) => ({
+        url: `/clients/${id}/profile`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: (_result, _err, { id }) => [
+        { type: "ClientProfile", id },
+        { type: "Client", id },
+      ],
+    }),
   }),
 });
 
@@ -119,4 +143,6 @@ export const {
   useCreateClientMutation,
   useUpdateClientMutation,
   useHandoverClientMutation,
+  useGetClientProfileQuery,
+  useUpsertClientProfileMutation,
 } = clientsApi;

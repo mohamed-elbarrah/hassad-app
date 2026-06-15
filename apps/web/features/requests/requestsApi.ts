@@ -31,6 +31,8 @@ export interface RequestClientSummary {
   companyName: string;
   contactName: string;
   userId?: string | null;
+  totalProjects?: number;
+  activeProjects?: number;
 }
 
 export interface RequestWorkflowItem {
@@ -115,6 +117,12 @@ export interface RequestFilters {
   limit?: number;
 }
 
+export interface CreateRequestForClientPayload {
+  clientId: string;
+  services: RequestServiceItem[];
+  notes?: string;
+}
+
 export const requestsApi = createApi({
   reducerPath: "requestsApi",
   baseQuery,
@@ -185,6 +193,19 @@ export const requestsApi = createApi({
         { type: "Request", id: "LIST" },
       ],
     }),
+
+    /** POST /v1/requests/for-client — create request for existing client */
+    createRequestForClient: builder.mutation<
+      RequestItem,
+      CreateRequestForClientPayload
+    >({
+      query: (body) => ({
+        url: "/requests/for-client",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [{ type: "Request", id: "LIST" }],
+    }),
   }),
 });
 
@@ -193,4 +214,5 @@ export const {
   useGetRequestByIdQuery,
   useCreateRequestMutation,
   useUpdateRequestStatusMutation,
+  useCreateRequestForClientMutation,
 } = requestsApi;
