@@ -247,6 +247,14 @@ export default function RequestDetailPage({
 
   if (!request) return null;
 
+  const client = request.client;
+  const contactName = client?.contactName || request.contactName;
+  const companyName = client?.companyName || request.companyName;
+  const phoneWhatsapp = client?.phoneWhatsapp || request.phoneWhatsapp;
+  const email = client?.email || request.email;
+  const businessName = client?.businessName || request.businessName;
+  const businessType = client?.businessType || request.businessType;
+
   const { description, services } = parseNotes(request.notes);
   const selectedServices =
     request.services.length > 0
@@ -269,10 +277,18 @@ export default function RequestDetailPage({
           </Link>
           <div className="min-w-0">
             <h1 className="text-xl font-semibold truncate">
-              {request.contactName}
+              {contactName}
             </h1>
-            {request.companyName && (
-              <p className="text-sm text-neutral-300">{request.companyName}</p>
+            {companyName && (
+              <p className="text-sm text-neutral-300">{companyName}</p>
+            )}
+            {client && (
+              <Link
+                href={`/dashboard/sales/clients/${client.id}`}
+                className="text-xs text-primary hover:underline"
+              >
+                عرض ملف العميل
+              </Link>
             )}
           </div>
         </div>
@@ -289,23 +305,23 @@ export default function RequestDetailPage({
             <InfoRow
               icon={<User className="w-4 h-4" />}
               label="الاسم"
-              value={request.contactName}
+              value={contactName}
             />
             <InfoRow
               icon={<Building2 className="w-4 h-4" />}
               label="اسم الشركة"
-              value={request.companyName}
+              value={companyName}
             />
             <InfoRow
               icon={<Phone className="w-4 h-4" />}
               label="الجوال / واتساب"
-              value={request.phoneWhatsapp}
+              value={phoneWhatsapp}
               dir="ltr"
             />
             <InfoRow
               icon={<Mail className="w-4 h-4" />}
               label="البريد الإلكتروني"
-              value={request.email}
+              value={email}
               dir="ltr"
             />
             <InfoRow
@@ -321,15 +337,15 @@ export default function RequestDetailPage({
             <InfoRow
               icon={<Building2 className="w-4 h-4" />}
               label="اسم النشاط التجاري"
-              value={request.businessName}
+              value={businessName}
             />
             <InfoRow
               icon={<Tag className="w-4 h-4" />}
               label="نوع النشاط"
               value={
-                request.businessType
-                  ? (BUSINESS_TYPE_LABELS[request.businessType] ??
-                    request.businessType)
+                businessType
+                  ? (BUSINESS_TYPE_LABELS[businessType] ??
+                    businessType)
                   : null
               }
             />

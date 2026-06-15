@@ -180,6 +180,12 @@ export const roleNavSections: NavSection[] = [
         roles: ["SALES"],
       },
       {
+        title: "العملاء",
+        url: "/dashboard/sales/clients",
+        icon: Building2,
+        roles: ["SALES"],
+      },
+      {
         title: "العروض الفنية",
         url: "/dashboard/sales/proposals",
         icon: FileText,

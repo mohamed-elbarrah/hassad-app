@@ -138,6 +138,8 @@ export class RequestsService {
             companyName: true,
             contactName: true,
             userId: true,
+            totalProjects: true,
+            activeProjects: true,
           },
         },
         assignee: {
@@ -201,6 +203,8 @@ export class RequestsService {
             businessType: true,
             accountManager: true,
             userId: true,
+            totalProjects: true,
+            activeProjects: true,
           },
         },
         assignee: {

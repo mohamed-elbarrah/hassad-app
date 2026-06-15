@@ -30,6 +30,10 @@ export interface RequestClientSummary {
   id: string;
   companyName: string;
   contactName: string;
+  phoneWhatsapp?: string;
+  email?: string | null;
+  businessName?: string;
+  businessType?: BusinessType;
   userId?: string | null;
   totalProjects?: number;
   activeProjects?: number;

@@ -123,6 +123,34 @@ export function ClientsTable({
         );
       },
     }),
+    columnHelper.accessor("totalProjects", {
+      id: "totalProjects",
+      header: "المشاريع",
+      cell: (info) => {
+        const total = info.getValue() ?? 0;
+        const active = info.row.original.activeProjects ?? 0;
+        return (
+          <div className="text-sm">
+            <span className="font-medium">{total}</span>
+            {active > 0 && (
+              <span className="text-xs text-neutral-300 mr-1">
+                ({active} نشط)
+              </span>
+            )}
+          </div>
+        );
+      },
+    }),
+    columnHelper.accessor("accountManager", {
+      id: "accountManager",
+      header: "مدير الحساب",
+      cell: (info) => info.row.original.manager?.name || "—",
+    }),
+    columnHelper.accessor("lastProjectAt", {
+      id: "lastProjectAt",
+      header: "آخر نشاط",
+      cell: (info) => formatShortDate(info.getValue()),
+    }),
     columnHelper.accessor("createdAt", {
       id: "createdAt",
       header: "تاريخ الإضافة",

@@ -10,10 +10,7 @@ export class ClientProfileService {
     const profile = await this.prisma.clientProfile.findUnique({
       where: { clientId },
     });
-    if (!profile) {
-      throw new NotFoundException("Client profile not found");
-    }
-    return profile;
+    return profile ?? null;
   }
 
   async upsert(clientId: string, dto: UpsertClientProfileDto, userId?: string) {

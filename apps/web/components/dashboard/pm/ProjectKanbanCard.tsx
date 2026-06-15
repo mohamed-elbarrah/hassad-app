@@ -2,6 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Building2, Calendar, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjectStatus } from "@hassad/shared";
@@ -58,12 +59,16 @@ export function ProjectKanbanCard({
       </div>
 
       {project.client?.companyName && (
-        <div className="flex items-center gap-1 mt-2">
+        <Link
+          href={`/dashboard/sales/clients/${project.client.id}`}
+          className="flex items-center gap-1 mt-2 group/client"
+          onClick={(e) => e.stopPropagation()}
+        >
           <Building2 className="w-3.5 h-3.5 shrink-0 text-neutral-300" />
-          <span className="text-xs truncate text-neutral-300">
+          <span className="text-xs truncate text-neutral-300 group-hover/client:text-primary group-hover/client:underline">
             {project.client.companyName}
           </span>
-        </div>
+        </Link>
       )}
 
       <div className="mt-3">

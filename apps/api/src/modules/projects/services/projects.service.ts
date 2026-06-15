@@ -54,13 +54,19 @@ export class ProjectsService {
       );
     }
 
-    return this.prisma.project.create({
+    const createdProject = await this.prisma.project.create({
       data: {
         ...dto,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
       },
     });
+
+    this.clientCounterService
+      .onProjectStatusChange(createdProject.id)
+      .catch(() => undefined);
+
+    return createdProject;
   }
 
   async findOne(id: string) {
@@ -96,13 +102,19 @@ export class ProjectsService {
   }
 
   async archive(id: string) {
-    return this.prisma.project.update({
+    const updated = await this.prisma.project.update({
       where: { id },
       data: {
         isArchived: true,
         archivedAt: new Date(),
       },
     });
+
+    this.clientCounterService
+      .onProjectStatusChange(id)
+      .catch(() => undefined);
+
+    return updated;
   }
 
   async addMember(id: string, dto: AddMemberDto, addedBy: string) {

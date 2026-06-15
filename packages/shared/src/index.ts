@@ -93,8 +93,10 @@ export interface Client {
   totalContractValue?: number;
   totalInvoiced?: number;
   totalPaid?: number;
+  lastProjectAt?: Date | string | null;
   avgSatisfactionScore?: number | null;
   profile?: ClientProfile | null;
+  manager?: { id: string; name: string } | null;
 }
 
 export interface ClientProfile {

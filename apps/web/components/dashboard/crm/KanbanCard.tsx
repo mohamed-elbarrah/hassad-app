@@ -104,16 +104,16 @@ export function KanbanCard({
             className="text-sm font-semibold leading-tight truncate"
             style={{ color: "#000000" }}
           >
-            {request.contactName}
+            {request.client?.contactName || request.contactName}
           </p>
-          {request.companyName && (
+          {(request.client?.companyName || request.companyName) && (
             <div className="flex items-center gap-1 mt-1">
               <Building2
                 className="w-3.5 h-3.5 shrink-0"
                 style={{ color: "#A8ABB2" }}
               />
               <p className="text-xs truncate" style={{ color: "#A8ABB2" }}>
-                {request.companyName}
+                {request.client?.companyName || request.companyName}
               </p>
             </div>
           )}
@@ -158,7 +158,7 @@ export function KanbanCard({
             style={{ color: "#A8ABB2" }}
           />
           <span dir="ltr" className="truncate" style={{ color: "#A8ABB2" }}>
-            {request.phoneWhatsapp}
+            {request.client?.phoneWhatsapp || request.phoneWhatsapp}
           </span>
         </div>
         <div className="flex items-center gap-1 text-xs shrink-0">

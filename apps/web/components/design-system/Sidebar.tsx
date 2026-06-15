@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronLeft,
   TrendingUp,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
@@ -27,7 +28,10 @@ import { UserMenu } from "./UserMenu";
 import Image from "next/image";
 
 /* ── Navigation groups ─────────────────────────────────────────────────── */
-const STANDALONE_ITEMS = [{ label: "الرئيسية", href: "/portal", icon: Home }];
+const STANDALONE_ITEMS = [
+  { label: "الرئيسية", href: "/portal", icon: Home },
+  { label: "الملف التعريفي", href: "/portal/profile", icon: User },
+];
 
 interface NavGroup {
   key: string;
