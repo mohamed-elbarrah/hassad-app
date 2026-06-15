@@ -9,4 +9,4 @@ echo "==> Generating Prisma client..."
 npx prisma generate
 
 echo "==> Starting API server..."
-exec node dist/main.js
+exec node dist/src/main.js
