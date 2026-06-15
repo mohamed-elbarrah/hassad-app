@@ -12,6 +12,7 @@ import { HealthCheckService, HealthCheck, DiskHealthIndicator, MemoryHealthIndic
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
+import { Public } from '../../../common/decorators/public.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import {
   PrismaHealthIndicator,
@@ -46,6 +47,7 @@ export class HealthController {
   ) {}
 
   // Public endpoint for load balancers - no auth required
+  @Public()
   @Get('live')
   liveness() {
     return {
