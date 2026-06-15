@@ -30,7 +30,7 @@ interface Props {
 }
 
 export function NewRequestForClientModal({ client, open, onClose }: Props) {
-  const { data: services } = useGetServicesQuery({ isActive: true });
+  const { data: services } = useGetServicesQuery(undefined);
   const [createRequest, { isLoading }] = useCreateRequestForClientMutation();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
