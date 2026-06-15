@@ -2,9 +2,10 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { RequestItem } from "@/features/requests/requestsApi";
 import { cn } from "@/lib/utils";
-import { Building2, Clock, GripVertical, Phone, FileText, PenLine } from "lucide-react";
+import { Building2, Clock, GripVertical, Phone, FileText, PenLine, History } from "lucide-react";
 import { RequestStatus } from "@hassad/shared";
 
 interface KanbanCardProps {
@@ -115,6 +116,18 @@ export function KanbanCard({
                 {request.companyName}
               </p>
             </div>
+          )}
+
+          {/* Returning client indicator */}
+          {request.client?.totalProjects != null && request.client.totalProjects > 0 && (
+            <Link
+              href={`/dashboard/sales/clients/${request.clientId}`}
+              className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <History className="w-3 h-3" />
+              {request.client.totalProjects} مشاريع سابقة
+            </Link>
           )}
         </div>
         <GripVertical

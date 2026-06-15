@@ -56,6 +56,7 @@ interface ClientsTableProps {
   total?: number;
   limit?: number;
   onPageChange: (page: number) => void;
+  onRowClick?: (client: Client) => void;
 }
 
 export function ClientsTable({
@@ -65,6 +66,7 @@ export function ClientsTable({
   total = 0,
   limit = 20,
   onPageChange,
+  onRowClick,
 }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -178,6 +180,8 @@ export function ClientsTable({
               <TableRow
                 key={row.id}
                 className="border-b-[1.5px] border-portal-divider hover:bg-transparent text-right"
+                onClick={() => onRowClick?.(row.original)}
+                style={{ cursor: onRowClick ? "pointer" : undefined }}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} className="px-5 py-4">
