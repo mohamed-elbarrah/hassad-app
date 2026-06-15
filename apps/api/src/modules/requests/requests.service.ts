@@ -10,6 +10,7 @@ import { CanonicalClientService } from "./canonical-client.service";
 import { NotificationsService } from "../notifications/services/notifications.service";
 import { SalesAssignmentService } from "./sales-assignment.service";
 import { CreateRequestDto } from "./dto/request.dto";
+import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
 
@@ -432,6 +433,127 @@ export class RequestsService {
     return createdRequest;
   }
 
+  async createForClient(
+    dto: CreateRequestForClientDto,
+    userId: string,
+  ) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: dto.clientId },
+      include: { manager: true },
+    });
+    if (!client) {
+      throw new NotFoundException("Client not found");
+    }
+    if (client.status === "STOPPED") {
+      throw new BadRequestException(
+        "Cannot create request for a stopped client",
+      );
+    }
+
+    let salesId = client.accountManager;
+    if (!salesId) {
+      const assignment = await this.salesAssignmentService.findBestSales(
+        [],
+        dto.clientId,
+      );
+      salesId = assignment?.salesId ?? null;
+    }
+
+    const request = await this.prisma.$transaction(async (tx) => {
+      const req = await tx.request.create({
+        data: {
+          clientId: dto.clientId,
+          submittedBy: userId,
+          assignedSalesId: salesId ?? undefined,
+          source: "DIRECT",
+          status: RequestStatus.SUBMITTED,
+          notes: dto.notes ?? undefined,
+          companyName: "",
+          contactName: "",
+          phoneWhatsapp: "",
+          businessName: "",
+          businessType: "OTHER",
+        },
+      });
+
+      if (dto.services?.length) {
+        await tx.requestService.createMany({
+          data: dto.services.map((s) => ({
+            requestId: req.id,
+            serviceId: s.serviceId,
+            quantity: s.quantity ?? 1,
+            notes: s.notes,
+          })),
+        });
+      }
+
+      await tx.requestStatusHistory.create({
+        data: {
+          requestId: req.id,
+          fromStatus: null,
+          toStatus: RequestStatus.SUBMITTED,
+          changedBy: userId,
+          note: "Request created for existing client",
+        },
+      });
+
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId: dto.clientId,
+          userId,
+          eventType: "CLIENT_REQUEST_CREATED",
+          description: "New request created for existing client",
+          metadata: { requestId: req.id },
+        },
+      });
+
+      return tx.request.findUnique({
+        where: { id: req.id },
+        include: {
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              contactName: true,
+              userId: true,
+            },
+          },
+          assignee: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          services: {
+            include: {
+              service: { select: { id: true, name: true, nameAr: true } },
+            },
+          },
+        },
+      });
+    });
+
+    if (!request) {
+      throw new BadRequestException("Unable to create request");
+    }
+
+    if (request.assignee) {
+      await this.notificationsService
+        .notifyUsers({
+          userIds: [request.assignee.id],
+          title: "طلب جديد",
+          message: `تم استلام طلب جديد من ${client.contactName} - ${client.companyName}`,
+          entityId: request.id,
+          entityType: "request",
+          eventType: "REQUEST_SUBMITTED",
+        })
+        .catch(() => undefined);
+    }
+
+    return request;
+  }
+
   async ensureRequestForLead(
     leadId: string,
     changedBy?: string | null,
@@ -444,14 +566,16 @@ export class RequestsService {
         services: true,
         request: {
           include: {
-            client: {
-              select: {
-                id: true,
-                companyName: true,
-                contactName: true,
-                userId: true,
-              },
-            },
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            contactName: true,
+            userId: true,
+            totalProjects: true,
+            activeProjects: true,
+          },
+        },
             lead: { select: { id: true, pipelineStage: true } },
           },
         },

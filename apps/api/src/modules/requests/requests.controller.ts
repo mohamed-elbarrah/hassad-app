@@ -12,6 +12,7 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermissions } from "../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../common/guards/permissions.guard";
 import { CreateRequestDto, UpdateRequestStatusDto } from "./dto/request.dto";
+import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
 import { RequestsService } from "./requests.service";
 
 @Controller("requests")
@@ -53,5 +54,14 @@ export class RequestsController {
       user.id,
       dto.note,
     );
+  }
+
+  @Post("for-client")
+  @RequirePermissions("leads.create")
+  createForClient(
+    @CurrentUser() user: any,
+    @Body() dto: CreateRequestForClientDto,
+  ) {
+    return this.requestsService.createForClient(dto, user.id);
   }
 }
