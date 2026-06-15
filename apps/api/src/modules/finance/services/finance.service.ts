@@ -27,12 +27,14 @@ import {
 } from "@hassad/shared";
 import type { ServiceItem } from "@hassad/shared";
 import { NotificationsService } from "../../notifications/services/notifications.service";
+import { ClientCounterService } from "../../crm/services/client-counter.service";
 
 @Injectable()
 export class FinanceService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private clientCounterService: ClientCounterService,
   ) {}
 
   private async logToLedger(params: {
@@ -294,6 +296,10 @@ export class FinanceService {
       userId,
       after: payment,
     });
+
+    this.clientCounterService
+      .onInvoicePaid(dto.invoiceId)
+      .catch(() => undefined);
 
     const clientUser = await this.prisma.client.findUnique({
       where: { id: invoice.clientId },

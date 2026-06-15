@@ -17,6 +17,7 @@ import {
 } from "@hassad/shared";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { StorageService } from "../../../common/storage/storage.service";
+import { ClientCounterService } from "../../crm/services/client-counter.service";
 
 @Injectable()
 export class ProjectsService {
@@ -24,6 +25,7 @@ export class ProjectsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private storageService: StorageService,
+    private clientCounterService: ClientCounterService,
   ) {}
 
   async create(dto: CreateProjectDto) {
@@ -222,6 +224,10 @@ export class ProjectsService {
       where: { id },
       data: { status: status as import("@prisma/client").ProjectStatus },
     });
+
+    this.clientCounterService
+      .onProjectStatusChange(id)
+      .catch(() => undefined);
 
     const memberIds = await this.prisma.projectMember.findMany({
       where: { projectId: id },

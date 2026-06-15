@@ -23,6 +23,7 @@ import {
 import { RequestsService } from "../../requests/requests.service";
 import { AutoConversationService } from "../../chat/services/auto-conversation.service";
 import { PmAssignmentService } from "./pm-assignment.service";
+import { ClientCounterService } from "../../crm/services/client-counter.service";
 
 @Injectable()
 export class ContractsService {
@@ -32,6 +33,7 @@ export class ContractsService {
     private requestsService: RequestsService,
     private autoConversationService: AutoConversationService,
     private pmAssignmentService: PmAssignmentService,
+    private clientCounterService: ClientCounterService,
   ) {}
 
   private async createProjectFromSignedContract(contractId: string) {
@@ -480,6 +482,10 @@ export class ContractsService {
         .catch(() => undefined);
     });
 
+    this.clientCounterService
+      .onContractSigned(contract.id)
+      .catch(() => undefined);
+
     return signedResult;
   }
 
@@ -585,6 +591,10 @@ export class ContractsService {
         })
         .catch(() => undefined);
     });
+
+    this.clientCounterService
+      .onContractSigned(id)
+      .catch(() => undefined);
 
     await this.notificationsService.notifyUsers({
       userIds: [contract.createdBy, contract.client.accountManager].filter(
