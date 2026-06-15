@@ -65,6 +65,7 @@ services:
     environment:
       - APP_URL=https://${DOMAIN:-${SERVER_IP}}
       - JWT_SECRET=${JWT_SECRET}
+      - PORT=3000
     depends_on:
       api:
         condition: service_healthy
