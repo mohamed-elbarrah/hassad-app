@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,8 @@ import { z } from "zod";
 import { BusinessType, ClientSource } from "@hassad/shared";
 import { useCreateRequestMutation } from "@/features/requests/requestsApi";
 import { useGetServicesQuery } from "@/features/services/servicesApi";
+import { useGetClientByIdQuery } from "@/features/clients/clientsApi";
+import { useAppSelector } from "@/lib/hooks";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { toast } from "sonner";
@@ -19,6 +21,10 @@ import {
   Loader2,
   PlusCircle,
   ArrowRight,
+  User,
+  Phone,
+  Mail,
+  Building2,
 } from "lucide-react";
 import { Checkbox } from "@/components/design-system/Checkbox";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -76,10 +82,17 @@ const orderSchema = step1Schema.merge(step2Schema);
 type OrderFormValues = z.infer<typeof orderSchema>;
 
 export default function PortalNewOrderPage() {
-  const [step, setStep] = useState<1 | 2>(1);
   const router = useRouter();
+  const { user } = useAppSelector((state) => state.auth);
   const [createRequest, { isLoading }] = useCreateRequestMutation();
   const { data: services } = useGetServicesQuery(undefined);
+
+  const isReturningClient = user?.clientId && user?.intakeCompleted === true;
+  const { data: client } = useGetClientByIdQuery(user?.clientId ?? "", {
+    skip: !isReturningClient,
+  });
+
+  const [step, setStep] = useState<1 | 2>(isReturningClient ? 2 : 1);
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
@@ -94,6 +107,15 @@ export default function PortalNewOrderPage() {
     },
     mode: "onSubmit",
   });
+
+  useEffect(() => {
+    if (isReturningClient && client) {
+      form.setValue("contactName", client.contactName);
+      form.setValue("phoneWhatsapp", client.phoneWhatsapp);
+      form.setValue("email", client.email ?? "");
+      form.setValue("companyName", client.companyName);
+    }
+  }, [isReturningClient, client, form]);
 
   async function handleNext() {
     form.clearErrors(["contactName", "phoneWhatsapp", "companyName"]);
@@ -184,7 +206,16 @@ export default function PortalNewOrderPage() {
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex flex-col gap-6"
             >
+              {/* Returning client banner */}
+              {isReturningClient && (
+                <div className="flex items-center gap-3 p-4 rounded-2xl bg-secondary-50 border border-secondary-200 text-secondary-700 text-sm font-medium">
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
+                  أنت عميل سابق — فقط أخبرنا بما تحتاج
+                </div>
+              )}
+
               {/* Stepper */}
+              {!isReturningClient && (
               <div className="flex items-center gap-3">
                 {[1, 2].map((s) => (
                   <div key={s} className="flex items-center gap-2 flex-1">
@@ -219,9 +250,10 @@ export default function PortalNewOrderPage() {
                   </div>
                 ))}
               </div>
+              )}
 
               {/* Step 1 */}
-              {step === 1 && (
+              {step === 1 && !isReturningClient && (
                 <div className="flex flex-col gap-5">
                   <FormField
                     control={form.control}
@@ -282,6 +314,32 @@ export default function PortalNewOrderPage() {
               {/* Step 2 */}
               {step === 2 && (
                 <div className="flex flex-col gap-5">
+                  {/* Returning client identity summary */}
+                  {isReturningClient && client && (
+                    <div className="rounded-2xl border border-portal-card-border bg-white p-4 space-y-3">
+                      <h3 className="text-sm font-semibold text-natural-100">معلوماتك المسجلة</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center gap-2 text-neutral-400">
+                          <User className="w-4 h-4 shrink-0" />
+                          <span className="text-natural-100 font-medium">{client.contactName}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-neutral-400" dir="ltr">
+                          <Phone className="w-4 h-4 shrink-0" />
+                          <span className="text-natural-100 font-medium">{client.phoneWhatsapp}</span>
+                        </div>
+                        {client.email && (
+                          <div className="flex items-center gap-2 text-neutral-400" dir="ltr">
+                            <Mail className="w-4 h-4 shrink-0" />
+                            <span className="text-natural-100 font-medium">{client.email}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-neutral-400">
+                          <Building2 className="w-4 h-4 shrink-0" />
+                          <span className="text-natural-100 font-medium">{client.companyName}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <FormField
                     control={form.control}
                     name="businessType"
@@ -372,7 +430,7 @@ export default function PortalNewOrderPage() {
 
               {/* Navigation */}
               <div className="flex items-center justify-between pt-4 border-t-[1.5px] border-portal-card-border">
-                {step === 2 ? (
+                {step === 2 && !isReturningClient ? (
                   <ActionButton
                     type="button"
                     variant="ghost"

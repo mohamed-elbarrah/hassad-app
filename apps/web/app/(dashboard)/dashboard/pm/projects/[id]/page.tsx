@@ -4,6 +4,7 @@ import { use, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  Building2,
   Calendar,
   User,
   TrendingUp,
@@ -318,6 +319,15 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 status={PROJECT_STATUS_BADGE_KEY[project.status as ProjectStatus]}
                 label={PROJECT_STATUS_LABELS[project.status as ProjectStatus]}
               />
+              {p.client && (
+                <Link
+                  href={`/dashboard/sales/clients/${p.client.id}`}
+                  className="text-sm text-secondary-600 hover:text-secondary-700 hover:underline transition-colors flex items-center gap-1"
+                >
+                  <Building2 className="w-4 h-4" />
+                  {p.client.companyName}
+                </Link>
+              )}
             </div>
           </div>
           <ProjectForm project={project} currentUserId={user.id} />
