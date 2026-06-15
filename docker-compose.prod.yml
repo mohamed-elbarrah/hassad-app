@@ -29,7 +29,7 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: hassad-api
     restart: always
-    env_file: .env.production
+    env_file: .env
     environment:
       - WEB_URL=https://${DOMAIN:-${SERVER_IP}}
       - FRONTEND_URL=https://${DOMAIN:-${SERVER_IP}}
@@ -61,7 +61,7 @@ services:
         - NEXT_PUBLIC_API_URL=https://${DOMAIN:-${SERVER_IP}}/v1
     container_name: hassad-web
     restart: always
-    env_file: .env.production
+    env_file: .env
     environment:
       - APP_URL=https://${DOMAIN:-${SERVER_IP}}
       - JWT_SECRET=${JWT_SECRET}
