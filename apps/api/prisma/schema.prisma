@@ -245,6 +245,15 @@ model Client {
   updatedAt            DateTime                 @updatedAt @map("updated_at")
   userId               String?                  @unique @map("user_id")
   intakeCompleted      Boolean                  @default(false) @map("intake_completed")
+  totalProjects        Int                      @default(0) @map("total_projects")
+  activeProjects       Int                      @default(0) @map("active_projects")
+  completedProjects    Int                      @default(0) @map("completed_projects")
+  cancelledProjects    Int                      @default(0) @map("cancelled_projects")
+  totalContractValue   Float                    @default(0) @map("total_contract_value")
+  totalInvoiced        Float                    @default(0) @map("total_invoiced")
+  totalPaid            Float                    @default(0) @map("total_paid")
+  lastProjectAt        DateTime?                @map("last_project_at")
+  avgSatisfactionScore Float?                   @map("avg_satisfaction_score")
   campaigns            Campaign[]
   historyLogs          ClientHistoryLog[]
   revisionReqs         ClientRevisionRequest[]
@@ -263,6 +272,7 @@ model Client {
   proposals            Proposal[]
   requests             Request[]
   satRatings           SatisfactionRating[]
+  profile              ClientProfile?
 
   @@index([userId])
   @@index([accountManager])
@@ -285,6 +295,32 @@ model ClientHistoryLog {
   @@index([clientId])
   @@index([occurredAt])
   @@map("client_history_log")
+}
+
+model ClientProfile {
+  id                      String   @id @default(uuid())
+  clientId                String   @unique @map("client_id")
+  client                  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  industry                String?
+  businessDescription     String?  @db.Text @map("business_description")
+  targetAudience          String?  @map("target_audience")
+  budgetRangeMin          Float?   @map("budget_range_min")
+  budgetRangeMax          Float?   @map("budget_range_max")
+  communicationPreference String?  @map("communication_preference")
+  preferredLanguage       String?  @default("ar") @map("preferred_language")
+  timezone                String?  @default("Asia/Riyadh")
+  preferredPlatforms      String?  @map("preferred_platforms")
+  competitors             Json?
+  brandAssets             Json?    @map("brand_assets")
+  customFields            Json?    @map("custom_fields")
+
+  createdBy               String?  @map("created_by")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@map("client_profile")
 }
 
 model ServiceCatalog {
@@ -1380,6 +1416,7 @@ enum ClientSource {
   WEBSITE
   WHATSAPP
   PLATFORM
+  DIRECT
 }
 
 enum PipelineStage {
