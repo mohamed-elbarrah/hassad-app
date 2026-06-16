@@ -27,7 +27,7 @@ export class ProjectGroupChatService {
         type: ConversationType.GROUP,
         projectId: project.id,
         clientId: project.clientId,
-        title: `فريق مشروع ${project.name}`,
+        title: project.name,
         participants: {
           create: participantIds.map((userId) => ({ userId })),
         },

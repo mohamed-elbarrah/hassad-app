@@ -11,7 +11,7 @@ interface ConversationListProps {
   onSelect: (conversation: Conversation) => void;
   isLoading?: boolean;
   filterType?: "DIRECT" | "GROUP";
-  onFilterChange?: (type?: "DIRECT" | "GROUP") => void;
+  onFilterChange?: (type: "DIRECT" | "GROUP") => void;
 }
 
 export function ConversationList({
@@ -36,17 +36,6 @@ export function ConversationList({
         <h2 className="mb-2 text-lg font-semibold">المحادثات</h2>
         {onFilterChange && (
           <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => onFilterChange(undefined)}
-              className={cn(
-                "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
-                !filterType
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80",
-              )}
-            >
-              الكل
-            </button>
             <button
               onClick={() => onFilterChange("DIRECT")}
               className={cn(

@@ -34,8 +34,9 @@ export class AddParticipantDto {
 }
 
 export class CreateMessageDto {
+  @IsOptional()
   @IsUUID()
-  conversationId: string;
+  conversationId?: string;
 
   @IsString()
   content: string;
