@@ -597,4 +597,27 @@ export class PortalController {
       dto.comment,
     );
   }
+
+  @Get("portal/marketing-strategies/:id/download")
+  @RequirePermissions("portal.read")
+  async downloadStrategy(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+
+    // Verify client owns this strategy
+    const strategy = await this.prisma.marketingStrategy.findUnique({
+      where: { id },
+      select: { clientId: true, filePath: true },
+    });
+
+    if (!strategy || strategy.clientId !== clientId) {
+      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+    }
+
+    const url = await this.storageService.getPresignedUrl(strategy.filePath);
+    return { url };
+  }
 }

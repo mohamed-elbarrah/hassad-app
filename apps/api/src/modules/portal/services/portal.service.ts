@@ -514,6 +514,7 @@ export class PortalService {
     const fetchInvoices = !typeFilter || typeFilter === "INVOICE_PAYMENT";
     const fetchProposals = !typeFilter || typeFilter === "PROPOSAL_REVIEW";
     const fetchContracts = !typeFilter || typeFilter === "CONTRACT_SIGN";
+    const fetchStrategyReviews = !typeFilter || typeFilter === "STRATEGY_REVIEW";
 
     if (fetchDeliverables) {
       const projects = await this.prisma.project.findMany({
@@ -629,6 +630,37 @@ export class PortalService {
             : "/portal/proposals",
           priority: "normal",
           createdAt: p.sentAt ?? p.createdAt,
+        });
+      }
+    }
+
+    if (fetchStrategyReviews) {
+      const pendingStrategies = await this.prisma.marketingStrategy.findMany({
+        where: {
+          clientId,
+          status: "SENT",
+        },
+        include: {
+          task: {
+            select: {
+              title: true,
+              project: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { sentAt: "desc" },
+      });
+
+      for (const s of pendingStrategies) {
+        if (snoozedKeys.has(`STRATEGY_REVIEW-${s.id}`)) continue;
+        items.push({
+          id: `strat-${s.id}`,
+          type: "STRATEGY_REVIEW",
+          title: `دراسة تسويقية — ${s.task?.project?.name ?? ""}`,
+          subtitle: `دراسة تسويقية للمهمة "${s.task?.title ?? ""}" بانتظار مراجعتك`,
+          actionUrl: `/portal/marketing-strategies/${s.id}`,
+          priority: "high",
+          createdAt: s.sentAt ?? s.createdAt,
         });
       }
     }
