@@ -13,6 +13,8 @@ export function useSocket() {
     const socket = getSocket();
     socketRef.current = socket;
 
+    setIsConnected(socket.connected);
+
     socket.on("connect", () => setIsConnected(true));
     socket.on("disconnect", () => setIsConnected(false));
     socket.on("reconnect_attempt", () => {

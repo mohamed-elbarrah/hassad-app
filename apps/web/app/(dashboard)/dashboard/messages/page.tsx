@@ -161,7 +161,6 @@ export default function MessagesPage() {
               onSend={handleSend}
               onTyping={() => emitTyping?.(selectedId)}
               onStopTyping={() => emitStopTyping?.(selectedId)}
-              disabled={!isConnected}
             />
           </>
         ) : (

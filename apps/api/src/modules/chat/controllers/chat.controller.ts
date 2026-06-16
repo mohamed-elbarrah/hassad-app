@@ -14,6 +14,7 @@ import {
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ChatService } from "../services/chat.service";
 import { ProjectGroupChatService } from "../services/project-group-chat.service";
+import { DirectConversationService } from "../services/direct-conversation.service";
 import {
   CreateConversationDto,
   AddParticipantDto,
@@ -33,6 +34,7 @@ export class ChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly projectGroupChatService: ProjectGroupChatService,
+    private readonly directConversationService: DirectConversationService,
     private readonly storageService: StorageService,
   ) {}
 
@@ -52,6 +54,22 @@ export class ChatController {
     @Body() dto: CreateConversationDto,
   ) {
     return this.chatService.createConversation(user.id, dto);
+  }
+
+  @Get("conversations/direct/:userId")
+  @RequirePermissions("chat.read")
+  async getDirectConversation(
+    @CurrentUser() user: any,
+    @Param("userId") otherUserId: string,
+  ) {
+    const conversation = await this.directConversationService.getOrCreate(
+      user.id,
+      otherUserId,
+    );
+    if (!conversation) {
+      throw new NotFoundException("Could not create direct conversation");
+    }
+    return conversation;
   }
 
   @Get("conversations/:id")

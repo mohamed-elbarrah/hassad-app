@@ -140,6 +140,13 @@ export const chatApi = createApi({
       ],
     }),
 
+    getDirectConversation: builder.query<Conversation, string>({
+      query: (userId) => `/conversations/direct/${userId}`,
+      providesTags: (_, __, userId) => [
+        { type: "Conversation", id: `direct-${userId}` },
+      ],
+    }),
+
     createDirectConversation: builder.mutation<Conversation, CreateDirectConversationInput>(
       {
         query: (body) => ({
@@ -232,6 +239,7 @@ export const {
   useGetConversationsQuery,
   useGetConversationQuery,
   useLazyGetProjectGroupChatQuery,
+  useLazyGetDirectConversationQuery,
   useCreateDirectConversationMutation,
   useCreateGroupConversationMutation,
   useAddParticipantMutation,

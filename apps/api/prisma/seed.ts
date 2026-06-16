@@ -2403,6 +2403,8 @@ async function main() {
       "projects.read",
       "notifications.read",
       "notifications.update",
+      "chat.read",
+      "chat.message",
     ],
     MARKETING: [
       "marketing.create",
@@ -2416,6 +2418,8 @@ async function main() {
       "tasks.update",
       "tasks.comment",
       "notifications.read",
+      "chat.read",
+      "chat.message",
     ],
     ACCOUNTANT: [
       "finance.create_invoice",
@@ -2424,6 +2428,9 @@ async function main() {
       "finance.manage_tickets",
       "finance.read_ledger",
       "finance.manage_payroll",
+      "notifications.read",
+      "chat.read",
+      "chat.message",
     ],
     CLIENT: [
       "proposals.read_public",

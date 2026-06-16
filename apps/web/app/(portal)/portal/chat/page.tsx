@@ -7,6 +7,7 @@ import {
   useGetConversationsQuery,
   useGetMessagesQuery,
   useSendMessageMutation,
+  useLazyGetDirectConversationQuery,
 } from "@/features/chat/chatApi";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import { ConversationList } from "@/components/chat/ConversationList";
@@ -25,20 +26,38 @@ export default function PortalChatPage() {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
 
   const openSales = searchParams.get("openSales") === "true";
+  const openUserId = searchParams.get("userId");
 
   const { data: conversationsData, isLoading: convLoading } =
     useGetConversationsQuery({ type: "DIRECT", limit: 50 });
+
+  const [fetchDirectConv] = useLazyGetDirectConversationQuery();
 
   const conversations = conversationsData?.data ?? [];
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
   useEffect(() => {
+    if (openUserId && !selectedId && !convLoading) {
+      const existing = conversations.find((c) =>
+        c.participants.some((p) => p.userId === openUserId),
+      );
+      if (existing) {
+        setSelectedId(existing.id);
+      } else {
+        fetchDirectConv(openUserId)
+          .unwrap()
+          .then((conv) => setSelectedId(conv.id))
+          .catch(() => {});
+      }
+      return;
+    }
+
     if (!openSales || selectedId || convLoading) return;
     const firstDirect = conversations[0];
     if (firstDirect) {
       setSelectedId(firstDirect.id);
     }
-  }, [openSales, selectedId, convLoading, conversations]);
+  }, [openSales, openUserId, selectedId, convLoading, conversations, fetchDirectConv]);
 
   const { data: messagesData, isLoading: msgLoading } = useGetMessagesQuery(
     { conversationId: selectedId!, limit: 100 },
