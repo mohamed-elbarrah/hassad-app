@@ -7,6 +7,25 @@ import {
   UpdateCampaignStatusInput,
 } from "@hassad/shared";
 
+export interface MarketingStrategy {
+  id: string;
+  taskId: string;
+  createdBy: string;
+  clientId: string;
+  projectId: string | null;
+  status: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  fileType: string;
+  revisionNote: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Flatten analytics fields from API response into campaign object */
 function flattenCampaignAnalytics(c: any) {
   const { analytics, ...rest } = c;
@@ -27,8 +46,10 @@ function flattenCampaignAnalytics(c: any) {
 export const marketingApi = createApi({
   reducerPath: "marketingApi",
   baseQuery,
-  tagTypes: ["Campaign", "TaskCampaigns"],
+  tagTypes: ["Campaign", "TaskCampaigns", "TaskStrategy", "Strategy"],
   endpoints: (builder) => ({
+    // ── Campaign Endpoints ───────────────────────────────────────────────
+
     getCampaignsByTask: builder.query<Campaign[], string>({
       query: (taskId) => `tasks/${taskId}/campaigns`,
       providesTags: (result, error, taskId) => [
@@ -41,13 +62,10 @@ export const marketingApi = createApi({
     getCampaign: builder.query<Campaign & { analytics: any }, string>({
       query: (id) => `campaigns/${id}`,
       providesTags: (result, error, id) => [{ type: "Campaign", id }],
-      // Keep analytics as a separate object for the detail page,
-      // but also flatten for convenience
       transformResponse: (baseQueryReturnValue: any) => {
         const flattened = flattenCampaignAnalytics(baseQueryReturnValue);
         return {
           ...flattened,
-          // Keep analytics intact for the form reset
           analytics: baseQueryReturnValue.analytics,
         };
       },
@@ -146,6 +164,64 @@ export const marketingApi = createApi({
         "Campaign",
       ],
     }),
+
+    // ── Marketing Strategy Endpoints ─────────────────────────────────────
+
+    getTaskStrategy: builder.query<MarketingStrategy | null, string>({
+      query: (taskId) => `tasks/${taskId}/marketing-strategy`,
+      providesTags: (result, error, taskId) => [
+        { type: "TaskStrategy", id: taskId },
+      ],
+    }),
+    uploadStrategy: builder.mutation<
+      MarketingStrategy,
+      { taskId: string; file: File }
+    >({
+      query: ({ taskId, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: `tasks/${taskId}/marketing-strategy`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: (result, error, { taskId }) => [
+        { type: "TaskStrategy", id: taskId },
+        "Strategy",
+      ],
+    }),
+    sendStrategyToClient: builder.mutation<MarketingStrategy, string>({
+      query: (id) => ({
+        url: `marketing-strategies/${id}/send`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Strategy", id },
+        "TaskStrategy",
+      ],
+    }),
+    resubmitStrategy: builder.mutation<
+      MarketingStrategy,
+      { id: string; file: File }
+    >({
+      query: ({ id, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: `marketing-strategies/${id}/resubmit`,
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Strategy", id },
+        "TaskStrategy",
+      ],
+    }),
+    getStrategyDownloadUrl: builder.query<string, string>({
+      query: (id) => `marketing-strategies/${id}/download`,
+    }),
   }),
 });
 
@@ -160,4 +236,10 @@ export const {
   useDuplicateCampaignMutation,
   useArchiveCampaignMutation,
   useUnarchiveCampaignMutation,
+  // Strategy hooks
+  useGetTaskStrategyQuery,
+  useUploadStrategyMutation,
+  useSendStrategyToClientMutation,
+  useResubmitStrategyMutation,
+  useGetStrategyDownloadUrlQuery,
 } = marketingApi;

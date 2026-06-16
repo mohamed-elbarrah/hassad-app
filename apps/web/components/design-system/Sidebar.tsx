@@ -80,6 +80,11 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/portal/campaigns",
         icon: TrendingUp,
       },
+      {
+        label: "الدراسات التسويقية",
+        href: "/portal/marketing-strategies",
+        icon: FileText,
+      },
       { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
     ],
   },

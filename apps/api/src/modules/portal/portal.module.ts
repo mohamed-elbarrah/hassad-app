@@ -5,10 +5,12 @@ import { PortalController } from "./controllers/portal.controller";
 import { PortalNotificationsController } from "./controllers/portal-notifications.controller";
 import { PortalService } from "./services/portal.service";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { MarketingModule } from "../marketing/marketing.module";
 
 @Module({
   imports: [
     NotificationsModule,
+    MarketingModule,
     MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [PortalController, PortalNotificationsController],

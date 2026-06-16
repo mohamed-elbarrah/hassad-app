@@ -62,6 +62,8 @@ model User {
   approvedTasks        Task[]                    @relation("TaskApprover")
   assignedTasks        Task[]                    @relation("TaskAssignee")
   createdTasks         Task[]                    @relation("TaskCreator")
+  createdStrategies    MarketingStrategy[]       @relation("StrategyCreator")
+  approvedStrategies   MarketingStrategy[]       @relation("StrategyApprover")
   departments          UserDepartment[]
   permissions          UserPermission[]
   role                 Role                      @relation(fields: [roleId], references: [id])
@@ -258,6 +260,7 @@ model Client {
   historyLogs          ClientHistoryLog[]
   revisionReqs         ClientRevisionRequest[]
   snoozedItems         ClientSnoozedItem[]
+  marketingStrategies  MarketingStrategy[]
   manager              User?                    @relation("AccountManager", fields: [accountManager], references: [id])
   lead                 Lead?                    @relation(fields: [leadId], references: [id])
   user                 User?                    @relation("ClientUser", fields: [userId], references: [id])
@@ -568,6 +571,7 @@ model Project {
   files                ProjectFile[]
   members              ProjectMember[]
   revisionRequests     ProjectRevisionRequest[]
+  marketingStrategies  MarketingStrategy[]
   client               Client                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contract             Contract?                @relation(fields: [contractId], references: [id])
   manager              User?                    @relation("ProjectManager", fields: [projectManagerId], references: [id])
@@ -619,6 +623,7 @@ model Task {
   archivedAt        DateTime?           @map("archived_at")
   campaigns         Campaign[]
   deliverables      Deliverable[]
+  marketingStrategies MarketingStrategy[]
   internalRating    InternalRating?
   invoiceItems      InvoiceItem[]
   comments          TaskComment[]
@@ -787,6 +792,36 @@ model CampaignStatusHistory {
 
   @@index([campaignId])
   @@map("campaign_status_history")
+}
+
+model MarketingStrategy {
+  id               String                    @id @default(uuid())
+  taskId           String                    @map("task_id")
+  createdBy        String                    @map("created_by")
+  clientId         String                    @map("client_id")
+  projectId        String?                   @map("project_id")
+  status           MarketingStrategyStatus   @default(DRAFT)
+  fileName         String                    @map("file_name")
+  filePath         String                    @map("file_path")
+  fileSize         Int                       @map("file_size")
+  fileType         String                    @default("application/pdf") @map("file_type")
+  revisionNote     String?                   @map("revision_note")
+  approvedBy       String?                   @map("approved_by")
+  approvedAt       DateTime?                 @map("approved_at")
+  sentAt           DateTime?                 @map("sent_at")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
+
+  task             Task                      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  creator          User                      @relation("StrategyCreator", fields: [createdBy], references: [id])
+  client           Client                    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  approver         User?                     @relation("StrategyApprover", fields: [approvedBy], references: [id])
+  project          Project?                  @relation(fields: [projectId], references: [id])
+
+  @@index([taskId])
+  @@index([clientId])
+  @@index([status])
+  @@map("marketing_strategies")
 }
 
 model AdPlatformConnection {
@@ -1573,6 +1608,14 @@ enum CampaignPlatform {
   META
   TIKTOK
   SNAPCHAT
+}
+
+enum MarketingStrategyStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REVISION_REQUESTED
+  REJECTED
 }
 
 enum SyncStatus {
