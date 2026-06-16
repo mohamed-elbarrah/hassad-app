@@ -1,5 +1,6 @@
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { cn } from "@/lib/utils";
+import type { ClientHistoryLogItem } from "@hassad/shared";
 import {
   CircleDot,
   PhoneCall,
@@ -13,16 +14,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-interface ActivityEntry {
-  id: string;
-  action: string;
-  details?: string | null;
-  createdAt: string;
-  userId: string;
-}
-
 interface ClientTimelineProps {
-  activities: ActivityEntry[];
+  activities: ClientHistoryLogItem[];
 }
 
 const ACTION_CONFIG: Record<
@@ -34,15 +27,30 @@ const ACTION_CONFIG: Record<
     icon: CircleDot,
     color: "text-action-blue",
   },
+  CLIENT_UPDATED: {
+    label: "تحديث بيانات العميل",
+    icon: FileText,
+    color: "text-alert-500",
+  },
+  CLIENT_COUNTERS_UPDATED: {
+    label: "تحديث إحصائيات العميل",
+    icon: ClipboardList,
+    color: "text-neutral-300",
+  },
+  CLIENT_PROFILE_CREATED: {
+    label: "إنشاء الملف التعريفي",
+    icon: UserCheck,
+    color: "text-secondary-500",
+  },
+  CLIENT_PROFILE_UPDATED: {
+    label: "تحديث الملف التعريفي",
+    icon: FileText,
+    color: "text-alert-500",
+  },
   STAGE_UPDATED: {
     label: "تغيير المرحلة",
     icon: UserCheck,
     color: "text-secondary-500",
-  },
-  CLIENT_UPDATED: {
-    label: "تحديث بيانات",
-    icon: FileText,
-    color: "text-alert-500",
   },
   REQUIREMENTS_UPDATED: {
     label: "تحديث المتطلبات",
@@ -142,7 +150,7 @@ export function ClientTimeline({ activities }: ClientTimelineProps) {
                 label,
                 icon: Icon,
                 color,
-              } = getActionConfig(activity.action);
+              } = getActionConfig(activity.eventType);
               return (
                 <div key={activity.id} className="relative ps-10">
                   <div className="absolute right-2 top-1 w-5 h-5 rounded-full bg-natural-0 border-2 border-portal-divider flex items-center justify-center">
@@ -150,9 +158,14 @@ export function ClientTimeline({ activities }: ClientTimelineProps) {
                   </div>
                   <div>
                     <p className="text-sm font-medium">{label}</p>
-                    {activity.details && (
+                    {activity.description && (
                       <p className="text-xs text-neutral-300 mt-0.5">
-                        {activity.details}
+                        {activity.description}
+                      </p>
+                    )}
+                    {activity.user?.name && (
+                      <p className="text-xs text-neutral-300 mt-0.5">
+                        بواسطة: {activity.user.name}
                       </p>
                     )}
                     <p className="text-xs text-neutral-300 mt-1" dir="ltr">
@@ -163,7 +176,7 @@ export function ClientTimeline({ activities }: ClientTimelineProps) {
                         hour: "2-digit",
                         minute: "2-digit",
                         numberingSystem: "latn",
-                      }).format(new Date(activity.createdAt))}
+                      }).format(new Date(activity.occurredAt))}
                     </p>
                   </div>
                 </div>

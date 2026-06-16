@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { UpsertClientProfileDto } from "../dto/client-profile.dto";
 
@@ -16,15 +17,29 @@ interface AuthenticatedUser {
 export class ClientProfileService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async resolveClientIdForUser(userId: string): Promise<string | null> {
+    const client = await this.prisma.client.findFirst({
+      where: { userId },
+      select: { id: true },
+    });
+    return client?.id ?? null;
+  }
+
+  private async assertClientOwnership(
+    user: AuthenticatedUser,
+    clientId: string,
+  ): Promise<void> {
+    if (user.role !== "CLIENT") return;
+
+    const ownedClientId = await this.resolveClientIdForUser(user.id);
+    if (!ownedClientId || ownedClientId !== clientId) {
+      throw new ForbiddenException("You can only access your own profile");
+    }
+  }
+
   async getByClientId(clientId: string, user?: AuthenticatedUser) {
-    if (user?.role === "CLIENT") {
-      const client = await this.prisma.client.findFirst({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      if (!client || client.id !== clientId) {
-        throw new ForbiddenException("You can only view your own profile");
-      }
+    if (user) {
+      await this.assertClientOwnership(user, clientId);
     }
 
     const profile = await this.prisma.clientProfile.findUnique({
@@ -38,37 +53,48 @@ export class ClientProfileService {
     dto: UpsertClientProfileDto,
     user: AuthenticatedUser,
   ) {
-    if (user.role === "CLIENT") {
-      const client = await this.prisma.client.findFirst({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      if (!client || client.id !== clientId) {
-        throw new ForbiddenException("You can only update your own profile");
-      }
-    }
+    await this.assertClientOwnership(user, clientId);
+
+    /**
+     * Serialize the validated DTO into JSON-compatible plain objects so Prisma's
+     * Json fields (competitors, brandAssets, customFields) accept the payload.
+     */
+    const plainDto = JSON.parse(JSON.stringify(dto)) as Record<string, unknown>;
 
     const existing = await this.prisma.clientProfile.findUnique({
       where: { clientId },
     });
 
-    const data: any = { ...dto, createdBy: user.id };
+    const profile = await this.prisma.$transaction(async (tx) => {
+      let result;
 
-    const profile = existing
-      ? await this.prisma.clientProfile.update({
+      if (existing) {
+        const { createdBy: _, ...rest } = plainDto;
+        const updateData = rest as Prisma.ClientProfileUpdateInput;
+
+        result = await tx.clientProfile.update({
           where: { clientId },
-          data,
-        })
-      : await this.prisma.clientProfile.create({
-          data: { ...data, clientId },
+          data: updateData,
+        });
+      } else {
+        const createData = {
+          ...plainDto,
+          clientId,
+          createdBy: user.id,
+        } as unknown as Prisma.ClientProfileUncheckedCreateInput;
+
+        result = await tx.clientProfile.create({
+          data: createData,
         });
 
-    if (!existing) {
-      await this.prisma.client.update({
-        where: { id: clientId },
-        data: { intakeCompleted: true },
-      });
-    }
+        await tx.client.update({
+          where: { id: clientId },
+          data: { intakeCompleted: true },
+        });
+      }
+
+      return result;
+    });
 
     await this.prisma.clientHistoryLog.create({
       data: {

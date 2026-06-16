@@ -52,7 +52,12 @@ import {
   PaymentEventType,
   PayType,
 } from "./enums/finance";
-import { CampaignPlatform, CampaignStatus, KpiSource, SyncStatus } from "./enums/campaign";
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  KpiSource,
+  SyncStatus,
+} from "./enums/campaign";
 import { ServiceCategory } from "./enums/service";
 
 export interface User {
@@ -97,6 +102,18 @@ export interface Client {
   avgSatisfactionScore?: number | null;
   profile?: ClientProfile | null;
   manager?: { id: string; name: string } | null;
+  historyLogs?: ClientHistoryLogItem[];
+}
+
+export interface ClientHistoryLogItem {
+  id: string;
+  clientId: string;
+  userId: string;
+  eventType: string;
+  description: string;
+  metadata?: Record<string, unknown> | null;
+  occurredAt: Date | string;
+  user?: { id: string; name: string } | null;
 }
 
 export interface ClientProfile {
@@ -236,6 +253,7 @@ export interface Project {
   progress?: number;
   createdAt: Date | string;
   updatedAt: Date | string;
+  manager?: { id: string; name: string } | null;
 }
 
 export interface Task {

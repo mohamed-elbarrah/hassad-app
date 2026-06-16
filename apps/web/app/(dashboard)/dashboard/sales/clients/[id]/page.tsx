@@ -6,17 +6,17 @@ import {
   useGetClientByIdQuery,
   useGetClientProfileQuery,
 } from "@/features/clients/clientsApi";
-import { ClientInfoCard } from "@/components/dashboard/crm/ClientInfoCard";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, PlusCircle, Building2, Phone, Mail } from "lucide-react";
+import { ArrowRight, PlusCircle } from "lucide-react";
 import { OverviewTab } from "./overview-tab";
 import { ProjectsTab } from "./projects-tab";
 import { FinanceTab } from "./finance-tab";
 import { ActivityTab } from "./activity-tab";
 import { ProfileEditTab } from "./profile-edit-tab";
 import { NewRequestForClientModal } from "@/components/dashboard/crm/NewRequestForClientModal";
+import { formatRelativeTime } from "@/lib/format";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -34,12 +34,17 @@ export default function ClientProfilePage({ params }: PageProps) {
     return (
       <div className="space-y-6" dir="rtl">
         <Skeleton className="h-8 w-48 rounded" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-48" />
-            <Skeleton className="h-64 rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-3 space-y-4">
+            <Skeleton className="h-80 rounded-2xl" />
           </div>
-          <Skeleton className="h-96" />
+          <div className="lg:col-span-6 space-y-4">
+            <Skeleton className="h-40 rounded-2xl" />
+            <Skeleton className="h-64 rounded-2xl" />
+          </div>
+          <div className="lg:col-span-3 space-y-4">
+            <Skeleton className="h-80 rounded-2xl" />
+          </div>
         </div>
       </div>
     );
@@ -74,26 +79,9 @@ export default function ClientProfilePage({ params }: PageProps) {
             <h1 className="text-2xl font-semibold truncate">
               {client.companyName}
             </h1>
-            <div className="flex items-center gap-4 text-sm text-neutral-300 mt-1">
-              {client.contactName && (
-                <span className="flex items-center gap-1">
-                  <Building2 className="h-3.5 w-3.5" />
-                  {client.contactName}
-                </span>
-              )}
-              {client.phoneWhatsapp && (
-                <span className="flex items-center gap-1" dir="ltr">
-                  <Phone className="h-3.5 w-3.5" />
-                  {client.phoneWhatsapp}
-                </span>
-              )}
-              {client.email && (
-                <span className="flex items-center gap-1" dir="ltr">
-                  <Mail className="h-3.5 w-3.5" />
-                  {client.email}
-                </span>
-              )}
-            </div>
+            <p className="text-sm text-neutral-300 mt-0.5">
+              آخر تحديث: {formatRelativeTime(String(client.updatedAt))}
+            </p>
           </div>
         </div>
 
@@ -107,11 +95,8 @@ export default function ClientProfilePage({ params }: PageProps) {
         </ActionButton>
       </div>
 
-      {/* Client Info Card */}
-      <ClientInfoCard client={client} />
-
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs defaultValue="overview" className="w-full" dir="rtl">
         <TabsList className="w-full justify-start gap-1 bg-transparent p-0 h-auto border-b rounded-none">
           <TabsTrigger
             value="overview"

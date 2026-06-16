@@ -8,7 +8,7 @@ import { useLoginMutation } from "@/features/auth/authApi";
 import { useAppDispatch } from "@/lib/hooks";
 import { setCredentials } from "@/features/auth/authSlice";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import { AuthInput } from "./AuthInput";
 import { AuthButton } from "./AuthButton";
 import { AuthDivider } from "./AuthDivider";
@@ -25,7 +25,7 @@ const loginFormSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
-function LoginFormInner() {
+export function LoginForm() {
   const [login, { isLoading }] = useLoginMutation();
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -177,19 +177,5 @@ function LoginFormInner() {
         href="/signup"
       />
     </form>
-  );
-}
-
-export function LoginForm() {
-  return (
-    <Suspense
-      fallback={
-        <div className="text-center text-neutral-300">
-          جارٍ تحميل النموذج...
-        </div>
-      }
-    >
-      <LoginFormInner />
-    </Suspense>
   );
 }

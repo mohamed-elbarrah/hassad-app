@@ -63,6 +63,7 @@ export class FinanceController {
   getPaymentMethods(@Query() dto: DateRangeDto) {
     return this.financeService.getPaymentMethodDistribution(dto);
   }
+  @Get("finance/top-clients")
   @RequirePermissions("finance.read")
   getTopClients(@Query() dto: TopClientsDto) {
     return this.financeService.getTopClients(dto);
@@ -192,10 +193,7 @@ export class FinanceController {
 
   @Post("payroll/pay-all")
   @RequirePermissions("finance.manage_payroll")
-  payAllSalaries(
-    @CurrentUser() user: any,
-    @Body() dto: RunPayrollDto,
-  ) {
+  payAllSalaries(@CurrentUser() user: any, @Body() dto: RunPayrollDto) {
     return this.financeService.payAllSalaries(user.id, dto);
   }
 
@@ -213,10 +211,7 @@ export class FinanceController {
 
   @Patch("employees/:id")
   @RequirePermissions("finance.manage_payroll")
-  updateEmployee(
-    @Param("id") id: string,
-    @Body() dto: UpdateEmployeeDto,
-  ) {
+  updateEmployee(@Param("id") id: string, @Body() dto: UpdateEmployeeDto) {
     return this.financeService.updateEmployee(id, dto);
   }
 

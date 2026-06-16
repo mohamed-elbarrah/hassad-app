@@ -1,5 +1,4 @@
-"use client";
-
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import Image from "next/image";
@@ -26,7 +25,15 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <LoginForm />
+        <Suspense
+          fallback={
+            <div className="text-center text-neutral-300 py-4">
+              جارٍ تحميل النموذج...
+            </div>
+          }
+        >
+          <LoginForm />
+        </Suspense>
       </div>
     </AuthLayout>
   );

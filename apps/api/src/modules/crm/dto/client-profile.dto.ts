@@ -1,4 +1,44 @@
-import { IsOptional, IsString, IsNumber, IsArray, IsObject } from "class-validator";
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  IsObject,
+  IsUrl,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+
+class CompetitorDto {
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsUrl()
+  url?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+class BrandAssetsDto {
+  @IsOptional()
+  @IsUrl()
+  logoUrl?: string;
+
+  @IsOptional()
+  @IsString({ each: true })
+  brandColors?: string[];
+
+  @IsOptional()
+  @IsString({ each: true })
+  fonts?: string[];
+
+  @IsOptional()
+  @IsUrl()
+  guidelinesUrl?: string;
+}
 
 export class UpsertClientProfileDto {
   @IsOptional()
@@ -39,16 +79,14 @@ export class UpsertClientProfileDto {
 
   @IsOptional()
   @IsArray()
-  competitors?: { name: string; url?: string; notes?: string }[];
+  @ValidateNested({ each: true })
+  @Type(() => CompetitorDto)
+  competitors?: CompetitorDto[];
 
   @IsOptional()
-  @IsObject()
-  brandAssets?: {
-    logoUrl?: string;
-    brandColors?: string[];
-    fonts?: string[];
-    guidelinesUrl?: string;
-  };
+  @ValidateNested()
+  @Type(() => BrandAssetsDto)
+  brandAssets?: BrandAssetsDto;
 
   @IsOptional()
   @IsObject()

@@ -110,9 +110,7 @@ export class ProjectsService {
       },
     });
 
-    this.clientCounterService
-      .onProjectStatusChange(id)
-      .catch(() => undefined);
+    this.clientCounterService.onProjectStatusChange(id).catch(() => undefined);
 
     return updated;
   }
@@ -210,6 +208,7 @@ export class ProjectsService {
         where,
         include: {
           client: { select: { id: true, companyName: true } },
+          manager: { select: { id: true, name: true } },
           members: { select: { id: true, userId: true } },
           tasks: { select: { id: true, status: true } },
         },
@@ -237,9 +236,7 @@ export class ProjectsService {
       data: { status: status as import("@prisma/client").ProjectStatus },
     });
 
-    this.clientCounterService
-      .onProjectStatusChange(id)
-      .catch(() => undefined);
+    this.clientCounterService.onProjectStatusChange(id).catch(() => undefined);
 
     const memberIds = await this.prisma.projectMember.findMany({
       where: { projectId: id },

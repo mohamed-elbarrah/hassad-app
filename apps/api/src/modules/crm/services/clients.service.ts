@@ -140,6 +140,11 @@ export class ClientsService {
           take: 5,
         },
         profile: true,
+        historyLogs: {
+          orderBy: { occurredAt: "desc" },
+          take: 50,
+          include: { user: { select: { id: true, name: true } } },
+        },
       },
     });
 

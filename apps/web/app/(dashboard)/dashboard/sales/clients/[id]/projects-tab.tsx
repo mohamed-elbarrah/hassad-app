@@ -107,7 +107,7 @@ export function ProjectsTab({ clientId }: ProjectsTabProps) {
                 {formatDate(project.endDate)}
               </TableCell>
               <TableCell className="px-5 py-4 text-neutral-300">
-                {project.projectManagerId ?? "—"}
+                {project.manager?.name ?? "—"}
               </TableCell>
             </TableRow>
           ))}

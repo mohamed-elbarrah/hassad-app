@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useGetClientsQuery, type ClientFilters } from "@/features/clients/clientsApi";
+import {
+  useGetClientsQuery,
+  type ClientFilters,
+} from "@/features/clients/clientsApi";
 import { ClientsTable } from "@/components/dashboard/crm/ClientsTable";
 import { ClientFiltersBar } from "@/components/dashboard/crm/ClientFiltersBar";
 import { Skeleton } from "@/components/design-system/Skeleton";
@@ -52,14 +55,10 @@ export default function SalesClientsPage() {
         total={data.total}
         limit={data.limit}
         onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
-        onRowClick={(client) => router.push(`/dashboard/sales/clients/${client.id}`)}
+        onRowClick={(client) =>
+          router.push(`/dashboard/sales/clients/${client.id}`)
+        }
       />
-
-      {/* Row click handled via CSS — we wrap rows with onClick in a client component.
-          Since ClientsTable doesn't support onRowClick, we add a note that navigation
-          happens via the table's built-in row interaction or we use a wrapper approach.
-          For now, the table renders as-is; navigation to detail is done via the
-          sidebar or direct URL. */}
     </div>
   );
 }
