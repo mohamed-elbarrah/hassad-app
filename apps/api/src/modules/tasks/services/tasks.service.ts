@@ -359,7 +359,7 @@ export class TasksService {
         );
 
       this.projectTeamConversationService
-        .addParticipant(createdTask.projectId, createdTask.assignedTo)
+        .syncParticipants(createdTask.projectId)
         .catch(() => undefined);
     }
 
@@ -610,7 +610,7 @@ export class TasksService {
       );
 
       this.projectTeamConversationService
-        .addParticipant(existingTask.projectId, dto.userId)
+        .syncParticipants(existingTask.projectId)
         .catch(() => undefined);
 
       if (recipients.length > 0) {
