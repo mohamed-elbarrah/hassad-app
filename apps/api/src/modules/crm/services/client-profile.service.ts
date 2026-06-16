@@ -1,24 +1,58 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { UpsertClientProfileDto } from "../dto/client-profile.dto";
+
+interface AuthenticatedUser {
+  id: string;
+  role: string;
+  clientId?: string;
+}
 
 @Injectable()
 export class ClientProfileService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getByClientId(clientId: string) {
+  async getByClientId(clientId: string, user?: AuthenticatedUser) {
+    if (user?.role === "CLIENT") {
+      const client = await this.prisma.client.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      if (!client || client.id !== clientId) {
+        throw new ForbiddenException("You can only view your own profile");
+      }
+    }
+
     const profile = await this.prisma.clientProfile.findUnique({
       where: { clientId },
     });
     return profile ?? null;
   }
 
-  async upsert(clientId: string, dto: UpsertClientProfileDto, userId?: string) {
+  async upsert(
+    clientId: string,
+    dto: UpsertClientProfileDto,
+    user: AuthenticatedUser,
+  ) {
+    if (user.role === "CLIENT") {
+      const client = await this.prisma.client.findFirst({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      if (!client || client.id !== clientId) {
+        throw new ForbiddenException("You can only update your own profile");
+      }
+    }
+
     const existing = await this.prisma.clientProfile.findUnique({
       where: { clientId },
     });
 
-    const data: any = { ...dto, createdBy: userId };
+    const data: any = { ...dto, createdBy: user.id };
 
     const profile = existing
       ? await this.prisma.clientProfile.update({
@@ -39,7 +73,7 @@ export class ClientProfileService {
     await this.prisma.clientHistoryLog.create({
       data: {
         clientId,
-        userId: userId || "system",
+        userId: user.id,
         eventType: existing
           ? "CLIENT_PROFILE_UPDATED"
           : "CLIENT_PROFILE_CREATED",

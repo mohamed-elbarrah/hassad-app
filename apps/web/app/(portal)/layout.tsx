@@ -41,7 +41,12 @@ export default function PortalLayout({
     }
   }, [isInitialized, isAuthenticated, user, router, isSetupPage]);
 
-  if (!isInitialized || !isAuthenticated || user?.role !== UserRole.CLIENT) {
+  if (
+    !isInitialized ||
+    !isAuthenticated ||
+    user?.role !== UserRole.CLIENT ||
+    (!user?.intakeCompleted && !isSetupPage)
+  ) {
     return (
       <div className="flex items-center justify-center min-h-screen" dir="rtl">
         <div className="text-center space-y-4">

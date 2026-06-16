@@ -2,15 +2,19 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ConflictException,
 } from "@nestjs/common";
+import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../../prisma/prisma.service";
 import {
   CreateClientDto,
   UpdateClientDto,
   HandoverClientDto,
 } from "../dto/client.dto";
-import { ClientStatus } from "@hassad/shared";
+import { BusinessType, ClientStatus } from "@hassad/shared";
 import { CanonicalClientService } from "../../requests/canonical-client.service";
+
+const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class ClientsService {
@@ -21,15 +25,52 @@ export class ClientsService {
 
   async create(userId: string, dto: CreateClientDto) {
     const { client } = await this.prisma.$transaction(async (tx) => {
+      let userCreated = false;
+      let newUserId: string | null = null;
+
+      if (dto.password && dto.email) {
+        const existingUser = await tx.user.findUnique({
+          where: { email: dto.email.trim().toLowerCase() },
+        });
+        if (existingUser) {
+          throw new ConflictException("A user with this email already exists");
+        }
+
+        const role = await tx.role.findFirst({
+          where: { name: "CLIENT" },
+        });
+        if (!role) {
+          throw new BadRequestException("CLIENT role not found");
+        }
+
+        const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+        const user = await tx.user.create({
+          data: {
+            name: dto.contactName || dto.email.split("@")[0],
+            email: dto.email.trim().toLowerCase(),
+            passwordHash,
+            roleId: role.id,
+          },
+        });
+        newUserId = user.id;
+        userCreated = true;
+      }
+
+      const nameFallback =
+        dto.contactName ||
+        (dto.email ? dto.email.split("@")[0] : null) ||
+        "عميل جديد";
+
       const result = await this.canonicalClientService.upsertCanonicalClient(
         tx,
         {
           email: dto.email ?? null,
-          companyName: dto.companyName,
-          contactName: dto.contactName,
-          phoneWhatsapp: dto.phoneWhatsapp,
-          businessName: dto.businessName,
-          businessType: dto.businessType,
+          userId: newUserId,
+          companyName: dto.companyName || nameFallback,
+          contactName: nameFallback,
+          phoneWhatsapp: dto.phoneWhatsapp || "00000000000",
+          businessName: dto.businessName || dto.companyName || nameFallback,
+          businessType: dto.businessType || BusinessType.OTHER,
           preferredManagerId: dto.accountManager ?? null,
           status: ClientStatus.ACTIVE,
         },
@@ -46,7 +87,7 @@ export class ClientsService {
         },
       });
 
-      return result;
+      return { client: result.client, created: result.created };
     });
 
     return client;

@@ -141,13 +141,14 @@ export interface Request {
 
 /** Input for POST /clients */
 export interface CreateClientInput {
-  companyName: string;
-  contactName: string;
-  phoneWhatsapp: string;
+  companyName?: string;
+  contactName?: string;
+  phoneWhatsapp?: string;
   email?: string;
-  businessName: string;
-  businessType: BusinessType;
+  businessName?: string;
+  businessType?: BusinessType;
   accountManager?: string;
+  password?: string;
 }
 
 /** Input for PATCH /clients/:id */

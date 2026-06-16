@@ -5,32 +5,43 @@ import {
   IsEnum,
   IsUUID,
   IsDateString,
+  MinLength,
 } from "class-validator";
 import { ClientStatus, BusinessType } from "@hassad/shared";
 
 export class CreateClientDto {
+  @IsOptional()
   @IsString()
-  companyName: string;
+  companyName?: string;
 
+  @IsOptional()
   @IsString()
-  contactName: string;
+  contactName?: string;
 
+  @IsOptional()
   @IsString()
-  phoneWhatsapp: string;
+  phoneWhatsapp?: string;
 
   @IsOptional()
   @IsEmail()
   email?: string;
 
+  @IsOptional()
   @IsString()
-  businessName: string;
+  businessName?: string;
 
+  @IsOptional()
   @IsEnum(BusinessType)
-  businessType: BusinessType;
+  businessType?: BusinessType;
 
   @IsOptional()
   @IsUUID()
   accountManager?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  password?: string;
 }
 
 export class UpdateClientDto {

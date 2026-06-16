@@ -6,15 +6,26 @@ import { ClientStatus, BusinessType } from "../enums/client";
  * Matches the DB `Client` model's writable fields.
  */
 export const CreateClientSchema = z.object({
-  companyName: z.string().min(2, "Company name must be at least 2 characters"),
-  contactName: z.string().min(2, "Contact name must be at least 2 characters"),
-  phoneWhatsapp: z.string().min(5, "Phone must be at least 5 characters"),
+  companyName: z
+    .string()
+    .min(2, "Company name must be at least 2 characters")
+    .optional(),
+  contactName: z
+    .string()
+    .min(2, "Contact name must be at least 2 characters")
+    .optional(),
+  phoneWhatsapp: z
+    .string()
+    .min(5, "Phone must be at least 5 characters")
+    .optional(),
   email: z.string().email("Invalid email address").optional().nullable(),
   businessName: z
     .string()
-    .min(2, "Business name must be at least 2 characters"),
-  businessType: z.nativeEnum(BusinessType),
+    .min(2, "Business name must be at least 2 characters")
+    .optional(),
+  businessType: z.nativeEnum(BusinessType).optional(),
   accountManager: z.string().uuid("Invalid user ID format").optional(),
+  password: z.string().min(8, "Password must be at least 8 characters").optional(),
 });
 
 export type CreateClientInput = z.infer<typeof CreateClientSchema>;

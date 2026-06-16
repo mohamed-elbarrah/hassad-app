@@ -20,19 +20,17 @@ export class ClientProfileController {
   constructor(private readonly profileService: ClientProfileService) {}
 
   @Get(":id/profile")
-  @RequirePermissions("clients.read")
-  async getProfile(@Param("id") id: string) {
-    return this.profileService.getByClientId(id);
+  async getProfile(@Param("id") id: string, @Req() req: any) {
+    return this.profileService.getByClientId(id, req.user);
   }
 
   @Put(":id/profile")
-  @RequirePermissions("clients.update")
   async upsertProfile(
     @Param("id") id: string,
     @Body() dto: UpsertClientProfileDto,
     @Req() req: any,
   ) {
-    return this.profileService.upsert(id, dto, req.user?.id);
+    return this.profileService.upsert(id, dto, req.user);
   }
 
   @Delete(":id/profile")
