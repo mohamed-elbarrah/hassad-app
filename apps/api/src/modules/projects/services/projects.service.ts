@@ -18,6 +18,7 @@ import {
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
+import { ProjectTeamConversationService } from "../../chat/services/project-team-conversation.service";
 
 @Injectable()
 export class ProjectsService {
@@ -26,6 +27,7 @@ export class ProjectsService {
     private notificationsService: NotificationsService,
     private storageService: StorageService,
     private clientCounterService: ClientCounterService,
+    private projectTeamConversationService: ProjectTeamConversationService,
   ) {}
 
   async create(dto: CreateProjectDto) {
@@ -64,6 +66,10 @@ export class ProjectsService {
 
     this.clientCounterService
       .onProjectStatusChange(createdProject.id)
+      .catch(() => undefined);
+
+    this.projectTeamConversationService
+      .ensureTeamConversation(createdProject.id)
       .catch(() => undefined);
 
     return createdProject;
@@ -127,6 +133,10 @@ export class ProjectsService {
       },
     });
 
+    this.projectTeamConversationService
+      .ensureParticipantInProjectTeam(id, dto.userId)
+      .catch(() => undefined);
+
     // Auto-create task for Marketing role
     const user = await this.prisma.user.findUnique({
       where: { id: dto.userId },
@@ -153,6 +163,10 @@ export class ProjectsService {
           },
         });
 
+        this.projectTeamConversationService
+          .ensureParticipantInProjectTeam(id, dto.userId)
+          .catch(() => undefined);
+
         // Notify marketer
         this.notificationsService
           .createNotification({
@@ -176,12 +190,18 @@ export class ProjectsService {
   }
 
   async removeMember(id: string, userId: string) {
-    return this.prisma.projectMember.deleteMany({
+    const result = await this.prisma.projectMember.deleteMany({
       where: {
         projectId: id,
         userId: userId,
       },
     });
+
+    this.projectTeamConversationService
+      .syncParticipants(id)
+      .catch(() => undefined);
+
+    return result;
   }
 
   async findAll(filters: {

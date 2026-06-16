@@ -5,6 +5,7 @@ import { memoryStorage } from "multer";
 import { ChatController } from "./controllers/chat.controller";
 import { ChatService } from "./services/chat.service";
 import { AutoConversationService } from "./services/auto-conversation.service";
+import { ProjectTeamConversationService } from "./services/project-team-conversation.service";
 import { ChatGateway } from "./gateway/chat.gateway";
 import { NotificationsModule } from "../notifications/notifications.module";
 
@@ -18,7 +19,16 @@ import { NotificationsModule } from "../notifications/notifications.module";
     MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [ChatController],
-  providers: [ChatService, AutoConversationService, ChatGateway],
-  exports: [ChatService, AutoConversationService],
+  providers: [
+    ChatService,
+    AutoConversationService,
+    ProjectTeamConversationService,
+    ChatGateway,
+  ],
+  exports: [
+    ChatService,
+    AutoConversationService,
+    ProjectTeamConversationService,
+  ],
 })
 export class ChatModule {}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import { UserRole } from "@hassad/shared";
 import {
@@ -21,11 +22,19 @@ import { Menu } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 
 export default function MessagesPage() {
-  const { user } = useAppSelector((s) => s.auth);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<"SALES" | "PM" | undefined>(
-    undefined,
+  const searchParams = useSearchParams();
+  const initialConversationId = useMemo(
+    () => searchParams.get("conversationId"),
+    [searchParams],
   );
+
+  const { user } = useAppSelector((s) => s.auth);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialConversationId,
+  );
+  const [filterType, setFilterType] = useState<
+    "SALES" | "PM" | "TEAM" | undefined
+  >(undefined);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
 
   const { data: conversationsData, isLoading: convLoading } =
@@ -104,6 +113,13 @@ export default function MessagesPage() {
     return "";
   };
 
+  const availableFilterTypes: ("SALES" | "PM" | "TEAM" | undefined)[] =
+    user?.role === UserRole.PM || user?.role === UserRole.MARKETING
+      ? [undefined, "PM", "TEAM"]
+      : user?.role === UserRole.EMPLOYEE
+        ? [undefined, "TEAM"]
+        : [undefined, "SALES", "PM"];
+
   const sidebarContent = (
     <ConversationList
       conversations={conversations}
@@ -112,6 +128,7 @@ export default function MessagesPage() {
       isLoading={convLoading}
       filterType={filterType}
       onFilterChange={setFilterType}
+      availableFilterTypes={availableFilterTypes}
     />
   );
 

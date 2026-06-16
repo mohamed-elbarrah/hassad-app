@@ -24,8 +24,23 @@ function getLastMessage(conversation: Conversation): Message | null {
   return conversation.messages[0];
 }
 
-function getTypeLabel(type: "SALES" | "PM") {
+function getTypeLabel(type: "SALES" | "PM" | "TEAM") {
+  if (type === "TEAM") return "فريق العمل";
   return type === "SALES" ? "مستشارك الفني" : "مدير مشروع";
+}
+
+function getParticipantPreview(
+  conversation: Conversation,
+  currentUserId?: string,
+): string {
+  const others = conversation.participants
+    .filter((p) => p.userId !== currentUserId)
+    .map((p) => p.user?.name ?? "")
+    .filter(Boolean);
+
+  if (others.length === 0) return "أنت فقط";
+  if (others.length <= 2) return others.join("، ");
+  return `${others[0]}، ${others[1]} +${others.length - 2}`;
 }
 
 export function ConversationItem({
@@ -37,6 +52,14 @@ export function ConversationItem({
   const otherParticipant = getOtherParticipant(conversation, user?.id ?? "");
   const lastMessage = getLastMessage(conversation);
 
+  const isTeam = conversation.type === "TEAM";
+  const displayName = isTeam
+    ? conversation.title
+    : otherParticipant?.user?.name ?? conversation.title;
+  const participantPreview = isTeam
+    ? getParticipantPreview(conversation, user?.id)
+    : otherParticipant?.user?.name;
+
   return (
     <button
       onClick={onClick}
@@ -45,16 +68,11 @@ export function ConversationItem({
         isActive && "bg-neutral-50",
       )}
     >
-      <UserAvatar
-        name={otherParticipant?.user?.name ?? conversation.title}
-        size="md"
-      />
+      <UserAvatar name={displayName} size="md" />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium">
-            {otherParticipant?.user?.name ?? conversation.title}
-          </span>
+          <span className="truncate text-sm font-medium">{displayName}</span>
           <span className="shrink-0 text-xs text-neutral-300">
             {lastMessage
               ? formatRelativeTime(lastMessage.createdAt)
@@ -64,7 +82,7 @@ export function ConversationItem({
 
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-xs text-neutral-300">
-            {lastMessage ? lastMessage.content : "لا توجد رسائل بعد"}
+            {lastMessage ? lastMessage.content : participantPreview ?? "لا توجد رسائل بعد"}
           </p>
           <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             {getTypeLabel(conversation.type)}

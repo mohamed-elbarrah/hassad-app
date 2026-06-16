@@ -8,8 +8,8 @@ import {
 } from "class-validator";
 
 export class CreateConversationDto {
-  @IsEnum(["SALES", "PM"])
-  type: "SALES" | "PM";
+  @IsEnum(["SALES", "PM", "TEAM"])
+  type: "SALES" | "PM" | "TEAM";
 
   @IsUUID()
   clientId: string;
@@ -37,8 +37,8 @@ export class CreateMessageDto {
 
 export class GetConversationsQueryDto {
   @IsOptional()
-  @IsIn(["SALES", "PM"])
-  type?: "SALES" | "PM";
+  @IsIn(["SALES", "PM", "TEAM"])
+  type?: "SALES" | "PM" | "TEAM";
 
   @IsOptional()
   @IsUUID()

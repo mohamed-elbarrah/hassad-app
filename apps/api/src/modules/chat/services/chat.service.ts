@@ -10,6 +10,8 @@ import {
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { StorageService } from "../../../common/storage/storage.service";
 
+import { ProjectTeamConversationService } from "./project-team-conversation.service";
+
 interface AttachmentData {
   key: string;
   originalName: string;
@@ -24,6 +26,7 @@ export class ChatService {
     private notificationsService: NotificationsService,
     private eventEmitter: EventEmitter2,
     private storageService: StorageService,
+    private projectTeamConversationService: ProjectTeamConversationService,
   ) {}
 
   async getUserConversationIds(userId: string): Promise<string[]> {
@@ -236,6 +239,10 @@ export class ChatService {
         userId: dto.userId,
       },
     });
+  }
+
+  async findProjectTeamConversation(projectId: string) {
+    return this.projectTeamConversationService.findTeamConversation(projectId);
   }
 
   async createMessage(senderId: string, dto: CreateMessageDto) {

@@ -21,6 +21,7 @@ import {
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FilePurpose, Prisma } from "@prisma/client";
 import { StorageService } from "../../../common/storage/storage.service";
+import { ProjectTeamConversationService } from "../../chat/services/project-team-conversation.service";
 
 const DEPARTMENT_ARABIC_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.DESIGN]: "التصميم",
@@ -38,6 +39,7 @@ export class TasksService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private storageService: StorageService,
+    private projectTeamConversationService: ProjectTeamConversationService,
   ) {}
 
   private getDepartmentArabicLabel(departmentName: string | null | undefined) {
@@ -355,6 +357,13 @@ export class TasksService {
             err,
           ),
         );
+
+      await this.projectTeamConversationService
+        .ensureParticipantInProjectTeam(
+          createdTask.projectId,
+          createdTask.assignedTo,
+        )
+        .catch(() => undefined);
     }
 
     return createdTask;
@@ -602,6 +611,10 @@ export class TasksService {
         dto.userId,
         existingTask.createdBy,
       );
+
+      this.projectTeamConversationService
+        .ensureParticipantInProjectTeam(existingTask.projectId, dto.userId)
+        .catch(() => undefined);
 
       if (recipients.length > 0) {
         const notificationJobs = recipients.map((recipientId) =>
