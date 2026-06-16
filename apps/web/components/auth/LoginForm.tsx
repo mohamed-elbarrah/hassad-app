@@ -165,17 +165,17 @@ export function LoginForm() {
       </AuthButton>
 
       {/* Divider */}
-      <AuthDivider text="أو" />
+      {/* <AuthDivider text="أو" /> */}
 
       {/* Social Login */}
-      <AuthSocialRow />
+      {/* <AuthSocialRow /> */}
 
       {/* Footer */}
-      <AuthFooter
+      {/* <AuthFooter
         text="ليس لديك حساب حاليا؟"
         buttonText="انشاء حساب"
         href="/signup"
-      />
+      /> */}
     </form>
   );
 }
