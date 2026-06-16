@@ -49,6 +49,70 @@ export class ProjectTeamConversationService {
     });
   }
 
+  /**
+   * Ensures a specific user is a participant in the project's team chat.
+   * Creates the team chat if it does not exist, guaranteeing the provided
+   * userId is included even if no other members are present yet.
+   */
+  async ensureParticipantInProjectTeam(
+    projectId: string,
+    userId: string,
+    db?: DbClient,
+  ) {
+    let conversation = await this.findTeamConversation(projectId, db);
+
+    if (!conversation) {
+      const project = await (db ?? this.prisma).project.findUnique({
+        where: { id: projectId },
+        select: {
+          id: true,
+          name: true,
+          clientId: true,
+          projectManagerId: true,
+        },
+      });
+
+      if (!project) return null;
+
+      const baseMemberIds = await this.collectProjectMemberUserIds(
+        projectId,
+        project.projectManagerId,
+        db,
+      );
+      const participantIds = Array.from(new Set([...baseMemberIds, userId]));
+
+      conversation = await (db ?? this.prisma).conversation.create({
+        data: {
+          type: ConversationType.TEAM,
+          clientId: project.clientId,
+          projectId: project.id,
+          title: `فريق مشروع ${project.name}`,
+          participants: {
+            create: participantIds.map((id) => ({ userId: id })),
+          },
+        },
+        include: {
+          client: true,
+          participants: { include: { user: true } },
+        },
+      });
+
+      return conversation;
+    }
+
+    const exists = await (db ?? this.prisma).conversationParticipant.findFirst({
+      where: { conversationId: conversation.id, userId },
+    });
+
+    if (exists) return conversation;
+
+    await (db ?? this.prisma).conversationParticipant.create({
+      data: { conversationId: conversation.id, userId },
+    });
+
+    return this.findTeamConversation(projectId, db);
+  }
+
   async syncParticipants(projectId: string, db?: DbClient) {
     const project = await (db ?? this.prisma).project.findUnique({
       where: { id: projectId },
@@ -99,23 +163,6 @@ export class ProjectTeamConversationService {
         where: { id: { in: staleParticipantIds } },
       });
     }
-
-    return this.findTeamConversation(projectId, db);
-  }
-
-  async addParticipant(projectId: string, userId: string, db?: DbClient) {
-    const conversation = await this.ensureTeamConversation(projectId, db);
-    if (!conversation) return null;
-
-    const exists = await (db ?? this.prisma).conversationParticipant.findFirst({
-      where: { conversationId: conversation.id, userId },
-    });
-
-    if (exists) return conversation;
-
-    await (db ?? this.prisma).conversationParticipant.create({
-      data: { conversationId: conversation.id, userId },
-    });
 
     return this.findTeamConversation(projectId, db);
   }

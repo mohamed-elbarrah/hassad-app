@@ -134,7 +134,7 @@ export class ProjectsService {
     });
 
     this.projectTeamConversationService
-      .syncParticipants(id)
+      .ensureParticipantInProjectTeam(id, dto.userId)
       .catch(() => undefined);
 
     // Auto-create task for Marketing role
@@ -164,7 +164,7 @@ export class ProjectsService {
         });
 
         this.projectTeamConversationService
-          .syncParticipants(id)
+          .ensureParticipantInProjectTeam(id, dto.userId)
           .catch(() => undefined);
 
         // Notify marketer
