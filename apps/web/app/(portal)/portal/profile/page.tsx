@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAppSelector } from "@/lib/hooks";
 import {
   useGetClientProfileQuery,
@@ -7,10 +8,14 @@ import {
 } from "@/features/clients/clientsApi";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ClientBrief } from "@/components/client-brief";
+import { PortalProfileEditForm } from "@/components/portal/PortalProfileEditForm";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Pencil } from "lucide-react";
 
 export default function PortalProfilePage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
+  const [isEditing, setIsEditing] = useState(false);
 
   const {
     data: profile,
@@ -79,8 +84,34 @@ export default function PortalProfilePage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <h1 className="text-xl font-bold text-natural-100">الملف التعريفي</h1>
-      <ClientBrief client={client} profile={profile ?? null} />
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-natural-100">الملف التعريفي</h1>
+        {!isEditing && (
+          <ActionButton
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            icon={<Pencil className="h-4 w-4" />}
+          >
+            تعديل الملف
+          </ActionButton>
+        )}
+      </div>
+
+      {isEditing ? (
+        <PortalProfileEditForm
+          clientId={clientId}
+          profile={profile ?? null}
+          onCancel={() => setIsEditing(false)}
+          onSuccess={() => setIsEditing(false)}
+        />
+      ) : (
+        <ClientBrief
+          client={client}
+          profile={profile ?? null}
+          viewAs="portal"
+        />
+      )}
     </div>
   );
 }

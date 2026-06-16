@@ -9,5 +9,5 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({ client, profile }: OverviewTabProps) {
-  return <ClientBrief client={client} profile={profile ?? null} />;
+  return <ClientBrief client={client} profile={profile ?? null} viewAs="sales" />;
 }

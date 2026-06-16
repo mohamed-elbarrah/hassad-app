@@ -65,15 +65,6 @@ export const UpsertClientProfileSchema = z.object({
   preferredLanguage: z.string().optional(),
   timezone: z.string().optional(),
   preferredPlatforms: z.string().optional(),
-  competitors: z
-    .array(
-      z.object({
-        name: z.string(),
-        url: z.string().url().optional(),
-        notes: z.string().optional(),
-      }),
-    )
-    .optional(),
   brandAssets: z
     .object({
       logoUrl: z.string().url().optional(),
@@ -83,6 +74,16 @@ export const UpsertClientProfileSchema = z.object({
     })
     .optional(),
   customFields: z.record(z.string(), z.unknown()).optional(),
+  website: z.string().url().optional().or(z.literal("")).optional(),
+  instagramHandle: z.string().optional(),
+  tiktokHandle: z.string().optional(),
+  twitterHandle: z.string().optional(),
+  linkedinUrl: z.string().url().optional().or(z.literal("")).optional(),
+  snapchatHandle: z.string().optional(),
+  workingHours: z.string().optional(),
+  decisionMakerName: z.string().optional(),
+  decisionMakerPhone: z.string().optional(),
+  painPoints: z.string().optional(),
 });
 
 export type UpsertClientProfileInput = z.infer<

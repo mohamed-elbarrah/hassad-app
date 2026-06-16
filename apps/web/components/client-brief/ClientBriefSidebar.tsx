@@ -3,44 +3,48 @@
 import type { Client, ClientProfile } from "@hassad/shared";
 import { BriefCard } from "./BriefCard";
 import { ClientBriefGauge } from "./ClientBriefGauge";
-import { ClientBriefField } from "./ClientBriefField";
 import { Palette, Target, ExternalLink } from "lucide-react";
+import type { ClientBriefView } from "./ClientBrief";
 
 interface ClientBriefSidebarProps {
   client: Client;
   profile: ClientProfile | null;
+  viewAs: ClientBriefView;
 }
 
 export function ClientBriefSidebar({
   client,
   profile,
+  viewAs,
 }: ClientBriefSidebarProps) {
   const brandAssets = profile?.brandAssets;
-  const competitors = profile?.competitors;
 
   return (
     <div className="space-y-5">
-      <BriefCard
-        title="معدل الرضا"
-        description="تقييم العميل العام"
-        icon={Target}
-      >
-        <div className="flex justify-center py-2">
-          <ClientBriefGauge
-            value={
-              client.avgSatisfactionScore != null
-                ? (client.avgSatisfactionScore / 5) * 100
-                : 0
-            }
-            label="معدل الرضا"
-            sublabel={
-              client.avgSatisfactionScore != null
-                ? `${client.avgSatisfactionScore} من 5`
-                : "لا يوجد تقييم"
-            }
-          />
-        </div>
-      </BriefCard>
+      {/* Satisfaction — hidden from portal */}
+      {viewAs !== "portal" && (
+        <BriefCard
+          title="معدل الرضا"
+          description="تقييم العميل العام"
+          icon={Target}
+        >
+          <div className="flex justify-center py-2">
+            <ClientBriefGauge
+              value={
+                client.avgSatisfactionScore != null
+                  ? (client.avgSatisfactionScore / 5) * 100
+                  : 0
+              }
+              label="معدل الرضا"
+              sublabel={
+                client.avgSatisfactionScore != null
+                  ? `${client.avgSatisfactionScore} من 5`
+                  : "لا يوجد تقييم"
+              }
+            />
+          </div>
+        </BriefCard>
+      )}
 
       <BriefCard
         title="الهوية البصرية"
@@ -120,47 +124,6 @@ export function ClientBriefSidebar({
               </p>
             )}
         </div>
-      </BriefCard>
-
-      <BriefCard
-        title="المنافسون"
-        description="قائمة المنافسين الرئيسية"
-        icon={Target}
-      >
-        {competitors && competitors.length > 0 ? (
-          <div className="space-y-3">
-            {competitors.map((comp, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-portal-card-border p-3"
-              >
-                <p className="text-sm font-semibold text-natural-100">
-                  {comp.name}
-                </p>
-                {comp.url && (
-                  <a
-                    href={comp.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-secondary-500 hover:underline block mt-0.5"
-                    dir="ltr"
-                  >
-                    {comp.url}
-                  </a>
-                )}
-                {comp.notes && (
-                  <p className="text-xs text-portal-note-text mt-1">
-                    {comp.notes}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-portal-note-text text-center py-6">
-            لم تتم إضافة منافسين بعد
-          </p>
-        )}
       </BriefCard>
     </div>
   );

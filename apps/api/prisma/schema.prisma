@@ -311,9 +311,19 @@ model ClientProfile {
   preferredLanguage       String?  @default("ar") @map("preferred_language")
   timezone                String?  @default("Asia/Riyadh")
   preferredPlatforms      String?  @map("preferred_platforms")
-  competitors             Json?
   brandAssets             Json?    @map("brand_assets")
   customFields            Json?    @map("custom_fields")
+
+  website                 String?
+  instagramHandle         String?  @map("instagram_handle")
+  tiktokHandle            String?  @map("tiktok_handle")
+  twitterHandle           String?  @map("twitter_handle")
+  linkedinUrl             String?  @map("linkedin_url")
+  snapchatHandle          String?  @map("snapchat_handle")
+  workingHours            String?  @map("working_hours")
+  decisionMakerName       String?  @map("decision_maker_name")
+  decisionMakerPhone      String?  @map("decision_maker_phone")
+  painPoints              String?  @db.Text @map("pain_points")
 
   createdBy               String?  @map("created_by")
   createdAt               DateTime @default(now()) @map("created_at")

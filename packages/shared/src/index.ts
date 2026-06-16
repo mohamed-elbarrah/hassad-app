@@ -128,7 +128,6 @@ export interface ClientProfile {
   preferredLanguage?: string | null;
   timezone?: string | null;
   preferredPlatforms?: string | null;
-  competitors?: { name: string; url?: string; notes?: string }[] | null;
   brandAssets?: {
     logoUrl?: string;
     brandColors?: string[];
@@ -136,6 +135,16 @@ export interface ClientProfile {
     guidelinesUrl?: string;
   } | null;
   customFields?: Record<string, unknown> | null;
+  website?: string | null;
+  instagramHandle?: string | null;
+  tiktokHandle?: string | null;
+  twitterHandle?: string | null;
+  linkedinUrl?: string | null;
+  snapchatHandle?: string | null;
+  workingHours?: string | null;
+  decisionMakerName?: string | null;
+  decisionMakerPhone?: string | null;
+  painPoints?: string | null;
 }
 
 export interface Request {
