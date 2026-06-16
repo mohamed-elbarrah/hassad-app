@@ -114,9 +114,11 @@ export default function MessagesPage() {
   };
 
   const availableFilterTypes: ("SALES" | "PM" | "TEAM" | undefined)[] =
-    user?.role === UserRole.PM
+    user?.role === UserRole.PM || user?.role === UserRole.MARKETING
       ? [undefined, "PM", "TEAM"]
-      : [undefined, "SALES", "PM"];
+      : user?.role === UserRole.EMPLOYEE
+        ? [undefined, "TEAM"]
+        : [undefined, "SALES", "PM"];
 
   const sidebarContent = (
     <ConversationList

@@ -214,6 +214,12 @@ export const roleNavSections: NavSection[] = [
         icon: ClipboardList,
         roles: ["EMPLOYEE"],
       },
+      {
+        title: "المحادثات",
+        url: "/dashboard/messages",
+        icon: MessageSquare,
+        roles: ["EMPLOYEE"],
+      },
     ],
   },
   {
@@ -229,6 +235,12 @@ export const roleNavSections: NavSection[] = [
         title: "المهام المسندة",
         url: "/dashboard/marketing/tasks",
         icon: ListChecks,
+        roles: ["MARKETING"],
+      },
+      {
+        title: "المحادثات",
+        url: "/dashboard/messages",
+        icon: MessageSquare,
         roles: ["MARKETING"],
       },
     ],
