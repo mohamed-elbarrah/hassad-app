@@ -10,41 +10,35 @@ interface ChatHeaderProps {
   isTyping?: { userId: string; userName: string } | null;
 }
 
-function getTypeBadge(type: "SALES" | "PM" | "TEAM") {
-  if (type === "TEAM") return { label: "فريق العمل", tone: "success" as const };
-  return type === "SALES"
-    ? { label: "مستشارك الفني", tone: "neutral" as const }
-    : { label: "مدير مشروع", tone: "blue" as const };
+function getTypeBadge(type: "DIRECT" | "GROUP") {
+  return type === "GROUP"
+    ? { label: "مجموعة", tone: "success" as const }
+    : { label: "محادثة خاصة", tone: "blue" as const };
 }
 
 export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
   const user = useAppSelector((s) => s.auth.user);
-  const otherParticipant = conversation.participants.find(
-    (p) => p.userId !== user?.id,
-  );
   const typeBadge = getTypeBadge(conversation.type);
 
-  const isTeam = conversation.type === "TEAM";
-  const displayName = isTeam
-    ? conversation.title
-    : otherParticipant?.user?.name ?? conversation.title;
+  const other = conversation.participants.find((p) => p.userId !== user?.id);
 
-  const otherNames = conversation.participants
-    .filter((p) => p.userId !== user?.id)
-    .map((p) => p.user?.name ?? "");
-  const participantSummary = isTeam
-    ? otherNames.length > 0
-      ? `${otherNames.length + 1} عضو${otherNames.length + 1 > 1 ? "اً" : ""}`
-      : "فريق العمل"
-    : conversation.client?.companyName;
+  const name =
+    conversation.type === "GROUP"
+      ? conversation.title || "مجموعة"
+      : other?.user?.name ?? conversation.title ?? "محادثة";
+
+  const subtitle =
+    conversation.type === "GROUP"
+      ? `${conversation.participants.length} عضو${conversation.participants.length !== 1 ? "اً" : ""}`
+      : conversation.client?.companyName;
 
   return (
     <div className="flex items-center gap-3 border-b px-4 py-3">
-      <UserAvatar name={displayName} size="sm" />
+      <UserAvatar name={name} size="sm" />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold">{displayName}</span>
+          <span className="truncate text-sm font-semibold">{name}</span>
           <Pill tone={typeBadge.tone} className="text-[10px]">
             {typeBadge.label}
           </Pill>
@@ -55,8 +49,8 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
             {isTyping.userName} يكتب...
           </p>
         ) : (
-          participantSummary && (
-            <p className="truncate text-xs text-neutral-300">{participantSummary}</p>
+          subtitle && (
+            <p className="truncate text-xs text-neutral-300">{subtitle}</p>
           )
         )}
       </div>

@@ -8,14 +8,20 @@ import {
 } from "class-validator";
 
 export class CreateConversationDto {
-  @IsEnum(["SALES", "PM", "TEAM"])
-  type: "SALES" | "PM" | "TEAM";
+  @IsEnum(["DIRECT", "GROUP"])
+  type: "DIRECT" | "GROUP";
 
+  @IsOptional()
   @IsUUID()
-  clientId: string;
+  clientId?: string;
 
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+
+  @IsOptional()
   @IsString()
-  title: string;
+  title?: string;
 
   @IsArray()
   @IsUUID("all", { each: true })
@@ -37,12 +43,16 @@ export class CreateMessageDto {
 
 export class GetConversationsQueryDto {
   @IsOptional()
-  @IsIn(["SALES", "PM", "TEAM"])
-  type?: "SALES" | "PM" | "TEAM";
+  @IsIn(["DIRECT", "GROUP"])
+  type?: "DIRECT" | "GROUP";
 
   @IsOptional()
   @IsUUID()
   clientId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
 
   @IsOptional()
   page?: number;

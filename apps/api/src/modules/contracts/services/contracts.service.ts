@@ -21,7 +21,7 @@ import {
   TaskStatus,
 } from "@hassad/shared";
 import { RequestsService } from "../../requests/requests.service";
-import { AutoConversationService } from "../../chat/services/auto-conversation.service";
+import { DirectConversationService } from "../../chat/services/direct-conversation.service";
 import { PmAssignmentService } from "./pm-assignment.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 
@@ -31,7 +31,7 @@ export class ContractsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private requestsService: RequestsService,
-    private autoConversationService: AutoConversationService,
+    private directConversationService: DirectConversationService,
     private pmAssignmentService: PmAssignmentService,
     private clientCounterService: ClientCounterService,
   ) {}
@@ -46,6 +46,7 @@ export class ContractsService {
             companyName: true,
             contactName: true,
             accountManager: true,
+            userId: true,
           },
         },
         proposal: {
@@ -240,8 +241,10 @@ export class ContractsService {
         .catch(() => undefined);
     }
 
-    this.autoConversationService
-      .ensurePmConversation(contract.clientId, projectManagerId)
+    this.directConversationService
+      .getOrCreate(contract.client.userId, projectManagerId, undefined, {
+        clientId: contract.clientId,
+      })
       .catch(() => undefined);
 
     return project;

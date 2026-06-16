@@ -1241,13 +1241,14 @@ model StaffWorkload {
 model Conversation {
   id           String                    @id @default(uuid())
   createdAt    DateTime                  @default(now()) @map("created_at")
-  clientId     String                    @map("client_id")
+  updatedAt    DateTime                  @updatedAt @map("updated_at")
+  clientId     String?                   @map("client_id")
   projectId    String?                   @unique @map("project_id")
   isActive     Boolean                   @default(true) @map("is_active")
-  title        String
+  title        String?
   type         ConversationType
   participants ConversationParticipant[]
-  client       Client                    @relation(fields: [clientId], references: [id])
+  client       Client?                   @relation(fields: [clientId], references: [id])
   project      Project?                  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   messages     Message[]
 
@@ -1504,9 +1505,8 @@ enum RenewalAlertType {
 }
 
 enum ConversationType {
-  SALES
-  PM
-  TEAM
+  DIRECT
+  GROUP
 }
 
 enum ProjectStatus {

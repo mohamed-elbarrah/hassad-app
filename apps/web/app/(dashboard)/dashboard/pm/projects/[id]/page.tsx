@@ -41,7 +41,7 @@ import {
   useDeleteProjectFileMutation,
 } from "@/features/projects/projectsApi";
 import { useGetTasksByProjectQuery } from "@/features/tasks/tasksApi";
-import { useLazyGetProjectTeamConversationQuery } from "@/features/chat/chatApi";
+import { useLazyGetProjectGroupChatQuery } from "@/features/chat/chatApi";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus, TaskStatus } from "@hassad/shared";
@@ -248,21 +248,21 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { data: files, isLoading: filesLoading } = useGetProjectFilesQuery(id);
   const { data: tasks, isLoading: tasksLoading } = useGetTasksByProjectQuery(id);
 
-  const [getTeamConversation, { isFetching: isLoadingTeamChat }] =
-    useLazyGetProjectTeamConversationQuery();
+  const [getGroupChat, { isFetching: isLoadingGroupChat }] =
+    useLazyGetProjectGroupChatQuery();
 
   const [uploadFile, { isLoading: isUploading }] = useUploadProjectFileMutation();
   const [deleteFile] = useDeleteProjectFileMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const openTeamChat = async () => {
+  const openGroupChat = async () => {
     try {
-      const conversation = await getTeamConversation(id).unwrap();
+      const conversation = await getGroupChat(id).unwrap();
       if (conversation?.id) {
         router.push(`/dashboard/messages?conversationId=${conversation.id}`);
       }
     } catch {
-      // Team chat may not exist yet (no members); ignore silently
+      // Group chat may not exist yet; ignore silently
     }
   };
 
@@ -388,8 +388,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         <ActionButton
           variant="outline"
           size="sm"
-          onClick={openTeamChat}
-          loading={isLoadingTeamChat}
+          onClick={openGroupChat}
+          loading={isLoadingGroupChat}
         >
           محادثة الفريق
         </ActionButton>

@@ -4,8 +4,8 @@ import { MulterModule } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { ChatController } from "./controllers/chat.controller";
 import { ChatService } from "./services/chat.service";
-import { AutoConversationService } from "./services/auto-conversation.service";
-import { ProjectTeamConversationService } from "./services/project-team-conversation.service";
+import { DirectConversationService } from "./services/direct-conversation.service";
+import { ProjectGroupChatService } from "./services/project-group-chat.service";
 import { ChatGateway } from "./gateway/chat.gateway";
 import { NotificationsModule } from "../notifications/notifications.module";
 
@@ -19,16 +19,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
     MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [ChatController],
-  providers: [
-    ChatService,
-    AutoConversationService,
-    ProjectTeamConversationService,
-    ChatGateway,
-  ],
-  exports: [
-    ChatService,
-    AutoConversationService,
-    ProjectTeamConversationService,
-  ],
+  providers: [ChatService, DirectConversationService, ProjectGroupChatService, ChatGateway],
+  exports: [ChatService, DirectConversationService, ProjectGroupChatService],
 })
 export class ChatModule {}

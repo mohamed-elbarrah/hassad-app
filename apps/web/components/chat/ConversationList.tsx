@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { ConversationItem } from "./ConversationItem";
 import type { Conversation } from "@/features/chat/chatApi";
-import { useAppSelector } from "@/lib/hooks";
 import { Loader2 } from "lucide-react";
 
 interface ConversationListProps {
@@ -11,9 +10,8 @@ interface ConversationListProps {
   activeId?: string;
   onSelect: (conversation: Conversation) => void;
   isLoading?: boolean;
-  filterType?: "SALES" | "PM" | "TEAM";
-  onFilterChange?: (type?: "SALES" | "PM" | "TEAM") => void;
-  availableFilterTypes?: ("SALES" | "PM" | "TEAM" | undefined)[];
+  filterType?: "DIRECT" | "GROUP";
+  onFilterChange?: (type?: "DIRECT" | "GROUP") => void;
 }
 
 export function ConversationList({
@@ -23,10 +21,7 @@ export function ConversationList({
   isLoading,
   filterType,
   onFilterChange,
-  availableFilterTypes = [undefined, "SALES", "PM"],
 }: ConversationListProps) {
-  const user = useAppSelector((s) => s.auth.user);
-
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -41,58 +36,39 @@ export function ConversationList({
         <h2 className="mb-2 text-lg font-semibold">المحادثات</h2>
         {onFilterChange && (
           <div className="flex flex-wrap gap-1.5">
-            {availableFilterTypes.includes(undefined) && (
-              <button
-                onClick={() => onFilterChange(undefined)}
-                className={cn(
-                  "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
-                  !filterType
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80",
-                )}
-              >
-                الكل
-              </button>
-            )}
-            {availableFilterTypes.includes("SALES") && (
-              <button
-                onClick={() => onFilterChange("SALES")}
-                className={cn(
-                  "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
-                  filterType === "SALES"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80",
-                )}
-              >
-                مستشارك الفني
-              </button>
-            )}
-            {availableFilterTypes.includes("PM") && (
-              <button
-                onClick={() => onFilterChange("PM")}
-                className={cn(
-                  "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
-                  filterType === "PM"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80",
-                )}
-              >
-                مشاريع
-              </button>
-            )}
-            {availableFilterTypes.includes("TEAM") && (
-              <button
-                onClick={() => onFilterChange("TEAM")}
-                className={cn(
-                  "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
-                  filterType === "TEAM"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80",
-                )}
-              >
-                فرق العمل
-              </button>
-            )}
+            <button
+              onClick={() => onFilterChange(undefined)}
+              className={cn(
+                "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
+                !filterType
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80",
+              )}
+            >
+              الكل
+            </button>
+            <button
+              onClick={() => onFilterChange("DIRECT")}
+              className={cn(
+                "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
+                filterType === "DIRECT"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80",
+              )}
+            >
+              خاصة
+            </button>
+            <button
+              onClick={() => onFilterChange("GROUP")}
+              className={cn(
+                "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
+                filterType === "GROUP"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80",
+              )}
+            >
+              مجموعات
+            </button>
           </div>
         )}
       </div>

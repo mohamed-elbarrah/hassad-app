@@ -23,14 +23,9 @@ export interface ConversationClient {
   contactName: string;
 }
 
-export interface Message {
+export interface ConversationProject {
   id: string;
-  conversationId: string;
-  senderId: string;
-  content: string;
-  createdAt: string;
-  sender: ConversationUser;
-  attachments?: MessageAttachment[];
+  name: string;
 }
 
 export interface MessageAttachment {
@@ -43,15 +38,25 @@ export interface MessageAttachment {
   url?: string;
 }
 
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  createdAt: string;
+  sender: ConversationUser;
+  attachments?: MessageAttachment[];
+}
+
 export interface Conversation {
   id: string;
-  type: "SALES" | "PM" | "TEAM";
-  clientId: string;
-  projectId?: string | null;
-  title: string;
+  type: "DIRECT" | "GROUP";
+  title: string | null;
   isActive: boolean;
   createdAt: string;
-  client: ConversationClient;
+  updatedAt: string;
+  client: ConversationClient | null;
+  project: ConversationProject | null;
   participants: ConversationParticipant[];
   messages?: Message[];
 }
@@ -66,21 +71,28 @@ export interface PaginatedConversations {
 export interface GetConversationsParams {
   page?: number;
   limit?: number;
-  type?: "SALES" | "PM" | "TEAM";
+  type?: "DIRECT" | "GROUP";
   clientId?: string;
+  projectId?: string;
 }
 
-export interface CreateConversationInput {
-  type: "SALES" | "PM" | "TEAM";
-  clientId: string;
+export interface CreateDirectConversationInput {
+  userId: string;
+}
+
+export interface CreateGroupConversationInput {
   title: string;
   participantIds: string[];
-  projectId?: string;
 }
 
 export interface CreateMessageInput {
   conversationId: string;
   content: string;
+}
+
+export interface AddParticipantInput {
+  conversationId: string;
+  userId: string;
 }
 
 // ── API slice ─────────────────────────────────────────────────────────────────
@@ -100,6 +112,7 @@ export const chatApi = createApi({
         if (params?.limit) searchParams.set("limit", String(params.limit));
         if (params?.type) searchParams.set("type", params.type);
         if (params?.clientId) searchParams.set("clientId", params.clientId);
+        if (params?.projectId) searchParams.set("projectId", params.projectId);
         const qs = searchParams.toString();
         return `/conversations${qs ? `?${qs}` : ""}`;
       },
@@ -120,34 +133,46 @@ export const chatApi = createApi({
       providesTags: (_, __, id) => [{ type: "Conversation", id }],
     }),
 
-    getProjectTeamConversation: builder.query<Conversation, string>({
-      query: (projectId) => `/conversations/project/${projectId}/team`,
+    getProjectGroupChat: builder.query<Conversation, string>({
+      query: (projectId) => `/conversations/project/${projectId}/group`,
       providesTags: (_, __, projectId) => [
-        { type: "Conversation", id: `project-${projectId}-team` },
+        { type: "Conversation", id: `project-${projectId}-group` },
       ],
     }),
 
-    getOrCreateConversation: builder.query<
-      Conversation,
-      { clientId: string; type: "SALES" | "PM" }
-    >({
-      query: ({ clientId, type }) =>
-        `/conversations/by-client/${clientId}/${type}`,
-      providesTags: (_, __, { clientId, type }) => [
-        { type: "Conversation", id: `${clientId}-${type}` },
-      ],
-    }),
-
-    createConversation: builder.mutation<Conversation, CreateConversationInput>(
+    createDirectConversation: builder.mutation<Conversation, CreateDirectConversationInput>(
       {
         query: (body) => ({
           url: "/conversations",
           method: "POST",
-          body,
+          body: { type: "DIRECT", participantIds: [body.userId] },
         }),
         invalidatesTags: [{ type: "Conversation", id: "LIST" }],
       },
     ),
+
+    createGroupConversation: builder.mutation<Conversation, CreateGroupConversationInput>(
+      {
+        query: (body) => ({
+          url: "/conversations",
+          method: "POST",
+          body: { type: "GROUP", ...body },
+        }),
+        invalidatesTags: [{ type: "Conversation", id: "LIST" }],
+      },
+    ),
+
+    addParticipant: builder.mutation<Conversation, AddParticipantInput>({
+      query: ({ conversationId, userId }) => ({
+        url: `/conversations/${conversationId}/participants`,
+        method: "POST",
+        body: { userId },
+      }),
+      invalidatesTags: (_, __, { conversationId }) => [
+        { type: "Conversation", id: conversationId },
+        { type: "Conversation", id: "LIST" },
+      ],
+    }),
 
     getMessages: builder.query<
       Message[],
@@ -166,13 +191,14 @@ export const chatApi = createApi({
     }),
 
     sendMessage: builder.mutation<Message, CreateMessageInput>({
-      query: (body) => ({
-        url: "/messages",
+      query: ({ conversationId, content }) => ({
+        url: `/conversations/${conversationId}/messages`,
         method: "POST",
-        body,
+        body: { content },
       }),
       invalidatesTags: (_, __, { conversationId }) => [
         { type: "Message", id: conversationId },
+        { type: "Conversation", id: conversationId },
         { type: "Conversation", id: "LIST" },
       ],
     }),
@@ -183,19 +209,19 @@ export const chatApi = createApi({
     >({
       query: ({ conversationId, content, files }) => {
         const formData = new FormData();
-        formData.append("conversationId", conversationId);
         formData.append("content", content);
         files.forEach((file) => {
           formData.append("files", file);
         });
         return {
-          url: "/messages/with-files",
+          url: `/conversations/${conversationId}/messages/with-files`,
           method: "POST",
           body: formData,
         };
       },
       invalidatesTags: (_, __, { conversationId }) => [
         { type: "Message", id: conversationId },
+        { type: "Conversation", id: conversationId },
         { type: "Conversation", id: "LIST" },
       ],
     }),
@@ -205,12 +231,10 @@ export const chatApi = createApi({
 export const {
   useGetConversationsQuery,
   useGetConversationQuery,
-  useLazyGetConversationQuery,
-  useGetProjectTeamConversationQuery,
-  useLazyGetProjectTeamConversationQuery,
-  useGetOrCreateConversationQuery,
-  useLazyGetOrCreateConversationQuery,
-  useCreateConversationMutation,
+  useLazyGetProjectGroupChatQuery,
+  useCreateDirectConversationMutation,
+  useCreateGroupConversationMutation,
+  useAddParticipantMutation,
   useGetMessagesQuery,
   useSendMessageMutation,
   useSendMessageWithFilesMutation,

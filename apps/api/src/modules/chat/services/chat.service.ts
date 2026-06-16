@@ -1,16 +1,15 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { ConversationType, Prisma } from "@prisma/client";
+import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ConversationType, Prisma } from "@prisma/client";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { NotificationsService } from "../../notifications/services/notifications.service";
+import { StorageService } from "../../../common/storage/storage.service";
 import {
+  CreateMessageDto,
   CreateConversationDto,
   AddParticipantDto,
-  CreateMessageDto,
+  GetConversationsQueryDto,
 } from "../dto/chat.dto";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { StorageService } from "../../../common/storage/storage.service";
-
-import { ProjectTeamConversationService } from "./project-team-conversation.service";
 
 interface AttachmentData {
   key: string;
@@ -22,11 +21,10 @@ interface AttachmentData {
 @Injectable()
 export class ChatService {
   constructor(
-    private prisma: PrismaService,
-    private notificationsService: NotificationsService,
-    private eventEmitter: EventEmitter2,
-    private storageService: StorageService,
-    private projectTeamConversationService: ProjectTeamConversationService,
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly storageService: StorageService,
   ) {}
 
   async getUserConversationIds(userId: string): Promise<string[]> {
@@ -37,32 +35,9 @@ export class ChatService {
     return participants.map((p) => p.conversationId);
   }
 
-  async createConversation(dto: CreateConversationDto) {
-    return this.prisma.conversation.create({
-      data: {
-        type: dto.type,
-        clientId: dto.clientId,
-        title: dto.title,
-        participants: {
-          create: dto.participantIds.map((userId) => ({
-            userId,
-          })),
-        },
-      },
-      include: {
-        client: true,
-        participants: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    });
-  }
-
   async findMyConversations(
     userId: string,
-    query: { page?: number; limit?: number; type?: string; clientId?: string },
+    query: GetConversationsQueryDto,
   ) {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
@@ -80,11 +55,16 @@ export class ChatService {
       where.clientId = query.clientId;
     }
 
+    if (query.projectId) {
+      where.projectId = query.projectId;
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.conversation.findMany({
         where,
         include: {
           client: true,
+          project: { select: { id: true, name: true } },
           participants: { include: { user: true } },
           messages: {
             orderBy: { createdAt: "desc" },
@@ -92,31 +72,23 @@ export class ChatService {
             include: { sender: true, attachments: true },
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { updatedAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.conversation.count({ where }),
     ]);
 
-    return {
-      data,
-      total,
-      page,
-      limit,
-    };
+    return { data, total, page, limit };
   }
 
-  async findConversation(id: string) {
+  async findConversation(id: string, userId?: string) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id },
       include: {
         client: true,
-        participants: {
-          include: {
-            user: true,
-          },
-        },
+        project: { select: { id: true, name: true } },
+        participants: { include: { user: true } },
       },
     });
 
@@ -124,169 +96,91 @@ export class ChatService {
       throw new NotFoundException(`Conversation with ID ${id} not found`);
     }
 
+    if (userId && !conversation.participants.some((p) => p.userId === userId)) {
+      throw new ForbiddenException("You are not a participant in this conversation");
+    }
+
     return conversation;
   }
 
-  async getOrCreateConversation(clientId: string, type: ConversationType) {
-    const client = await this.prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, accountManager: true, contactName: true },
-    });
+  async createConversation(userId: string, dto: CreateConversationDto) {
+    const participantIds = Array.from(new Set([userId, ...dto.participantIds]));
 
-    if (!client) {
-      throw new NotFoundException(`Client with ID ${clientId} not found`);
+    if (dto.type === ConversationType.DIRECT && participantIds.length !== 2) {
+      throw new ForbiddenException("Direct conversations must have exactly two participants");
     }
-
-    if (!client.userId) {
-      throw new NotFoundException(
-        "Cannot create conversation: client has no linked user account",
-      );
-    }
-
-    const participantIds: string[] = [client.userId];
-
-    if (type === ConversationType.SALES && client.accountManager) {
-      const manager = await this.prisma.user.findUnique({
-        where: { id: client.accountManager },
-        select: { id: true, role: { select: { name: true } } },
-      });
-
-      if (manager && ["SALES", "ADMIN"].includes(manager.role.name)) {
-        participantIds.push(manager.id);
-      }
-    }
-
-    if (type === ConversationType.PM) {
-      const project = await this.prisma.project.findFirst({
-        where: { clientId, projectManagerId: { not: null } },
-        select: { projectManagerId: true },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (project?.projectManagerId) {
-        const pm = await this.prisma.user.findUnique({
-          where: { id: project.projectManagerId },
-          select: { id: true, role: { select: { name: true } } },
-        });
-
-        if (pm && ["PM", "ADMIN"].includes(pm.role.name)) {
-          participantIds.push(pm.id);
-        }
-      }
-    }
-
-    if (participantIds.length < 2) {
-      throw new NotFoundException(
-        "Cannot create conversation: no valid participant found for this conversation type",
-      );
-    }
-
-    const userIds = [...new Set(participantIds)];
-
-    const conversations = await this.prisma.conversation.findMany({
-      where: {
-        type,
-        clientId,
-        isActive: true,
-      },
-      include: {
-        participants: { select: { userId: true } },
-      },
-    });
-
-    for (const conv of conversations) {
-      const convParticipantIds = conv.participants.map((p) => p.userId).sort();
-      const expectedIds = [...userIds].sort();
-      if (
-        convParticipantIds.length === expectedIds.length &&
-        convParticipantIds.every((id, i) => id === expectedIds[i])
-      ) {
-        return this.prisma.conversation.findUnique({
-          where: { id: conv.id },
-          include: {
-            client: true,
-            participants: { include: { user: true } },
-          },
-        });
-      }
-    }
-
-    const title =
-      type === ConversationType.SALES
-        ? `محادثة مبيعات مع ${client.contactName}`
-        : `محادثة مشروع مع ${client.contactName}`;
 
     return this.prisma.conversation.create({
       data: {
-        type,
-        clientId,
-        title,
+        type: dto.type,
+        clientId: dto.clientId ?? null,
+        projectId: dto.projectId ?? null,
+        title: dto.title ?? null,
         participants: {
-          create: userIds.map((uid) => ({ userId: uid })),
+          create: participantIds.map((id) => ({ userId: id })),
         },
       },
       include: {
         client: true,
+        project: { select: { id: true, name: true } },
         participants: { include: { user: true } },
       },
     });
   }
 
-  async addParticipant(id: string, dto: AddParticipantDto) {
-    return this.prisma.conversationParticipant.create({
-      data: {
-        conversationId: id,
-        userId: dto.userId,
-      },
+  async addParticipant(conversationId: string, dto: AddParticipantDto, currentUserId: string) {
+    const conversation = await this.findConversation(conversationId, currentUserId);
+
+    if (conversation.type === ConversationType.DIRECT) {
+      throw new ForbiddenException("Cannot add participants to a direct conversation");
+    }
+
+    const exists = await this.prisma.conversationParticipant.findFirst({
+      where: { conversationId, userId: dto.userId },
     });
+
+    if (exists) return conversation;
+
+    await this.prisma.conversationParticipant.create({
+      data: { conversationId, userId: dto.userId },
+    });
+
+    return this.findConversation(conversationId);
   }
 
-  async findProjectTeamConversation(projectId: string) {
-    return this.projectTeamConversationService.findTeamConversation(projectId);
+  async removeParticipant(conversationId: string, userId: string, currentUserId: string) {
+    const conversation = await this.findConversation(conversationId, currentUserId);
+
+    if (conversation.type === ConversationType.DIRECT) {
+      throw new ForbiddenException("Cannot remove participants from a direct conversation");
+    }
+
+    await this.prisma.conversationParticipant.deleteMany({
+      where: { conversationId, userId },
+    });
+
+    return this.findConversation(conversationId);
   }
 
   async createMessage(senderId: string, dto: CreateMessageDto) {
+    const conversation = await this.findConversation(dto.conversationId, senderId);
+
     const message = await this.prisma.message.create({
       data: {
         conversationId: dto.conversationId,
         senderId,
         content: dto.content,
       },
-      include: {
-        sender: true,
-      },
+      include: { sender: true },
     });
 
-    const participants = await this.prisma.conversationParticipant.findMany({
-      where: {
-        conversationId: dto.conversationId,
-        userId: { not: senderId },
-      },
-      select: { userId: true },
+    await this.prisma.conversation.update({
+      where: { id: dto.conversationId },
+      data: { updatedAt: new Date() },
     });
 
-    if (participants.length > 0) {
-      const truncatedContent =
-        dto.content.length > 100
-          ? dto.content.substring(0, 97) + "..."
-          : dto.content;
-
-      this.notificationsService
-        .notifyUsers({
-          userIds: participants.map((p) => p.userId),
-          title: `رسالة جديدة من ${message.sender.name}`,
-          message: truncatedContent,
-          entityId: dto.conversationId,
-          entityType: "conversation",
-          eventType: "NEW_MESSAGE",
-        })
-        .catch(() => undefined);
-    }
-
-    this.eventEmitter.emit("chat.messageCreated", {
-      ...message,
-      conversationId: dto.conversationId,
-    });
+    this.notifyParticipants(conversation, senderId, dto.content, message.id).catch(() => undefined);
+    this.eventEmitter.emit("chat.messageCreated", { ...message, conversationId: dto.conversationId });
 
     return message;
   }
@@ -296,15 +190,15 @@ export class ChatService {
     dto: CreateMessageDto,
     attachments: AttachmentData[],
   ) {
+    const conversation = await this.findConversation(dto.conversationId, senderId);
+
     const message = await this.prisma.message.create({
       data: {
         conversationId: dto.conversationId,
         senderId,
         content: dto.content,
       },
-      include: {
-        sender: true,
-      },
+      include: { sender: true },
     });
 
     if (attachments.length > 0) {
@@ -318,82 +212,42 @@ export class ChatService {
       });
     }
 
-    const participants = await this.prisma.conversationParticipant.findMany({
-      where: {
-        conversationId: dto.conversationId,
-        userId: { not: senderId },
-      },
-      select: { userId: true },
+    await this.prisma.conversation.update({
+      where: { id: dto.conversationId },
+      data: { updatedAt: new Date() },
     });
 
-    if (participants.length > 0) {
-      const truncatedContent =
-        dto.content.length > 100
-          ? dto.content.substring(0, 97) + "..."
-          : dto.content;
-      const suffix =
-        attachments.length > 0
-          ? ` (${attachments.length} مرفق${attachments.length > 1 ? "ات" : ""})`
-          : "";
+    this.notifyParticipants(conversation, senderId, dto.content, message.id, attachments.length)
+      .catch(() => undefined);
 
-      this.notificationsService
-        .notifyUsers({
-          userIds: participants.map((p) => p.userId),
-          title: `رسالة جديدة من ${message.sender.name}`,
-          message: truncatedContent + suffix,
-          entityId: dto.conversationId,
-          entityType: "conversation",
-          eventType: "NEW_MESSAGE",
-        })
-        .catch(() => undefined);
-    }
-
-    this.eventEmitter.emit("chat.messageCreated", {
-      ...message,
-      conversationId: dto.conversationId,
-    });
+    this.eventEmitter.emit("chat.messageCreated", { ...message, conversationId: dto.conversationId });
 
     const messageWithAttachments = await this.prisma.message.findUnique({
       where: { id: message.id },
-      include: {
-        sender: true,
-        attachments: true,
-      },
+      include: { sender: true, attachments: true },
     });
 
-    if (
-      messageWithAttachments &&
-      messageWithAttachments.attachments.length > 0
-    ) {
-      const attachmentKeys = messageWithAttachments.attachments.map(
-        (a) => a.filePath,
-      );
-      const urlMap =
-        await this.storageService.getMultiplePresignedUrls(attachmentKeys);
-
-      (messageWithAttachments as any).attachments =
-        messageWithAttachments.attachments.map((att) => ({
-          ...att,
-          url: urlMap.get(att.filePath) || null,
-        }));
+    if (messageWithAttachments && messageWithAttachments.attachments.length > 0) {
+      const attachmentKeys = messageWithAttachments.attachments.map((a) => a.filePath);
+      const urlMap = await this.storageService.getMultiplePresignedUrls(attachmentKeys);
+      (messageWithAttachments as any).attachments = messageWithAttachments.attachments.map((att) => ({
+        ...att,
+        url: urlMap.get(att.filePath) || null,
+      }));
     }
 
     return messageWithAttachments;
   }
 
-  async getMessages(
-    conversationId: string,
-    query?: { page?: number; limit?: number },
-  ) {
+  async getMessages(conversationId: string, userId: string, query?: { page?: number; limit?: number }) {
+    await this.findConversation(conversationId, userId);
+
     const page = Number(query?.page) || 1;
     const limit = Number(query?.limit) || 50;
 
     const messages = await this.prisma.message.findMany({
       where: { conversationId },
-      include: {
-        sender: true,
-        attachments: true,
-      },
+      include: { sender: true, attachments: true },
       orderBy: { createdAt: "asc" },
       skip: (page - 1) * limit,
       take: limit,
@@ -404,8 +258,7 @@ export class ChatService {
     );
 
     if (allAttachmentKeys.length > 0) {
-      const urlMap =
-        await this.storageService.getMultiplePresignedUrls(allAttachmentKeys);
+      const urlMap = await this.storageService.getMultiplePresignedUrls(allAttachmentKeys);
       for (const msg of messages) {
         if (msg.attachments && msg.attachments.length > 0) {
           (msg as any).attachments = msg.attachments.map((att) => ({
@@ -417,5 +270,32 @@ export class ChatService {
     }
 
     return messages;
+  }
+
+  private async notifyParticipants(
+    conversation: any,
+    senderId: string,
+    content: string,
+    messageId: string,
+    attachmentCount = 0,
+  ) {
+    const recipients = conversation.participants
+      .map((p: any) => p.userId)
+      .filter((id: string) => id !== senderId);
+
+    if (recipients.length === 0) return;
+
+    const sender = conversation.participants.find((p: any) => p.userId === senderId)?.user?.name ?? "عضو";
+    const truncatedContent = content.length > 100 ? content.substring(0, 97) + "..." : content;
+    const suffix = attachmentCount > 0 ? ` (${attachmentCount} مرفق${attachmentCount > 1 ? "ات" : ""})` : "";
+
+    await this.notificationsService.notifyUsers({
+      userIds: recipients,
+      title: `رسالة جديدة من ${sender}`,
+      message: truncatedContent + suffix,
+      entityId: conversation.id,
+      entityType: "conversation",
+      eventType: "NEW_MESSAGE",
+    });
   }
 }

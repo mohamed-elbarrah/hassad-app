@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
-import { UserRole } from "@hassad/shared";
 import {
   useGetConversationsQuery,
   useGetMessagesQuery,
@@ -32,9 +31,9 @@ export default function MessagesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(
     initialConversationId,
   );
-  const [filterType, setFilterType] = useState<
-    "SALES" | "PM" | "TEAM" | undefined
-  >(undefined);
+  const [filterType, setFilterType] = useState<"DIRECT" | "GROUP" | undefined>(
+    undefined,
+  );
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
 
   const { data: conversationsData, isLoading: convLoading } =
@@ -107,19 +106,6 @@ export default function MessagesPage() {
     [selectedId, sendMessage, sendMessageWithFiles],
   );
 
-  const roleFilterHint = () => {
-    if (user?.role === UserRole.SALES) return "مبيعات";
-    if (user?.role === UserRole.PM) return "مشاريع";
-    return "";
-  };
-
-  const availableFilterTypes: ("SALES" | "PM" | "TEAM" | undefined)[] =
-    user?.role === UserRole.PM || user?.role === UserRole.MARKETING
-      ? [undefined, "PM", "TEAM"]
-      : user?.role === UserRole.EMPLOYEE
-        ? [undefined, "TEAM"]
-        : [undefined, "SALES", "PM"];
-
   const sidebarContent = (
     <ConversationList
       conversations={conversations}
@@ -128,7 +114,6 @@ export default function MessagesPage() {
       isLoading={convLoading}
       filterType={filterType}
       onFilterChange={setFilterType}
-      availableFilterTypes={availableFilterTypes}
     />
   );
 
@@ -170,13 +155,13 @@ export default function MessagesPage() {
             />
             <ChatWindow
               messages={displayedMessages}
-              isLoading={msgLoading && localMessages.length === 0}
-              typingUser={typingUser}
+              isLoading={msgLoading}
             />
             <MessageInput
               onSend={handleSend}
-              onTyping={() => selectedId && emitTyping(selectedId)}
-              onStopTyping={() => selectedId && emitStopTyping(selectedId)}
+              onTyping={() => emitTyping?.(selectedId)}
+              onStopTyping={() => emitStopTyping?.(selectedId)}
+              disabled={!isConnected}
             />
           </>
         ) : (

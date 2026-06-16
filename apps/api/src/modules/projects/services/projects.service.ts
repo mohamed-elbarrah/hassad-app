@@ -18,7 +18,7 @@ import {
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
-import { ProjectTeamConversationService } from "../../chat/services/project-team-conversation.service";
+import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
 
 @Injectable()
 export class ProjectsService {
@@ -27,7 +27,7 @@ export class ProjectsService {
     private notificationsService: NotificationsService,
     private storageService: StorageService,
     private clientCounterService: ClientCounterService,
-    private projectTeamConversationService: ProjectTeamConversationService,
+    private projectGroupChatService: ProjectGroupChatService,
   ) {}
 
   async create(dto: CreateProjectDto) {
@@ -68,8 +68,8 @@ export class ProjectsService {
       .onProjectStatusChange(createdProject.id)
       .catch(() => undefined);
 
-    this.projectTeamConversationService
-      .ensureTeamConversation(createdProject.id)
+    this.projectGroupChatService
+      .ensure(createdProject.id)
       .catch(() => undefined);
 
     return createdProject;
@@ -133,8 +133,8 @@ export class ProjectsService {
       },
     });
 
-    this.projectTeamConversationService
-      .ensureParticipantInProjectTeam(id, dto.userId)
+    this.projectGroupChatService
+      .addParticipant(id, dto.userId)
       .catch(() => undefined);
 
     // Auto-create task for Marketing role
@@ -163,8 +163,8 @@ export class ProjectsService {
           },
         });
 
-        this.projectTeamConversationService
-          .ensureParticipantInProjectTeam(id, dto.userId)
+        this.projectGroupChatService
+          .addParticipant(id, dto.userId)
           .catch(() => undefined);
 
         // Notify marketer
@@ -197,7 +197,7 @@ export class ProjectsService {
       },
     });
 
-    this.projectTeamConversationService
+    this.projectGroupChatService
       .syncParticipants(id)
       .catch(() => undefined);
 

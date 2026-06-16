@@ -8,11 +8,12 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  Delete,
   NotFoundException,
-  ForbiddenException,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ChatService } from "../services/chat.service";
+import { ProjectGroupChatService } from "../services/project-group-chat.service";
 import {
   CreateConversationDto,
   AddParticipantDto,
@@ -31,6 +32,7 @@ import { StorageCategory } from "../../../common/storage/storage.constants";
 export class ChatController {
   constructor(
     private readonly chatService: ChatService,
+    private readonly projectGroupChatService: ProjectGroupChatService,
     private readonly storageService: StorageService,
   ) {}
 
@@ -45,67 +47,74 @@ export class ChatController {
 
   @Post("conversations")
   @RequirePermissions("chat.create")
-  createConversation(@Body() dto: CreateConversationDto) {
-    return this.chatService.createConversation(dto);
-  }
-
-  @Get("conversations/by-client/:clientId/:type")
-  @RequirePermissions("chat.read")
-  getOrCreateConversation(
-    @Param("clientId") clientId: string,
-    @Param("type") type: "SALES" | "PM",
-  ) {
-    return this.chatService.getOrCreateConversation(clientId, type);
-  }
-
-  @Get("conversations/project/:projectId/team")
-  @RequirePermissions("chat.read")
-  async getProjectTeamConversation(
+  createConversation(
     @CurrentUser() user: any,
-    @Param("projectId") projectId: string,
+    @Body() dto: CreateConversationDto,
   ) {
-    const conversation =
-      await this.chatService.findProjectTeamConversation(projectId);
-
-    if (!conversation) {
-      throw new NotFoundException(
-        `Team conversation for project ${projectId} not found`,
-      );
-    }
-
-    const isParticipant = conversation.participants.some(
-      (p) => p.userId === user.id,
-    );
-    if (!isParticipant) {
-      throw new ForbiddenException("You are not a member of this team chat");
-    }
-
-    return conversation;
+    return this.chatService.createConversation(user.id, dto);
   }
 
   @Get("conversations/:id")
   @RequirePermissions("chat.read")
-  findConversation(@Param("id") id: string) {
-    return this.chatService.findConversation(id);
+  findConversation(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.chatService.findConversation(id, user.id);
+  }
+
+  @Get("conversations/project/:projectId/group")
+  @RequirePermissions("chat.read")
+  async getProjectGroupChat(
+    @CurrentUser() user: any,
+    @Param("projectId") projectId: string,
+  ) {
+    const conversation = await this.projectGroupChatService.ensure(projectId);
+    if (!conversation) {
+      throw new NotFoundException("Project group chat not found");
+    }
+    if (!conversation.participants.some((p) => p.userId === user.id)) {
+      throw new NotFoundException("You are not a member of this group chat");
+    }
+    return conversation;
   }
 
   @Post("conversations/:id/participants")
   @RequirePermissions("chat.update")
-  addParticipant(@Param("id") id: string, @Body() dto: AddParticipantDto) {
-    return this.chatService.addParticipant(id, dto);
+  addParticipant(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Body() dto: AddParticipantDto,
+  ) {
+    return this.chatService.addParticipant(id, dto, user.id);
   }
 
-  @Post("messages")
+  @Delete("conversations/:id/participants/:userId")
+  @RequirePermissions("chat.update")
+  removeParticipant(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Param("userId") userId: string,
+  ) {
+    return this.chatService.removeParticipant(id, userId, user.id);
+  }
+
+  @Post("conversations/:id/messages")
   @RequirePermissions("chat.message")
-  createMessage(@CurrentUser() user: any, @Body() dto: CreateMessageDto) {
-    return this.chatService.createMessage(user.id, dto);
+  createMessage(
+    @CurrentUser() user: any,
+    @Param("id") conversationId: string,
+    @Body() dto: CreateMessageDto,
+  ) {
+    return this.chatService.createMessage(user.id, {
+      ...dto,
+      conversationId,
+    });
   }
 
-  @Post("messages/with-files")
+  @Post("conversations/:id/messages/with-files")
   @RequirePermissions("chat.message")
   @UseInterceptors(FilesInterceptor("files", 10))
   async createMessageWithFiles(
     @CurrentUser() user: any,
+    @Param("id") conversationId: string,
     @Body() dto: CreateMessageDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
@@ -115,7 +124,7 @@ export class ChatController {
             files.map(async (file) => {
               const uploadResult = await this.storageService.upload({
                 category: StorageCategory.CHAT_ATTACHMENT,
-                entityId: dto.conversationId,
+                entityId: conversationId,
                 file: {
                   buffer: file.buffer,
                   originalname: file.originalname,
@@ -134,19 +143,19 @@ export class ChatController {
           )
         : [];
 
-    return this.chatService.createMessageWithAttachments(
-      user.id,
-      dto,
-      attachments,
-    );
+    return this.chatService.createMessageWithAttachments(user.id, {
+      ...dto,
+      conversationId,
+    }, attachments);
   }
 
   @Get("conversations/:id/messages")
   @RequirePermissions("chat.read")
   getMessages(
+    @CurrentUser() user: any,
     @Param("id") id: string,
     @Query() query: { page?: number; limit?: number },
   ) {
-    return this.chatService.getMessages(id, query);
+    return this.chatService.getMessages(id, user.id, query);
   }
 }

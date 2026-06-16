@@ -278,6 +278,12 @@ export const roleNavSections: NavSection[] = [
         icon: Shield,
         roles: ["ACCOUNTANT"],
       },
+      {
+        title: "المحادثات",
+        url: "/dashboard/messages",
+        icon: MessageSquare,
+        roles: ["ACCOUNTANT"],
+      },
     ],
   },
 ];

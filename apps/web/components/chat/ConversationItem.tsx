@@ -12,21 +12,13 @@ interface ConversationItemProps {
   onClick: () => void;
 }
 
-function getOtherParticipant(
-  conversation: Conversation,
-  currentUserId: string,
-) {
-  return conversation.participants.find((p) => p.userId !== currentUserId);
-}
-
 function getLastMessage(conversation: Conversation): Message | null {
   if (!conversation.messages || conversation.messages.length === 0) return null;
   return conversation.messages[0];
 }
 
-function getTypeLabel(type: "SALES" | "PM" | "TEAM") {
-  if (type === "TEAM") return "فريق العمل";
-  return type === "SALES" ? "مستشارك الفني" : "مدير مشروع";
+function getTypeLabel(type: "DIRECT" | "GROUP") {
+  return type === "DIRECT" ? "محادثة خاصة" : "مجموعة";
 }
 
 function getParticipantPreview(
@@ -43,22 +35,34 @@ function getParticipantPreview(
   return `${others[0]}، ${others[1]} +${others.length - 2}`;
 }
 
+function getDisplayInfo(conversation: Conversation, currentUserId?: string) {
+  if (conversation.type === "GROUP") {
+    return {
+      name: conversation.title || "مجموعة",
+      subtitle: getParticipantPreview(conversation, currentUserId),
+      avatarName: conversation.title || "G",
+    };
+  }
+
+  const other = conversation.participants.find(
+    (p) => p.userId !== currentUserId,
+  );
+  const name = other?.user?.name ?? conversation.title ?? "محادثة";
+  return {
+    name,
+    subtitle: conversation.client?.companyName,
+    avatarName: name,
+  };
+}
+
 export function ConversationItem({
   conversation,
   isActive,
   onClick,
 }: ConversationItemProps) {
   const user = useAppSelector((s) => s.auth.user);
-  const otherParticipant = getOtherParticipant(conversation, user?.id ?? "");
   const lastMessage = getLastMessage(conversation);
-
-  const isTeam = conversation.type === "TEAM";
-  const displayName = isTeam
-    ? conversation.title
-    : otherParticipant?.user?.name ?? conversation.title;
-  const participantPreview = isTeam
-    ? getParticipantPreview(conversation, user?.id)
-    : otherParticipant?.user?.name;
+  const info = getDisplayInfo(conversation, user?.id);
 
   return (
     <button
@@ -68,11 +72,11 @@ export function ConversationItem({
         isActive && "bg-neutral-50",
       )}
     >
-      <UserAvatar name={displayName} size="md" />
+      <UserAvatar name={info.avatarName} size="md" />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium">{displayName}</span>
+          <span className="truncate text-sm font-medium">{info.name}</span>
           <span className="shrink-0 text-xs text-neutral-300">
             {lastMessage
               ? formatRelativeTime(lastMessage.createdAt)
@@ -82,7 +86,7 @@ export function ConversationItem({
 
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-xs text-neutral-300">
-            {lastMessage ? lastMessage.content : participantPreview ?? "لا توجد رسائل بعد"}
+            {lastMessage ? lastMessage.content : info.subtitle ?? "لا توجد رسائل بعد"}
           </p>
           <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             {getTypeLabel(conversation.type)}

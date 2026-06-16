@@ -2,7 +2,7 @@ import { ConflictException, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { BusinessType, ClientStatus } from "@hassad/shared";
 import { PrismaService } from "../../prisma/prisma.service";
-import { AutoConversationService } from "../chat/services/auto-conversation.service";
+import { DirectConversationService } from "../chat/services/direct-conversation.service";
 import { SalesAssignmentService } from "./sales-assignment.service";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
@@ -26,7 +26,7 @@ interface UpsertCanonicalClientParams {
 export class CanonicalClientService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly autoConversationService: AutoConversationService,
+    private readonly directConversationService: DirectConversationService,
     private readonly salesAssignmentService: SalesAssignmentService,
   ) {}
 
@@ -252,8 +252,10 @@ export class CanonicalClientService {
       }
 
       if (client.accountManager && client.userId) {
-        this.autoConversationService
-          .ensureSalesConversation(client.id, client.accountManager, db)
+        this.directConversationService
+          .getOrCreate(client.userId, client.accountManager, db, {
+            clientId: client.id,
+          })
           .catch(() => undefined);
       }
 
@@ -276,8 +278,8 @@ export class CanonicalClientService {
     });
 
     if (accountManagerId && client.userId) {
-      this.autoConversationService
-        .ensureSalesConversation(client.id, accountManagerId, db)
+      this.directConversationService
+        .getOrCreate(client.userId, accountManagerId, db, { clientId: client.id })
         .catch(() => undefined);
     }
 
