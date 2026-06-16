@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
+  ArrowLeft,
   ClipboardList,
   Settings,
   TrendingUp,
@@ -146,10 +148,31 @@ export default function PortalPage() {
   }
 
   return (
-    <div
-      className="grid grid-cols-1 lg:grid-cols-3 gap-5 w-full mx-auto"
-      dir="rtl"
-    >
+    <div className="space-y-5" dir="rtl">
+      <Link
+        href="/portal/chat?openSales=true"
+        className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-l from-secondary-50 to-secondary-100/60 border border-secondary-200 hover:from-secondary-100 hover:to-secondary-200 transition-colors group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-secondary-500 flex items-center justify-center shrink-0">
+            <MessageCircle className="w-5 h-5 text-white" />
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-semibold text-secondary-700">
+              هل تحتاج خدمة جديدة؟
+            </p>
+            <p className="text-xs text-secondary-500/80">
+              تواصل مع مدير حسابك عبر المحادثة المباشرة
+            </p>
+          </div>
+        </div>
+        <ArrowLeft className="w-4 h-4 text-secondary-400 group-hover:-translate-x-1 transition-transform" />
+      </Link>
+
+      <div
+        className="grid grid-cols-1 lg:grid-cols-3 gap-5 w-full mx-auto"
+        dir="rtl"
+      >
       {/* COLUMN 1 */}
       <div className="flex flex-col gap-5">
         {/* ── تتبع المشاريع ──────────────────────────── */}
@@ -512,5 +535,6 @@ export default function PortalPage() {
         </DashboardCard>
       </div>
     </div>
+  </div>
   );
 }

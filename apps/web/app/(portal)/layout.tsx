@@ -1,16 +1,14 @@
 "use client";
 
 import { useAppSelector } from "@/lib/hooks";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { UserRole } from "@hassad/shared";
 import { Sidebar } from "@/components/design-system/Sidebar";
 import { AppHeader } from "@/components/design-system/AppHeader";
 import { BottomNav } from "@/components/design-system/BottomNav";
-import { IntakeFormModal } from "@/components/dashboard/crm/IntakeFormModal";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
 export default function PortalLayout({
   children,
 }: {
@@ -20,58 +18,44 @@ export default function PortalLayout({
     (state) => state.auth,
   );
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [showIntakeForm, setShowIntakeForm] = useState(false);
-  const [intakeDismissed, setIntakeDismissed] = useState(false);
+  const pathname = usePathname();
+  const isSetupPage = pathname === "/portal/profile/setup";
 
   useNotificationSocket();
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!isInitialized) return;
 
-  // Auth guard
-  useEffect(() => {
-    if (mounted && isInitialized) {
-      if (!isAuthenticated) {
-        router.push("/login");
-      } else if (user?.role !== UserRole.CLIENT) {
-        router.push("/dashboard");
-      }
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
     }
-  }, [isAuthenticated, user, router, mounted, isInitialized]);
 
-  // First-login intake gate:
-  useEffect(() => {
-    if (!mounted || !isInitialized || !isAuthenticated) return;
-    if (user?.role !== UserRole.CLIENT || !user?.id) return;
-
-    if (!user.intakeCompleted && !intakeDismissed) {
-      setShowIntakeForm(true);
-    } else {
-      setShowIntakeForm(false);
+    if (user?.role !== UserRole.CLIENT) {
+      router.replace("/dashboard");
+      return;
     }
-  }, [mounted, isInitialized, isAuthenticated, user, intakeDismissed]);
 
-  const handleIntakeSuccess = useCallback(() => {
-    setIntakeDismissed(true);
-  }, []);
+    if (!user?.intakeCompleted && !isSetupPage) {
+      router.replace("/portal/profile/setup");
+    }
+  }, [isInitialized, isAuthenticated, user, router, isSetupPage]);
 
-  if (!mounted || !isInitialized) {
+  if (!isInitialized || !isAuthenticated || user?.role !== UserRole.CLIENT) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen" dir="rtl">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
           <p className="text-muted-foreground animate-pulse">
-            Initializing Portal...
+            جاري التحميل...
           </p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated || user?.role !== UserRole.CLIENT) {
-    return null;
+  if (isSetupPage) {
+    return <>{children}</>;
   }
 
   return (
@@ -80,27 +64,18 @@ export default function PortalLayout({
       dir="rtl"
       style={{ background: "#F9FAFB" }}
     >
-      {/* Right Sidebar — desktop only (lg = 1024px+) */}
       <div className="hidden lg:block">
         <Sidebar />
       </div>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <AppHeader />
-        {/* Bottom padding on mobile/tablet to make room for bottom nav */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-5 pb-20 lg:pb-5">
           {children}
         </main>
       </div>
 
-      {/* Bottom Navigation — mobile + tablet only */}
       <BottomNav />
-
-      {/* First-login mandatory intake form */}
-      {showIntakeForm && (
-        <IntakeFormModal mandatory onSuccess={handleIntakeSuccess} />
-      )}
     </div>
   );
 }

@@ -10,7 +10,6 @@ import {
   BarChart3,
   Settings,
   CheckCircle2,
-  PlusCircle,
   FolderOpen,
   Bell,
   ClipboardList,
@@ -23,7 +22,6 @@ import { cn } from "@/lib/utils";
 const MORE_ITEMS = [
   { label: "المحادثات", href: "/portal/chat", icon: MessageSquare },
   { label: "الإشعارات", href: "/portal/notifications", icon: Bell },
-  { label: "طلبات جديدة", href: "/portal/new-order", icon: PlusCircle },
   { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
   { label: "العقود", href: "/portal/contracts", icon: FileText },
   { label: "العروض", href: "/portal/proposals", icon: FileText },

@@ -29,6 +29,13 @@ export class ClientProfileService {
           data: { ...data, clientId },
         });
 
+    if (!existing) {
+      await this.prisma.client.update({
+        where: { id: clientId },
+        data: { intakeCompleted: true },
+      });
+    }
+
     await this.prisma.clientHistoryLog.create({
       data: {
         clientId,

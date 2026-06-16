@@ -10,7 +10,6 @@ import {
   Receipt,
   BarChart3,
   CheckCircle2,
-  PlusCircle,
   FolderOpen,
   Bell,
   ClipboardList,
@@ -48,7 +47,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
       { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
-      { label: "إنشاء طلب جديد", href: "/portal/new-order", icon: PlusCircle },
     ],
   },
   {
