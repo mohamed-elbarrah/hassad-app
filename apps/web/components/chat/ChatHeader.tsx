@@ -10,7 +10,8 @@ interface ChatHeaderProps {
   isTyping?: { userId: string; userName: string } | null;
 }
 
-function getTypeBadge(type: "SALES" | "PM") {
+function getTypeBadge(type: "SALES" | "PM" | "TEAM") {
+  if (type === "TEAM") return { label: "فريق العمل", tone: "success" as const };
   return type === "SALES"
     ? { label: "مستشارك الفني", tone: "neutral" as const }
     : { label: "مدير مشروع", tone: "blue" as const };

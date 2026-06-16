@@ -41,6 +41,8 @@ import {
   useDeleteProjectFileMutation,
 } from "@/features/projects/projectsApi";
 import { useGetTasksByProjectQuery } from "@/features/tasks/tasksApi";
+import { useLazyGetProjectTeamConversationQuery } from "@/features/chat/chatApi";
+import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus, TaskStatus } from "@hassad/shared";
 import { formatDate, formatShortDate, daysUntil } from "@/lib/format";
@@ -237,6 +239,7 @@ function UpcomingDeadlines({ tasks = [], projectEndDate }: UpcomingDeadlinesProp
 
 export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { id } = use(params);
+  const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState("overview");
   const [taskFormOpen, setTaskFormOpen] = useState(false);
@@ -245,9 +248,23 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { data: files, isLoading: filesLoading } = useGetProjectFilesQuery(id);
   const { data: tasks, isLoading: tasksLoading } = useGetTasksByProjectQuery(id);
 
+  const [getTeamConversation, { isFetching: isLoadingTeamChat }] =
+    useLazyGetProjectTeamConversationQuery();
+
   const [uploadFile, { isLoading: isUploading }] = useUploadProjectFileMutation();
   const [deleteFile] = useDeleteProjectFileMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const openTeamChat = async () => {
+    try {
+      const conversation = await getTeamConversation(id).unwrap();
+      if (conversation?.id) {
+        router.push(`/dashboard/messages?conversationId=${conversation.id}`);
+      }
+    } catch {
+      // Team chat may not exist yet (no members); ignore silently
+    }
+  };
 
   if (!user) return null;
 
@@ -367,6 +384,14 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
           icon={<Upload className="w-4 h-4" />}
         >
           رفع ملف
+        </ActionButton>
+        <ActionButton
+          variant="outline"
+          size="sm"
+          onClick={openTeamChat}
+          loading={isLoadingTeamChat}
+        >
+          محادثة الفريق
         </ActionButton>
         <input
           ref={fileInputRef}

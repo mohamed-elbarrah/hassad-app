@@ -45,8 +45,9 @@ export interface MessageAttachment {
 
 export interface Conversation {
   id: string;
-  type: "SALES" | "PM";
+  type: "SALES" | "PM" | "TEAM";
   clientId: string;
+  projectId?: string | null;
   title: string;
   isActive: boolean;
   createdAt: string;
@@ -65,15 +66,16 @@ export interface PaginatedConversations {
 export interface GetConversationsParams {
   page?: number;
   limit?: number;
-  type?: "SALES" | "PM";
+  type?: "SALES" | "PM" | "TEAM";
   clientId?: string;
 }
 
 export interface CreateConversationInput {
-  type: "SALES" | "PM";
+  type: "SALES" | "PM" | "TEAM";
   clientId: string;
   title: string;
   participantIds: string[];
+  projectId?: string;
 }
 
 export interface CreateMessageInput {
@@ -116,6 +118,13 @@ export const chatApi = createApi({
     getConversation: builder.query<Conversation, string>({
       query: (id) => `/conversations/${id}`,
       providesTags: (_, __, id) => [{ type: "Conversation", id }],
+    }),
+
+    getProjectTeamConversation: builder.query<Conversation, string>({
+      query: (projectId) => `/conversations/project/${projectId}/team`,
+      providesTags: (_, __, projectId) => [
+        { type: "Conversation", id: `project-${projectId}-team` },
+      ],
     }),
 
     getOrCreateConversation: builder.query<
@@ -196,6 +205,9 @@ export const chatApi = createApi({
 export const {
   useGetConversationsQuery,
   useGetConversationQuery,
+  useLazyGetConversationQuery,
+  useGetProjectTeamConversationQuery,
+  useLazyGetProjectTeamConversationQuery,
   useGetOrCreateConversationQuery,
   useLazyGetOrCreateConversationQuery,
   useCreateConversationMutation,

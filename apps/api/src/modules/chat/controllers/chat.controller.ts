@@ -8,6 +8,8 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  NotFoundException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { ChatService } from "../services/chat.service";
@@ -54,6 +56,31 @@ export class ChatController {
     @Param("type") type: "SALES" | "PM",
   ) {
     return this.chatService.getOrCreateConversation(clientId, type);
+  }
+
+  @Get("conversations/project/:projectId/team")
+  @RequirePermissions("chat.read")
+  async getProjectTeamConversation(
+    @CurrentUser() user: any,
+    @Param("projectId") projectId: string,
+  ) {
+    const conversation =
+      await this.chatService.findProjectTeamConversation(projectId);
+
+    if (!conversation) {
+      throw new NotFoundException(
+        `Team conversation for project ${projectId} not found`,
+      );
+    }
+
+    const isParticipant = conversation.participants.some(
+      (p) => p.userId === user.id,
+    );
+    if (!isParticipant) {
+      throw new ForbiddenException("You are not a member of this team chat");
+    }
+
+    return conversation;
   }
 
   @Get("conversations/:id")

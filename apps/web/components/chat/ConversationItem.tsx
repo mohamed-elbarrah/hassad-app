@@ -24,7 +24,8 @@ function getLastMessage(conversation: Conversation): Message | null {
   return conversation.messages[0];
 }
 
-function getTypeLabel(type: "SALES" | "PM") {
+function getTypeLabel(type: "SALES" | "PM" | "TEAM") {
+  if (type === "TEAM") return "فريق العمل";
   return type === "SALES" ? "مستشارك الفني" : "مدير مشروع";
 }
 
