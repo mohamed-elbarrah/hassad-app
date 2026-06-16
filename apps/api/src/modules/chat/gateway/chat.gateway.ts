@@ -84,17 +84,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
-    const message = await this.chatService.createMessage(user.sub || user.id, {
+    return this.chatService.createMessage(user.sub || user.id, {
       conversationId: data.conversationId,
       content: data.content,
     });
-
-    this.eventEmitter.emit("chat.messageCreated", {
-      ...message,
-      conversationId: data.conversationId,
-    });
-
-    return message;
   }
 
   @SubscribeMessage("typing")
