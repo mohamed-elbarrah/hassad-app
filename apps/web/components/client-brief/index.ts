@@ -6,4 +6,5 @@ export { ClientBriefGauge } from "./ClientBriefGauge";
 export { ClientBriefIdentity } from "./ClientBriefIdentity";
 export { ClientBriefOverview } from "./ClientBriefOverview";
 export { ClientBriefSidebar } from "./ClientBriefSidebar";
-export { ClientBrief } from "./ClientBrief";
+export { ClientBrief, type ClientBriefView } from "./ClientBrief";
+export { ClientBriefCompact } from "./ClientBriefCompact";

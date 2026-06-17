@@ -34,6 +34,7 @@ import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
 import { ProjectActivityFeed } from "@/components/dashboard/pm/ProjectActivityFeed";
+import { ClientBrief } from "@/components/client-brief";
 import {
   useGetProjectByIdQuery,
   useGetProjectFilesQuery,
@@ -42,6 +43,9 @@ import {
 } from "@/features/projects/projectsApi";
 import { useGetTasksByProjectQuery } from "@/features/tasks/tasksApi";
 import { useLazyGetProjectGroupChatQuery } from "@/features/chat/chatApi";
+import {
+  useGetClientTeamViewQuery,
+} from "@/features/clients/clientsApi";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus, TaskStatus } from "@hassad/shared";
@@ -248,6 +252,11 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { data: files, isLoading: filesLoading } = useGetProjectFilesQuery(id);
   const { data: tasks, isLoading: tasksLoading } = useGetTasksByProjectQuery(id);
 
+  const clientId = project?.clientId ?? "";
+  const { data: teamView } = useGetClientTeamViewQuery(clientId, {
+    skip: !clientId,
+  });
+
   const [getGroupChat, { isFetching: isLoadingGroupChat }] =
     useLazyGetProjectGroupChatQuery();
 
@@ -433,6 +442,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 {files.length}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="client" className="gap-2">
+            <User className="w-4 h-4" />
+            تفاصيل العميل
           </TabsTrigger>
         </TabsList>
 
@@ -735,6 +748,19 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
               </div>
             )}
           </SurfaceCard>
+        </TabsContent>
+
+        {/* ── Client Tab ─────────────────────────────────────────────────── */}
+        <TabsContent value="client" className="space-y-6">
+          {teamView ? (
+            <ClientBrief
+              client={teamView.client}
+              profile={teamView.profile}
+              viewAs="internal"
+            />
+          ) : (
+            <DSSkeleton className="h-96 rounded-xl" />
+          )}
         </TabsContent>
       </Tabs>
       </div>

@@ -7,7 +7,7 @@ interface ClientBriefFieldProps {
   icon: LucideIcon;
   label: string;
   value?: string | number | null;
-  dir?: "ltr" | "rtl";
+  dir?: "rtl" | "ltr";
   href?: string;
   className?: string;
 }
@@ -23,7 +23,7 @@ export function ClientBriefField({
   if (value == null || value === "") return null;
 
   const content = (
-    <div className={cn("flex items-start gap-3", className)} dir={dir}>
+    <div className={cn("flex items-start gap-3", className)} >
       <div className="shrink-0 w-9 h-9 rounded-lg bg-secondary-50 flex items-center justify-center">
         <Icon className="h-4 w-4 text-secondary-500" />
       </div>

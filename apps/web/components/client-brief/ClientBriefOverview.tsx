@@ -3,9 +3,9 @@
 import type { Client, ClientProfile } from "@hassad/shared";
 import { BriefCard } from "./BriefCard";
 import { ClientBriefStatCard } from "./ClientBriefStatCard";
-import { ClientBriefBarChart } from "./ClientBriefBarChart";
 import { ClientBriefField } from "./ClientBriefField";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatRelativeTime } from "@/lib/format";
+import type { ClientBriefView } from "./ClientBrief";
 import {
   Briefcase,
   TrendingUp,
@@ -13,53 +13,63 @@ import {
   XCircle,
   DollarSign,
   CreditCard,
-  Star,
-  Building2,
-  Target,
   Globe,
-  Banknote,
-  MessageCircle,
-  Languages,
+  Activity,
   Clock,
+  AlertCircle,
+  Hash,
 } from "lucide-react";
 
 interface ClientBriefOverviewProps {
   client: Client;
   profile: ClientProfile | null;
+  viewAs: ClientBriefView;
 }
 
-const COMM_PREF_LABELS: Record<string, string> = {
-  email: "بريد إلكتروني",
-  whatsapp: "واتساب",
-  phone: "هاتف",
-  chat: "محادثة",
-};
+function SocialLink({
+  label,
+  value,
+  href,
+  icon: Icon,
+}: {
+  label: string;
+  value?: string | null;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  if (!value) return null;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 rounded-xl border border-portal-card-border p-3 hover:bg-secondary-50/50 transition-colors"
+      dir="ltr"
+    >
+      <div className="shrink-0 w-9 h-9 rounded-lg bg-secondary-50 flex items-center justify-center">
+        <Icon className="h-4 w-4 text-secondary-500" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] uppercase tracking-wide text-neutral-300 font-medium">
+          {label}
+        </p>
+        <p className="text-sm font-medium text-natural-100 truncate">{value}</p>
+      </div>
+    </a>
+  );
+}
 
 export function ClientBriefOverview({
   client,
   profile,
+  viewAs,
 }: ClientBriefOverviewProps) {
   const totalProjects =
     (client.activeProjects ?? 0) +
     (client.completedProjects ?? 0) +
     (client.cancelledProjects ?? 0);
 
-  const financialData = [
-    {
-      name: "المالية",
-      contracts: client.totalContractValue ?? 0,
-      paid: client.totalPaid ?? 0,
-    },
-  ];
-
-  const projectData = [
-    {
-      name: "المشاريع",
-      active: client.activeProjects ?? 0,
-      completed: client.completedProjects ?? 0,
-      cancelled: client.cancelledProjects ?? 0,
-    },
-  ];
+  const isInternalRestricted = viewAs === "internal";
 
   return (
     <div className="space-y-5">
@@ -103,133 +113,166 @@ export function ClientBriefOverview({
         />
       </div>
 
-      {/* Financial chart */}
-      <BriefCard
-        title="نظرة مالية"
-        description="قيمة العقود مقابل المدفوع"
-        icon={DollarSign}
-      >
-        <ClientBriefBarChart
-          data={financialData}
-          series={[
-            { key: "contracts", name: "قيمة العقود", color: "#121936" },
-            { key: "paid", name: "المدفوع", color: "#E7BE52" },
-          ]}
-          valueType="currency"
-          showLegend={true}
-        />
-      </BriefCard>
+      {/* Financial snapshot — only for sales/portal (portal sees their own) */}
+      {!isInternalRestricted && (
+        client.totalContractValue > 0 || client.totalPaid > 0) && (
+        <BriefCard
+          title="ملخص مالي"
+          description="نظرة سريعة على الوضع المالي"
+          icon={DollarSign}
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-portal-note-text">إجمالي قيمة العقود</span>
+              <span className="text-sm font-bold text-natural-100">
+                {formatCurrency(client.totalContractValue)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-portal-note-text">إجمالي المدفوع</span>
+              <span className="text-sm font-bold text-success-600">
+                {formatCurrency(client.totalPaid)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-portal-note-text">المتبقي</span>
+              <span className="text-sm font-bold text-natural-100">
+                {formatCurrency(
+                  (client.totalContractValue ?? 0) - (client.totalPaid ?? 0),
+                )}
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-secondary-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-success-500"
+                style={{
+                  width: `${Math.min(
+                    (client.totalContractValue ?? 0) > 0
+                      ? ((client.totalPaid ?? 0) / client.totalContractValue) *
+                          100
+                      : 0,
+                    100,
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+        </BriefCard>
+      )}
 
-      {/* Projects chart */}
-      <BriefCard
-        title="توزيع المشاريع"
-        description="حالة المشاريع حسب النشاط"
-        icon={Briefcase}
-      >
-        <ClientBriefBarChart
-          data={projectData}
-          series={[
-            { key: "active", name: "نشط", color: "#0ED589" },
-            { key: "completed", name: "مكتمل", color: "#2684FC" },
-            { key: "cancelled", name: "ملغى", color: "#EF4444" },
-          ]}
-          valueType="number"
-          showLegend={true}
-        />
-      </BriefCard>
-
-      {/* Business info + preferences */}
+      {/* Activity + Digital Presence side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <BriefCard
-          title="معلومات النشاط"
-          description="تفاصيل النشاط التجاري"
-          icon={Building2}
+          title="النشاط"
+          description="نظرة على حركة العميل"
+          icon={Activity}
         >
-          <div className="space-y-3">
-            <ClientBriefField
-              icon={Building2}
-              label="المجال / القطاع"
-              value={profile?.industry}
-            />
-            <ClientBriefField
-              icon={Target}
-              label="الجمهور المستهدف"
-              value={profile?.targetAudience}
-            />
-            <ClientBriefField
-              icon={Banknote}
-              label="نطاق الميزانية"
-              value={
-                profile?.budgetRangeMin != null ||
-                profile?.budgetRangeMax != null
-                  ? `${
-                      profile?.budgetRangeMin != null
-                        ? formatCurrency(profile.budgetRangeMin)
-                        : "—"
-                    } — ${
-                      profile?.budgetRangeMax != null
-                        ? formatCurrency(profile.budgetRangeMax)
-                        : "—"
-                    }`
-                  : null
-              }
-            />
-            <ClientBriefField
-              icon={Globe}
-              label="المنصات المفضلة"
-              value={profile?.preferredPlatforms}
-            />
-          </div>
-          {profile?.businessDescription && (
-            <div className="mt-4 pt-4 border-t border-portal-divider">
-              <p className="text-xs text-neutral-300 font-medium mb-1">
-                وصف النشاط
-              </p>
-              <p className="text-sm text-natural-100 leading-relaxed">
-                {profile.businessDescription}
-              </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-portal-note-text">آخر تحديث</span>
+              <span className="text-sm font-medium text-natural-100">
+                {formatRelativeTime(String(client.updatedAt))}
+              </span>
             </div>
-          )}
+
+            <div className="h-px bg-portal-divider" />
+
+            <div className="grid grid-cols-2 gap-3">
+              <ClientBriefStatCard
+                icon={Briefcase}
+                label="مشاريع نشطة"
+                value={client.activeProjects ?? 0}
+                colorClass="text-success-500"
+              />
+              <ClientBriefStatCard
+                icon={Activity}
+                label="إجمالي المشاريع"
+                value={totalProjects}
+                colorClass="text-secondary-500"
+              />
+            </div>
+
+            {viewAs !== "internal" && client.avgSatisfactionScore != null && (
+              <div className="pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-portal-note-text">معدل الرضا</span>
+                  <span className="text-sm font-bold text-natural-100">
+                    {client.avgSatisfactionScore} / 5
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </BriefCard>
 
         <BriefCard
-          title="تفضيلات التواصل"
-          description="كيف يفضل العميل التعامل"
-          icon={MessageCircle}
+          title="ال presence الرقمية"
+          description="قنوات العميل على الإنترنت"
+          icon={Globe}
         >
           <div className="space-y-3">
-            <ClientBriefField
-              icon={MessageCircle}
-              label="وسيلة التواصل المفضلة"
-              value={
-                profile?.communicationPreference
-                  ? (COMM_PREF_LABELS[profile.communicationPreference] ??
-                    profile.communicationPreference)
-                  : null
-              }
+            <SocialLink
+              label="الموقع الإلكتروني"
+              value={profile?.website}
+              href={profile?.website ?? "#"}
+              icon={Hash}
             />
-            <ClientBriefField
-              icon={Languages}
-              label="اللغة المفضلة"
-              value={profile?.preferredLanguage}
+            <SocialLink
+              label="انستغرام"
+              value={profile?.instagramHandle}
+              href={`https://instagram.com/${profile?.instagramHandle}`}
+              icon={Hash}
             />
-            <ClientBriefField
-              icon={Clock}
-              label="المنطقة الزمنية"
-              value={profile?.timezone}
+            <SocialLink
+              label="تيك توك"
+              value={profile?.tiktokHandle}
+              href={`https://tiktok.com/@${profile?.tiktokHandle}`}
+              icon={Hash}
             />
-            <ClientBriefField
-              icon={Star}
-              label="متوسط التقييم"
-              value={
-                client.avgSatisfactionScore != null
-                  ? `${client.avgSatisfactionScore}/5`
-                  : null
-              }
+            <SocialLink
+              label="تويتر / إكس"
+              value={profile?.twitterHandle}
+              href={`https://x.com/${profile?.twitterHandle}`}
+              icon={Hash}
+            />
+            <SocialLink
+              label="لينكد إن"
+              value={profile?.linkedinUrl}
+              href={profile?.linkedinUrl ?? "#"}
+              icon={Hash}
+            />
+            <SocialLink
+              label="سناب شات"
+              value={profile?.snapchatHandle}
+              href={`https://snapchat.com/add/${profile?.snapchatHandle}`}
+              icon={Hash}
             />
           </div>
+          {!profile?.website &&
+            !profile?.instagramHandle &&
+            !profile?.tiktokHandle &&
+            !profile?.twitterHandle &&
+            !profile?.linkedinUrl &&
+            !profile?.snapchatHandle && (
+              <p className="text-sm text-portal-note-text text-center py-6">
+                لم تتم إضافة قنوات رقمية بعد
+              </p>
+            )}
         </BriefCard>
       </div>
+
+      {/* Pain Points */}
+      {profile?.painPoints && (
+        <BriefCard
+          title="نقاط الألم والتحديات"
+          description="ما يواجهه العميل من تحديات"
+          icon={AlertCircle}
+        >
+          <p className="text-sm text-natural-100 leading-relaxed">
+            {profile.painPoints}
+          </p>
+        </BriefCard>
+      )}
     </div>
   );
 }

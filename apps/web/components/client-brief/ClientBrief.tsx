@@ -5,22 +5,41 @@ import { ClientBriefIdentity } from "./ClientBriefIdentity";
 import { ClientBriefOverview } from "./ClientBriefOverview";
 import { ClientBriefSidebar } from "./ClientBriefSidebar";
 
+export type ClientBriefView = "portal" | "sales" | "internal";
+
 interface ClientBriefProps {
   client: Client;
   profile: ClientProfile | null;
+  viewAs?: ClientBriefView;
 }
 
-export function ClientBrief({ client, profile }: ClientBriefProps) {
+export function ClientBrief({
+  client,
+  profile,
+  viewAs = "internal",
+}: ClientBriefProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5" dir="rtl">
       <div className="lg:col-span-3">
-        <ClientBriefIdentity client={client} profile={profile} />
+        <ClientBriefIdentity
+          client={client}
+          profile={profile}
+          viewAs={viewAs}
+        />
       </div>
       <div className="lg:col-span-6">
-        <ClientBriefOverview client={client} profile={profile} />
+        <ClientBriefOverview
+          client={client}
+          profile={profile}
+          viewAs={viewAs}
+        />
       </div>
       <div className="lg:col-span-3">
-        <ClientBriefSidebar client={client} profile={profile} />
+        <ClientBriefSidebar
+          client={client}
+          profile={profile}
+          viewAs={viewAs}
+        />
       </div>
     </div>
   );

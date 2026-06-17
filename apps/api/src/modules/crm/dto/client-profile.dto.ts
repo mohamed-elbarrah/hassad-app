@@ -9,19 +9,6 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 
-class CompetitorDto {
-  @IsString()
-  name: string;
-
-  @IsOptional()
-  @IsUrl()
-  url?: string;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
-}
-
 class BrandAssetsDto {
   @IsOptional()
   @IsUrl()
@@ -78,12 +65,6 @@ export class UpsertClientProfileDto {
   preferredPlatforms?: string;
 
   @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CompetitorDto)
-  competitors?: CompetitorDto[];
-
-  @IsOptional()
   @ValidateNested()
   @Type(() => BrandAssetsDto)
   brandAssets?: BrandAssetsDto;
@@ -91,4 +72,44 @@ export class UpsertClientProfileDto {
   @IsOptional()
   @IsObject()
   customFields?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsUrl()
+  website?: string;
+
+  @IsOptional()
+  @IsString()
+  instagramHandle?: string;
+
+  @IsOptional()
+  @IsString()
+  tiktokHandle?: string;
+
+  @IsOptional()
+  @IsString()
+  twitterHandle?: string;
+
+  @IsOptional()
+  @IsUrl()
+  linkedinUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  snapchatHandle?: string;
+
+  @IsOptional()
+  @IsString()
+  workingHours?: string;
+
+  @IsOptional()
+  @IsString()
+  decisionMakerName?: string;
+
+  @IsOptional()
+  @IsString()
+  decisionMakerPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  painPoints?: string;
 }

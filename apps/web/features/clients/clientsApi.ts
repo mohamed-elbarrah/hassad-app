@@ -119,6 +119,18 @@ export const clientsApi = createApi({
       providesTags: (_result, _err, id) => [{ type: "ClientProfile", id }],
     }),
 
+    /** GET /v1/clients/:id/team-view — filtered client + profile for team roles */
+    getClientTeamView: builder.query<
+      { client: Client; profile: ClientProfile | null },
+      string
+    >({
+      query: (id) => `/clients/${id}/team-view`,
+      providesTags: (_result, _err, id) => [
+        { type: "Client", id },
+        { type: "ClientProfile", id },
+      ],
+    }),
+
     /** PUT /v1/clients/:id/profile */
     upsertClientProfile: builder.mutation<
       ClientProfile,
@@ -144,5 +156,6 @@ export const {
   useUpdateClientMutation,
   useHandoverClientMutation,
   useGetClientProfileQuery,
+  useGetClientTeamViewQuery,
   useUpsertClientProfileMutation,
 } = clientsApi;

@@ -5,7 +5,6 @@ import type { ClientProfile, UpsertClientProfileInput } from "@hassad/shared";
 import { useUpsertClientProfileMutation } from "@/features/clients/clientsApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -25,19 +24,16 @@ import {
   Banknote,
   MessageCircle,
   Palette,
-  Plus,
-  Trash2,
+  Globe,
+  Link as LinkIcon,
+  Clock,
+  Crown,
+  AlertCircle,
 } from "lucide-react";
 
 interface ProfileEditTabProps {
   clientId: string;
   profile: ClientProfile | null;
-}
-
-interface CompetitorEntry {
-  name: string;
-  url?: string;
-  notes?: string;
 }
 
 const COMM_PREF_OPTIONS = [
@@ -61,11 +57,18 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
     preferredLanguage: "",
     timezone: "",
     preferredPlatforms: "",
-    competitors: undefined,
     brandAssets: undefined,
+    website: "",
+    instagramHandle: "",
+    tiktokHandle: "",
+    twitterHandle: "",
+    linkedinUrl: "",
+    snapchatHandle: "",
+    workingHours: "",
+    decisionMakerName: "",
+    decisionMakerPhone: "",
+    painPoints: "",
   });
-
-  const [competitors, setCompetitors] = useState<CompetitorEntry[]>([]);
 
   useEffect(() => {
     if (profile) {
@@ -81,9 +84,6 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
         preferredLanguage: profile.preferredLanguage ?? "",
         timezone: profile.timezone ?? "",
         preferredPlatforms: profile.preferredPlatforms ?? "",
-        competitors: profile.competitors
-          ? (profile.competitors as CompetitorEntry[])
-          : undefined,
         brandAssets: profile.brandAssets
           ? {
               logoUrl: profile.brandAssets.logoUrl ?? undefined,
@@ -92,10 +92,17 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
               guidelinesUrl: profile.brandAssets.guidelinesUrl ?? undefined,
             }
           : undefined,
+        website: profile.website ?? "",
+        instagramHandle: profile.instagramHandle ?? "",
+        tiktokHandle: profile.tiktokHandle ?? "",
+        twitterHandle: profile.twitterHandle ?? "",
+        linkedinUrl: profile.linkedinUrl ?? "",
+        snapchatHandle: profile.snapchatHandle ?? "",
+        workingHours: profile.workingHours ?? "",
+        decisionMakerName: profile.decisionMakerName ?? "",
+        decisionMakerPhone: profile.decisionMakerPhone ?? "",
+        painPoints: profile.painPoints ?? "",
       });
-      if (profile.competitors) {
-        setCompetitors(profile.competitors as CompetitorEntry[]);
-      }
     }
   }, [profile]);
 
@@ -104,26 +111,6 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
     value: UpsertClientProfileInput[K],
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function addCompetitor() {
-    setCompetitors((prev) => [...prev, { name: "", url: "", notes: "" }]);
-  }
-
-  function updateCompetitor(
-    index: number,
-    field: keyof CompetitorEntry,
-    value: string,
-  ) {
-    setCompetitors((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value || undefined };
-      return next;
-    });
-  }
-
-  function removeCompetitor(index: number) {
-    setCompetitors((prev) => prev.filter((_, i) => i !== index));
   }
 
   function updateBrandAsset<
@@ -138,10 +125,16 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
   async function handleSave() {
     const payload: UpsertClientProfileInput = {
       ...form,
-      competitors:
-        competitors.length > 0
-          ? competitors.filter((c) => c.name.trim())
-          : undefined,
+      website: form.website || undefined,
+      instagramHandle: form.instagramHandle || undefined,
+      tiktokHandle: form.tiktokHandle || undefined,
+      twitterHandle: form.twitterHandle || undefined,
+      linkedinUrl: form.linkedinUrl || undefined,
+      snapchatHandle: form.snapchatHandle || undefined,
+      workingHours: form.workingHours || undefined,
+      decisionMakerName: form.decisionMakerName || undefined,
+      decisionMakerPhone: form.decisionMakerPhone || undefined,
+      painPoints: form.painPoints || undefined,
     };
     try {
       await upsertProfile({ id: clientId, data: payload }).unwrap();
@@ -181,10 +174,7 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
                 id="targetAudience"
                 value={form.targetAudience ?? ""}
                 onChange={(e) =>
-                  updateField(
-                    "targetAudience",
-                    e.target.value || undefined,
-                  )
+                  updateField("targetAudience", e.target.value || undefined)
                 }
                 placeholder="مثال: شباب 18-35، عائلات..."
               />
@@ -247,11 +237,11 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
           </div>
         </section>
 
-        {/* Preferences */}
+        {/* Communication Preferences */}
         <section>
           <h3 className="flex items-center gap-2 text-lg font-medium mb-4 pb-3 border-b text-foreground">
             <MessageCircle className="h-5 w-5 text-primary shrink-0" />
-            التفضيلات
+            تفضيلات التواصل
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -281,31 +271,6 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prefLang">اللغة المفضلة</Label>
-              <Input
-                id="prefLang"
-                value={form.preferredLanguage ?? ""}
-                onChange={(e) =>
-                  updateField(
-                    "preferredLanguage",
-                    e.target.value || undefined,
-                  )
-                }
-                placeholder="مثال: العربية، الإنجليزية..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="timezone">المنطقة الزمنية</Label>
-              <Input
-                id="timezone"
-                value={form.timezone ?? ""}
-                onChange={(e) =>
-                  updateField("timezone", e.target.value || undefined)
-                }
-                placeholder="مثال: Asia/Riyadh"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="prefPlatforms">المنصات المفضلة</Label>
               <Input
                 id="prefPlatforms"
@@ -319,82 +284,166 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
                 placeholder="مثال: Instagram, Twitter, TikTok..."
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="workingHours">
+                <Clock className="h-3.5 w-3.5 inline me-1 text-muted-foreground" />
+                أوقات العمل المفضلة للتواصل
+              </Label>
+              <Input
+                id="workingHours"
+                value={form.workingHours ?? ""}
+                onChange={(e) =>
+                  updateField("workingHours", e.target.value || undefined)
+                }
+                placeholder="مثال: 9:00 ص – 12:00 م"
+              />
+            </div>
           </div>
         </section>
 
-        {/* Competitors */}
+        {/* Digital Presence */}
         <section>
-          <div className="flex items-center justify-between mb-4 pb-3 border-b">
-            <h3 className="flex items-center gap-2 text-lg font-medium text-foreground">
-              <Building2 className="h-5 w-5 text-primary shrink-0" />
-              المنافسون
-            </h3>
-            <ActionButton
-              variant="outline"
-              size="sm"
-              onClick={addCompetitor}
-              icon={<Plus className="h-4 w-4" />}
-            >
-              إضافة منافس
-            </ActionButton>
-          </div>
-          {competitors.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-xl">
-              لم تتم إضافة منافسين بعد. اضغط &quot;إضافة منافس&quot; للبدء.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {competitors.map((comp, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 rounded-xl border bg-muted/30 relative"
-                >
-                  <div className="space-y-2 md:col-span-1">
-                    <Label className="text-xs">الاسم *</Label>
-                    <Input
-                      value={comp.name}
-                      onChange={(e) =>
-                        updateCompetitor(i, "name", e.target.value)
-                      }
-                      placeholder="اسم المنافس"
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-1">
-                    <Label className="text-xs">الرابط (اختياري)</Label>
-                    <Input
-                      value={comp.url ?? ""}
-                      onChange={(e) =>
-                        updateCompetitor(i, "url", e.target.value)
-                      }
-                      placeholder="https://example.com"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label className="text-xs">ملاحظات (اختياري)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={comp.notes ?? ""}
-                        onChange={(e) =>
-                          updateCompetitor(i, "notes", e.target.value)
-                        }
-                        placeholder="ملاحظات عن المنافس..."
-                        className="flex-1"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeCompetitor(i)}
-                        aria-label="حذف المنافس"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+          <h3 className="flex items-center gap-2 text-lg font-medium mb-4 pb-3 border-b text-foreground">
+            <Globe className="h-5 w-5 text-primary shrink-0" />
+            ال presence الرقمية
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="website">
+                <LinkIcon className="h-3.5 w-3.5 inline me-1 text-muted-foreground" />
+                الموقع الإلكتروني
+              </Label>
+              <Input
+                id="website"
+                dir="ltr"
+                value={form.website ?? ""}
+                onChange={(e) =>
+                  updateField("website", e.target.value || undefined)
+                }
+                placeholder="https://example.com"
+              />
             </div>
-          )}
+            <div className="space-y-2">
+              <Label htmlFor="instagramHandle">
+                <Globe className="h-3.5 w-3.5 inline me-1 text-muted-foreground" />
+                انستغرام
+              </Label>
+              <Input
+                id="instagramHandle"
+                dir="ltr"
+                value={form.instagramHandle ?? ""}
+                onChange={(e) =>
+                  updateField("instagramHandle", e.target.value || undefined)
+                }
+                placeholder="username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tiktokHandle">تيك توك</Label>
+              <Input
+                id="tiktokHandle"
+                dir="ltr"
+                value={form.tiktokHandle ?? ""}
+                onChange={(e) =>
+                  updateField("tiktokHandle", e.target.value || undefined)
+                }
+                placeholder="@username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="twitterHandle">تويتر / إكس</Label>
+              <Input
+                id="twitterHandle"
+                dir="ltr"
+                value={form.twitterHandle ?? ""}
+                onChange={(e) =>
+                  updateField("twitterHandle", e.target.value || undefined)
+                }
+                placeholder="@username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="linkedinUrl">لينكد إن</Label>
+              <Input
+                id="linkedinUrl"
+                dir="ltr"
+                value={form.linkedinUrl ?? ""}
+                onChange={(e) =>
+                  updateField("linkedinUrl", e.target.value || undefined)
+                }
+                placeholder="https://linkedin.com/company/..."
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="snapchatHandle">سناب شات</Label>
+              <Input
+                id="snapchatHandle"
+                dir="ltr"
+                value={form.snapchatHandle ?? ""}
+                onChange={(e) =>
+                  updateField("snapchatHandle", e.target.value || undefined)
+                }
+                placeholder="username"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Decision Maker */}
+        <section>
+          <h3 className="flex items-center gap-2 text-lg font-medium mb-4 pb-3 border-b text-foreground">
+            <Crown className="h-5 w-5 text-primary shrink-0" />
+            صانع القرار
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="decisionMakerName">الاسم</Label>
+              <Input
+                id="decisionMakerName"
+                value={form.decisionMakerName ?? ""}
+                onChange={(e) =>
+                  updateField(
+                    "decisionMakerName",
+                    e.target.value || undefined,
+                  )
+                }
+                placeholder="اسم صانع القرار"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="decisionMakerPhone">الهاتف</Label>
+              <Input
+                id="decisionMakerPhone"
+                dir="ltr"
+                value={form.decisionMakerPhone ?? ""}
+                onChange={(e) =>
+                  updateField(
+                    "decisionMakerPhone",
+                    e.target.value || undefined,
+                  )
+                }
+                placeholder="05xxxxxxxx"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Pain Points */}
+        <section>
+          <h3 className="flex items-center gap-2 text-lg font-medium mb-4 pb-3 border-b text-foreground">
+            <AlertCircle className="h-5 w-5 text-primary shrink-0" />
+            نقاط الألم والتحديات
+          </h3>
+          <div className="space-y-2">
+            <Textarea
+              value={form.painPoints ?? ""}
+              onChange={(e) =>
+                updateField("painPoints", e.target.value || undefined)
+              }
+              placeholder="ما هي التحديات التي يواجهها العميل حالياً؟"
+              rows={4}
+            />
+          </div>
         </section>
 
         {/* Brand Assets */}

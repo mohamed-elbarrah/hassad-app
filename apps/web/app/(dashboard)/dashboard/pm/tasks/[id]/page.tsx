@@ -34,6 +34,7 @@ import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
+import { ClientBriefCompact } from "@/components/client-brief";
 import { downloadTaskFile } from "@/lib/downloadFile";
 import { toast } from "sonner";
 import {
@@ -48,6 +49,9 @@ import {
   useGetTaskCommentsQuery,
   useAddTaskCommentMutation,
 } from "@/features/tasks/tasksApi";
+import {
+  useGetClientTeamViewQuery,
+} from "@/features/clients/clientsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { formatRelativeTime, formatShortDate } from "@/lib/format";
 import {
@@ -189,6 +193,12 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const { data: task, isLoading, isError } = useGetTaskByIdQuery(id);
   const { data: files, isLoading: filesLoading } = useGetTaskFilesQuery(id);
   const { data: comments, isLoading: commentsLoading } = useGetTaskCommentsQuery(id);
+
+  const clientId =
+    (task as any)?.project?.client?.id ?? (task as any)?.project?.clientId ?? "";
+  const { data: teamView } = useGetClientTeamViewQuery(clientId, {
+    skip: !clientId,
+  });
 
   // Mutations
   const [startTask, { isLoading: isStarting }] = useStartTaskMutation();
@@ -425,6 +435,10 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                 {totalFiles > 0 && (
                   <span className="mr-1 text-xs bg-neutral-100 px-1.5 py-0.5 rounded-full">{totalFiles}</span>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="client" className="gap-2">
+                <User className="w-4 h-4" />
+                تفاصيل العميل
               </TabsTrigger>
             </TabsList>
 
@@ -704,6 +718,19 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                   </div>
                 )}
               </SurfaceCard>
+            </TabsContent>
+
+            {/* Client Tab */}
+            <TabsContent value="client" className="space-y-6">
+              {teamView ? (
+                <ClientBriefCompact
+                  client={teamView.client}
+                  profile={teamView.profile}
+                  viewAs="internal"
+                />
+              ) : (
+                <DSSkeleton className="h-96 rounded-xl" />
+              )}
             </TabsContent>
           </Tabs>
         </div>
