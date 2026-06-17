@@ -44,12 +44,27 @@ npx turbo run build --filter=shared
 
 ```bash
 docker compose up -d postgres          # start PostgreSQL 17
-npx prisma db push --skip-generate     # sync schema — use this, NOT migrate dev
-npx prisma generate                    # rebuild Prisma client after schema changes
+npx prisma migrate dev                 # dev: create + apply a migration from schema changes (NOT db push)
+npx prisma generate                    # rebuild Prisma client after schema/migration changes
+npx prisma migrate status              # check that the dev DB is in sync with migrations
 npx prisma db seed                     # seed dev data (ts-node, see below)
+npx prisma migrate reset               # drop & rebuild dev DB from all migrations + seed (wipes dev data)
 ```
 
-**Never run `prisma migrate dev`** — migration drift exists; `db push` is the correct workflow.
+**Dev and production use the same migration workflow — never `prisma db push`.**
+
+- **Dev:** `prisma migrate dev` generates a migration file at `prisma/migrations/<timestamp>_<name>/migration.sql` and applies it.
+- **Production:** the Docker entrypoint (`scripts/entrypoint.sh`) runs `prisma migrate deploy`, which applies only committed migration files (it never creates new ones).
+
+**Rules:**
+
+- **Never use `prisma db push`** — it writes no migration file, so production (`migrate deploy`) never sees the change. This is what previously caused dev/prod drift.
+- **Commit every migration file** (`prisma/migrations/*/migration.sql`) to git — production deploys from these.
+- After editing `schema.prisma`: run `migrate dev` (creates the migration + applies it) then `prisma generate` (rebuilds client types).
+- If `migrate dev` reports drift and offers to reset, the DB was modified outside migrations (e.g. by a past `db push` or manual SQL). Fix the root cause instead of ignoring the warning.
+- If a migration's SQL can't run because the change already exists in the DB (legacy `db push` drift), register it as applied without running the SQL: `npx prisma migrate resolve --applied <migration_name>`.
+
+**Production deploy (on the server):** `git pull` → rebuild containers. `prisma migrate deploy` runs automatically in the entrypoint and applies any new committed migrations. **Never run `migrate dev` in production.**
 
 ### Shared package
 

@@ -491,16 +491,16 @@ JWT_SECRET=must-match-api-jwt-secret
 docker compose up -d postgres
 ```
 
-### 4. Push schema and generate Prisma client
+### 4. Apply migrations and generate Prisma client
 
 Run from `apps/api`:
 
 ```bash
-npx prisma db push --skip-generate
-npx prisma generate
+npx prisma migrate deploy            # apply all committed migrations (creates the tables)
+npx prisma generate                   # build the Prisma client
 ```
 
-> Do not run `prisma migrate dev` — use `prisma db push`.
+> Use `prisma migrate dev` only when you change `schema.prisma` (it creates + applies a new migration). **Never use `prisma db push`** — it bypasses migration files and causes dev/prod drift. See `AGENTS.md` → Database.
 
 ### 5. Seed development data
 
@@ -560,8 +560,9 @@ npm --prefix packages/shared run watch
 Run from `apps/api`:
 
 ```bash
-npx prisma db push --skip-generate
-npx prisma generate
+npx prisma migrate deploy            # apply existing migrations (fresh setup / after pull)
+npx prisma migrate dev               # create + apply a migration after changing schema.prisma
+npx prisma generate                   # rebuild the Prisma client
 npx prisma db seed
 npm run dev
 ```
