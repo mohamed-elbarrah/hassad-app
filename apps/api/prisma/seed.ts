@@ -2270,6 +2270,11 @@ async function main() {
     "chat.read",
     "chat.update",
     "chat.message",
+    "clients.create",
+    "clients.handover",
+    "clients.read",
+    "clients.read_activity",
+    "clients.update",
     "projects.create",
     "projects.read",
     "projects.update",
@@ -2371,6 +2376,7 @@ async function main() {
       "chat.create",
       "chat.read",
       "chat.message",
+      "clients.read",
     ],
     SALES: [
       "leads.create",
@@ -2395,6 +2401,10 @@ async function main() {
       "chat.create",
       "chat.read",
       "chat.message",
+      "clients.read",
+      "clients.create",
+      "clients.update",
+      "clients.read_activity",
     ],
     EMPLOYEE: [
       "tasks.read",
@@ -2445,6 +2455,7 @@ async function main() {
       "services.read",
       "chat.read",
       "chat.message",
+      "clients.read",
     ],
   };
 
