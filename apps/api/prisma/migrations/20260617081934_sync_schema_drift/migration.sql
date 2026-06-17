@@ -1,40 +1,53 @@
--- CreateEnum
+-- CreateEnum (guarded: a previous partial run may have already created this type)
+DROP TYPE IF EXISTS "MarketingStrategyStatus";
 CREATE TYPE "MarketingStrategyStatus" AS ENUM ('DRAFT', 'SENT', 'APPROVED', 'REVISION_REQUESTED', 'REJECTED');
 
--- AlterEnum
-ALTER TYPE "ClientSource" ADD VALUE 'DIRECT';
+-- AlterEnum (idempotent: 'DIRECT' may already exist from a previous partial run)
+ALTER TYPE "ClientSource" ADD VALUE IF NOT EXISTS 'DIRECT';
 
--- AlterEnum
+-- AlterEnum — ConversationType: (SALES, PM) -> (DIRECT, GROUP)
+-- Existing rows hold SALES/PM, so a blind cast would fail. Map by participant count:
+--   <= 2 participants -> DIRECT (1:1),  > 2 participants -> GROUP.
 BEGIN;
+DROP TYPE IF EXISTS "ConversationType_new";
 CREATE TYPE "ConversationType_new" AS ENUM ('DIRECT', 'GROUP');
-ALTER TABLE "conversations" ALTER COLUMN "type" TYPE "ConversationType_new" USING ("type"::text::"ConversationType_new");
+-- Safe conversion: default every existing row to DIRECT (always valid), then promote
+-- multi-participant conversations to GROUP.
+ALTER TABLE "conversations" ALTER COLUMN "type" TYPE "ConversationType_new" USING ('DIRECT'::"ConversationType_new");
 ALTER TYPE "ConversationType" RENAME TO "ConversationType_old";
 ALTER TYPE "ConversationType_new" RENAME TO "ConversationType";
-DROP TYPE "public"."ConversationType_old";
+UPDATE "conversations" SET "type" = 'GROUP'
+  WHERE "id" IN (
+    SELECT "conversation_id" FROM "conversation_participants"
+    GROUP BY "conversation_id" HAVING count(*) > 2
+  );
+DROP TYPE IF EXISTS "public"."ConversationType_old";
 COMMIT;
 
--- DropForeignKey
-ALTER TABLE "conversations" DROP CONSTRAINT "conversations_client_id_fkey";
+-- DropForeignKey (idempotent)
+ALTER TABLE "conversations" DROP CONSTRAINT IF EXISTS "conversations_client_id_fkey";
 
 -- AlterTable
-ALTER TABLE "clients" ADD COLUMN     "active_projects" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "avg_satisfaction_score" DOUBLE PRECISION,
-ADD COLUMN     "cancelled_projects" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "completed_projects" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "last_project_at" TIMESTAMP(3),
-ADD COLUMN     "total_contract_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
-ADD COLUMN     "total_invoiced" DOUBLE PRECISION NOT NULL DEFAULT 0,
-ADD COLUMN     "total_paid" DOUBLE PRECISION NOT NULL DEFAULT 0,
-ADD COLUMN     "total_projects" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "clients" ADD COLUMN IF NOT EXISTS "active_projects" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "avg_satisfaction_score" DOUBLE PRECISION,
+ADD COLUMN IF NOT EXISTS "cancelled_projects" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "completed_projects" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "last_project_at" TIMESTAMP(3),
+ADD COLUMN IF NOT EXISTS "total_contract_value" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "total_invoiced" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "total_paid" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "total_projects" INTEGER NOT NULL DEFAULT 0;
 
--- AlterTable
-ALTER TABLE "conversations" ADD COLUMN     "project_id" TEXT,
-ADD COLUMN     "updated_at" TIMESTAMP(3) NOT NULL,
+-- AlterTable — conversations: updated_at is NOT NULL with no default, so add it with a
+-- default to backfill existing rows, then drop the default to match the schema.
+ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "project_id" TEXT,
+ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMP(3) NOT NULL DEFAULT now(),
 ALTER COLUMN "client_id" DROP NOT NULL,
 ALTER COLUMN "title" DROP NOT NULL;
+ALTER TABLE "conversations" ALTER COLUMN "updated_at" DROP DEFAULT;
 
 -- CreateTable
-CREATE TABLE "client_profile" (
+CREATE TABLE IF NOT EXISTS "client_profile" (
     "id" TEXT NOT NULL,
     "client_id" TEXT NOT NULL,
     "industry" TEXT,
@@ -66,7 +79,7 @@ CREATE TABLE "client_profile" (
 );
 
 -- CreateTable
-CREATE TABLE "marketing_strategies" (
+CREATE TABLE IF NOT EXISTS "marketing_strategies" (
     "id" TEXT NOT NULL,
     "task_id" TEXT NOT NULL,
     "created_by" TEXT NOT NULL,
@@ -88,25 +101,25 @@ CREATE TABLE "marketing_strategies" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "client_profile_client_id_key" ON "client_profile"("client_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "client_profile_client_id_key" ON "client_profile"("client_id");
 
 -- CreateIndex
-CREATE INDEX "client_profile_client_id_idx" ON "client_profile"("client_id");
+CREATE INDEX IF NOT EXISTS "client_profile_client_id_idx" ON "client_profile"("client_id");
 
 -- CreateIndex
-CREATE INDEX "marketing_strategies_task_id_idx" ON "marketing_strategies"("task_id");
+CREATE INDEX IF NOT EXISTS "marketing_strategies_task_id_idx" ON "marketing_strategies"("task_id");
 
 -- CreateIndex
-CREATE INDEX "marketing_strategies_client_id_idx" ON "marketing_strategies"("client_id");
+CREATE INDEX IF NOT EXISTS "marketing_strategies_client_id_idx" ON "marketing_strategies"("client_id");
 
 -- CreateIndex
-CREATE INDEX "marketing_strategies_status_idx" ON "marketing_strategies"("status");
+CREATE INDEX IF NOT EXISTS "marketing_strategies_status_idx" ON "marketing_strategies"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "conversations_project_id_key" ON "conversations"("project_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "conversations_project_id_key" ON "conversations"("project_id");
 
 -- CreateIndex
-CREATE INDEX "conversations_project_id_idx" ON "conversations"("project_id");
+CREATE INDEX IF NOT EXISTS "conversations_project_id_idx" ON "conversations"("project_id");
 
 -- AddForeignKey
 ALTER TABLE "client_profile" ADD CONSTRAINT "client_profile_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -131,4 +144,3 @@ ALTER TABLE "conversations" ADD CONSTRAINT "conversations_client_id_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "conversations" ADD CONSTRAINT "conversations_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
