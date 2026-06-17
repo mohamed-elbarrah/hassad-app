@@ -24,6 +24,11 @@ export class ClientProfileController {
     return this.profileService.getByClientId(id, req.user);
   }
 
+  @Get(":id/team-view")
+  async getTeamView(@Param("id") id: string) {
+    return this.profileService.getTeamView(id);
+  }
+
   @Put(":id/profile")
   async upsertProfile(
     @Param("id") id: string,

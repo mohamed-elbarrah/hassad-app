@@ -7,3 +7,4 @@ export { ClientBriefIdentity } from "./ClientBriefIdentity";
 export { ClientBriefOverview } from "./ClientBriefOverview";
 export { ClientBriefSidebar } from "./ClientBriefSidebar";
 export { ClientBrief, type ClientBriefView } from "./ClientBrief";
+export { ClientBriefCompact } from "./ClientBriefCompact";

@@ -42,7 +42,11 @@ import {
   useUpdateCampaignStatusMutation,
 } from "@/features/marketing/marketingApi";
 import { CampaignFormModal } from "@/components/dashboard/marketing/CampaignFormModal";
+import { ClientBriefCompact } from "@/components/client-brief";
 import { downloadTaskFile } from "@/lib/downloadFile";
+import {
+  useGetClientTeamViewQuery,
+} from "@/features/clients/clientsApi";
 
 // Utils / format
 import {
@@ -84,6 +88,7 @@ import {
   Clock,
   Trash2,
   Users,
+  User,
   Gauge,
 } from "lucide-react";
 
@@ -128,6 +133,11 @@ export default function MarketingTaskDetailPage() {
   const { data: rawTask, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId);
   const task = rawTask as unknown as TaskWithProject;
   const { data: campaigns = [] } = useGetCampaignsByTaskQuery(taskId);
+
+  const clientId = task?.project?.clientId ?? "";
+  const { data: teamView } = useGetClientTeamViewQuery(clientId, {
+    skip: !clientId,
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -310,6 +320,10 @@ export default function MarketingTaskDetailPage() {
           <TabsTrigger value="activity" className="gap-1.5">
             <MessageSquare className="w-4 h-4" />
             النشاط
+          </TabsTrigger>
+          <TabsTrigger value="client" className="gap-1.5">
+            <User className="w-4 h-4" />
+            تفاصيل العميل
           </TabsTrigger>
         </TabsList>
 
@@ -600,6 +614,19 @@ export default function MarketingTaskDetailPage() {
         {/* ===== Tab 4: Activity ===== */}
         <TabsContent value="activity">
           <TaskActivity taskId={taskId} />
+        </TabsContent>
+
+        {/* ===== Tab 5: Client Details ===== */}
+        <TabsContent value="client" className="space-y-6">
+          {teamView ? (
+            <ClientBriefCompact
+              client={teamView.client}
+              profile={teamView.profile}
+              viewAs="internal"
+            />
+          ) : (
+            <Skeleton className="h-96 rounded-xl" />
+          )}
         </TabsContent>
       </Tabs>
 

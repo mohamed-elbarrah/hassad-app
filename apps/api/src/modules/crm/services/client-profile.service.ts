@@ -48,6 +48,50 @@ export class ClientProfileService {
     return profile ?? null;
   }
 
+  /**
+   * Returns a combined, filtered view of a client + profile for team members
+   * (PM, designers, marketers, employees). Sensitive financial fields
+   * (totalContractValue, totalPaid, avgSatisfactionScore, project counters)
+   * are excluded so internal roles only see operational context.
+   * No special permission required — just authentication.
+   */
+  async getTeamView(clientId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      include: {
+        manager: { select: { id: true, name: true } },
+        profile: true,
+      },
+    });
+
+    if (!client) {
+      throw new NotFoundException(`Client with ID ${clientId} not found`);
+    }
+
+    // Return only non-sensitive client fields + full profile
+    const {
+      totalProjects: _tp,
+      activeProjects: _ap,
+      completedProjects: _cp,
+      cancelledProjects: _x,
+      totalContractValue: _tcv,
+      totalInvoiced: _ti,
+      totalPaid: _tpd,
+      avgSatisfactionScore: _as,
+      lastProjectAt: _lp,
+      portalAccessToken: _pat,
+      portalTokenExpiresAt: _pte,
+      userId: _u,
+      intakeCompleted: _ic,
+      ...safeClient
+    } = client;
+
+    return {
+      client: safeClient,
+      profile: client.profile ?? null,
+    };
+  }
+
   async upsert(
     clientId: string,
     dto: UpsertClientProfileDto,

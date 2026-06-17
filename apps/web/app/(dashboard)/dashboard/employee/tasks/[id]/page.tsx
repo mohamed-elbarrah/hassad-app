@@ -12,6 +12,7 @@ import {
   FileText,
   MessageSquare,
   CheckCircle2,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -27,6 +28,7 @@ import {
 } from "@/components/design-system/Tabs";
 import { FileItem } from "@/components/dashboard/employee/FileItem";
 import { CommentItem } from "@/components/dashboard/employee/CommentItem";
+import { ClientBriefCompact } from "@/components/client-brief";
 import {
   useGetTaskByIdQuery,
   useStartTaskMutation,
@@ -39,6 +41,9 @@ import {
   useGetTaskCommentsQuery,
   useAddTaskCommentMutation,
 } from "@/features/tasks/tasksApi";
+import {
+  useGetClientTeamViewQuery,
+} from "@/features/clients/clientsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { formatRelativeTime, formatShortDate, daysUntil } from "@/lib/format";
 import {
@@ -62,7 +67,7 @@ interface TaskDetailPageProps {
 }
 
 interface TaskWithMeta {
-  project?: { id: string; name: string };
+  project?: { id: string; name: string; clientId?: string; client?: { id: string; companyName: string } };
   assignee?: { id: string; name: string };
   statusHistory?: Array<{
     id: string;
@@ -127,6 +132,12 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const { data: files, isLoading: filesLoading } = useGetTaskFilesQuery(id);
   const { data: comments, isLoading: commentsLoading } =
     useGetTaskCommentsQuery(id);
+
+  const clientId =
+    (task as any)?.project?.client?.id ?? (task as any)?.project?.clientId ?? "";
+  const { data: teamView } = useGetClientTeamViewQuery(clientId, {
+    skip: !clientId,
+  });
 
   // Mutations
   const [startTask, { isLoading: isStarting }] = useStartTaskMutation();
@@ -341,6 +352,10 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                     {totalComments}
                   </span>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="client" className="gap-2">
+                <User className="w-4 h-4" />
+                تفاصيل العميل
               </TabsTrigger>
             </TabsList>
 
@@ -582,6 +597,19 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                   </div>
                 </div>
               </SurfaceCard>
+            </TabsContent>
+
+            {/* ── Client Tab ─────────────────────────────────────────────── */}
+            <TabsContent value="client" className="space-y-6">
+              {teamView ? (
+                <ClientBriefCompact
+                  client={teamView.client}
+                  profile={teamView.profile}
+                  viewAs="internal"
+                />
+              ) : (
+                <DSSkeleton className="h-96 rounded-xl" />
+              )}
             </TabsContent>
           </Tabs>
         </div>
