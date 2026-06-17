@@ -22,6 +22,7 @@ import {
 } from "@hassad/shared";
 import { randomBytes } from "crypto";
 import { StorageService } from "../../../common/storage/storage.service";
+import { MarketingStrategyService } from "../../marketing/services/marketing-strategy.service";
 
 const TASK_STATUS_AR_MAP: Record<string, string> = {
   TODO: "لم يبدأ",
@@ -37,6 +38,7 @@ export class PortalService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private storageService: StorageService,
+    private marketingStrategyService: MarketingStrategyService,
   ) {}
 
   private getPendingRequestStageLabel(status: string) {
@@ -512,6 +514,7 @@ export class PortalService {
     const fetchInvoices = !typeFilter || typeFilter === "INVOICE_PAYMENT";
     const fetchProposals = !typeFilter || typeFilter === "PROPOSAL_REVIEW";
     const fetchContracts = !typeFilter || typeFilter === "CONTRACT_SIGN";
+    const fetchStrategyReviews = !typeFilter || typeFilter === "STRATEGY_REVIEW";
 
     if (fetchDeliverables) {
       const projects = await this.prisma.project.findMany({
@@ -627,6 +630,37 @@ export class PortalService {
             : "/portal/proposals",
           priority: "normal",
           createdAt: p.sentAt ?? p.createdAt,
+        });
+      }
+    }
+
+    if (fetchStrategyReviews) {
+      const pendingStrategies = await this.prisma.marketingStrategy.findMany({
+        where: {
+          clientId,
+          status: "SENT",
+        },
+        include: {
+          task: {
+            select: {
+              title: true,
+              project: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { sentAt: "desc" },
+      });
+
+      for (const s of pendingStrategies) {
+        if (snoozedKeys.has(`STRATEGY_REVIEW-${s.id}`)) continue;
+        items.push({
+          id: `strat-${s.id}`,
+          type: "STRATEGY_REVIEW",
+          title: `دراسة تسويقية — ${s.task?.project?.name ?? ""}`,
+          subtitle: `دراسة تسويقية للمهمة "${s.task?.title ?? ""}" بانتظار مراجعتك`,
+          actionUrl: `/portal/marketing-strategies/${s.id}`,
+          priority: "high",
+          createdAt: s.sentAt ?? s.createdAt,
         });
       }
     }
@@ -2126,5 +2160,101 @@ export class PortalService {
       },
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  // ── Marketing Strategy Portal Methods ──────────────────────────────────
+
+  async getClientStrategies(clientId: string) {
+    return this.prisma.marketingStrategy.findMany({
+      where: { clientId },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            project: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async getClientStrategyOne(id: string, clientId: string) {
+    const strategy = await this.prisma.marketingStrategy.findUnique({
+      where: { id },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            project: { select: { id: true, name: true } },
+          },
+        },
+        creator: { select: { id: true, name: true } },
+        approver: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!strategy || strategy.clientId !== clientId) {
+      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+    }
+
+    return strategy;
+  }
+
+  async approveStrategy(id: string, clientUserId: string) {
+    const strategy = await this.prisma.marketingStrategy.findUnique({
+      where: { id },
+      include: {
+        task: { select: { title: true, createdBy: true, assignedTo: true } },
+      },
+    });
+
+    if (!strategy) {
+      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+    }
+
+    // Verify client owns this strategy
+    const client = await this.prisma.client.findUnique({
+      where: { id: strategy.clientId },
+      select: { userId: true },
+    });
+
+    if (!client?.userId || client.userId !== clientUserId) {
+      throw new BadRequestException("غير مصرح بهذا الإجراء");
+    }
+
+    return this.marketingStrategyService.approve(id, clientUserId);
+  }
+
+  async requestStrategyRevision(
+    id: string,
+    clientUserId: string,
+    comment: string,
+  ) {
+    const strategy = await this.prisma.marketingStrategy.findUnique({
+      where: { id },
+    });
+
+    if (!strategy) {
+      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+    }
+
+    // Verify client owns this strategy
+    const client = await this.prisma.client.findUnique({
+      where: { id: strategy.clientId },
+      select: { userId: true },
+    });
+
+    if (!client?.userId || client.userId !== clientUserId) {
+      throw new BadRequestException("غير مصرح بهذا الإجراء");
+    }
+
+    return this.marketingStrategyService.requestRevision(
+      id,
+      clientUserId,
+      comment,
+    );
   }
 }

@@ -322,6 +322,7 @@ export const portalApi = createApi({
     "PortalReports",
     "ReviewProjects",
     "TeamMembers",
+    "PortalStrategies",
   ],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
@@ -492,6 +493,38 @@ export const portalApi = createApi({
       query: () => "/portal/team-members",
       providesTags: ["TeamMembers"],
     }),
+
+    // ── Marketing Strategy Portal Endpoints ────────────────────────────
+
+    getClientStrategies: builder.query<any[], void>({
+      query: () => "/portal/marketing-strategies",
+      providesTags: ["PortalStrategies"],
+    }),
+
+    getClientStrategy: builder.query<any, string>({
+      query: (id) => `/portal/marketing-strategies/${id}`,
+      providesTags: (result, error, id) => [{ type: "PortalStrategies", id }],
+    }),
+
+    approveStrategy: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `/portal/marketing-strategies/${id}/approve`,
+        method: "POST",
+      }),
+      invalidatesTags: ["PortalStrategies", "ActionItems"],
+    }),
+
+    requestStrategyRevision: builder.mutation<
+      any,
+      { id: string; comment: string }
+    >({
+      query: ({ id, comment }) => ({
+        url: `/portal/marketing-strategies/${id}/request-revision`,
+        method: "POST",
+        body: { comment },
+      }),
+      invalidatesTags: ["PortalStrategies", "ActionItems"],
+    }),
   }),
 });
 
@@ -519,4 +552,9 @@ export const {
   useRequestProjectRevisionMutation,
   useGetProjectRevisionsQuery,
   useGetTeamMembersQuery,
+  // Strategy hooks
+  useGetClientStrategiesQuery,
+  useGetClientStrategyQuery,
+  useApproveStrategyMutation,
+  useRequestStrategyRevisionMutation,
 } = portalApi;

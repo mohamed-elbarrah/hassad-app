@@ -65,3 +65,19 @@ export enum DelayAlertLevel {
   MEDIUM = "MEDIUM",
   HIGH = "HIGH",
 }
+
+export enum MarketingStrategyStatus {
+  DRAFT = "DRAFT",
+  SENT = "SENT",
+  APPROVED = "APPROVED",
+  REVISION_REQUESTED = "REVISION_REQUESTED",
+  REJECTED = "REJECTED",
+}
+
+export const MARKETING_STRATEGY_STATUS_AR: Record<MarketingStrategyStatus, string> = {
+  DRAFT: "مسودة",
+  SENT: "تم الإرسال",
+  APPROVED: "تمت الموافقة",
+  REVISION_REQUESTED: "مطلوب تعديل",
+  REJECTED: "مرفوض",
+};

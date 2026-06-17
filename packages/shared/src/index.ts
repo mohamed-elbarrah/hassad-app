@@ -41,6 +41,8 @@ import {
   TaskStatus,
   TaskPriority,
   TaskDepartment,
+  MarketingStrategyStatus,
+  MARKETING_STRATEGY_STATUS_AR,
 } from "./enums/project";
 import {
   PaymentMethod,
@@ -540,6 +542,7 @@ export interface DeliverableSummary {
 // Explicit re-exports for consumers that import by name
 export * from "./schemas/payment.schema";
 export * from "./schemas/campaign.schema";
+export * from "./schemas/marketing-strategy.schema";
 export type {
   CreateProposalInput,
   UpdateProposalInput,
