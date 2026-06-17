@@ -22,6 +22,7 @@ const FILTER_GROUPS: FilterGroup[] = [
       { label: "دفع فواتير", value: "INVOICE_PAYMENT" },
       { label: "مراجعة عروض", value: "PROPOSAL_REVIEW" },
       { label: "توقيع عقود", value: "CONTRACT_SIGN" },
+      { label: "مراجعة دراسة تسويقية", value: "STRATEGY_REVIEW" },
     ],
   },
 ];
@@ -32,6 +33,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: "purple" | "blue" }> =
     INVOICE_PAYMENT: { label: "دفع فاتورة", color: "blue" },
     PROPOSAL_REVIEW: { label: "مراجعة عرض", color: "purple" },
     CONTRACT_SIGN: { label: "توقيع عقد", color: "blue" },
+    STRATEGY_REVIEW: { label: "مراجعة دراسة تسويقية", color: "purple" },
   };
 
 const PRIORITY_PILL: Record<

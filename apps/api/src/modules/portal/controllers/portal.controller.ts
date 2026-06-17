@@ -29,6 +29,7 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
+import { ClientApproveStrategyDto, ClientRequestRevisionDto as StrategyRevisionDto } from "../../marketing/dto/marketing-strategy.dto";
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -536,5 +537,87 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getProjectRevisions(@Param("id") id: string, @CurrentUser() user: any) {
     return this.portalService.getProjectRevisions(id);
+  }
+
+  // ── Marketing Strategy Portal Endpoints ────────────────────────────────
+
+  @Get("portal/marketing-strategies")
+  @RequirePermissions("portal.read")
+  async getClientStrategies(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return [];
+    return this.portalService.getClientStrategies(clientId);
+  }
+
+  @Get("portal/marketing-strategies/:id")
+  @RequirePermissions("portal.read")
+  async getClientStrategyOne(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.getClientStrategyOne(id, clientId);
+  }
+
+  @Post("portal/marketing-strategies/:id/approve")
+  @RequirePermissions("portal.approve_deliverables")
+  async approveStrategy(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: ClientApproveStrategyDto,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: { userId: true },
+    });
+    if (!client?.userId) throw new ForbiddenException();
+    return this.portalService.approveStrategy(id, client.userId);
+  }
+
+  @Post("portal/marketing-strategies/:id/request-revision")
+  @RequirePermissions("portal.request_revisions")
+  async requestStrategyRevision(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: StrategyRevisionDto,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: { userId: true },
+    });
+    if (!client?.userId) throw new ForbiddenException();
+    return this.portalService.requestStrategyRevision(
+      id,
+      client.userId,
+      dto.comment,
+    );
+  }
+
+  @Get("portal/marketing-strategies/:id/download")
+  @RequirePermissions("portal.read")
+  async downloadStrategy(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+
+    // Verify client owns this strategy
+    const strategy = await this.prisma.marketingStrategy.findUnique({
+      where: { id },
+      select: { clientId: true, filePath: true },
+    });
+
+    if (!strategy || strategy.clientId !== clientId) {
+      throw new NotFoundException("الدراسة التسويقية غير موجودة");
+    }
+
+    const url = await this.storageService.getPresignedUrl(strategy.filePath);
+    return { url };
   }
 }

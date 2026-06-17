@@ -11,6 +11,7 @@ import {
   CampaignPlatform,
   KpiSource,
   TaskDepartment,
+  MarketingStrategyStatus,
 } from "@hassad/shared";
 import {
   CreateCampaignDto,
@@ -54,6 +55,20 @@ export class CampaignsService {
 
     if (!task.project?.clientId) {
       throw new BadRequestException("المهمة غير مرتبطة بمشروع أو عميل");
+    }
+
+    // Enforce: marketing strategy must be APPROVED before creating campaigns
+    const approvedStrategy = await this.prisma.marketingStrategy.findFirst({
+      where: {
+        taskId: data.taskId,
+        status: MarketingStrategyStatus.APPROVED,
+      },
+    });
+
+    if (!approvedStrategy) {
+      throw new BadRequestException(
+        "يجب الموافقة على الدراسة التسويقية أولاً قبل إنشاء الحملات",
+      );
     }
 
     const { taskId, name, platform, startDate, endDate, budgetTotal } = data;

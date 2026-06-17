@@ -19,6 +19,7 @@ function resolvePortalUrl(
   if (entityType === "deliverable") return `/portal/deliverables/${entityId}`;
   if (entityType === "project") return `/portal/projects`;
   if (entityType === "campaign") return `/portal/campaigns/${entityId}`;
+  if (entityType === "marketing_strategy") return `/portal/marketing-strategies/${entityId}`;
   if (entityType === "invoice" || entityType === "INVOICE")
     return `/portal/finance`;
   if (entityType === "conversation") return `/portal/projects`;
@@ -35,6 +36,7 @@ function getPrimaryActionLabel(entityType: string | null | undefined): string {
     return "دفع الفاتورة";
   if (entityType === "project") return "متابعة المشروع";
   if (entityType === "campaign") return "عرض الحملة";
+  if (entityType === "marketing_strategy") return "مراجعة الدراسة التسويقية";
   return "عرض التفاصيل";
 }
 

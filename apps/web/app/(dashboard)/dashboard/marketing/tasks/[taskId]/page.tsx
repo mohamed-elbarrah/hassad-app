@@ -40,9 +40,11 @@ import {
 import {
   useGetCampaignsByTaskQuery,
   useUpdateCampaignStatusMutation,
+  useGetTaskStrategyQuery,
 } from "@/features/marketing/marketingApi";
 import { CampaignFormModal } from "@/components/dashboard/marketing/CampaignFormModal";
 import { ClientBriefCompact } from "@/components/client-brief";
+import { MarketingStrategySection } from "@/components/dashboard/marketing/MarketingStrategySection";
 import { downloadTaskFile } from "@/lib/downloadFile";
 import {
   useGetClientTeamViewQuery,
@@ -90,6 +92,7 @@ import {
   Users,
   User,
   Gauge,
+  FileText,
 } from "lucide-react";
 
 import {
@@ -133,6 +136,9 @@ export default function MarketingTaskDetailPage() {
   const { data: rawTask, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId);
   const task = rawTask as unknown as TaskWithProject;
   const { data: campaigns = [] } = useGetCampaignsByTaskQuery(taskId);
+  const { data: strategy } = useGetTaskStrategyQuery(taskId);
+  const strategyApproved = strategy?.status === "APPROVED";
+  const isMarketer = true; // The marketing task page is only accessible by marketers/PMs
 
   const clientId = task?.project?.clientId ?? "";
   const { data: teamView } = useGetClientTeamViewQuery(clientId, {
@@ -303,8 +309,12 @@ export default function MarketingTaskDetailPage() {
       </div>
 
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}
-      <Tabs defaultValue="campaigns" dir="rtl" className="space-y-6">
+      <Tabs defaultValue="strategy" dir="rtl" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="strategy" className="gap-1.5">
+            <FileText className="w-4 h-4" />
+            الدراسة التسويقية
+          </TabsTrigger>
           <TabsTrigger value="campaigns" className="gap-1.5">
             <Target className="w-4 h-4" />
             الحملات ({campaigns.length})
@@ -327,8 +337,26 @@ export default function MarketingTaskDetailPage() {
           </TabsTrigger>
         </TabsList>
 
+        {/* ===== Tab: Strategy ===== */}
+        <TabsContent value="strategy" className="space-y-6">
+          <MarketingStrategySection
+            taskId={taskId}
+            isMarketer={!!task?.assignedTo}
+            strategyApproved={strategyApproved}
+          />
+        </TabsContent>
+
         {/* ===== Tab 1: Campaigns ===== */}
         <TabsContent value="campaigns" className="space-y-6">
+          {!strategyApproved && (
+            <div className="p-3 border border-amber-200 bg-amber-50 rounded-lg flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-800">
+                يجب الموافقة على الدراسة التسويقية من العميل قبل إنشاء الحملات.
+                انتقل إلى تبويب "الدراسة التسويقية" للبدء.
+              </p>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-natural-100">
@@ -341,6 +369,8 @@ export default function MarketingTaskDetailPage() {
             <ActionButton
               onClick={() => setIsModalOpen(true)}
               icon={<Plus className="w-4 h-4" />}
+              disabled={!strategyApproved}
+              title={!strategyApproved ? "يجب الموافقة على الدراسة التسويقية أولاً" : undefined}
             >
               إضافة حملة
             </ActionButton>

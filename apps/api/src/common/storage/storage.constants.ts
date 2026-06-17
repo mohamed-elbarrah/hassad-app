@@ -8,6 +8,7 @@ export enum StorageCategory {
   INTAKE_FORM = "intake_form",
   CHAT_ATTACHMENT = "chat_attachment",
   CURRENCY_SVG = "currency_svg",
+  MARKETING_STRATEGY = "marketing_strategy",
 }
 
 export const STORAGE_CONFIG: Record<
@@ -145,6 +146,11 @@ export const STORAGE_CONFIG: Record<
       "video/quicktime",
       "video/webm",
     ],
+  },
+  [StorageCategory.MARKETING_STRATEGY]: {
+    keyPrefix: "marketing-strategies",
+    maxFileSize: 50 * 1024 * 1024,
+    allowedMimeTypes: ["application/pdf"],
   },
   [StorageCategory.CURRENCY_SVG]: {
     keyPrefix: "currency-svgs",
