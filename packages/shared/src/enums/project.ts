@@ -1,5 +1,6 @@
 export enum ProjectStatus {
   PLANNING = "PLANNING",
+  PENDING_ACTIVATION = "PENDING_ACTIVATION",
   ACTIVE = "ACTIVE",
   ON_HOLD = "ON_HOLD",
   AWAITING_REVIEW = "AWAITING_REVIEW",
@@ -10,6 +11,7 @@ export enum ProjectStatus {
 
 export const PROJECT_STATUS_AR: Record<ProjectStatus, string> = {
   PLANNING: "تخطيط",
+  PENDING_ACTIVATION: "بانتظار تفعيل الدفعة المقدمة",
   ACTIVE: "نشط",
   ON_HOLD: "معلق",
   AWAITING_REVIEW: "بانتظار المراجعة",

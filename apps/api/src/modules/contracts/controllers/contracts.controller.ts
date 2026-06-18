@@ -3,6 +3,8 @@ import {
   Get,
   Post,
   Patch,
+  Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -21,6 +23,10 @@ import {
   SignByTokenDto,
   CreateVersionDto,
 } from "../dto/contract.dto";
+import {
+  DefinePaymentPlanDto,
+  PaymentPlanRowDto,
+} from "../dto/payment-plan.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -66,18 +72,8 @@ export class ContractsController {
       createContractDto,
     );
 
-    try {
-      await this.financeService.generateInvoiceFromContract(
-        contract.id,
-        user.id,
-      );
-    } catch (error) {
-      console.error(
-        `Failed to auto-generate invoice for contract ${contract.id}:`,
-        error,
-      );
-    }
-
+    // Note: the down-payment invoice is now issued at SIGN time from the contract's
+    // payment plan (see ContractsService.onContractSigned), not at creation.
     return contract;
   }
 
@@ -130,15 +126,15 @@ export class ContractsController {
   @Post(":id/activate")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("contracts.activate")
-  activate(@Param("id") id: string) {
-    return this.contractsService.activate(id);
+  activate(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.contractsService.activate(id, user?.id);
   }
 
   @Post(":id/cancel")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("contracts.cancel")
-  cancel(@Param("id") id: string) {
-    return this.contractsService.cancel(id);
+  cancel(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.contractsService.cancel(id, user?.id);
   }
 
   @Post(":id/versions")
@@ -179,6 +175,47 @@ export class ContractsController {
   @RequirePermissions("finance.create_invoice")
   generateInvoice(@CurrentUser() user: any, @Param("id") id: string) {
     return this.financeService.generateInvoiceFromContract(id, user.id);
+  }
+
+  // ─── Payment plan (commercial schedule: down payment + recurring + milestones) ──
+
+  @Get(":id/payment-plan")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("contracts.read")
+  getPaymentPlan(@Param("id") id: string) {
+    return this.contractsService.getPaymentPlan(id);
+  }
+
+  @Put(":id/payment-plan")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("contracts.manage_payment_plan")
+  definePaymentPlan(@Param("id") id: string, @Body() dto: DefinePaymentPlanDto) {
+    return this.contractsService.definePaymentPlan(id, dto);
+  }
+
+  @Post(":id/payment-plan/rows")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("contracts.manage_payment_plan")
+  addPaymentPlanRow(@Param("id") id: string, @Body() row: PaymentPlanRowDto) {
+    return this.contractsService.addPaymentPlanRow(id, row);
+  }
+
+  @Patch(":id/payment-plan/rows/:rowId")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("contracts.manage_payment_plan")
+  updatePaymentPlanRow(
+    @Param("id") id: string,
+    @Param("rowId") rowId: string,
+    @Body() row: PaymentPlanRowDto,
+  ) {
+    return this.contractsService.updatePaymentPlanRow(rowId, row);
+  }
+
+  @Delete(":id/payment-plan/rows/:rowId")
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("contracts.manage_payment_plan")
+  removePaymentPlanRow(@Param("id") id: string, @Param("rowId") rowId: string) {
+    return this.contractsService.removePaymentPlanRow(rowId);
   }
 
   // ─── Public share-link endpoints (CLIENT token-based) ─────────────────────

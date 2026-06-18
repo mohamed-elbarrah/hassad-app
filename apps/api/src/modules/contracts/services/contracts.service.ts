@@ -2,10 +2,13 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
+import { OnEvent } from "@nestjs/event-emitter";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
+import { FinanceService } from "../../finance/services/finance.service";
 import {
   CreateContractDto,
   UpdateContractDto,
@@ -13,20 +16,28 @@ import {
   SignByTokenDto,
   CreateVersionDto,
 } from "../dto/contract.dto";
+import { DefinePaymentPlanDto, PaymentPlanRowDto } from "../dto/payment-plan.dto";
 import {
   ContractStatus,
   ProjectStatus,
   RequestStatus,
   TaskPriority,
   TaskStatus,
+  PaymentPlanTriggerType,
+  PaymentAmountType,
 } from "@hassad/shared";
 import { RequestsService } from "../../requests/requests.service";
 import { DirectConversationService } from "../../chat/services/direct-conversation.service";
 import { PmAssignmentService } from "./pm-assignment.service";
+import { ContractPaymentPlanService } from "./contract-payment-plan.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
+import type { ContractStatus as ContractStatusEnum } from "@hassad/shared";
+import type { Prisma } from "@prisma/client";
 
 @Injectable()
 export class ContractsService {
+  private readonly logger = new Logger(ContractsService.name);
+
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
@@ -34,9 +45,28 @@ export class ContractsService {
     private directConversationService: DirectConversationService,
     private pmAssignmentService: PmAssignmentService,
     private clientCounterService: ClientCounterService,
+    private paymentPlanService: ContractPaymentPlanService,
+    private financeService: FinanceService,
   ) {}
 
-  private async createProjectFromSignedContract(contractId: string) {
+  // ── Contract status history (RULE 2: history on every state change) ────────
+  private async recordContractStatusHistory(
+    tx: Prisma.TransactionClient,
+    contractId: string,
+    fromStatus: ContractStatusEnum,
+    toStatus: ContractStatusEnum,
+    changedBy: string,
+    reason?: string,
+  ) {
+    return tx.contractStatusHistory.create({
+      data: { contractId, fromStatus, toStatus, changedBy, reason },
+    });
+  }
+
+  private async createProjectFromSignedContract(
+    contractId: string,
+    initialStatus: ProjectStatus = ProjectStatus.PLANNING,
+  ) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
       include: {
@@ -132,7 +162,7 @@ export class ContractsService {
           projectManagerId,
           name: projectName,
           description: projectDescription,
-          status: ProjectStatus.PLANNING,
+          status: initialStatus,
           priority: TaskPriority.NORMAL,
           startDate: contract.startDate,
           endDate: contract.endDate,
@@ -254,6 +284,233 @@ export class ContractsService {
    * One-step: create contract + immediately set SENT + generate shareLinkToken.
    * Notifies the CLIENT user linked to the originating request.
    */
+  /**
+   * Post-sign orchestration:
+   *  - Create the delivery project.
+   *  - If a down payment is required (> 0): create it as `PENDING_ACTIVATION` and
+   *    issue the down-payment invoice; the contract stays `SIGNED` until that
+   *    invoice is paid (the activation gate fires from the `invoice.paid` event).
+   *  - If no down payment (0 / none): activate the contract immediately.
+   */
+  private async onContractSigned(contractId: string, signedByName?: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      select: {
+        id: true,
+        title: true,
+        totalValue: true,
+        createdBy: true,
+        downPaymentType: true,
+        downPaymentValue: true,
+      },
+    });
+    if (!contract) return;
+
+    const onSignRow = await this.paymentPlanService.getOnSignRow(contractId);
+    const downPaymentAmount = onSignRow
+      ? this.paymentPlanService.resolveAmount(onSignRow, contract.totalValue)
+      : this.resolveDownPaymentFallback(contract);
+
+    if (downPaymentAmount <= 0) {
+      // Zero down payment: create project ACTIVE and activate the contract now.
+      await this.createProjectFromSignedContract(
+        contractId,
+        ProjectStatus.ACTIVE,
+      ).catch((err) => {
+        this.logger.error(`Failed to create project for contract ${contractId}: ${err?.message}`);
+      });
+      await this.activateContract(contractId, contract.createdBy, "No down payment — activated on sign");
+      return;
+    }
+
+    // Down payment required: project waits for activation, invoice is issued now.
+    await this.createProjectFromSignedContract(
+      contractId,
+      ProjectStatus.PENDING_ACTIVATION,
+    ).catch((err) => {
+      this.logger.error(`Failed to create project for contract ${contractId}: ${err?.message}`);
+    });
+
+    await this.issueDownPaymentInvoice(contractId, contract.createdBy, onSignRow, downPaymentAmount).catch(
+      (err) => {
+        this.logger.error(`Failed to issue down-payment invoice for contract ${contractId}: ${err?.message}`);
+      },
+    );
+  }
+
+  /** Resolve down payment from the contract-level fallback fields when no plan row exists. */
+  private resolveDownPaymentFallback(contract: {
+    totalValue: number;
+    downPaymentType?: "PERCENT" | "FIXED" | null;
+    downPaymentValue?: number | null;
+  }): number {
+    if (!contract.downPaymentType || !contract.downPaymentValue) return 0;
+    return this.paymentPlanService.resolveAmount(
+      { amountType: contract.downPaymentType, amountValue: contract.downPaymentValue },
+      contract.totalValue,
+    );
+  }
+
+  /** Issue the down-payment invoice from the ON_SIGN plan row (or fallback fields). */
+  private async issueDownPaymentInvoice(
+    contractId: string,
+    userId: string,
+    onSignRow: { id: string } | null,
+    amount: number,
+  ) {
+    const now = new Date();
+    return this.financeService.generateScheduledInvoice({
+      contractId,
+      paymentPlanId: onSignRow?.id,
+      amount,
+      label: "الدفعة المقدمة (Down Payment)",
+      issueDate: now,
+      dueDate: now, // due immediately
+      userId,
+      notes: "فاتورة الدفعة المقدمة لتفعيل العقد",
+    });
+  }
+
+  /**
+   * Activation gate: contract `SIGNED` → `ACTIVE` and project `PENDING_ACTIVATION`
+   * → `ACTIVE`. Idempotent — safe to call when already active. Writes history.
+   */
+  async activateContract(contractId: string, userId: string, reason?: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      select: { id: true, status: true, title: true, clientId: true, createdBy: true },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+    if (contract.status === ContractStatus.ACTIVE) return contract;
+    if (contract.status !== ContractStatus.SIGNED) {
+      throw new BadRequestException(
+        `Contract must be SIGNED to activate (current: ${contract.status})`,
+      );
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const c = await tx.contract.update({
+        where: { id: contractId },
+        data: { status: ContractStatus.ACTIVE },
+      });
+      await this.recordContractStatusHistory(
+        tx,
+        contractId,
+        ContractStatus.SIGNED,
+        ContractStatus.ACTIVE,
+        userId,
+        reason,
+      );
+
+      // Flip the project from PENDING_ACTIVATION → ACTIVE (if it exists and is waiting).
+      await tx.project.updateMany({
+        where: { contractId, status: ProjectStatus.PENDING_ACTIVATION },
+        data: { status: ProjectStatus.ACTIVE },
+      });
+
+      return c;
+    });
+
+    await this.notificationsService.notifyUsers({
+      userIds: [contract.createdBy].filter(Boolean) as string[],
+      title: "تم تفعيل العقد",
+      message: `تم تفعيل العقد "${contract.title}" بعد استلام الدفعة المقدمة.`,
+      entityId: contractId,
+      entityType: "CONTRACT",
+      eventType: "CONTRACT_ACTIVATED",
+    });
+
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: contract.clientId },
+      select: { userId: true },
+    });
+    if (clientUser?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: contractId,
+          entityType: "contract",
+          eventType: "CONTRACT_ACTIVATED",
+          userId: clientUser.userId,
+          title: "تم تفعيل العقد",
+          body: `تم تفعيل العقد "${contract.title}". فريق العمل جاهز لبدء مشروعك.`,
+        })
+        .catch(() => undefined);
+    }
+
+    return updated;
+  }
+
+  /**
+   * Domain event listener: when an invoice becomes fully paid, if it is the
+   * contract's down-payment invoice (its plan row is `ON_SIGN`) and the contract
+   * is still `SIGNED`, run the activation gate.
+   */
+  @OnEvent("invoice.paid")
+  async handleInvoicePaid(payload: {
+    invoiceId: string;
+    contractId?: string | null;
+    paymentPlanId?: string | null;
+    userId?: string;
+  }) {
+    if (!payload.contractId) return;
+
+    // Only the down-payment invoice triggers activation in Phase 1.
+    const isDownPayment = await this.isDownPaymentInvoice(payload);
+    if (!isDownPayment) return;
+
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: payload.contractId },
+      select: { id: true, status: true, createdBy: true },
+    });
+    if (!contract || contract.status !== ContractStatus.SIGNED) return;
+
+    await this.activateContract(
+      contract.id,
+      payload.userId || contract.createdBy,
+      "Down payment received",
+    ).catch((err) => {
+      this.logger.error(
+        `Failed to activate contract ${contract.id} after down-payment: ${err?.message}`,
+      );
+    });
+  }
+
+  /** An invoice is the down-payment invoice if its linked plan row is `ON_SIGN`. */
+  private async isDownPaymentInvoice(payload: {
+    invoiceId: string;
+    paymentPlanId?: string | null;
+  }): Promise<boolean> {
+    if (payload.paymentPlanId) {
+      const row = await this.prisma.contractPaymentPlan.findUnique({
+        where: { id: payload.paymentPlanId },
+        select: { triggerType: true },
+      });
+      return row?.triggerType === PaymentPlanTriggerType.ON_SIGN;
+    }
+    return false;
+  }
+
+  // ── Payment plan delegation (Sales defines the commercial plan) ──────────────
+  async getPaymentPlan(contractId: string) {
+    return this.paymentPlanService.getPlan(contractId);
+  }
+
+  async definePaymentPlan(contractId: string, dto: DefinePaymentPlanDto) {
+    return this.paymentPlanService.definePlan(contractId, dto);
+  }
+
+  async addPaymentPlanRow(contractId: string, row: PaymentPlanRowDto) {
+    return this.paymentPlanService.addRow(contractId, row);
+  }
+
+  async updatePaymentPlanRow(rowId: string, row: PaymentPlanRowDto) {
+    return this.paymentPlanService.updateRow(rowId, row);
+  }
+
+  async removePaymentPlanRow(rowId: string) {
+    return this.paymentPlanService.removeRow(rowId);
+  }
+
   async create(userId: string, filePath: string, dto: CreateContractDto) {
     const shareLinkToken = randomUUID();
 
@@ -312,8 +569,29 @@ export class ContractsService {
           filePath,
           shareLinkToken,
           servicesList,
+          downPaymentType: dto.downPaymentType,
+          downPaymentValue: dto.downPaymentValue,
+          numberOfMonths: dto.numberOfMonths,
         },
       });
+
+      // Optional: define the full payment plan at creation time.
+      if (dto.paymentPlan && dto.paymentPlan.length > 0) {
+        for (const [i, row] of dto.paymentPlan.entries()) {
+          await tx.contractPaymentPlan.create({
+            data: {
+              contractId: contract.id,
+              label: row.label,
+              sequence: row.sequence ?? i,
+              triggerType: row.triggerType,
+              amountType: row.amountType,
+              amountValue: row.amountValue,
+              isRecurring: row.isRecurring ?? false,
+              dueOffsetDays: row.dueOffsetDays ?? 0,
+            },
+          });
+        }
+      }
 
       await this.requestsService.updateStatus(
         request.id,
@@ -433,6 +711,17 @@ export class ContractsService {
         },
       });
 
+      await this.recordContractStatusHistory(
+        tx,
+        contract.id,
+        ContractStatus.SENT,
+        ContractStatus.SIGNED,
+        contract.createdBy,
+        dto.signedByName
+          ? "Signed by " + dto.signedByName + " via share link"
+          : "Signed via share link",
+      );
+
       if (contract.requestId) {
         await this.requestsService.updateStatus(
           contract.requestId,
@@ -475,11 +764,11 @@ export class ContractsService {
       return { ...signed, signedByName: dto.signedByName };
     });
 
-    await this.createProjectFromSignedContract(contract.id).catch(() => {
+    await this.onContractSigned(contract.id, dto.signedByName).catch(() => {
       this.notificationsService
         .broadcast({
           title: "فشل إنشاء مشروع تلقائي",
-          message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع تلقائياً. يرجى مراجعة الحالة يدوياً.`,
+          message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع/فاتورة الدفعة المقدمة تلقائياً. يرجى مراجعة الحالة يدوياً.`,
           roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
@@ -572,6 +861,15 @@ export class ContractsService {
         },
       });
 
+      await this.recordContractStatusHistory(
+        tx,
+        id,
+        ContractStatus.SENT,
+        ContractStatus.SIGNED,
+        userId,
+        dto.signedByName ? "Signed by " + dto.signedByName : "Signed by staff",
+      );
+
       if (contract.requestId) {
         await this.requestsService.updateStatus(
           contract.requestId,
@@ -585,11 +883,11 @@ export class ContractsService {
       return { ...updatedContract, signedByName: dto.signedByName };
     });
 
-    await this.createProjectFromSignedContract(id).catch(() => {
+    await this.onContractSigned(id, dto.signedByName).catch(() => {
       this.notificationsService
         .broadcast({
           title: "فشل إنشاء مشروع تلقائي",
-          message: `تم توقيع العقد "${contract.title}" لكن تعذر إنشاء المشروع تلقائياً. يرجى مراجعة الحالة يدوياً.`,
+          message: `تم توقيع العقد "${contract.title}" لكن تعذر تهيئة المشروع/فاتورة الدفعة المقدمة تلقائياً.`,
           roles: ["ADMIN", "SALES"],
         })
         .catch(() => undefined);
@@ -614,49 +912,31 @@ export class ContractsService {
     return signedResult;
   }
 
-  async activate(id: string) {
+  /** Manual/admin activation endpoint — delegates to the activation gate. */
+  async activate(id: string, userId?: string) {
     const contract = await this.findOne(id);
-    const updated = await this.prisma.contract.update({
-      where: { id },
-      data: { status: ContractStatus.ACTIVE },
-    });
-
-    await this.notificationsService.notifyUsers({
-      userIds: [contract.createdBy, contract.client.accountManager].filter(
-        Boolean,
-      ) as string[],
-      title: "تم تفعيل العقد",
-      message: `تم تفعيل العقد "${contract.title}" مع ${contract.client.companyName}`,
-      entityId: id,
-      entityType: "CONTRACT",
-      eventType: "CONTRACT_ACTIVATED",
-    });
-
-    const clientUser = await this.prisma.client.findUnique({
-      where: { id: contract.clientId },
-      select: { userId: true },
-    });
-    if (clientUser?.userId) {
-      this.notificationsService
-        .createNotification({
-          entityId: id,
-          entityType: "contract",
-          eventType: "CONTRACT_ACTIVATED",
-          userId: clientUser.userId,
-          title: "تم تفعيل العقد",
-          body: `تم تفعيل العقد "${contract.title}". فريق العمل جاهز لبدء مشروعك.`,
-        })
-        .catch(() => undefined);
-    }
-
-    return updated;
+    const actorId = userId || contract.createdBy;
+    return this.activateContract(id, actorId, "Manually activated");
   }
 
-  async cancel(id: string) {
+  async cancel(id: string, userId?: string) {
     const contract = await this.findOne(id);
-    const updated = await this.prisma.contract.update({
-      where: { id },
-      data: { status: ContractStatus.CANCELLED },
+    const actorId = userId || contract.createdBy;
+    const fromStatus = contract.status as ContractStatus;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const c = await tx.contract.update({
+        where: { id },
+        data: { status: ContractStatus.CANCELLED },
+      });
+      await this.recordContractStatusHistory(
+        tx,
+        id,
+        fromStatus,
+        ContractStatus.CANCELLED,
+        actorId,
+        "Contract cancelled",
+      );
+      return c;
     });
 
     await this.notificationsService.notifyUsers({

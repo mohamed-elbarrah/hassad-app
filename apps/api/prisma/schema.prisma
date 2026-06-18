@@ -34,6 +34,7 @@ model User {
   contractVersions     ContractVersion[]
   createdContracts     Contract[]                @relation("ContractCreator")
   soldContracts        Contract[]                @relation("ContractSalesPerson")
+  contractStatusChanges ContractStatusHistory[]   @relation("ContractStatusChangedBy")
   chatParticipants     ConversationParticipant[]
   approvedDelivs       Deliverable[]
   employee             Employee?
@@ -514,8 +515,14 @@ model Contract {
   currency       String                 @default("SAR") @map("currency")
   requestId      String?                @map("request_id")
   servicesList   Json?                  @map("services_list")
+  // ── Billing plan (Phase 1: down-payment activation gate) ────────────────────
+  downPaymentType   PaymentAmountType?   @map("down_payment_type")
+  downPaymentValue  Float?               @map("down_payment_value")
+  numberOfMonths    Int?                @map("number_of_months")
   renewalAlerts  ContractRenewalAlert[]
   versions       ContractVersion[]
+  paymentPlans   ContractPaymentPlan[]
+  statusHistory  ContractStatusHistory[]
   client         Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   creator        User                   @relation("ContractCreator", fields: [createdBy], references: [id])
   salesPerson    User?                  @relation("ContractSalesPerson", fields: [salesPersonId], references: [id])
@@ -556,6 +563,46 @@ model ContractRenewalAlert {
 
   @@index([contractId])
   @@map("contract_renewal_alerts")
+}
+
+/// Planned payment for a contract (down payment, recurring monthly, milestones).
+/// Drives invoice generation. Belongs to the commercial Contract layer.
+model ContractPaymentPlan {
+  id            String                @id @default(uuid())
+  contractId    String                @map("contract_id")
+  label         String
+  sequence      Int                   @default(0)
+  triggerType   PaymentPlanTriggerType @map("trigger_type")
+  amountType    PaymentAmountType     @map("amount_type")
+  amountValue   Float                 @map("amount_value")
+  isRecurring   Boolean              @default(false) @map("is_recurring")
+  dueOffsetDays Int?                 @map("due_offset_days")
+  isActive      Boolean              @default(true) @map("is_active")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  contract      Contract             @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  invoices      Invoice[]
+
+  @@index([contractId])
+  @@index([triggerType])
+  @@map("contract_payment_plans")
+}
+
+/// Audit trail of contract status transitions (RULE 2: history on every state change).
+model ContractStatusHistory {
+  id          String   @id @default(uuid())
+  contractId  String   @map("contract_id")
+  fromStatus  ContractStatus @map("from_status")
+  toStatus    ContractStatus @map("to_status")
+  changedBy   String   @map("changed_by")
+  reason      String?
+  changedAt   DateTime @default(now()) @map("changed_at")
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  changedByUser User    @relation("ContractStatusChangedBy", fields: [changedBy], references: [id])
+
+  @@index([contractId])
+  @@index([toStatus])
+  @@map("contract_status_history")
 }
 
 model Project {
@@ -965,16 +1012,20 @@ model Invoice {
   updatedAt        DateTime        @updatedAt @map("updated_at")
   sentAt           DateTime?       @map("sent_at")
   currency         String          @default("SAR") @map("currency")
+  // ── Billing plan linkage (Phase 1: down-payment invoice; Phase 3: period invoice) ──
+  paymentPlanId    String?         @map("payment_plan_id")
   items            InvoiceItem[]
   client           Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contract         Contract?       @relation(fields: [contractId], references: [id])
   creator          User            @relation(fields: [createdBy], references: [id])
+  paymentPlan      ContractPaymentPlan? @relation(fields: [paymentPlanId], references: [id])
   tickets          PaymentTicket[]
   payments         Payment[]
 
   @@index([clientId])
   @@index([invoiceNumber])
   @@index([status])
+  @@index([paymentPlanId])
   @@map("invoices")
 }
 
@@ -1539,8 +1590,22 @@ enum ContractStatus {
   SENT
   SIGNED
   ACTIVE
+  ON_HOLD
+  COMPLETED
   EXPIRED
   CANCELLED
+}
+
+enum PaymentPlanTriggerType {
+  ON_SIGN
+  PERIOD_END
+  MILESTONE
+  MANUAL
+}
+
+enum PaymentAmountType {
+  PERCENT
+  FIXED
 }
 
 enum RenewalAlertType {
@@ -1556,6 +1621,7 @@ enum ConversationType {
 
 enum ProjectStatus {
   PLANNING
+  PENDING_ACTIVATION
   ACTIVE
   ON_HOLD
   COMPLETED

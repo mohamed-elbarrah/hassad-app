@@ -27,6 +27,8 @@ async function main() {
   await prisma.task.deleteMany();
   await prisma.projectMember.deleteMany();
   await prisma.project.deleteMany();
+  await prisma.contractStatusHistory.deleteMany();
+  await prisma.contractPaymentPlan.deleteMany();
   await prisma.contractVersion.deleteMany();
   await prisma.contract.deleteMany();
   await prisma.proposal.deleteMany();
@@ -1454,6 +1456,114 @@ async function main() {
     },
   });
 
+  // ── Phase 1: contract payment plan + down-payment activation demo ──────────
+  const retainerStart = new Date();
+  const retainerEnd = new Date();
+  retainerEnd.setMonth(retainerEnd.getMonth() + 6);
+
+  const ctrRetainer = await prisma.contract.create({
+    data: {
+      clientId: clientA.id,
+      createdBy: userIds["SALES"],
+      salesPersonId: userIds["SALES"],
+      title: "Monthly Retainer — TechVentures (Phase 1 billing demo)",
+      type: "MONTHLY_RETAINER",
+      status: "SIGNED",
+      startDate: retainerStart,
+      endDate: retainerEnd,
+      monthlyValue: 7000,
+      totalValue: 60000,
+      currency: "SAR",
+      downPaymentType: "PERCENT",
+      downPaymentValue: 30,
+      numberOfMonths: 6,
+      eSigned: true,
+      signedAt: new Date(),
+    },
+  });
+
+  const [dpRow, recurRow] = await Promise.all([
+    prisma.contractPaymentPlan.create({
+      data: {
+        contractId: ctrRetainer.id,
+        label: "Down Payment (30%)",
+        sequence: 0,
+        triggerType: "ON_SIGN",
+        amountType: "PERCENT",
+        amountValue: 30,
+        isRecurring: false,
+        dueOffsetDays: 0,
+      },
+    }),
+    prisma.contractPaymentPlan.create({
+      data: {
+        contractId: ctrRetainer.id,
+        label: "Monthly Retainer Payment",
+        sequence: 1,
+        triggerType: "PERIOD_END",
+        amountType: "FIXED",
+        amountValue: 7000,
+        isRecurring: true,
+        dueOffsetDays: 0,
+      },
+    }),
+  ]);
+
+  // Project awaits down-payment activation
+  const retainerProject = await prisma.project.create({
+    data: {
+      clientId: clientA.id,
+      contractId: ctrRetainer.id,
+      projectManagerId: userIds["PM"],
+      name: "TechVentures — Monthly Retainer (awaiting down payment)",
+      description:
+        "Phase 1 billing demo: project is PENDING_ACTIVATION until the down-payment invoice is paid.",
+      status: "PENDING_ACTIVATION",
+      priority: "NORMAL",
+      startDate: retainerStart,
+      endDate: retainerEnd,
+    },
+  });
+  await prisma.projectMember.create({
+    data: { projectId: retainerProject.id, userId: userIds["PM"], role: "MANAGER" },
+  });
+
+  // Down-payment invoice (30% of 60000 = 18000) linked to the ON_SIGN plan row
+  await prisma.invoice.create({
+    data: {
+      clientId: clientA.id,
+      contractId: ctrRetainer.id,
+      paymentPlanId: dpRow.id,
+      createdBy: userIds["ACCOUNTANT"],
+      invoiceNumber: "INV-DOWN-0001",
+      amount: 18000,
+      status: "PENDING",
+      paymentMethod: "BANK_TRANSFER",
+      issueDate: new Date(),
+      dueDate: new Date(),
+      notes: "الدفعة المقدمة لتفعيل العقد (Phase 1 demo)",
+      items: {
+        create: {
+          description: "الدفعة المقدمة (Down Payment 30%)",
+          quantity: 1,
+          unitPrice: 18000,
+          total: 18000,
+        },
+      },
+    },
+  });
+
+  // Contract status history for the SIGNED transition
+  await prisma.contractStatusHistory.create({
+    data: {
+      contractId: ctrRetainer.id,
+      fromStatus: "SENT",
+      toStatus: "SIGNED",
+      changedBy: userIds["SALES"],
+      reason: "Signed via share link (Phase 1 demo)",
+    },
+  });
+
   // ── Campaigns — all 5 statuses (using createMany + existing task IDs) ─────────
   const campaigns = [
     {
@@ -2394,6 +2504,7 @@ async function main() {
     "contracts.activate",
     "contracts.cancel",
     "contracts.manage_versions",
+    "contracts.manage_payment_plan",
     "contracts.read_public",
     "contracts.sign_public",
     "invoices.pay_public",
@@ -2457,6 +2568,7 @@ async function main() {
       "contracts.activate",
       "contracts.cancel",
       "contracts.manage_versions",
+      "contracts.manage_payment_plan",
       "notifications.read",
       "notifications.update",
       "services.read",

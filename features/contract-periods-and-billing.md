@@ -35,7 +35,7 @@ recurring monthly invoices, payment schedule, reminders, or suspension for non-p
 | 4 | Suspension UX: project shows **paused with the reason**; PM keeps **read access**, sees it's on hold, and **decides himself** whether to stop current tasks. We block new task creation + approvals only. |
 | 5 | Legacy contracts marked `FIXED_PROJECT`, left untouched (all new fields nullable). |
 | 6 | Company timezone default `Asia/Riyadh`, **admin-only** to change (stored in `CompanySetting`). |
-| 7 | Auto-cancel unpaid **down payment** after a grace period (default **14 days**, admin-configurable). |
+| 7 | Auto-cancel unpaid **down payment** after a grace period — **7 days** (admin-configurable via `CompanySetting.down_payment_grace_days`). On cancel, **keep** the auto-created project as `PENDING_ACTIVATION` (do **not** archive) for record-keeping. |
 | 8 | Period invoice issued at **period close** (arrears). No client acceptance gate before billing. |
 
 ## 4. Architecture summary (Option 1 + B1)
@@ -106,7 +106,7 @@ contract_status_history           -- one row per contract status transition (non
 ### CompanySetting keys (generic key→JSON store, admin-only)
 
 - `timezone` → `"Asia/Riyadh"`
-- `down_payment_grace_days` → `14`
+- `down_payment_grace_days` → `7`
 - `reminder_offset_days` → `[5, 3, 0]`
 - `suspend_on_overdue` → `true`
 
@@ -156,7 +156,7 @@ Dedup via `reminder_flags` bitmask — never double-send even if cron runs twice
       `bank_accounts`, `payment_gateways`, `notifications`/`notification_events`,
       `conversations`/`messages`, `requests`/`request_service`/`request_status_history`.
 - [x] Add supporting **reference** seed data used by the feature:
-      `CompanySetting` timezone=`Asia/Riyadh`, `down_payment_grace_days=14`,
+      `CompanySetting` timezone=`Asia/Riyadh`, `down_payment_grace_days=7`,
       `reminder_offset_days=[5,3,0]`, `suspend_on_overdue=true`; `CurrencySetting` SAR
       default; one `BankAccount`; one `PaymentGateway` (MANUAL).
 - [x] Verify seed typechecks & (if DB available) `npx prisma db seed` runs clean.
@@ -166,29 +166,29 @@ Dedup via `reminder_flags` bitmask — never double-send even if cron runs twice
 ### Phase 1 — Payment plan + down-payment activation gate
 
 Schema:
-- [ ] Add enums `PaymentPlanTriggerType`, `PaymentAmountType`.
-- [ ] Add `contract_payment_plans` table.
-- [ ] Add `contract_status_history` table.
-- [ ] `contracts`: add `down_payment_type`, `down_payment_value`, `number_of_months`.
-- [ ] `ContractStatus`: add `ON_HOLD`, `COMPLETED`.
-- [ ] `ProjectStatus`: add `PENDING_ACTIVATION`.
-- [ ] `migrate dev` + commit migration + `prisma generate`.
+- [x] Add enums `PaymentPlanTriggerType`, `PaymentAmountType`.
+- [x] Add `contract_payment_plans` table.
+- [x] Add `contract_status_history` table.
+- [x] `contracts`: add `down_payment_type`, `down_payment_value`, `number_of_months`.
+- [x] `ContractStatus`: add `ON_HOLD`, `COMPLETED`.
+- [x] `ProjectStatus`: add `PENDING_ACTIVATION`.
+- [x] `migrate dev` + commit migration + `prisma generate`.
 
 API (`contracts` + `finance`):
-- [ ] DTO + endpoints for Sales to define/manage a contract's payment plan
+- [x] DTO + endpoints for Sales to define/manage a contract's payment plan
       (`@RequirePermissions('contracts.update')`): create/plan rows, list, update, remove.
-- [ ] On `POST /contracts/:id/sign` (and `signByToken`): create the **down-payment invoice**
+- [x] On `POST /contracts/:id/sign` (and `signByToken`): create the **down-payment invoice**
       from the `ON_SIGN` plan row (amount resolved PERCENT→`total_value*pct` /
       FIXED→value). Project created as `PENDING_ACTIVATION`.
-- [ ] Activation gate: on `Payment.status = SUCCESS` for the down-payment invoice →
+- [x] Activation gate: on `Payment.status = SUCCESS` for the down-payment invoice →
       contract `SIGNED→ACTIVE`, project `PENDING_ACTIVATION→ACTIVE`, write
       `contract_status_history`, emit `CONTRACT_ACTIVATED` notification.
-- [ ] Zero-down-payment path: no `ON_SIGN` row / `amount_value=0` → activate on sign.
-- [ ] Legacy contracts: backfill `billingType` is N/A (uses `ContractType`); leave existing
+- [x] Zero-down-payment path: no `ON_SIGN` row / `amount_value=0` → activate on sign.
+- [x] Legacy contracts: backfill `billingType` is N/A (uses `ContractType`); leave existing
       invoice/project untouched. Add a nullable-tolerant migration (no data rewrite).
-- [ ] Seed: add sample contract with a payment plan (down payment + recurring) + the
+- [x] Seed: add sample contract with a payment plan (down payment + recurring) + the
       down-payment invoice in `PENDING`/`DUE` for the `client@hassad.com` account.
-- [ ] `tsc --noEmit` clean; manual inspect.
+- [x] `tsc --noEmit` clean; manual inspect.
 
 ### Phase 2 — Periods lifecycle
 
@@ -270,8 +270,29 @@ API (`finance` + cron):
 
 - 2026-06-18 — Branch `feat/contract-periods-billing` created; tracking doc written;
   current seed audited (`tsc --noEmit` clean vs generated client).
+- 2026-06-18 — Phase 1 COMPLETE & verified end-to-end:
+  Schema: enums PaymentPlanTriggerType/PaymentAmountType; ContractStatus +ON_HOLD/+COMPLETED;
+  ProjectStatus +PENDING_ACTIVATION; new tables contract_payment_plans + contract_status_history;
+  contracts +down_payment_type/down_payment_value/number_of_months; invoices +payment_plan_id.
+  Migration 20260618225558_contract_payment_plan_and_activation (additive, applied).
+  Resolved legacy migration checksum drift (sync_schema_drift) via _prisma_migrations checksum
+  update (no reset, no data loss).
+  Code: ContractPaymentPlanService (plan CRUD + resolveAmount); ContractsService sign flow
+  refactored to onContractSigned (project PENDING_ACTIVATION + down-payment invoice, or instant
+  activation on zero-down); activateContract gate + contract_status_history helper;
+  @OnEvent('invoice.paid') listener for activation; FinanceService emits invoice.paid on full
+  payment + new generateScheduledInvoice; controller payment-plan endpoints
+  (GET/PUT/POST/PATCH/DELETE) under contracts.manage_payment_plan; removed legacy auto
+  full-invoice generation from contract create.
+  Seed: contracts.manage_payment_plan perm (ADMIN+SALES); Phase 1 demo (monthly retainer +
+  plan + PENDING_ACTIVATION project + down-payment invoice + history).
+  Verified: tsc --noEmit clean; nest build emits; app boots (DI OK); paid INV-DOWN-0001 via
+  PATCH /invoices/:id/pay -> contract SIGNED->ACTIVE, project PENDING_ACTIVATION->ACTIVE,
+  invoice PAID, history SIGNED->ACTIVE recorded; GET /contracts/:id/payment-plan returns rows.
+
 - 2026-06-18 — Phase 0 (partial): supporting reference seed data added & verified
   (`currency_settings` SAR, 4 `company_settings`, 1 `bank_accounts`, 1 `payment_gateways`).
   `tsc --noEmit` exit 0, `prisma db seed` exit 0, rows confirmed in DB. Remaining Phase 0
   items (notifications/conversations/requests seed) deferred to their owning phases.
-  Awaiting answer on down-payment auto-cancel default (14 days + archive project).
+  Down-payment auto-cancel default locked: 7 days grace, keep project as
+  PENDING_ACTIVATION (no archive).
