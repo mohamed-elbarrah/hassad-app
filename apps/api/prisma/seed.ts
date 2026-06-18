@@ -236,6 +236,68 @@ async function main() {
     ],
   });
 
+  // ── Reference config: currency, company settings, bank, payment gateway ──────
+  // (upsert — never deleted; supports the contract-periods-and-billing feature)
+
+  // Currency: SAR as the default/base currency (exchangeRate 1)
+  await prisma.currencySetting.upsert({
+    where: { code: "SAR" },
+    update: { isDefault: true, isActive: true, exchangeRate: 1 },
+    create: {
+      code: "SAR",
+      name: "Saudi Riyal",
+      symbol: "SAR",
+      isDefault: true,
+      isActive: true,
+      exchangeRate: 1,
+      symbolType: "TEXT",
+    },
+  });
+
+  // Company settings consumed by the billing/period engine (admin-only to change)
+  const companySettings: Array<{ key: string; value: any }> = [
+    { key: "timezone", value: "Asia/Riyadh" },
+    { key: "down_payment_grace_days", value: 14 },
+    { key: "reminder_offset_days", value: [5, 3, 0] },
+    { key: "suspend_on_overdue", value: true },
+  ];
+  for (const s of companySettings) {
+    await prisma.companySetting.upsert({
+      where: { key: s.key },
+      update: { value: s.value },
+      create: { key: s.key, value: s.value },
+    });
+  }
+
+  // Bank account (manual transfer target)
+  await prisma.bankAccount.upsert({
+    where: { id: "bank-alrajhi-main" },
+    update: {},
+    create: {
+      id: "bank-alrajhi-main",
+      accountName: "Hassad Platform — Operating Account",
+      iban: "SA0380000000608010167519",
+      bankName: "Al Rajhi Bank",
+      swiftCode: "RJHISARI",
+      instructions:
+        "يرجى إرسال إيصال التحويل عبر البوابة لتفعيل المشروع بعد دفع الدفعة المقدمة.",
+      isActive: true,
+    },
+  });
+
+  // Payment gateway — manual (bank transfer) for dev; online gateways (Moyasar) added in prod
+  await prisma.paymentGateway.upsert({
+    where: { id: "gw-manual-bank" },
+    update: {},
+    create: {
+      id: "gw-manual-bank",
+      name: "Manual Bank Transfer",
+      type: "MANUAL",
+      isActive: true,
+      configJson: { bankAccountId: "bank-alrajhi-main" },
+    },
+  });
+
   // Roles
   const roleNames = [
     "ADMIN",

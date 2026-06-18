@@ -150,16 +150,18 @@ Dedup via `reminder_flags` bitmask — never double-send even if cron runs twice
 ### Phase 0 — Prep & seed sync
 
 - [ ] Confirm this doc is reviewed & approved.
-- [ ] Audit current seed vs current schema (baseline: `tsc --noEmit` clean — confirmed).
+- [x] Audit current seed vs current schema (baseline: `tsc --noEmit` clean — confirmed).
       Documented gaps (not seeded today, relevant to this feature):
       `company_settings` (timezone/grace/reminders), `currency_settings` (SAR default),
       `bank_accounts`, `payment_gateways`, `notifications`/`notification_events`,
       `conversations`/`messages`, `requests`/`request_service`/`request_status_history`.
-- [ ] Add supporting **reference** seed data used by the feature:
+- [x] Add supporting **reference** seed data used by the feature:
       `CompanySetting` timezone=`Asia/Riyadh`, `down_payment_grace_days=14`,
       `reminder_offset_days=[5,3,0]`, `suspend_on_overdue=true`; `CurrencySetting` SAR
       default; one `BankAccount`; one `PaymentGateway` (MANUAL).
-- [ ] Verify seed typechecks & (if DB available) `npx prisma db seed` runs clean.
+- [x] Verify seed typechecks & (if DB available) `npx prisma db seed` runs clean.
+      Confirmed: `tsc --noEmit` exit 0; `prisma db seed` exit 0; verified rows in DB:
+      SAR currency, 4 company settings, `bank-alrajhi-main`, `gw-manual-bank`.
 
 ### Phase 1 — Payment plan + down-payment activation gate
 
@@ -267,5 +269,9 @@ API (`finance` + cron):
 ## 10. Status log
 
 - 2026-06-18 — Branch `feat/contract-periods-billing` created; tracking doc written;
-  current seed audited (`tsc --noEmit` clean vs generated client). Awaiting approval to
-  start **Phase 0**.
+  current seed audited (`tsc --noEmit` clean vs generated client).
+- 2026-06-18 — Phase 0 (partial): supporting reference seed data added & verified
+  (`currency_settings` SAR, 4 `company_settings`, 1 `bank_accounts`, 1 `payment_gateways`).
+  `tsc --noEmit` exit 0, `prisma db seed` exit 0, rows confirmed in DB. Remaining Phase 0
+  items (notifications/conversations/requests seed) deferred to their owning phases.
+  Awaiting answer on down-payment auto-cancel default (14 days + archive project).
