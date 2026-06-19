@@ -25,6 +25,8 @@ import {
   TaskStatus,
   PaymentPlanTriggerType,
   PaymentAmountType,
+  ProjectPeriodStatus,
+  InvoiceStatus,
 } from "@hassad/shared";
 import { RequestsService } from "../../requests/requests.service";
 import { DirectConversationService } from "../../chat/services/direct-conversation.service";
@@ -458,38 +460,119 @@ export class ContractsService {
   }
 
   /**
-   * Domain event listener: when an invoice becomes fully paid, if it is the
-   * contract's down-payment invoice (its plan row is `ON_SIGN`) and the contract
-   * is still `SIGNED`, run the activation gate.
+   * Domain event listener: when an invoice becomes fully paid.
+   * - Down-payment (ON_SIGN) → activate contract (Phase 1).
+   * - Period invoice (PERIOD_END) → resume suspended project/period (Phase 3).
    */
   @OnEvent("invoice.paid")
   async handleInvoicePaid(payload: {
     invoiceId: string;
     contractId?: string | null;
     paymentPlanId?: string | null;
+    clientId?: string;
+    amount?: number;
     userId?: string;
   }) {
     if (!payload.contractId) return;
 
-    // Only the down-payment invoice triggers activation in Phase 1.
     const isDownPayment = await this.isDownPaymentInvoice(payload);
-    if (!isDownPayment) return;
+    if (isDownPayment) {
+      const contract = await this.prisma.contract.findUnique({
+        where: { id: payload.contractId },
+        select: { id: true, status: true, createdBy: true },
+      });
+      if (!contract || contract.status !== ContractStatus.SIGNED) return;
 
-    const contract = await this.prisma.contract.findUnique({
-      where: { id: payload.contractId },
-      select: { id: true, status: true, createdBy: true },
-    });
-    if (!contract || contract.status !== ContractStatus.SIGNED) return;
+      await this.activateContract(
+        contract.id,
+        payload.userId || contract.createdBy,
+        "Down payment received",
+      ).catch((err) => {
+        this.logger.error(`Failed to activate contract ${contract.id} after down-payment: ${err?.message}`);
+      });
+      return;
+    }
 
-    await this.activateContract(
-      contract.id,
-      payload.userId || contract.createdBy,
-      "Down payment received",
-    ).catch((err) => {
-      this.logger.error(
-        `Failed to activate contract ${contract.id} after down-payment: ${err?.message}`,
-      );
+    // Phase 3: period invoice paid → resume suspended project/period.
+    await this.resumeFromPeriodPayment(payload.invoiceId, payload.userId || "system").catch((err) => {
+      this.logger.error(`Failed to resume after period invoice payment ${payload.invoiceId}: ${err?.message}`);
     });
+  }
+
+  /** Resume a suspended project/period when an overdue period invoice is paid. */
+  private async resumeFromPeriodPayment(invoiceId: string, userId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { id: true, triggeredSuspension: true, contractId: true, period: { select: { id: true, periodNumber: true, status: true, endDate: true, projectId: true } } },
+    });
+    if (!invoice || !invoice.period || !invoice.triggeredSuspension) return;
+
+    const period = invoice.period;
+    const projectStatus = await this.prisma.project.findUnique({
+      where: { id: period.projectId },
+      select: { id: true, status: true },
+    });
+    if (period.status !== ProjectPeriodStatus.SUSPENDED) return;
+
+    const now = new Date();
+    const targetStatus = period.endDate.getTime() <= now.getTime()
+      ? ProjectPeriodStatus.CLOSED
+      : ProjectPeriodStatus.ACTIVE;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.projectPeriod.update({
+        where: { id: period.id },
+        data: { status: targetStatus, resumedAt: now, suspendedAt: null },
+      });
+      await tx.projectPeriodHistory.create({
+        data: {
+          periodId: period.id,
+          fromStatus: ProjectPeriodStatus.SUSPENDED,
+          toStatus: targetStatus,
+          changedBy: userId,
+          reason: "Resumed after period invoice payment",
+        },
+      });
+
+      if (projectStatus?.status === "ON_HOLD") {
+        await tx.project.update({
+          where: { id: period.projectId },
+          data: { status: "ACTIVE" },
+        });
+
+        if (invoice.contractId) {
+          const contract = await tx.contract.findUnique({
+            where: { id: invoice.contractId },
+            select: { status: true },
+          });
+          if (contract && contract.status === "ON_HOLD") {
+            await tx.contract.update({
+              where: { id: invoice.contractId },
+              data: { status: "ACTIVE" },
+            });
+            await this.recordContractStatusHistory(
+              tx,
+              invoice.contractId,
+              ContractStatus.ON_HOLD,
+              ContractStatus.ACTIVE,
+              userId,
+              "Resumed after period invoice payment",
+            );
+          }
+        }
+      }
+    });
+
+    await this.notificationsService
+      .createNotification({
+        entityId: period.id,
+        entityType: "PROJECT_PERIOD",
+        eventType: "PERIOD_RESUMED",
+        userId,
+        title: "تم استئناف الفترة",
+        body: `تم استئناف الفترة رقم ${period.periodNumber} بعد دفع الفاتورة`,
+      })
+      .catch(() => undefined);
   }
 
   /** An invoice is the down-payment invoice if its linked plan row is `ON_SIGN`. */

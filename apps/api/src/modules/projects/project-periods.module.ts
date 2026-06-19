@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ProjectPeriodsService } from "./services/project-periods.service";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { FinanceModule } from "../finance/finance.module";
 
 /**
  * ProjectPeriodsModule — owns the monthly period lifecycle for retainer projects.
@@ -9,7 +10,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
  * without creating a circular dependency.
  */
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, FinanceModule],
   providers: [ProjectPeriodsService],
   exports: [ProjectPeriodsService],
 })

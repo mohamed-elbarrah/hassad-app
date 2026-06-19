@@ -266,6 +266,7 @@ export class FinanceService {
         contractId: contract.id,
         paymentPlanId: params.paymentPlanId,
         createdBy: params.userId,
+
         invoiceNumber,
         amount: params.amount,
         status: InvoiceStatus.PENDING,

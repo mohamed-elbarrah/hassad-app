@@ -1081,8 +1081,10 @@ model Invoice {
   sentAt           DateTime?       @map("sent_at")
   currency         String          @default("SAR") @map("currency")
   // ── Billing plan linkage (Phase 1: down-payment invoice; Phase 3: period invoice) ──
-  paymentPlanId    String?         @map("payment_plan_id")
-  items            InvoiceItem[]
+  paymentPlanId      String?         @map("payment_plan_id")
+  reminderFlags      Int            @default(0) @map("reminder_flags")
+  triggeredSuspension Boolean       @default(false) @map("triggered_suspension")
+  items              InvoiceItem[]
   client           Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contract         Contract?       @relation(fields: [contractId], references: [id])
   creator          User            @relation(fields: [createdBy], references: [id])

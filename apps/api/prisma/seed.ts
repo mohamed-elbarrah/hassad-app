@@ -1727,6 +1727,150 @@ async function main() {
     });
   }
 
+  // ── Phase 3: overdue period invoice + suspension demo ────────────────────────
+  // A retainer with a suspended project and LATE period invoice to demo the engine.
+  const retainer3Start = new Date("2026-05-01T00:00:00.000Z");
+  const ctrRetainer3 = await prisma.contract.create({
+    data: {
+      clientId: clientA.id,
+      createdBy: userIds["SALES"],
+      salesPersonId: userIds["SALES"],
+      title: "Monthly Retainer — TechVentures (Phase 3 billing demo)",
+      type: "MONTHLY_RETAINER",
+      status: "ON_HOLD",
+      startDate: retainer3Start,
+      endDate: new Date("2026-07-31T00:00:00.000Z"),
+      monthlyValue: 7000,
+      totalValue: 21000,
+      currency: "SAR",
+      downPaymentType: "PERCENT",
+      downPaymentValue: 0,
+      numberOfMonths: 3,
+      eSigned: true,
+      signedAt: new Date("2026-05-01T00:00:00.000Z"),
+    },
+  });
+  // Payment plan: PERIOD_END recurring row only (zero down payment).
+  const recurRow3 = await prisma.contractPaymentPlan.create({
+    data: {
+      contractId: ctrRetainer3.id,
+      label: "Monthly Retainer Payment",
+      sequence: 0,
+      triggerType: "PERIOD_END",
+      amountType: "FIXED",
+      amountValue: 7000,
+      isRecurring: true,
+      dueOffsetDays: 0,
+    },
+  });
+
+  const retainer3Project = await prisma.project.create({
+    data: {
+      clientId: clientA.id,
+      contractId: ctrRetainer3.id,
+      projectManagerId: userIds["PM"],
+      name: "TechVentures — Monthly Retainer (suspended for non-payment)",
+      description: "Phase 3 billing demo: project is ON_HOLD due to unpaid period invoice.",
+      status: "ON_HOLD",
+      priority: "NORMAL",
+      startDate: retainer3Start,
+      endDate: new Date("2026-07-31T00:00:00.000Z"),
+    },
+  });
+  await prisma.projectMember.create({
+    data: { projectId: retainer3Project.id, userId: userIds["PM"], role: "MANAGER" },
+  });
+
+  // 3 periods: p1 CLOSED with PAID invoice, p2 SUSPENDED with LATE invoice, p3 UPCOMING
+  const p3PeriodsData = [
+    { n: 1, start: "2026-05-01", end: "2026-05-30", status: "CLOSED", closedAt: "2026-05-31" },
+    { n: 2, start: "2026-05-31", end: "2026-06-29", status: "SUSPENDED", closedAt: null, suspendedAt: "2026-06-22" },
+    { n: 3, start: "2026-06-30", end: "2026-07-30", status: "UPCOMING", closedAt: null },
+  ] as const;
+  const p3PeriodIds: Record<number, string> = {};
+  for (const p of p3PeriodsData) {
+    const created = await prisma.projectPeriod.create({
+      data: {
+        projectId: retainer3Project.id,
+        periodNumber: p.n,
+        startDate: new Date(p.start + "T00:00:00.000Z"),
+        endDate: new Date(p.end + "T23:59:59.999Z"),
+        status: p.status,
+        closedAt: p.closedAt ? new Date(p.closedAt + "T00:00:00.000Z") : null,
+        suspendedAt: (p as any).suspendedAt ? new Date((p as any).suspendedAt + "T00:00:00.000Z") : null,
+      },
+    });
+    p3PeriodIds[p.n] = created.id;
+  }
+
+  // Period status history
+  await prisma.projectPeriodHistory.createMany({
+    data: [
+      { periodId: p3PeriodIds[1], fromStatus: "UPCOMING", toStatus: "ACTIVE", changedBy: userIds["PM"], reason: "Auto-opened on period start" },
+      { periodId: p3PeriodIds[1], fromStatus: "ACTIVE", toStatus: "CLOSED", changedBy: userIds["PM"], reason: "Period closed" },
+      { periodId: p3PeriodIds[2], fromStatus: "UPCOMING", toStatus: "ACTIVE", changedBy: userIds["PM"], reason: "Auto-opened after period 1 closed" },
+      { periodId: p3PeriodIds[2], fromStatus: "ACTIVE", toStatus: "SUSPENDED", changedBy: userIds["ACCOUNTANT"], reason: "Auto-suspend: overdue period invoice" },
+    ],
+  });
+
+  // Contract status history
+  await prisma.contractStatusHistory.createMany({
+    data: [
+      { contractId: ctrRetainer3.id, fromStatus: "SENT", toStatus: "SIGNED", changedBy: userIds["SALES"], reason: "Signed by client" },
+      { contractId: ctrRetainer3.id, fromStatus: "SIGNED", toStatus: "ACTIVE", changedBy: userIds["ACCOUNTANT"], reason: "Zero down payment — auto-activated" },
+      { contractId: ctrRetainer3.id, fromStatus: "ACTIVE", toStatus: "ON_HOLD", changedBy: userIds["ACCOUNTANT"], reason: "Auto-suspend: overdue period invoice" },
+    ],
+  });
+
+  // PAID period invoice for period 1
+  await prisma.invoice.create({
+    data: {
+      clientId: clientA.id,
+      contractId: ctrRetainer3.id,
+      paymentPlanId: recurRow3.id,
+      createdBy: userIds["ACCOUNTANT"],
+      invoiceNumber: "INV-PRD-3001",
+      amount: 7000,
+      status: "PAID",
+      paymentMethod: "BANK_TRANSFER",
+      issueDate: new Date("2026-05-31T00:00:00.000Z"),
+      dueDate: new Date("2026-06-01T00:00:00.000Z"),
+      paidAt: new Date("2026-06-05T00:00:00.000Z"),
+      paymentReference: "TXN-PRD-3001",
+      reminderFlags: 2,
+      items: { create: { description: "الدفعة الشهرية — الفترة 1", quantity: 1, unitPrice: 7000, total: 7000 } },
+    },
+  });
+  // Link period 1 to its paid invoice
+  const p1Invoice = await prisma.invoice.findUnique({ where: { invoiceNumber: "INV-PRD-3001" }, select: { id: true } });
+  if (p1Invoice) {
+    await prisma.projectPeriod.update({ where: { id: p3PeriodIds[1] }, data: { invoiceId: p1Invoice.id } });
+  }
+
+  // LATE overdue period invoice for period 2 — triggered suspension
+  await prisma.invoice.create({
+    data: {
+      clientId: clientA.id,
+      contractId: ctrRetainer3.id,
+      paymentPlanId: recurRow3.id,
+      createdBy: userIds["ACCOUNTANT"],
+      invoiceNumber: "INV-PRD-3002",
+      amount: 7000,
+      status: "LATE",
+      paymentMethod: "BANK_TRANSFER",
+      issueDate: new Date("2026-06-01T00:00:00.000Z"),
+      dueDate: new Date("2026-06-07T00:00:00.000Z"),
+      reminderFlags: 7,
+      triggeredSuspension: true,
+      items: { create: { description: "الدفعة الشهرية — الفترة 2 (متأخرة)", quantity: 1, unitPrice: 7000, total: 7000 } },
+    },
+  });
+  // Link period 2 to its late invoice
+  const p2Invoice = await prisma.invoice.findUnique({ where: { invoiceNumber: "INV-PRD-3002" }, select: { id: true } });
+  if (p2Invoice) {
+    await prisma.projectPeriod.update({ where: { id: p3PeriodIds[2] }, data: { invoiceId: p2Invoice.id } });
+  }
+
   // ── Campaigns — all 5 statuses (using createMany + existing task IDs) ─────────
   const campaigns = [
     {

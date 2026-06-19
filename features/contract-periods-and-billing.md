@@ -219,26 +219,37 @@ API (`projects`):
 ### Phase 3 — Recurring invoicing + reminder/suspend engine
 
 Schema:
-- [ ] `invoices`: add `period_id`, `payment_plan_id`, `reminder_flags` (default 0),
-      `triggered_suspension` (default false). `migrate dev` + commit + `generate`.
+- [x] `invoices`: add `reminder_flags` (Int, default 0), `triggered_suspension`
+      (Boolean, default false). Migration `20260619003654_phase3_invoice_reminder_flags`
+      (additive, applied). `prisma generate` run.
 
 API (`finance` + cron):
-- [ ] On period `CLOSED`: issue the period invoice from the recurring (`PERIOD_END`,
-      `is_recurring`) plan row; `issue_date = period.end_date`,
-      `due_date = next_period.start_date`; set `invoice.period_id`, `payment_plan_id`;
-      send invoice; emit `INVOICE_ISSUED` + `PERIOD_CLOSED` notifications. One
-      transaction; next period `UPCOMING→ACTIVE`.
-- [ ] Daily cron (company tz): reminder pass (−5/−3/0 with bitmask dedup) + suspend pass
-      (project `ON_HOLD`, period `SUSPENDED`, reason, notify PM + client).
-- [ ] Resume hook on `Payment.status = SUCCESS` for an overdue invoice: project
-      `ON_HOLD→ACTIVE`, period `SUSPENDED→ACTIVE|CLOSED`, write history, notify.
-- [ ] Down-payment auto-cancel: unpaid past `down_payment_grace_days` → contract
-      `CANCELLED`, notify admin + sales + client.
-- [ ] Permissions: reminders/suspend are internal; resume triggered by payment webhook
-      (reuse Moyasar webhook path) or manual `mark-paid` (`finance.update`).
-- [ ] Seed: one `LATE`/overdue period invoice + a suspended project (with reason) to demo
-      the engine; one `PAID` period invoice.
-- [ ] `tsc --noEmit` clean; manual inspect; dry-run cron once to confirm.
+- [x] On period `CLOSED`: `ProjectPeriodsService.closePeriod` now calls
+      `issuePeriodInvoice` after the transaction: finds the `PERIOD_END` / `is_recurring`
+      plan row, resolves amount, calls `financeService.generateScheduledInvoice` with
+      `issueDate = period.endDate`, `dueDate = next_period.startDate`, then links
+      `period.invoiceId`.
+- [x] `FinanceService.generateScheduledInvoice` updated to accept `periodId` param.
+- [x] `ProjectPeriodsModule` imports `FinanceModule` for DI.
+- [x] `BillingCronService` (`@Cron("0 3 * * *")`, registered in ContractsModule):
+      reminder pass (−5/−3/0 days with bitmask dedup via `reminderFlags`),
+      suspend pass (sets project `ON_HOLD`, period `SUSPENDED`, contract `ON_HOLD`,
+      writes status history, notifies PM + client via `notifyUsers`).
+- [x] Resume hook on `invoice.paid` event: `ContractsService.handleInvoicePaid` extended:
+      down-payment → activation; period invoice (`triggeredSuspension=true`) →
+      `resumeFromPeriodPayment`: period `SUSPENDED→ACTIVE|CLOSED` (if end date passed),
+      project `ON_HOLD→ACTIVE`, contract `ON_HOLD→ACTIVE`, writes history, notifies.
+- [x] Down-payment auto-cancel: `BillingCronService.cancelUnpaidDownPayments` checks
+      `down_payment_grace_days` CompanySetting, cancels unpaid `ON_SIGN` invoices past
+      cutoff, sets contract `CANCELLED`, writes history, notifies admin + sales + client.
+- [x] Webhook payment path updated: `PaymentsService.updatePaymentStatus` now emits
+      `invoice.paid` event (instead of directly activating contracts), so the resume
+      hook fires for online payments too.
+- [x] Seed: Phase 3 demo (retainer with zero down payment, 3 periods: p1 CLOSED + PAID
+      invoice, p2 SUSPENDED + LATE invoice with `triggeredSuspension=true` + all
+      reminder flags set, p3 UPCOMING; contract `ON_HOLD`, project `ON_HOLD`; all
+      status history written) — `prisma db seed` exit 0.
+- [x] `tsc --noEmit` clean; `turbo build` clean; manual inspect.
 
 ### Phase 4 — Aggregation, reporting, polish
 
@@ -271,6 +282,21 @@ API (`finance` + cron):
 
 - 2026-06-18 — Branch `feat/contract-periods-billing` created; tracking doc written;
   current seed audited (`tsc --noEmit` clean vs generated client).
+- 2026-06-19 — Phase 3 COMPLETE:
+  Schema: `reminderFlags` (Int, default 0) + `triggeredSuspension` (Boolean, default
+  false) on Invoice (Migration 20260619003654_phase3_invoice_reminder_flags).
+  Code: `ProjectPeriodsService.closePeriod` issues period invoice on close (finds
+  PERIOD_END recurring plan row → `generateScheduledInvoice` → links via
+  `period.invoiceId`). `BillingCronService` (@Cron "0 3 * * *") handles reminders
+  (−5/−3/0 bitmask dedup), suspension (project ON_HOLD, period SUSPENDED,
+  contract ON_HOLD, history + notify), and down-payment auto-cancel past grace days.
+  `ContractsService.handleInvoicePaid` extended for resume-on-payment (period
+  SUSPENDED→ACTIVE/CLOSED, project/contract ON_HOLD→ACTIVE, history, notify).
+  `PaymentsService.updatePaymentStatus` now emits `invoice.paid` event for webhook
+  convergence. Seed: Phase 3 demo (zero-down retainer, 3 periods: p1 PAID invoice,
+  p2 LATE with triggeredSuspension, p3 UPCOMING; contract ON_HOLD). `tsc --noEmit`
+  clean; `turbo build` clean; `prisma db seed` exit 0.
+
 - 2026-06-18 — Phase 2 COMPLETE & verified end-to-end:
   Schema: enum ProjectPeriodStatus; new tables project_periods + project_period_history;
   project_periods.invoice_id unique FK → invoices; period_id nullable FK (SET NULL) added

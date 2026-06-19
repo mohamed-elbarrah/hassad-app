@@ -7,7 +7,8 @@ import {
 import { OnEvent } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
-import { ProjectPeriodStatus, ContractType } from "@hassad/shared";
+import { FinanceService } from "../../finance/services/finance.service";
+import { ProjectPeriodStatus, ContractType, PaymentPlanTriggerType } from "@hassad/shared";
 import type { Prisma } from "@prisma/client";
 
 /**
@@ -28,6 +29,7 @@ export class ProjectPeriodsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private financeService: FinanceService,
   ) {}
 
   // ── Date math ───────────────────────────────────────────────────────────────
@@ -229,11 +231,14 @@ export class ProjectPeriodsService {
 
   /**
    * ACTIVE → CLOSED. Sets closedAt, writes history, then opens the next UPCOMING
-   * period if its start date has arrived. (Phase 3 also issues the period invoice
-   * here; that hook is added in Phase 3.)
+   * period if its start date has arrived. On close, issues the period invoice
+   * from the recurring PERIOD_END plan row (Phase 3).
    */
   async closePeriod(periodId: string, actorId: string, reason?: string) {
-    const period = await this.prisma.projectPeriod.findUnique({ where: { id: periodId } });
+    const period = await this.prisma.projectPeriod.findUnique({
+      where: { id: periodId },
+      include: { project: { select: { id: true, contractId: true, name: true } } },
+    });
     if (!period) throw new NotFoundException("Period not found");
     if (period.status === ProjectPeriodStatus.CLOSED) return period;
     if (period.status !== ProjectPeriodStatus.ACTIVE && period.status !== ProjectPeriodStatus.SUSPENDED) {
@@ -241,7 +246,7 @@ export class ProjectPeriodsService {
     }
 
     const now = new Date();
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.projectPeriod.update({
         where: { id: periodId },
         data: { status: ProjectPeriodStatus.CLOSED, closedAt: now },
@@ -250,13 +255,73 @@ export class ProjectPeriodsService {
 
       // Open the next period if its start date has arrived.
       const next = await tx.projectPeriod.findFirst({
-        where: { projectId: period.projectId, periodNumber: period.periodNumber + 1 },
+        where: { projectId: period.project.id, periodNumber: period.periodNumber + 1 },
       });
       if (next && next.status === ProjectPeriodStatus.UPCOMING && next.startDate.getTime() <= now.getTime()) {
         await tx.projectPeriod.update({ where: { id: next.id }, data: { status: ProjectPeriodStatus.ACTIVE } });
         await this.recordPeriodStatusHistory(tx, next.id, ProjectPeriodStatus.UPCOMING, ProjectPeriodStatus.ACTIVE, actorId, "Auto-opened after previous period closed");
       }
       return updated;
+    });
+
+    // Phase 3: issue period invoice from the recurring PERIOD_END plan row.
+    if (period.project.contractId) {
+      await this.issuePeriodInvoice(period, now, actorId).catch((err) => {
+        this.logger.error(`Failed to issue period invoice for ${periodId}: ${err?.message}`);
+      });
+    }
+
+    return result;
+  }
+
+  /** Issue the monthly recurring invoice for a closed period. */
+  private async issuePeriodInvoice(
+    period: any,
+    now: Date,
+    actorId: string,
+  ) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: period.project.contractId },
+      select: { id: true, totalValue: true, title: true },
+    });
+    if (!contract) return;
+
+    const planRow = await this.prisma.contractPaymentPlan.findFirst({
+      where: {
+        contractId: contract.id,
+        triggerType: PaymentPlanTriggerType.PERIOD_END,
+        isRecurring: true,
+        isActive: true,
+      },
+    });
+    if (!planRow) return;
+
+    const amount =
+      planRow.amountType === "PERCENT"
+        ? (contract.totalValue * planRow.amountValue) / 100
+        : planRow.amountValue;
+
+    const nextPeriod = await this.prisma.projectPeriod.findFirst({
+      where: { projectId: period.project.id, periodNumber: period.periodNumber + 1 },
+      orderBy: { periodNumber: "asc" },
+    });
+    const dueDate = nextPeriod?.startDate ?? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const invoice = await this.financeService.generateScheduledInvoice({
+      contractId: contract.id,
+      paymentPlanId: planRow.id,
+      amount,
+      label: `الدفعة الشهرية — الفترة ${period.periodNumber}`,
+      issueDate: period.endDate,
+      dueDate,
+      userId: actorId,
+      projectId: period.project.id,
+      notes: `فاتورة الفترة ${period.periodNumber} للعقد "${contract.title}"`,
+    });
+
+    await this.prisma.projectPeriod.update({
+      where: { id: period.id },
+      data: { invoiceId: invoice.id },
     });
   }
 
