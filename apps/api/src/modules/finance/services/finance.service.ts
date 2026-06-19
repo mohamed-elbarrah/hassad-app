@@ -1509,4 +1509,69 @@ export class FinanceService {
 
     return ticket;
   }
+
+  // ── Phase 4: Accountant views ──────────────────────────────────────────────
+
+  /** Overdue invoices linked to active/suspended projects (accountant view). */
+  async getOverdueInvoices() {
+    return this.prisma.invoice.findMany({
+      where: {
+        status: { in: [InvoiceStatus.DUE, InvoiceStatus.LATE, InvoiceStatus.PENDING] },
+        period: { isNot: null },
+      },
+      include: {
+        period: {
+          select: {
+            id: true,
+            periodNumber: true,
+            status: true,
+            suspendedAt: true,
+            project: { select: { id: true, name: true, status: true, projectManagerId: true } },
+          },
+        },
+        contract: { select: { id: true, title: true } },
+        client: { select: { id: true, companyName: true } },
+        paymentPlan: { select: { label: true } },
+      },
+      orderBy: { dueDate: "asc" },
+    });
+  }
+
+  /** Per-contract billing summary: scheduled vs issued vs paid amounts. */
+  async getContractBillingSummary() {
+    const contracts = await this.prisma.contract.findMany({
+      where: {
+        type: "MONTHLY_RETAINER" as any,
+        status: { in: ["ACTIVE" as any, "ON_HOLD" as any, "SIGNED" as any] },
+      },
+      include: {
+        client: { select: { companyName: true } },
+        invoices: {
+          select: { amount: true, status: true, paymentPlan: { select: { triggerType: true } } },
+        },
+        paymentPlans: {
+          where: { isRecurring: true, isActive: true },
+          select: { amountValue: true, amountType: true },
+          take: 1,
+        },
+      },
+    });
+
+    return contracts.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      clientName: c.client?.companyName,
+      contractStatus: c.status,
+      totalValue: c.totalValue,
+      monthlyValue: c.monthlyValue,
+      scheduledAmount:
+        c.paymentPlans[0]?.amountType === "PERCENT"
+          ? (c.totalValue * c.paymentPlans[0].amountValue) / 100
+          : c.paymentPlans[0]?.amountValue ?? c.monthlyValue,
+      issuedCount: c.invoices.length,
+      issuedTotal: c.invoices.reduce((s: number, i: any) => s + i.amount, 0),
+      paidTotal: c.invoices.filter((i: any) => i.status === "PAID").reduce((s: number, i: any) => s + i.amount, 0),
+      overdueCount: c.invoices.filter((i: any) => i.status === "LATE" || i.status === "DUE").length,
+    }));
+  }
 }

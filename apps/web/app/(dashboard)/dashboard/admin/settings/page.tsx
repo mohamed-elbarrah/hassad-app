@@ -27,6 +27,10 @@ const FIELD_DEFS = [
   { key: "invoicePrefix", label: "بادئة رقم الفاتورة", type: "text", placeholder: "INV" },
   { key: "lowBalanceAlert", label: "حد التنبيه المالي (ريال)", type: "number", placeholder: "5000" },
   { key: "autoArchiveDays", label: "أرشفة تلقائية بعد (يوم)", type: "number", placeholder: "90" },
+  // ── Billing settings (Phase 3/4) ──
+  { key: "down_payment_grace_days", label: "مهلة الدفعة المقدمة (يوم)", type: "number", placeholder: "7" },
+  { key: "reminder_offset_days", label: "أيام التذكير (مفصولة بفاصلة)", type: "text", placeholder: "5,3,0" },
+  { key: "suspend_on_overdue", label: "تعليق عند التأخر (true/false)", type: "text", placeholder: "true" },
 ];
 
 const QUICK_LINKS = [
@@ -43,11 +47,17 @@ export default function AdminSettingsPage() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState(false);
 
+  const toFormValue = (key: string, val: any): string => {
+    if (key === "reminder_offset_days" && Array.isArray(val)) return val.join(",");
+    if (typeof val === "boolean") return val ? "true" : "false";
+    return String(val ?? "");
+  };
+
   useEffect(() => {
     if (serverSettings && Object.keys(form).length === 0) {
       const initial: Record<string, string> = {};
       for (const def of FIELD_DEFS) {
-        initial[def.key] = String(serverSettings[def.key] ?? "");
+        initial[def.key] = toFormValue(def.key, serverSettings[def.key]);
       }
       setForm(initial);
     }
@@ -62,8 +72,15 @@ export default function AdminSettingsPage() {
     try {
       const payload: Record<string, any> = {};
       for (const def of FIELD_DEFS) {
-        const val = form[def.key] ?? "";
-        payload[def.key] = def.type === "number" ? Number(val) || 0 : val;
+        let val: any = form[def.key] ?? "";
+        if (def.key === "reminder_offset_days") {
+          val = val.split(",").map((s: string) => Number(s.trim())).filter((n: number) => !isNaN(n));
+        } else if (def.key === "suspend_on_overdue") {
+          val = val === "true" || val === "1";
+        } else if (def.type === "number") {
+          val = Number(val) || 0;
+        }
+        payload[def.key] = val;
       }
       await updateSettings(payload).unwrap();
       toast.success("تم حفظ الإعدادات بنجاح");
@@ -77,7 +94,7 @@ export default function AdminSettingsPage() {
     if (!serverSettings) return;
     const initial: Record<string, string> = {};
     for (const def of FIELD_DEFS) {
-      initial[def.key] = String(serverSettings[def.key] ?? "");
+      initial[def.key] = toFormValue(def.key, serverSettings[def.key]);
     }
     setForm(initial);
     setIsDirty(false);

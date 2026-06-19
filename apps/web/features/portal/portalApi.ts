@@ -291,6 +291,18 @@ export interface ProjectReviewDetail {
   revisionRequests: ProjectReviewRevision[];
 }
 
+export interface PortalPeriodSummary {
+  id: string;
+  periodNumber: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+  summary: string | null;
+  reportFilePath: string | null;
+  completionPercentage: number;
+  invoice: { id: string; invoiceNumber: string; amount: number; status: string } | null;
+}
+
 export interface TeamMember {
   id: string;
   name: string;
@@ -489,6 +501,11 @@ export const portalApi = createApi({
       query: (id) => `/portal/projects/${id}/revisions`,
     }),
 
+    getPortalProjectPeriods: builder.query<PortalPeriodSummary[], string>({
+      query: (projectId) => `/portal/projects/${projectId}/periods`,
+      providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
+    }),
+
     getTeamMembers: builder.query<TeamMembersResponse, void>({
       query: () => "/portal/team-members",
       providesTags: ["TeamMembers"],
@@ -552,6 +569,7 @@ export const {
   useRequestProjectRevisionMutation,
   useGetProjectRevisionsQuery,
   useGetTeamMembersQuery,
+  useGetPortalProjectPeriodsQuery,
   // Strategy hooks
   useGetClientStrategiesQuery,
   useGetClientStrategyQuery,

@@ -253,15 +253,15 @@ API (`finance` + cron):
 
 ### Phase 4 — Aggregation, reporting, polish
 
-- [ ] Period dashboard endpoint: aggregate tasks (count by status), deliverables, files,
+- [x] Period dashboard endpoint: aggregate tasks (count by status), deliverables, files,
       campaigns + KPIs (for marketing clients), satisfaction rating, into one payload;
       include PM summary + report file.
-- [ ] Accountant view: scheduled vs issued vs paid per contract; overdue/suspended list.
-- [ ] Client portal monthly report view (read-only summary + report download).
-- [ ] Admin settings UI: timezone, grace days, reminder offsets (admin-only).
-- [ ] Notifications for all new events wired to existing notification engine.
-- [ ] Seed: add a fully-populated period with KPIs + rating + report for demo.
-- [ ] `turbo build` green end-to-end; final manual walkthrough.
+- [x] Accountant view: scheduled vs issued vs paid per contract; overdue/suspended list.
+- [x] Client portal monthly report view (read-only summary + report download).
+- [x] Admin settings UI: timezone, grace days, reminder offsets (admin-only).
+- [x] Notifications for all new events wired to existing notification engine.
+- [x] Seed: add a fully-populated period with KPIs + rating + report for demo.
+- [x] `turbo build` green end-to-end; final manual walkthrough.
 
 ## 9. Conventions (do not violate)
 
@@ -342,6 +342,21 @@ API (`finance` + cron):
   Verified: tsc --noEmit clean; nest build emits; app boots (DI OK); paid INV-DOWN-0001 via
   PATCH /invoices/:id/pay -> contract SIGNED->ACTIVE, project PENDING_ACTIVATION->ACTIVE,
   invoice PAID, history SIGNED->ACTIVE recorded; GET /contracts/:id/payment-plan returns rows.
+
+- 2026-06-19 — Phase 4 COMPLETE:
+  Period detail endpoint already aggregates tasks/deliverables/files/campaigns/KPIs/
+  satisfaction/summary/report (getPeriodDetail). Accountant endpoints added:
+  `GET /finance/overdue` (overdue invoices with period info) and
+  `GET /finance/contracts/billing-summary` (per-contract scheduled vs issued vs paid).
+  Portal project detail page with period timeline (expandable per-period cards:
+  completion bar, invoice, summary, report download, suspension alert).
+  Admin settings: billing fields (down_payment_grace_days, reminder_offset_days as CSV,
+  suspend_on_overdue toggle). Notifications: `INVOICE_ISSUED` + `PERIOD_CLOSED` wired
+  to existing engine. Seed: Phase 4 demo (period 1 summary + report file,
+  satisfaction rating for retainer project, KPI snapshots for campaigns).
+  Fixed pre-existing `ContractStatus`/`ProjectStatus` map TS errors in sales components
+  (missing `ON_HOLD`, `COMPLETED`, `PENDING_ACTIVATION`). `tsc --noEmit` clean;
+  `prisma db seed` exit 0.
 
 - 2026-06-18 — Phase 0 (partial): supporting reference seed data added & verified
   (`currency_settings` SAR, 4 `company_settings`, 1 `bank_accounts`, 1 `payment_gateways`).

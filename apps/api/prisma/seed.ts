@@ -1871,6 +1871,28 @@ async function main() {
     await prisma.projectPeriod.update({ where: { id: p3PeriodIds[2] }, data: { invoiceId: p2Invoice.id } });
   }
 
+  // Phase 4: Add summary + report to period 1 for the portal monthly report view.
+  await prisma.projectPeriod.update({
+    where: { id: p3PeriodIds[1] },
+    data: {
+      summary: "تم إطلاق حملات التسويق الرقمي للشهر الأول. تم تسليم 3 تصاميم للمنشورات وحققت الحملة تفاعل جيد. نسبة التحقق من الأهداف: 85%.",
+      reportFilePath: "periods/p3-p1-report.pdf",
+      completionPercentage: 100,
+    },
+  });
+
+  // Satisfaction rating for the retainer project.
+  await prisma.satisfactionRating.create({
+    data: {
+      clientId: clientA.id,
+      projectId: retainer3Project.id,
+      score: 4,
+      comment: "أداء جيد جداً في الشهر الأول. التصاميم ممتازة والتقارير واضحة. نأمل تحسين سرعة الرد على الاستفسارات.",
+      triggerEvent: "MONTHLY_REVIEW",
+      autoAction: "NONE",
+    },
+  });
+
   // ── Campaigns — all 5 statuses (using createMany + existing task IDs) ─────────
   const campaigns = [
     {
@@ -2025,6 +2047,16 @@ async function main() {
       },
     ],
   });
+
+  // Phase 4: KPI snapshots for the Phase 3 period 1 (linked to campaignRecords[1]).
+  if (p3PeriodIds[1]) {
+    await prisma.campaignKpiSnapshot.createMany({
+      data: [
+        { campaignId: campaignRecords[1].id, periodId: p3PeriodIds[1], impressions: 125000, clicks: 4200, conversions: 185, revenue: 35000, ctr: 3.36, conversionRate: 4.4, cpc: 2.8, roas: 5.0, recordedAt: new Date("2026-06-01"), createdAt: new Date("2026-06-01") },
+        { campaignId: campaignRecords[1].id, periodId: p3PeriodIds[1], impressions: 98000, clicks: 3100, conversions: 142, revenue: 28000, ctr: 3.16, conversionRate: 4.58, cpc: 2.5, roas: 4.8, recordedAt: new Date("2026-06-15"), createdAt: new Date("2026-06-15") },
+      ],
+    });
+  }
 
   // ── Client History Logs (activity feed) ─────────────────────────────────────
   await prisma.clientHistoryLog.createMany({

@@ -227,6 +227,18 @@ export class FinanceController {
     return this.financeService.findAllContracts();
   }
 
+  @Get("finance/overdue")
+  @RequirePermissions("finance.read")
+  getOverdueInvoices() {
+    return this.financeService.getOverdueInvoices();
+  }
+
+  @Get("finance/contracts/billing-summary")
+  @RequirePermissions("finance.read")
+  getContractBillingSummary() {
+    return this.financeService.getContractBillingSummary();
+  }
+
   @Get("finance/ledger")
   @RequirePermissions("finance.read_ledger")
   getLedger(@Query() filters: any) {

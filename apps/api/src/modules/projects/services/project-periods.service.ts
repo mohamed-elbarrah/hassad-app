@@ -190,6 +190,7 @@ export class ProjectPeriodsService {
         kpiSnapshots: { select: { id: true, impressions: true, clicks: true, conversions: true, revenue: true, roas: true, recordedAt: true }, orderBy: { recordedAt: "desc" } },
         statusHistory: { orderBy: { changedAt: "desc" }, take: 20, include: { changedByUser: { select: { id: true, name: true } } } },
         invoice: { select: { id: true, invoiceNumber: true, amount: true, status: true } },
+        project: { select: { id: true, clientId: true } },
       },
     });
     if (!period) throw new NotFoundException("Period not found");
@@ -199,13 +200,24 @@ export class ProjectPeriodsService {
       return acc;
     }, {});
 
+    // Latest satisfaction rating for the project.
+    const latestRating = period.project?.clientId
+      ? await this.prisma.satisfactionRating.findFirst({
+          where: { projectId: period.project.id },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, score: true, comment: true, createdAt: true },
+        })
+      : null;
+
     return {
       ...period,
+      project: undefined,
       tasksByStatus,
       taskCount: period.tasks.length,
       deliverableCount: period.deliverables.length,
       fileCount: period.files.length,
       campaignCount: period.campaigns.length,
+      satisfactionRating: latestRating,
     };
   }
 
@@ -271,6 +283,28 @@ export class ProjectPeriodsService {
       });
     }
 
+    // Phase 4: notify PM + client that the period closed.
+    const projectWithUsers = await this.prisma.project.findUnique({
+      where: { id: period.project.id },
+      select: { projectManagerId: true, client: { select: { userId: true } } },
+    });
+    const notifyIds = [
+      projectWithUsers?.projectManagerId,
+      projectWithUsers?.client?.userId,
+    ].filter(Boolean) as string[];
+    if (notifyIds.length > 0) {
+      this.notificationsService
+        .notifyUsers({
+          userIds: notifyIds,
+          title: "تم إغلاق الفترة",
+          message: `تم إغلاق الفترة رقم ${period.periodNumber} للمشروع "${period.project.name}".`,
+          entityId: period.id,
+          entityType: "PROJECT_PERIOD",
+          eventType: "PERIOD_CLOSED",
+        })
+        .catch(() => undefined);
+    }
+
     return result;
   }
 
@@ -323,6 +357,28 @@ export class ProjectPeriodsService {
       where: { id: period.id },
       data: { invoiceId: invoice.id },
     });
+
+    // Notify client that the period invoice has been issued.
+    const projectWithClient = await this.prisma.project.findUnique({
+      where: { id: period.project.id },
+      select: { client: { select: { userId: true } }, projectManagerId: true },
+    });
+    const notifyForInvoice = [
+      projectWithClient?.projectManagerId,
+      projectWithClient?.client?.userId,
+    ].filter(Boolean) as string[];
+    if (notifyForInvoice.length > 0) {
+      this.notificationsService
+        .notifyUsers({
+          userIds: notifyForInvoice,
+          title: "تم إصدار فاتورة الفترة",
+          message: `تم إصدار فاتورة الفترة رقم ${period.periodNumber} بقيمة ${amount} ر.س`,
+          entityId: invoice.id,
+          entityType: "INVOICE",
+          eventType: "INVOICE_ISSUED",
+        })
+        .catch(() => undefined);
+    }
   }
 
   /** Push a period's end date later (PM extend). Must be after the current end. */

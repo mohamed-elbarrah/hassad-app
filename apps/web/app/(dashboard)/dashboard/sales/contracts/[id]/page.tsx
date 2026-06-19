@@ -48,6 +48,8 @@ const STATUS_META: Record<
   [ContractStatus.SENT]: { label: "مرسل", tone: "warning" },
   [ContractStatus.SIGNED]: { label: "موقع", tone: "blue" },
   [ContractStatus.ACTIVE]: { label: "نشط", tone: "success" },
+  [ContractStatus.ON_HOLD]: { label: "معلق", tone: "neutral" },
+  [ContractStatus.COMPLETED]: { label: "مكتمل", tone: "success" },
   [ContractStatus.EXPIRED]: { label: "منتهي", tone: "danger" },
   [ContractStatus.CANCELLED]: { label: "ملغى", tone: "danger" },
 };
