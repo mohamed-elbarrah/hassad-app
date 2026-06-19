@@ -10,15 +10,23 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ProjectsService } from "../services/projects.service";
+import { ProjectPeriodsService } from "../services/project-periods.service";
 import { TasksService } from "../../tasks/services/tasks.service";
 import {
   CreateProjectDto,
   UpdateProjectDto,
   AddMemberDto,
 } from "../dto/project.dto";
+import {
+  SavePeriodSummaryDto,
+  ExtendPeriodDto,
+  ClosePeriodDto,
+  SetPeriodCompletionDto,
+} from "../dto/project-period.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -31,6 +39,7 @@ import { StorageCategory } from "../../../common/storage/storage.constants";
 export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
+    private readonly periodsService: ProjectPeriodsService,
     private readonly tasksService: TasksService,
     private readonly storageService: StorageService,
   ) {}
@@ -91,6 +100,91 @@ export class ProjectsController {
   @RequirePermissions("projects.update")
   updateStatus(@Param("id") id: string, @Body() body: { status: string }) {
     return this.projectsService.updateStatus(id, body.status);
+  }
+
+  // ─── Periods (monthly delivery/billing units for retainer projects) ────────────
+
+  @Get(":id/periods")
+  @RequirePermissions("projects.read")
+  listPeriods(@Param("id") id: string) {
+    return this.periodsService.listPeriods(id);
+  }
+
+  @Post(":id/periods/generate")
+  @RequirePermissions("projects.update")
+  generatePeriods(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.periodsService.generatePeriods(id, user?.id);
+  }
+
+  @Get("periods/:periodId")
+  @RequirePermissions("projects.read")
+  getPeriodDetail(@Param("periodId") periodId: string) {
+    return this.periodsService.getPeriodDetail(periodId);
+  }
+
+  @Post("periods/:periodId/close")
+  @RequirePermissions("projects.update")
+  closePeriod(
+    @CurrentUser() user: any,
+    @Param("periodId") periodId: string,
+    @Body() dto: ClosePeriodDto,
+  ) {
+    return this.periodsService.closePeriod(periodId, user?.id, dto.reason);
+  }
+
+  @Post("periods/:periodId/open")
+  @RequirePermissions("projects.update")
+  openPeriod(@CurrentUser() user: any, @Param("periodId") periodId: string) {
+    return this.periodsService.openPeriod(periodId, user?.id);
+  }
+
+  @Patch("periods/:periodId/extend")
+  @RequirePermissions("projects.update")
+  extendPeriod(
+    @CurrentUser() user: any,
+    @Param("periodId") periodId: string,
+    @Body() dto: ExtendPeriodDto,
+  ) {
+    return this.periodsService.extendPeriod(periodId, dto.endDate, user?.id);
+  }
+
+  @Post(":id/periods/extra")
+  @RequirePermissions("projects.update")
+  createExtraPeriod(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.periodsService.createExtraPeriod(id, user?.id);
+  }
+
+  @Patch("periods/:periodId/summary")
+  @RequirePermissions("projects.update")
+  savePeriodSummary(@Param("periodId") periodId: string, @Body() dto: SavePeriodSummaryDto) {
+    return this.periodsService.saveSummary(periodId, dto.summary);
+  }
+
+  @Patch("periods/:periodId/completion")
+  @RequirePermissions("projects.update")
+  setPeriodCompletion(@Param("periodId") periodId: string, @Body() dto: SetPeriodCompletionDto) {
+    return this.periodsService.setCompletion(periodId, dto.completionPercentage);
+  }
+
+  @Post("periods/:periodId/report")
+  @RequirePermissions("projects.update")
+  @UseInterceptors(FileInterceptor("file"))
+  async uploadPeriodReport(
+    @Param("periodId") periodId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException("Report file is required");
+    const uploadResult = await this.storageService.upload({
+      category: StorageCategory.PROJECT_FILE,
+      entityId: periodId,
+      file: {
+        buffer: file.buffer,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+      },
+    });
+    return this.periodsService.saveReport(periodId, uploadResult.key);
   }
 
   @Get(":id/tasks")

@@ -4,7 +4,7 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
-import { OnEvent } from "@nestjs/event-emitter";
+import { OnEvent, EventEmitter2 } from "@nestjs/event-emitter";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
@@ -47,6 +47,7 @@ export class ContractsService {
     private clientCounterService: ClientCounterService,
     private paymentPlanService: ContractPaymentPlanService,
     private financeService: FinanceService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   // ── Contract status history (RULE 2: history on every state change) ────────
@@ -436,6 +437,22 @@ export class ContractsService {
         })
         .catch(() => undefined);
     }
+
+    // Notify other modules (e.g. ProjectPeriodsService generates periods for retainers).
+    const project = await this.prisma.project.findFirst({
+      where: { contractId },
+      select: { id: true },
+    });
+    const contractWithType = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      select: { type: true },
+    });
+    this.eventEmitter.emit("contract.activated", {
+      contractId,
+      projectId: project?.id ?? null,
+      contractType: contractWithType?.type ?? null,
+      userId,
+    });
 
     return updated;
   }

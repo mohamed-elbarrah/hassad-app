@@ -193,27 +193,28 @@ API (`contracts` + `finance`):
 ### Phase 2 — Periods lifecycle
 
 Schema:
-- [ ] Add enum `ProjectPeriodStatus`.
-- [ ] Add `project_periods` + `project_period_history` tables.
-- [ ] `project_periods.invoice_id` unique FK → `invoices`.
-- [ ] Add `period_id` nullable FK on: `tasks`, `deliverables`, `project_files`,
+- [x] Add enum `ProjectPeriodStatus`.
+- [x] Add `project_periods` + `project_period_history` tables.
+- [x] `project_periods.invoice_id` unique FK → `invoices`.
+- [x] Add `period_id` nullable FK on: `tasks`, `deliverables`, `project_files`,
       `campaigns`, `campaign_kpi_snapshots`.
-- [ ] `migrate dev` + commit migration + `prisma generate`.
+- [x] `migrate dev` + commit migration + `prisma generate`.
 
 API (`projects`):
-- [ ] Period generation service: bounded (endDate set → generate all) vs rolling
+- [x] Period generation service: bounded (endDate set → generate all) vs rolling
       (null endDate → current + next; roll forward on close). Anniversary-based dates
       with end-of-month clamping that **returns to the original day** (31→28/29→31).
-- [ ] `ProjectPeriod` transitions (server-side): `UPCOMING→ACTIVE` (start date),
+- [x] `ProjectPeriod` transitions (server-side): `UPCOMING→ACTIVE` (start date),
       `ACTIVE→CLOSED` (end date / PM close-early), each writes `project_period_history`.
-- [ ] Endpoints: list periods for a project, get period detail (aggregates
+- [x] Endpoints: list periods for a project, get period detail (aggregates
       tasks/deliverables/files/campaigns/KPIs for the month), PM close-early, PM extend,
       PM create-extra-period, PM save summary + upload report file.
-- [ ] Link new tasks/deliverables/files to the **active period** automatically.
-- [ ] Seed: generate periods for the sample monthly contract; attach a few tasks to a
+- [x] Link new **tasks** to the active period automatically (deliverables/files
+      `period_id` schema ready; auto-link deferred to a follow-up).
+- [x] Seed: generate periods for the sample monthly contract; attach a few tasks to a
       period; one period `ACTIVE`, one `CLOSED` with a summary + report file.
-- [ ] Portal: client project view shows a **timeline of periods** instead of a flat list.
-- [ ] `tsc --noEmit` clean; manual inspect.
+- [x] Portal: client project view shows a **timeline of periods** instead of a flat list.
+- [x] `tsc --noEmit` clean; manual inspect.
 
 ### Phase 3 — Recurring invoicing + reminder/suspend engine
 
@@ -270,6 +271,32 @@ API (`finance` + cron):
 
 - 2026-06-18 — Branch `feat/contract-periods-billing` created; tracking doc written;
   current seed audited (`tsc --noEmit` clean vs generated client).
+- 2026-06-18 — Phase 2 COMPLETE & verified end-to-end:
+  Schema: enum ProjectPeriodStatus; new tables project_periods + project_period_history;
+  project_periods.invoice_id unique FK → invoices; period_id nullable FK (SET NULL) added
+  to tasks, deliverables, project_files, campaigns, campaign_kpi_snapshots. Migration
+  20260618233142_project_periods_lifecycle (additive, applied).
+  Shared: ProjectPeriodStatus + PROJECT_PERIOD_STATUS_AR.
+  Code: new ProjectPeriodsModule/Service (own module → no circular deps; imported by
+  Projects + Tasks modules). Anniversary date math with end-of-month clamping that returns
+  to the original day (31/01→28/02, 31/03 restored, 30/04 clamped). generatePeriods
+  (bounded via numberOfMonths/endDate → all; rolling → current+next); transitions
+  UPCOMING→ACTIVE and ACTIVE→CLOSED (PM close-early) writing project_period_history;
+  close auto-opens next period only if its start date arrived. PM endpoints: list, detail
+  (aggregates tasks/deliverables/files/campaigns/KPIs), close, open, extend, extra-period,
+  summary, completion, report upload. ContractsService.activateContract now emits
+  'contract.activated' → ProjectPeriodsService generates periods for MONTHLY_RETAINER.
+  TasksService auto-links new tasks to the project's ACTIVE period (CreateTaskDto +periodId).
+  Portal: GET /portal/projects/:id/periods client timeline.
+  Seed: Phase 2 demo (ACTIVE retainer start 31/01/2026 → 6 periods showcasing clamping;
+  p1-p4 CLOSED, p5 ACTIVE, p6 UPCOMING; 2 tasks linked to active period; contract + period
+  history). Clears for new tables.
+  Verified: tsc --noEmit clean; app boots (DI OK); end-to-end — paid Phase 1 demo down
+  payment → contract ACTIVE → event → 6 periods auto-generated (p1 ACTIVE); GET periods
+  (6); period detail aggregates (2 tasks by status); close period → CLOSED + history,
+  next period correctly stays UPCOMING (start date not reached); portal timeline (6).
+  Clamping confirmed: 31/01→27/02, 31/03 restored, 30/04 clamped.
+
 - 2026-06-18 — Phase 1 COMPLETE & verified end-to-end:
   Schema: enums PaymentPlanTriggerType/PaymentAmountType; ContractStatus +ON_HOLD/+COMPLETED;
   ProjectStatus +PENDING_ACTIVATION; new tables contract_payment_plans + contract_status_history;

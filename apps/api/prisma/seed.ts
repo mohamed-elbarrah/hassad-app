@@ -25,6 +25,8 @@ async function main() {
   await prisma.taskComment.deleteMany();
   await prisma.taskStatusHistory.deleteMany();
   await prisma.task.deleteMany();
+  await prisma.projectPeriodHistory.deleteMany();
+  await prisma.projectPeriod.deleteMany();
   await prisma.projectMember.deleteMany();
   await prisma.project.deleteMany();
   await prisma.contractStatusHistory.deleteMany();
@@ -1563,6 +1565,167 @@ async function main() {
       reason: "Signed via share link (Phase 1 demo)",
     },
   });
+
+  // ── Phase 2: project periods lifecycle demo ─────────────────────────────────
+  // ACTIVE monthly retainer starting 31/01/2026 — showcases end-of-month clamping:
+  // period 1 = 31/01 → 27/02 (Feb clamped to 28, so ends 27/02); period 3 returns to 31/03.
+  const retainer2Start = new Date("2026-01-31T00:00:00.000Z");
+  const ctrRetainer2 = await prisma.contract.create({
+    data: {
+      clientId: clientA.id,
+      createdBy: userIds["SALES"],
+      salesPersonId: userIds["SALES"],
+      title: "Monthly Retainer — TechVentures (Phase 2 periods demo)",
+      type: "MONTHLY_RETAINER",
+      status: "ACTIVE",
+      startDate: retainer2Start,
+      endDate: new Date("2026-07-31T00:00:00.000Z"),
+      monthlyValue: 7000,
+      totalValue: 60000,
+      currency: "SAR",
+      downPaymentType: "PERCENT",
+      downPaymentValue: 30,
+      numberOfMonths: 6,
+      eSigned: true,
+      signedAt: new Date("2026-01-31T00:00:00.000Z"),
+    },
+  });
+
+  const retainer2Project = await prisma.project.create({
+    data: {
+      clientId: clientA.id,
+      contractId: ctrRetainer2.id,
+      projectManagerId: userIds["PM"],
+      name: "TechVentures — Monthly Retainer (periods demo)",
+      description: "Phase 2 periods demo: 6 monthly periods, current period ACTIVE.",
+      status: "ACTIVE",
+      priority: "NORMAL",
+      startDate: retainer2Start,
+      endDate: new Date("2026-07-31T00:00:00.000Z"),
+      completionPercentage: 35,
+    },
+  });
+  await prisma.projectMember.create({
+    data: { projectId: retainer2Project.id, userId: userIds["PM"], role: "MANAGER" },
+  });
+
+  // Down payment (30% of 60000 = 18000) already paid — contract is ACTIVE.
+  const dpInvoice2 = await prisma.invoice.create({
+    data: {
+      clientId: clientA.id,
+      contractId: ctrRetainer2.id,
+      createdBy: userIds["ACCOUNTANT"],
+      invoiceNumber: "INV-DOWN-0002",
+      amount: 18000,
+      status: "PAID",
+      paymentMethod: "BANK_TRANSFER",
+      issueDate: new Date("2026-01-31T00:00:00.000Z"),
+      dueDate: new Date("2026-01-31T00:00:00.000Z"),
+      paidAt: new Date("2026-02-02T00:00:00.000Z"),
+      paymentReference: "TXN-DOWN-0002",
+      items: {
+        create: {
+          description: "الدفعة المقدمة (Down Payment 30%)",
+          quantity: 1,
+          unitPrice: 18000,
+          total: 18000,
+        },
+      },
+    },
+  });
+
+  // 6 anniversary periods (start 31/01; clamped Feb→28, returns to 31 in March/May/July).
+  // end = day before next start. As of seed date (2026-06-18): p1-p4 CLOSED, p5 ACTIVE, p6 UPCOMING.
+  const periodsData = [
+    { n: 1, start: "2026-01-31", end: "2026-02-27", status: "CLOSED", closedAt: "2026-02-28" },
+    { n: 2, start: "2026-02-28", end: "2026-03-30", status: "CLOSED", closedAt: "2026-03-31" },
+    { n: 3, start: "2026-03-31", end: "2026-04-29", status: "CLOSED", closedAt: "2026-04-30" },
+    { n: 4, start: "2026-04-30", end: "2026-05-30", status: "CLOSED", closedAt: "2026-05-31" },
+    { n: 5, start: "2026-05-31", end: "2026-06-29", status: "ACTIVE", closedAt: null },
+    { n: 6, start: "2026-06-30", end: "2026-07-30", status: "UPCOMING", closedAt: null },
+  ] as const;
+  const periodIds: Record<number, string> = {};
+  for (const p of periodsData) {
+    const created = await prisma.projectPeriod.create({
+      data: {
+        projectId: retainer2Project.id,
+        periodNumber: p.n,
+        startDate: new Date(p.start + "T00:00:00.000Z"),
+        endDate: new Date(p.end + "T23:59:59.999Z"),
+        status: p.status,
+        closedAt: p.closedAt ? new Date(p.closedAt + "T00:00:00.000Z") : null,
+        summary: p.n === 1 ? "تقرير الشهر الأول: إطلاق الحملات وتسليم الهوية البصرية." : null,
+        reportFilePath: p.n === 1 ? "periods/p1-report.pdf" : null,
+        completionPercentage: p.n === 5 ? 40 : p.status === "CLOSED" ? 100 : 0,
+      },
+    });
+    periodIds[p.n] = created.id;
+  }
+
+  // Period status history for the current (ACTIVE) period 5.
+  await prisma.projectPeriodHistory.create({
+    data: {
+      periodId: periodIds[5],
+      fromStatus: "UPCOMING",
+      toStatus: "ACTIVE",
+      changedBy: userIds["PM"],
+      reason: "Auto-opened on period start",
+    },
+  });
+
+  // Contract status history SENT → SIGNED → ACTIVE.
+  await prisma.contractStatusHistory.createMany({
+    data: [
+      {
+        contractId: ctrRetainer2.id,
+        fromStatus: "SENT",
+        toStatus: "SIGNED",
+        changedBy: userIds["SALES"],
+        reason: "Signed by client",
+      },
+      {
+        contractId: ctrRetainer2.id,
+        fromStatus: "SIGNED",
+        toStatus: "ACTIVE",
+        changedBy: userIds["ACCOUNTANT"],
+        reason: "Down payment received",
+      },
+    ],
+  });
+
+  // Two tasks auto-linked to the ACTIVE period (period 5).
+  const designDeptId = (await prisma.department.findUnique({ where: { name: "DESIGN" } }))?.id;
+  if (designDeptId) {
+    await prisma.task.createMany({
+      data: [
+        {
+          projectId: retainer2Project.id,
+          departmentId: designDeptId,
+          assignedTo: userIds["CLIENT1"] ? null : null,
+          createdBy: userIds["PM"],
+          title: "تصاميم منشورات يونيو (Period 5)",
+          description: "Social media posts for the active period.",
+          status: "IN_PROGRESS",
+          priority: "NORMAL",
+          dueDate: new Date("2026-06-25T00:00:00.000Z"),
+          isVisibleToClient: true,
+          periodId: periodIds[5],
+        },
+        {
+          projectId: retainer2Project.id,
+          departmentId: designDeptId,
+          createdBy: userIds["PM"],
+          title: "تقرير أداء الحملات (Period 5)",
+          description: "Campaign performance report for the active period.",
+          status: "TODO",
+          priority: "HIGH",
+          dueDate: new Date("2026-06-29T00:00:00.000Z"),
+          isVisibleToClient: false,
+          periodId: periodIds[5],
+        },
+      ],
+    });
+  }
 
   // ── Campaigns — all 5 statuses (using createMany + existing task IDs) ─────────
   const campaigns = [
