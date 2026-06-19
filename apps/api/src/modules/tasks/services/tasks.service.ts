@@ -22,6 +22,7 @@ import { NotificationsService } from "../../notifications/services/notifications
 import { FilePurpose, Prisma } from "@prisma/client";
 import { StorageService } from "../../../common/storage/storage.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
+import { ProjectPeriodsService } from "../../projects/services/project-periods.service";
 
 const DEPARTMENT_ARABIC_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.DESIGN]: "التصميم",
@@ -40,6 +41,7 @@ export class TasksService {
     private notificationsService: NotificationsService,
     private storageService: StorageService,
     private projectGroupChatService: ProjectGroupChatService,
+    private projectPeriodsService: ProjectPeriodsService,
   ) {}
 
   private getDepartmentArabicLabel(departmentName: string | null | undefined) {
@@ -314,12 +316,19 @@ export class TasksService {
       );
     }
 
-    const { dept, ...rest } = dto;
+    const { dept, periodId: dtoPeriodId, ...rest } = dto;
+
+    // Auto-link the task to the project's ACTIVE period when not explicitly provided.
+    const periodId =
+      dtoPeriodId ??
+      (await this.projectPeriodsService.getActivePeriodId(dto.projectId));
+
     const createdTask = await this.prisma.$transaction(async (tx) => {
       const createdTask = await tx.task.create({
         data: {
           ...rest,
           departmentId: department.id,
+          periodId: periodId ?? undefined,
           dueDate: new Date(dto.dueDate),
           createdBy: userId,
           status: TaskStatus.TODO,

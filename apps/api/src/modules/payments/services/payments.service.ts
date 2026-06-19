@@ -4,6 +4,7 @@ import {
   BadRequestException,
   OnModuleInit,
 } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
@@ -12,7 +13,6 @@ import {
   PaymentMethod,
   PaymentEventType,
   InvoiceStatus,
-  ContractStatus,
 } from "@hassad/shared";
 import { StripeProvider } from "../providers/stripe.provider";
 import { BankTransferProvider } from "../providers/bank-transfer.provider";
@@ -28,6 +28,7 @@ export class PaymentsService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private eventEmitter: EventEmitter2,
   ) {
     const key = process.env.PAYMENT_ENCRYPTION_KEY;
     if (!key) {
@@ -273,7 +274,7 @@ export class PaymentsService implements OnModuleInit {
   ) {
     const payment = await this.prisma.payment.findFirst({
       where: { providerPaymentId },
-      include: { invoice: true },
+      include: { invoice: { select: { id: true, contractId: true, paymentPlanId: true, clientId: true, amount: true, createdBy: true, invoiceNumber: true } } },
     });
 
     if (!payment) return;
@@ -309,10 +310,7 @@ export class PaymentsService implements OnModuleInit {
         if (totalPaid >= payment.invoice.amount) {
           await tx.invoice.update({
             where: { id: payment.invoiceId },
-            data: {
-              status: InvoiceStatus.PAID,
-              paidAt: new Date(),
-            },
+            data: { status: InvoiceStatus.PAID, paidAt: new Date() },
           });
 
           await this.notifications.createNotification({
@@ -323,29 +321,6 @@ export class PaymentsService implements OnModuleInit {
             title: "تم دفع الفاتورة",
             body: `تم دفع الفاتورة ${payment.invoice.invoiceNumber} بالكامل`,
           });
-
-          if (payment.invoice.contractId) {
-            const contract = await tx.contract.findUnique({
-              where: { id: payment.invoice.contractId },
-              select: { id: true, status: true, title: true },
-            });
-
-            if (contract && contract.status === ContractStatus.SIGNED) {
-              await tx.contract.update({
-                where: { id: contract.id },
-                data: { status: ContractStatus.ACTIVE },
-              });
-
-              await this.notifications.createNotification({
-                entityId: contract.id,
-                entityType: "CONTRACT",
-                eventType: "CONTRACT_ACTIVATED",
-                userId: payment.invoice.createdBy,
-                title: "تم تفعيل العقد تلقائياً",
-                body: `تم تفعيل العقد "${contract.title}" بعد دفع الفاتورة`,
-              });
-            }
-          }
         } else if (totalPaid > 0) {
           await tx.invoice.update({
             where: { id: payment.invoiceId },
@@ -356,6 +331,17 @@ export class PaymentsService implements OnModuleInit {
 
       return p;
     });
+
+    if (status === PaymentStatus.SUCCESS && payment.invoice.contractId) {
+      this.eventEmitter.emit("invoice.paid", {
+        invoiceId: payment.invoiceId,
+        contractId: payment.invoice.contractId,
+        paymentPlanId: payment.invoice.paymentPlanId,
+        clientId: payment.invoice.clientId,
+        amount: payment.invoice.amount,
+        userId: payment.invoice.createdBy,
+      });
+    }
 
     return updatedPayment;
   }

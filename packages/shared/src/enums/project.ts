@@ -1,5 +1,6 @@
 export enum ProjectStatus {
   PLANNING = "PLANNING",
+  PENDING_ACTIVATION = "PENDING_ACTIVATION",
   ACTIVE = "ACTIVE",
   ON_HOLD = "ON_HOLD",
   AWAITING_REVIEW = "AWAITING_REVIEW",
@@ -10,6 +11,7 @@ export enum ProjectStatus {
 
 export const PROJECT_STATUS_AR: Record<ProjectStatus, string> = {
   PLANNING: "تخطيط",
+  PENDING_ACTIVATION: "بانتظار تفعيل الدفعة المقدمة",
   ACTIVE: "نشط",
   ON_HOLD: "معلق",
   AWAITING_REVIEW: "بانتظار المراجعة",
@@ -59,6 +61,25 @@ export enum FilePurpose {
   REFERENCE = "REFERENCE",
   INTERNAL_DRAFT = "INTERNAL_DRAFT",
 }
+
+/**
+ * Lifecycle of a billing/delivery period (one month of a retainer).
+ * UPCOMING → ACTIVE (start date reached) → CLOSED (end date reached / PM closes early).
+ * ACTIVE → SUSPENDED (overdue invoice) → ACTIVE/CLOSED (paid). Phase 3 drives suspend.
+ */
+export enum ProjectPeriodStatus {
+  UPCOMING = "UPCOMING",
+  ACTIVE = "ACTIVE",
+  CLOSED = "CLOSED",
+  SUSPENDED = "SUSPENDED",
+}
+
+export const PROJECT_PERIOD_STATUS_AR: Record<ProjectPeriodStatus, string> = {
+  UPCOMING: "قادم",
+  ACTIVE: "نشط",
+  CLOSED: "مغلق",
+  SUSPENDED: "معلق",
+};
 
 export enum DelayAlertLevel {
   LOW = "LOW",

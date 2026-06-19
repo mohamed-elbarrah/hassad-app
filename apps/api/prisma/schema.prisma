@@ -34,6 +34,8 @@ model User {
   contractVersions     ContractVersion[]
   createdContracts     Contract[]                @relation("ContractCreator")
   soldContracts        Contract[]                @relation("ContractSalesPerson")
+  contractStatusChanges ContractStatusHistory[]   @relation("ContractStatusChangedBy")
+  periodStatusChanges   ProjectPeriodHistory[]   @relation("ProjectPeriodChangedBy")
   chatParticipants     ConversationParticipant[]
   approvedDelivs       Deliverable[]
   employee             Employee?
@@ -514,8 +516,14 @@ model Contract {
   currency       String                 @default("SAR") @map("currency")
   requestId      String?                @map("request_id")
   servicesList   Json?                  @map("services_list")
+  // ── Billing plan (Phase 1: down-payment activation gate) ────────────────────
+  downPaymentType   PaymentAmountType?   @map("down_payment_type")
+  downPaymentValue  Float?               @map("down_payment_value")
+  numberOfMonths    Int?                @map("number_of_months")
   renewalAlerts  ContractRenewalAlert[]
   versions       ContractVersion[]
+  paymentPlans   ContractPaymentPlan[]
+  statusHistory  ContractStatusHistory[]
   client         Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   creator        User                   @relation("ContractCreator", fields: [createdBy], references: [id])
   salesPerson    User?                  @relation("ContractSalesPerson", fields: [salesPersonId], references: [id])
@@ -558,6 +566,46 @@ model ContractRenewalAlert {
   @@map("contract_renewal_alerts")
 }
 
+/// Planned payment for a contract (down payment, recurring monthly, milestones).
+/// Drives invoice generation. Belongs to the commercial Contract layer.
+model ContractPaymentPlan {
+  id            String                @id @default(uuid())
+  contractId    String                @map("contract_id")
+  label         String
+  sequence      Int                   @default(0)
+  triggerType   PaymentPlanTriggerType @map("trigger_type")
+  amountType    PaymentAmountType     @map("amount_type")
+  amountValue   Float                 @map("amount_value")
+  isRecurring   Boolean              @default(false) @map("is_recurring")
+  dueOffsetDays Int?                 @map("due_offset_days")
+  isActive      Boolean              @default(true) @map("is_active")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  contract      Contract             @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  invoices      Invoice[]
+
+  @@index([contractId])
+  @@index([triggerType])
+  @@map("contract_payment_plans")
+}
+
+/// Audit trail of contract status transitions (RULE 2: history on every state change).
+model ContractStatusHistory {
+  id          String   @id @default(uuid())
+  contractId  String   @map("contract_id")
+  fromStatus  ContractStatus @map("from_status")
+  toStatus    ContractStatus @map("to_status")
+  changedBy   String   @map("changed_by")
+  reason      String?
+  changedAt   DateTime @default(now()) @map("changed_at")
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  changedByUser User    @relation("ContractStatusChangedBy", fields: [changedBy], references: [id])
+
+  @@index([contractId])
+  @@index([toStatus])
+  @@map("contract_status_history")
+}
+
 model Project {
   id                   String                   @id @default(uuid())
   clientId             String                   @map("client_id")
@@ -589,6 +637,7 @@ model Project {
   satRatings           SatisfactionRating[]
   tasks                Task[]
   teamConversation     Conversation?
+  periods              ProjectPeriod[]
 
   @@index([requestId])
   @@index([clientId])
@@ -611,6 +660,57 @@ model ProjectMember {
   @@map("project_members")
 }
 
+/// One billing/delivery period (≈ one month) of a retainer project. Belongs to a Project.
+/// Phase 2: lifecycle (UPCOMING→ACTIVE→CLOSED) + PM summary/report + period-scoped work.
+/// Phase 3: links to the recurring invoice issued at close + suspend on overdue.
+model ProjectPeriod {
+  id                   String              @id @default(uuid())
+  projectId            String              @map("project_id")
+  periodNumber         Int                 @map("period_number")
+  startDate            DateTime            @map("start_date")
+  endDate              DateTime            @map("end_date")
+  status               ProjectPeriodStatus
+  summary              String?
+  reportFilePath       String?             @map("report_file_path")
+  completionPercentage Float              @default(0) @map("completion_percentage")
+  invoiceId            String?             @unique @map("invoice_id")
+  closedAt             DateTime?           @map("closed_at")
+  suspendedAt          DateTime?           @map("suspended_at")
+  resumedAt            DateTime?           @map("resumed_at")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  project              Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invoice              Invoice?            @relation("ProjectPeriodInvoice", fields: [invoiceId], references: [id])
+  tasks                Task[]
+  deliverables         Deliverable[]
+  files                ProjectFile[]
+  campaigns            Campaign[]
+  kpiSnapshots         CampaignKpiSnapshot[]
+  statusHistory        ProjectPeriodHistory[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([periodNumber])
+  @@map("project_periods")
+}
+
+/// Audit trail of period status transitions (RULE 2: history on every state change).
+model ProjectPeriodHistory {
+  id            String              @id @default(uuid())
+  periodId      String              @map("period_id")
+  fromStatus    ProjectPeriodStatus @map("from_status")
+  toStatus      ProjectPeriodStatus @map("to_status")
+  changedBy     String              @map("changed_by")
+  reason        String?
+  changedAt     DateTime            @default(now()) @map("changed_at")
+  period        ProjectPeriod       @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  changedByUser User               @relation("ProjectPeriodChangedBy", fields: [changedBy], references: [id])
+
+  @@index([periodId])
+  @@index([toStatus])
+  @@map("project_period_history")
+}
+
 model Task {
   id                String              @id @default(uuid())
   projectId         String              @map("project_id")
@@ -628,6 +728,7 @@ model Task {
   approvedAt        DateTime?           @map("approved_at")
   revisionCount     Int                 @default(0) @map("revision_count")
   isVisibleToClient Boolean             @default(false) @map("is_visible_to_client")
+  periodId          String?             @map("period_id")
   createdAt         DateTime            @default(now()) @map("created_at")
   updatedAt         DateTime            @updatedAt @map("updated_at")
   archivedAt        DateTime?           @map("archived_at")
@@ -644,12 +745,14 @@ model Task {
   assignee          User?               @relation("TaskAssignee", fields: [assignedTo], references: [id])
   creator           User                @relation("TaskCreator", fields: [createdBy], references: [id])
   department        Department          @relation(fields: [departmentId], references: [id])
+  period            ProjectPeriod?      @relation(fields: [periodId], references: [id])
   project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([assignedTo])
   @@index([status])
   @@index([createdAt])
+  @@index([periodId])
   @@map("tasks")
 }
 
@@ -728,6 +831,7 @@ model Campaign {
   budgetSpent         Float                  @default(0) @map("budget_spent")
   needsOptimization   Boolean                @default(false) @map("needs_optimization")
   isArchived          Boolean                @default(false) @map("is_archived")
+  periodId            String?                @map("period_id")
   createdAt           DateTime               @default(now()) @map("created_at")
   updatedAt           DateTime               @updatedAt @map("updated_at")
   currency            String                 @default("SAR") @map("currency")
@@ -737,11 +841,13 @@ model Campaign {
   statusHistory       CampaignStatusHistory[]
   client              Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   manager             User                   @relation("CampaignManager", fields: [managedBy], references: [id])
+  period              ProjectPeriod?         @relation(fields: [periodId], references: [id])
   project             Project?               @relation(fields: [projectId], references: [id])
   task                Task                   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
   @@index([clientId])
+  @@index([periodId])
   @@map("campaigns")
 }
 
@@ -758,6 +864,7 @@ model CampaignKpiSnapshot {
   conversionRate Float                 @default(0)
   roas           Float                 @default(0)
   source         String?
+  periodId       String?          @map("period_id")
   externalId     String?             @map("external_id")
   periodStart    DateTime?           @map("period_start")
   periodEnd      DateTime?           @map("period_end")
@@ -765,9 +872,11 @@ model CampaignKpiSnapshot {
   createdAt      DateTime              @default(now()) @map("created_at")
   auditLogs      CampaignKpiAuditLog[]
   campaign       Campaign              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  period         ProjectPeriod?        @relation(fields: [periodId], references: [id])
 
   @@index([campaignId])
   @@index([recordedAt])
+  @@index([periodId])
   @@map("campaign_kpi_snapshots")
 }
 
@@ -861,14 +970,17 @@ model Deliverable {
   filePath          String                  @map("file_path")
   status            TaskStatus              @default(TODO)
   isVisibleToClient Boolean                 @default(true) @map("is_visible_to_client")
+  periodId          String?                 @map("period_id")
   approvedAt        DateTime?               @map("approved_at")
   createdAt         DateTime                @default(now()) @map("created_at")
   revisionRequests  ClientRevisionRequest[]
   approver          User?                   @relation(fields: [approvedBy], references: [id])
+  period            ProjectPeriod?          @relation(fields: [periodId], references: [id])
   project           Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
   task              Task?                   @relation(fields: [taskId], references: [id])
 
   @@index([projectId])
+  @@index([periodId])
   @@map("deliverables")
 }
 
@@ -910,11 +1022,14 @@ model ProjectFile {
   filePath   String   @map("file_path")
   fileType   String   @map("file_type")
   fileSize   Int      @map("file_size")
+  periodId   String?  @map("period_id")
   uploadedAt DateTime @default(now()) @map("uploaded_at")
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  period     ProjectPeriod? @relation(fields: [periodId], references: [id])
   uploader   User     @relation(fields: [uploadedBy], references: [id])
 
   @@index([projectId])
+  @@index([periodId])
   @@map("project_files")
 }
 
@@ -965,16 +1080,23 @@ model Invoice {
   updatedAt        DateTime        @updatedAt @map("updated_at")
   sentAt           DateTime?       @map("sent_at")
   currency         String          @default("SAR") @map("currency")
-  items            InvoiceItem[]
+  // ── Billing plan linkage (Phase 1: down-payment invoice; Phase 3: period invoice) ──
+  paymentPlanId      String?         @map("payment_plan_id")
+  reminderFlags      Int            @default(0) @map("reminder_flags")
+  triggeredSuspension Boolean       @default(false) @map("triggered_suspension")
+  items              InvoiceItem[]
   client           Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contract         Contract?       @relation(fields: [contractId], references: [id])
   creator          User            @relation(fields: [createdBy], references: [id])
+  paymentPlan      ContractPaymentPlan? @relation(fields: [paymentPlanId], references: [id])
+  period           ProjectPeriod?      @relation("ProjectPeriodInvoice")
   tickets          PaymentTicket[]
   payments         Payment[]
 
   @@index([clientId])
   @@index([invoiceNumber])
   @@index([status])
+  @@index([paymentPlanId])
   @@map("invoices")
 }
 
@@ -1539,8 +1661,29 @@ enum ContractStatus {
   SENT
   SIGNED
   ACTIVE
+  ON_HOLD
+  COMPLETED
   EXPIRED
   CANCELLED
+}
+
+enum PaymentPlanTriggerType {
+  ON_SIGN
+  PERIOD_END
+  MILESTONE
+  MANUAL
+}
+
+enum PaymentAmountType {
+  PERCENT
+  FIXED
+}
+
+enum ProjectPeriodStatus {
+  UPCOMING
+  ACTIVE
+  CLOSED
+  SUSPENDED
 }
 
 enum RenewalAlertType {
@@ -1556,6 +1699,7 @@ enum ConversationType {
 
 enum ProjectStatus {
   PLANNING
+  PENDING_ACTIVATION
   ACTIVE
   ON_HOLD
   COMPLETED

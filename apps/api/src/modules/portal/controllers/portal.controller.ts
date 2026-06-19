@@ -352,6 +352,17 @@ export class PortalController {
     });
   }
 
+  @Get("portal/projects/:id/periods")
+  @RequirePermissions("portal.read")
+  async getProjectPeriods(
+    @CurrentUser() user: any,
+    @Param("id") projectId: string,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return [];
+    return this.portalService.getProjectPeriods(clientId, projectId);
+  }
+
   @Get("portal/requests")
   @RequirePermissions("portal.read")
   async getPortalRequests(

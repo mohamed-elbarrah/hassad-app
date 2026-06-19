@@ -20,6 +20,7 @@ const STATUS_TONE: Record<
   import("@/components/design-system/Pill").PillTone
 > = {
   [ProjectStatus.PLANNING]: "blue",
+  [ProjectStatus.PENDING_ACTIVATION]: "neutral",
   [ProjectStatus.ACTIVE]: "success",
   [ProjectStatus.ON_HOLD]: "neutral",
   [ProjectStatus.AWAITING_REVIEW]: "purple",

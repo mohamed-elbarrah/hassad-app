@@ -88,6 +88,8 @@ export enum ContractStatus {
   SENT = "SENT",
   SIGNED = "SIGNED",
   ACTIVE = "ACTIVE",
+  ON_HOLD = "ON_HOLD",
+  COMPLETED = "COMPLETED",
   EXPIRED = "EXPIRED",
   CANCELLED = "CANCELLED",
 }

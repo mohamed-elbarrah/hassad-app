@@ -57,3 +57,27 @@ export enum PayType {
   COMMISSION = "COMMISSION",
   HYBRID = "HYBRID",
 }
+
+/**
+ * When a planned payment becomes due / is issued.
+ * - ON_SIGN    : issued immediately when the contract is signed (the down payment).
+ * - PERIOD_END : issued when a billing period closes (recurring monthly retainers).
+ * - MILESTONE : issued manually for fixed-scope milestones.
+ * - MANUAL    : issued on demand by finance/sales.
+ */
+export enum PaymentPlanTriggerType {
+  ON_SIGN = "ON_SIGN",
+  PERIOD_END = "PERIOD_END",
+  MILESTONE = "MILESTONE",
+  MANUAL = "MANUAL",
+}
+
+/**
+ * How a planned payment amount is expressed.
+ * - PERCENT : a percentage of the contract `totalValue` (0-100).
+ * - FIXED   : a fixed amount in the contract currency (SAR).
+ */
+export enum PaymentAmountType {
+  PERCENT = "PERCENT",
+  FIXED = "FIXED",
+}

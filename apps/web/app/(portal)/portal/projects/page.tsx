@@ -205,14 +205,14 @@ export default function PortalProjectsPage() {
 
                 {/* Card Footer */}
                 <div className="mt-4 pt-3 border-t border-portal-divider">
-                  <Link href="/portal/deliverables">
+                  <Link href={`/portal/projects/${project.id}`}>
                     <ActionButton
                       variant="outline"
                       size="sm"
                       className="w-full h-9 rounded-xl border-[1.5px] border-portal-card-border text-xs font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-1"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
-                      عرض التفاصيل
+                      عرض الفترات
                     </ActionButton>
                   </Link>
                 </div>

@@ -5,9 +5,14 @@ import {
   IsNumber,
   IsDateString,
   IsOptional,
+  IsInt,
+  Min,
+  ValidateNested,
+  ArrayMinSize,
 } from "class-validator";
-import { Transform } from "class-transformer";
-import { ContractType } from "@hassad/shared";
+import { Transform, Type } from "class-transformer";
+import { ContractType, PaymentAmountType } from "@hassad/shared";
+import { PaymentPlanRowDto } from "./payment-plan.dto";
 
 export class CreateContractDto {
   @IsUUID()
@@ -41,6 +46,33 @@ export class CreateContractDto {
   @Transform(({ value }) => parseFloat(value))
   @IsNumber()
   totalValue?: number;
+
+  // ── Billing plan (Phase 1: down-payment activation gate) ─────────────────────
+  /** How the down payment is expressed. Required when a down payment is requested. */
+  @IsOptional()
+  @IsEnum(PaymentAmountType)
+  downPaymentType?: PaymentAmountType;
+
+  /** Down payment value: percentage (0-100) when PERCENT, SAR amount when FIXED. */
+  @IsOptional()
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber()
+  @Min(0)
+  downPaymentValue?: number;
+
+  /** Bounded retainer length in months (null/omitted = indefinite rolling retainer). */
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsInt()
+  @Min(1)
+  numberOfMonths?: number;
+
+  /** Optional full payment plan defined at creation. Sales may also set it later. */
+  @IsOptional()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => PaymentPlanRowDto)
+  paymentPlan?: PaymentPlanRowDto[];
 }
 
 export class UpdateContractDto {

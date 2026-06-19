@@ -39,7 +39,7 @@ import {
   useUpdateContractMutation,
   type ContractItem,
 } from "@/features/contracts/contractsApi";
-import { ContractType, ProposalStatus } from "@hassad/shared";
+import { ContractType, PaymentAmountType, ProposalStatus } from "@hassad/shared";
 import { useCurrency } from "@/hooks/useCurrency";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
@@ -74,6 +74,9 @@ const contractFormSchema = z.object({
   totalValue: z.number().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  downPaymentType: z.nativeEnum(PaymentAmountType).optional(),
+  downPaymentValue: z.number().optional(),
+  numberOfMonths: z.number().optional(),
 });
 
 type ContractFormValues = z.infer<typeof contractFormSchema>;
@@ -130,6 +133,9 @@ export function CreateContractDialog({
       totalValue: undefined,
       startDate: "",
       endDate: "",
+      downPaymentType: undefined,
+      downPaymentValue: undefined,
+      numberOfMonths: undefined,
     },
   });
 
@@ -269,8 +275,22 @@ export function CreateContractDialog({
       totalValue: selectedProposal.totalPrice ?? 0,
       startDate: start,
       endDate: end.toISOString().split("T")[0],
+      downPaymentType: undefined,
+      downPaymentValue: undefined,
+      numberOfMonths: undefined,
     });
   }, [selectedProposal, form]);
+
+  // ── Auto-suggest numberOfMonths when type → MONTHLY_RETAINER ──────────
+  const watchedType = form.watch("type");
+  useEffect(() => {
+    if (watchedType === ContractType.MONTHLY_RETAINER && selectedProposal?.durationDays) {
+      const months = Math.round(selectedProposal.durationDays / 30);
+      if (months > 0 && !form.getValues("numberOfMonths")) {
+        form.setValue("numberOfMonths", months);
+      }
+    }
+  }, [watchedType, selectedProposal, form]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -315,6 +335,9 @@ export function CreateContractDialog({
           type: values.type,
           file,
           proposalId: selectedProposalId,
+          downPaymentType: values.type === ContractType.MONTHLY_RETAINER ? values.downPaymentType : undefined,
+          downPaymentValue: values.type === ContractType.MONTHLY_RETAINER ? values.downPaymentValue : undefined,
+          numberOfMonths: values.type === ContractType.MONTHLY_RETAINER ? values.numberOfMonths : undefined,
         };
 
         const result = await createContract(payload).unwrap();
@@ -635,6 +658,94 @@ export function CreateContractDialog({
                       onChange={handleFileChange}
                     />
                   </div>
+
+                  {/* ── Billing fields (MONTHLY_RETAINER only) ───── */}
+                  {form.watch("type") === ContractType.MONTHLY_RETAINER && (
+                    <div className="border-t border-neutral-200 pt-4 space-y-4">
+                      <p className="text-[14px] font-bold text-natural-100">
+                        إعدادات الدفع
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="downPaymentType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>نوع الدفعة الأولى</FormLabel>
+                              <FormSelect
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <FormSelectTrigger>
+                                    <FormSelectValue placeholder="اختر النوع" />
+                                  </FormSelectTrigger>
+                                </FormControl>
+                                <FormSelectContent>
+                                  <FormSelectItem value={PaymentAmountType.PERCENT}>
+                                    نسبة مئوية (%)
+                                  </FormSelectItem>
+                                  <FormSelectItem value={PaymentAmountType.FIXED}>
+                                    مبلغ ثابت (ر.س)
+                                  </FormSelectItem>
+                                </FormSelectContent>
+                              </FormSelect>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="downPaymentValue"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                {form.watch("downPaymentType") === PaymentAmountType.PERCENT
+                                  ? "نسبة الدفعة الأولى (%)"
+                                  : "قيمة الدفعة الأولى (ر.س)"}
+                              </FormLabel>
+                              <FormControl>
+                                <FormInputControl
+                                  type="number"
+                                  min={0}
+                                  placeholder={
+                                    form.watch("downPaymentType") === PaymentAmountType.PERCENT
+                                      ? "مثال: 20"
+                                      : "مثال: 5000"
+                                  }
+                                  {...field}
+                                  onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="numberOfMonths"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>عدد الأشهر</FormLabel>
+                            <FormControl>
+                              <FormInputControl
+                                type="number"
+                                min={1}
+                                placeholder="مثال: 6"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

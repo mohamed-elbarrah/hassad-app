@@ -101,7 +101,7 @@ function ContractSharePageInner({ token }: { token: string }) {
   const invoices = data.invoices ?? [];
 
   const allInvoicesPaid =
-    invoices.length > 0 && invoices.every((inv) => inv.status === "PAID");
+    invoices.length === 0 || invoices.every((inv) => inv.status === "PAID");
   const canSignNow =
     canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
   const statusLabel = STATUS_LABELS[data.status] ?? data.status;
@@ -169,7 +169,7 @@ function ContractSharePageInner({ token }: { token: string }) {
                   القيمة الشهرية
                 </p>
                 <p className="font-semibold">
-                  {data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                  {data.monthlyValue?.toLocaleString("ar-SA-u-nu-latn") ?? "—"} ر.س
                 </p>
               </div>
               <div className="rounded-lg bg-neutral-50 p-3">
@@ -187,6 +187,41 @@ function ContractSharePageInner({ token }: { token: string }) {
                 </p>
               </div>
             </div>
+
+            {/* ── Billing breakdown (down payment + monthly) ───── */}
+            {data.downPaymentType && data.downPaymentValue != null && (
+              <div className="rounded-xl border border-neutral-200 p-4 space-y-2.5">
+                <p className="text-sm font-bold text-natural-100">خطة الدفع</p>
+                <div className="text-sm space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-neutral-300">الدفعة الأولى</span>
+                    <span className="font-semibold">
+                      {data.downPaymentType === "PERCENT"
+                        ? `${data.downPaymentValue}%`
+                        : `${data.downPaymentValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`}
+                      {data.downPaymentType === "PERCENT" && (
+                        <span className="text-neutral-300 font-normal mr-1">
+                          ({(data.totalValue * (data.downPaymentValue / 100)).toLocaleString("ar-SA-u-nu-latn")} ر.س)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {data.monthlyValue > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-neutral-300">الدفعة الشهرية</span>
+                      <span className="font-semibold">
+                        {data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                        {data.numberOfMonths ? (
+                          <span className="text-neutral-300 font-normal mr-1">
+                            × {data.numberOfMonths} أشهر
+                          </span>
+                        ) : null}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {fileUrl ? (
               <div className="flex items-center gap-3 rounded-xl border bg-neutral-50 p-4">

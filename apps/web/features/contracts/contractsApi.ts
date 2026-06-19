@@ -8,6 +8,7 @@ import type {
   PaymentStatus,
   PaymentMethod,
   ServiceItem,
+  PaymentAmountType,
 } from "@hassad/shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -66,6 +67,9 @@ export interface ContractItem {
   eSigned: boolean;
   signedAt?: string | null;
   createdAt: string;
+  downPaymentType?: string | null;
+  downPaymentValue?: number | null;
+  numberOfMonths?: number | null;
   client?: ContractClient;
   servicesList?: ServiceItem[];
   proposal?: {
@@ -104,6 +108,10 @@ export interface CreateContractFormInput {
   endDate?: string;
   file: File;
   proposalId?: string;
+  /** Billing fields for MONTHLY_RETAINER contracts */
+  downPaymentType?: PaymentAmountType;
+  downPaymentValue?: number;
+  numberOfMonths?: number;
 }
 
 export interface SignContractInput {
@@ -159,6 +167,12 @@ export const contractsApi = createApi({
           formData.append("totalValue", String(input.totalValue));
         if (input.startDate) formData.append("startDate", input.startDate);
         if (input.endDate) formData.append("endDate", input.endDate);
+        if (input.downPaymentType)
+          formData.append("downPaymentType", input.downPaymentType);
+        if (input.downPaymentValue !== undefined)
+          formData.append("downPaymentValue", String(input.downPaymentValue));
+        if (input.numberOfMonths !== undefined)
+          formData.append("numberOfMonths", String(input.numberOfMonths));
         formData.append("file", input.file, input.file.name);
         if (input.proposalId) formData.append("proposalId", input.proposalId);
 

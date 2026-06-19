@@ -36,6 +36,11 @@ export class CreateTaskDto {
   @IsOptional()
   @IsBoolean()
   isVisibleToClient?: boolean;
+
+  /** Optional period link. If omitted, the task is auto-linked to the project's ACTIVE period. */
+  @IsOptional()
+  @IsUUID()
+  periodId?: string;
 }
 
 export class UpdateTaskDto {

@@ -25,6 +25,7 @@ export const PROJECT_STATUS_BADGE_KEY: Record<ProjectStatus, string> = {
   [ProjectStatus.PLANNING]: "DRAFT",
   [ProjectStatus.ACTIVE]: "ACTIVE",
   [ProjectStatus.ON_HOLD]: "STOPPED",
+  [ProjectStatus.PENDING_ACTIVATION]: "PENDING",
   [ProjectStatus.AWAITING_REVIEW]: "PENDING",
   [ProjectStatus.NEEDS_REVISION]: "REJECTED",
   [ProjectStatus.COMPLETED]: "COMPLETED",
@@ -36,6 +37,7 @@ export const PROJECT_STATUS_BADGE_KEY: Record<ProjectStatus, string> = {
 
 export const PROJECT_STATUS_COLOR: Record<ProjectStatus, string> = {
   [ProjectStatus.PLANNING]: "#6B7280",      // Cool grey - not started
+  [ProjectStatus.PENDING_ACTIVATION]: "#94A3B8", // Slate - awaiting activation
   [ProjectStatus.ACTIVE]: "#3B82F6",        // Blue - in progress
   [ProjectStatus.ON_HOLD]: "#F59E0B",       // Amber - paused
   [ProjectStatus.AWAITING_REVIEW]: "#8B5CF6", // Purple - waiting external

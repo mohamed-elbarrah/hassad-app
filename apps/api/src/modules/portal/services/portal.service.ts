@@ -387,6 +387,31 @@ export class PortalService {
     return { data: items, total, page: query.page, limit: query.limit };
   }
 
+  /** Client-facing monthly period timeline for a retainer project. */
+  async getProjectPeriods(clientId: string, projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { clientId: true },
+    });
+    if (!project || project.clientId !== clientId) return [];
+
+    return this.prisma.projectPeriod.findMany({
+      where: { projectId },
+      orderBy: { periodNumber: "asc" },
+      select: {
+        id: true,
+        periodNumber: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+        summary: true,
+        reportFilePath: true,
+        completionPercentage: true,
+        invoice: { select: { id: true, invoiceNumber: true, amount: true, status: true } },
+      },
+    });
+  }
+
   async getRequests(clientId: string, query: { page: number; limit: number }) {
     const where: any = {
       clientId,

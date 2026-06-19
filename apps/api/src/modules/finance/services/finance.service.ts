@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../prisma/prisma.service";
 import {
   CreateInvoiceDto,
@@ -35,6 +36,7 @@ export class FinanceService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private clientCounterService: ClientCounterService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   private async logToLedger(params: {
@@ -232,6 +234,87 @@ export class FinanceService {
     return invoice;
   }
 
+  /**
+   * Generate an invoice from a payment-plan row (down payment, recurring period,
+   * or milestone). Links the invoice to the contract + plan row so the billing
+   * engine can trace which plan row produced it.
+   */
+  async generateScheduledInvoice(params: {
+    contractId: string;
+    paymentPlanId?: string;
+    amount: number;
+    label: string;
+    issueDate: Date;
+    dueDate: Date;
+    userId: string;
+    projectId?: string;
+    notes?: string;
+  }) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: params.contractId },
+      select: { id: true, clientId: true, title: true, currency: true },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+    if (params.amount <= 0) {
+      throw new BadRequestException("Scheduled invoice amount must be greater than zero");
+    }
+
+    const invoiceNumber = this.generateInvoiceNumber();
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        clientId: contract.clientId,
+        contractId: contract.id,
+        paymentPlanId: params.paymentPlanId,
+        createdBy: params.userId,
+
+        invoiceNumber,
+        amount: params.amount,
+        status: InvoiceStatus.PENDING,
+        paymentMethod: PaymentMethod.BANK_TRANSFER,
+        issueDate: params.issueDate,
+        dueDate: params.dueDate,
+        notes: params.notes ?? `فاتورة من العقد: ${contract.title}`,
+        items: {
+          create: {
+            projectId: params.projectId,
+            description: params.label,
+            quantity: 1,
+            unitPrice: params.amount,
+            total: params.amount,
+          },
+        },
+      },
+      include: { items: true },
+    });
+
+    await this.logToLedger({
+      action: "GENERATE_SCHEDULED_INVOICE",
+      entity: "INVOICE",
+      entityId: invoice.id,
+      userId: params.userId,
+      after: invoice,
+    });
+
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: contract.clientId },
+      select: { userId: true },
+    });
+    if (clientUser?.userId) {
+      this.notificationsService
+        .createNotification({
+          entityId: invoice.id,
+          entityType: "invoice",
+          eventType: "INVOICE_CREATED",
+          userId: clientUser.userId,
+          title: "تم إنشاء فاتورة",
+          body: `تم إنشاء فاتورة "${params.label}" بمبلغ ${params.amount} ر.س للعقد "${contract.title}"`,
+        })
+        .catch(() => undefined);
+    }
+
+    return invoice;
+  }
+
   async findInvoice(id: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
@@ -259,7 +342,7 @@ export class FinanceService {
   async registerPayment(userId: string, dto: RegisterPaymentDto) {
     const invoice = await this.findInvoice(dto.invoiceId);
 
-    const payment = await this.prisma.$transaction(async (tx) => {
+    const { payment, becameFullyPaid } = await this.prisma.$transaction(async (tx) => {
       const p = await tx.payment.create({
         data: {
           invoiceId: dto.invoiceId,
@@ -274,19 +357,21 @@ export class FinanceService {
       const totalPaid =
         invoice.payments.reduce((sum, pay) => sum + pay.amount, 0) + dto.amount;
       let newStatus: InvoiceStatus = InvoiceStatus.PARTIAL;
+      let fullyPaid = false;
       if (totalPaid >= invoice.amount) {
         newStatus = InvoiceStatus.PAID;
+        fullyPaid = true;
       }
 
       await tx.invoice.update({
         where: { id: dto.invoiceId },
         data: {
           status: newStatus,
-          paidAt: newStatus === InvoiceStatus.PAID ? new Date() : undefined,
+          paidAt: fullyPaid ? new Date() : undefined,
         },
       });
 
-      return p;
+      return { payment: p, becameFullyPaid: fullyPaid };
     });
 
     await this.logToLedger({
@@ -314,6 +399,20 @@ export class FinanceService {
         userId: clientUser.userId,
         title: "تم استلام دفع",
         body: `تم تسجيل دفعة بقيمة ${payment.amount} ر.س للفاتورة ${invoice.invoiceNumber}`,
+      });
+    }
+
+    // ── Emit a domain event so other modules can react to a fully-paid invoice ──
+    // (Phase 1: contracts listens to activate on down-payment payment;
+    //  Phase 3: resume a suspended project on overdue payment.)
+    if (becameFullyPaid) {
+      this.eventEmitter.emit("invoice.paid", {
+        invoiceId: invoice.id,
+        contractId: invoice.contractId,
+        paymentPlanId: invoice.paymentPlanId,
+        clientId: invoice.clientId,
+        amount: invoice.amount,
+        userId,
       });
     }
 
@@ -1409,5 +1508,70 @@ export class FinanceService {
     }
 
     return ticket;
+  }
+
+  // ── Phase 4: Accountant views ──────────────────────────────────────────────
+
+  /** Overdue invoices linked to active/suspended projects (accountant view). */
+  async getOverdueInvoices() {
+    return this.prisma.invoice.findMany({
+      where: {
+        status: { in: [InvoiceStatus.DUE, InvoiceStatus.LATE, InvoiceStatus.PENDING] },
+        period: { isNot: null },
+      },
+      include: {
+        period: {
+          select: {
+            id: true,
+            periodNumber: true,
+            status: true,
+            suspendedAt: true,
+            project: { select: { id: true, name: true, status: true, projectManagerId: true } },
+          },
+        },
+        contract: { select: { id: true, title: true } },
+        client: { select: { id: true, companyName: true } },
+        paymentPlan: { select: { label: true } },
+      },
+      orderBy: { dueDate: "asc" },
+    });
+  }
+
+  /** Per-contract billing summary: scheduled vs issued vs paid amounts. */
+  async getContractBillingSummary() {
+    const contracts = await this.prisma.contract.findMany({
+      where: {
+        type: "MONTHLY_RETAINER" as any,
+        status: { in: ["ACTIVE" as any, "ON_HOLD" as any, "SIGNED" as any] },
+      },
+      include: {
+        client: { select: { companyName: true } },
+        invoices: {
+          select: { amount: true, status: true, paymentPlan: { select: { triggerType: true } } },
+        },
+        paymentPlans: {
+          where: { isRecurring: true, isActive: true },
+          select: { amountValue: true, amountType: true },
+          take: 1,
+        },
+      },
+    });
+
+    return contracts.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      clientName: c.client?.companyName,
+      contractStatus: c.status,
+      totalValue: c.totalValue,
+      monthlyValue: c.monthlyValue,
+      scheduledAmount:
+        c.paymentPlans[0]?.amountType === "PERCENT"
+          ? (c.totalValue * c.paymentPlans[0].amountValue) / 100
+          : c.paymentPlans[0]?.amountValue ?? c.monthlyValue,
+      issuedCount: c.invoices.length,
+      issuedTotal: c.invoices.reduce((s: number, i: any) => s + i.amount, 0),
+      paidTotal: c.invoices.filter((i: any) => i.status === "PAID").reduce((s: number, i: any) => s + i.amount, 0),
+      overdueCount: c.invoices.filter((i: any) => i.status === "LATE" || i.status === "DUE").length,
+    }));
   }
 }
