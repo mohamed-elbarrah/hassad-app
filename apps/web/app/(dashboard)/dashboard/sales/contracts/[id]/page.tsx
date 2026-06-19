@@ -184,6 +184,45 @@ export default function SalesContractDetailPage({ params }: PageProps) {
         </SurfaceCard>
       </div>
 
+      {/* Billing breakdown */}
+      {data.downPaymentType && data.downPaymentValue != null && (
+        <SurfaceCard
+          title="خطة الدفع"
+          description="تفاصيل الدفعة الأولى والأقساط الشهرية"
+          className="border-none shadow-sm"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm text-neutral-300">الدفعة الأولى</p>
+              <p className="text-lg font-bold mt-1">
+                {data.downPaymentType === "PERCENT"
+                  ? `${data.downPaymentValue}%`
+                  : `${data.downPaymentValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`}
+                {data.downPaymentType === "PERCENT" && (
+                  <span className="text-sm text-neutral-300 font-normal mr-2">
+                    ({(data.totalValue * (data.downPaymentValue / 100)).toLocaleString("ar-SA-u-nu-latn")} ر.س)
+                  </span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-neutral-300">الدفعة الشهرية</p>
+              <p className="text-lg font-bold mt-1">
+                {data.monthlyValue > 0
+                  ? `${data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`
+                  : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-neutral-300">عدد الأشهر</p>
+              <p className="text-lg font-bold mt-1">
+                {data.numberOfMonths ?? "—"}
+              </p>
+            </div>
+          </div>
+        </SurfaceCard>
+      )}
+
       {/* Services + Invoices */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ContractServicesTable

@@ -442,1678 +442,566 @@ async function main() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // CLIENT A: TechVentures — FULL coverage of every enum value
+  // CLIENT A: TechVentures — 3 billable scenarios for quick testing
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  // ── 9 Leads — one at every pipeline stage ────────────────────────────────────
-  const leads = await Promise.all([
-    prisma.lead.create({
+  // ── Pipeline leads — one at every active stage (8 leads) ───────────────────
+  const PIPELINE_STAGES = [
+    { st: "NEW", co: "شركة الأفق", nm: "محمد علي" },
+    { st: "INTRO_SENT", co: "مؤسسة النور", nm: "سارة خالد" },
+    { st: "CALL_ATTEMPT", co: "مجموعة الريادة", nm: "أحمد عمر" },
+    { st: "MEETING_SCHEDULED", co: "شركة التميز", nm: "نورة سعد" },
+    { st: "MEETING_DONE", co: "شركة الابتكار", nm: "فهد عبدالله" },
+    { st: "PROPOSAL_SENT", co: "شركة الأساس", nm: "لمى محمد" },
+    { st: "FOLLOW_UP", co: "شركة التواصل", nm: "بدر إبراهيم" },
+    { st: "APPROVED", co: "شركة الإنجاز", nm: "هند جميل" },
+  ];
+  for (const p of PIPELINE_STAGES) {
+    await prisma.lead.create({
       data: {
-        companyName: "مرحلة جديد",
-        contactName: "محمد علي",
-        phoneWhatsapp: "+966500000001",
-        email: "lead-new@example.com",
-        businessName: "شركة البداية",
+        companyName: p.co,
+        contactName: p.nm,
+        phoneWhatsapp: "+966500000000",
+        email: `lead.${p.st.toLowerCase()}@example.com`,
+        businessName: p.co,
         businessType: "OTHER",
         source: "WEBSITE",
+        pipelineStage: p.st,
         assignedTo: userIds["SALES"],
-        pipelineStage: "NEW",
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        companyName: "مرحلة التواصل",
-        contactName: "فهد الشمري",
-        phoneWhatsapp: "+966500000002",
-        email: "lead-intro@example.com",
-        businessName: "مؤسسة التواصل",
-        businessType: "STORE",
-        source: "WHATSAPP",
-        assignedTo: userIds["SALES"],
-        pipelineStage: "INTRO_SENT",
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        companyName: "مرحلة محاولة الاتصال",
-        contactName: "سلمان العتيبي",
-        phoneWhatsapp: "+966500000003",
-        email: "lead-call@example.com",
-        businessName: "شركة الاتصال",
-        businessType: "SERVICE",
-        source: "AD",
-        assignedTo: userIds["SALES"],
-        pipelineStage: "CALL_ATTEMPT",
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        companyName: "مرحلة جدولة اجتماع",
-        contactName: "نورة القحطاني",
-        phoneWhatsapp: "+966500000004",
-        email: "lead-meeting-sched@example.com",
-        businessName: "مؤسسة الاجتماع",
-        businessType: "CLINIC",
-        source: "REFERRAL",
-        assignedTo: userIds["SALES"],
-        pipelineStage: "MEETING_SCHEDULED",
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        companyName: "مرحلة تم الاجتماع",
-        contactName: "عبدالله الحربي",
-        phoneWhatsapp: "+966500000005",
-        email: "lead-meeting-done@example.com",
-        businessName: "شركة التمام",
-        businessType: "RESTAURANT",
-        source: "PLATFORM",
-        assignedTo: userIds["SALES"],
-        pipelineStage: "MEETING_DONE",
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        companyName: "مرحلة إرسال عرض",
-        contactName: "سارة المطيري",
-        phoneWhatsapp: "+966500000006",
-        email: "lead-proposal@example.com",
-        businessName: "مؤسسة العروض",
-        businessType: "OTHER",
-        source: "WEBSITE",
-        assignedTo: userIds["SALES"],
-        pipelineStage: "PROPOSAL_SENT",
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        companyName: "مرحلة متابعة",
-        contactName: "خالد الدوسري",
-        phoneWhatsapp: "+966500000007",
-        email: "lead-followup@example.com",
-        businessName: "شركة المتابعة",
-        businessType: "STORE",
-        source: "REFERRAL",
-        assignedTo: userIds["SALES"],
-        pipelineStage: "FOLLOW_UP",
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        companyName: "مرحلة معتمد",
-        contactName: "منى الشهري",
-        phoneWhatsapp: "+966500000008",
-        email: "lead-approved@example.com",
-        businessName: "مؤسسة الاعتماد",
-        businessType: "SERVICE",
-        source: "AD",
-        assignedTo: userIds["SALES"],
-        pipelineStage: "APPROVED",
-      },
-    }),
-    prisma.lead.create({
-      data: {
-        companyName: "TechVentures",
-        contactName: "Tech Ventures CEO",
-        phoneWhatsapp: "+966509990011",
-        email: "client@hassad.com",
-        businessName: "TechVentures Co.",
-        businessType: "OTHER",
-        source: "WEBSITE",
-        assignedTo: userIds["SALES"],
-        pipelineStage: "CONTRACT_SIGNED",
-      },
-    }),
-  ]);
+      } as any,
+    });
+  }
 
-  const [
-    leadNew,
-    leadIntroSent,
-    leadCallAttempt,
-    leadMeetingScheduled,
-    leadMeetingDone,
-    leadProposalSent,
-    leadFollowUp,
-    leadApproved,
-    leadTechVentures,
-  ] = leads;
+  // ── 3 CONTRACT_SIGNED leads → clients → requests → contracts → projects ────
+  // These are the leads that already converted, one for each test scenario.
+  const d = (y: number, m: number, d: number) => new Date(y, m - 1, d, 0, 0, 0, 0);
 
-  // Lead pipeline history for some leads
-  await prisma.leadPipelineHistory.createMany({
-    data: [
-      {
-        leadId: leadIntroSent.id,
-        fromStage: "NEW",
-        toStage: "INTRO_SENT",
-        changedBy: userIds["SALES"],
-      },
-      {
-        leadId: leadMeetingDone.id,
-        fromStage: "MEETING_SCHEDULED",
-        toStage: "MEETING_DONE",
-        changedBy: userIds["SALES"],
-      },
-      {
-        leadId: leadProposalSent.id,
-        fromStage: "MEETING_DONE",
-        toStage: "PROPOSAL_SENT",
-        changedBy: userIds["SALES"],
-      },
-      {
-        leadId: leadTechVentures.id,
-        fromStage: "APPROVED",
-        toStage: "CONTRACT_SIGNED",
-        changedBy: userIds["SALES"],
-      },
-    ],
-  });
+  const leadScenarios = [
+    { key: "completed", co: "شركة التقدم", nm: "خالد الشمري", val: 18000, downPct: 20, months: 3, start: [2026, 4, 1], end: [2026, 6, 30] },
+    { key: "suspended", co: "مؤسسة التقنية", nm: "أحمد السلمي", val: 12000, downPct: 0,  months: 3, start: [2026, 5, 1], end: [2026, 7, 31] },
+    { key: "active",    co: "تقنيات المستقبل", nm: "فيصل القحطاني", val: 24000, downPct: 25, months: 6, start: [2026, 3, 1], end: [2026, 8, 31] },
+  ] as const;
 
-  // Lead services for some leads
-  await prisma.leadService.createMany({
-    data: [
-      { leadId: leadApproved.id, serviceId: services[0].id, quantity: 1 },
-      { leadId: leadApproved.id, serviceId: services[1].id, quantity: 1 },
-      { leadId: leadTechVentures.id, serviceId: services[0].id, quantity: 1 },
-      { leadId: leadTechVentures.id, serviceId: services[1].id, quantity: 1 },
-      { leadId: leadTechVentures.id, serviceId: services[2].id, quantity: 1 },
-      { leadId: leadTechVentures.id, serviceId: services[3].id, quantity: 2 },
-    ],
-  });
-
-  // Client A
   const clientA = await prisma.client.create({
     data: {
-      leadId: leadTechVentures.id,
       userId: userIds["CLIENT1"],
-      companyName: "TechVentures",
-      contactName: "Tech Ventures CEO",
-      phoneWhatsapp: "+966509990011",
-      email: "client@hassad.com",
-      businessName: "TechVentures Co.",
+      companyName: "تقنيات المستقبل",
+      contactName: leadScenarios[2].nm,
+      phoneWhatsapp: "+966501234567",
+      email: "ceo@futuretech.sa",
+      businessName: "Future Technologies",
       businessType: "OTHER",
-      accountManager: userIds["SALES"],
       status: "ACTIVE",
     },
   });
 
-  // ── Proposals — all 5 statuses ──────────────────────────────────────────────
-  const proposals = await Promise.all([
-    prisma.proposal.create({
+  // ── Requests — one per pipeline stage for the Kanban board ────────────────
+  const REQUEST_STATUSES = [
+    { st: "SUBMITTED",            tl: "طلب تصميم هوية بصرية" },
+    { st: "QUALIFYING",           tl: "طلب إعلانات ممولة" },
+    { st: "PROPOSAL_IN_PROGRESS", tl: "طلب تطوير موقع" },
+    { st: "PROPOSAL_SENT",        tl: "طلب حملة تسويقية" },
+    { st: "NEGOTIATION",          tl: "طلب إدارة منصات التواصل" },
+    { st: "CONTRACT_PREPARATION", tl: "طلب استشارات إدارية" },
+    { st: "CONTRACT_SENT",        tl: "طلب تصميم تطبيق جوال" },
+    { st: "SIGNED",               tl: "طلب خدمات متكاملة" },
+    { st: "PROJECT_CREATED",      tl: "طلب تحول إلى مشروع" },
+    { st: "CANCELLED",            tl: "طلب ملغي" },
+  ];
+  for (const r of REQUEST_STATUSES) {
+    await prisma.request.create({
       data: {
-        leadId: leadApproved.id,
         clientId: clientA.id,
-        createdBy: userIds["SALES"],
-        title: "Branding Package (DRAFT)",
-        serviceDescription: "Brand identity proposal draft",
-        servicesList: [{ name: "Brand Identity", sessions: 5 }],
-        totalPrice: 5000,
-        durationDays: 14,
-        platforms: [],
-        status: "DRAFT",
-      },
-    }),
-    prisma.proposal.create({
+        submittedBy: userIds["CLIENT1"],
+        assignedSalesId: userIds["SALES"],
+        companyName: "تقنيات المستقبل",
+        contactName: "فيصل القحطاني",
+        phoneWhatsapp: "+966501234567",
+        email: "ceo@futuretech.sa",
+        businessName: "Future Technologies",
+        businessType: "OTHER",
+        source: "WEBSITE",
+        status: r.st as any,
+        notes: `طلب اختبار للحالة ${r.st}`,
+      } as any,
+    });
+  }
+
+  // Create leads, proposals, contracts, and projects for each scenario
+  const ctrCompleted: any = {}, ctrSuspended: any = {}, ctrActive: any = {};
+  const projCompleted: any = {}, projSuspended: any = {}, projActive: any = {};
+
+  for (const sc of leadScenarios) {
+    const leadConverted = await prisma.lead.create({
       data: {
-        leadId: leadProposalSent.id,
-        clientId: clientA.id,
-        createdBy: userIds["SALES"],
-        title: "Social Media Package (SENT)",
-        serviceDescription: "Monthly social media management",
-        servicesList: [{ name: "Content Creation", sessions: 12 }],
-        totalPrice: 5500,
-        durationDays: 30,
-        platforms: ["Instagram", "TikTok"],
-        status: "SENT",
-        shareLinkToken: "share-token-proposal-sent",
-        sentAt: new Date(),
-      },
-    }),
-    prisma.proposal.create({
+        companyName: sc.co,
+        contactName: sc.nm,
+        phoneWhatsapp: "+966500000000",
+        email: `lead.${sc.key}@example.com`,
+        businessName: sc.co,
+        businessType: "OTHER",
+        source: "WEBSITE",
+        pipelineStage: "CONTRACT_SIGNED",
+        assignedTo: userIds["SALES"],
+      } as any,
+    });
+
+    const proposal = await prisma.proposal.create({
       data: {
-        leadId: leadTechVentures.id,
-        clientId: clientA.id,
+        leadId: leadConverted.id,
         createdBy: userIds["SALES"],
-        title: "Digital Marketing (APPROVED)",
-        serviceDescription: "Approved marketing campaign",
-        servicesList: [{ name: "Ad Campaign Management", sessions: 3 }],
-        totalPrice: 24000,
-        durationDays: 90,
-        platforms: ["Meta", "Google"],
+        title: `عرض ${sc.co}`,
+        serviceDescription: `خدمات تسويقية شاملة لـ ${sc.co}`,
         status: "APPROVED",
-      },
-    }),
-    prisma.proposal.create({
-      data: {
-        leadId: leadMeetingDone.id,
-        clientId: clientA.id,
-        createdBy: userIds["SALES"],
-        title: "Content Strategy (REVISION_REQUESTED)",
-        serviceDescription: "Content strategy proposal - awaiting revision",
-        servicesList: [{ name: "Content Creation", sessions: 6 }],
-        totalPrice: 8000,
-        durationDays: 60,
-        platforms: ["Snapchat"],
-        status: "REVISION_REQUESTED",
-      },
-    }),
-    prisma.proposal.create({
-      data: {
-        leadId: leadFollowUp.id,
-        clientId: clientA.id,
-        createdBy: userIds["SALES"],
-        title: "Ad Campaign (REJECTED)",
-        serviceDescription: "Rejected ad campaign proposal",
-        servicesList: [{ name: "Ad Campaign Management", sessions: 1 }],
-        totalPrice: 8000,
-        durationDays: 30,
-        platforms: ["TikTok"],
-        status: "REJECTED",
-      },
-    }),
-  ]);
+        totalPrice: sc.val,
+        startDate: d(sc.start[0], sc.start[1], sc.start[2]),
+        durationDays: sc.months * 30,
+        platforms: [],
+        servicesList: [
+          { name: "تصميم الهوية البصرية", price: sc.val * 0.6, quantity: 1 },
+          { name: "إدارة الحملات الإعلانية", price: sc.val * 0.4, quantity: 1 },
+        ],
+      } as any,
+    });
 
-  // ── Contracts — all 6 statuses ──────────────────────────────────────────────
-  const contracts = await Promise.all([
-    prisma.contract.create({
+    const downPaymentType = sc.downPct > 0 ? "PERCENT" : null;
+    const downPaymentValue = sc.downPct > 0 ? sc.downPct : null;
+
+    const contract = await prisma.contract.create({
       data: {
         clientId: clientA.id,
-        createdBy: userIds["PM"],
-        title: "Mobile App Contract (DRAFT)",
-        type: "FIXED_PROJECT",
-        status: "DRAFT",
-        startDate: new Date("2026-08-01"),
-        endDate: new Date("2027-01-31"),
-        monthlyValue: 0,
-        totalValue: 120000,
-      },
-    }),
-    prisma.contract.create({
-      data: {
-        clientId: clientA.id,
-        createdBy: userIds["PM"],
-        title: "E-Commerce Revamp (SENT)",
-        type: "FIXED_PROJECT",
-        status: "SENT",
-        startDate: new Date("2026-07-01"),
-        endDate: new Date("2026-12-31"),
-        monthlyValue: 0,
-        totalValue: 75000,
-        shareLinkToken: "contract-share-token",
-      },
-    }),
-    prisma.contract.create({
-      data: {
-        clientId: clientA.id,
-        createdBy: userIds["PM"],
-        title: "Social Media Management (SIGNED)",
+        proposalId: proposal.id,
+        createdBy: userIds["SALES"],
+        title: `عقد ${sc.co}`,
         type: "MONTHLY_RETAINER",
-        status: "SIGNED",
-        startDate: new Date("2026-03-01"),
-        endDate: new Date("2027-02-28"),
-        monthlyValue: 5500,
-        totalValue: 66000,
-        eSigned: true,
-        signedAt: new Date("2026-03-01"),
+        status: (sc.key === "completed" ? "COMPLETED" : sc.key === "suspended" ? "ON_HOLD" : "ACTIVE") as any,
+        startDate: d(sc.start[0], sc.start[1], sc.start[2]),
+        endDate: d(sc.end[0], sc.end[1], sc.end[2]),
+        monthlyValue: Math.round(sc.val * (1 - sc.downPct / 100) / sc.months),
+        totalValue: sc.val,
+        filePath: "contracts/sample.pdf",
+        shareLinkToken: `share-${sc.key}-token`,
+        versionNumber: 1,
+        downPaymentType: downPaymentType as any,
+        downPaymentValue: downPaymentValue,
+        numberOfMonths: sc.months,
       },
-    }),
-    prisma.contract.create({
-      data: {
-        clientId: clientA.id,
-        createdBy: userIds["PM"],
-        title: "Brand Overhaul (ACTIVE)",
-        type: "FIXED_PROJECT",
-        status: "ACTIVE",
-        startDate: new Date("2026-01-15"),
-        endDate: new Date("2026-07-15"),
-        monthlyValue: 0,
-        totalValue: 96000,
-        eSigned: true,
-        signedAt: new Date("2026-01-10"),
-      },
-    }),
-    prisma.contract.create({
-      data: {
-        clientId: clientA.id,
-        createdBy: userIds["PM"],
-        title: "Google Ads Q4 2025 (EXPIRED)",
-        type: "FIXED_PROJECT",
-        status: "EXPIRED",
-        startDate: new Date("2025-10-01"),
-        endDate: new Date("2025-12-31"),
-        monthlyValue: 0,
-        totalValue: 30000,
-        eSigned: true,
-        signedAt: new Date("2025-10-01"),
-      },
-    }),
-    prisma.contract.create({
-      data: {
-        clientId: clientA.id,
-        createdBy: userIds["PM"],
-        title: "TikTok Campaign (CANCELLED)",
-        type: "FIXED_PROJECT",
-        status: "CANCELLED",
-        startDate: new Date("2026-02-01"),
-        endDate: new Date("2026-04-30"),
-        monthlyValue: 0,
-        totalValue: 15000,
-        eSigned: true,
-        signedAt: new Date("2026-01-25"),
-      },
-    }),
-  ]);
+    });
 
-  const [ctrDraft, ctrSent, ctrSigned, ctrActive, ctrExpired, ctrCancelled] =
-    contracts;
-
-  // ── Projects — all 7 statuses ───────────────────────────────────────────────
-  const projects = await Promise.all([
-    prisma.project.create({
+    // Payment plan rows
+    if (downPaymentType) {
+      await prisma.contractPaymentPlan.create({
+        data: {
+          contractId: contract.id,
+          label: "الدفعة الأولى",
+          sequence: 0,
+          triggerType: "ON_SIGN",
+          amountType: downPaymentType as any,
+          amountValue: downPaymentValue!,
+          isRecurring: false,
+        },
+      });
+    }
+    const monthlyAmount = Math.round(sc.val * (1 - sc.downPct / 100) / sc.months);
+    await prisma.contractPaymentPlan.create({
       data: {
-        clientId: clientA.id,
-        contractId: ctrDraft.id,
-        projectManagerId: userIds["PM"],
-        name: "تطبيق الجوال (تخطيط)",
-        description: "في مرحلة التخطيط — لم يبدأ التنفيذ بعد",
-        status: "PLANNING",
-        priority: "NORMAL",
-        startDate: new Date("2026-08-01"),
-        endDate: new Date("2027-01-31"),
-      },
-    }),
-    prisma.project.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrActive.id,
-        projectManagerId: userIds["PM"],
-        name: "تطوير الهوية البصرية (نشط)",
-        description: "قيد التنفيذ — العمل جارٍ على المهام",
-        status: "ACTIVE",
-        priority: "HIGH",
-        startDate: new Date("2026-01-15"),
-        endDate: new Date("2026-07-15"),
-        completionPercentage: 65,
-      },
-    }),
-    prisma.project.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrActive.id,
-        projectManagerId: userIds["PM"],
-        name: "مشروع التطوير (معلق)",
-        description: "متوقف مؤقتاً بانتظار موافقة العميل على التعديلات",
-        status: "ON_HOLD",
-        priority: "NORMAL",
-        startDate: new Date("2026-03-01"),
-        endDate: new Date("2026-09-01"),
-        completionPercentage: 40,
-      },
-    }),
-    prisma.project.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrSigned.id,
-        projectManagerId: userIds["PM"],
-        name: "إدارة السوشال ميديا (بانتظار المراجعة)",
-        description: "جاهز للمراجعة — جميع المهام مكتملة 100%",
-        status: "AWAITING_REVIEW",
-        priority: "HIGH",
-        startDate: new Date("2026-03-01"),
-        endDate: new Date("2026-06-01"),
-        completionPercentage: 100,
-      },
-    }),
-    prisma.project.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrSigned.id,
-        projectManagerId: userIds["PM"],
-        name: "حملة إعلانية (مطلوب تعديلات)",
-        description: "طلب العميل تعديلات — يحتاج إعادة عمل",
-        status: "NEEDS_REVISION",
-        priority: "HIGH",
-        startDate: new Date("2026-04-01"),
-        endDate: new Date("2026-07-01"),
-        completionPercentage: 100,
-      },
-    }),
-    prisma.project.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrExpired.id,
-        projectManagerId: userIds["PM"],
-        name: "حملة Google Ads (مكتمل)",
-        description: "تم الانتهاء بنجاح واعتماد العميل",
-        status: "COMPLETED",
-        priority: "HIGH",
-        startDate: new Date("2025-10-01"),
-        endDate: new Date("2025-12-31"),
-        completionPercentage: 100,
-      },
-    }),
-    prisma.project.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrCancelled.id,
-        projectManagerId: userIds["PM"],
-        name: "حملة تيكتوك (ملغى)",
-        description: "تم الإلغاء من قبل العميل",
-        status: "CANCELLED",
-        priority: "LOW",
-        startDate: new Date("2026-02-01"),
-        endDate: new Date("2026-04-30"),
-        completionPercentage: 15,
-      },
-    }),
-  ]);
-
-  const [
-    projPlanning,
-    projActive,
-    projOnHold,
-    projAwaitingReview,
-    projNeedsRevision,
-    projCompleted,
-    projCancelled,
-  ] = projects;
-
-  // Project members
-  await prisma.projectMember.createMany({
-    data: [
-      { projectId: projActive.id, userId: userIds["EMPLOYEE"], role: "MEMBER" },
-      {
-        projectId: projActive.id,
-        userId: userIds["MARKETING"],
-        role: "MEMBER",
-      },
-      { projectId: projOnHold.id, userId: userIds["EMPLOYEE"], role: "MEMBER" },
-      {
-        projectId: projAwaitingReview.id,
-        userId: userIds["EMPLOYEE"],
-        role: "MEMBER",
-      },
-      {
-        projectId: projAwaitingReview.id,
-        userId: userIds["MARKETING"],
-        role: "MEMBER",
-      },
-      {
-        projectId: projNeedsRevision.id,
-        userId: userIds["EMPLOYEE"],
-        role: "MEMBER",
-      },
-      {
-        projectId: projNeedsRevision.id,
-        userId: userIds["MARKETING"],
-        role: "MEMBER",
-      },
-      {
-        projectId: projCompleted.id,
-        userId: userIds["EMPLOYEE"],
-        role: "MEMBER",
-      },
-      {
-        projectId: projPlanning.id,
-        userId: userIds["EMPLOYEE"],
-        role: "MEMBER",
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // ── Project Revision Requests for review workflow testing ───────────────────
-  await prisma.projectRevisionRequest.createMany({
-    data: [
-      {
-        projectId: projNeedsRevision.id,
-        clientId: clientA.id,
-        comment:
-          "أرجو تعديل الألوان لتتناسب مع الهوية الجديدة للعلامة التجارية وإضافة قسم الشهادات",
-        createdAt: new Date("2026-05-10"),
-      },
-      {
-        projectId: projNeedsRevision.id,
-        clientId: clientA.id,
-        comment:
-          "الخطوط المستخدمة لا تتوافق مع الدليل الإرشادي — يرجى استخدام خط العلامة المعتمد",
-        createdAt: new Date("2026-05-08"),
-      },
-    ],
-  });
-
-  // ── Tasks — all 5 statuses distributed across projects ──────────────────────
-  const tasks = await Promise.all([
-    // Active project tasks
-    prisma.task.create({
-      data: {
-        projectId: projActive.id,
-        departmentId: designDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "تصميم الشعار الأساسي",
-        description: "إنشاء 3 نسخ أولية للشعار",
-        status: "IN_REVIEW",
-        priority: "HIGH",
-        dueDate: new Date("2026-06-15"),
-      },
-    }),
-    prisma.task.create({
-      data: {
-        projectId: projActive.id,
-        departmentId: contentDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "كتابة إرشادات الهوية",
-        description: "توثيق النبرة والصوت والرسائل",
-        status: "IN_PROGRESS",
-        priority: "NORMAL",
-        dueDate: new Date("2026-06-20"),
-      },
-    }),
-    prisma.task.create({
-      data: {
-        projectId: projActive.id,
-        departmentId: designDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "تصميم بطاقات العمل",
-        description: "تصميم بطاقة عمل احترافية",
-        status: "TODO",
-        priority: "NORMAL",
-        dueDate: new Date("2026-07-01"),
-      },
-    }),
-    prisma.task.create({
-      data: {
-        projectId: projActive.id,
-        departmentId: marketingDept!.id,
-        assignedTo: userIds["MARKETING"],
-        createdBy: userIds["PM"],
-        title: "إعداد خطة التسويق",
-        description: "خطة تسويقية للإطلاق",
-        status: "DONE",
-        priority: "HIGH",
-        dueDate: new Date("2026-05-15"),
-        approvedBy: userIds["PM"],
-        approvedAt: new Date("2026-05-10"),
-      },
-    }),
-    // On Hold project tasks
-    prisma.task.create({
-      data: {
-        projectId: projOnHold.id,
-        departmentId: designDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "تصميم واجهات المستخدم",
-        description: "تصميم UI للتطبيق",
-        status: "IN_PROGRESS",
-        priority: "NORMAL",
-        dueDate: new Date("2026-08-01"),
-      },
-    }),
-    prisma.task.create({
-      data: {
-        projectId: projOnHold.id,
-        departmentId: contentDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "كتابة محتوى التطبيق",
-        description: "كتابة نصوص واجهات التطبيق",
-        status: "TODO",
-        priority: "LOW",
-        dueDate: new Date("2026-08-15"),
-      },
-    }),
-    // Awaiting Review project tasks (all done → 100%)
-    prisma.task.create({
-      data: {
-        projectId: projAwaitingReview.id,
-        departmentId: designDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "تصميم منشورات الشهر",
-        description: "تصميم 30 منشور للسوشال ميديا",
-        status: "DONE",
-        priority: "HIGH",
-        dueDate: new Date("2026-05-01"),
-        approvedBy: userIds["PM"],
-        approvedAt: new Date("2026-04-28"),
-      },
-    }),
-    prisma.task.create({
-      data: {
-        projectId: projAwaitingReview.id,
-        departmentId: contentDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "جدولة المحتوى الشهري",
-        description: "جدولة المنشورات على جميع المنصات",
-        status: "DONE",
-        priority: "HIGH",
-        dueDate: new Date("2026-05-01"),
-        approvedBy: userIds["PM"],
-        approvedAt: new Date("2026-04-30"),
-      },
-    }),
-    // Needs Revision project tasks
-    prisma.task.create({
-      data: {
-        projectId: projNeedsRevision.id,
-        departmentId: marketingDept!.id,
-        assignedTo: userIds["MARKETING"],
-        createdBy: userIds["PM"],
-        title: "تعديل تصاميم الإعلانات",
-        description: "إعادة تصميم الإعلانات حسب طلب العميل",
-        status: "REVISION",
-        priority: "HIGH",
-        dueDate: new Date("2026-05-25"),
-      },
-    }),
-    prisma.task.create({
-      data: {
-        projectId: projNeedsRevision.id,
-        departmentId: designDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "تحديث الألوان والخطوط",
-        description: "تطبيق الهوية الجديدة على جميع التصاميم",
-        status: "IN_PROGRESS",
-        priority: "HIGH",
-        dueDate: new Date("2026-05-20"),
-      },
-    }),
-    // Completed project tasks
-    prisma.task.create({
-      data: {
-        projectId: projCompleted.id,
-        departmentId: marketingDept!.id,
-        assignedTo: userIds["MARKETING"],
-        createdBy: userIds["PM"],
-        title: "إعداد حملة البحث",
-        description: "إعداد كلمات مفتاحية وإعلانات البحث",
-        status: "DONE",
-        priority: "HIGH",
-        dueDate: new Date("2025-11-30"),
-        approvedBy: userIds["PM"],
-        approvedAt: new Date("2025-11-28"),
-      },
-    }),
-    prisma.task.create({
-      data: {
-        projectId: projCompleted.id,
-        departmentId: designDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "تصميم لافتات العرض",
-        description: "تصميم إعلانات شبكة البحث",
-        status: "DONE",
-        priority: "NORMAL",
-        dueDate: new Date("2025-11-15"),
-        approvedBy: userIds["PM"],
-        approvedAt: new Date("2025-11-12"),
-      },
-    }),
-    // Cancelled project tasks
-    prisma.task.create({
-      data: {
-        projectId: projCancelled.id,
-        departmentId: designDept!.id,
-        assignedTo: userIds["EMPLOYEE"],
-        createdBy: userIds["PM"],
-        title: "تصميم فيديو تيكتوك",
-        description: "تصميم فيديو قصير — تم الإلغاء",
-        status: "TODO",
-        priority: "LOW",
-        dueDate: new Date("2026-03-15"),
-      },
-    }),
-  ]);
-
-  // Task status history for some tasks
-  await prisma.taskStatusHistory.createMany({
-    data: [
-      {
-        taskId: tasks[3].id,
-        fromStatus: "IN_PROGRESS",
-        toStatus: "DONE",
-        changedBy: userIds["EMPLOYEE"],
-      },
-      {
-        taskId: tasks[6].id,
-        fromStatus: "IN_PROGRESS",
-        toStatus: "DONE",
-        changedBy: userIds["EMPLOYEE"],
-      },
-      {
-        taskId: tasks[7].id,
-        fromStatus: "IN_PROGRESS",
-        toStatus: "DONE",
-        changedBy: userIds["EMPLOYEE"],
-      },
-      {
-        taskId: tasks[8].id,
-        fromStatus: "IN_REVIEW",
-        toStatus: "REVISION",
-        changedBy: userIds["PM"],
-      },
-    ],
-  });
-
-  // ── Deliverables for portal testing ─────────────────────────────────────────
-  await prisma.deliverable.createMany({
-    data: [
-      // Active project
-      {
-        projectId: projActive.id,
-        title: "نماذج الشعار",
-        description: "3 نماذج أولية للشعار",
-        filePath: "",
-        status: "DONE",
-        isVisibleToClient: true,
-        approvedBy: userIds["PM"],
-        approvedAt: new Date("2026-05-01"),
-      },
-      {
-        projectId: projActive.id,
-        title: "دليل الهوية المؤقت",
-        description: "نسخة أولية من الدليل",
-        filePath: "",
-        status: "IN_PROGRESS",
-        isVisibleToClient: true,
-      },
-      {
-        projectId: projActive.id,
-        title: "عرض الإعلانات",
-        description: "تصاميم إعلانات للسوشال ميديا",
-        filePath: "/uploads/ad-preview.pdf",
-        status: "IN_REVIEW",
-        isVisibleToClient: true,
-      },
-      // Awaiting Review project
-      {
-        projectId: projAwaitingReview.id,
-        title: "تقرير الأداء الشهري",
-        description: "تقرير مفصل عن أداء المنصات",
-        filePath: "/uploads/monthly-report.pdf",
-        status: "IN_REVIEW",
-        isVisibleToClient: true,
-      },
-      {
-        projectId: projAwaitingReview.id,
-        title: "نماذج المنشورات",
-        description: "جميع منشورات الشهر",
-        filePath: "/uploads/posts-batch.zip",
-        status: "IN_REVIEW",
-        isVisibleToClient: true,
-      },
-      // Completed project
-      {
-        projectId: projCompleted.id,
-        title: "تقرير الحملة النهائي",
-        description: "تقرير شامل لنتائج الحملة",
-        filePath: "",
-        status: "DONE",
-        isVisibleToClient: true,
-        approvedBy: userIds["PM"],
-        approvedAt: new Date("2025-12-20"),
-      },
-      {
-        projectId: projCompleted.id,
-        title: "إحصائيات الأداء",
-        description: "تحليلات مفصلة للأداء",
-        filePath: "",
-        status: "DONE",
-        isVisibleToClient: true,
-        approvedBy: userIds["PM"],
-        approvedAt: new Date("2025-12-25"),
-      },
-    ],
-  });
-
-  // ── Project Files for client review modal ────────────────────────────────────
-  await prisma.projectFile.createMany({
-    data: [
-      {
-        projectId: projAwaitingReview.id,
-        uploadedBy: userIds["PM"],
-        fileName: "تقرير-المشروع-النهائي.pdf",
-        filePath: "/uploads/projects/report.pdf",
-        fileType: "application/pdf",
-        fileSize: 2048000,
-      },
-      {
-        projectId: projAwaitingReview.id,
-        uploadedBy: userIds["PM"],
-        fileName: "جميع-التصاميم.zip",
-        filePath: "/uploads/projects/designs.zip",
-        fileType: "application/zip",
-        fileSize: 5120000,
-      },
-      {
-        projectId: projActive.id,
-        uploadedBy: userIds["PM"],
-        fileName: "مسودة-الهوية.pdf",
-        filePath: "/uploads/projects/brand-draft.pdf",
-        fileType: "application/pdf",
-        fileSize: 1024000,
-      },
-    ],
-  });
-
-  // ── Invoices — all 7 statuses ────────────────────────────────────────────────
-  const invoices = await Promise.all([
-    prisma.invoice.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrActive.id,
-        createdBy: userIds["ACCOUNTANT"],
-        invoiceNumber: "INV-20260501-001",
-        amount: 16000,
-        status: "DUE",
-        paymentMethod: "BANK_TRANSFER",
-        issueDate: new Date("2026-05-01"),
-        dueDate: new Date("2026-05-15"),
-      },
-    }),
-    prisma.invoice.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrActive.id,
-        createdBy: userIds["ACCOUNTANT"],
-        invoiceNumber: "INV-20260401-002",
-        amount: 16000,
-        status: "SENT",
-        paymentMethod: "MADA",
-        issueDate: new Date("2026-04-01"),
-        dueDate: new Date("2026-04-15"),
-      },
-    }),
-    prisma.invoice.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrActive.id,
-        createdBy: userIds["ACCOUNTANT"],
-        invoiceNumber: "INV-20260301-003",
-        amount: 16000,
-        status: "PAID",
-        paymentMethod: "BANK_TRANSFER",
-        issueDate: new Date("2026-03-01"),
-        dueDate: new Date("2026-03-15"),
-        paidAt: new Date("2026-03-10"),
-        paymentReference: "TXN-20260310-001",
-      },
-    }),
-    prisma.invoice.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrSigned.id,
-        createdBy: userIds["ACCOUNTANT"],
-        invoiceNumber: "INV-20260501-004",
-        amount: 5500,
-        status: "PARTIAL",
-        paymentMethod: "MADA",
-        issueDate: new Date("2026-05-01"),
-        dueDate: new Date("2026-05-15"),
-      },
-    }),
-    prisma.invoice.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrSigned.id,
-        createdBy: userIds["ACCOUNTANT"],
-        invoiceNumber: "INV-20260401-005",
-        amount: 5500,
-        status: "PENDING",
-        paymentMethod: "BANK_TRANSFER",
-        issueDate: new Date("2026-04-01"),
-        dueDate: new Date("2026-04-15"),
-      },
-    }),
-    prisma.invoice.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrExpired.id,
-        createdBy: userIds["ACCOUNTANT"],
-        invoiceNumber: "INV-20251201-006",
-        amount: 10000,
-        status: "LATE",
-        paymentMethod: "MADA",
-        issueDate: new Date("2025-12-01"),
-        dueDate: new Date("2025-12-15"),
-      },
-    }),
-    prisma.invoice.create({
-      data: {
-        clientId: clientA.id,
-        contractId: ctrCancelled.id,
-        createdBy: userIds["ACCOUNTANT"],
-        invoiceNumber: "INV-20260201-007",
-        amount: 5000,
-        status: "CANCELLED",
-        paymentMethod: "BANK_TRANSFER",
-        issueDate: new Date("2026-02-01"),
-        dueDate: new Date("2026-02-15"),
-      },
-    }),
-  ]);
-
-  // Invoice items for some invoices
-  await prisma.invoiceItem.createMany({
-    data: [
-      {
-        invoiceId: invoices[0].id,
-        description: "خدمات التصميم - مايو 2026",
-        quantity: 1,
-        unitPrice: 16000,
-        total: 16000,
-      },
-      {
-        invoiceId: invoices[3].id,
-        description: "إدارة السوشال ميديا - مايو",
-        quantity: 1,
-        unitPrice: 5500,
-        total: 5500,
-      },
-      {
-        invoiceId: invoices[5].id,
-        description: "إعلانات Google - ديسمبر 2025",
-        quantity: 1,
-        unitPrice: 10000,
-        total: 10000,
-      },
-    ],
-  });
-
-  // Payments
-  await prisma.payment.createMany({
-    data: [
-      {
-        invoiceId: invoices[2].id,
-        clientId: clientA.id,
-        amount: 16000,
-        method: "BANK_TRANSFER",
-        status: "SUCCESS",
-        date: new Date("2026-03-10"),
-      },
-      {
-        invoiceId: invoices[3].id,
-        clientId: clientA.id,
-        amount: 2750,
-        method: "MADA",
-        status: "SUCCESS",
-        date: new Date("2026-05-05"),
-      },
-    ],
-  });
-
-  // Payment ticket for the LATE invoice
-  await prisma.paymentTicket.create({
-    data: {
-      invoiceId: invoices[5].id,
-      clientId: clientA.id,
-      assignedTo: userIds["ACCOUNTANT"],
-      status: "PENDING",
-      notes: "لم يتم الدفع — تجاوز تاريخ الاستحقاق بـ 5 أشهر",
-    },
-  });
-
-  // ── Phase 1: contract payment plan + down-payment activation demo ──────────
-  const retainerStart = new Date();
-  const retainerEnd = new Date();
-  retainerEnd.setMonth(retainerEnd.getMonth() + 6);
-
-  const ctrRetainer = await prisma.contract.create({
-    data: {
-      clientId: clientA.id,
-      createdBy: userIds["SALES"],
-      salesPersonId: userIds["SALES"],
-      title: "Monthly Retainer — TechVentures (Phase 1 billing demo)",
-      type: "MONTHLY_RETAINER",
-      status: "SIGNED",
-      startDate: retainerStart,
-      endDate: retainerEnd,
-      monthlyValue: 7000,
-      totalValue: 60000,
-      currency: "SAR",
-      downPaymentType: "PERCENT",
-      downPaymentValue: 30,
-      numberOfMonths: 6,
-      eSigned: true,
-      signedAt: new Date(),
-    },
-  });
-
-  const [dpRow, recurRow] = await Promise.all([
-    prisma.contractPaymentPlan.create({
-      data: {
-        contractId: ctrRetainer.id,
-        label: "Down Payment (30%)",
-        sequence: 0,
-        triggerType: "ON_SIGN",
-        amountType: "PERCENT",
-        amountValue: 30,
-        isRecurring: false,
-        dueOffsetDays: 0,
-      },
-    }),
-    prisma.contractPaymentPlan.create({
-      data: {
-        contractId: ctrRetainer.id,
-        label: "Monthly Retainer Payment",
-        sequence: 1,
+        contractId: contract.id,
+        label: "الدفعة الشهرية",
+        sequence: downPaymentType ? 1 : 0,
         triggerType: "PERIOD_END",
         amountType: "FIXED",
-        amountValue: 7000,
+        amountValue: monthlyAmount,
         isRecurring: true,
-        dueOffsetDays: 0,
-      },
-    }),
-  ]);
-
-  // Project awaits down-payment activation
-  const retainerProject = await prisma.project.create({
-    data: {
-      clientId: clientA.id,
-      contractId: ctrRetainer.id,
-      projectManagerId: userIds["PM"],
-      name: "TechVentures — Monthly Retainer (awaiting down payment)",
-      description:
-        "Phase 1 billing demo: project is PENDING_ACTIVATION until the down-payment invoice is paid.",
-      status: "PENDING_ACTIVATION",
-      priority: "NORMAL",
-      startDate: retainerStart,
-      endDate: retainerEnd,
-    },
-  });
-  await prisma.projectMember.create({
-    data: { projectId: retainerProject.id, userId: userIds["PM"], role: "MANAGER" },
-  });
-
-  // Down-payment invoice (30% of 60000 = 18000) linked to the ON_SIGN plan row
-  await prisma.invoice.create({
-    data: {
-      clientId: clientA.id,
-      contractId: ctrRetainer.id,
-      paymentPlanId: dpRow.id,
-      createdBy: userIds["ACCOUNTANT"],
-      invoiceNumber: "INV-DOWN-0001",
-      amount: 18000,
-      status: "PENDING",
-      paymentMethod: "BANK_TRANSFER",
-      issueDate: new Date(),
-      dueDate: new Date(),
-      notes: "الدفعة المقدمة لتفعيل العقد (Phase 1 demo)",
-      items: {
-        create: {
-          description: "الدفعة المقدمة (Down Payment 30%)",
-          quantity: 1,
-          unitPrice: 18000,
-          total: 18000,
-        },
-      },
-    },
-  });
-
-  // Contract status history for the SIGNED transition
-  await prisma.contractStatusHistory.create({
-    data: {
-      contractId: ctrRetainer.id,
-      fromStatus: "SENT",
-      toStatus: "SIGNED",
-      changedBy: userIds["SALES"],
-      reason: "Signed via share link (Phase 1 demo)",
-    },
-  });
-
-  // ── Phase 2: project periods lifecycle demo ─────────────────────────────────
-  // ACTIVE monthly retainer starting 31/01/2026 — showcases end-of-month clamping:
-  // period 1 = 31/01 → 27/02 (Feb clamped to 28, so ends 27/02); period 3 returns to 31/03.
-  const retainer2Start = new Date("2026-01-31T00:00:00.000Z");
-  const ctrRetainer2 = await prisma.contract.create({
-    data: {
-      clientId: clientA.id,
-      createdBy: userIds["SALES"],
-      salesPersonId: userIds["SALES"],
-      title: "Monthly Retainer — TechVentures (Phase 2 periods demo)",
-      type: "MONTHLY_RETAINER",
-      status: "ACTIVE",
-      startDate: retainer2Start,
-      endDate: new Date("2026-07-31T00:00:00.000Z"),
-      monthlyValue: 7000,
-      totalValue: 60000,
-      currency: "SAR",
-      downPaymentType: "PERCENT",
-      downPaymentValue: 30,
-      numberOfMonths: 6,
-      eSigned: true,
-      signedAt: new Date("2026-01-31T00:00:00.000Z"),
-    },
-  });
-
-  const retainer2Project = await prisma.project.create({
-    data: {
-      clientId: clientA.id,
-      contractId: ctrRetainer2.id,
-      projectManagerId: userIds["PM"],
-      name: "TechVentures — Monthly Retainer (periods demo)",
-      description: "Phase 2 periods demo: 6 monthly periods, current period ACTIVE.",
-      status: "ACTIVE",
-      priority: "NORMAL",
-      startDate: retainer2Start,
-      endDate: new Date("2026-07-31T00:00:00.000Z"),
-      completionPercentage: 35,
-    },
-  });
-  await prisma.projectMember.create({
-    data: { projectId: retainer2Project.id, userId: userIds["PM"], role: "MANAGER" },
-  });
-
-  // Down payment (30% of 60000 = 18000) already paid — contract is ACTIVE.
-  const dpInvoice2 = await prisma.invoice.create({
-    data: {
-      clientId: clientA.id,
-      contractId: ctrRetainer2.id,
-      createdBy: userIds["ACCOUNTANT"],
-      invoiceNumber: "INV-DOWN-0002",
-      amount: 18000,
-      status: "PAID",
-      paymentMethod: "BANK_TRANSFER",
-      issueDate: new Date("2026-01-31T00:00:00.000Z"),
-      dueDate: new Date("2026-01-31T00:00:00.000Z"),
-      paidAt: new Date("2026-02-02T00:00:00.000Z"),
-      paymentReference: "TXN-DOWN-0002",
-      items: {
-        create: {
-          description: "الدفعة المقدمة (Down Payment 30%)",
-          quantity: 1,
-          unitPrice: 18000,
-          total: 18000,
-        },
-      },
-    },
-  });
-
-  // 6 anniversary periods (start 31/01; clamped Feb→28, returns to 31 in March/May/July).
-  // end = day before next start. As of seed date (2026-06-18): p1-p4 CLOSED, p5 ACTIVE, p6 UPCOMING.
-  const periodsData = [
-    { n: 1, start: "2026-01-31", end: "2026-02-27", status: "CLOSED", closedAt: "2026-02-28" },
-    { n: 2, start: "2026-02-28", end: "2026-03-30", status: "CLOSED", closedAt: "2026-03-31" },
-    { n: 3, start: "2026-03-31", end: "2026-04-29", status: "CLOSED", closedAt: "2026-04-30" },
-    { n: 4, start: "2026-04-30", end: "2026-05-30", status: "CLOSED", closedAt: "2026-05-31" },
-    { n: 5, start: "2026-05-31", end: "2026-06-29", status: "ACTIVE", closedAt: null },
-    { n: 6, start: "2026-06-30", end: "2026-07-30", status: "UPCOMING", closedAt: null },
-  ] as const;
-  const periodIds: Record<number, string> = {};
-  for (const p of periodsData) {
-    const created = await prisma.projectPeriod.create({
-      data: {
-        projectId: retainer2Project.id,
-        periodNumber: p.n,
-        startDate: new Date(p.start + "T00:00:00.000Z"),
-        endDate: new Date(p.end + "T23:59:59.999Z"),
-        status: p.status,
-        closedAt: p.closedAt ? new Date(p.closedAt + "T00:00:00.000Z") : null,
-        summary: p.n === 1 ? "تقرير الشهر الأول: إطلاق الحملات وتسليم الهوية البصرية." : null,
-        reportFilePath: p.n === 1 ? "periods/p1-report.pdf" : null,
-        completionPercentage: p.n === 5 ? 40 : p.status === "CLOSED" ? 100 : 0,
       },
     });
-    periodIds[p.n] = created.id;
-  }
 
-  // Period status history for the current (ACTIVE) period 5.
-  await prisma.projectPeriodHistory.create({
-    data: {
-      periodId: periodIds[5],
-      fromStatus: "UPCOMING",
-      toStatus: "ACTIVE",
-      changedBy: userIds["PM"],
-      reason: "Auto-opened on period start",
-    },
-  });
+    // Contract status history
+    const statusFlow = sc.key === "completed"
+      ? (["SENT", "SIGNED", "ACTIVE", "COMPLETED"] as const)
+      : sc.key === "suspended"
+        ? (["SENT", "SIGNED", "ACTIVE", "ON_HOLD"] as const)
+        : (["SENT", "SIGNED", "ACTIVE"] as const);
+    for (let i = 0; i < statusFlow.length; i++) {
+      if (i === 0) continue;
+      await prisma.contractStatusHistory.create({
+        data: {
+          contractId: contract.id,
+          fromStatus: statusFlow[i - 1] as any,
+          toStatus: statusFlow[i] as any,
+          changedBy: userIds["SALES"],
+          reason: i === statusFlow.length - 1 && sc.key === "suspended" ? "Period 2 overdue — auto-suspension" : `Transitioned to ${statusFlow[i]}`,
+          changedAt: d(sc.start[0], sc.start[1] + i, 1),
+        },
+      });
+    }
 
-  // Contract status history SENT → SIGNED → ACTIVE.
-  await prisma.contractStatusHistory.createMany({
-    data: [
-      {
-        contractId: ctrRetainer2.id,
-        fromStatus: "SENT",
-        toStatus: "SIGNED",
-        changedBy: userIds["SALES"],
-        reason: "Signed by client",
+    // Store references
+    if (sc.key === "completed") {
+      Object.assign(ctrCompleted, contract);
+    } else if (sc.key === "suspended") {
+      Object.assign(ctrSuspended, contract);
+    } else {
+      Object.assign(ctrActive, contract);
+    }
+
+    // Project
+    const projectStatus = sc.key === "completed" ? "COMPLETED" : sc.key === "suspended" ? "ON_HOLD" : "ACTIVE";
+    const project = await prisma.project.create({
+      data: {
+        clientId: clientA.id,
+        contractId: contract.id,
+        name: sc.key === "completed" ? "حملة تسويق رمضان" : sc.key === "suspended" ? "إدارة منصات التواصل" : "تصميم هوية بصرية",
+        status: projectStatus as any,
+        priority: "HIGH",
+        startDate: d(sc.start[0], sc.start[1], sc.start[2]),
+        endDate: d(sc.end[0], sc.end[1], sc.end[2]),
+        completionPercentage: sc.key === "completed" ? 100 : sc.key === "suspended" ? 40 : 50,
       },
-      {
-        contractId: ctrRetainer2.id,
-        fromStatus: "SIGNED",
-        toStatus: "ACTIVE",
-        changedBy: userIds["ACCOUNTANT"],
-        reason: "Down payment received",
-      },
-    ],
-  });
+    });
 
-  // Two tasks auto-linked to the ACTIVE period (period 5).
-  const designDeptId = (await prisma.department.findUnique({ where: { name: "DESIGN" } }))?.id;
-  if (designDeptId) {
-    await prisma.task.createMany({
+    // Project members
+    await prisma.projectMember.createMany({
       data: [
-        {
-          projectId: retainer2Project.id,
-          departmentId: designDeptId,
-          assignedTo: userIds["CLIENT1"] ? null : null,
-          createdBy: userIds["PM"],
-          title: "تصاميم منشورات يونيو (Period 5)",
-          description: "Social media posts for the active period.",
-          status: "IN_PROGRESS",
-          priority: "NORMAL",
-          dueDate: new Date("2026-06-25T00:00:00.000Z"),
-          isVisibleToClient: true,
-          periodId: periodIds[5],
-        },
-        {
-          projectId: retainer2Project.id,
-          departmentId: designDeptId,
-          createdBy: userIds["PM"],
-          title: "تقرير أداء الحملات (Period 5)",
-          description: "Campaign performance report for the active period.",
-          status: "TODO",
-          priority: "HIGH",
-          dueDate: new Date("2026-06-29T00:00:00.000Z"),
-          isVisibleToClient: false,
-          periodId: periodIds[5],
-        },
+        { projectId: project.id, userId: userIds["PM"], role: "MANAGER" },
+        { projectId: project.id, userId: userIds["SALES"], role: "MEMBER" },
+        { projectId: project.id, userId: userIds["EMPLOYEE"], role: "MEMBER" },
       ],
     });
-  }
 
-  // ── Phase 3: overdue period invoice + suspension demo ────────────────────────
-  // A retainer with a suspended project and LATE period invoice to demo the engine.
-  const retainer3Start = new Date("2026-05-01T00:00:00.000Z");
-  const ctrRetainer3 = await prisma.contract.create({
-    data: {
-      clientId: clientA.id,
-      createdBy: userIds["SALES"],
-      salesPersonId: userIds["SALES"],
-      title: "Monthly Retainer — TechVentures (Phase 3 billing demo)",
-      type: "MONTHLY_RETAINER",
-      status: "ON_HOLD",
-      startDate: retainer3Start,
-      endDate: new Date("2026-07-31T00:00:00.000Z"),
-      monthlyValue: 7000,
-      totalValue: 21000,
-      currency: "SAR",
-      downPaymentType: "PERCENT",
-      downPaymentValue: 0,
-      numberOfMonths: 3,
-      eSigned: true,
-      signedAt: new Date("2026-05-01T00:00:00.000Z"),
-    },
-  });
-  // Payment plan: PERIOD_END recurring row only (zero down payment).
-  const recurRow3 = await prisma.contractPaymentPlan.create({
-    data: {
-      contractId: ctrRetainer3.id,
-      label: "Monthly Retainer Payment",
-      sequence: 0,
-      triggerType: "PERIOD_END",
-      amountType: "FIXED",
-      amountValue: 7000,
-      isRecurring: true,
-      dueOffsetDays: 0,
-    },
-  });
+    if (sc.key === "completed") Object.assign(projCompleted, project);
+    else if (sc.key === "suspended") Object.assign(projSuspended, project);
+    else Object.assign(projActive, project);
 
-  const retainer3Project = await prisma.project.create({
-    data: {
-      clientId: clientA.id,
-      contractId: ctrRetainer3.id,
-      projectManagerId: userIds["PM"],
-      name: "TechVentures — Monthly Retainer (suspended for non-payment)",
-      description: "Phase 3 billing demo: project is ON_HOLD due to unpaid period invoice.",
-      status: "ON_HOLD",
-      priority: "NORMAL",
-      startDate: retainer3Start,
-      endDate: new Date("2026-07-31T00:00:00.000Z"),
-    },
-  });
-  await prisma.projectMember.create({
-    data: { projectId: retainer3Project.id, userId: userIds["PM"], role: "MANAGER" },
-  });
+    // ── Generate periods & invoices ────────────────────────────────────────
+    const periods: any[] = [];
+    for (let p = 0; p < sc.months; p++) {
+      const pStart = new Date(sc.start[0]!, sc.start[1]! - 1 + p, sc.start[2]!);
+      const pEnd = new Date(sc.start[0]!, sc.start[1]! - 1 + p + 1, sc.start[2]! - 1);
+      const isLast = p === sc.months - 1;
 
-  // 3 periods: p1 CLOSED with PAID invoice, p2 SUSPENDED with LATE invoice, p3 UPCOMING
-  const p3PeriodsData = [
-    { n: 1, start: "2026-05-01", end: "2026-05-30", status: "CLOSED", closedAt: "2026-05-31" },
-    { n: 2, start: "2026-05-31", end: "2026-06-29", status: "SUSPENDED", closedAt: null, suspendedAt: "2026-06-22" },
-    { n: 3, start: "2026-06-30", end: "2026-07-30", status: "UPCOMING", closedAt: null },
-  ] as const;
-  const p3PeriodIds: Record<number, string> = {};
-  for (const p of p3PeriodsData) {
-    const created = await prisma.projectPeriod.create({
+      // Determine period status based on scenario
+      let periodStatus: string;
+      let invoiceStatus: string;
+      let triggeredSuspension = false;
+      let paidAt: Date | null = null;
+
+      if (sc.key === "completed") {
+        periodStatus = "CLOSED";
+        invoiceStatus = "PAID";
+        paidAt = new Date(pEnd);
+      } else if (sc.key === "suspended") {
+        if (p === 0) {
+          periodStatus = "CLOSED";
+          invoiceStatus = "PAID";
+          paidAt = new Date(pEnd);
+        } else if (p === 1) {
+          periodStatus = "SUSPENDED";
+          invoiceStatus = "LATE";
+          triggeredSuspension = true;
+        } else {
+          periodStatus = "UPCOMING";
+          invoiceStatus = "PENDING";
+        }
+      } else {
+        // ACTIVE scenario
+        if (p < 3) {
+          periodStatus = "CLOSED";
+          invoiceStatus = "PAID";
+          paidAt = new Date(pEnd);
+        } else if (p === 3) {
+          periodStatus = "ACTIVE";
+          invoiceStatus = "PENDING";
+        } else {
+          periodStatus = "UPCOMING";
+          invoiceStatus = "PENDING";
+        }
+      }
+
+      if (periodStatus === "UPCOMING") break; // Stop creating periods/invoices after UPCOMING starts
+
+      const period = await prisma.projectPeriod.create({
+        data: {
+          projectId: project.id,
+          periodNumber: p + 1,
+          startDate: pStart,
+          endDate: pEnd,
+          status: periodStatus as any,
+          completionPercentage: periodStatus === "CLOSED" ? 100 : periodStatus === "ACTIVE" ? 50 : 0,
+          closedAt: periodStatus === "CLOSED" ? new Date(pEnd) : null,
+          suspendedAt: periodStatus === "SUSPENDED" ? new Date(pEnd) : null,
+          summary: periodStatus === "CLOSED" ? `تم إنجاز أعمال الفترة ${p + 1} بنجاح` : null,
+        },
+      });
+      periods.push(period);
+
+      // Period history
+      if (periodStatus !== "UPCOMING") {
+        await prisma.projectPeriodHistory.create({
+          data: {
+            periodId: period.id,
+            fromStatus: "UPCOMING",
+            toStatus: periodStatus as any,
+            changedBy: userIds["PM"],
+            changedAt: new Date(pStart),
+          },
+        });
+      }
+
+      // Invoice
+      if (p === 0 && downPaymentType && sc.downPct > 0) {
+        // Down payment invoice
+        const dpAmount = Math.round(sc.val * sc.downPct / 100);
+        const dpInv = await prisma.invoice.create({
+          data: {
+            clientId: clientA.id,
+            contractId: contract.id,
+            createdBy: userIds["ACCOUNTANT"],
+            invoiceNumber: `INV-DOWN-${sc.key.toUpperCase().slice(0, 4)}`,
+            amount: dpAmount,
+            status: sc.key === "suspended" ? "PAID" : "PAID",
+            paymentMethod: "BANK_TRANSFER",
+            issueDate: new Date(sc.start[0]!, sc.start[1]! - 1, 1),
+            dueDate: new Date(sc.start[0]!, sc.start[1]! - 1, 7),
+            paidAt: new Date(sc.start[0]!, sc.start[1]! - 1, 3),
+            paymentReference: `PAY-DP-${sc.key.toUpperCase().slice(0, 4)}`,
+            items: { create: { description: "الدفعة الأولى", quantity: 1, unitPrice: dpAmount, total: dpAmount } },
+          },
+        });
+
+        if (periodStatus !== "UPCOMING" && invoiceStatus === "PAID") {
+          // Payment
+          await prisma.payment.create({
+            data: {
+              invoiceId: dpInv.id,
+              clientId: clientA.id,
+              amount: dpAmount,
+              status: "SUCCESS",
+              method: "BANK_TRANSFER",
+              date: new Date(sc.start[0]!, sc.start[1]! - 1, 3),
+            },
+          });
+        }
+      }
+
+      // Period invoice
+      const invLabel = `الدفعة الشهرية — الفترة ${p + 1}`;
+      const inv = await prisma.invoice.create({
+        data: {
+          clientId: clientA.id,
+          contractId: contract.id,
+          paymentPlanId: (await prisma.contractPaymentPlan.findFirst({ where: { contractId: contract.id, isRecurring: true } }))?.id,
+          createdBy: userIds["ACCOUNTANT"],
+          invoiceNumber: `INV-PRD-${sc.key.toUpperCase().slice(0, 4)}-${String(p + 1).padStart(2, "0")}`,
+          amount: monthlyAmount,
+          status: invoiceStatus as any,
+          paymentMethod: "BANK_TRANSFER",
+          issueDate: new Date(pEnd),
+          dueDate: new Date(pEnd.getTime() + 7 * 24 * 60 * 60 * 1000),
+          paidAt,
+          paymentReference: paidAt ? `PAY-${sc.key.toUpperCase().slice(0, 4)}-${String(p + 1).padStart(2, "0")}` : null,
+          triggeredSuspension,
+          reminderFlags: invoiceStatus === "LATE" ? 7 : 0,
+          items: { create: { description: invLabel, quantity: 1, unitPrice: monthlyAmount, total: monthlyAmount } },
+        },
+      });
+
+      // Link period to invoice
+      await prisma.projectPeriod.update({ where: { id: period.id }, data: { invoiceId: inv.id } });
+
+      // Payment record for paid invoices
+      if (invoiceStatus === "PAID" && paidAt) {
+        await prisma.payment.create({
+          data: {
+            invoiceId: inv.id,
+            clientId: clientA.id,
+            amount: monthlyAmount,
+            status: "SUCCESS",
+            method: "BANK_TRANSFER",
+            date: paidAt,
+          },
+        });
+      }
+    }
+
+    // ── Tasks ────────────────────────────────────────────────────────────────
+    const taskDefs: Array<{ title: string; status: string; priority: string; due: number[] }> = [];
+    if (sc.key === "completed") {
+      taskDefs.push(
+        { title: "تصميم الهوية البصرية", status: "DONE", priority: "HIGH", due: [2026, 4, 20] },
+        { title: "إطلاق حملة إعلانية", status: "DONE", priority: "HIGH", due: [2026, 5, 15] },
+        { title: "إعداد تقرير الإنجاز", status: "DONE", priority: "NORMAL", due: [2026, 6, 25] },
+      );
+    } else if (sc.key === "suspended") {
+      taskDefs.push(
+        { title: "تصميم منشورات شهر مايو", status: "DONE", priority: "HIGH", due: [2026, 5, 15] },
+        { title: "تصميم منشورات شهر يونيو", status: "TODO", priority: "HIGH", due: [2026, 6, 15] },
+      );
+    } else {
+      taskDefs.push(
+        { title: "تصميم دليل الهوية البصرية", status: "IN_PROGRESS", priority: "HIGH", due: [2026, 6, 25] },
+        { title: "تجهيز ملف العلامة التجارية", status: "TODO", priority: "NORMAL", due: [2026, 7, 10] },
+      );
+    }
+
+    for (const t of taskDefs) {
+      const task = await prisma.task.create({
+        data: {
+          projectId: project.id,
+          departmentId: designDept!.id,
+          title: t.title,
+          status: t.status as any,
+          priority: t.priority as any,
+          dueDate: d(t.due[0], t.due[1], t.due[2]),
+          assignedTo: userIds["EMPLOYEE"],
+          createdBy: userIds["PM"],
+        },
+      });
+      if (t.status === "DONE") {
+        await prisma.taskStatusHistory.create({
+          data: { taskId: task.id, fromStatus: "TODO", toStatus: "DONE", changedBy: userIds["EMPLOYEE"], changedAt: d(t.due[0], t.due[1], t.due[2]) },
+        });
+      }
+      if (t.status === "IN_PROGRESS") {
+        await prisma.taskStatusHistory.create({
+          data: { taskId: task.id, fromStatus: "TODO", toStatus: "IN_PROGRESS", changedBy: userIds["EMPLOYEE"], changedAt: d(2026, 6, 10) },
+        });
+      }
+    }
+
+    // ── Deliverable ──────────────────────────────────────────────────────────
+    await prisma.deliverable.create({
       data: {
-        projectId: retainer3Project.id,
-        periodNumber: p.n,
-        startDate: new Date(p.start + "T00:00:00.000Z"),
-        endDate: new Date(p.end + "T23:59:59.999Z"),
-        status: p.status,
-        closedAt: p.closedAt ? new Date(p.closedAt + "T00:00:00.000Z") : null,
-        suspendedAt: (p as any).suspendedAt ? new Date((p as any).suspendedAt + "T00:00:00.000Z") : null,
+        projectId: project.id,
+        title: sc.key === "completed" ? "تقرير الإنجاز النهائي" : sc.key === "suspended" ? "تقويم المحتوى الشهري" : "دليل الهوية البصرية",
+        status: (sc.key === "completed" ? "DONE" : sc.key === "suspended" ? "DONE" : "IN_REVIEW") as any,
+        filePath: "",
       },
     });
-    p3PeriodIds[p.n] = created.id;
   }
 
-  // Period status history
-  await prisma.projectPeriodHistory.createMany({
-    data: [
-      { periodId: p3PeriodIds[1], fromStatus: "UPCOMING", toStatus: "ACTIVE", changedBy: userIds["PM"], reason: "Auto-opened on period start" },
-      { periodId: p3PeriodIds[1], fromStatus: "ACTIVE", toStatus: "CLOSED", changedBy: userIds["PM"], reason: "Period closed" },
-      { periodId: p3PeriodIds[2], fromStatus: "UPCOMING", toStatus: "ACTIVE", changedBy: userIds["PM"], reason: "Auto-opened after period 1 closed" },
-      { periodId: p3PeriodIds[2], fromStatus: "ACTIVE", toStatus: "SUSPENDED", changedBy: userIds["ACCOUNTANT"], reason: "Auto-suspend: overdue period invoice" },
-    ],
+  // ── Extra proposals — full status variety for the proposals page ──────────
+  const extraLead = await prisma.lead.create({
+    data: {
+      companyName: "مؤسسة اختبار العروض",
+      contactName: "مشاري التميمي",
+      phoneWhatsapp: "+966500000099",
+      email: "extra-proposals@example.com",
+      businessName: "مؤسسة اختبار العروض",
+      businessType: "OTHER",
+      source: "WEBSITE",
+      pipelineStage: "APPROVED",
+      assignedTo: userIds["SALES"],
+    } as any,
   });
+  const EXTRA_STATUSES = ["DRAFT", "SENT", "REVISION_REQUESTED", "REJECTED"];
+  for (const st of EXTRA_STATUSES) {
+    await prisma.proposal.create({
+      data: {
+        leadId: extraLead.id,
+        clientId: clientA.id,
+        createdBy: userIds["SALES"],
+        title: st === "DRAFT" ? "عرض مسودة — تصميم هوية"
+             : st === "SENT" ? "عرض مرسل — حملة إعلانية"
+             : st === "REVISION_REQUESTED" ? "عرض طلب تعديل — تطوير موقع"
+             : "عرض مرفوض — خدمات استشارية",
+        serviceDescription: `عرض توضيحي للحالة ${st}`,
+        status: st as any,
+        totalPrice: 5000,
+        startDate: new Date("2026-06-01"),
+        durationDays: 30,
+        platforms: [],
+        servicesList: [{ name: "خدمة اختبار", price: 5000, quantity: 1 }],
+      } as any,
+    });
+  }
 
-  // Contract status history
-  await prisma.contractStatusHistory.createMany({
-    data: [
-      { contractId: ctrRetainer3.id, fromStatus: "SENT", toStatus: "SIGNED", changedBy: userIds["SALES"], reason: "Signed by client" },
-      { contractId: ctrRetainer3.id, fromStatus: "SIGNED", toStatus: "ACTIVE", changedBy: userIds["ACCOUNTANT"], reason: "Zero down payment — auto-activated" },
-      { contractId: ctrRetainer3.id, fromStatus: "ACTIVE", toStatus: "ON_HOLD", changedBy: userIds["ACCOUNTANT"], reason: "Auto-suspend: overdue period invoice" },
-    ],
+  // ── Extra contracts — full status variety for the contracts page ──────────
+  const EXTRA_CONTRACT_STATUSES = ["DRAFT", "SENT", "SIGNED", "EXPIRED", "CANCELLED"];
+  for (const st of EXTRA_CONTRACT_STATUSES) {
+    await prisma.contract.create({
+      data: {
+        clientId: clientA.id,
+        createdBy: userIds["SALES"],
+        title: st === "DRAFT" ? "عقد مسودة — خدمات تصميم"
+             : st === "SENT" ? "عقد مرسل — حملة إعلانية"
+             : st === "SIGNED" ? "عقد موقع — تطوير موقع"
+             : st === "EXPIRED" ? "عقد منتهي — استشارات"
+             : "عقد ملغي — خدمات متكاملة",
+        type: "MONTHLY_RETAINER",
+        status: st as any,
+        startDate: new Date("2026-01-01"),
+        endDate: new Date("2026-12-31"),
+        monthlyValue: 5000,
+        totalValue: 60000,
+      },
+    });
+  }
+
+  // ── Campaign (for the active project only) ────────────────────────────────
+  const campaignTask = await prisma.task.create({
+    data: {
+      projectId: projActive.id,
+      departmentId: marketingDept!.id,
+      title: "إدارة حملة إطلاق الهوية",
+      status: "IN_PROGRESS" as any,
+      priority: "HIGH" as any,
+      dueDate: d(2026, 8, 31),
+      assignedTo: userIds["MARKETING"],
+      createdBy: userIds["PM"],
+    },
   });
-
-  // PAID period invoice for period 1
-  await prisma.invoice.create({
+  const campaign = await prisma.campaign.create({
     data: {
       clientId: clientA.id,
-      contractId: ctrRetainer3.id,
-      paymentPlanId: recurRow3.id,
-      createdBy: userIds["ACCOUNTANT"],
-      invoiceNumber: "INV-PRD-3001",
-      amount: 7000,
-      status: "PAID",
-      paymentMethod: "BANK_TRANSFER",
-      issueDate: new Date("2026-05-31T00:00:00.000Z"),
-      dueDate: new Date("2026-06-01T00:00:00.000Z"),
-      paidAt: new Date("2026-06-05T00:00:00.000Z"),
-      paymentReference: "TXN-PRD-3001",
-      reminderFlags: 2,
-      items: { create: { description: "الدفعة الشهرية — الفترة 1", quantity: 1, unitPrice: 7000, total: 7000 } },
-    },
+      taskId: campaignTask.id,
+      projectId: projActive.id,
+      managedBy: userIds["MARKETING"],
+      name: "حملة إطلاق الهوية الجديدة",
+      platform: "META",
+      status: "ACTIVE",
+      startDate: d(2026, 6, 1),
+      endDate: d(2026, 8, 31),
+      budgetTotal: 8000,
+      budgetSpent: 3000,
+    } as any,
   });
-  // Link period 1 to its paid invoice
-  const p1Invoice = await prisma.invoice.findUnique({ where: { invoiceNumber: "INV-PRD-3001" }, select: { id: true } });
-  if (p1Invoice) {
-    await prisma.projectPeriod.update({ where: { id: p3PeriodIds[1] }, data: { invoiceId: p1Invoice.id } });
-  }
 
-  // LATE overdue period invoice for period 2 — triggered suspension
-  await prisma.invoice.create({
+  await prisma.campaignKpiSnapshot.create({
     data: {
-      clientId: clientA.id,
-      contractId: ctrRetainer3.id,
-      paymentPlanId: recurRow3.id,
-      createdBy: userIds["ACCOUNTANT"],
-      invoiceNumber: "INV-PRD-3002",
-      amount: 7000,
-      status: "LATE",
-      paymentMethod: "BANK_TRANSFER",
-      issueDate: new Date("2026-06-01T00:00:00.000Z"),
-      dueDate: new Date("2026-06-07T00:00:00.000Z"),
-      reminderFlags: 7,
-      triggeredSuspension: true,
-      items: { create: { description: "الدفعة الشهرية — الفترة 2 (متأخرة)", quantity: 1, unitPrice: 7000, total: 7000 } },
-    },
-  });
-  // Link period 2 to its late invoice
-  const p2Invoice = await prisma.invoice.findUnique({ where: { invoiceNumber: "INV-PRD-3002" }, select: { id: true } });
-  if (p2Invoice) {
-    await prisma.projectPeriod.update({ where: { id: p3PeriodIds[2] }, data: { invoiceId: p2Invoice.id } });
-  }
-
-  // Phase 4: Add summary + report to period 1 for the portal monthly report view.
-  await prisma.projectPeriod.update({
-    where: { id: p3PeriodIds[1] },
-    data: {
-      summary: "تم إطلاق حملات التسويق الرقمي للشهر الأول. تم تسليم 3 تصاميم للمنشورات وحققت الحملة تفاعل جيد. نسبة التحقق من الأهداف: 85%.",
-      reportFilePath: "periods/p3-p1-report.pdf",
-      completionPercentage: 100,
+      campaignId: campaign.id,
+      impressions: 15000,
+      clicks: 1200,
+      conversions: 85,
+      revenue: 6800,
+      cpc: 0.45,
+      ctr: 8.0,
+      conversionRate: 7.08,
+      roas: 2.27,
+      source: "meta_api",
+      recordedAt: d(2026, 6, 15),
     },
   });
 
-  // Satisfaction rating for the retainer project.
+  // ── Satisfaction rating for the completed project ─────────────────────────
   await prisma.satisfactionRating.create({
     data: {
       clientId: clientA.id,
-      projectId: retainer3Project.id,
-      score: 4,
-      comment: "أداء جيد جداً في الشهر الأول. التصاميم ممتازة والتقارير واضحة. نأمل تحسين سرعة الرد على الاستفسارات.",
+      projectId: projCompleted.id,
+      score: 5,
+      comment: "تجربة ممتازة. تم تسليم جميع الأعمال في الوقت المحدد وبجودة عالية.",
       triggerEvent: "MONTHLY_REVIEW",
       autoAction: "NONE",
     },
   });
 
-  // ── Campaigns — all 5 statuses (using createMany + existing task IDs) ─────────
-  const campaigns = [
-    {
+  // ── Client history log for the active contract ────────────────────────────
+  await prisma.clientHistoryLog.create({
+    data: {
       clientId: clientA.id,
-      taskId: tasks[2].id,
-      projectId: projPlanning.id,
-      managedBy: userIds["MARKETING"],
-      name: "حملة الصيف (تخطيط)",
-      platform: "META" as const,
-      status: "PLANNING" as const,
-      startDate: new Date("2026-08-01"),
-      endDate: new Date("2026-09-30"),
-      budgetTotal: 20000,
-      budgetSpent: 0,
-    },
-    {
-      clientId: clientA.id,
-      taskId: tasks[3].id,
-      projectId: projActive.id,
-      managedBy: userIds["MARKETING"],
-      name: "حملة العيد (نشطة)",
-      platform: "META" as const,
-      status: "ACTIVE" as const,
-      startDate: new Date("2026-04-15"),
-      endDate: new Date("2026-06-15"),
-      budgetTotal: 15000,
-      budgetSpent: 7500,
-    },
-    {
-      clientId: clientA.id,
-      taskId: tasks[4].id,
-      projectId: projOnHold.id,
-      managedBy: userIds["MARKETING"],
-      name: "حملة المنتج الجديد (متوقفة)",
-      platform: "GOOGLE" as const,
-      status: "PAUSED" as const,
-      startDate: new Date("2026-04-01"),
-      endDate: new Date("2026-07-01"),
-      budgetTotal: 25000,
-      budgetSpent: 5000,
-    },
-    {
-      clientId: clientA.id,
-      taskId: tasks[12].id,
-      projectId: projCancelled.id,
-      managedBy: userIds["MARKETING"],
-      name: "حملة تيكتوك (متوقفة)",
-      platform: "TIKTOK" as const,
-      status: "STOPPED" as const,
-      startDate: new Date("2026-02-01"),
-      endDate: new Date("2026-04-30"),
-      budgetTotal: 10000,
-      budgetSpent: 4500,
-    },
-    {
-      clientId: clientA.id,
-      taskId: tasks[10].id,
-      projectId: projCompleted.id,
-      managedBy: userIds["MARKETING"],
-      name: "حملة Google Q4 (مكتملة)",
-      platform: "GOOGLE" as const,
-      status: "COMPLETED" as const,
-      startDate: new Date("2025-10-01"),
-      endDate: new Date("2025-12-31"),
-      budgetTotal: 30000,
-      budgetSpent: 29500,
-    },
-  ];
-  await prisma.campaign.createMany({ data: campaigns });
-  const campaignRecords = await prisma.campaign.findMany({
-    where: { clientId: clientA.id },
-    orderBy: { createdAt: "asc" },
-  });
-
-  // KPI Snapshots
-  await prisma.campaignKpiSnapshot.createMany({
-    data: [
-      {
-        campaignId: campaignRecords[1].id,
-        impressions: 45000,
-        clicks: 2800,
-        conversions: 320,
-        revenue: 22400,
-        cpc: 0.51,
-        cpa: 44.38,
-        ctr: 6.22,
-        conversionRate: 11.43,
-        roas: 1.58,
-        source: "meta_api",
-        recordedAt: new Date("2026-05-05"),
-        createdAt: new Date("2026-05-05"),
-      },
-      {
-        campaignId: campaignRecords[1].id,
-        impressions: 22000,
-        clicks: 1200,
-        conversions: 140,
-        revenue: 9800,
-        cpc: 0.55,
-        cpa: 45.71,
-        ctr: 5.45,
-        conversionRate: 11.67,
-        roas: 1.45,
-        source: "meta_api",
-        recordedAt: new Date("2026-04-25"),
-        createdAt: new Date("2026-04-25"),
-      },
-      {
-        campaignId: campaignRecords[2].id,
-        impressions: 12000,
-        clicks: 800,
-        conversions: 60,
-        revenue: 7200,
-        cpc: 0.7,
-        cpa: 83.33,
-        ctr: 6.67,
-        conversionRate: 7.5,
-        roas: 1.44,
-        source: "google_api",
-        recordedAt: new Date("2026-04-15"),
-        createdAt: new Date("2026-04-15"),
-      },
-      {
-        campaignId: campaignRecords[4].id,
-        impressions: 67000,
-        clicks: 4200,
-        conversions: 450,
-        revenue: 49500,
-        cpc: 0.6,
-        cpa: 55.56,
-        ctr: 6.27,
-        conversionRate: 10.71,
-        roas: 1.68,
-        source: "google_api",
-        recordedAt: new Date("2025-12-31"),
-        createdAt: new Date("2025-12-31"),
-      },
-      {
-        campaignId: campaignRecords[4].id,
-        impressions: 30000,
-        clicks: 1800,
-        conversions: 180,
-        revenue: 19800,
-        cpc: 0.65,
-        cpa: 60.0,
-        ctr: 6.0,
-        conversionRate: 10.0,
-        roas: 1.56,
-        source: "google_api",
-        recordedAt: new Date("2025-11-15"),
-        createdAt: new Date("2025-11-15"),
-      },
-    ],
-  });
-
-  // Phase 4: KPI snapshots for the Phase 3 period 1 (linked to campaignRecords[1]).
-  if (p3PeriodIds[1]) {
-    await prisma.campaignKpiSnapshot.createMany({
-      data: [
-        { campaignId: campaignRecords[1].id, periodId: p3PeriodIds[1], impressions: 125000, clicks: 4200, conversions: 185, revenue: 35000, ctr: 3.36, conversionRate: 4.4, cpc: 2.8, roas: 5.0, recordedAt: new Date("2026-06-01"), createdAt: new Date("2026-06-01") },
-        { campaignId: campaignRecords[1].id, periodId: p3PeriodIds[1], impressions: 98000, clicks: 3100, conversions: 142, revenue: 28000, ctr: 3.16, conversionRate: 4.58, cpc: 2.5, roas: 4.8, recordedAt: new Date("2026-06-15"), createdAt: new Date("2026-06-15") },
-      ],
-    });
-  }
-
-  // ── Client History Logs (activity feed) ─────────────────────────────────────
-  await prisma.clientHistoryLog.createMany({
-    data: [
-      {
-        clientId: clientA.id,
-        userId: userIds["PM"],
-        eventType: "DELIVERABLE_APPROVED",
-        description: "تم اعتماد نماذج الشعار من قبل العميل",
-        occurredAt: new Date("2026-05-01"),
-      },
-      {
-        clientId: clientA.id,
-        userId: userIds["MARKETING"],
-        eventType: "CAMPAIGN_LAUNCHED",
-        description: "تم إطلاق حملة العيد",
-        occurredAt: new Date("2026-04-15"),
-      },
-      {
-        clientId: clientA.id,
-        userId: userIds["MARKETING"],
-        eventType: "CAMPAIGN_LAUNCHED",
-        description: "تم إطلاق حملة Google Q4",
-        occurredAt: new Date("2025-10-01"),
-      },
-      {
-        clientId: clientA.id,
-        userId: userIds["ACCOUNTANT"],
-        eventType: "INVOICE_PAID",
-        description: "تم دفع فاتورة INV-20260301-003",
-        occurredAt: new Date("2026-03-10"),
-      },
-      {
-        clientId: clientA.id,
-        userId: userIds["PM"],
-        eventType: "PROJECT_COMPLETED",
-        description: "تم اكتمال مشروع حملة Google Ads",
-        occurredAt: new Date("2025-12-31"),
-      },
-    ],
-  });
-
-  // Snoozed item for demo
-  await prisma.clientSnoozedItem.upsert({
-    where: {
-      clientId_itemType_itemId: {
-        clientId: clientA.id,
-        itemType: "INVOICE_PAYMENT",
-        itemId: invoices[0].id,
-      },
-    },
-    update: {},
-    create: {
-      clientId: clientA.id,
-      itemType: "INVOICE_PAYMENT",
-      itemId: invoices[0].id,
-      snoozedUntil: new Date(Date.now() + 12 * 60 * 60 * 1000),
+      userId: userIds["ADMIN"],
+      eventType: "CONTRACT_ACTIVATED",
+      description: `تم تفعيل العقد: ${ctrActive.title}`,
+      occurredAt: new Date(),
     },
   });
 
@@ -2757,24 +1645,6 @@ async function main() {
     ],
   });
 
-  // Ledger entries
-  await prisma.ledger.createMany({
-    data: [
-      {
-        action: "CREATE_INVOICE",
-        entity: "INVOICE",
-        entityId: invoices[0].id,
-        userId: userIds["ACCOUNTANT"],
-      },
-      {
-        action: "REGISTER_PAYMENT",
-        entity: "PAYMENT",
-        entityId: invoices[2].id,
-        userId: userIds["ACCOUNTANT"],
-      },
-    ],
-  });
-
   // ── Permissions (always upserted — never deleted) ────────────────────────────
   const permissions = [
     "chat.create",
@@ -2994,7 +1864,7 @@ async function main() {
     "✓ Seed complete — all statuses covered across 3 clients (password: password123)",
   );
   console.log(
-    "  Client A (client@hassad.com): 9 leads, 5 proposals, 6 contracts, 7 projects, 7 invoices, 5 campaigns",
+    "  Client A (client@hassad.com): 11 leads, 10 requests, 7 proposals, 8 contracts, 3 projects, 10+ invoices, 1 campaign",
   );
   console.log("  Client B (client2@hassad.com): Active client with mixed data");
   console.log(

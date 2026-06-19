@@ -326,7 +326,7 @@ export class ContractsService {
       return;
     }
 
-    // Down payment required: project waits for activation, invoice is issued now.
+    // Down payment required: project waits for activation.
     await this.createProjectFromSignedContract(
       contractId,
       ProjectStatus.PENDING_ACTIVATION,
@@ -334,11 +334,26 @@ export class ContractsService {
       this.logger.error(`Failed to create project for contract ${contractId}: ${err?.message}`);
     });
 
-    await this.issueDownPaymentInvoice(contractId, contract.createdBy, onSignRow, downPaymentAmount).catch(
-      (err) => {
-        this.logger.error(`Failed to issue down-payment invoice for contract ${contractId}: ${err?.message}`);
-      },
-    );
+    // Check if a down-payment invoice was already created at contract creation.
+    const existingInvoice = onSignRow?.id
+      ? await this.prisma.invoice.findFirst({
+          where: { contractId, paymentPlanId: onSignRow.id },
+          select: { id: true, status: true },
+        })
+      : null;
+
+    if (existingInvoice && existingInvoice.status === InvoiceStatus.PAID) {
+      // Already paid — activate immediately.
+      await this.activateContract(contractId, contract.createdBy, "Down payment already paid — activated on sign");
+    } else if (!existingInvoice) {
+      // No invoice yet (legacy contract created before this change) — create one now.
+      await this.issueDownPaymentInvoice(contractId, contract.createdBy, onSignRow, downPaymentAmount).catch(
+        (err) => {
+          this.logger.error(`Failed to issue down-payment invoice for contract ${contractId}: ${err?.message}`);
+        },
+      );
+    }
+    // If invoice exists and is PENDING, do nothing — client pays it, then handleInvoicePaid activates the contract.
   }
 
   /** Resolve down payment from the contract-level fallback fields when no plan row exists. */
@@ -675,7 +690,7 @@ export class ContractsService {
         },
       });
 
-      // Optional: define the full payment plan at creation time.
+      // Auto-generate payment plan rows from scalar fields if no explicit plan provided.
       if (dto.paymentPlan && dto.paymentPlan.length > 0) {
         for (const [i, row] of dto.paymentPlan.entries()) {
           await tx.contractPaymentPlan.create({
@@ -691,6 +706,54 @@ export class ContractsService {
             },
           });
         }
+      } else if (
+        dto.type === "MONTHLY_RETAINER" &&
+        dto.downPaymentType &&
+        dto.downPaymentValue != null
+      ) {
+        // Down payment row
+        const downPaymentAmount =
+          dto.downPaymentType === "PERCENT"
+            ? Math.round(totalValue * (dto.downPaymentValue / 100) * 100) / 100
+            : dto.downPaymentValue;
+
+        await tx.contractPaymentPlan.create({
+          data: {
+            contractId: contract.id,
+            label: "الدفعة الأولى",
+            sequence: 0,
+            triggerType: "ON_SIGN",
+            amountType: dto.downPaymentType,
+            amountValue: dto.downPaymentValue,
+            isRecurring: false,
+            dueOffsetDays: 0,
+          },
+        });
+
+        // Recurring monthly row — derive amount from remaining / months
+        const remaining = totalValue - downPaymentAmount;
+        const months = dto.numberOfMonths ?? 1;
+        const recurringAmount =
+          dto.monthlyValue && dto.monthlyValue > 0
+            ? dto.monthlyValue
+            : months > 0
+              ? Math.round((remaining / months) * 100) / 100
+              : 0;
+
+        if (recurringAmount > 0) {
+          await tx.contractPaymentPlan.create({
+            data: {
+              contractId: contract.id,
+              label: "الدفعة الشهرية",
+              sequence: 1,
+              triggerType: "PERIOD_END",
+              amountType: "FIXED",
+              amountValue: recurringAmount,
+              isRecurring: true,
+              dueOffsetDays: 0,
+            },
+          });
+        }
       }
 
       await this.requestsService.updateStatus(
@@ -703,6 +766,27 @@ export class ContractsService {
 
       return { contract, request };
     });
+
+    // Create down-payment invoice so the client sees it immediately.
+    const onSignRow = await this.paymentPlanService.getOnSignRow(created.contract.id);
+    if (onSignRow) {
+      const downPaymentAmount = this.paymentPlanService.resolveAmount(
+        onSignRow,
+        created.contract.totalValue,
+      );
+      if (downPaymentAmount > 0) {
+        await this.issueDownPaymentInvoice(
+          created.contract.id,
+          userId,
+          onSignRow,
+          downPaymentAmount,
+        ).catch((err) => {
+          this.logger.error(
+            `Failed to create down-payment invoice for contract ${created.contract.id}: ${err?.message}`,
+          );
+        });
+      }
+    }
 
     const recipientId =
       created.request.client.userId ?? created.request.submittedBy;
