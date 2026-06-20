@@ -673,6 +673,8 @@ model ProjectPeriod {
   summary              String?
   reportFilePath       String?             @map("report_file_path")
   completionPercentage Float              @default(0) @map("completion_percentage")
+  /// PM-defined goals for this period (visible to client)
+  goals                Json?
   invoiceId            String?             @unique @map("invoice_id")
   closedAt             DateTime?           @map("closed_at")
   suspendedAt          DateTime?           @map("suspended_at")

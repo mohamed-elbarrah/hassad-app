@@ -719,6 +719,37 @@ async function main() {
 
       if (periodStatus === "UPCOMING") break; // Stop creating periods/invoices after UPCOMING starts
 
+      // Goals for each period (PM-defined targets visible to client)
+      const periodGoals = sc.key === "completed"
+        ? [
+            { title: "تصميم الهوية البصرية", description: "شعار، دليل الهوية، بطاقة العمل", completed: true },
+            { title: "إعداد تقويم المحتوى", description: "تقويم 30 منشور", completed: true },
+            { title: "إطلاق الحملة الإعلانية", description: "إعداد وإطلاق الحملة", completed: true },
+          ]
+        : sc.key === "suspended"
+          ? p === 0
+            ? [
+                { title: "تصميم منشورات الشهر", description: "30 منشور للمنصات", completed: true },
+                { title: "إعداد التقويم", description: "تقويم المحتوى", completed: true },
+              ]
+            : p === 1
+              ? [
+                  { title: "تصميم منشورات الشهر", description: "30 منشور للمنصات", completed: false },
+                  { title: "تحليل الأداء", description: "تقرير أداء الحملات", completed: false },
+                ]
+              : []
+          : p < 3
+            ? [
+                { title: `تصميم الهوية - المرحلة ${p + 1}`, description: `تطوير عناصر الهوية`, completed: true },
+                { title: "مراجعة العمل", description: "مراجعة مع العميل", completed: true },
+              ]
+            : p === 3
+              ? [
+                  { title: "اللمسات النهائية", description: "تعديلات نهائية", completed: false },
+                  { title: "تسليم الملفات", description: "جميع الملفات المصدرية", completed: false },
+                ]
+              : [];
+
       const period = await prisma.projectPeriod.create({
         data: {
           projectId: project.id,
@@ -727,6 +758,7 @@ async function main() {
           endDate: pEnd,
           status: periodStatus as any,
           completionPercentage: periodStatus === "CLOSED" ? 100 : periodStatus === "ACTIVE" ? 50 : 0,
+          goals: periodGoals.length > 0 ? periodGoals : undefined,
           closedAt: periodStatus === "CLOSED" ? new Date(pEnd) : null,
           suspendedAt: periodStatus === "SUSPENDED" ? new Date(pEnd) : null,
           summary: periodStatus === "CLOSED" ? `تم إنجاز أعمال الفترة ${p + 1} بنجاح` : null,

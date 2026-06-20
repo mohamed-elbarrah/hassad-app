@@ -407,7 +407,12 @@ export class PortalService {
         summary: true,
         reportFilePath: true,
         completionPercentage: true,
+        goals: true,
         invoice: { select: { id: true, invoiceNumber: true, amount: true, status: true } },
+        files: {
+          select: { id: true, fileName: true, fileType: true, fileSize: true, uploadedAt: true },
+          orderBy: { uploadedAt: "desc" },
+        },
       },
     });
   }

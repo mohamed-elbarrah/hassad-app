@@ -166,6 +166,12 @@ export class ProjectsController {
     return this.periodsService.setCompletion(periodId, dto.completionPercentage);
   }
 
+  @Patch("periods/:periodId/goals")
+  @RequirePermissions("projects.update")
+  savePeriodGoals(@Param("periodId") periodId: string, @Body() dto: { goals: Array<{ title: string; description?: string; completed: boolean }> }) {
+    return this.periodsService.saveGoals(periodId, dto.goals);
+  }
+
   @Post("periods/:periodId/report")
   @RequirePermissions("projects.update")
   @UseInterceptors(FileInterceptor("file"))

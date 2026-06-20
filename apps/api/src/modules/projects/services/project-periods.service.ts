@@ -455,6 +455,15 @@ export class ProjectPeriodsService {
     });
   }
 
+  /** Save PM-defined goals for this period (visible to client). */
+  async saveGoals(periodId: string, goals: Array<{ title: string; description?: string; completed: boolean }>) {
+    await this.findPeriodOrThrow(periodId);
+    return this.prisma.projectPeriod.update({
+      where: { id: periodId },
+      data: { goals },
+    });
+  }
+
   // ── Domain event: generate periods when a retainer contract activates ──────
 
   @OnEvent("contract.activated")
