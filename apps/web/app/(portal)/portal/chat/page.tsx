@@ -2,14 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { useAppSelector } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
+  chatApi,
   useGetConversationsQuery,
+  useGetConversationQuery,
   useGetMessagesQuery,
   useSendMessageMutation,
   useLazyGetDirectConversationQuery,
 } from "@/features/chat/chatApi";
 import { useChatSocket } from "@/hooks/useChatSocket";
+import { useGetTeamMembersQuery } from "@/features/portal/portalApi";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatWindow } from "@/components/chat/ChatWindow";
@@ -21,6 +24,7 @@ import { MessageSquare } from "lucide-react";
 
 export default function PortalChatPage() {
   const { user } = useAppSelector((s) => s.auth);
+  const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
@@ -32,9 +36,16 @@ export default function PortalChatPage() {
     useGetConversationsQuery({ type: "DIRECT", limit: 50 });
 
   const [fetchDirectConv] = useLazyGetDirectConversationQuery();
+  const { data: teamMembersData } = useGetTeamMembersQuery(undefined, {
+    skip: !openSales,
+  });
 
   const conversations = conversationsData?.data ?? [];
-  const selectedConversation = conversations.find((c) => c.id === selectedId);
+  const { data: selectedConvDetails } = useGetConversationQuery(selectedId!, {
+    skip: !selectedId,
+  });
+  const selectedConversation =
+    conversations.find((c) => c.id === selectedId) ?? selectedConvDetails;
 
   useEffect(() => {
     if (openUserId && !selectedId && !convLoading) {
@@ -46,18 +57,53 @@ export default function PortalChatPage() {
       } else {
         fetchDirectConv(openUserId)
           .unwrap()
-          .then((conv) => setSelectedId(conv.id))
+          .then((conv) => {
+            setSelectedId(conv.id);
+            dispatch(
+              chatApi.util.invalidateTags([{ type: "Conversation", id: "LIST" }]),
+            );
+          })
           .catch(() => {});
       }
       return;
     }
 
     if (!openSales || selectedId || convLoading) return;
+
+    // If a specific sales user is requested via openSales but no conversation exists,
+    // resolve the first sales/account manager from the team and create a direct chat.
+    if (!conversations.length && teamMembersData?.members) {
+      const salesMember = teamMembersData.members.find(
+        (m) => m.roleType === "SALES" || m.roleType === "ACCOUNT_MANAGER",
+      );
+      if (salesMember) {
+        fetchDirectConv(salesMember.id)
+          .unwrap()
+          .then((conv) => {
+            setSelectedId(conv.id);
+            dispatch(
+              chatApi.util.invalidateTags([{ type: "Conversation", id: "LIST" }]),
+            );
+          })
+          .catch(() => {});
+        return;
+      }
+    }
+
     const firstDirect = conversations[0];
     if (firstDirect) {
       setSelectedId(firstDirect.id);
     }
-  }, [openSales, openUserId, selectedId, convLoading, conversations, fetchDirectConv]);
+  }, [
+    openSales,
+    openUserId,
+    selectedId,
+    convLoading,
+    conversations,
+    fetchDirectConv,
+    teamMembersData,
+    dispatch,
+  ]);
 
   const { data: messagesData, isLoading: msgLoading } = useGetMessagesQuery(
     { conversationId: selectedId!, limit: 100 },
