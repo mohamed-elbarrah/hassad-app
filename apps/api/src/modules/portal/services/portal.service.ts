@@ -395,7 +395,7 @@ export class PortalService {
     });
     if (!project || project.clientId !== clientId) return [];
 
-    return this.prisma.projectPeriod.findMany({
+    const periods = await this.prisma.projectPeriod.findMany({
       where: { projectId },
       orderBy: { periodNumber: "asc" },
       select: {
@@ -408,13 +408,238 @@ export class PortalService {
         reportFilePath: true,
         completionPercentage: true,
         goals: true,
-        invoice: { select: { id: true, invoiceNumber: true, amount: true, status: true } },
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            amount: true,
+            status: true,
+            issueDate: true,
+            dueDate: true,
+            payments: { select: { amount: true, status: true } },
+          },
+        },
         files: {
-          select: { id: true, fileName: true, fileType: true, fileSize: true, uploadedAt: true },
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            filePath: true,
+            uploadedAt: true,
+          },
           orderBy: { uploadedAt: "desc" },
+        },
+        meetings: {
+          select: {
+            id: true,
+            title: true,
+            scheduledAt: true,
+            durationMin: true,
+            location: true,
+            meetingLink: true,
+            status: true,
+            notes: true,
+          },
+          orderBy: { scheduledAt: "asc" },
         },
       },
     });
+
+    if (periods.length === 0) return [];
+
+    // Presign all file URLs in one batch (covers period files).
+    const allFileKeys = periods.flatMap((p) => p.files.map((f) => f.filePath)).filter(Boolean);
+    const fileUrlMap =
+      allFileKeys.length > 0
+        ? await this.storageService.getMultiplePresignedUrls(allFileKeys)
+        : new Map<string, string>();
+
+    return periods.map((period) => {
+      const goals = this.normalizeGoals(period.goals as any);
+      const goalsTotal = goals.length;
+      const goalsCompleted = goals.filter((g) => g.status === "done").length;
+
+      const paidAmount =
+        period.invoice?.payments
+          ?.filter((p) => p.status === "SUCCESS")
+          .reduce((sum, p) => sum + p.amount, 0) ?? 0;
+      const invoice = period.invoice
+        ? {
+            id: period.invoice.id,
+            invoiceNumber: period.invoice.invoiceNumber,
+            amount: period.invoice.amount,
+            status: period.invoice.status,
+            issueDate: period.invoice.issueDate,
+            dueDate: period.invoice.dueDate,
+            paidAmount,
+            remainingAmount: Math.max(0, period.invoice.amount - paidAmount),
+          }
+        : null;
+
+      const files = period.files.map((f) => ({
+        ...f,
+        url: fileUrlMap.get(f.filePath) ?? null,
+      }));
+
+      const upcomingMeeting = period.meetings
+        .filter((m) => m.status === "SCHEDULED" || m.status === "RESCHEDULED")
+        .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+        .find((m) => m.scheduledAt.getTime() >= Date.now());
+
+      return {
+        id: period.id,
+        periodNumber: period.periodNumber,
+        startDate: period.startDate,
+        endDate: period.endDate,
+        status: period.status,
+        summary: period.summary,
+        reportFilePath: period.reportFilePath,
+        completionPercentage: period.completionPercentage,
+        goals,
+        files,
+        invoice,
+        meetings: period.meetings,
+        stats: {
+          goalsTotal,
+          goalsCompleted,
+          filesCount: period.files.length,
+          reportsCount: period.reportFilePath ? 1 : 0,
+          hasReport: Boolean(period.reportFilePath),
+          nextMeeting: upcomingMeeting
+            ? {
+                id: upcomingMeeting.id,
+                title: upcomingMeeting.title,
+                scheduledAt: upcomingMeeting.scheduledAt,
+                status: upcomingMeeting.status,
+              }
+            : null,
+        },
+      };
+    });
+  }
+
+  /** Normalize free-form Json goals into the canonical PeriodGoal shape. */
+  private normalizeGoals(raw: any): Array<{
+    title: string;
+    description?: string;
+    progress: number;
+    status: "done" | "in_progress" | "pending";
+  }> {
+    if (!Array.isArray(raw)) return [];
+    return raw.map((g: any) => {
+      const progress =
+        typeof g?.progress === "number" ? Math.max(0, Math.min(100, g.progress)) : g?.completed ? 100 : 0;
+      const status =
+        g?.status === "done" || g?.status === "in_progress" || g?.status === "pending"
+          ? g.status
+          : progress >= 100
+            ? "done"
+            : progress > 0
+              ? "in_progress"
+              : "pending";
+      return {
+        title: g?.title ?? "",
+        description: g?.description ?? undefined,
+        progress,
+        status,
+      };
+    });
+  }
+
+  /** Portal project detail (header info: name, client, PM, status, dates). */
+  async getProjectDetail(clientId: string, projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        priority: true,
+        startDate: true,
+        endDate: true,
+        completionPercentage: true,
+        createdAt: true,
+        updatedAt: true,
+        manager: { select: { id: true, name: true, isActive: true } },
+        client: { select: { id: true, companyName: true, contactName: true } },
+      },
+    });
+    if (!project || project.client.id !== clientId) {
+      throw new NotFoundException("Project not found or access denied");
+    }
+    return {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      statusAr: PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ?? project.status,
+      priority: project.priority,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      completionPercentage: project.completionPercentage,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      manager: project.manager
+        ? { id: project.manager.id, name: project.manager.name, isOnline: project.manager.isActive }
+        : null,
+      client: {
+        id: project.client.id,
+        companyName: project.client.companyName,
+        contactName: project.client.contactName,
+      },
+    };
+  }
+
+  /** Client-scoped invoice detail (no PDF — PDF deferred to a later phase). */
+  async getInvoiceDetail(clientId: string, invoiceId: string) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: invoiceId, clientId },
+      include: {
+        contract: { select: { id: true, title: true } },
+        items: { select: { id: true, description: true, quantity: true, unitPrice: true, total: true } },
+        payments: { select: { id: true, amount: true, status: true, createdAt: true } },
+      },
+    });
+    if (!invoice) throw new NotFoundException("Invoice not found");
+    const paidAmount = invoice.payments
+      .filter((p) => p.status === "SUCCESS")
+      .reduce((sum, p) => sum + p.amount, 0);
+    return {
+      ...invoice,
+      paidAmount,
+      remainingAmount: Math.max(0, invoice.amount - paidAmount),
+    };
+  }
+
+  /** Resolve a presigned download URL for a period report (client-scoped). */
+  async getPeriodReportDownloadUrl(clientId: string, periodId: string) {
+    const period = await this.prisma.projectPeriod.findUnique({
+      where: { id: periodId },
+      select: {
+        reportFilePath: true,
+        project: { select: { clientId: true } },
+      },
+    });
+    if (!period || period.project.clientId !== clientId || !period.reportFilePath) {
+      throw new NotFoundException("Report not available");
+    }
+    const url = await this.storageService.getPresignedUrl(period.reportFilePath);
+    return { url };
+  }
+
+  /** Resolve a presigned download URL for a single period file (client-scoped). */
+  async getPeriodFileDownloadUrl(clientId: string, fileId: string) {
+    const file = await this.prisma.projectFile.findUnique({
+      where: { id: fileId },
+      include: { project: { select: { clientId: true } } },
+    });
+    if (!file || file.project.clientId !== clientId) {
+      throw new NotFoundException("File not found");
+    }
+    const url = await this.storageService.getPresignedUrl(file.filePath);
+    return { url };
   }
 
   async getRequests(clientId: string, query: { page: number; limit: number }) {

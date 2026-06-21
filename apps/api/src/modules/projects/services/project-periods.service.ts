@@ -8,6 +8,7 @@ import { OnEvent } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FinanceService } from "../../finance/services/finance.service";
+import { StorageService } from "../../../common/storage/storage.service";
 import { ProjectPeriodStatus, ContractType, PaymentPlanTriggerType } from "@hassad/shared";
 import type { Prisma } from "@prisma/client";
 
@@ -30,6 +31,7 @@ export class ProjectPeriodsService {
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
     private financeService: FinanceService,
+    private storageService: StorageService,
   ) {}
 
   // ── Date math ───────────────────────────────────────────────────────────────
@@ -162,6 +164,23 @@ export class ProjectPeriodsService {
     return this.prisma.projectPeriod.findMany({
       where: { projectId },
       orderBy: { periodNumber: "asc" },
+      include: {
+        meetings: {
+          orderBy: { scheduledAt: "asc" },
+          select: {
+            id: true,
+            title: true,
+            scheduledAt: true,
+            durationMin: true,
+            location: true,
+            meetingLink: true,
+            status: true,
+            notes: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
     });
   }
 
@@ -455,13 +474,164 @@ export class ProjectPeriodsService {
     });
   }
 
+  /** Presigned download URL for a period's report file (PM view). */
+  async getReportDownloadUrl(periodId: string) {
+    const period = await this.prisma.projectPeriod.findUnique({
+      where: { id: periodId },
+      select: { reportFilePath: true },
+    });
+    if (!period || !period.reportFilePath) {
+      throw new NotFoundException("Report not available for this period");
+    }
+    return this.storageService.getPresignedUrl(period.reportFilePath);
+  }
+
   /** Save PM-defined goals for this period (visible to client). */
-  async saveGoals(periodId: string, goals: Array<{ title: string; description?: string; completed: boolean }>) {
+  async saveGoals(periodId: string, goals: Array<{ title: string; description?: string; progress: number; status: string }>) {
     await this.findPeriodOrThrow(periodId);
+    const normalized = goals.map((g) => ({
+      title: g.title,
+      description: g.description ?? null,
+      progress: Math.max(0, Math.min(100, g.progress ?? 0)),
+      status: ["done", "in_progress", "pending"].includes(g.status)
+        ? g.status
+        : g.progress >= 100
+          ? "done"
+          : g.progress > 0
+            ? "in_progress"
+            : "pending",
+    }));
     return this.prisma.projectPeriod.update({
       where: { id: periodId },
-      data: { goals },
+      data: { goals: normalized as any },
     });
+  }
+
+  // ── Meetings (PM-scheduled, per-period, visible to client) ───────────────────
+
+  async createMeeting(
+    periodId: string,
+    actorId: string,
+    dto: {
+      title: string;
+      scheduledAt: string;
+      durationMin?: number;
+      location?: string;
+      meetingLink?: string;
+    },
+  ) {
+    const period = await this.prisma.projectPeriod.findUnique({
+      where: { id: periodId },
+      select: { id: true, projectId: true, periodNumber: true, project: { select: { name: true, client: { select: { userId: true } } } } },
+    });
+    if (!period) throw new NotFoundException("Period not found");
+
+    const meeting = await this.prisma.projectMeeting.create({
+      data: {
+        projectId: period.projectId,
+        periodId: period.id,
+        title: dto.title,
+        scheduledAt: new Date(dto.scheduledAt),
+        durationMin: dto.durationMin ?? null,
+        location: dto.location ?? null,
+        meetingLink: dto.meetingLink ?? null,
+        status: "SCHEDULED",
+        createdBy: actorId,
+      },
+      include: { creator: { select: { id: true, name: true } } },
+    });
+
+    const clientUserId = period.project?.client?.userId;
+    if (clientUserId) {
+      this.notificationsService
+        .notifyUsers({
+          userIds: [clientUserId],
+          title: "تم جدولة اجتماع جديد",
+          message: `"${dto.title}" للفترة ${period.periodNumber} من مشروع "${period.project?.name}".`,
+          entityId: meeting.id,
+          entityType: "PROJECT_MEETING",
+          eventType: "MEETING_SCHEDULED",
+        })
+        .catch(() => undefined);
+    }
+
+    return meeting;
+  }
+
+  async updateMeeting(
+    meetingId: string,
+    actorId: string,
+    dto: {
+      title?: string;
+      scheduledAt?: string;
+      durationMin?: number;
+      location?: string;
+      meetingLink?: string;
+      status?: string;
+      notes?: string;
+    },
+  ) {
+    const existing = await this.prisma.projectMeeting.findUnique({
+      where: { id: meetingId },
+      include: {
+        period: { select: { periodNumber: true, project: { select: { name: true, client: { select: { userId: true } } } } } },
+      },
+    });
+    if (!existing) throw new NotFoundException("Meeting not found");
+
+    const wasRescheduled =
+      dto.scheduledAt &&
+      new Date(dto.scheduledAt).getTime() !== existing.scheduledAt.getTime();
+
+    const data: any = {};
+    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.scheduledAt !== undefined) data.scheduledAt = new Date(dto.scheduledAt);
+    if (dto.durationMin !== undefined) data.durationMin = dto.durationMin;
+    if (dto.location !== undefined) data.location = dto.location;
+    if (dto.meetingLink !== undefined) data.meetingLink = dto.meetingLink;
+    if (dto.notes !== undefined) data.notes = dto.notes;
+    if (dto.status !== undefined) {
+      this.assertMeetingTransition(existing.status, dto.status);
+      // Rescheduling keeps the row but flips status to RESCHEDULED until the PM
+      // confirms the new time (client sets it back to SCHEDULED via update).
+      data.status = dto.status;
+    }
+
+    const updated = await this.prisma.projectMeeting.update({
+      where: { id: meetingId },
+      data,
+      include: { creator: { select: { id: true, name: true } } },
+    });
+
+    const clientUserId = existing.period?.project?.client?.userId;
+    if (clientUserId) {
+      const eventType =
+        dto.status === "CANCELLED"
+          ? "MEETING_CANCELLED"
+          : wasRescheduled
+            ? "MEETING_RESCHEDULED"
+            : dto.status === "DONE"
+              ? "MEETING_DONE"
+              : "MEETING_UPDATED";
+      const title =
+        dto.status === "CANCELLED"
+          ? "تم إلغاء اجتماع"
+          : wasRescheduled
+            ? "تم تأجيل اجتماع"
+            : "تحديث اجتماع";
+      this.notificationsService
+        .notifyUsers({
+          userIds: [clientUserId],
+          title,
+          message: `"${updated.title}" للفترة ${existing.period?.periodNumber} من مشروع "${existing.period?.project?.name}".`,
+          entityId: meetingId,
+          entityType: "PROJECT_MEETING",
+          eventType,
+        })
+        .catch(() => undefined);
+    }
+
+    return updated;
   }
 
   // ── Domain event: generate periods when a retainer contract activates ──────
@@ -514,5 +684,19 @@ export class ProjectPeriodsService {
     return tx.projectPeriodHistory.create({
       data: { periodId, fromStatus, toStatus, changedBy, reason },
     });
+  }
+
+  /**
+   * Allowed meeting transitions. CANCELLED/DONE are terminal unless the PM
+   * re-opens by setting SCHEDULED again. RESCHEDULED is an intermediate flag
+   * the PM clears by saving a new SCHEDULED time.
+   */
+  private assertMeetingTransition(from: string, to: string) {
+    const terminal = ["DONE", "CANCELLED"];
+    if (terminal.includes(from) && to !== "SCHEDULED") {
+      throw new BadRequestException(
+        `Meeting is ${from} — only re-scheduling back to SCHEDULED is allowed (current: ${from}, target: ${to}).`,
+      );
+    }
   }
 }

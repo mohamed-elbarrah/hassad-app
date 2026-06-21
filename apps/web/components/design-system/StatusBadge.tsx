@@ -195,6 +195,18 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-orange-200",
     label: "مطلوب مراجعة",
   },
+  SCHEDULED: {
+    bg: "bg-blue-100",
+    text: "text-blue-600",
+    border: "border-blue-200",
+    label: "مجدول",
+  },
+  RESCHEDULED: {
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
+    label: "مؤجل",
+  },
   
   // Lowercase - Blue/Purple (Review states)
   "awaiting-review": {

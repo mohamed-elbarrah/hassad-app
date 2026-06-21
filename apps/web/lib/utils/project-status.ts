@@ -16,6 +16,14 @@ export interface ProjectWithMeta extends Project {
   manager?: { id: string; name: string };
   _count?: { tasks: number };
   completionPercentage?: number;
+  contract?: {
+    id: string;
+    type: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    numberOfMonths?: number | null;
+  } | null;
 }
 
 // ── StatusBadge key mapping ────────────────────────────────────────────────

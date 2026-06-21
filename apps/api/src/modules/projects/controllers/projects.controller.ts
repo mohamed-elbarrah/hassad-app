@@ -26,6 +26,8 @@ import {
   ExtendPeriodDto,
   ClosePeriodDto,
   SetPeriodCompletionDto,
+  CreateMeetingDto,
+  UpdateMeetingDto,
 } from "../dto/project-period.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -168,7 +170,10 @@ export class ProjectsController {
 
   @Patch("periods/:periodId/goals")
   @RequirePermissions("projects.update")
-  savePeriodGoals(@Param("periodId") periodId: string, @Body() dto: { goals: Array<{ title: string; description?: string; completed: boolean }> }) {
+  savePeriodGoals(
+    @Param("periodId") periodId: string,
+    @Body() dto: { goals: Array<{ title: string; description?: string; progress: number; status: string }> },
+  ) {
     return this.periodsService.saveGoals(periodId, dto.goals);
   }
 
@@ -191,6 +196,35 @@ export class ProjectsController {
       },
     });
     return this.periodsService.saveReport(periodId, uploadResult.key);
+  }
+
+  @Get("periods/:periodId/report/download")
+  @RequirePermissions("projects.read")
+  async downloadPeriodReport(@Param("periodId") periodId: string) {
+    const url = await this.periodsService.getReportDownloadUrl(periodId);
+    return { url };
+  }
+
+  // ─── Meetings (PM-scheduled, per-period, visible to client) ────────────────────
+
+  @Post("periods/:periodId/meetings")
+  @RequirePermissions("projects.update")
+  createMeeting(
+    @CurrentUser() user: any,
+    @Param("periodId") periodId: string,
+    @Body() dto: CreateMeetingDto,
+  ) {
+    return this.periodsService.createMeeting(periodId, user?.id, dto);
+  }
+
+  @Patch("meetings/:meetingId")
+  @RequirePermissions("projects.update")
+  updateMeeting(
+    @CurrentUser() user: any,
+    @Param("meetingId") meetingId: string,
+    @Body() dto: UpdateMeetingDto,
+  ) {
+    return this.periodsService.updateMeeting(meetingId, user?.id, dto);
   }
 
   @Get(":id/tasks")

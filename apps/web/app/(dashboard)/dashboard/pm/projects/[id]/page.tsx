@@ -776,7 +776,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             description="إدارة الفترات والأهداف لكل شهر من المشروع"
             icon={Layers}
           >
-            <PMPeriodsManagement projectId={id} />
+            <PMPeriodsManagement projectId={id} contractType={p.contract?.type} />
           </SurfaceCard>
         </TabsContent>
       </Tabs>

@@ -87,6 +87,16 @@ export class ProjectsService {
           },
         },
         tasks: true,
+        contract: {
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            startDate: true,
+            endDate: true,
+            numberOfMonths: true,
+          },
+        },
       },
     });
 
