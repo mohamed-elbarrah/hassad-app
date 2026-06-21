@@ -1,5 +1,9 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import type {
+  PeriodGoal,
+  MeetingStatus,
+} from "@hassad/shared";
 
 export interface ProjectSummary {
   id: string;
@@ -291,16 +295,110 @@ export interface ProjectReviewDetail {
   revisionRequests: ProjectReviewRevision[];
 }
 
+export interface PortalPeriodFile {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+  filePath?: string;
+  url?: string | null;
+}
+
+export interface PortalPeriodInvoice {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  status: string;
+  issueDate: string;
+  dueDate: string;
+  paidAmount: number;
+  remainingAmount: number;
+}
+
+export interface PortalPeriodMeeting {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  durationMin?: number | null;
+  location?: string | null;
+  meetingLink?: string | null;
+  status: MeetingStatus;
+  notes?: string | null;
+}
+
+export interface PortalPeriodStats {
+  goalsTotal: number;
+  goalsCompleted: number;
+  filesCount: number;
+  reportsCount: number;
+  hasReport: boolean;
+  nextMeeting: {
+    id: string;
+    title: string;
+    scheduledAt: string;
+    status: MeetingStatus;
+  } | null;
+}
+
 export interface PortalPeriodSummary {
   id: string;
   periodNumber: number;
   startDate: string;
   endDate: string;
-  status: string;
+  status: "UPCOMING" | "ACTIVE" | "CLOSED" | "SUSPENDED";
   summary: string | null;
   reportFilePath: string | null;
   completionPercentage: number;
-  invoice: { id: string; invoiceNumber: string; amount: number; status: string } | null;
+  goals: PeriodGoal[];
+  files: PortalPeriodFile[];
+  invoice: PortalPeriodInvoice | null;
+  meetings: PortalPeriodMeeting[];
+  stats: PortalPeriodStats;
+}
+
+export interface PortalProjectDetail {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: string;
+  statusAr: string;
+  priority: string;
+  startDate: string;
+  endDate: string;
+  completionPercentage: number;
+  createdAt: string;
+  updatedAt: string;
+  manager: { id: string; name: string; isOnline: boolean } | null;
+  client: { id: string; companyName: string; contactName: string };
+}
+
+export interface PortalInvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface PortalInvoiceDetail {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  status: string;
+  issueDate: string;
+  dueDate: string;
+  paidAmount: number;
+  remainingAmount: number;
+  notes?: string | null;
+  currency: string;
+  contract?: { id: string; title: string } | null;
+  items: PortalInvoiceItem[];
+  payments: { id: string; amount: number; status: string; createdAt: string }[];
+}
+
+export interface DownloadUrlResponse {
+  url: string;
 }
 
 export interface TeamMember {
@@ -506,6 +604,28 @@ export const portalApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
     }),
 
+    getPortalProjectDetail: builder.query<PortalProjectDetail, string>({
+      query: (projectId) => `/portal/projects/${projectId}`,
+      providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
+    }),
+
+    getPortalInvoiceDetail: builder.query<PortalInvoiceDetail, string>({
+      query: (invoiceId) => `/portal/invoices/${invoiceId}`,
+      providesTags: (_result, _error, id) => [{ type: "PortalInvoices", id }],
+    }),
+
+    downloadPeriodReport: builder.query<DownloadUrlResponse, string>({
+      query: (periodId) => `/portal/projects/_/periods/${periodId}/report/download`,
+    }),
+
+    downloadPeriodFile: builder.query<
+      DownloadUrlResponse,
+      { periodId: string; fileId: string }
+    >({
+      query: ({ periodId, fileId }) =>
+        `/portal/projects/_/periods/${periodId}/files/${fileId}/download`,
+    }),
+
     getTeamMembers: builder.query<TeamMembersResponse, void>({
       query: () => "/portal/team-members",
       providesTags: ["TeamMembers"],
@@ -570,6 +690,10 @@ export const {
   useGetProjectRevisionsQuery,
   useGetTeamMembersQuery,
   useGetPortalProjectPeriodsQuery,
+  useLazyDownloadPeriodReportQuery,
+  useLazyDownloadPeriodFileQuery,
+  useGetPortalProjectDetailQuery,
+  useGetPortalInvoiceDetailQuery,
   // Strategy hooks
   useGetClientStrategiesQuery,
   useGetClientStrategyQuery,

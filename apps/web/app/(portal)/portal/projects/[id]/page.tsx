@@ -1,191 +1,211 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   Calendar,
-  FileText,
-  Download,
-  ChevronLeft,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  PauseCircle,
   DollarSign,
+  FileText,
+  Megaphone,
+  Paperclip,
+  Target,
+  Users,
 } from "lucide-react";
-import { useGetPortalProjectPeriodsQuery } from "@/features/portal/portalApi";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
+import type { LucideIcon } from "lucide-react";
+import {
+  useGetPortalProjectDetailQuery,
+  useGetPortalProjectPeriodsQuery,
+  useLazyDownloadPeriodReportQuery,
+  useLazyDownloadPeriodFileQuery,
+  type PortalPeriodSummary,
+  type PortalPeriodFile,
+} from "@/features/portal/portalApi";
 import { Skeleton } from "@/components/design-system/Skeleton";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { cn } from "@/lib/utils";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
+import {
+  ProjectHeader,
+  HeroCard,
+  PeriodTimeline,
+  StatCards,
+  GoalsTab,
+  FilesTab,
+  ReportsTab,
+  CampaignsTab,
+  MeetingsTab,
+  InvoiceTab,
+} from "@/components/portal/project-detail";
 
-const PERIOD_STATUS_LABEL: Record<string, string> = {
-  ACTIVE: "نشطة",
-  CLOSED: "مغلقة",
-  UPCOMING: "قادمة",
-  SUSPENDED: "معلقة",
-};
-
-const INVOICE_STATUS_LABEL: Record<string, string> = {
-  PAID: "مدفوعة",
-  DUE: "مستحقة",
-  LATE: "متأخرة",
-  PENDING: "قيد الانتظار",
-  SENT: "مرسلة",
-  PARTIAL: "مدفوعة جزئياً",
-};
-
-function PeriodIcon({ status }: { status: string }) {
-  switch (status) {
-    case "ACTIVE": return <Clock className="size-5 text-emerald-500" />;
-    case "CLOSED": return <CheckCircle2 className="size-5 text-blue-500" />;
-    case "SUSPENDED": return <PauseCircle className="size-5 text-amber-500" />;
-    default: return <Calendar className="size-5 text-gray-400" />;
-  }
+interface TabDef {
+  id: string;
+  label: string;
+  icon: LucideIcon;
 }
 
-function PeriodCard({ period, isExpanded, onToggle }: { period: any; isExpanded: boolean; onToggle: () => void }) {
-  return (
-    <div className="relative pr-0 md:pr-12">
-      <div className="hidden md:absolute right-2.5 top-6 -translate-x-1/2 z-10 md:flex items-center justify-center w-5 h-5 rounded-full bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600">
-        <PeriodIcon status={period.status} />
-      </div>
+const TABS: TabDef[] = [
+  { id: "goals", label: "الأهداف", icon: Target },
+  { id: "files", label: "الملفات", icon: Paperclip },
+  { id: "reports", label: "التقارير", icon: FileText },
+  { id: "campaigns", label: "الحملات", icon: Megaphone },
+  { id: "meetings", label: "الاجتماعات", icon: Users },
+  { id: "invoices", label: "الفواتير", icon: DollarSign },
+];
 
-      <div
-        className={cn(
-          "cursor-pointer transition-all hover:shadow-md rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0 p-5",
-          period.status === "SUSPENDED" && "border-amber-300 dark:border-amber-700",
-          period.status === "ACTIVE" && "border-emerald-300 dark:border-emerald-700",
-        )}
-        onClick={onToggle}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-gray-800 dark:text-gray-200">
-              الفترة {period.periodNumber}
-            </span>
-            <StatusBadge status={period.status} label={PERIOD_STATUS_LABEL[period.status]} />
-          </div>
-          <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span>{new Date(period.startDate).toLocaleDateString("ar-SA")}</span>
-            <span>→</span>
-            <span>{new Date(period.endDate).toLocaleDateString("ar-SA")}</span>
-          </div>
-        </div>
-
-        {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <span className="text-xs text-gray-400">نسبة الإنجاز</span>
-              <div className="mt-1 flex items-center gap-2">
-                <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all"
-                    style={{ width: `${period.completionPercentage}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">{period.completionPercentage}%</span>
-              </div>
-            </div>
-
-            {period.invoice && (
-              <div>
-                <span className="text-xs text-gray-400">الفاتورة</span>
-                <div className="mt-1 flex items-center gap-2">
-                  <DollarSign className="size-4 text-gray-400" />
-                  <span className="text-sm">{period.invoice.invoiceNumber}</span>
-                  <span className="text-sm font-medium">{period.invoice.amount.toLocaleString()} ر.س</span>
-                  <StatusBadge status={period.invoice.status} label={INVOICE_STATUS_LABEL[period.invoice.status]} />
-                </div>
-              </div>
-            )}
-
-            {period.summary && (
-              <div className="md:col-span-2">
-                <span className="text-xs text-gray-400">ملخص الفترة</span>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{period.summary}</p>
-              </div>
-            )}
-
-            {period.reportFilePath && (
-              <div className="md:col-span-2">
-                <a
-                  href={period.reportFilePath}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Download className="size-4" />
-                  تحميل تقرير الفترة
-                </a>
-              </div>
-            )}
-
-            {period.status === "SUSPENDED" && (
-              <div className="md:col-span-2 flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-700 dark:text-amber-400 text-sm">
-                <AlertCircle className="size-4 shrink-0" />
-                <span>هذه الفترة معلقة بسبب عدم سداد الفاتورة. يرجى التواصل مع مدير المشروع.</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+/** Resolve the initially selected period (ACTIVE → first → null). */
+function pickInitialPeriod(periods: PortalPeriodSummary[]): string | null {
+  if (periods.length === 0) return null;
+  const active = periods.find((p) => p.status === "ACTIVE");
+  return (active ?? periods[0]).id;
 }
 
 export default function PortalProjectPeriodsPage() {
   const params = useParams();
-  const router = useRouter();
   const projectId = params.id as string;
-  const { data: periods, isLoading } = useGetPortalProjectPeriodsQuery(projectId);
-  const [expanded, setExpanded] = useState<string | null>(null);
 
-  return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      <PageIntro
-        title="الفترات الشهرية"
-        description="جدول زمني لفترات العقد وأعمال كل فترة"
-        icon={Calendar}
-        actions={
-          <ActionButton variant="outline" size="sm" onClick={() => router.push("/portal/projects")}>
-            <ChevronLeft className="size-4 ml-1" />
-            عودة للمشاريع
-          </ActionButton>
-        }
-      />
+  const { data: project, isLoading: projectLoading } =
+    useGetPortalProjectDetailQuery(projectId);
+  const { data: periods, isLoading: periodsLoading } =
+    useGetPortalProjectPeriodsQuery(projectId);
 
-      {isLoading ? (
-        <div className="flex flex-col gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl" />
-          ))}
-        </div>
-      ) : !periods || periods.length === 0 ? (
+  const [triggerReportDownload] = useLazyDownloadPeriodReportQuery();
+  const [triggerFileDownload] = useLazyDownloadPeriodFileQuery();
+
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("goals");
+
+  // Auto-select the active (or first) period once periods load.
+  useEffect(() => {
+    if (periods && periods.length > 0 && !selectedPeriodId) {
+      setSelectedPeriodId(pickInitialPeriod(periods));
+    }
+  }, [periods, selectedPeriodId]);
+
+  const selectedPeriod = periods?.find((p) => p.id === selectedPeriodId) ?? null;
+
+  // ── Download handlers ────────────────────────────────────────────────────
+
+  const downloadPeriodReport = async () => {
+    if (!selectedPeriod) return;
+    const res = await triggerReportDownload(selectedPeriod.id);
+    if (res.data?.url) window.open(res.data.url, "_blank");
+  };
+
+  const downloadPeriodFile = async (file: PortalPeriodFile) => {
+    if (!selectedPeriod) return;
+    const res = await triggerFileDownload({
+      periodId: selectedPeriod.id,
+      fileId: file.id,
+    });
+    if (res.data?.url) window.open(res.data.url, "_blank");
+  };
+
+  // ── Loading ────────────────────────────────────────────────────────────────
+
+  if (periodsLoading || projectLoading) {
+    return (
+      <div className="flex flex-col gap-5" dir="rtl">
+        <Skeleton className="h-12 w-full rounded-2xl" />
+        <Skeleton className="h-48 w-full rounded-[30px]" />
+        <Skeleton className="h-16 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-[30px]" />
+      </div>
+    );
+  }
+
+  // ── No periods yet ──────────────────────────────────────────────────────────
+
+  if (!periods || periods.length === 0) {
+    return (
+      <div className="flex flex-col gap-6" dir="rtl">
+        {project && <ProjectHeader project={project} />}
         <SurfaceCard>
-          <div className="flex flex-col items-center gap-3 py-12 text-gray-400">
+          <div className="flex flex-col items-center gap-3 py-16 text-center text-portal-note-text">
             <Calendar className="size-12" />
             <p className="text-lg font-medium">لا توجد فترات بعد</p>
             <p className="text-sm">سيتم إنشاء الفترات بعد تفعيل العقد</p>
           </div>
         </SurfaceCard>
-      ) : (
-        <div className="relative">
-          <div className="absolute right-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700 hidden md:block" />
-          <div className="flex flex-col gap-4">
-            {periods.map((period) => (
-              <PeriodCard
-                key={period.id}
-                period={period}
-                isExpanded={expanded === period.id}
-                onToggle={() => setExpanded(expanded === period.id ? null : period.id)}
-              />
-            ))}
-          </div>
-        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5" dir="rtl">
+      {project && <ProjectHeader project={project} />}
+
+      {selectedPeriod && (
+        <HeroCard
+          period={selectedPeriod}
+          totalPeriods={periods.length}
+          onDownloadReport={downloadPeriodReport}
+          onViewInvoice={() => setActiveTab("invoices")}
+        />
+      )}
+
+      {selectedPeriod && (
+        <PeriodTimeline
+          periods={periods}
+          selectedId={selectedPeriod.id}
+          onSelect={(period) => setSelectedPeriodId(period.id)}
+        />
+      )}
+
+      {selectedPeriod && <StatCards stats={selectedPeriod.stats} />}
+
+      {selectedPeriod && (
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          dir="rtl"
+          className="w-full"
+        >
+          <TabsList className="h-auto w-full flex-wrap justify-start overflow-x-auto sm:flex-nowrap">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <TabsTrigger key={tab.id} value={tab.id} className="gap-2 py-2.5">
+                  <Icon className="size-4" />
+                  {tab.label}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          <TabsContent value="goals" className="mt-4">
+            <GoalsTab goals={selectedPeriod.goals} />
+          </TabsContent>
+
+          <TabsContent value="files" className="mt-4">
+            <FilesTab
+              files={selectedPeriod.files}
+              onDownload={downloadPeriodFile}
+            />
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-4">
+            <ReportsTab
+              period={selectedPeriod}
+              onDownloadReport={downloadPeriodReport}
+            />
+          </TabsContent>
+
+          <TabsContent value="campaigns" className="mt-4">
+            <CampaignsTab />
+          </TabsContent>
+
+          <TabsContent value="meetings" className="mt-4">
+            <MeetingsTab meetings={selectedPeriod.meetings} />
+          </TabsContent>
+
+          <TabsContent value="invoices" className="mt-4">
+            <InvoiceTab invoice={selectedPeriod.invoice} />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );

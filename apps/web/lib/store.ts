@@ -27,6 +27,7 @@ import { rolesApi } from "@/features/roles/rolesApi";
 import { permissionsApi } from "@/features/permissions/permissionsApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
 import { healthApi } from "@/features/health/healthApi";
+import { periodsApi } from "@/features/projects/periodsApi";
 
 export const store = configureStore({
   reducer: {
@@ -57,6 +58,7 @@ export const store = configureStore({
     [rolesApi.reducerPath]: rolesApi.reducer,
     [permissionsApi.reducerPath]: permissionsApi.reducer,
     [healthApi.reducerPath]: healthApi.reducer,
+    [periodsApi.reducerPath]: periodsApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -88,6 +90,7 @@ export const store = configureStore({
       rolesApi.middleware,
       permissionsApi.middleware,
       healthApi.middleware,
+      periodsApi.middleware,
     ),
 });
 

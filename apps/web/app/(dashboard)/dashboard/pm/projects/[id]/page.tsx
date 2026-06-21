@@ -2,6 +2,7 @@
 
 import { use, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Building2,
@@ -19,6 +20,7 @@ import {
   FolderKanban,
   FileText,
   Plus,
+  Layers,
 } from "lucide-react";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -35,6 +37,7 @@ import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
 import { ProjectActivityFeed } from "@/components/dashboard/pm/ProjectActivityFeed";
 import { ClientBrief } from "@/components/client-brief";
+import { PMPeriodsManagement } from "@/components/dashboard/pm/PMPeriodsManagement";
 import {
   useGetProjectByIdQuery,
   useGetProjectFilesQuery,
@@ -46,7 +49,6 @@ import { useLazyGetProjectGroupChatQuery } from "@/features/chat/chatApi";
 import {
   useGetClientTeamViewQuery,
 } from "@/features/clients/clientsApi";
-import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus, TaskStatus } from "@hassad/shared";
 import { formatDate, formatShortDate, daysUntil } from "@/lib/format";
@@ -447,6 +449,10 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             <User className="w-4 h-4" />
             تفاصيل العميل
           </TabsTrigger>
+          <TabsTrigger value="periods" className="gap-2">
+            <Layers className="w-4 h-4" />
+            الفترات
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Overview Tab ───────────────────────────────────────────────── */}
@@ -761,6 +767,17 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
           ) : (
             <DSSkeleton className="h-96 rounded-xl" />
           )}
+        </TabsContent>
+
+        {/* ── Periods Tab ─────────────────────────────────────────────────── */}
+        <TabsContent value="periods">
+          <SurfaceCard
+            title="إدارة الفترات الشهرية"
+            description="إدارة الفترات والأهداف لكل شهر من المشروع"
+            icon={Layers}
+          >
+            <PMPeriodsManagement projectId={id} contractType={p.contract?.type} />
+          </SurfaceCard>
         </TabsContent>
       </Tabs>
       </div>

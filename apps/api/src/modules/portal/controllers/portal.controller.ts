@@ -550,6 +550,52 @@ export class PortalController {
     return this.portalService.getProjectRevisions(id);
   }
 
+  // NOTE: declared after the static `portal/projects/review` route so the `:id`
+  // param does not shadow it.
+  @Get("portal/projects/:id")
+  @RequirePermissions("portal.read")
+  async getPortalProjectDetail(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.getProjectDetail(clientId, id);
+  }
+
+  @Get("portal/projects/:id/periods/:periodId/report/download")
+  @RequirePermissions("portal.read")
+  async downloadPeriodReport(
+    @Param("periodId") periodId: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.getPeriodReportDownloadUrl(clientId, periodId);
+  }
+
+  @Get("portal/projects/:id/periods/:periodId/files/:fileId/download")
+  @RequirePermissions("portal.read")
+  async downloadPeriodFile(
+    @Param("fileId") fileId: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.getPeriodFileDownloadUrl(clientId, fileId);
+  }
+
+  @Get("portal/invoices/:id")
+  @RequirePermissions("portal.read")
+  async getPortalInvoiceDetail(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.getInvoiceDetail(clientId, id);
+  }
+
   // ── Marketing Strategy Portal Endpoints ────────────────────────────────
 
   @Get("portal/marketing-strategies")

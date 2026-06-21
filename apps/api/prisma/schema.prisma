@@ -36,6 +36,7 @@ model User {
   soldContracts        Contract[]                @relation("ContractSalesPerson")
   contractStatusChanges ContractStatusHistory[]   @relation("ContractStatusChangedBy")
   periodStatusChanges   ProjectPeriodHistory[]   @relation("ProjectPeriodChangedBy")
+  createdMeetings      ProjectMeeting[]          @relation("MeetingCreatedBy")
   chatParticipants     ConversationParticipant[]
   approvedDelivs       Deliverable[]
   employee             Employee?
@@ -638,6 +639,7 @@ model Project {
   tasks                Task[]
   teamConversation     Conversation?
   periods              ProjectPeriod[]
+  meetings             ProjectMeeting[]
 
   @@index([requestId])
   @@index([clientId])
@@ -673,6 +675,8 @@ model ProjectPeriod {
   summary              String?
   reportFilePath       String?             @map("report_file_path")
   completionPercentage Float              @default(0) @map("completion_percentage")
+  /// PM-defined goals for this period (visible to client)
+  goals                Json?
   invoiceId            String?             @unique @map("invoice_id")
   closedAt             DateTime?           @map("closed_at")
   suspendedAt          DateTime?           @map("suspended_at")
@@ -687,6 +691,7 @@ model ProjectPeriod {
   campaigns            Campaign[]
   kpiSnapshots         CampaignKpiSnapshot[]
   statusHistory        ProjectPeriodHistory[]
+  meetings             ProjectMeeting[]
 
   @@index([projectId])
   @@index([status])
@@ -709,6 +714,34 @@ model ProjectPeriodHistory {
   @@index([periodId])
   @@index([toStatus])
   @@map("project_period_history")
+}
+
+/// Client meeting scheduled by the PM for a specific delivery period.
+/// SCHEDULED → DONE | CANCELLED; SCHEDULED → RESCHEDULED → SCHEDULED.
+model ProjectMeeting {
+  id            String        @id @default(uuid())
+  projectId     String        @map("project_id")
+  periodId      String        @map("period_id")
+  title         String
+  scheduledAt   DateTime      @map("scheduled_at")
+  durationMin   Int?          @map("duration_min")
+  location      String?
+  meetingLink   String?       @map("meeting_link")
+  status        MeetingStatus @default(SCHEDULED)
+  /// PM notes / outcome report written after the meeting (optional).
+  notes         String?
+  createdBy     String        @map("created_by")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  period        ProjectPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  creator       User          @relation("MeetingCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([projectId])
+  @@index([periodId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("project_meetings")
 }
 
 model Task {
@@ -1684,6 +1717,13 @@ enum ProjectPeriodStatus {
   ACTIVE
   CLOSED
   SUSPENDED
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  DONE
+  CANCELLED
+  RESCHEDULED
 }
 
 enum RenewalAlertType {

@@ -81,6 +81,35 @@ export const PROJECT_PERIOD_STATUS_AR: Record<ProjectPeriodStatus, string> = {
   SUSPENDED: "معلق",
 };
 
+/**
+ * Lifecycle of a client meeting scheduled for a delivery period.
+ * SCHEDULED → DONE (meeting held) | CANCELLED (called off).
+ * SCHEDULED → RESCHEDULED → SCHEDULED (new time picked) → …
+ */
+export enum MeetingStatus {
+  SCHEDULED = "SCHEDULED",
+  DONE = "DONE",
+  CANCELLED = "CANCELLED",
+  RESCHEDULED = "RESCHEDULED",
+}
+
+export const MEETING_STATUS_AR: Record<MeetingStatus, string> = {
+  SCHEDULED: "مجدول",
+  DONE: "تم",
+  CANCELLED: "ملغى",
+  RESCHEDULED: "مؤجل",
+};
+
+/** Shape of a PM-defined period goal (stored as Json on ProjectPeriod.goals). */
+export type PeriodGoalStatus = "done" | "in_progress" | "pending";
+
+export interface PeriodGoal {
+  title: string;
+  description?: string;
+  progress: number;
+  status: PeriodGoalStatus;
+}
+
 export enum DelayAlertLevel {
   LOW = "LOW",
   MEDIUM = "MEDIUM",
