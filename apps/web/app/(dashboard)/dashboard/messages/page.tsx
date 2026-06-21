@@ -79,8 +79,12 @@ export default function MessagesPage() {
     setTypingUser(null);
   }, [selectedId]);
 
-  const displayedMessages =
-    localMessages.length > 0 ? localMessages : (messagesData ?? []);
+  const displayedMessages = useMemo(() => {
+    const server = messagesData ?? [];
+    const serverIds = new Set(server.map((m) => m.id));
+    const uniqueLocal = localMessages.filter((m) => !serverIds.has(m.id));
+    return [...server, ...uniqueLocal];
+  }, [messagesData, localMessages]);
 
   const handleSelectConversation = useCallback((conv: Conversation) => {
     setSelectedId(conv.id);

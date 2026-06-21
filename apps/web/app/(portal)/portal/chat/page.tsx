@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
@@ -139,8 +139,12 @@ export default function PortalChatPage() {
     setTypingUser(null);
   }, [selectedId]);
 
-  const displayedMessages =
-    localMessages.length > 0 ? localMessages : (messagesData ?? []);
+  const displayedMessages = useMemo(() => {
+    const server = messagesData ?? [];
+    const serverIds = new Set(server.map((m) => m.id));
+    const uniqueLocal = localMessages.filter((m) => !serverIds.has(m.id));
+    return [...server, ...uniqueLocal];
+  }, [messagesData, localMessages]);
 
   const handleSelectConversation = useCallback((conv: Conversation) => {
     setSelectedId(conv.id);
@@ -215,7 +219,7 @@ export default function PortalChatPage() {
                 />
                 <ChatWindow
                   messages={displayedMessages}
-                  isLoading={msgLoading && localMessages.length === 0}
+                  isLoading={msgLoading}
                   typingUser={typingUser}
                 />
                 <MessageInput
