@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import { UserRole } from "@hassad/shared";
-import { ProfileSetupForm } from "@/components/portal/ProfileSetupForm";
+import { IntakeForm } from "@/components/portal/IntakeForm";
 import Image from "next/image";
 import { Building2, Sparkles, MessageCircle, Target, Clock } from "lucide-react";
 
@@ -141,7 +141,7 @@ export default function ProfileSetupPage() {
             </p>
           </div>
 
-          <ProfileSetupForm
+          <IntakeForm
             onSuccess={() => router.push("/portal")}
           />
         </div>
