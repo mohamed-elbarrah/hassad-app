@@ -60,7 +60,7 @@ export default function PortalActionsPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 30_000 },
+    { pollingInterval: 120_000 },
   );
 
   const items = data?.items ?? [];

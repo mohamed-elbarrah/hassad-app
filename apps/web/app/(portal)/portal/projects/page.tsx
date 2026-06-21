@@ -54,7 +54,7 @@ export default function PortalProjectsPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 30_000 },
+    { pollingInterval: 120_000 },
   );
 
   const projects = data?.data ?? [];

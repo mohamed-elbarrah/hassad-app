@@ -41,11 +41,6 @@ export class PortalService {
     private marketingStrategyService: MarketingStrategyService,
   ) {}
 
-  /** Broadcast invalidations to client's WebSocket connections (NEW) */
-  private async broadcastInvalidations(clientId: string, tags: string[]) {
-    await this.notificationsService.broadcastPortalInvalidations(clientId, tags);
-  }
-
   private getPendingRequestStageLabel(status: string) {
     switch (status) {
       case "PROPOSAL_IN_PROGRESS":
@@ -2362,15 +2357,6 @@ export class PortalService {
         .catch(() => undefined);
     }
 
-    // NEW: Broadcast invalidations for project approval
-    await this.broadcastInvalidations(clientId, [
-      "ReviewProjects",
-      "ProjectProgress",
-      "PortalProjects",
-      "ActionItems",
-      "ActivityFeed",
-    ]);
-
     return updated;
   }
 
@@ -2417,15 +2403,6 @@ export class PortalService {
         })
         .catch(() => undefined);
     }
-
-    // NEW: Broadcast invalidations for project revision
-    await this.broadcastInvalidations(clientId, [
-      "ReviewProjects",
-      "ProjectProgress",
-      "PortalProjects",
-      "ActionItems",
-      "ActivityFeed",
-    ]);
 
     return updated;
   }

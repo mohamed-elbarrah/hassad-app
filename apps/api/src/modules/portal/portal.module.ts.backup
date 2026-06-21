@@ -11,13 +11,7 @@ import { MarketingModule } from "../marketing/marketing.module";
   imports: [
     NotificationsModule,
     MarketingModule,
-    MulterModule.register({
-      storage: memoryStorage(),
-      limits: {
-        fileSize: 25 * 1024 * 1024, // 25MB limit
-        files: 10,
-      },
-    }),
+    MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [PortalController, PortalNotificationsController],
   providers: [PortalService],

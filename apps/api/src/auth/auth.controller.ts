@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler"; // NEW
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "./auth.service";
 import { JwtService } from "@nestjs/jwt";
@@ -37,6 +38,7 @@ export class AuthController {
     private readonly emailService: EmailService,
   ) {}
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 req/minute
   @Post("login")
   async login(
     @Body() dto: LoginDto,
@@ -126,6 +128,7 @@ export class AuthController {
   }
 
   /** POST /auth/forgot-password — sends reset email */
+  @Throttle({ default: { limit: 2, ttl: 300000 } }) // 2 req/5 minutes
   @Post("forgot-password")
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -154,6 +157,7 @@ export class AuthController {
   }
 
   /** POST /auth/register — public client self-registration */
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 req/minute
   @Post("register")
   @HttpCode(HttpStatus.CREATED)
   register(@Body() dto: RegisterClientDto) {

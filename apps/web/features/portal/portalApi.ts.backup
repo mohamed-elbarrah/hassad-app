@@ -534,7 +534,7 @@ export const portalApi = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["ActionItems", "ActivityFeed"], // NEW
+      invalidatesTags: ["ActionItems"],
     }),
     unsnoozeActionItem: builder.mutation<
       { success: boolean },
@@ -544,35 +544,8 @@ export const portalApi = createApi({
         url: `/portal/action-items/snooze/${itemType}/${itemId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["ActionItems", "ActivityFeed"], // NEW
+      invalidatesTags: ["ActionItems"],
     }),
-    
-    // NEW: Deliverable approval
-    approveDeliverable: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/deliverables/${id}/approve`,
-        method: "POST",
-      }),
-      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
-    }),
-    
-    rejectDeliverable: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/deliverables/${id}/reject`,
-        method: "POST",
-      }),
-      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
-    }),
-    
-    // NEW: Contract signing
-    signContract: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/portal/contracts/${id}/sign`,
-        method: "POST",
-      }),
-      invalidatesTags: ["PortalContracts", "ActionItems", "ActivityFeed"],
-    }),
-    
     getPortalReports: builder.query<ReportSummary, void>({
       query: () => "/portal/reports",
       providesTags: ["PortalReports"],
@@ -607,13 +580,7 @@ export const portalApi = createApi({
         url: `/portal/projects/${id}/approve`,
         method: "POST",
       }),
-      invalidatesTags: [
-        "ReviewProjects",
-        "ProjectProgress",
-        "PortalProjects",
-        "ActionItems", // NEW
-        "ActivityFeed", // NEW
-      ],
+      invalidatesTags: ["ReviewProjects", "ProjectProgress", "PortalProjects"],
     }),
 
     requestProjectRevision: builder.mutation<
@@ -625,13 +592,7 @@ export const portalApi = createApi({
         method: "POST",
         body: { comment },
       }),
-      invalidatesTags: [
-        "ReviewProjects",
-        "ProjectProgress",
-        "PortalProjects",
-        "ActionItems", // NEW
-        "ActivityFeed", // NEW
-      ],
+      invalidatesTags: ["ReviewProjects", "ProjectProgress", "PortalProjects"],
     }),
 
     getProjectRevisions: builder.query<ProjectReviewRevision[], string>({
@@ -687,11 +648,7 @@ export const portalApi = createApi({
         url: `/portal/marketing-strategies/${id}/approve`,
         method: "POST",
       }),
-      invalidatesTags: [
-        "PortalStrategies",
-        "ActionItems",
-        "ActivityFeed", // NEW
-      ],
+      invalidatesTags: ["PortalStrategies", "ActionItems"],
     }),
 
     requestStrategyRevision: builder.mutation<
@@ -703,11 +660,7 @@ export const portalApi = createApi({
         method: "POST",
         body: { comment },
       }),
-      invalidatesTags: [
-        "PortalStrategies",
-        "ActionItems",
-        "ActivityFeed", // NEW
-      ],
+      invalidatesTags: ["PortalStrategies", "ActionItems"],
     }),
   }),
 });
@@ -728,11 +681,6 @@ export const {
   useGetPortalContractByIdQuery,
   useSnoozeActionItemMutation,
   useUnsnoozeActionItemMutation,
-  // NEW: Deliverable approval
-  useApproveDeliverableMutation,
-  useRejectDeliverableMutation,
-  // NEW: Contract signing
-  useSignContractMutation,
   useGetPortalReportsQuery,
   useGetReportTimelineQuery,
   useGetReviewProjectsQuery,

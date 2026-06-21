@@ -40,17 +40,6 @@ export class PortalController {
     private readonly storageService: StorageService,
   ) {}
 
-  /** Parse and validate page limit parameter (NEW) */
-  private parseLimit(
-    query: string | undefined,
-    defaultLimit: number = 20,
-    maxLimit: number = 100,
-  ): number {
-    const limit = Number(query);
-    if (isNaN(limit) || limit < 1) return defaultLimit;
-    return Math.min(limit, maxLimit);
-  }
-
   /** Resolve clientId from JWT payload or DB lookup for CLIENT users */
   private async resolveClientId(user: any): Promise<string | null> {
     if (user.clientId) return user.clientId;
@@ -126,7 +115,7 @@ export class PortalController {
       sortBy,
       sortOrder: sortOrder === "asc" ? "asc" : "desc",
       page: Number(page) || 1,
-      limit: this.parseLimit(limit, 20), // CHANGED - was Number(limit) || 20
+      limit: Number(limit) || 20,
     });
   }
 
@@ -168,7 +157,7 @@ export class PortalController {
     return this.portalService.getInvoices(clientId, {
       status,
       page: Number(page) || 1,
-      limit: this.parseLimit(limit, 20), // CHANGED - was Number(limit) || 20
+      limit: Number(limit) || 20,
     });
   }
 
@@ -359,7 +348,7 @@ export class PortalController {
     return this.portalService.getProjects(clientId, {
       status,
       page: Number(page) || 1,
-      limit: this.parseLimit(limit, 6), // CHANGED - was Number(limit) || 6
+      limit: Number(limit) || 6,
     });
   }
 
@@ -385,7 +374,7 @@ export class PortalController {
     if (!clientId) return { data: [], total: 0, page: 1, limit: 6 };
     return this.portalService.getRequests(clientId, {
       page: Number(page) || 1,
-      limit: this.parseLimit(limit, 6), // CHANGED - was Number(limit) || 6
+      limit: Number(limit) || 6,
     });
   }
 
@@ -410,7 +399,7 @@ export class PortalController {
     return this.portalService.getActionItems(clientId, {
       type: type || undefined,
       page: Number(page) || 1,
-      limit: this.parseLimit(limit, 20), // CHANGED - was Number(limit) || 20
+      limit: Number(limit) || 20,
     });
   }
 

@@ -62,7 +62,7 @@ export default function PortalRequestsPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 30_000 },
+    { pollingInterval: 120_000 },
   );
 
   const requests = data?.data ?? [];

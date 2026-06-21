@@ -1,0 +1,28 @@
+# 📋 Phase 1 Complete - Security Fixes
+
+## ✅ Completed:
+
+1. **Rate Limiting on Auth Endpoints**
+   - Added `@nestjs/throttler` dependency
+   - Configured `ThrottlerModule` in `app.module.ts`
+   - Added `@Throttle()` decorators to auth endpoints:
+     - Login: 5 req/minute
+     - Register: 3 req/minute  
+     - Forgot-password: 2 req/5 minutes
+
+2. **File Upload Size Limits**
+   - Added `limits: { fileSize: 25 * 1024 * 1024 }` to MulterModule
+   - Max file size: 25MB
+   - Max files per request: 10
+
+3. **Server-Side Page Size Caps**
+   - Added `parseLimit()` helper method
+   - Updated 5 paginated endpoints:
+     - getContracts (max 100)
+     - getInvoices (max 100)
+     - getPortalProjects (max 6)
+     - getPortalRequests (max 6)
+     - getActionItems (max 20)
+
+## 🎯 Status: Phase 1 COMPLETE ✅
+## 📊 Next: Phase 2 - Performance Optimization

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { toast } from "sonner"; // NEW
 import {
   chatApi,
   useGetConversationsQuery,
@@ -158,8 +159,8 @@ export default function PortalChatPage() {
           conversationId: selectedId,
           content,
         }).unwrap();
-      } catch {
-        // message will appear via socket
+      } catch (err: any) {
+        toast.error(err?.data?.message || "فشل في إرسال الرسالة");
       }
     },
     [selectedId, sendMessage],

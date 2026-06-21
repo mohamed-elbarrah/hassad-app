@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, BellOff, CheckCheck, ExternalLink } from "lucide-react";
+import { toast } from "sonner"; // NEW
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
@@ -365,9 +366,9 @@ export default function PortalNotificationsPage() {
 
   async function handleMarkRead(id: string) {
     try {
-      await markAsRead(id);
-    } catch {
-      /* ignore */
+      await markAsRead(id).unwrap();
+    } catch (err: any) {
+      toast.error(err?.data?.message || "فشل في وضع علامة مقروءة");
     }
   }
 
