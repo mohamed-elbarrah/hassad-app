@@ -84,7 +84,7 @@ export default function PortalFinancePage() {
   const statusFilter = activeFilters["status"]?.[0] ?? "ALL";
 
   const { data: summaryData, isLoading: summaryLoading } =
-    useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: 30_000 });
+    useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: 120_000 });
   const { data: invoicesData, isLoading: invoicesLoading } =
     useGetPortalInvoicesQuery(
       {
@@ -92,7 +92,7 @@ export default function PortalFinancePage() {
         page,
         limit: PAGE_SIZE,
       },
-      { pollingInterval: 30_000 },
+      { pollingInterval: 120_000 },
     );
 
   const invoices = invoicesData?.data ?? [];

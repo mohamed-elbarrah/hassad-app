@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { useAppSelector } from "@/lib/hooks";
+import { toast } from "sonner"; // NEW
 import {
   useGetPortalRequestsQuery,
   useGetProjectProgressQuery,
@@ -29,6 +30,10 @@ import {
   useGetCampaignSummaryQuery,
   useSnoozeActionItemMutation,
   useGetTeamMembersQuery,
+  // NEW: Missing mutations
+  useApproveProjectMutation,
+  useRejectDeliverableMutation,
+  useApproveDeliverableMutation,
 } from "@/features/portal/portalApi";
 
 import { DashboardCard } from "@/components/design-system/DashboardCard";
@@ -91,23 +96,23 @@ export default function PortalPage() {
       { page: 1, limit: 3 },
       {
         skip: !clientId,
-        pollingInterval: 30_000,
+        pollingInterval: 120_000,
       },
     );
   const { data: projectProgress, error: projectError } =
     useGetProjectProgressQuery(undefined, {
       skip: !clientId,
-      pollingInterval: 30_000,
+      pollingInterval: 120_000,
     });
   const { data: actionItemsData, error: actionItemsError } =
     useGetActionItemsQuery(undefined, {
       skip: !clientId,
-      pollingInterval: 30_000,
+      pollingInterval: 120_000,
     });
   const { data: activityFeedData, error: activityError } =
     useGetActivityFeedQuery(undefined, {
       skip: !clientId,
-      pollingInterval: 30_000,
+      pollingInterval: 120_000,
     });
   const {
     data: campaignSummary,
@@ -115,11 +120,11 @@ export default function PortalPage() {
     isLoading: campaignLoading,
   } = useGetCampaignSummaryQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 30_000,
+    pollingInterval: 120_000,
   });
   const { data: teamMembersData } = useGetTeamMembersQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 30_000,
+    pollingInterval: 120_000,
   });
 
   const projects = projectProgress?.projects ?? [];
@@ -132,8 +137,8 @@ export default function PortalPage() {
     const itemId = item.id.replace(/^(del|inv|prop|con)-/, "");
     try {
       await snoozeActionItem({ itemType: item.type, itemId }).unwrap();
-    } catch {
-      // Silent fail — item will reappear on next fetch
+    } catch (err: any) {
+      toast.error(err?.data?.message || "فشل في إخفاء الإجراء");
     }
   };
 

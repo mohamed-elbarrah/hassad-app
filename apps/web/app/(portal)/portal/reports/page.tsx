@@ -111,7 +111,7 @@ export default function PortalReportsPage() {
     refetch,
   } = useGetPortalReportsQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 30_000,
+    pollingInterval: 120_000,
   });
   const { data: timeline } = useGetReportTimelineQuery(
     {
@@ -119,7 +119,7 @@ export default function PortalReportsPage() {
       dateTo: rangeParams.dateTo,
       granularity: rangeParams.granularity,
     },
-    { skip: !clientId, pollingInterval: 30_000 },
+    { skip: !clientId, pollingInterval: 120_000 },
   );
 
   return (

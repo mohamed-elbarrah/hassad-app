@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { UserRole } from "@hassad/shared";
 import { DashboardSidebar } from "@/components/design-system/DashboardSidebar";
 import { DashboardAppHeader } from "@/components/design-system/DashboardAppHeader";
+import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotificationSocket";
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,9 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Setup WebSocket for real-time notifications
+  useDashboardNotificationSocket();
 
   const roleHome: Record<UserRole, string> = {
     [UserRole.ADMIN]: "/dashboard/admin",

@@ -15,7 +15,7 @@ export default function PortalProposalsPage() {
     data: proposals,
     isLoading,
     isError,
-  } = useGetMyProposalsQuery(undefined, { pollingInterval: 30_000 });
+  } = useGetMyProposalsQuery(undefined, { pollingInterval: 120_000 });
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">

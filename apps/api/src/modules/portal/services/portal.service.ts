@@ -41,6 +41,11 @@ export class PortalService {
     private marketingStrategyService: MarketingStrategyService,
   ) {}
 
+  /** Broadcast invalidations to client's WebSocket connections (NEW) */
+  private async broadcastInvalidations(clientId: string, tags: string[]) {
+    await this.notificationsService.broadcastPortalInvalidations(clientId, tags);
+  }
+
   private getPendingRequestStageLabel(status: string) {
     switch (status) {
       case "PROPOSAL_IN_PROGRESS":
@@ -1518,56 +1523,105 @@ export class PortalService {
     }[] = [],
   ) {
     const token = randomBytes(32).toString("hex");
-    return this.prisma.portalIntakeForm.create({
-      data: {
-        clientId,
-        token,
-        businessDescription: dto.businessDescription,
-        goals: dto.goals,
-        uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
-      },
+
+    return this.prisma.$transaction(async (tx) => {
+      const intakeForm = await tx.portalIntakeForm.upsert({
+        where: { clientId },
+        update: {
+          industry: dto.industry,
+          businessDescription: dto.businessDescription,
+          targetAudience: dto.targetAudience,
+          budgetRangeMin: dto.budgetRangeMin,
+          budgetRangeMax: dto.budgetRangeMax,
+          campaignGoals: dto.campaignGoals,
+          campaignOffer: dto.campaignOffer,
+          competitors: dto.competitors,
+          seasonalTiming: dto.seasonalTiming,
+          orderMethods: dto.orderMethods,
+          abandonedCartSystem: dto.abandonedCartSystem,
+          hasVisualIdentity: dto.hasVisualIdentity,
+          brandAssets: dto.brandAssets,
+          visualReferences: dto.visualReferences,
+          uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+          isSubmitted: true,
+          submittedAt: new Date(),
+        },
+        create: {
+          clientId,
+          token,
+          industry: dto.industry,
+          businessDescription: dto.businessDescription,
+          targetAudience: dto.targetAudience,
+          budgetRangeMin: dto.budgetRangeMin,
+          budgetRangeMax: dto.budgetRangeMax,
+          campaignGoals: dto.campaignGoals,
+          campaignOffer: dto.campaignOffer,
+          competitors: dto.competitors,
+          seasonalTiming: dto.seasonalTiming,
+          orderMethods: dto.orderMethods,
+          abandonedCartSystem: dto.abandonedCartSystem,
+          hasVisualIdentity: dto.hasVisualIdentity,
+          brandAssets: dto.brandAssets,
+          visualReferences: dto.visualReferences,
+          uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+          isSubmitted: true,
+          submittedAt: new Date(),
+        },
+      });
+
+      await tx.clientProfile.upsert({
+        where: { clientId },
+        update: {
+          industry: dto.industry,
+          businessDescription: dto.businessDescription,
+          targetAudience: dto.targetAudience,
+          budgetRangeMin: dto.budgetRangeMin,
+          budgetRangeMax: dto.budgetRangeMax,
+          brandAssets: dto.brandAssets,
+        },
+        create: {
+          clientId,
+          industry: dto.industry,
+          businessDescription: dto.businessDescription,
+          targetAudience: dto.targetAudience,
+          budgetRangeMin: dto.budgetRangeMin,
+          budgetRangeMax: dto.budgetRangeMax,
+          brandAssets: dto.brandAssets,
+        },
+      });
+
+      await tx.client.update({
+        where: { id: clientId },
+        data: { intakeCompleted: true },
+      });
+
+      return intakeForm;
     });
   }
 
   async getIntakeForm(clientId: string) {
-    const forms = await this.prisma.portalIntakeForm.findMany({
+    const form = await this.prisma.portalIntakeForm.findUnique({
       where: { clientId },
     });
 
-    const allFileKeys: string[] = [];
-    for (const form of forms) {
-      const files = form.uploadedFiles as
-        | { key: string; originalName: string; mimeType: string }[]
-        | null;
-      if (Array.isArray(files)) {
-        for (const f of files) {
-          if (f.key) allFileKeys.push(f.key);
-        }
-      }
-    }
+    if (!form) return null;
 
-    if (allFileKeys.length > 0) {
+    const files = form.uploadedFiles as
+      | { key: string; originalName: string; mimeType: string }[]
+      | null;
+
+    if (files && files.length > 0) {
+      const allFileKeys = files.map((f) => f.key);
       const urlMap =
         await this.storageService.getMultiplePresignedUrls(allFileKeys);
-      for (const form of forms) {
-        const files = form.uploadedFiles as
-          | {
-              key: string;
-              originalName: string;
-              mimeType: string;
-              url?: string;
-            }[]
-          | null;
-        if (Array.isArray(files)) {
-          (form as any).uploadedFiles = files.map((f) => ({
-            ...f,
-            url: urlMap.get(f.key) || null,
-          }));
-        }
-      }
+
+      (form as any).uploadedFiles = files.map((f) => ({
+        ...f,
+        url: urlMap.get(f.key) || null,
+      }));
     }
 
-    return forms;
+    return form;
   }
 
   async findCampaignsByClient(clientId: string) {
@@ -2357,6 +2411,15 @@ export class PortalService {
         .catch(() => undefined);
     }
 
+    // NEW: Broadcast invalidations for project approval
+    await this.broadcastInvalidations(clientId, [
+      "ReviewProjects",
+      "ProjectProgress",
+      "PortalProjects",
+      "ActionItems",
+      "ActivityFeed",
+    ]);
+
     return updated;
   }
 
@@ -2403,6 +2466,15 @@ export class PortalService {
         })
         .catch(() => undefined);
     }
+
+    // NEW: Broadcast invalidations for project revision
+    await this.broadcastInvalidations(clientId, [
+      "ReviewProjects",
+      "ProjectProgress",
+      "PortalProjects",
+      "ActionItems",
+      "ActivityFeed",
+    ]);
 
     return updated;
   }

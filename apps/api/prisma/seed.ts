@@ -1025,6 +1025,7 @@ async function main() {
       "contracts.sign_public",
       "invoices.pay_public",
       "portal.read",
+      "portal.manage_intake",
       "portal.approve_deliverables",
       "portal.request_revisions",
       "services.read",

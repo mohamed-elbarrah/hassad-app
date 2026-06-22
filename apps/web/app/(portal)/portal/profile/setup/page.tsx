@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAppSelector } from "@/lib/hooks";
+import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { UserRole } from "@hassad/shared";
-import { ProfileSetupForm } from "@/components/portal/ProfileSetupForm";
+import { IntakeForm } from "@/components/portal/IntakeForm";
+import { updateUser } from "@/features/auth/authSlice";
 import Image from "next/image";
 import { Building2, Sparkles, MessageCircle, Target, Clock } from "lucide-react";
 
@@ -12,6 +13,7 @@ export default function ProfileSetupPage() {
   const { user, isAuthenticated, isInitialized } = useAppSelector(
     (state) => state.auth,
   );
+  const dispatch = useAppDispatch();
   const router = useRouter();
 
   useEffect(() => {
@@ -141,8 +143,11 @@ export default function ProfileSetupPage() {
             </p>
           </div>
 
-          <ProfileSetupForm
-            onSuccess={() => router.push("/portal")}
+          <IntakeForm
+            onSuccess={() => {
+              dispatch(updateUser({ intakeCompleted: true }));
+              router.push("/portal");
+            }}
           />
         </div>
       </div>

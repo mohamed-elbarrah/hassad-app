@@ -13,9 +13,12 @@ import { NotificationsDropdown } from "./NotificationsDropdown";
 export function NotificationBell() {
   const dispatch = useAppDispatch();
   const { isDropdownOpen } = useAppSelector((state) => state.notifications);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
 
+  // WebSocket handles real-time updates via useNotificationSocket in PortalLayout
+  // Only fetch initial data, skip when not authenticated
   const { data } = useGetUnreadCountQuery(undefined, {
-    pollingInterval: 30000,
+    skip: !isAuthenticated,
   });
   const unreadCount = data?.count ?? 0;
 

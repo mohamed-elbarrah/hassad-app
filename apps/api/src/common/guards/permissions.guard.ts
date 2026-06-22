@@ -45,7 +45,18 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    // Fetch user permissions from DB (via Role and direct UserPermissions)
+    // Fast path: JWT has all required permissions → skip DB lookup
+    if (
+      user.permissions &&
+      Array.isArray(user.permissions) &&
+      requiredPermissions.every((permission) =>
+        user.permissions.includes(permission),
+      )
+    ) {
+      return true;
+    }
+
+    // Fallback to DB lookup (JWT may be stale — permission granted after token was issued)
     const userWithPermissions = await this.prisma.user.findUnique({
       where: { id: user.id },
       include: {

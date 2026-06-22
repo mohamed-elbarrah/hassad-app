@@ -7,6 +7,7 @@ export interface JwtPayload {
   name: string;
   email: string;
   role: UserRole;
+  permissions?: string[]; // NEW - optional permissions array
 }
 
 export const CurrentUser = createParamDecorator(

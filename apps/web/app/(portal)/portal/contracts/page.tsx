@@ -43,7 +43,7 @@ export default function PortalContractsPage() {
       dateFrom: dateRange.from?.toISOString(),
       dateTo: dateRange.to?.toISOString(),
     },
-    { pollingInterval: 30_000 },
+    { pollingInterval: 120_000 },
   );
 
   const contracts = contractsData?.data ?? [];

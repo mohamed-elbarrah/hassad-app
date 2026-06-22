@@ -52,40 +52,96 @@ export type UpdateClientInput = z.infer<typeof UpdateClientSchema>;
 
 /**
  * UpsertClientProfileSchema — validates profile upsert input.
+ * Matches the IntakeForm fields for consistency.
  */
 export const UpsertClientProfileSchema = z.object({
+  // Section 1: Business Basics
   industry: z.string().optional(),
   businessDescription: z.string().optional(),
   targetAudience: z.string().optional(),
   budgetRangeMin: z.number().positive().optional(),
   budgetRangeMax: z.number().positive().optional(),
-  communicationPreference: z
-    .enum(["email", "whatsapp", "phone", "chat"])
-    .optional(),
-  preferredLanguage: z.string().optional(),
-  timezone: z.string().optional(),
-  preferredPlatforms: z.string().optional(),
+
+  // Section 2: Marketing Goals
+  campaignGoals: z.array(z.string()).optional(),
+  campaignOffer: z.string().optional(),
+  competitors: z.string().optional(),
+  seasonalTiming: z.string().optional(),
+
+  // Section 3: Customer Journey
+  orderMethods: z.array(z.string()).optional(),
+  abandonedCartSystem: z.boolean().optional(),
+
+  // Section 4: Creative & Brand Assets
+  hasVisualIdentity: z.boolean().optional(),
   brandAssets: z
     .object({
-      logoUrl: z.string().url().optional(),
+      logoUrl: z.string().optional(),
       brandColors: z.array(z.string()).optional(),
       fonts: z.array(z.string()).optional(),
-      guidelinesUrl: z.string().url().optional(),
+      guidelinesUrl: z.string().optional(),
     })
     .optional(),
-  customFields: z.record(z.string(), z.unknown()).optional(),
-  website: z.string().url().optional().or(z.literal("")).optional(),
-  instagramHandle: z.string().optional(),
-  tiktokHandle: z.string().optional(),
-  twitterHandle: z.string().optional(),
-  linkedinUrl: z.string().url().optional().or(z.literal("")).optional(),
-  snapchatHandle: z.string().optional(),
-  workingHours: z.string().optional(),
-  decisionMakerName: z.string().optional(),
-  decisionMakerPhone: z.string().optional(),
-  painPoints: z.string().optional(),
+  visualReferences: z.string().optional(),
+  uploadedFiles: z
+    .array(
+      z.object({
+        key: z.string(),
+        originalName: z.string(),
+        mimeType: z.string(),
+        size: z.number().optional(),
+      })
+    )
+    .optional(),
 });
 
 export type UpsertClientProfileInput = z.infer<
   typeof UpsertClientProfileSchema
 >;
+
+/**
+ * IntakeFormSchema — validates the 4-section intake form
+ * This is the source of truth for all intake-related forms.
+ */
+export const IntakeFormSchema = z.object({
+  // Section 1: Business Basics
+  industry: z.string().optional(),
+  businessDescription: z.string().optional(),
+  targetAudience: z.string().optional(),
+  budgetRangeMin: z.number().positive().optional(),
+  budgetRangeMax: z.number().positive().optional(),
+
+  // Section 2: Marketing Goals
+  campaignGoals: z.array(z.string()).optional(),
+  campaignOffer: z.string().optional(),
+  competitors: z.string().optional(),
+  seasonalTiming: z.string().optional(),
+
+  // Section 3: Customer Journey
+  orderMethods: z.array(z.string()).optional(),
+  abandonedCartSystem: z.boolean().optional(),
+
+  // Section 4: Creative & Brand Assets
+  hasVisualIdentity: z.boolean().optional(),
+  brandAssets: z
+    .object({
+      logoUrl: z.string().optional(),
+      brandColors: z.array(z.string()).optional(),
+      fonts: z.array(z.string()).optional(),
+      guidelinesUrl: z.string().optional(),
+    })
+    .optional(),
+  visualReferences: z.string().optional(),
+  uploadedFiles: z
+    .array(
+      z.object({
+        key: z.string(),
+        originalName: z.string(),
+        mimeType: z.string(),
+        size: z.number().optional(),
+      })
+    )
+    .optional(),
+});
+
+export type IntakeFormInput = z.infer<typeof IntakeFormSchema>;

@@ -7,6 +7,7 @@ import { AuthModule } from "./auth/auth.module";
 import { StorageModule } from "./common/storage/storage.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { RobustErrorLoggerService } from "./modules/health/services/robust-error-logger.service";
+import { ThrottlerModule } from "@nestjs/throttler";
 
 // V2 Modules
 import { CoreModule } from "./modules/core/core.module";
@@ -44,6 +45,15 @@ import { HealthModule } from "./modules/health/health.module";
     ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
+
+    // Rate limiting (NEW)
+    ThrottlerModule.forRoot([
+      { ttl: 60000, limit: 100 }, // Default: 100 req/minute
+      { ttl: 60000, limit: 5 },   // Login: 5 req/minute
+      { ttl: 60000, limit: 3 },   // Register: 3 req/minute
+      { ttl: 300000, limit: 2 },  // Forgot password: 2 req/5 minutes
+      { ttl: 600000, limit: 10 }, // Reset password: 10 req/10 minutes
+    ]),
 
     // V2 Modules
     CoreModule,

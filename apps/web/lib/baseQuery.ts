@@ -37,14 +37,36 @@ function unwrap(result: RawResult): RawResult {
   return result;
 }
 
+/** Retry helper for transient network errors (NEW) */
+async function retryWithDelay(
+  args: string | FetchArgs,
+  api: any,
+  extraOptions: any,
+  maxRetries: number = 3,
+  delayMs: number = 1000,
+): Promise<RawResult> {
+  let result = unwrap(
+    (await _rawBaseQuery(args, api, extraOptions)) as RawResult,
+  );
+
+  let retryCount = 0;
+  while (result.error && retryCount < maxRetries) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    retryCount++;
+    result = unwrap(
+      (await _rawBaseQuery(args, api, extraOptions)) as RawResult,
+    );
+  }
+
+  return result;
+}
+
 export const baseQuery: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  let result = unwrap(
-    (await _rawBaseQuery(args, api, extraOptions)) as RawResult,
-  );
+  let result = await retryWithDelay(args, api, extraOptions);
 
   if (result.error && (result.error as FetchBaseQueryError).status === 401) {
     const refreshResult = (await _rawBaseQuery(
@@ -57,6 +79,11 @@ export const baseQuery: BaseQueryFn<
       result = unwrap(
         (await _rawBaseQuery(args, api, extraOptions)) as RawResult,
       );
+
+      // Also retry on successful refresh
+      if (result.error) {
+        result = await retryWithDelay(args, api, extraOptions, 2, 500);
+      }
     } else {
       api.dispatch(logout());
       // Also call backend logout to clear HttpOnly cookies

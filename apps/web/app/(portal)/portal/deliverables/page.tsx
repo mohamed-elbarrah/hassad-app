@@ -52,12 +52,12 @@ export default function PortalDeliverablesPage() {
     refetch: refetchReviewProjects,
   } = useGetReviewProjectsQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 30_000,
+    pollingInterval: 120_000,
   });
 
   const { data: projectProgress } = useGetProjectProgressQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 30_000,
+    pollingInterval: 120_000,
   });
 
   const [approveProject, { isLoading: isApproving }] =
@@ -73,7 +73,7 @@ export default function PortalDeliverablesPage() {
 
   const { data: selectedProject } = useGetProjectReviewDetailQuery(
     selectedProjectId!,
-    { skip: !selectedProjectId, pollingInterval: 30_000 },
+    { skip: !selectedProjectId, pollingInterval: 120_000 },
   );
 
   async function handleApprove(projectId: string) {

@@ -10,6 +10,14 @@ export class NotificationsService {
     private eventEmitter: EventEmitter2,
   ) {}
 
+  /** Broadcast invalidations to client's WebSocket connections (NEW) */
+  async broadcastPortalInvalidations(clientId: string, tags: string[]) {
+    this.eventEmitter.emit("socket.broadcast", {
+      type: "INVALIDATE_TAGS",
+      payload: { tags, clientId },
+    });
+  }
+
   private mapNotificationRow(row: {
     id: string;
     userId: string;
