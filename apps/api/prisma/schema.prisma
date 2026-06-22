@@ -71,6 +71,16 @@ model User {
   permissions          UserPermission[]
   role                 Role                      @relation(fields: [roleId], references: [id])
 
+  // ── Dispute relations ─────────────────────────────────────────────────────
+  disputesAgainstPm    DisputeTicket[]           @relation("DisputesAgainstPM")
+  disputeReviews       DisputeTicket[]           @relation("DisputeReviewer")
+  disputeResolutions   DisputeTicket[]           @relation("DisputeResolver")
+  newPmAssignments     DisputeTicket[]           @relation("NewPmAssignment")
+  disputeMessages      DisputeMessage[]
+  disputeAttachments   DisputeAttachment[]
+  disputeHistoryChanges DisputeHistory[]
+  disputeStats         PmDisputeStats?
+
   @@index([roleId])
   @@index([createdAt])
   @@map("users")
@@ -279,6 +289,7 @@ model Client {
   requests             Request[]
   satRatings           SatisfactionRating[]
   profile              ClientProfile?
+  disputeTickets       DisputeTicket[]
 
   @@index([userId])
   @@index([accountManager])
@@ -631,6 +642,7 @@ model Project {
   members              ProjectMember[]
   revisionRequests     ProjectRevisionRequest[]
   marketingStrategies  MarketingStrategy[]
+  disputeTickets      DisputeTicket[]
   client               Client                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contract             Contract?                @relation(fields: [contractId], references: [id])
   manager              User?                    @relation("ProjectManager", fields: [projectManagerId], references: [id])
@@ -1957,4 +1969,168 @@ enum SymbolType {
   TEXT
   SVG_URL
   SVG_INLINE
+}
+
+// ── Dispute Ticket System ──────────────────────────────────────────────────────
+
+/// Dispute ticket opened by client against PM
+model DisputeTicket {
+  id                    String              @id @default(cuid())
+  ticketNumber          Int                 @unique // Display: #TKT-001
+
+  // ── Parties ────────────────────────────────────────────────────────────────
+  clientId              String              @map("client_id")
+  client                Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  pmId                  String              @map("pm_id")
+  pm                    User                @relation("DisputesAgainstPM", fields: [pmId], references: [id])
+  projectId             String              @map("project_id")
+  project               Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewedBy            String?             @map("reviewed_by") // Admin who approved/rejected
+  reviewer              User?               @relation("DisputeReviewer", fields: [reviewedBy], references: [id])
+  resolvedBy            String?             @map("resolved_by") // Admin who resolved escalation
+  resolver              User?               @relation("DisputeResolver", fields: [resolvedBy], references: [id])
+
+  // ── Content ─────────────────────────────────────────────────────────────────
+  title                 String
+  description           String              @db.Text
+  category              DisputeCategory
+
+  // ── Status & Timeline ───────────────────────────────────────────────────────
+  status                DisputeStatus       @default(PENDING_APPROVAL)
+  priority              DisputePriority     @default(NORMAL)
+
+  openedAt              DateTime            @default(now()) @map("opened_at")
+  approvedAt            DateTime?           @map("approved_at")
+  deadlineAt            DateTime?           @map("deadline_at") // 3 days from approval
+  clientNotifiedAt     DateTime?           @map("client_notified_at")
+  clientRespondedAt    DateTime?           @map("client_responded_at")
+  clientConfirmedResolved Boolean?           @map("client_confirmed_resolved")
+  escalatedAt          DateTime?           @map("escalated_at")
+  resolvedAt            DateTime?           @map("resolved_at")
+  closedAt             DateTime?           @map("closed_at")
+
+  // ── Resolution ──────────────────────────────────────────────────────────────
+  resolution            String?             @db.Text // Admin's resolution notes
+  pmChanged            Boolean             @default(false) @map("pm_changed")
+  newPmId              String?             @map("new_pm_id")
+  newPm                User?               @relation("NewPmAssignment", fields: [newPmId], references: [id])
+  rejectionReason       String?             @map("rejection_reason") // If admin rejected
+
+  // ── Relations ───────────────────────────────────────────────────────────────
+  messages              DisputeMessage[]
+  history              DisputeHistory[]
+  attachments          DisputeAttachment[]
+
+  @@index([clientId])
+  @@index([pmId])
+  @@index([projectId])
+  @@index([status])
+  @@index([openedAt])
+  @@map("dispute_tickets")
+}
+
+/// Message thread within a dispute ticket
+model DisputeMessage {
+  id                    String          @id @default(cuid())
+  ticketId              String          @map("ticket_id")
+  authorId              String          @map("author_id")
+  author                User            @relation(fields: [authorId], references: [id])
+  content               String          @db.Text
+  isInternal            Boolean         @default(false) @map("is_internal") // Admin-only notes
+  createdAt             DateTime        @default(now()) @map("created_at")
+
+  ticket                DisputeTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  attachments           DisputeAttachment[]
+
+  @@index([ticketId])
+  @@index([createdAt])
+  @@map("dispute_messages")
+}
+
+/// File attachments for dispute tickets
+model DisputeAttachment {
+  id                    String          @id @default(cuid())
+  ticketId              String          @map("ticket_id")
+  messageId             String?         @map("message_id") // Optional: linked to a message
+  uploadedBy            String          @map("uploaded_by")
+  fileName              String          @map("file_name")
+  filePath              String          @map("file_path")
+  fileSize              Int             @map("file_size")
+  mimeType              String          @map("mime_type")
+  uploadedAt            DateTime        @default(now()) @map("uploaded_at")
+
+  ticket                DisputeTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message              DisputeMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploader              User            @relation(fields: [uploadedBy], references: [id])
+
+  @@index([ticketId])
+  @@map("dispute_attachments")
+}
+
+/// Audit trail for dispute ticket status changes
+model DisputeHistory {
+  id                    String          @id @default(cuid())
+  ticketId              String          @map("ticket_id")
+  fromStatus            DisputeStatus?  @map("from_status")
+  toStatus              DisputeStatus   @map("to_status")
+  changedBy             String          @map("changed_by")
+  changedAt             DateTime        @default(now()) @map("changed_at")
+  note                  String?
+
+  ticket                DisputeTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  changer               User            @relation(fields: [changedBy], references: [id])
+
+  @@index([ticketId])
+  @@index([changedAt])
+  @@map("dispute_history")
+}
+
+/// PM dispute statistics (cached for quick lookup)
+model PmDisputeStats {
+  id                    String    @id @default(cuid())
+  userId                String    @unique @map("user_id")
+  totalDisputes         Int       @default(0) @map("total_disputes")
+  resolvedDisputes      Int       @default(0) @map("resolved_disputes")
+  escalatedDisputes     Int       @default(0) @map("escalated_disputes")
+  pmChangedCount        Int       @default(0) @map("pm_changed_count")
+  avgResolutionDays     Float     @default(0) @map("avg_resolution_days")
+  lastUpdated           DateTime  @default(now()) @map("last_updated")
+
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("pm_dispute_stats")
+}
+
+enum DisputeStatus {
+  PENDING_APPROVAL    // Waiting for admin to approve
+  REJECTED            // Admin rejected the ticket
+  APPROVED            // Admin approved, PM notified
+  IN_PROGRESS         // PM is working on resolution
+  PENDING_CLIENT      // PM marked resolved, waiting for client
+  ESCALATED           // Passed deadline or client confirmed unresolved
+  RESOLVED            // Successfully resolved
+  CLOSED              // Admin closed (various reasons)
+
+  @@map("dispute_statuses")
+}
+
+enum DisputeCategory {
+  DELAY               // Project delays
+  QUALITY             // Deliverable quality issues
+  COMMUNICATION       // PM not responding, unprofessional
+  BUDGET              // Budget disputes
+  SCOPE               // Scope creep / feature disagreements
+  ATTITUDE            // Unprofessional behavior
+  OTHER               // Catch-all
+
+  @@map("dispute_categories")
+}
+
+enum DisputePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@map("dispute_priorities")
 }

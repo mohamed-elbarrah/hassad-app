@@ -913,6 +913,12 @@ async function main() {
     "services.read",
     "services.update",
     "services.delete",
+    // Dispute permissions
+    "disputes.create",
+    "disputes.read",
+    "disputes.pm_read",
+    "disputes.pm_update",
+    "disputes.admin",
   ];
 
   for (const name of permissions) {
@@ -951,6 +957,8 @@ async function main() {
       "chat.read",
       "chat.message",
       "clients.read",
+      "disputes.pm_read",
+      "disputes.pm_update",
     ],
     SALES: [
       "leads.create",

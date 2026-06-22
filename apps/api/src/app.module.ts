@@ -30,6 +30,7 @@ import { ServicesModule } from "./modules/services/services.module";
 import { SettingsModule } from "./modules/settings/settings.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { HealthModule } from "./modules/health/health.module";
+import { DisputesModule } from "./modules/disputes/disputes.module";
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { HealthModule } from "./modules/health/health.module";
     AiModule,
     SalesModule,
     HealthModule,
+    DisputesModule,
   ],
   providers: [
     RobustErrorLoggerService,
