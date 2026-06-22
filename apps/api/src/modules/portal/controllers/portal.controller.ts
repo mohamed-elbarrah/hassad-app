@@ -12,6 +12,7 @@ import {
   UploadedFiles,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from "@nestjs/common";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { PortalService } from "../services/portal.service";
@@ -34,6 +35,8 @@ import { ClientApproveStrategyDto, ClientRequestRevisionDto as StrategyRevisionD
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PortalController {
+  private readonly logger = new Logger(PortalController.name);
+
   constructor(
     private readonly portalService: PortalService,
     private readonly prisma: PrismaService,
@@ -55,13 +58,37 @@ export class PortalController {
   private async resolveClientId(user: any): Promise<string | null> {
     if (user.clientId) return user.clientId;
     if (user.role !== "CLIENT") return null;
+
     const client = await this.prisma.client.findFirst({
       where: {
         OR: [{ userId: user.id }, { email: user.email }],
       },
-      select: { id: true },
     });
-    return client?.id ?? null;
+
+    if (client) return client.id;
+
+    // Edge case: CLIENT user exists but has no Client record.
+    // This can happen if a user was created outside the normal
+    // onboarding flow (admin-created, legacy import, etc.).
+    // Auto-create a minimal record so portal endpoints work.
+    const created = await this.prisma.client.create({
+      data: {
+        userId: user.id,
+        email: user.email,
+        companyName: user.name || "Unknown",
+        contactName: user.name || "Unknown",
+        phoneWhatsapp: "",
+        businessName: user.name || "Unknown",
+        businessType: "OTHER",
+        status: "ACTIVE",
+      },
+    });
+
+    this.logger.warn(
+      `Auto-created missing Client record (id=${created.id}) for user ${user.id} (${user.email})`,
+    );
+
+    return created.id;
   }
 
   private async verifyClientOwnsDeliverable(
@@ -277,6 +304,84 @@ export class PortalController {
       throw new ForbiddenException();
     }
     return this.portalService.findDeliverablesByClient(clientIdFromUrl);
+  }
+
+  @Post("portal/upload-intake-files")
+  @RequirePermissions("portal.manage_intake")
+  @UseInterceptors(FilesInterceptor("files", 5))
+  async uploadIntakeFiles(
+    @CurrentUser() user: any,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      throw new ForbiddenException("العميل غير موجود");
+    }
+
+    if (!files || files.length === 0) {
+      throw new ForbiddenException("لم يتم إرسال أي ملفات");
+    }
+
+    const uploadedFiles: {
+      key: string;
+      originalName: string;
+      mimeType: string;
+      size: number;
+      url: string;
+    }[] = [];
+
+    const uploadedKeys: string[] = [];
+
+    try {
+      for (const file of files) {
+        const result = await this.storageService.upload({
+          category: StorageCategory.INTAKE_FORM,
+          entityId: clientId,
+          file: {
+            buffer: file.buffer,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+          },
+        });
+
+        uploadedFiles.push({
+          key: result.key,
+          originalName: result.originalName,
+          mimeType: result.mimeType,
+          size: result.size,
+          url: result.url,
+        });
+
+        uploadedKeys.push(result.key);
+      }
+
+      return uploadedFiles;
+    } catch (error) {
+      for (const key of uploadedKeys) {
+        await this.storageService.deleteByKey(key).catch(() => {});
+      }
+
+      throw error;
+    }
+  }
+
+  @Post("portal/intake-form")
+  @RequirePermissions("portal.manage_intake")
+  async submitIntakeForm(
+    @Body() dto: CreateIntakeFormDto,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      throw new ForbiddenException("العميل غير موجود");
+    }
+
+    return this.portalService.createIntakeForm(
+      clientId,
+      dto,
+      dto.uploadedFiles || [],
+    );
   }
 
   @Post("clients/:id/intake-form")

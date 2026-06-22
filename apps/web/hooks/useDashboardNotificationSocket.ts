@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
-import { portalNotificationsApi } from "@/features/portal-notifications/portalNotificationsApi";
+import { notificationsApi } from "@/features/notifications/notificationsApi";
 import { getApiBaseUrl } from "@/lib/utils";
 
-export function useNotificationSocket() {
+export function useDashboardNotificationSocket() {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const socketRef = useRef<Socket | null>(null);
@@ -44,14 +44,12 @@ export function useNotificationSocket() {
     });
 
     socket.on("notification", () => {
-      dispatch(
-        portalNotificationsApi.util.invalidateTags(["PortalNotification"]),
-      );
+      dispatch(notificationsApi.util.invalidateTags(["Notification"]));
     });
 
     socket.on("unreadCount", (payload: { count: number }) => {
       dispatch(
-        portalNotificationsApi.util.updateQueryData(
+        notificationsApi.util.updateQueryData(
           "getUnreadCount",
           undefined,
           (draft) => {

@@ -45,19 +45,18 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    // NEW: Check if permissions exist in JWT (faster than DB lookup)
-    if (user.permissions && Array.isArray(user.permissions)) {
-      const hasPermission = requiredPermissions.every((permission) =>
+    // Fast path: JWT has all required permissions → skip DB lookup
+    if (
+      user.permissions &&
+      Array.isArray(user.permissions) &&
+      requiredPermissions.every((permission) =>
         user.permissions.includes(permission),
-      );
-
-      if (!hasPermission) {
-        throw new ForbiddenException("Missing required permissions");
-      }
+      )
+    ) {
       return true;
     }
 
-    // Fallback to DB lookup for backwards compatibility (or if permissions not in JWT)
+    // Fallback to DB lookup (JWT may be stale — permission granted after token was issued)
     const userWithPermissions = await this.prisma.user.findUnique({
       where: { id: user.id },
       include: {

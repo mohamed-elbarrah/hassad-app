@@ -13,9 +13,12 @@ import { DashboardNotificationsDropdown } from "./DashboardNotificationsDropdown
 export function DashboardNotificationBell() {
   const dispatch = useAppDispatch();
   const { isDropdownOpen } = useAppSelector((state) => state.notifications);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
 
+  // WebSocket handles real-time updates via useDashboardNotificationSocket in DashboardLayout
+  // Only fetch initial data, skip when not authenticated
   const { data } = useGetUnreadCountQuery(undefined, {
-    pollingInterval: 30000,
+    skip: !isAuthenticated,
   });
   const unreadCount = data?.count ?? 0;
 

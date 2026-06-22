@@ -2,7 +2,7 @@ import {
   IsString,
   IsUUID,
   IsOptional,
-  IsJSON,
+  IsObject,
   IsArray,
   IsDateString,
   IsEnum,
@@ -149,7 +149,7 @@ export class CreateIntakeFormDto {
   hasVisualIdentity?: boolean;
 
   @IsOptional()
-  @IsJSON()
+  @IsObject()
   brandAssets?: any;
 
   @IsOptional()

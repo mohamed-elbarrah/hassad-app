@@ -2,7 +2,8 @@
 
 import { useCallback, useState, useRef } from "react";
 import { Upload, File, X, Image, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { cn, getApiBaseUrl } from "@/lib/utils";
 
 interface UploadedFile {
   key: string;
@@ -24,7 +25,6 @@ interface FileUploadZoneProps {
 const DEFAULT_ACCEPTED_TYPES = [
   "image/png",
   "image/jpeg",
-  "image/jpg",
   "image/svg+xml",
   "application/pdf",
 ];
@@ -81,7 +81,7 @@ export function FileUploadZone({
       }
 
       if (errors.length > 0) {
-        console.error("File validation errors:", errors);
+        errors.forEach((err) => toast.error(err));
         return;
       }
 
@@ -93,8 +93,10 @@ export function FileUploadZone({
         const formData = new FormData();
         validFiles.forEach((file) => formData.append("files", file));
 
-        const response = await fetch("/api/v1/storage/upload", {
+        const baseUrl = getApiBaseUrl();
+        const response = await fetch(`${baseUrl}/portal/upload-intake-files`, {
           method: "POST",
+          credentials: "include",
           body: formData,
         });
 
@@ -116,7 +118,9 @@ export function FileUploadZone({
           onFilesUploaded(uploadedFiles);
         }
       } catch (error) {
-        console.error("Upload error:", error);
+        const message =
+          error instanceof Error ? error.message : "فشل رفع الملفات";
+        toast.error(message);
       } finally {
         setIsUploading(false);
       }

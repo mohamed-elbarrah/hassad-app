@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { toast } from "sonner";
 import { ChevronLeft, Loader2, Save } from "lucide-react";
+import { getApiBaseUrl } from "@/lib/utils";
 import { ProgressBar } from "./components/ProgressBar";
 import { useIntakeForm } from "./hooks/useIntakeForm";
 import { Section1_Business } from "./sections/Section1_Business";
@@ -73,11 +74,12 @@ export function IntakeForm({ onSuccess }: IntakeFormProps) {
         ...formData.section4,
       };
 
-      const response = await fetch(`/api/v1/portal/intake-form`, {
+      const response = await fetch(`${getApiBaseUrl()}/portal/intake-form`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(submitData),
       });
 
