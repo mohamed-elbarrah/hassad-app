@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { toast } from "sonner";
 import { ChevronLeft, Loader2, Save } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/utils";
 import { ProgressBar } from "./components/ProgressBar";
 import { useIntakeForm } from "./hooks/useIntakeForm";
-import { Section1_Business } from "./sections/Section1_Business";
-import { Section2_Goals } from "./sections/Section2_Goals";
-import { Section3_Journey } from "./sections/Section3_Journey";
-import { Section4_Creative } from "./sections/Section4_Creative";
-import { Section5_Review } from "./sections/Section5_Review";
+import {
+  Section1_Business,
+  Section2_Goals,
+  Section3_Journey,
+  Section4_Creative,
+  Section5_Review,
+} from "@/components/shared/IntakeFormFields";
 
 const SECTION_TITLES = [
   "عن نشاطك التجاري",
@@ -27,7 +28,6 @@ interface IntakeFormProps {
 }
 
 export function IntakeForm({ onSuccess }: IntakeFormProps) {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sectionValid, setSectionValid] = useState(true);
 
@@ -106,6 +106,8 @@ export function IntakeForm({ onSuccess }: IntakeFormProps) {
       onDataChange: (data: any) =>
         updateSectionData(currentSection, data),
       onValid: handleSectionValid,
+      mode: "portal" as const,
+      showInfoBox: true,
     };
 
     switch (currentSection) {
@@ -116,12 +118,13 @@ export function IntakeForm({ onSuccess }: IntakeFormProps) {
       case 2:
         return <Section3_Journey {...commonProps} />;
       case 3:
-        return <Section4_Creative {...commonProps} />;
+        return <Section4_Creative {...commonProps} showFileUpload={true} />;
       case 4:
         return (
           <Section5_Review
             formData={formData}
             onEdit={goToSection}
+            mode="portal"
           />
         );
       default:
