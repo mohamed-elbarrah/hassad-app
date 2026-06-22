@@ -4,29 +4,21 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { toast } from "sonner";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, Save } from "lucide-react";
 import { ProgressBar } from "./components/ProgressBar";
+import { useIntakeForm } from "./hooks/useIntakeForm";
+import { Section1_Business } from "./sections/Section1_Business";
+import { Section2_Goals } from "./sections/Section2_Goals";
+import { Section3_Journey } from "./sections/Section3_Journey";
+import { Section4_Creative } from "./sections/Section4_Creative";
+import { Section5_Review } from "./sections/Section5_Review";
 
-// Step components
-import { Step1_Contact } from "./steps/Step1_Contact";
-import { Step2_Product } from "./steps/Step2_Product";
-import { Step3_Audience } from "./steps/Step3_Audience";
-import { Step4_Journey } from "./steps/Step4_Journey";
-import { Step5_Campaign } from "./steps/Step5_Campaign";
-import { Step6_Performance } from "./steps/Step6_Performance";
-import { Step7_Budget } from "./steps/Step7_Budget";
-import { Step8_Design } from "./steps/Step8_Design";
-
-// Step configuration
-const STEPS = [
-  { number: 1, title: "الاتصال الأساسي", description: "معلومات التواصل الأساسية" },
-  { number: 2, title: "معلومات المنتج", description: "قصة المنتج وتفاصيله" },
-  { number: 3, title: "الجمهور والرسائل", description: "تحليل الجمهور والهوية" },
-  { number: 4, title: "تجربة العميل", description: "طريقة الطلب والمتابعة" },
-  { number: 5, title: "الحملة التسويقية", description: "الهدف والعروض" },
-  { number: 6, title: "الأداء السابق", description: "تحليل الحملات السابقة" },
-  { number: 7, title: "الميزانية والتخطيط", description: "الميزانية والدفع" },
-  { number: 8, title: "التصميم", description: "الهوية البصرية" },
+const SECTION_TITLES = [
+  "عن نشاطك التجاري",
+  "أهدافك التسويقية",
+  "رحلة العميل",
+  "الهوية والإبداع",
+  "المراجعة والإرسال",
 ];
 
 interface IntakeFormProps {
@@ -35,68 +27,58 @@ interface IntakeFormProps {
 
 export function IntakeForm({ onSuccess }: IntakeFormProps) {
   const router = useRouter();
-
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    step1: {} as any,
-    step2: {} as any,
-    step3: {} as any,
-    step4: {} as any,
-    step5: {} as any,
-    step6: {} as any,
-    step7: {} as any,
-    step8: {} as any,
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sectionValid, setSectionValid] = useState(true);
 
-  // Calculate progress
-  const progress = Math.round((currentStep / 8) * 100);
+  const {
+    currentSection,
+    formData,
+    isDirty,
+    lastSavedAt,
+    isAutoSaving,
+    updateSectionData,
+    goToSection,
+    nextSection,
+    prevSection,
+    resetForm,
+    getProgress,
+  } = useIntakeForm({
+    autoSaveInterval: 30000,
+  });
 
-  // Validation - check if current step is valid
-  const isStepValid = useCallback(() => {
-    return true;
-  }, [currentStep, formData]);
+  const handleSectionValid = useCallback((valid: boolean) => {
+    setSectionValid(valid);
+  }, []);
 
-  const handleNext = useCallback(async () => {
-    if (!isStepValid()) {
-      toast.warning("يرجى مراجعة البيانات في هذه الخطوة");
+  const handleNext = useCallback(() => {
+    if (currentSection < 3 && !sectionValid) {
+      toast.warning("يرجى مراجعة البيانات في هذا القسم");
       return;
     }
-
-    if (currentStep < 8) {
-      setCurrentStep((prev) => prev + 1);
-    }
-  }, [currentStep, isStepValid]);
+    nextSection();
+  }, [currentSection, sectionValid, nextSection]);
 
   const handleBack = useCallback(() => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
-    }
-  }, [currentStep]);
-
-  const handleUpdateStepData = useCallback(
-    (step: number, data: any) => {
-      setFormData((prev) => ({
-        ...prev,
-        [`step${step}`]: data,
-      }));
-    },
-    []
-  );
+    prevSection();
+  }, [prevSection]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
 
     try {
-      // Submit intake form data
+      const submitData = {
+        ...formData.section1,
+        ...formData.section2,
+        ...formData.section3,
+        ...formData.section4,
+      };
+
       const response = await fetch(`/api/v1/portal/intake-form`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          formData: formData,
-        }),
+        body: JSON.stringify(submitData),
       });
 
       const data = await response.json();
@@ -105,99 +87,87 @@ export function IntakeForm({ onSuccess }: IntakeFormProps) {
         throw new Error(data?.message || "فشل في إرسال البيانات");
       }
 
-      toast.success("تم حفظ البيانات بنجاح!");
+      toast.success("تم حفظ البيانات بنجاح! جارٍ تحويلك...");
 
-      // Update user state to mark intake as completed
-      await fetch(`/api/v1/clients/profile`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          intakeCompleted: true,
-        }),
-      });
-
-      // Reset form
-      setCurrentStep(1);
-      setFormData({
-        step1: {},
-        step2: {},
-        step3: {},
-        step4: {},
-        step5: {},
-        step6: {},
-        step7: {},
-        step8: {},
-      });
-
-      // Success callback
+      resetForm();
       onSuccess();
     } catch (error: any) {
       toast.error(error.message || "حدث خطأ أثناء حفظ البيانات");
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, onSuccess]);
+  }, [formData, resetForm, onSuccess]);
 
-  // Get current step component
-  const getStepComponent = useCallback(() => {
-    const stepProps = {
-      onBack: handleBack,
-      onNext: handleNext,
-      updateStepData: handleUpdateStepData,
+  const getSectionComponent = useCallback(() => {
+    const commonProps = {
+      initialData: formData[`section${currentSection + 1}`],
+      onDataChange: (data: any) =>
+        updateSectionData(currentSection, data),
+      onValid: handleSectionValid,
     };
 
-    switch (currentStep) {
+    switch (currentSection) {
+      case 0:
+        return <Section1_Business {...commonProps} />;
       case 1:
-        return <Step1_Contact {...stepProps} />;
+        return <Section2_Goals {...commonProps} />;
       case 2:
-        return <Step2_Product {...stepProps} />;
+        return <Section3_Journey {...commonProps} />;
       case 3:
-        return <Step3_Audience {...stepProps} />;
+        return <Section4_Creative {...commonProps} />;
       case 4:
-        return <Step4_Journey {...stepProps} />;
-      case 5:
-        return <Step5_Campaign {...stepProps} />;
-      case 6:
-        return <Step6_Performance {...stepProps} />;
-      case 7:
-        return <Step7_Budget {...stepProps} />;
-      case 8:
-        return <Step8_Design {...stepProps} />;
+        return (
+          <Section5_Review
+            formData={formData}
+            onEdit={goToSection}
+          />
+        );
       default:
         return null;
     }
-  }, [currentStep, handleBack, handleNext, handleUpdateStepData]);
+  }, [currentSection, formData, updateSectionData, handleSectionValid, goToSection]);
 
-  // Determine button labels
-  const showBackButton = currentStep > 1;
-  const isLastStep = currentStep === 8;
-  const showSubmitButton = isLastStep;
-  const showNextButton = !isLastStep;
+  const isLastSection = currentSection === 4;
+  const isFirstSection = currentSection === 0;
 
   return (
     <div className="flex flex-col h-full" dir="rtl">
-      {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-natural-100">
-            {STEPS[currentStep - 1]?.title}
+            {SECTION_TITLES[currentSection]}
           </h2>
+          {isDirty && (
+            <div className="flex items-center gap-2 text-xs text-neutral-500">
+              {isAutoSaving ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>جاري الحفظ...</span>
+                </>
+              ) : lastSavedAt ? (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  <span>تم الحفظ {lastSavedAt.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}</span>
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
 
-        {/* Progress Bar */}
-        <ProgressBar currentStep={currentStep} totalSteps={8} progress={progress} />
+        <ProgressBar
+          currentSection={currentSection}
+          totalSections={5}
+          progress={getProgress()}
+          sectionTitles={SECTION_TITLES}
+        />
       </div>
 
-      {/* Step Content */}
       <div className="flex-1 overflow-y-auto pr-2 mb-6">
-        {getStepComponent()}
+        {getSectionComponent()}
       </div>
 
-      {/* Navigation Buttons */}
       <div className="flex items-center justify-between gap-3 pt-4 border-t border-neutral-100">
-        {showBackButton && (
+        {!isFirstSection && (
           <ActionButton
             type="button"
             variant="outline"
@@ -210,18 +180,7 @@ export function IntakeForm({ onSuccess }: IntakeFormProps) {
           </ActionButton>
         )}
 
-        {showNextButton && (
-          <ActionButton
-            type="button"
-            variant="primary"
-            onClick={handleNext}
-            className="min-w-[120px]"
-          >
-            التالي
-          </ActionButton>
-        )}
-
-        {showSubmitButton && (
+        {isLastSection ? (
           <ActionButton
             type="button"
             variant="primary"
@@ -236,8 +195,17 @@ export function IntakeForm({ onSuccess }: IntakeFormProps) {
                 جاري الحفظ...
               </>
             ) : (
-              "حفظ والمتابعة"
+              "إرسال والبدء"
             )}
+          </ActionButton>
+        ) : (
+          <ActionButton
+            type="button"
+            variant="primary"
+            onClick={handleNext}
+            className="min-w-[120px]"
+          >
+            التالي
           </ActionButton>
         )}
       </div>

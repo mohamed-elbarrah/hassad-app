@@ -1067,16 +1067,39 @@ model ProjectFile {
 }
 
 model PortalIntakeForm {
-  id                  String    @id @default(uuid())
-  clientId            String    @map("client_id")
-  token               String    @unique
-  businessDescription String?   @map("business_description")
-  goals               Json?
-  uploadedFiles       Json?     @map("uploaded_files")
-  isSubmitted         Boolean   @default(false) @map("is_submitted")
-  submittedAt         DateTime? @map("submitted_at")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  client              Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                    String    @id @default(uuid())
+  clientId              String    @unique @map("client_id")
+  token                 String    @unique
+  client                Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  // Section 1: Business Basics (syncs to ClientProfile)
+  industry              String?   @map("industry")
+  businessDescription   String?   @map("business_description") @db.Text
+  targetAudience        String?   @map("target_audience") @db.Text
+  budgetRangeMin        Float?    @map("budget_range_min")
+  budgetRangeMax        Float?    @map("budget_range_max")
+  
+  // Section 2: Marketing Goals
+  campaignGoals         Json?     @map("campaign_goals")
+  campaignOffer         String?   @map("campaign_offer") @db.Text
+  competitors           String?   @map("competitors")
+  seasonalTiming        String?   @map("seasonal_timing")
+  
+  // Section 3: Customer Journey
+  orderMethods          Json?     @map("order_methods")
+  abandonedCartSystem   Boolean?  @default(false) @map("abandoned_cart_system")
+  
+  // Section 4: Creative & Brand Assets
+  hasVisualIdentity     Boolean?  @default(false) @map("has_visual_identity")
+  brandAssets           Json?     @map("brand_assets")
+  visualReferences      String?   @map("visual_references")
+  uploadedFiles         Json?     @map("uploaded_files")
+  
+  // Metadata
+  isSubmitted           Boolean   @default(false) @map("is_submitted")
+  submittedAt           DateTime? @map("submitted_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   @@index([clientId])
   @@map("portal_intake_forms")

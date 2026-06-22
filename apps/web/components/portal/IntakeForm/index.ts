@@ -1,10 +1,9 @@
 export { IntakeForm } from "./IntakeForm";
-export { Step1_Contact } from "./steps/Step1_Contact";
-export { Step2_Product } from "./steps/Step2_Product";
-export { Step3_Audience } from "./steps/Step3_Audience";
-export { Step4_Journey } from "./steps/Step4_Journey";
-export { Step5_Campaign } from "./steps/Step5_Campaign";
-export { Step6_Performance } from "./steps/Step6_Performance";
-export { Step7_Budget } from "./steps/Step7_Budget";
-export { Step8_Design } from "./steps/Step8_Design";
-export { ProgressBar, StepIndicator } from "./components/ProgressBar";
+export { Section1_Business } from "./sections/Section1_Business";
+export { Section2_Goals } from "./sections/Section2_Goals";
+export { Section3_Journey } from "./sections/Section3_Journey";
+export { Section4_Creative } from "./sections/Section4_Creative";
+export { Section5_Review } from "./sections/Section5_Review";
+export { useIntakeForm } from "./hooks/useIntakeForm";
+export { ProgressBar } from "./components/ProgressBar";
+export { FileUploadZone } from "./components/FileUploadZone";

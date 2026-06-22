@@ -89,3 +89,53 @@ export const UpsertClientProfileSchema = z.object({
 export type UpsertClientProfileInput = z.infer<
   typeof UpsertClientProfileSchema
 >;
+
+/**
+ * IntakeFormSchema — validates the new 4-section intake form
+ */
+export const IntakeFormSchema = z.object({
+  // Section 1: Business Basics
+  industry: z.string().min(2, "يرجى اختيار المجال").optional(),
+  businessDescription: z
+    .string()
+    .min(50, "قصة النشاط يجب أن تكون 50 حرف على الأقل")
+    .max(1000, "الوصف طويل جداً")
+    .optional(),
+  targetAudience: z.string().max(500).optional(),
+  budgetRangeMin: z.number().positive().optional(),
+  budgetRangeMax: z.number().positive().optional(),
+
+  // Section 2: Marketing Goals
+  campaignGoals: z.array(z.string()).min(1, "اختر هدف واحد على الأقل").optional(),
+  campaignOffer: z.string().max(500).optional(),
+  competitors: z.string().max(300).optional(),
+  seasonalTiming: z.string().optional(),
+
+  // Section 3: Customer Journey
+  orderMethods: z.array(z.string()).optional(),
+  abandonedCartSystem: z.boolean().optional().default(false),
+
+  // Section 4: Creative & Brand Assets
+  hasVisualIdentity: z.boolean().optional().default(false),
+  brandAssets: z
+    .object({
+      logoUrl: z.string().url().optional(),
+      brandColors: z.array(z.string()).optional(),
+      fonts: z.array(z.string()).optional(),
+      guidelinesUrl: z.string().url().optional(),
+    })
+    .optional(),
+  visualReferences: z.string().max(300).optional(),
+  uploadedFiles: z
+    .array(
+      z.object({
+        key: z.string(),
+        originalName: z.string(),
+        mimeType: z.string(),
+        size: z.number().optional(),
+      })
+    )
+    .optional(),
+});
+
+export type IntakeFormInput = z.infer<typeof IntakeFormSchema>;
