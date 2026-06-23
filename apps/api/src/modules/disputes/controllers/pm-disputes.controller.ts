@@ -6,7 +6,10 @@ import {
   Param,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFiles,
 } from "@nestjs/common";
+import { FilesInterceptor } from "@nestjs/platform-express";
 import { DisputesService } from "../services/disputes.service";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -47,12 +50,14 @@ export class PmDisputesController {
 
   @Post(":id/messages")
   @RequirePermissions("disputes.pm_update")
+  @UseInterceptors(FilesInterceptor("files", 5))
   async addMessage(
     @CurrentUser("id") pmId: string,
     @Param("id") id: string,
     @Body() dto: CreateDisputeMessageDto,
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.disputesService.addMessage(id, pmId, { ...dto, isInternal: false });
+    return this.disputesService.addMessage(id, pmId, { ...dto, isInternal: false }, files);
   }
 
   @Post(":id/resolve")

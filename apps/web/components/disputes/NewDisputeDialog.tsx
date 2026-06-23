@@ -22,12 +22,13 @@ import {
   FormSelectValue,
 } from "@/components/design-system/FormSelectControl";
 import { Skeleton } from "@/components/design-system/Skeleton";
+import { FileDropzone } from "@/components/shared/FileDropzone";
 import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
 
 interface NewDisputeDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateDisputeInput) => void;
+  onSubmit: (data: CreateDisputeInput, files?: File[]) => void;
   isLoading?: boolean;
   projectId?: string;
   projectName?: string;
@@ -55,6 +56,7 @@ export function NewDisputeDialog({
   const [category, setCategory] = useState<DisputeCategory | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch client projects for selection (only if no initial projectId)
@@ -96,12 +98,15 @@ export function NewDisputeDialog({
   const handleSubmit = () => {
     if (!validate() || !category || !selectedProjectId) return;
 
-    onSubmit({
-      projectId: selectedProjectId,
-      category,
-      title: title.trim(),
-      description: description.trim(),
-    });
+    onSubmit(
+      {
+        projectId: selectedProjectId,
+        category,
+        title: title.trim(),
+        description: description.trim(),
+      },
+      files.length > 0 ? files : undefined
+    );
   };
 
   const handleClose = () => {
@@ -112,6 +117,7 @@ export function NewDisputeDialog({
     setCategory(null);
     setTitle("");
     setDescription("");
+    setFiles([]);
     setErrors({});
     onClose();
   };
@@ -272,6 +278,19 @@ export function NewDisputeDialog({
             <p className="text-xs text-portal-note-text">
               يجب أن يكون الوصف 20 حرف على الأقل
             </p>
+          </div>
+
+          {/* File Attachments */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-natural-100">
+              المرفقات (اختياري)
+            </label>
+            <FileDropzone
+              files={files}
+              onFilesChange={setFiles}
+              maxFiles={5}
+              maxSizeMB={10}
+            />
           </div>
         </div>
 

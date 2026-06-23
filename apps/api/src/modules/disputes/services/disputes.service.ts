@@ -14,6 +14,8 @@ import {
 } from "../dto";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { ProjectsService } from "../../projects/services/projects.service";
+import { StorageService } from "../../../common/storage/storage.service";
+import { StorageCategory } from "../../../common/storage/storage.constants";
 
 @Injectable()
 export class DisputesService {
@@ -21,6 +23,7 @@ export class DisputesService {
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
     private projectsService: ProjectsService,
+    private storageService: StorageService,
   ) {}
 
   // ─── Portal (Client) Methods ────────────────────────────────────────────────
@@ -29,7 +32,7 @@ export class DisputesService {
    * Client creates a new dispute ticket
    * Business Rule: One active dispute per project per client
    */
-  async createDispute(clientId: string, dto: CreateDisputeDto) {
+  async createDispute(clientId: string, dto: CreateDisputeDto, files?: Express.Multer.File[]) {
     // Verify project belongs to client and get PM
     const project = await this.prisma.project.findFirst({
       where: {
@@ -78,32 +81,40 @@ export class DisputesService {
     });
     const ticketNumber = (lastTicket?.ticketNumber ?? 0) + 1;
 
-    // Create dispute with initial history entry
-    const dispute = await this.prisma.disputeTicket.create({
-      data: {
-        ticketNumber,
-        clientId,
-        pmId: project.projectManagerId,
-        projectId: dto.projectId,
-        title: dto.title,
-        description: dto.description,
-        category: dto.category as DisputeCategory,
-        status: DisputeStatus.PENDING_APPROVAL,
-        history: {
-          create: {
-            toStatus: DisputeStatus.PENDING_APPROVAL,
-            changedBy: clientId,
-            note: "تم إنشاء التذكرة",
+    // Create dispute with attachments in a transaction
+    const dispute = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.disputeTicket.create({
+        data: {
+          ticketNumber,
+          clientId,
+          pmId: project.projectManagerId,
+          projectId: dto.projectId,
+          title: dto.title,
+          description: dto.description,
+          category: dto.category as DisputeCategory,
+          status: DisputeStatus.PENDING_APPROVAL,
+          history: {
+            create: {
+              toStatus: DisputeStatus.PENDING_APPROVAL,
+              changedBy: clientId,
+              note: "تم إنشاء التذكرة",
+            },
           },
         },
-      },
-      include: {
-        project: { select: { id: true, name: true } },
-        pm: { select: { id: true, name: true } },
-      },
+        include: {
+          project: { select: { id: true, name: true } },
+          pm: { select: { id: true, name: true } },
+        },
+      });
+
+      if (files?.length) {
+        await this.uploadAttachments(tx, created.id, clientId, files);
+      }
+
+      return created;
     });
 
-    // Emit notification event for admins
+    // Emit notification event for admins (after transaction commits)
     this.eventEmitter.emit("dispute.created", {
       disputeId: dispute.id,
       ticketNumber: dispute.ticketNumber,
@@ -113,7 +124,17 @@ export class DisputesService {
       title: dto.title,
     });
 
-    return dispute;
+    // Return dispute with attachments
+    return this.prisma.disputeTicket.findUnique({
+      where: { id: dispute.id },
+      include: {
+        project: { select: { id: true, name: true } },
+        pm: { select: { id: true, name: true } },
+        attachments: {
+          include: { uploader: { select: { id: true, name: true } } },
+        },
+      },
+    });
   }
 
   /**
@@ -198,7 +219,7 @@ export class DisputesService {
   /**
    * Client adds message to dispute
    */
-  async addMessage(disputeId: string, authorId: string, dto: CreateDisputeMessageDto) {
+  async addMessage(disputeId: string, authorId: string, dto: CreateDisputeMessageDto, files?: Express.Multer.File[]) {
     const dispute = await this.prisma.disputeTicket.findUnique({
       where: { id: disputeId },
       select: { id: true, status: true },
@@ -220,19 +241,27 @@ export class DisputesService {
       throw new BadRequestException("لا يمكن إضافة رسائل لهذه التذكرة");
     }
 
-    const message = await this.prisma.disputeMessage.create({
-      data: {
-        ticketId: disputeId,
-        authorId,
-        content: dto.content,
-        isInternal: dto.isInternal ?? false,
-      },
-      include: {
-        author: { select: { id: true, name: true, avatarUrl: true } },
-      },
+    const message = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.disputeMessage.create({
+        data: {
+          ticketId: disputeId,
+          authorId,
+          content: dto.content,
+          isInternal: dto.isInternal ?? false,
+        },
+        include: {
+          author: { select: { id: true, name: true, avatarUrl: true } },
+        },
+      });
+
+      if (files?.length) {
+        await this.uploadAttachments(tx, disputeId, authorId, files, created.id);
+      }
+
+      return created;
     });
 
-    // Emit notification to other party
+    // Emit notification to other party (after transaction commits)
     this.eventEmitter.emit("dispute.message", {
       disputeId,
       messageId: message.id,
@@ -895,6 +924,44 @@ export class DisputesService {
   }
 
   // ─── Helper Methods ────────────────────────────────────────────────────────
+
+  /**
+   * Upload files and create attachment records within a transaction.
+   * Used by both createDispute and addMessage to avoid duplication.
+   */
+  private async uploadAttachments(
+    tx: Prisma.TransactionClient,
+    ticketId: string,
+    uploadedBy: string,
+    files: Express.Multer.File[],
+    messageId?: string,
+  ): Promise<void> {
+    const attachmentData = await Promise.all(
+      files.map(async (file) => {
+        const result = await this.storageService.upload({
+          category: StorageCategory.DISPUTE_ATTACHMENT,
+          entityId: ticketId,
+          file: {
+            buffer: file.buffer,
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+          },
+        });
+        return {
+          ticketId,
+          ...(messageId && { messageId }),
+          uploadedBy,
+          fileName: result.originalName,
+          filePath: result.key,
+          fileSize: result.size,
+          mimeType: result.mimeType,
+        };
+      })
+    );
+
+    await tx.disputeAttachment.createMany({ data: attachmentData });
+  }
 
   /**
    * Update PM dispute statistics

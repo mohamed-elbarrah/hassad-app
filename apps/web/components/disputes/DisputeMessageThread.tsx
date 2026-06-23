@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, User, EyeOff } from "lucide-react";
+import { Send, User, EyeOff, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { FileDropzone } from "@/components/shared/FileDropzone";
 
 // Generic message type that works for both portal and admin
 interface Message {
@@ -21,7 +22,7 @@ interface Message {
 
 interface DisputeMessageThreadProps {
   messages: Message[];
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, files?: File[]) => void;
   isLoading?: boolean;
   canSendMessage?: boolean;
   showInternalBadge?: boolean;
@@ -35,6 +36,8 @@ export function DisputeMessageThread({
   showInternalBadge = false,
 }: DisputeMessageThreadProps) {
   const [newMessage, setNewMessage] = useState("");
+  const [attachFiles, setAttachFiles] = useState<File[]>([]);
+  const [showAttach, setShowAttach] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -45,9 +48,11 @@ export function DisputeMessageThread({
   }, [messages]);
 
   const handleSend = () => {
-    if (!newMessage.trim() || isLoading) return;
-    onSendMessage(newMessage.trim());
+    if ((!newMessage.trim() && !attachFiles.length) || isLoading) return;
+    onSendMessage(newMessage.trim(), attachFiles.length > 0 ? attachFiles : undefined);
     setNewMessage("");
+    setAttachFiles([]);
+    setShowAttach(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -83,23 +88,47 @@ export function DisputeMessageThread({
 
       {/* Input Area */}
       {canSendMessage && (
-        <div className="flex items-end gap-2 rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
-          <textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="اكتب رسالتك هنا..."
-            className="flex-1 resize-none border-0 bg-transparent text-sm text-natural-100 placeholder:text-portal-placeholder focus:outline-none focus:ring-0 min-h-[40px] max-h-[120px]"
-            rows={1}
-            disabled={isLoading}
-          />
-          <Button
-            onClick={handleSend}
-            disabled={!newMessage.trim() || isLoading}
-            className="h-9 w-9 shrink-0 rounded-full bg-secondary-500 p-0 hover:bg-secondary-600 disabled:opacity-50"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+        <div className="flex flex-col gap-2">
+          {showAttach && (
+            <div className="rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
+              <FileDropzone
+                files={attachFiles}
+                onFilesChange={setAttachFiles}
+                maxFiles={5}
+                maxSizeMB={10}
+              />
+            </div>
+          )}
+          <div className="flex items-end gap-2 rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
+            <button
+              type="button"
+              onClick={() => setShowAttach(!showAttach)}
+              className={cn(
+                "h-9 w-9 shrink-0 flex items-center justify-center rounded-full transition-colors",
+                showAttach
+                  ? "bg-secondary-100 text-secondary-600"
+                  : "text-portal-icon hover:bg-badge-gray-bg"
+              )}
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+            <textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="اكتب رسالتك هنا..."
+              className="flex-1 resize-none border-0 bg-transparent text-sm text-natural-100 placeholder:text-portal-placeholder focus:outline-none focus:ring-0 min-h-[40px] max-h-[120px]"
+              rows={1}
+              disabled={isLoading}
+            />
+            <Button
+              onClick={handleSend}
+              disabled={(!newMessage.trim() && !attachFiles.length) || isLoading}
+              className="h-9 w-9 shrink-0 rounded-full bg-secondary-500 p-0 hover:bg-secondary-600 disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
