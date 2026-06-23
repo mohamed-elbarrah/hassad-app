@@ -11,8 +11,9 @@ export interface JwtPayload {
 }
 
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): JwtPayload => {
+  (data: string | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
-    return request.user as JwtPayload;
+    const user = request.user as Record<string, unknown>;
+    return data ? user?.[data] : (user as unknown as JwtPayload);
   },
 );
