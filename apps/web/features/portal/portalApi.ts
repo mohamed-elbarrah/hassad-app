@@ -3,7 +3,92 @@ import { baseQuery } from "@/lib/baseQuery";
 import type {
   PeriodGoal,
   MeetingStatus,
+  DisputeStatus,
+  DisputeCategory,
+  DisputePriority,
 } from "@hassad/shared";
+
+// ─── Dispute Types ───────────────────────────────────────────────────────────
+
+export interface DisputeSummary {
+  id: string;
+  ticketNumber: number;
+  project: { id: string; name: string };
+  pm: { id: string; name: string };
+  title: string;
+  category: DisputeCategory;
+  status: DisputeStatus;
+  priority: DisputePriority;
+  openedAt: string;
+  deadlineAt?: string;
+  _count?: { messages: number };
+}
+
+export interface DisputeMessage {
+  id: string;
+  content: string;
+  author: { id: string; name: string; avatarUrl?: string | null };
+  createdAt: string;
+}
+
+export interface DisputeAttachment {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
+  uploader: { id: string; name: string };
+}
+
+export interface DisputeHistory {
+  id: string;
+  fromStatus?: DisputeStatus | null;
+  toStatus: DisputeStatus;
+  changedAt: string;
+  note?: string | null;
+  changer: { id: string; name: string };
+}
+
+export interface DisputeDetail extends DisputeSummary {
+  description: string;
+  messages: DisputeMessage[];
+  attachments: DisputeAttachment[];
+  history: DisputeHistory[];
+  rejectionReason?: string | null;
+  resolution?: string | null;
+}
+
+export interface CreateDisputeInput {
+  projectId: string;
+  category: DisputeCategory;
+  title: string;
+  description: string;
+}
+
+export interface CreateDisputeMessageInput {
+  content: string;
+}
+
+export interface ClientConfirmInput {
+  confirmed: boolean;
+  feedback?: string;
+}
+
+export interface DisputeFilterInput {
+  status?: DisputeStatus;
+  page?: number;
+  limit?: number;
+}
+
+export interface DisputeListResponse {
+  data: DisputeSummary[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 export interface ProjectSummary {
   id: string;
@@ -433,6 +518,8 @@ export const portalApi = createApi({
     "ReviewProjects",
     "TeamMembers",
     "PortalStrategies",
+    "ClientDisputes",
+    "ClientDispute",
   ],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
@@ -709,6 +796,57 @@ export const portalApi = createApi({
         "ActivityFeed", // NEW
       ],
     }),
+
+    // ─── Dispute Endpoints ──────────────────────────────────────────────────
+
+    getClientDisputes: builder.query<DisputeListResponse, DisputeFilterInput | void>({
+      query: (params) => ({
+        url: "/portal/disputes",
+        params: params || undefined,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({ type: "ClientDispute" as const, id })),
+              "ClientDisputes",
+            ]
+          : ["ClientDisputes"],
+    }),
+
+    getClientDisputeDetail: builder.query<DisputeDetail, string>({
+      query: (id) => `/portal/disputes/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "ClientDispute", id }],
+    }),
+
+    createDispute: builder.mutation<DisputeDetail, CreateDisputeInput>({
+      query: (body) => ({
+        url: "/portal/disputes",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["ClientDisputes"],
+    }),
+
+    addDisputeMessage: builder.mutation<DisputeMessage, { disputeId: string; content: string }>({
+      query: ({ disputeId, content }) => ({
+        url: `/portal/disputes/${disputeId}/messages`,
+        method: "POST",
+        body: { content },
+      }),
+      invalidatesTags: (_result, _error, { disputeId }) => [{ type: "ClientDispute", id: disputeId }],
+    }),
+
+    confirmDisputeResolution: builder.mutation<DisputeDetail, { disputeId: string; input: ClientConfirmInput }>({
+      query: ({ disputeId, input }) => ({
+        url: `/portal/disputes/${disputeId}/confirm`,
+        method: "POST",
+        body: input,
+      }),
+      invalidatesTags: (_result, _error, { disputeId }) => [
+        { type: "ClientDispute", id: disputeId },
+        "ClientDisputes",
+      ],
+    }),
   }),
 });
 
@@ -751,4 +889,10 @@ export const {
   useGetClientStrategyQuery,
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
+  // Dispute hooks
+  useGetClientDisputesQuery,
+  useGetClientDisputeDetailQuery,
+  useCreateDisputeMutation,
+  useAddDisputeMessageMutation,
+  useConfirmDisputeResolutionMutation,
 } = portalApi;

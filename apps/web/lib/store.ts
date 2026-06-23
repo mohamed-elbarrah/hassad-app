@@ -28,6 +28,8 @@ import { permissionsApi } from "@/features/permissions/permissionsApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
 import { healthApi } from "@/features/health/healthApi";
 import { periodsApi } from "@/features/projects/periodsApi";
+import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
+import { adminDisputesApi } from "@/features/disputes/adminDisputesApi";
 
 export const store = configureStore({
   reducer: {
@@ -59,6 +61,8 @@ export const store = configureStore({
     [permissionsApi.reducerPath]: permissionsApi.reducer,
     [healthApi.reducerPath]: healthApi.reducer,
     [periodsApi.reducerPath]: periodsApi.reducer,
+    [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
+    [adminDisputesApi.reducerPath]: adminDisputesApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -91,6 +95,8 @@ export const store = configureStore({
       permissionsApi.middleware,
       healthApi.middleware,
       periodsApi.middleware,
+      pmDisputesApi.middleware,
+      adminDisputesApi.middleware,
     ),
 });
 

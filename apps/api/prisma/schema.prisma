@@ -2005,6 +2005,11 @@ model DisputeTicket {
   clientNotifiedAt     DateTime?           @map("client_notified_at")
   clientRespondedAt    DateTime?           @map("client_responded_at")
   clientConfirmedResolved Boolean?           @map("client_confirmed_resolved")
+
+  // ── Reminder Tracking ───────────────────────────────────────────────────────
+  reminder1SentAt       DateTime?           @map("reminder1_sent_at")  // Day 3
+  reminder2SentAt       DateTime?           @map("reminder2_sent_at")  // Day 5
+  reminder3SentAt       DateTime?           @map("reminder3_sent_at")  // Day 7 (final)
   escalatedAt          DateTime?           @map("escalated_at")
   resolvedAt            DateTime?           @map("resolved_at")
   closedAt             DateTime?           @map("closed_at")

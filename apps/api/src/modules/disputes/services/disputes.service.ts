@@ -13,12 +13,14 @@ import {
   ClientConfirmDto,
 } from "../dto";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { ProjectsService } from "../../projects/services/projects.service";
 
 @Injectable()
 export class DisputesService {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
+    private projectsService: ProjectsService,
   ) {}
 
   // ─── Portal (Client) Methods ────────────────────────────────────────────────
@@ -658,7 +660,14 @@ export class DisputesService {
   async changePm(adminId: string, disputeId: string, dto: ChangePmDto) {
     const dispute = await this.prisma.disputeTicket.findUnique({
       where: { id: disputeId },
-      include: { project: { select: { id: true } } },
+      include: {
+        project: {
+          select: { id: true, name: true },
+        },
+        pm: {
+          select: { id: true, name: true },
+        },
+      },
     });
 
     if (!dispute) {
@@ -675,24 +684,22 @@ export class DisputesService {
       throw new BadRequestException("لا يمكن تغيير مدير المشروع لهذه التذكرة");
     }
 
-    // Verify new PM exists and is a PM
-    const newPm = await this.prisma.user.findFirst({
-      where: {
-        id: dto.newPmId,
-        isActive: true,
-        role: { name: "PM" },
-      },
-    });
-
-    if (!newPm) {
-      throw new NotFoundException("مدير المشروع الجديد غير موجود أو غير نشط");
-    }
-
     const now = new Date();
+    const oldPmId = dispute.pmId;
+    const oldPmName = dispute.pm?.name || "مدير المشروع السابق";
 
-    // Update project and dispute in transaction
-    const [updated] = await this.prisma.$transaction([
-      this.prisma.disputeTicket.update({
+    // Use transaction for atomic operation
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Change project manager via ProjectsService
+      const pmChangeResult = await this.projectsService.changeProjectManager(
+        dispute.projectId,
+        dto.newPmId,
+        { reason: dto.reason },
+        tx,
+      );
+
+      // Update dispute ticket
+      const updated = await tx.disputeTicket.update({
         where: { id: disputeId },
         data: {
           status: DisputeStatus.RESOLVED,
@@ -707,31 +714,29 @@ export class DisputesService {
               fromStatus: dispute.status,
               toStatus: DisputeStatus.RESOLVED,
               changedBy: adminId,
-              note: `تم تغيير مدير المشروع إلى ${newPm.name}. السبب: ${dto.reason}`,
+              note: `تم تغيير مدير المشروع من ${oldPmName} إلى ${pmChangeResult.newPm.name}. السبب: ${dto.reason}`,
             },
           },
         },
-      }),
-      this.prisma.project.update({
-        where: { id: dispute.projectId },
-        data: { projectManagerId: dto.newPmId },
-      }),
-    ]);
+      });
 
-    // Update PM stats
-    await this.updatePmStats(dispute.pmId, "pm_changed");
+      return { updated, pmChangeResult };
+    });
+
+    // Update PM stats (outside transaction to avoid rollback on notification failure)
+    await this.updatePmStats(oldPmId, "pm_changed");
     await this.updatePmStats(dto.newPmId, "assigned");
 
-    // Emit notifications
+    // Emit notifications (outside transaction to avoid rollback on notification failure)
     this.eventEmitter.emit("dispute.pm_changed", {
       disputeId,
-      oldPmId: dispute.pmId,
+      oldPmId,
       newPmId: dto.newPmId,
       clientId: dispute.clientId,
       reason: dto.reason,
     });
 
-    return updated;
+    return result.updated;
   }
 
   /**

@@ -6,7 +6,13 @@ import {
   PmDisputesController,
   AdminDisputesController,
 } from "./controllers";
-import { DisputesService } from "./services";
+import {
+  DisputesService,
+  DisputesNotificationsService,
+  DisputesScheduler,
+} from "./services";
+import { NotificationsModule } from "../notifications/notifications.module";
+import { ProjectsModule } from "../projects/projects.module";
 
 @Module({
   imports: [
@@ -17,9 +23,11 @@ import { DisputesService } from "./services";
         files: 5,
       },
     }),
+    NotificationsModule,
+    ProjectsModule,
   ],
   controllers: [PortalDisputesController, PmDisputesController, AdminDisputesController],
-  providers: [DisputesService],
+  providers: [DisputesService, DisputesNotificationsService, DisputesScheduler],
   exports: [DisputesService],
 })
 export class DisputesModule {}

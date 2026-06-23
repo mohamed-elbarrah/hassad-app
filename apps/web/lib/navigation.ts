@@ -21,6 +21,8 @@ import {
   BarChart3,
   TrendingUp,
   Bell,
+  Ticket,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -81,6 +83,12 @@ export const adminNavSections: NavSection[] = [
   {
     label: "المراقبة",
     items: [
+      {
+        title: "النزاعات",
+        url: "/dashboard/admin/disputes",
+        icon: AlertTriangle,
+        roles: ["ADMIN"],
+      },
       {
         title: "سجل النشاطات",
         url: "/dashboard/admin/audit-log",
@@ -154,6 +162,12 @@ export const roleNavSections: NavSection[] = [
         title: "طلبات التعديل",
         url: "/dashboard/pm/requests",
         icon: ClipboardList,
+        roles: ["PM"],
+      },
+      {
+        title: "النزاعات",
+        url: "/dashboard/pm/disputes",
+        icon: Ticket,
         roles: ["PM"],
       },
       {
