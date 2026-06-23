@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Ticket } from "lucide-react";
 import type { PortalProjectDetail } from "@/features/portal/portalApi";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
+import { ActionButton } from "@/components/design-system/ActionButton";
 
 interface ProjectHeaderProps {
   project: PortalProjectDetail;
@@ -20,7 +21,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
     .toUpperCase();
 
   return (
-    <div className="flex items-center justify-between" dir="rtl">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" dir="rtl">
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push("/portal/projects")}
@@ -42,8 +43,19 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         </div>
       </div>
 
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-natural-100 text-xl font-bold text-white">
-        {initials}
+      <div className="flex items-center gap-3">
+        <ActionButton
+          variant="outline"
+          size="sm"
+          onClick={() => router.push(`/portal/disputes?projectId=${project.id}`)}
+          className="h-10 rounded-xl border-portal-divider text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-2"
+        >
+          <Ticket className="h-4 w-4" />
+          فتح تذكرة
+        </ActionButton>
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-natural-100 text-xl font-bold text-white">
+          {initials}
+        </div>
       </div>
     </div>
   );

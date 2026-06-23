@@ -9,6 +9,7 @@ export * from "./enums/satisfaction";
 export * from "./enums/workload";
 export * from "./enums/campaign";
 export * from "./enums/service";
+export * from "./enums/dispute";
 
 // Schemas
 export * from "./schemas/auth.schema";
@@ -17,6 +18,7 @@ export * from "./schemas/contract.schema";
 export * from "./schemas/proposal.schema";
 export * from "./schemas/project.schema";
 export * from "./schemas/user.schema";
+export * from "./schemas/dispute.schema";
 
 import type { ServiceItem } from "./schemas/proposal.schema";
 

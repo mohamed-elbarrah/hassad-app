@@ -3,6 +3,7 @@
 import { useAppSelector } from "@/lib/hooks";
 import { useGetAdminStatsQuery } from "@/features/admin/adminApi";
 import { useGetInvoicesQuery } from "@/features/finance/financeApi";
+import { useGetDisputeStatsQuery } from "@/features/disputes/adminDisputesApi";
 import { useCurrency } from "@/hooks/useCurrency";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { StatCard } from "@/components/design-system/StatCard";
@@ -22,6 +23,7 @@ import {
   Clock,
   PlusCircle,
   LayoutDashboard,
+  Ticket,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -30,6 +32,7 @@ export default function AdminDashboardPage() {
   const { data: stats, isLoading: statsLoading } = useGetAdminStatsQuery();
   const { data: invoicesData, isLoading: invoicesLoading } =
     useGetInvoicesQuery({ status: InvoiceStatus.DUE, limit: 5 });
+  const { data: disputeStats } = useGetDisputeStatsQuery();
   const { fmtNumber } = useCurrency();
 
   if (!user) return null;
@@ -106,6 +109,62 @@ export default function AdminDashboardPage() {
           value={statsLoading ? "—" : fmtNumber(stats?.activeCampaigns)}
           icon={TrendingUp}
         />
+      </div>
+
+      {/* KPI Row 3 — Disputes */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Link href="/dashboard/admin/disputes?status=PENDING_APPROVAL">
+          <div className="rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5 transition-all hover:border-yellow-300 hover:shadow-sm cursor-pointer">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-portal-note-text">بانتظار الموافقة</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100">
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-natural-100">
+              {disputeStats?.pendingApproval ?? 0}
+            </p>
+          </div>
+        </Link>
+        <Link href="/dashboard/admin/disputes?status=ESCALATED">
+          <div className="rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5 transition-all hover:border-red-300 hover:shadow-sm cursor-pointer">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-portal-note-text">تم التصعيد</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-natural-100">
+              {disputeStats?.escalated ?? 0}
+            </p>
+          </div>
+        </Link>
+        <Link href="/dashboard/admin/disputes">
+          <div className="rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5 transition-all hover:border-blue-300 hover:shadow-sm cursor-pointer">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-portal-note-text">نشطة</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                <Ticket className="h-4 w-4 text-blue-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-natural-100">
+              {disputeStats?.active ?? 0}
+            </p>
+          </div>
+        </Link>
+        <Link href="/dashboard/admin/disputes?status=RESOLVED">
+          <div className="rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5 transition-all hover:border-green-300 hover:shadow-sm cursor-pointer">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-portal-note-text">تم الحل</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+                <Ticket className="h-4 w-4 text-green-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-natural-100">
+              {disputeStats?.resolved ?? 0}
+            </p>
+          </div>
+        </Link>
       </div>
 
       {/* Bottom Row */}

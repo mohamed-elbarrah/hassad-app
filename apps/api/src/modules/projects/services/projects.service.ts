@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { Project, Task, User, Prisma } from "@prisma/client";
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -19,6 +20,8 @@ import { NotificationsService } from "../../notifications/services/notifications
 import { StorageService } from "../../../common/storage/storage.service";
 import { ClientCounterService } from "../../crm/services/client-counter.service";
 import { ProjectGroupChatService } from "../../chat/services/project-group-chat.service";
+
+type TransactionClient = Prisma.TransactionClient | PrismaService;
 
 @Injectable()
 export class ProjectsService {
@@ -402,5 +405,125 @@ export class ProjectsService {
     });
 
     return deliverables;
+  }
+
+  // ─── Project Manager Change ──────────────────────────────────────────────────
+
+  /**
+   * Change the project manager for a project.
+   * Handles project update, chat sync, and optional task reassignment.
+   *
+   * @param projectId - The project ID
+   * @param newPmId - The new project manager's user ID
+   * @param options - Configuration options
+   * @param db - Optional transaction client for atomic operations
+   */
+  async changeProjectManager(
+    projectId: string,
+    newPmId: string,
+    options: {
+      reason: string;
+      keepOldPmInChat?: boolean;
+      reassignTasks?: boolean;
+    },
+    db?: TransactionClient,
+  ): Promise<{
+    project: Project;
+    oldPmId: string | null;
+    newPm: User;
+    reassignedTasks: Task[];
+  }> {
+    const { keepOldPmInChat = false, reassignTasks = true } = options;
+    const client = db ?? this.prisma;
+
+    // Get project with current PM
+    const project = await client.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        projectManagerId: true,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with ID ${projectId} not found`);
+    }
+
+    // Verify new PM exists and has PM role
+    const newPm = await client.user.findFirst({
+      where: {
+        id: newPmId,
+        isActive: true,
+        role: { name: "PM" },
+      },
+    });
+
+    if (!newPm) {
+      throw new NotFoundException(
+        "مدير المشروع الجديد غير موجود أو غير نشط أو ليس لديه صلاحية مدير مشروع"
+      );
+    }
+
+    // Check if PM is already the same
+    if (project.projectManagerId === newPmId) {
+      throw new BadRequestException(
+        "المدير المحدد هو بالفعل مدير هذا المشروع"
+      );
+    }
+
+    const oldPmId = project.projectManagerId;
+
+    // Update project's PM
+    const updatedProject = await client.project.update({
+      where: { id: projectId },
+      data: { projectManagerId: newPmId },
+    });
+
+    // Handle task reassignment (only tasks assigned to old PM)
+    let reassignedTasks: Task[] = [];
+    if (reassignTasks && oldPmId) {
+      const tasksToUpdate = await client.task.findMany({
+        where: {
+          projectId,
+          assignedTo: oldPmId,
+          status: { in: [TaskStatus.TODO, TaskStatus.IN_PROGRESS] },
+        },
+      });
+
+      if (tasksToUpdate.length > 0) {
+        await client.task.updateMany({
+          where: {
+            id: { in: tasksToUpdate.map((t) => t.id) },
+          },
+          data: { assignedTo: newPmId },
+        });
+        reassignedTasks = tasksToUpdate;
+      }
+    }
+
+    // Sync project group chat
+    // Add new PM to chat
+    await this.projectGroupChatService.addParticipant(projectId, newPmId, db);
+
+    // Remove old PM from chat if not keeping
+    if (oldPmId && !keepOldPmInChat) {
+      const conversation = await this.projectGroupChatService.find(projectId, db);
+      if (conversation) {
+        await client.conversationParticipant.deleteMany({
+          where: {
+            conversationId: conversation.id,
+            userId: oldPmId,
+          },
+        });
+      }
+    }
+
+    return {
+      project: updatedProject,
+      oldPmId,
+      newPm,
+      reassignedTasks,
+    };
   }
 }

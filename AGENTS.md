@@ -66,6 +66,35 @@ npx prisma migrate reset               # drop & rebuild dev DB from all migratio
 
 **Production deploy (on the server):** `git pull` → rebuild containers. `prisma migrate deploy` runs automatically in the entrypoint and applies any new committed migrations. **Never run `migrate dev` in production.**
 
+### Data migrations (CRITICAL)
+
+**Rule: Use migrations for ALL database changes, including data.**
+
+- **Schema changes** (tables, columns, enums) → Schema migration (automatic via `prisma migrate dev`)
+- **Data changes** (new permissions, new roles, reference data) → **Data migration** (manual SQL file)
+
+**Why?**
+
+- `prisma db seed` is for **initial data setup only** — it does NOT run in production.
+- If you add new permissions/roles in `seed.ts`, existing production databases will NOT get them.
+- This causes runtime errors when code expects permissions that don't exist.
+
+**How to create a data migration:**
+
+1. Create a folder in `prisma/migrations/` with timestamp: `20260101000000_add_new_permissions/`
+2. Add `migration.sql` with INSERT statements:
+   ```sql
+   INSERT INTO permissions (id, name) VALUES (gen_random_uuid(), 'module.action')
+   ON CONFLICT (name) DO NOTHING;
+   ```
+3. Add `migration_lock.toml`:
+   ```toml
+   provider = "postgresql"
+   ```
+4. Run `prisma migrate dev` to register it (or `prisma migrate resolve --applied <name>` if already applied)
+
+**This ensures production gets all changes automatically on deploy.**
+
 ### Shared package
 
 ```bash
