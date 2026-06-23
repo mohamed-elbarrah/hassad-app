@@ -60,9 +60,9 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, files?: File[]) => {
     try {
-      await addMessage({ disputeId: id, input: { content } }).unwrap();
+      await addMessage({ disputeId: id, input: { content }, files }).unwrap();
       refetch();
     } catch (error: any) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";

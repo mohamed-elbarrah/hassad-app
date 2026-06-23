@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState, useRef } from "react";
-import { Upload, File, X, Image, FileText } from "lucide-react";
+import { useCallback, useState } from "react";
+import { X, FileText, Image, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, getApiBaseUrl } from "@/lib/utils";
+import { FileDropzone } from "@/components/shared/FileDropzone";
 
 interface UploadedFile {
   key: string;
@@ -40,65 +41,29 @@ export function FileUploadZone({
   uploadedFiles = [],
   onRemoveFile,
 }: FileUploadZoneProps) {
-  const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
-  const validateFile = useCallback(
-    (file: File): string | null => {
-      if (!acceptedTypes.includes(file.type)) {
-        return `نوع الملف غير مدعوم. الأنواع المدعومة: ${acceptedTypes
-          .map((t) => t.split("/")[1])
-          .join(", ")}`;
-      }
-
-      const sizeMB = file.size / (1024 * 1024);
-      if (sizeMB > maxSizeMB) {
-        return `حجم الملف كبير جداً. الحد الأقصى: ${maxSizeMB}ميجابايت`;
-      }
-
-      if (uploadedFiles.length >= maxFiles) {
-        return `الحد الأقصى للملفات هو ${maxFiles}`;
-      }
-
-      return null;
-    },
-    [acceptedTypes, maxSizeMB, maxFiles, uploadedFiles.length]
-  );
-
-  const handleFiles = useCallback(
-    async (files: File[]) => {
-      const validFiles: File[] = [];
-      const errors: string[] = [];
-
-      for (const file of files) {
-        const error = validateFile(file);
-        if (error) {
-          errors.push(error);
-        } else {
-          validFiles.push(file);
-        }
-      }
-
-      if (errors.length > 0) {
-        errors.forEach((err) => toast.error(err));
-        return;
-      }
-
-      if (validFiles.length === 0) return;
+  const handleFilesChange = useCallback(
+    async (newFiles: File[]) => {
+      if (!newFiles.length) return;
 
       setIsUploading(true);
+      setPendingFiles(newFiles);
 
       try {
         const formData = new FormData();
-        validFiles.forEach((file) => formData.append("files", file));
+        newFiles.forEach((file) => formData.append("files", file));
 
         const baseUrl = getApiBaseUrl();
-        const response = await fetch(`${baseUrl}/portal/upload-intake-files`, {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        });
+        const response = await fetch(
+          `${baseUrl}/portal/upload-intake-files`,
+          {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          }
+        );
 
         if (!response.ok) {
           throw new Error("فشل رفع الملفات");
@@ -107,15 +72,17 @@ export function FileUploadZone({
         const data = await response.json();
 
         if (data.success && Array.isArray(data.data)) {
-          const uploadedFiles: UploadedFile[] = data.data.map((item: any) => ({
+          const uploaded: UploadedFile[] = data.data.map((item: any) => ({
             key: item.key,
             originalName: item.originalName,
             mimeType: item.mimeType,
             size: item.size,
-            preview: item.mimeType.startsWith("image/") ? item.url : undefined,
+            preview: item.mimeType.startsWith("image/")
+              ? item.url
+              : undefined,
           }));
 
-          onFilesUploaded(uploadedFiles);
+          onFilesUploaded(uploaded);
         }
       } catch (error) {
         const message =
@@ -123,42 +90,10 @@ export function FileUploadZone({
         toast.error(message);
       } finally {
         setIsUploading(false);
+        setPendingFiles([]);
       }
     },
-    [validateFile, onFilesUploaded]
-  );
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-
-      const files = Array.from(e.dataTransfer.files);
-      handleFiles(files);
-    },
-    [handleFiles]
-  );
-
-  const handleFileInput = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []);
-      handleFiles(files);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    },
-    [handleFiles]
+    [onFilesUploaded]
   );
 
   const handleRemoveFile = useCallback(
@@ -172,63 +107,22 @@ export function FileUploadZone({
 
   return (
     <div className="space-y-4" dir="rtl">
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={cn(
-          "relative border-2 border-dashed rounded-2xl p-8 transition-all cursor-pointer",
-          "hover:border-secondary-400 hover:bg-secondary-50/30",
-          isDragging
-            ? "border-secondary-500 bg-secondary-50/50"
-            : "border-neutral-300 bg-neutral-50"
-        )}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={acceptedTypes.join(",")}
-          onChange={handleFileInput}
-          className="hidden"
-          disabled={isUploading || uploadedFiles.length >= maxFiles}
+      <div className="relative">
+        <FileDropzone
+          files={pendingFiles}
+          onFilesChange={handleFilesChange}
+          maxFiles={maxFiles - uploadedFiles.length}
+          maxSizeMB={maxSizeMB}
+          acceptedTypes={acceptedTypes}
         />
-
-        <div className="flex flex-col items-center justify-center text-center space-y-4">
-          {isUploading ? (
-            <div className="w-12 h-12 rounded-full border-4 border-secondary-200 border-t-secondary-500 animate-spin" />
-          ) : (
-            <div
-              className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center",
-                isDragging
-                  ? "bg-secondary-100 text-secondary-600"
-                  : "bg-neutral-200 text-neutral-500"
-              )}
-            >
-              <Upload className="w-8 h-8" />
+        {isUploading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-2xl z-10">
+            <div className="flex items-center gap-2 text-secondary-600">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm font-medium">جاري الرفع...</span>
             </div>
-          )}
-
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-natural-100">
-              {isUploading
-                ? "جاري الرفع..."
-                : isDragging
-                ? "أفلت الملفات هنا"
-                : "اسحب وأفلت الملفات هنا"}
-            </p>
-            <p className="text-xs text-neutral-500">
-              أو انقر لاختيار الملفات (PNG, JPG, SVG, PDF - الحد الأقصى{" "}
-              {maxSizeMB}ميجابايت)
-            </p>
           </div>
-
-          <p className="text-xs text-neutral-400">
-            الحد الأقصى: {maxFiles} ملفات
-          </p>
-        </div>
+        )}
       </div>
 
       {uploadedFiles.length > 0 && (
@@ -259,7 +153,9 @@ export function FileUploadZone({
                   {file.originalName}
                 </p>
                 <p className="text-xs text-neutral-500">
-                  {file.size ? `${(file.size / 1024).toFixed(0)} كيلوبايت` : ""}
+                  {file.size
+                    ? `${(file.size / 1024).toFixed(0)} كيلوبايت`
+                    : ""}
                 </p>
               </div>
 

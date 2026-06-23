@@ -1,11 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Ticket } from "lucide-react";
+import { toast } from "sonner";
 import type { PortalProjectDetail } from "@/features/portal/portalApi";
+import type { CreateDisputeInput } from "@hassad/shared";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { NewDisputeDialog } from "@/components/disputes";
+import { useCreateDisputeMutation } from "@/features/portal/portalApi";
 
 interface ProjectHeaderProps {
   project: PortalProjectDetail;
@@ -14,11 +19,30 @@ interface ProjectHeaderProps {
 /** Page header: back button + project name + client company + status badge. */
 export function ProjectHeader({ project }: ProjectHeaderProps) {
   const router = useRouter();
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
 
   const initials = (project.client?.companyName ?? project.name)
     .trim()
     .charAt(0)
     .toUpperCase();
+
+  const handleCreateDispute = async (
+    data: CreateDisputeInput,
+    files?: File[],
+  ) => {
+    try {
+      await createDispute({ ...data, files }).unwrap();
+      toast.success("تم إرسال التذكرة", {
+        description: "تم استلام تذكرتك. سيتم مراجعتها من قبل الإدارة.",
+      });
+      setDisputeOpen(false);
+    } catch (error: any) {
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
+      toast.error("خطأ", { description: message });
+    }
+  };
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" dir="rtl">
@@ -47,7 +71,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         <ActionButton
           variant="outline"
           size="sm"
-          onClick={() => router.push(`/portal/disputes?projectId=${project.id}`)}
+          onClick={() => setDisputeOpen(true)}
           className="h-10 rounded-xl border-portal-divider text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-2"
         >
           <Ticket className="h-4 w-4" />
@@ -57,6 +81,15 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
           {initials}
         </div>
       </div>
+
+      <NewDisputeDialog
+        isOpen={disputeOpen}
+        onClose={() => setDisputeOpen(false)}
+        onSubmit={handleCreateDispute}
+        isLoading={isCreating}
+        projectId={project.id}
+        projectName={project.name}
+      />
     </div>
   );
 }

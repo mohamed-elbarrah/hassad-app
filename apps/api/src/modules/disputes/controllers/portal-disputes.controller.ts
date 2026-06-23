@@ -8,7 +8,10 @@ import {
   Query,
   ForbiddenException,
   NotFoundException,
+  UseInterceptors,
+  UploadedFiles,
 } from "@nestjs/common";
+import { FilesInterceptor } from "@nestjs/platform-express";
 import { DisputesService } from "../services/disputes.service";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -38,13 +41,15 @@ export class PortalDisputesController {
   }
 
   @Post()
+  @UseInterceptors(FilesInterceptor("files", 5))
   async createDispute(
     @CurrentUser() user: any,
     @Body() dto: CreateDisputeDto,
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
-    return this.disputesService.createDispute(clientId, dto);
+    return this.disputesService.createDispute(clientId, dto, files);
   }
 
   @Get()
@@ -70,12 +75,14 @@ export class PortalDisputesController {
   }
 
   @Post(":id/messages")
+  @UseInterceptors(FilesInterceptor("files", 5))
   async addMessage(
     @CurrentUser("id") userId: string,
     @Param("id") id: string,
     @Body() dto: CreateDisputeMessageDto,
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.disputesService.addMessage(id, userId, dto);
+    return this.disputesService.addMessage(id, userId, dto, files);
   }
 
   @Post(":id/confirm")

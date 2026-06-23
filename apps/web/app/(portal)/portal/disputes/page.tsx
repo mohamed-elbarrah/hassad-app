@@ -77,14 +77,12 @@ export default function PortalDisputesPage() {
       )
     : disputes;
 
-  const handleCreateDispute = async (input: {
-    projectId: string;
-    category: import("@hassad/shared").DisputeCategory;
-    title: string;
-    description: string;
-  }) => {
+  const handleCreateDispute = async (
+    input: import("@hassad/shared").CreateDisputeInput,
+    files?: File[],
+  ) => {
     try {
-      await createDispute(input).unwrap();
+      await createDispute({ ...input, files }).unwrap();
       toast.success("تم إرسال التذكرة", {
         description: "تم استلام تذكرتك. سيتم مراجعتها من قبل الإدارة.",
       });

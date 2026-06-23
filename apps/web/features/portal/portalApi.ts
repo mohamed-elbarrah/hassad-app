@@ -818,21 +818,26 @@ export const portalApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "ClientDispute", id }],
     }),
 
-    createDispute: builder.mutation<DisputeDetail, CreateDisputeInput>({
-      query: (body) => ({
-        url: "/portal/disputes",
-        method: "POST",
-        body,
-      }),
+    createDispute: builder.mutation<DisputeDetail, CreateDisputeInput & { files?: File[] }>({
+      query: ({ files, ...data }) => {
+        const formData = new FormData();
+        formData.append("projectId", data.projectId);
+        formData.append("category", data.category);
+        formData.append("title", data.title);
+        formData.append("description", data.description);
+        if (files?.length) files.forEach((f) => formData.append("files", f));
+        return { url: "/portal/disputes", method: "POST", body: formData };
+      },
       invalidatesTags: ["ClientDisputes"],
     }),
 
-    addDisputeMessage: builder.mutation<DisputeMessage, { disputeId: string; content: string }>({
-      query: ({ disputeId, content }) => ({
-        url: `/portal/disputes/${disputeId}/messages`,
-        method: "POST",
-        body: { content },
-      }),
+    addDisputeMessage: builder.mutation<DisputeMessage, { disputeId: string; content: string; files?: File[] }>({
+      query: ({ disputeId, content, files }) => {
+        const formData = new FormData();
+        formData.append("content", content);
+        if (files?.length) files.forEach((f) => formData.append("files", f));
+        return { url: `/portal/disputes/${disputeId}/messages`, method: "POST", body: formData };
+      },
       invalidatesTags: (_result, _error, { disputeId }) => [{ type: "ClientDispute", id: disputeId }],
     }),
 
