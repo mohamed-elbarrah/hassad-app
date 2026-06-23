@@ -19,7 +19,7 @@ export function PeriodTimeline({
 }: PeriodTimelineProps) {
   return (
     <div
-      className="rounded-[30px] border border-portal-card-border bg-natural-0 p-6"
+      className="rounded-[30px]   p-6"
       dir="rtl"
     >
       <div className="relative flex items-start justify-between overflow-x-auto px-2 scrollbar-hide">

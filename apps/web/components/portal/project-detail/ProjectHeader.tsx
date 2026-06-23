@@ -22,11 +22,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
 
-  const initials = (project.client?.companyName ?? project.name)
-    .trim()
-    .charAt(0)
-    .toUpperCase();
-
+  
   const handleCreateDispute = async (
     data: CreateDisputeInput,
     files?: File[],
@@ -72,14 +68,12 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
           variant="outline"
           size="sm"
           onClick={() => setDisputeOpen(true)}
-          className="h-10 rounded-xl border-portal-divider text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-2"
+          className="h-10 rounded-xl border text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-2"
         >
           <Ticket className="h-4 w-4" />
           فتح تذكرة
         </ActionButton>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-natural-100 text-xl font-bold text-white">
-          {initials}
-        </div>
+        
       </div>
 
       <NewDisputeDialog
