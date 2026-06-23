@@ -263,11 +263,17 @@ export class DisputesService {
 
     const now = new Date();
 
+    // Always record that client responded
+    const updateData: Prisma.DisputeTicketUpdateInput = {
+      clientRespondedAt: now,
+    };
+
     if (dto.confirmed) {
       // Client confirms resolved - close ticket
       const updated = await this.prisma.disputeTicket.update({
         where: { id: disputeId },
         data: {
+          ...updateData,
           status: DisputeStatus.RESOLVED,
           clientConfirmedResolved: true,
           resolvedAt: now,
@@ -299,9 +305,9 @@ export class DisputesService {
       const updated = await this.prisma.disputeTicket.update({
         where: { id: disputeId },
         data: {
+          ...updateData,
           status: DisputeStatus.ESCALATED,
           escalatedAt: now,
-          clientRespondedAt: now,
           history: {
             create: {
               fromStatus: DisputeStatus.PENDING_CLIENT,
@@ -372,6 +378,36 @@ export class DisputesService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Get dispute details for PM (validates ownership)
+   */
+  async getPmDisputeById(pmId: string, disputeId: string) {
+    const dispute = await this.prisma.disputeTicket.findFirst({
+      where: { id: disputeId, pmId },
+      include: {
+        project: { select: { id: true, name: true } },
+        client: { select: { id: true, companyName: true, contactName: true } },
+        messages: {
+          where: { isInternal: false }, // PM cannot see internal admin notes
+          orderBy: { createdAt: "asc" },
+          include: {
+            author: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
+        history: {
+          orderBy: { changedAt: "asc" },
+          include: { changer: { select: { id: true, name: true } } },
+        },
+      },
+    });
+
+    if (!dispute) {
+      throw new NotFoundException("التذكرة غير موجودة أو ليس لديك صلاحية للوصول إليها");
+    }
+
+    return dispute;
   }
 
   /**
@@ -816,6 +852,48 @@ export class DisputesService {
     return stats;
   }
 
+  /**
+   * Get admin dispute statistics
+   */
+  async getAdminStats() {
+    const [
+      pendingApproval,
+      active,
+      escalated,
+      resolved,
+      closed,
+    ] = await Promise.all([
+      // Pending approval
+      this.prisma.disputeTicket.count({
+        where: { status: DisputeStatus.PENDING_APPROVAL },
+      }),
+      // Active (approved or in progress)
+      this.prisma.disputeTicket.count({
+        where: { status: { in: [DisputeStatus.APPROVED, DisputeStatus.IN_PROGRESS, DisputeStatus.PENDING_CLIENT] } },
+      }),
+      // Escalated
+      this.prisma.disputeTicket.count({
+        where: { status: DisputeStatus.ESCALATED },
+      }),
+      // Resolved
+      this.prisma.disputeTicket.count({
+        where: { status: DisputeStatus.RESOLVED },
+      }),
+      // Closed
+      this.prisma.disputeTicket.count({
+        where: { status: DisputeStatus.CLOSED },
+      }),
+    ]);
+
+    return {
+      pendingApproval,
+      active,
+      escalated,
+      resolved,
+      closed,
+    };
+  }
+
   // ─── Helper Methods ────────────────────────────────────────────────────────
 
   /**
@@ -884,6 +962,21 @@ export class DisputesService {
    */
   async checkDeadlineDisputes() {
     const now = new Date();
+    
+    // Get system user ID (first admin) for automated actions
+    const systemUser = await this.prisma.user.findFirst({
+      where: {
+        isActive: true,
+        role: { name: "ADMIN" },
+      },
+      select: { id: true },
+    });
+    
+    if (!systemUser) {
+      // No admin user found, skip this run
+      return { escalated: 0, error: "No admin user found for system actions" };
+    }
+    
     const pastDeadline = await this.prisma.disputeTicket.findMany({
       where: {
         status: { in: [DisputeStatus.APPROVED, DisputeStatus.IN_PROGRESS] },
@@ -901,7 +994,7 @@ export class DisputesService {
             create: {
               fromStatus: dispute.status as DisputeStatus,
               toStatus: DisputeStatus.ESCALATED,
-              changedBy: "SYSTEM",
+              changedBy: systemUser.id,
               note: "تم التصعيد تلقائياً لانتهاء المهلة",
             },
           },

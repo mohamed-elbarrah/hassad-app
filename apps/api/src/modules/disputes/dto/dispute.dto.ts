@@ -10,8 +10,12 @@ import {
   Min,
   Max,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Type, Transform } from "class-transformer";
 import { DisputeStatus, DisputeCategory, DisputePriority } from "@hassad/shared";
+
+/** Transform empty strings to undefined for optional enum fields */
+const EmptyToUndefined = () =>
+  Transform(({ value }) => (value === "" || value === null ? undefined : value));
 
 export class UpdateDisputeDto {
   @IsOptional()
@@ -24,14 +28,17 @@ export class UpdateDisputeDto {
 }
 
 export class DisputeFilterDto {
+  @EmptyToUndefined()
   @IsOptional()
   @IsEnum(DisputeStatus)
   status?: DisputeStatus;
 
+  @EmptyToUndefined()
   @IsOptional()
   @IsEnum(DisputeCategory)
   category?: DisputeCategory;
 
+  @EmptyToUndefined()
   @IsOptional()
   @IsEnum(DisputePriority)
   priority?: DisputePriority;

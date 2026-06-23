@@ -34,13 +34,7 @@ export class AdminDisputesController {
 
   @Get("stats")
   async getDisputeStats() {
-    // TODO: Implement comprehensive stats
-    return {
-      pendingApproval: 0,
-      active: 0,
-      escalated: 0,
-      resolved: 0,
-    };
+    return this.disputesService.getAdminStats();
   }
 
   @Get("pm/:pmId/stats")

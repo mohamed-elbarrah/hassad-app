@@ -178,7 +178,7 @@ export default function PortalDisputesPage() {
         onClose={() => setIsNewDisputeOpen(false)}
         onSubmit={handleCreateDispute}
         isLoading={isCreating}
-        projectId={projectIdFromUrl || ""}
+        projectId={projectIdFromUrl || undefined}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { AlertCircle, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DisputeCategory, CreateDisputeInput } from "@hassad/shared";
 import { DisputeCategory as DisputeCategoryEnum } from "@hassad/shared";
@@ -14,13 +14,22 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DisputeCategoryIcon } from "./DisputeCategoryIcon";
+import {
+  FormSelect,
+  FormSelectContent,
+  FormSelectItem,
+  FormSelectTrigger,
+  FormSelectValue,
+} from "@/components/design-system/FormSelectControl";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
 
 interface NewDisputeDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CreateDisputeInput) => void;
   isLoading?: boolean;
-  projectId: string;
+  projectId?: string;
   projectName?: string;
 }
 
@@ -39,17 +48,37 @@ export function NewDisputeDialog({
   onClose,
   onSubmit,
   isLoading = false,
-  projectId,
-  projectName,
+  projectId: initialProjectId,
+  projectName: initialProjectName,
 }: NewDisputeDialogProps) {
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(initialProjectId);
   const [category, setCategory] = useState<DisputeCategory | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Fetch client projects for selection (only if no initial projectId)
+  const { data: projectsData, isLoading: isLoadingProjects } = useGetPortalProjectsQuery(
+    undefined,
+    { skip: !!initialProjectId }
+  );
+
+  const projects = projectsData?.data || [];
+  const showProjectSelector = !initialProjectId;
+
+  // Reset selected project when dialog opens with initial project
+  useEffect(() => {
+    if (isOpen && initialProjectId) {
+      setSelectedProjectId(initialProjectId);
+    }
+  }, [isOpen, initialProjectId]);
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    if (showProjectSelector && !selectedProjectId) {
+      newErrors.project = "الرجاء اختيار المشروع";
+    }
     if (!category) {
       newErrors.category = "الرجاء اختيار نوع النزاع";
     }
@@ -65,10 +94,10 @@ export function NewDisputeDialog({
   };
 
   const handleSubmit = () => {
-    if (!validate() || !category) return;
+    if (!validate() || !category || !selectedProjectId) return;
 
     onSubmit({
-      projectId,
+      projectId: selectedProjectId,
       category,
       title: title.trim(),
       description: description.trim(),
@@ -77,12 +106,18 @@ export function NewDisputeDialog({
 
   const handleClose = () => {
     if (isLoading) return;
+    if (showProjectSelector) {
+      setSelectedProjectId(undefined);
+    }
     setCategory(null);
     setTitle("");
     setDescription("");
     setErrors({});
     onClose();
   };
+
+  const selectedProjectName = initialProjectName || 
+    projects.find(p => p.id === selectedProjectId)?.name;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -91,14 +126,57 @@ export function NewDisputeDialog({
           <DialogTitle className="text-xl font-semibold text-natural-100">
             فتح تذكرة نزاع جديدة
           </DialogTitle>
-          {projectName && (
+          {selectedProjectName && !showProjectSelector && (
             <DialogDescription className="text-portal-note-text">
-              المشروع: {projectName}
+              المشروع: {selectedProjectName}
             </DialogDescription>
           )}
         </DialogHeader>
 
         <div className="p-6 space-y-6">
+          {/* Project Selection (only if no initial projectId) */}
+          {showProjectSelector && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-natural-100">
+                المشروع *
+              </label>
+              {isLoadingProjects ? (
+                <Skeleton className="h-10 w-full rounded-xl" />
+              ) : projects.length === 0 ? (
+                <p className="text-sm text-danger-600">
+                  لا توجد مشاريع متاحة. يجب أن يكون لديك مشروع نشط لفتح تذكرة.
+                </p>
+              ) : (
+                <>
+                  <FormSelect
+                    value={selectedProjectId || ""}
+                    onValueChange={(value) => {
+                      setSelectedProjectId(value);
+                      setErrors((e) => ({ ...e, project: "" }));
+                    }}
+                  >
+                    <FormSelectTrigger className="w-full">
+                      <FormSelectValue placeholder="اختر المشروع..." />
+                    </FormSelectTrigger>
+                    <FormSelectContent>
+                      {projects.map((project) => (
+                        <FormSelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </FormSelectItem>
+                      ))}
+                    </FormSelectContent>
+                  </FormSelect>
+                  {errors.project && (
+                    <p className="flex items-center gap-1 text-xs text-danger-600">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.project}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Category Selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-natural-100">
@@ -108,6 +186,7 @@ export function NewDisputeDialog({
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.value}
+                  type="button"
                   onClick={() => {
                     setCategory(cat.value);
                     setErrors((e) => ({ ...e, category: "" }));
@@ -208,7 +287,7 @@ export function NewDisputeDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading || !category || !title || !description}
+            disabled={isLoading || !category || !title || !description || (showProjectSelector && !selectedProjectId)}
             className="rounded-xl bg-secondary-500 px-6 hover:bg-secondary-600"
           >
             {isLoading ? (

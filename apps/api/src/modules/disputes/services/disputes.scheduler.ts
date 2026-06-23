@@ -13,6 +13,23 @@ export class DisputesScheduler {
     private notificationsService: DisputesNotificationsService,
   ) {}
 
+  /**
+   * Get system user ID for automated actions (first admin)
+   */
+  private async getSystemUserId(): Promise<string> {
+    const admin = await this.prisma.user.findFirst({
+      where: {
+        isActive: true,
+        role: { name: "ADMIN" },
+      },
+      select: { id: true },
+    });
+    if (!admin) {
+      throw new Error("No active admin user found for system actions");
+    }
+    return admin.id;
+  }
+
   // ─── Daily Reminder Checks (9:00 AM) ────────────────────────────────────────
 
   @Cron("0 9 * * *")
@@ -169,6 +186,9 @@ export class DisputesScheduler {
   ) {
     if (!dispute.client?.userId) return;
 
+    // Get system user ID for history entry
+    const systemUserId = await this.getSystemUserId();
+
     // Send reminder notification
     await this.notificationsService.sendReminder({
       disputeId: dispute.id,
@@ -190,7 +210,7 @@ export class DisputesScheduler {
       data: {
         ticketId: dispute.id,
         toStatus: DisputeStatus.PENDING_CLIENT,
-        changedBy: "SYSTEM",
+        changedBy: systemUserId,
         note: `تم إرسال التذكير ${reminderNumber} للعميل`,
       },
     });
@@ -203,6 +223,9 @@ export class DisputesScheduler {
   ) {
     const now = new Date();
 
+    // Get system user ID for history entry
+    const systemUserId = await this.getSystemUserId();
+
     await this.prisma.disputeTicket.update({
       where: { id: disputeId },
       data: {
@@ -212,7 +235,7 @@ export class DisputesScheduler {
           create: {
             fromStatus: DisputeStatus.PENDING_CLIENT,
             toStatus: DisputeStatus.ESCALATED,
-            changedBy: "SYSTEM",
+            changedBy: systemUserId,
             note: reason,
           },
         },

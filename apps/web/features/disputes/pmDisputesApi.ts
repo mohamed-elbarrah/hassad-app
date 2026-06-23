@@ -63,7 +63,7 @@ export interface PmDisputeMessageInput {
 }
 
 export interface PmResolveInput {
-  resolution?: string;
+  message: string;
 }
 
 // ─── API Slice ────────────────────────────────────────────────────────────────
@@ -112,11 +112,11 @@ export const pmDisputesApi = createApi({
       invalidatesTags: (_result, _error, { disputeId }) => [{ type: "PmDispute", id: disputeId }],
     }),
 
-    resolveDispute: builder.mutation<PmDisputeDetail, { disputeId: string; input?: PmResolveInput }>({
+    resolveDispute: builder.mutation<PmDisputeDetail, { disputeId: string; input: PmResolveInput }>({
       query: ({ disputeId, input }) => ({
         url: `/pm/disputes/${disputeId}/resolve`,
         method: "POST",
-        body: input || {},
+        body: input,
       }),
       invalidatesTags: (_result, _error, { disputeId }) => [
         { type: "PmDispute", id: disputeId },

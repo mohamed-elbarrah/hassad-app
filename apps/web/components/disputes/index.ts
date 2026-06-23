@@ -11,3 +11,4 @@ export { AdminDisputeCard } from "./AdminDisputeCard";
 export { PmStatsPanel } from "./PmStatsPanel";
 export { DisputeApprovalDialog } from "./DisputeApprovalDialog";
 export { PmChangeDialog } from "./PmChangeDialog";
+export { PmResolveDialog } from "./PmResolveDialog";

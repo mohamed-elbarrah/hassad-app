@@ -19,6 +19,7 @@ import {
   DisputeStatusBadge,
   DisputeCategoryIcon,
   DisputeMessageThread,
+  PmResolveDialog,
 } from "@/components/disputes";
 import { DisputeResolutionTimer } from "@/components/disputes/DisputeResolutionTimer";
 
@@ -29,7 +30,7 @@ interface PmDisputeDetailPageProps {
 export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps) {
   const { id } = use(params);
   const [isAcknowledgeLoading, setIsAcknowledgeLoading] = useState(false);
-  const [isResolveLoading, setIsResolveLoading] = useState(false);
+  const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);
 
   const {
     data: dispute,
@@ -69,19 +70,17 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
     }
   };
 
-  const handleResolve = async () => {
-    setIsResolveLoading(true);
+  const handleResolve = async (message: string) => {
     try {
-      await resolveDispute({ disputeId: id }).unwrap();
+      await resolveDispute({ disputeId: id, input: { message } }).unwrap();
       toast.success("تم تأكيد الحل", {
         description: "تم إرسال طلب التأكيد للعميل.",
       });
+      setIsResolveDialogOpen(false);
       refetch();
     } catch (error: any) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء تأكيد الحل";
       toast.error(message);
-    } finally {
-      setIsResolveLoading(false);
     }
   };
 
@@ -212,11 +211,10 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
                 </div>
               </div>
               <Button
-                onClick={handleResolve}
-                disabled={isResolveLoading}
+                onClick={() => setIsResolveDialogOpen(true)}
                 className="rounded-xl bg-green-600 hover:bg-green-700"
               >
-                {isResolveLoading ? "جارٍ..." : "تأكيد الحل"}
+                تأكيد الحل
               </Button>
             </div>
           </SurfaceCard>
@@ -311,6 +309,13 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
           </div>
         </SurfaceCard>
       )}
+
+      {/* ── Resolve Dialog ─────────────────────────────────────────────────── */}
+      <PmResolveDialog
+        open={isResolveDialogOpen}
+        onOpenChange={setIsResolveDialogOpen}
+        onResolve={handleResolve}
+      />
     </div>
   );
 }

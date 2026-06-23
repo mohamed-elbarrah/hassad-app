@@ -33,7 +33,7 @@ export class PmDisputesController {
     @CurrentUser("id") pmId: string,
     @Param("id") id: string,
   ) {
-    return this.disputesService.getDisputeById(id);
+    return this.disputesService.getPmDisputeById(pmId, id);
   }
 
   @Post(":id/acknowledge")
