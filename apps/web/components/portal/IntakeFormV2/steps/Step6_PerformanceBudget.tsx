@@ -40,9 +40,28 @@ const TRACKING_OPTIONS = [
   { value: "partial", label: "مربوطة بس محتاجة تحديث" },
 ];
 
+interface PerformanceSection {
+  bestCampaigns?: string;
+  pastPerformance?: string;
+  trackingSetup?: string;
+}
+
+interface BudgetSection {
+  budgetRange?: number;
+  previousReports?: string[];
+}
+
+interface Step6InitialData {
+  pastPerformance?: PerformanceSection;
+  budgetInfo?: BudgetSection;
+}
+
 interface Step6Props {
-  initialData?: PerformanceBudgetForm & { previousReports?: string[] };
-  onDataChange: (data: PerformanceBudgetForm & { previousReports?: string[] }) => void;
+  initialData?: Step6InitialData;
+  onDataChange: (data: {
+    pastPerformance: PerformanceSection;
+    budgetInfo: BudgetSection;
+  }) => void;
   onValid: (valid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
@@ -61,11 +80,11 @@ export function Step6_PerformanceBudget({
 
   const form = useForm<PerformanceBudgetForm>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData ?? {
-      bestCampaigns: "",
-      pastPerformance: "",
-      trackingSetup: "",
-      budgetRange: undefined,
+    defaultValues: {
+      bestCampaigns: initialData?.pastPerformance?.bestCampaigns ?? "",
+      pastPerformance: initialData?.pastPerformance?.pastPerformance ?? "",
+      trackingSetup: initialData?.pastPerformance?.trackingSetup ?? "",
+      budgetRange: initialData?.budgetInfo?.budgetRange ?? undefined,
     },
     mode: "onChange",
   });
@@ -74,25 +93,34 @@ export function Step6_PerformanceBudget({
     onValid(true);
   }, [onValid]);
 
+  const buildPerformanceData = useCallback(
+    (values: PerformanceBudgetForm) => ({
+      pastPerformance: {
+        bestCampaigns: values.bestCampaigns,
+        pastPerformance: values.pastPerformance,
+        trackingSetup: values.trackingSetup,
+      },
+      budgetInfo: {
+        budgetRange: values.budgetRange,
+        previousReports: reportFiles.map((f) => f.name),
+      },
+    }),
+    [reportFiles],
+  );
+
   useEffect(() => {
     const sub = form.watch((values) => {
-      onDataChange({
-        ...(values as PerformanceBudgetForm),
-        previousReports: reportFiles.map((f) => f.name),
-      });
+      onDataChange(buildPerformanceData(values as PerformanceBudgetForm));
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange, reportFiles]);
+  }, [form, onDataChange, buildPerformanceData]);
 
   const onSubmit = useCallback(
     (data: PerformanceBudgetForm) => {
-      onDataChange({
-        ...data,
-        previousReports: reportFiles.map((f) => f.name),
-      });
+      onDataChange(buildPerformanceData(data));
       onNext?.();
     },
-    [onDataChange, onNext, reportFiles],
+    [onDataChange, onNext, buildPerformanceData],
   );
 
   return (

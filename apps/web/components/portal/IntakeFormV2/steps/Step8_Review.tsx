@@ -60,7 +60,15 @@ const SECTIONS: ReviewSection[] = [
 function valueToString(value: unknown): string {
   if (value === undefined || value === null) return "";
   if (typeof value === "boolean") return value ? "نعم" : "لا";
-  if (Array.isArray(value)) return value.join("، ");
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "";
+    if (typeof value[0] === "object" && value[0] !== null && "question" in value[0]) {
+      return value
+        .map((item: Record<string, unknown>) => `س: ${item.question} / ج: ${item.answer}`)
+        .join(" | ");
+    }
+    return value.join("، ");
+  }
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }

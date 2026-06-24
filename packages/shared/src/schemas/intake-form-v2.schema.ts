@@ -19,9 +19,14 @@ export const ProductInfoSchema = z.object({
   contentDirection: z.string().optional(),
 });
 
+export const FaqPairSchema = z.object({
+  question: z.string(),
+  answer: z.string(),
+});
+
 export const AudienceInfoSchema = z.object({
   customerAnalysis: z.string().optional(),
-  faq: z.string().optional(),
+  faq: z.array(FaqPairSchema).optional(),
 });
 
 export const BrandVoiceSchema = z.object({

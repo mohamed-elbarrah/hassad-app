@@ -16,7 +16,7 @@ import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { cn } from "@/lib/utils";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Palette, Image, Camera, Eye } from "lucide-react";
+import { Palette, Image, Camera, Eye, Plus, X } from "lucide-react";
 import { StepLayout } from "../components/StepLayout";
 
 const formSchema = z.object({
@@ -27,14 +27,31 @@ const formSchema = z.object({
 
 type VisualIdentityForm = z.infer<typeof formSchema>;
 
+interface BrandAssets {
+  logoUrl?: string;
+  brandColors?: string[];
+  fonts?: string[];
+  guidelinesUrl?: string;
+}
+
 interface Step7Props {
-  initialData?: VisualIdentityForm & { productPhotos?: string[] };
-  onDataChange: (data: VisualIdentityForm & { productPhotos?: string[] }) => void;
+  initialData?: VisualIdentityForm & {
+    brandAssets?: BrandAssets;
+    productPhotos?: string[];
+  };
+  onDataChange: (
+    data: VisualIdentityForm & {
+      brandAssets?: BrandAssets;
+      productPhotos?: string[];
+    },
+  ) => void;
   onValid: (valid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
 }
+
+const DEFAULT_COLORS = ["#e7be52", "#121936", "#ffffff"];
 
 export function Step7_VisualIdentity({
   initialData,
@@ -44,15 +61,25 @@ export function Step7_VisualIdentity({
   onBack,
   onSkip,
 }: Step7Props) {
-  const [hasIdentity, setHasIdentity] = useState(initialData?.hasVisualIdentity ?? false);
+  const [hasIdentity, setHasIdentity] = useState(
+    initialData?.hasVisualIdentity ?? false,
+  );
+  const [logoFiles, setLogoFiles] = useState<File[]>([]);
+  const [guidelinesFiles, setGuidelinesFiles] = useState<File[]>([]);
+  const [brandColors, setBrandColors] = useState<string[]>(
+    initialData?.brandAssets?.brandColors ?? DEFAULT_COLORS,
+  );
+  const [fontInput, setFontInput] = useState(
+    initialData?.brandAssets?.fonts?.join("، ") ?? "",
+  );
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
 
   const form = useForm<VisualIdentityForm>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData ?? {
-      hasVisualIdentity: false,
-      pastDesigns: "",
-      visualDirection: ["", "", ""],
+    defaultValues: {
+      hasVisualIdentity: initialData?.hasVisualIdentity ?? false,
+      pastDesigns: initialData?.pastDesigns ?? "",
+      visualDirection: initialData?.visualDirection ?? ["", "", ""],
     },
     mode: "onChange",
   });
@@ -63,13 +90,24 @@ export function Step7_VisualIdentity({
 
   useEffect(() => {
     const sub = form.watch((values) => {
+      const fonts = fontInput
+        .split("،")
+        .map((f) => f.trim())
+        .filter(Boolean);
+
       onDataChange({
         ...(values as VisualIdentityForm),
+        brandAssets: {
+          logoUrl: logoFiles[0]?.name ?? "",
+          brandColors,
+          fonts: fonts.length > 0 ? fonts : undefined,
+          guidelinesUrl: guidelinesFiles[0]?.name ?? "",
+        },
         productPhotos: photoFiles.map((f) => f.name),
       });
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange, photoFiles]);
+  }, [form, onDataChange, logoFiles, guidelinesFiles, brandColors, fontInput, photoFiles]);
 
   const toggleIdentity = useCallback(
     (value: boolean) => {
@@ -81,16 +119,39 @@ export function Step7_VisualIdentity({
 
   const onSubmit = useCallback(
     (data: VisualIdentityForm) => {
+      const fonts = fontInput
+        .split("،")
+        .map((f) => f.trim())
+        .filter(Boolean);
+
       onDataChange({
         ...data,
+        brandAssets: {
+          logoUrl: logoFiles[0]?.name ?? "",
+          brandColors,
+          fonts: fonts.length > 0 ? fonts : undefined,
+          guidelinesUrl: guidelinesFiles[0]?.name ?? "",
+        },
         productPhotos: photoFiles.map((f) => f.name),
       });
       onNext?.();
     },
-    [onDataChange, onNext, photoFiles],
+    [onDataChange, onNext, logoFiles, guidelinesFiles, brandColors, fontInput, photoFiles],
   );
 
   const visualDirection = form.watch("visualDirection") ?? ["", "", ""];
+
+  const addColor = useCallback(() => {
+    setBrandColors((prev) => [...prev, "#000000"]);
+  }, []);
+
+  const updateColor = useCallback((index: number, value: string) => {
+    setBrandColors((prev) => prev.map((c, i) => (i === index ? value : c)));
+  }, []);
+
+  const removeColor = useCallback((index: number) => {
+    setBrandColors((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   return (
     <StepLayout
@@ -139,43 +200,89 @@ export function Step7_VisualIdentity({
           </div>
 
           {hasIdentity && (
-            <div className="rounded-2xl bg-secondary-50 border border-secondary-100 p-4 space-y-4">
+            <div className="rounded-2xl bg-secondary-50 border border-secondary-100 p-4 sm:p-6 space-y-5">
               <p className="text-sm font-medium text-secondary-700">
                 ملفات براندك البصرية
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-xs font-medium text-natural-100">Logo (PNG, SVG)</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-natural-100">
+                    Logo (PNG, SVG)
+                  </span>
                   <FileDropzone
-                    files={[]}
-                    onFilesChange={() => {}}
+                    files={logoFiles}
+                    onFilesChange={setLogoFiles}
                     maxFiles={1}
                     maxSizeMB={5}
                     acceptedTypes={["image/png", "image/svg+xml"]}
                   />
                 </div>
-                <div>
-                  <span className="text-xs font-medium text-natural-100">Brand Colors</span>
-                  <div className="flex gap-2 mt-2">
-                    {["#e7be52", "#121936", "#ffffff"].map((color) => (
-                      <div
-                        key={color}
-                        className="w-8 h-8 rounded-lg border border-portal-divider"
-                        style={{ backgroundColor: color }}
-                        title={color}
-                      />
+
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-natural-100">
+                    Brand Colors
+                  </span>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {brandColors.map((color, index) => (
+                      <div key={index} className="flex items-center gap-1">
+                        <label
+                          className={cn(
+                            "w-8 h-8 rounded-lg border cursor-pointer",
+                            color.toLowerCase() === "#ffffff"
+                              ? "border-portal-divider"
+                              : "border-transparent",
+                          )}
+                          style={{ backgroundColor: color }}
+                        >
+                          <input
+                            type="color"
+                            value={color}
+                            onChange={(e) => updateColor(index, e.target.value)}
+                            className="w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </label>
+                        {brandColors.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeColor(index)}
+                            className="p-0.5 rounded-full text-portal-icon hover:text-danger-500 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     ))}
+                    <button
+                      type="button"
+                      onClick={addColor}
+                      className="w-8 h-8 rounded-lg border border-dashed border-portal-divider flex items-center justify-center text-portal-icon hover:border-secondary-300 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <div>
-                  <span className="text-xs font-medium text-natural-100">الخطوط</span>
-                  <FormInputControl placeholder="أسماء الخطوط المستخدمة" />
+
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-natural-100">
+                    الخطوط
+                  </span>
+                  <FormInputControl
+                    placeholder="أسماء الخطوط المستخدمة"
+                    value={fontInput}
+                    onChange={(e) => setFontInput(e.target.value)}
+                  />
+                  <p className="text-xs text-portal-note-text">
+                    اكتب أسماء الخطوط مفصولة بفاصلة (،)
+                  </p>
                 </div>
-                <div>
-                  <span className="text-xs font-medium text-natural-100">دليل الهوية</span>
+
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-natural-100">
+                    دليل الهوية
+                  </span>
                   <FileDropzone
-                    files={[]}
-                    onFilesChange={() => {}}
+                    files={guidelinesFiles}
+                    onFilesChange={setGuidelinesFiles}
                     maxFiles={1}
                     maxSizeMB={10}
                     acceptedTypes={["application/pdf"]}
@@ -232,7 +339,9 @@ export function Step7_VisualIdentity({
                   onChange={(e) => {
                     const updated = [...visualDirection];
                     updated[i] = e.target.value;
-                    form.setValue("visualDirection", updated, { shouldDirty: true });
+                    form.setValue("visualDirection", updated, {
+                      shouldDirty: true,
+                    });
                   }}
                 />
               ))}
