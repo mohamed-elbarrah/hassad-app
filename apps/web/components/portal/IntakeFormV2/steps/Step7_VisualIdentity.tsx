@@ -16,7 +16,8 @@ import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { cn } from "@/lib/utils";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Palette, Image, Camera, Eye, Plus, X } from "lucide-react";
+import { ColorPickerControl } from "@/components/design-system/ColorPickerControl";
+import { Palette, Image, Camera, Eye, Plus } from "lucide-react";
 import { StepLayout } from "../components/StepLayout";
 
 const formSchema = z.object({
@@ -207,7 +208,7 @@ export function Step7_VisualIdentity({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
                   <span className="text-xs font-medium text-natural-100">
-                    Logo (PNG, SVG)
+                    الشعار
                   </span>
                   <FileDropzone
                     files={logoFiles}
@@ -220,42 +221,38 @@ export function Step7_VisualIdentity({
 
                 <div className="space-y-2">
                   <span className="text-xs font-medium text-natural-100">
-                    Brand Colors
+                    دليل الهوية
+                  </span>
+                  <FileDropzone
+                    files={guidelinesFiles}
+                    onFilesChange={setGuidelinesFiles}
+                    maxFiles={1}
+                    maxSizeMB={10}
+                    acceptedTypes={["application/pdf"]}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-natural-100">
+                    ألوان العلامة التجارية
                   </span>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {brandColors.map((color, index) => (
-                      <div key={index} className="flex items-center gap-1">
-                        <label
-                          className={cn(
-                            "w-8 h-8 rounded-lg border cursor-pointer",
-                            color.toLowerCase() === "#ffffff"
-                              ? "border-portal-divider"
-                              : "border-transparent",
-                          )}
-                          style={{ backgroundColor: color }}
-                        >
-                          <input
-                            type="color"
-                            value={color}
-                            onChange={(e) => updateColor(index, e.target.value)}
-                            className="w-full h-full opacity-0 cursor-pointer"
-                          />
-                        </label>
-                        {brandColors.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeColor(index)}
-                            className="p-0.5 rounded-full text-portal-icon hover:text-danger-500 transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
+                      <ColorPickerControl
+                        key={index}
+                        value={color}
+                        onChange={(value) => updateColor(index, value)}
+                        onRemove={
+                          brandColors.length > 1
+                            ? () => removeColor(index)
+                            : undefined
+                        }
+                      />
                     ))}
                     <button
                       type="button"
                       onClick={addColor}
-                      className="w-8 h-8 rounded-lg border border-dashed border-portal-divider flex items-center justify-center text-portal-icon hover:border-secondary-300 transition-colors"
+                      className="w-9 h-9 rounded-lg border border-dashed border-portal-divider flex items-center justify-center text-portal-icon hover:border-secondary-300 transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -274,19 +271,6 @@ export function Step7_VisualIdentity({
                   <p className="text-xs text-portal-note-text">
                     اكتب أسماء الخطوط مفصولة بفاصلة (،)
                   </p>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-natural-100">
-                    دليل الهوية
-                  </span>
-                  <FileDropzone
-                    files={guidelinesFiles}
-                    onFilesChange={setGuidelinesFiles}
-                    maxFiles={1}
-                    maxSizeMB={10}
-                    acceptedTypes={["application/pdf"]}
-                  />
                 </div>
               </div>
             </div>
