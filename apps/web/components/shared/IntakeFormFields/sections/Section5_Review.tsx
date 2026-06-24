@@ -66,8 +66,10 @@ export function Section5_Review({
   mode = "portal",
 }: Section5_ReviewProps) {
   const isPortal = mode === "portal";
-  const borderColor = isPortal ? "border-neutral-200" : "border-border";
-  const bgColor = isPortal ? "bg-neutral-50" : "bg-muted/50";
+  const borderColor = isPortal ? "border-portal-card-border" : "border-border";
+  const bgColor = isPortal ? "bg-portal-bg" : "bg-muted/50";
+  const labelColor = isPortal ? "text-portal-note-text" : "text-neutral-500";
+  const emptyColor = isPortal ? "text-portal-icon" : "text-neutral-400";
 
   // Normalize formData to flat format
   const formData = normalizeFormData(rawFormData);
@@ -210,7 +212,7 @@ export function Section5_Review({
               .filter((field) => field.value !== undefined && field.value !== "")
               .map((field, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <span className="text-sm text-neutral-500 min-w-[140px]">
+                  <span className={cn("text-sm min-w-[140px]", labelColor)}>
                     {field.label}:
                   </span>
                   <span
@@ -227,7 +229,7 @@ export function Section5_Review({
             {section.fields.filter(
               (field) => field.value !== undefined && field.value !== ""
             ).length === 0 && (
-              <p className="text-sm text-neutral-400 italic">
+              <p className={cn("text-sm italic", emptyColor)}>
                 لم يتم إدخال بيانات
               </p>
             )}

@@ -165,6 +165,89 @@ export class CreateIntakeFormDto {
     mimeType: string;
     size?: number;
   }>;
+
+  // V2: New JSON sections (all optional)
+  @IsOptional()
+  @IsNumber()
+  currentStep?: number;
+
+  @IsOptional()
+  @IsObject()
+  communicationInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  productInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  audienceInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  brandVoice?: any;
+
+  @IsOptional()
+  @IsObject()
+  customerJourney?: any;
+
+  @IsOptional()
+  @IsObject()
+  campaignInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  pastPerformance?: any;
+
+  @IsOptional()
+  @IsObject()
+  budgetInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  visualIdentityInfo?: any;
+}
+
+export class SaveDraftDto {
+  @IsOptional()
+  @IsNumber()
+  currentStep?: number;
+
+  @IsOptional()
+  @IsObject()
+  communicationInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  productInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  audienceInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  brandVoice?: any;
+
+  @IsOptional()
+  @IsObject()
+  customerJourney?: any;
+
+  @IsOptional()
+  @IsObject()
+  campaignInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  pastPerformance?: any;
+
+  @IsOptional()
+  @IsObject()
+  budgetInfo?: any;
+
+  @IsOptional()
+  @IsObject()
+  visualIdentityInfo?: any;
 }
 
 export class RequestProjectRevisionDto {

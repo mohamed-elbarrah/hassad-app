@@ -9,6 +9,7 @@ import {
   CreateDeliverableDto,
   CreateRevisionDto,
   CreateIntakeFormDto,
+  SaveDraftDto,
   RequestProjectRevisionDto,
 } from "../dto/portal.dto";
 import {
@@ -1543,6 +1544,17 @@ export class PortalService {
           brandAssets: dto.brandAssets,
           visualReferences: dto.visualReferences,
           uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+          // V2 sections (carry over on final submit)
+          currentStep: dto.currentStep ?? undefined,
+          communicationInfo: dto.communicationInfo ?? undefined,
+          productInfo: dto.productInfo ?? undefined,
+          audienceInfo: dto.audienceInfo ?? undefined,
+          brandVoice: dto.brandVoice ?? undefined,
+          customerJourney: dto.customerJourney ?? undefined,
+          campaignInfo: dto.campaignInfo ?? undefined,
+          pastPerformance: dto.pastPerformance ?? undefined,
+          budgetInfo: dto.budgetInfo ?? undefined,
+          visualIdentityInfo: dto.visualIdentityInfo ?? undefined,
           isSubmitted: true,
           submittedAt: new Date(),
         },
@@ -1564,6 +1576,16 @@ export class PortalService {
           brandAssets: dto.brandAssets,
           visualReferences: dto.visualReferences,
           uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+          currentStep: dto.currentStep ?? undefined,
+          communicationInfo: dto.communicationInfo ?? undefined,
+          productInfo: dto.productInfo ?? undefined,
+          audienceInfo: dto.audienceInfo ?? undefined,
+          brandVoice: dto.brandVoice ?? undefined,
+          customerJourney: dto.customerJourney ?? undefined,
+          campaignInfo: dto.campaignInfo ?? undefined,
+          pastPerformance: dto.pastPerformance ?? undefined,
+          budgetInfo: dto.budgetInfo ?? undefined,
+          visualIdentityInfo: dto.visualIdentityInfo ?? undefined,
           isSubmitted: true,
           submittedAt: new Date(),
         },
@@ -1622,6 +1644,47 @@ export class PortalService {
     }
 
     return form;
+  }
+
+  async saveDraft(clientId: string, dto: SaveDraftDto) {
+    const token = randomBytes(32).toString("hex");
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.portalIntakeForm.findUnique({
+        where: { clientId },
+        select: { id: true, token: true },
+      });
+
+      return tx.portalIntakeForm.upsert({
+        where: { clientId },
+        update: {
+          currentStep: dto.currentStep ?? undefined,
+          communicationInfo: dto.communicationInfo ?? undefined,
+          productInfo: dto.productInfo ?? undefined,
+          audienceInfo: dto.audienceInfo ?? undefined,
+          brandVoice: dto.brandVoice ?? undefined,
+          customerJourney: dto.customerJourney ?? undefined,
+          campaignInfo: dto.campaignInfo ?? undefined,
+          pastPerformance: dto.pastPerformance ?? undefined,
+          budgetInfo: dto.budgetInfo ?? undefined,
+          visualIdentityInfo: dto.visualIdentityInfo ?? undefined,
+        },
+        create: {
+          clientId,
+          token: token,
+          currentStep: dto.currentStep ?? 1,
+          communicationInfo: dto.communicationInfo ?? undefined,
+          productInfo: dto.productInfo ?? undefined,
+          audienceInfo: dto.audienceInfo ?? undefined,
+          brandVoice: dto.brandVoice ?? undefined,
+          customerJourney: dto.customerJourney ?? undefined,
+          campaignInfo: dto.campaignInfo ?? undefined,
+          pastPerformance: dto.pastPerformance ?? undefined,
+          budgetInfo: dto.budgetInfo ?? undefined,
+          visualIdentityInfo: dto.visualIdentityInfo ?? undefined,
+        },
+      });
+    });
   }
 
   async findCampaignsByClient(clientId: string) {

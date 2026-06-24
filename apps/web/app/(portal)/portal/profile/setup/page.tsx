@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { UserRole } from "@hassad/shared";
-import { IntakeForm } from "@/components/portal/IntakeForm";
+import { IntakeFormV2 } from "@/components/portal/IntakeFormV2";
 import { updateUser } from "@/features/auth/authSlice";
 import Image from "next/image";
 import { Building2, Sparkles, MessageCircle, Target, Clock } from "lucide-react";
@@ -143,7 +143,7 @@ export default function ProfileSetupPage() {
             </p>
           </div>
 
-          <IntakeForm
+          <IntakeFormV2
             onSuccess={() => {
               dispatch(updateUser({ intakeCompleted: true }));
               router.push("/portal");

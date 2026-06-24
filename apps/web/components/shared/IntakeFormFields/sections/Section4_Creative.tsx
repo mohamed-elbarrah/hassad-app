@@ -33,6 +33,8 @@ export function Section4_Creative({
   showFileUpload = true,
 }: Section4_CreativeProps) {
   const isPortal = mode === "portal";
+  const iconColor = isPortal ? "text-portal-icon" : "text-neutral-400";
+  const noteColor = isPortal ? "text-portal-note-text" : "text-neutral-400";
   const [hasVisualIdentity, setHasVisualIdentity] = useState(
     initialData?.hasVisualIdentity ?? false
   );
@@ -116,13 +118,13 @@ export function Section4_Creative({
 
           <div className={cn(
             "flex items-center justify-between p-6 rounded-2xl border",
-            isPortal ? "bg-neutral-50 border-neutral-100" : "bg-muted/50 border-border"
+            isPortal ? "bg-portal-bg border-portal-divider" : "bg-muted/50 border-border"
           )}>
             <div>
               <p className="font-medium text-natural-100 text-lg">
                 هل عندك هوية بصرية جاهزة؟
               </p>
-              <p className="text-sm text-neutral-400 mt-1">
+              <p className={cn("text-sm mt-1", noteColor)}>
                 (شعار، خطوط، ألوان، دليل علامة تجارية)
               </p>
             </div>
@@ -131,7 +133,7 @@ export function Section4_Creative({
               onClick={() => setHasVisualIdentity(!hasVisualIdentity)}
               className={cn(
                 "w-14 h-8 rounded-full p-1 transition-colors duration-300",
-                hasVisualIdentity ? "bg-secondary-500" : "bg-neutral-300"
+                hasVisualIdentity ? "bg-secondary-500" : "bg-portal-divider"
               )}
             >
               <div
@@ -167,17 +169,17 @@ export function Section4_Creative({
               render={({ field, fieldState }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2 text-sm">
-                    <Palette className="w-4 h-4 text-neutral-400" />
+                    <Palette className={cn("w-4 h-4", iconColor)} />
                     التوجه البصري
                   </FormLabel>
                   <div className={cn(
                     "p-6 rounded-2xl border",
-                    isPortal ? "bg-gradient-to-br from-neutral-50 to-neutral-100 border-neutral-200" : "bg-muted/50 border-border"
+                    isPortal ? "bg-gradient-to-br from-portal-bg to-portal-divider border-portal-card-border" : "bg-muted/50 border-border"
                   )}>
                     <p className="text-natural-100 font-medium mb-2">
                       احكي لنا عن 3 حسابات يعجبك ستايل تصاميمها
                     </p>
-                    <p className="text-sm text-neutral-400 mb-4">
+                    <p className={cn("text-sm mb-4", noteColor)}>
                       @account1, @account2, @account3
                     </p>
                     <FormInputControl

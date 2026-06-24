@@ -11,6 +11,13 @@ import {
 } from "@/components/design-system/Form";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
+import {
+  FormSelect,
+  FormSelectTrigger,
+  FormSelectValue,
+  FormSelectContent,
+  FormSelectItem,
+} from "@/components/design-system/FormSelectControl";
 import { Building2, Target, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Section1Data, FormMode } from "../types";
@@ -44,6 +51,8 @@ export function Section1_Business({
   const isPortal = mode === "portal";
   const sectionBg = isPortal ? "" : "bg-card";
   const borderColor = isPortal ? "border-secondary-100" : "border-border";
+  const iconColor = isPortal ? "text-portal-icon" : "text-neutral-400";
+  const charColor = isPortal ? "text-portal-icon" : "text-neutral-400";
 
   const form = useForm({
     defaultValues: {
@@ -99,29 +108,26 @@ export function Section1_Business({
           render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-sm">
-                <Building2 className="w-4 h-4 text-neutral-400" />
+                <Building2 className={cn("w-4 h-4", iconColor)} />
                 المجال / النشاط التجاري
                 <span className="text-danger-500">*</span>
               </FormLabel>
-              <select
-                {...field}
-                value={field.value ?? ""}
-                onChange={(e) => field.onChange(e.target.value || undefined)}
-                className={cn(
-                  "flex h-11 w-full items-center rounded-xl border bg-white px-3 py-2 text-sm text-right",
-                  "focus:outline-none focus:ring-2 focus:ring-secondary-500",
-                  isPortal ? "border-neutral-200" : "border-input"
-                )}
+              <FormSelect
+                onValueChange={field.onChange}
+                defaultValue={field.value || ""}
+                value={field.value || ""}
               >
-                <option value="" disabled>
-                  اختر مجال نشاطك
-                </option>
-                {INDUSTRY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                <FormSelectTrigger className={cn(isPortal ? "border-portal-card-border" : "border-input")}>
+                  <FormSelectValue placeholder="اختر مجال نشاطك" />
+                </FormSelectTrigger>
+                <FormSelectContent>
+                  {INDUSTRY_OPTIONS.map((opt) => (
+                    <FormSelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </FormSelectItem>
+                  ))}
+                </FormSelectContent>
+              </FormSelect>
               <FormMessage>{fieldState.error?.message}</FormMessage>
             </FormItem>
           )}
@@ -133,7 +139,7 @@ export function Section1_Business({
           render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-sm">
-                <Building2 className="w-4 h-4 text-neutral-400" />
+                <Building2 className={cn("w-4 h-4", iconColor)} />
                 قصة النشاط التجاري
                 <span className="text-danger-500">*</span>
               </FormLabel>
@@ -144,7 +150,7 @@ export function Section1_Business({
               />
               <div className="flex justify-between items-center mt-1">
                 <FormMessage>{fieldState.error?.message}</FormMessage>
-                <span className="text-xs text-neutral-400">
+                <span className={cn("text-xs", charColor)}>
                   {field.value?.length || 0} / 1000
                 </span>
               </div>
@@ -158,7 +164,7 @@ export function Section1_Business({
           render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-sm">
-                <Target className="w-4 h-4 text-neutral-400" />
+                <Target className={cn("w-4 h-4", iconColor)} />
                 الجمهور المستهدف
               </FormLabel>
               <FormTextareaControl
@@ -178,7 +184,7 @@ export function Section1_Business({
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm">
-                  <DollarSign className="w-4 h-4 text-neutral-400" />
+                  <DollarSign className={cn("w-4 h-4", iconColor)} />
                   الميزانية من (SAR)
                 </FormLabel>
                 <FormInputControl
@@ -204,7 +210,7 @@ export function Section1_Business({
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm">
-                  <DollarSign className="w-4 h-4 text-neutral-400" />
+                  <DollarSign className={cn("w-4 h-4", iconColor)} />
                   الميزانية إلى (SAR)
                 </FormLabel>
                 <FormInputControl
