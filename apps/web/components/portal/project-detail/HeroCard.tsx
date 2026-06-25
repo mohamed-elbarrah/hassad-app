@@ -95,16 +95,7 @@ export function HeroCard({
               {downloading ? "جاري التحميل..." : "تحميل تقرير الفترة"}
             </ActionButton>
           )}
-          {period.invoice && (
-            <ActionButton
-              size="sm"
-              variant="outline"
-              icon={<ChevronLeft className="size-4" />}
-              onClick={onViewInvoice}
-            >
-              عرض الفاتورة
-            </ActionButton>
-          )}
+         
         </div>
       </div>
     </SurfaceCard>

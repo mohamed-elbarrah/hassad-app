@@ -19,7 +19,7 @@ export function PeriodTimeline({
 }: PeriodTimelineProps) {
   return (
     <div
-      className="rounded-[30px] border border-portal-card-border bg-natural-0 p-6"
+      className="rounded-[30px]   p-6"
       dir="rtl"
     >
       <div className="relative flex items-start justify-between overflow-x-auto px-2 scrollbar-hide">
@@ -42,7 +42,7 @@ export function PeriodTimeline({
                 className={cn(
                   "flex h-12 w-12 items-center justify-center rounded-full text-base font-bold transition-all duration-300",
                   highlight
-                    ? "scale-110 rounded-full bg-success-500 text-white shadow-xl shadow-success-500/30 ring-4 ring-success-100"
+                    ? "rounded-full bg-success-500 text-white shadow-xl shadow-success-500/20"
                     : isClosed
                       ? "border-2 border-success-400 bg-natural-0 text-success-500 hover:border-success-500"
                       : "border-2 border-neutral-200 bg-natural-0 text-neutral-400",
@@ -66,7 +66,11 @@ export function PeriodTimeline({
                       : "text-neutral-400",
                   )}
                 >
-                  {isClosed ? "مكتمل" : isActive || isSelected ? "الحالية" : "قادم"}
+                  {isClosed
+                    ? "مكتمل"
+                    : isActive || isSelected
+                      ? "الحالية"
+                      : "قادم"}
                 </p>
                 <p className="mt-0.5 whitespace-nowrap text-[10px] text-portal-note-text">
                   {formatShortDate(period.startDate)}-

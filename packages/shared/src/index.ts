@@ -19,6 +19,7 @@ export * from "./schemas/proposal.schema";
 export * from "./schemas/project.schema";
 export * from "./schemas/user.schema";
 export * from "./schemas/dispute.schema";
+export * from "./schemas/intake-form-v2.schema";
 
 import type { ServiceItem } from "./schemas/proposal.schema";
 

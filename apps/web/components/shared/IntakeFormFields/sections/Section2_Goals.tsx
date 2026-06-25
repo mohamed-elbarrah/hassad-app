@@ -11,6 +11,13 @@ import {
 } from "@/components/design-system/Form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
+import {
+  FormSelect,
+  FormSelectTrigger,
+  FormSelectValue,
+  FormSelectContent,
+  FormSelectItem,
+} from "@/components/design-system/FormSelectControl";
 import { Target, TrendingUp, Users, Sparkles, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Section2Data, FormMode } from "../types";
@@ -47,6 +54,10 @@ export function Section2_Goals({
   showInfoBox = true,
 }: Section2_GoalsProps) {
   const isPortal = mode === "portal";
+  const iconColor = isPortal ? "text-portal-icon" : "text-neutral-400";
+  const cardBorder = isPortal ? "border-portal-card-border hover:border-portal-card-border" : "border-neutral-200 hover:border-neutral-300";
+  const checkboxBorder = isPortal ? "border-portal-divider" : "border-neutral-300";
+  const selectBorder = isPortal ? "border-portal-card-border" : "border-input";
   const [selectedGoals, setSelectedGoals] = useState<string[]>(
     initialData?.campaignGoals || []
   );
@@ -110,7 +121,7 @@ export function Section2_Goals({
 
         <div className="space-y-4">
           <label className="flex items-center gap-2 text-sm font-medium text-natural-100">
-            <Target className="w-4 h-4 text-neutral-400" />
+            <Target className={cn("w-4 h-4", iconColor)} />
             أهداف الحملة
             <span className="text-danger-500">*</span>
           </label>
@@ -124,7 +135,7 @@ export function Section2_Goals({
                   "flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all",
                   selectedGoals.includes(goal.value)
                     ? "border-secondary-500 bg-secondary-50/50 shadow-sm"
-                    : "border-neutral-200 hover:border-neutral-300"
+                    : cardBorder
                 )}
               >
                 <div
@@ -132,7 +143,7 @@ export function Section2_Goals({
                     "w-5 h-5 rounded flex items-center justify-center",
                     selectedGoals.includes(goal.value)
                       ? "bg-secondary-500 text-white"
-                      : "border border-neutral-300 bg-white"
+                      : cn("border bg-white", checkboxBorder)
                   )}
                 >
                   {selectedGoals.includes(goal.value) && (
@@ -151,7 +162,7 @@ export function Section2_Goals({
                     </svg>
                   )}
                 </div>
-                <goal.icon className="w-5 h-5 text-neutral-400" />
+                <goal.icon className={cn("w-5 h-5", iconColor)} />
                 <span className="text-sm font-medium">{goal.label}</span>
               </div>
             ))}
@@ -169,7 +180,7 @@ export function Section2_Goals({
           render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-sm">
-                <Sparkles className="w-4 w-4 text-neutral-400" />
+                <Sparkles className={cn("w-4 h-4", iconColor)} />
                 عرض الحملة القوي
               </FormLabel>
               <FormTextareaControl
@@ -188,7 +199,7 @@ export function Section2_Goals({
           render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-sm">
-                <Target className="w-4 h-4 text-neutral-400" />
+                <Target className={cn("w-4 h-4", iconColor)} />
                 المنافسون
               </FormLabel>
               <FormInputControl
@@ -206,27 +217,25 @@ export function Section2_Goals({
           render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-neutral-400" />
+                <Calendar className={cn("w-4 h-4", iconColor)} />
                 التوقيت الموسمي
               </FormLabel>
-              <select
-                {...field}
-                value={field.value ?? ""}
-                onChange={(e) => field.onChange(e.target.value || undefined)}
-                className={cn(
-                  "flex h-11 w-full items-center rounded-xl border bg-white px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-secondary-500",
-                  isPortal ? "border-neutral-200" : "border-input"
-                )}
+              <FormSelect
+                onValueChange={field.onChange}
+                defaultValue={field.value || ""}
+                value={field.value || ""}
               >
-                <option value="" disabled>
-                  اختر المناسبة (اختياري)
-                </option>
-                {SEASONAL_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                <FormSelectTrigger className={selectBorder}>
+                  <FormSelectValue placeholder="اختر المناسبة (اختياري)" />
+                </FormSelectTrigger>
+                <FormSelectContent>
+                  {SEASONAL_OPTIONS.map((opt) => (
+                    <FormSelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </FormSelectItem>
+                  ))}
+                </FormSelectContent>
+              </FormSelect>
               <FormMessage>{fieldState.error?.message}</FormMessage>
             </FormItem>
           )}

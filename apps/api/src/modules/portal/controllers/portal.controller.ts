@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Param,
@@ -20,6 +21,7 @@ import {
   CreateDeliverableDto,
   CreateRevisionDto,
   CreateIntakeFormDto,
+  SaveDraftDto,
   ReportTimelineQueryDto,
   RequestProjectRevisionDto,
 } from "../dto/portal.dto";
@@ -366,6 +368,16 @@ export class PortalController {
     }
   }
 
+  @Get("portal/intake-form")
+  @RequirePermissions("portal.manage_intake")
+  async getMyIntakeForm(@CurrentUser() user: any) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      throw new ForbiddenException("العميل غير موجود");
+    }
+    return this.portalService.getIntakeForm(clientId);
+  }
+
   @Post("portal/intake-form")
   @RequirePermissions("portal.manage_intake")
   async submitIntakeForm(
@@ -382,6 +394,20 @@ export class PortalController {
       dto,
       dto.uploadedFiles || [],
     );
+  }
+
+  @Patch("portal/intake-form/draft")
+  @RequirePermissions("portal.manage_intake")
+  async saveIntakeFormDraft(
+    @Body() dto: SaveDraftDto,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) {
+      throw new ForbiddenException("العميل غير موجود");
+    }
+
+    return this.portalService.saveDraft(clientId, dto);
   }
 
   @Post("clients/:id/intake-form")

@@ -1107,6 +1107,18 @@ model PortalIntakeForm {
   visualReferences      String?   @map("visual_references")
   uploadedFiles         Json?     @map("uploaded_files")
   
+  // V2: New JSON sections
+  currentStep           Int?      @default(0) @map("current_step")
+  communicationInfo     Json?     @map("communication_info")
+  productInfo           Json?     @map("product_info")
+  audienceInfo          Json?     @map("audience_info")
+  brandVoice            Json?     @map("brand_voice")
+  customerJourney       Json?     @map("customer_journey")
+  campaignInfo          Json?     @map("campaign_info")
+  pastPerformance       Json?     @map("past_performance")
+  budgetInfo            Json?     @map("budget_info")
+  visualIdentityInfo    Json?     @map("visual_identity_info")
+
   // Metadata
   isSubmitted           Boolean   @default(false) @map("is_submitted")
   submittedAt           DateTime? @map("submitted_at")

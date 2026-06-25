@@ -69,6 +69,10 @@ export function Section3_Journey({
   showInfoBox = true,
 }: Section3_JourneyProps) {
   const isPortal = mode === "portal";
+  const iconColor = isPortal ? "text-portal-icon" : "text-neutral-400";
+  const descriptionColor = isPortal ? "text-portal-note-text" : "text-neutral-500";
+  const cardBorder = isPortal ? "border-portal-card-border hover:border-portal-card-border" : "border-neutral-200 hover:border-neutral-300";
+  const checkboxBorder = isPortal ? "border-portal-divider" : "border-neutral-300";
   const [selectedMethods, setSelectedMethods] = useState<string[]>(
     initialData?.orderMethods || []
   );
@@ -149,7 +153,7 @@ export function Section3_Journey({
                   "p-4 rounded-xl border cursor-pointer transition-all",
                   selectedMethods.includes(method.value)
                     ? "border-secondary-500 bg-secondary-50/50 shadow-sm"
-                    : "border-neutral-200 hover:border-neutral-300"
+                    : cardBorder
                 )}
               >
                 <div className="flex items-start gap-3">
@@ -158,7 +162,7 @@ export function Section3_Journey({
                       "w-5 h-5 rounded flex items-center justify-center shrink-0",
                       selectedMethods.includes(method.value)
                         ? "bg-secondary-500 text-white"
-                        : "border border-neutral-300 bg-white"
+                        : cn("border bg-white", checkboxBorder)
                     )}
                   >
                     {selectedMethods.includes(method.value) && (
@@ -179,12 +183,12 @@ export function Section3_Journey({
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <method.icon className="w-4 h-4 text-neutral-400" />
+                      <method.icon className={cn("w-4 h-4", iconColor)} />
                       <span className="text-sm font-medium">
                         {method.label}
                       </span>
                     </div>
-                    <p className="text-xs text-neutral-500 mt-1">
+                    <p className={cn("text-xs mt-1", descriptionColor)}>
                       {method.description}
                     </p>
                   </div>
@@ -206,13 +210,13 @@ export function Section3_Journey({
 
           <div className={cn(
             "flex items-center justify-between p-6 rounded-2xl border",
-            isPortal ? "bg-neutral-50 border-neutral-100" : "bg-muted/50 border-border"
+            isPortal ? "bg-portal-bg border-portal-divider" : "bg-muted/50 border-border"
           )}>
             <div>
               <p className="font-medium text-natural-100">
                 هل عندك نظام يتابع السلات المتروكة؟
               </p>
-              <p className="text-sm text-neutral-400 mt-1">
+              <p className={cn("text-sm mt-1", iconColor)}>
                 نظام يرسل تذكير للعميل اللي يترك طلبه بدون إكمال
               </p>
             </div>
@@ -221,7 +225,7 @@ export function Section3_Journey({
               onClick={() => setHasAbandonedCart(!hasAbandonedCart)}
               className={cn(
                 "w-14 h-8 rounded-full p-1 transition-colors duration-300",
-                hasAbandonedCart ? "bg-secondary-500" : "bg-neutral-300"
+                hasAbandonedCart ? "bg-secondary-500" : "bg-portal-divider"
               )}
             >
               <div

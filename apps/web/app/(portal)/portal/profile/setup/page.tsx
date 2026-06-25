@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { UserRole } from "@hassad/shared";
-import { IntakeForm } from "@/components/portal/IntakeForm";
+import { IntakeFormV2 } from "@/components/portal/IntakeFormV2";
 import { updateUser } from "@/features/auth/authSlice";
 import Image from "next/image";
 import { Building2, Sparkles, MessageCircle, Target, Clock } from "lucide-react";
@@ -41,7 +41,7 @@ export default function ProfileSetupPage() {
       dir="rtl"
       style={{ background: "#F9FAFB" }}
     >
-      <div className="lg:w-[42%] bg-gradient-to-br from-secondary-500 via-secondary-600 to-secondary-700 text-white p-8 lg:p-12 xl:p-16 flex flex-col justify-center relative overflow-hidden">
+      <div className="lg:w-[42%] lg:sticky lg:top-0 lg:h-screen lg:self-start bg-gradient-to-br from-secondary-500 via-secondary-600 to-secondary-700 text-white p-8 lg:p-12 xl:p-16 flex flex-col justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-5">
           <div
             className="absolute inset-0"
@@ -143,7 +143,7 @@ export default function ProfileSetupPage() {
             </p>
           </div>
 
-          <IntakeForm
+          <IntakeFormV2
             onSuccess={() => {
               dispatch(updateUser({ intakeCompleted: true }));
               router.push("/portal");

@@ -499,6 +499,19 @@ export interface TeamMembersResponse {
   members: TeamMember[];
 }
 
+export interface IntakeFormDraft {
+  currentStep?: number;
+  communicationInfo?: Record<string, unknown>;
+  productInfo?: Record<string, unknown>;
+  audienceInfo?: Record<string, unknown>;
+  brandVoice?: Record<string, unknown>;
+  customerJourney?: Record<string, unknown>;
+  campaignInfo?: Record<string, unknown>;
+  pastPerformance?: Record<string, unknown>;
+  budgetInfo?: Record<string, unknown>;
+  visualIdentityInfo?: Record<string, unknown>;
+}
+
 export const portalApi = createApi({
   reducerPath: "portalApi",
   baseQuery,
@@ -520,6 +533,7 @@ export const portalApi = createApi({
     "PortalStrategies",
     "ClientDisputes",
     "ClientDispute",
+    "IntakeFormDraft",
   ],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
@@ -852,6 +866,31 @@ export const portalApi = createApi({
         "ClientDisputes",
       ],
     }),
+
+    // ── Intake Form V2 ──────────────────────────────────────────────
+
+    getIntakeFormDraft: builder.query<IntakeFormDraft | null, void>({
+      query: () => "/portal/intake-form",
+      providesTags: ["IntakeFormDraft"],
+    }),
+
+    saveIntakeFormDraft: builder.mutation<IntakeFormDraft, Partial<IntakeFormDraft>>({
+      query: (body) => ({
+        url: "/portal/intake-form/draft",
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["IntakeFormDraft"],
+    }),
+
+    submitIntakeForm: builder.mutation<{ success: boolean }, Partial<IntakeFormDraft>>({
+      query: (body) => ({
+        url: "/portal/intake-form",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["IntakeFormDraft"],
+    }),
   }),
 });
 
@@ -900,4 +939,8 @@ export const {
   useCreateDisputeMutation,
   useAddDisputeMessageMutation,
   useConfirmDisputeResolutionMutation,
+  // Intake Form V2 hooks
+  useGetIntakeFormDraftQuery,
+  useSaveIntakeFormDraftMutation,
+  useSubmitIntakeFormMutation,
 } = portalApi;

@@ -119,7 +119,7 @@ export function IntakeFormFields({
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between gap-3 pt-4 border-t border-neutral-100">
+      <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
         {currentSection > 0 && (
           <ActionButton
             type="button"

@@ -130,7 +130,7 @@ export function FileUploadZone({
           {uploadedFiles.map((file) => (
             <div
               key={file.key}
-              className="flex items-center gap-3 p-3 bg-white border border-neutral-200 rounded-xl"
+              className="flex items-center gap-3 p-3 bg-white border border-portal-card-border rounded-xl"
             >
               {file.preview ? (
                 <img
@@ -139,11 +139,11 @@ export function FileUploadZone({
                   className="w-12 h-12 object-cover rounded-lg"
                 />
               ) : (
-                <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-portal-divider rounded-lg flex items-center justify-center">
                   {file.mimeType.startsWith("image/") ? (
-                    <Image className="w-6 h-6 text-neutral-400" />
+                    <Image className="w-6 h-6 text-portal-icon" />
                   ) : (
-                    <FileText className="w-6 h-6 text-neutral-400" />
+                    <FileText className="w-6 h-6 text-portal-icon" />
                   )}
                 </div>
               )}
@@ -152,7 +152,7 @@ export function FileUploadZone({
                 <p className="text-sm font-medium text-natural-100 truncate">
                   {file.originalName}
                 </p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-portal-note-text">
                   {file.size
                     ? `${(file.size / 1024).toFixed(0)} كيلوبايت`
                     : ""}
