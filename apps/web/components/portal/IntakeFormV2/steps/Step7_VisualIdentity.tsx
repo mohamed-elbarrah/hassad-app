@@ -338,7 +338,12 @@ export function Step7_VisualIdentity({
                 السابق
               </ActionButton>
             )}
-            <ActionButton type="submit" variant="primary" className="mr-auto">
+            <ActionButton
+              type="button"
+              variant="primary"
+              className="mr-auto"
+              onClick={form.handleSubmit(onSubmit)}
+            >
               التالي
             </ActionButton>
           </div>

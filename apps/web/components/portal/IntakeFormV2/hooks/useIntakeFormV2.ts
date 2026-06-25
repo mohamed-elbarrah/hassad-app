@@ -109,7 +109,7 @@ export function useIntakeFormV2(onSuccess?: () => void) {
   );
 
   const nextStep = useCallback(() => {
-    goToStep(Math.min(currentStep + 1, TOTAL_STEPS - 1));
+    goToStep(Math.min(currentStep + 1, TOTAL_STEPS));
   }, [currentStep, goToStep]);
 
   const prevStep = useCallback(() => {
