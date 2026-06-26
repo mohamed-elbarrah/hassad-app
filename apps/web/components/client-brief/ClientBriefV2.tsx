@@ -77,59 +77,73 @@ export function ClientBriefV2({
         <KpiGrid kpis={kpis} />
 
         {hasAnyProfileSection ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-            <CommunicationSection
-              mode="view"
-              initialData={viewProfile?.communicationInfo ?? undefined}
-            />
+          <div className="columns-1 xl:columns-2 gap-5">
+            <div className="break-inside-avoid mb-5">
+              <CommunicationSection
+                mode="view"
+                initialData={viewProfile?.communicationInfo ?? undefined}
+              />
+            </div>
 
-            <ProductSection
-              mode="view"
-              initialData={viewProfile?.productInfo ?? undefined}
-            />
+            <div className="break-inside-avoid mb-5">
+              <ProductSection
+                mode="view"
+                initialData={viewProfile?.productInfo ?? undefined}
+              />
+            </div>
 
-            <AudienceSection
-              mode="view"
-              initialData={{
-                customerAnalysis: viewProfile?.audienceInfo?.customerAnalysis,
-                faq: viewProfile?.audienceInfo?.faq,
-                toneOfVoice: viewProfile?.brandVoice?.toneOfVoice,
-                boundaries: viewProfile?.brandVoice?.boundaries,
-                verbalSlogan: viewProfile?.brandVoice?.verbalSlogan,
-                appearanceMethod: viewProfile?.brandVoice?.appearanceMethod,
-              }}
-            />
+            <div className="break-inside-avoid mb-5">
+              <AudienceSection
+                mode="view"
+                initialData={{
+                  customerAnalysis: viewProfile?.audienceInfo?.customerAnalysis,
+                  faq: viewProfile?.audienceInfo?.faq,
+                  toneOfVoice: viewProfile?.brandVoice?.toneOfVoice,
+                  boundaries: viewProfile?.brandVoice?.boundaries,
+                  verbalSlogan: viewProfile?.brandVoice?.verbalSlogan,
+                  appearanceMethod: viewProfile?.brandVoice?.appearanceMethod,
+                }}
+              />
+            </div>
 
-            <JourneySection
-              mode="view"
-              initialData={viewProfile?.customerJourney ?? undefined}
-            />
+            <div className="break-inside-avoid mb-5">
+              <JourneySection
+                mode="view"
+                initialData={viewProfile?.customerJourney ?? undefined}
+              />
+            </div>
 
-            <CampaignSection
-              mode="view"
-              initialData={viewProfile?.campaignInfo ?? undefined}
-            />
+            <div className="break-inside-avoid mb-5">
+              <CampaignSection
+                mode="view"
+                initialData={viewProfile?.campaignInfo ?? undefined}
+              />
+            </div>
 
-            <PerformanceSection
-              mode="view"
-              initialData={{
-                pastPerformance: viewProfile?.pastPerformance ?? undefined,
-                budgetInfo: viewProfile?.budgetInfo ?? undefined,
-              }}
-            />
+            <div className="break-inside-avoid mb-5">
+              <PerformanceSection
+                mode="view"
+                initialData={{
+                  pastPerformance: viewProfile?.pastPerformance ?? undefined,
+                  budgetInfo: viewProfile?.budgetInfo ?? undefined,
+                }}
+              />
+            </div>
 
-            <VisualSection
-              mode="view"
-              initialData={{
-                hasVisualIdentity:
-                  viewProfile?.visualIdentityInfo?.hasVisualIdentity,
-                pastDesigns: viewProfile?.visualIdentityInfo?.pastDesigns,
-                visualDirection:
-                  viewProfile?.visualIdentityInfo?.visualDirection,
-                brandAssets: viewProfile?.visualIdentityInfo?.brandAssets,
-                productPhotos: viewProfile?.visualIdentityInfo?.productPhotos,
-              }}
-            />
+            <div className="break-inside-avoid mb-5">
+              <VisualSection
+                mode="view"
+                initialData={{
+                  hasVisualIdentity:
+                    viewProfile?.visualIdentityInfo?.hasVisualIdentity,
+                  pastDesigns: viewProfile?.visualIdentityInfo?.pastDesigns,
+                  visualDirection:
+                    viewProfile?.visualIdentityInfo?.visualDirection,
+                  brandAssets: viewProfile?.visualIdentityInfo?.brandAssets,
+                  productPhotos: viewProfile?.visualIdentityInfo?.productPhotos,
+                }}
+              />
+            </div>
           </div>
         ) : (
           <EmptySection message="لم يتم إكمال الملف التعريفي بعد" />
