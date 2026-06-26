@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import type { ServiceItem, PaymentMethod, InvoiceStatus } from "@hassad/shared";
 import type {
   PeriodGoal,
   MeetingStatus,
@@ -512,6 +513,72 @@ export interface IntakeFormDraft {
   visualIdentityInfo?: Record<string, unknown>;
 }
 
+/**
+ * Shape of `GET /portal/contracts/:id` — mirrors the Prisma include in
+ * `portal.service.ts:getContractById` (audit issue #14).
+ *
+ * `proposal` is typed as the full Proposal shape so future consumers can
+ * safely access any field. Fields not currently read by the contract
+ * detail page are present but not marked optional.
+ */
+export interface PortalContractClient {
+  id: string;
+  companyName: string;
+  contactName: string;
+}
+
+export interface PortalContractInvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface PortalContractPayment {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  status: string;
+  date: string;
+}
+
+export interface PortalContractInvoice {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  status: InvoiceStatus;
+  paymentMethod: PaymentMethod;
+  issueDate: string;
+  dueDate: string;
+  paidAt?: string | null;
+  paymentReference?: string | null;
+  items?: PortalContractInvoiceItem[];
+  payments?: PortalContractPayment[];
+}
+
+export interface PortalContractDetail {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  monthlyValue: number;
+  totalValue: number;
+  filePath: string | null;
+  shareLinkToken: string | null;
+  versionNumber: number;
+  eSigned: boolean;
+  signedAt: string | null;
+  createdAt: string;
+  servicesList?: ServiceItem[] | null;
+  client: PortalContractClient | null;
+  proposal?: unknown;
+  invoices: PortalContractInvoice[];
+  request: { id: string; status: string } | null;
+}
+
 export const portalApi = createApi({
   reducerPath: "portalApi",
   baseQuery,
@@ -565,8 +632,23 @@ export const portalApi = createApi({
           : { url: "/portal/requests" },
       providesTags: ["PortalRequests"],
     }),
-    getPortalCampaigns: builder.query<PortalCampaign[], void>({
-      query: () => "/portal/campaigns",
+    // Optional `projectId` arg narrows the response to campaigns attached to a
+    // specific project (used by the project-detail CampaignsTab). The full
+    // campaigns page passes `undefined` to get all client campaigns.
+    // (Audit issue #8)
+    getPortalCampaigns: builder.query<
+      PortalCampaign[],
+      { projectId?: string } | void
+    >({
+      query: (arg) => {
+        // RTK Query passes `void` when called with no args; narrow at runtime.
+        const projectId =
+          typeof arg === "object" && arg !== null ? arg.projectId : undefined;
+        const params = projectId ? { projectId } : undefined;
+        return params
+          ? { url: "/portal/campaigns", params }
+          : { url: "/portal/campaigns" };
+      },
       providesTags: ["PortalCampaigns"],
     }),
     getPortalCampaign: builder.query<PortalCampaignDetail, string>({
@@ -622,7 +704,7 @@ export const portalApi = createApi({
       providesTags: ["PortalContracts"],
     }),
 
-    getPortalContractById: builder.query<any, string>({
+    getPortalContractById: builder.query<PortalContractDetail, string>({
       query: (id) => `/portal/contracts/${id}`,
       providesTags: (_result, _error, id) => [{ type: "PortalContracts", id }],
     }),
@@ -647,7 +729,7 @@ export const portalApi = createApi({
       }),
       invalidatesTags: ["ActionItems", "ActivityFeed"], // NEW
     }),
-    
+
     // NEW: Deliverable approval
     approveDeliverable: builder.mutation<any, string>({
       query: (id) => ({
@@ -656,7 +738,7 @@ export const portalApi = createApi({
       }),
       invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
     }),
-    
+
     rejectDeliverable: builder.mutation<any, string>({
       query: (id) => ({
         url: `/deliverables/${id}/reject`,
@@ -664,7 +746,7 @@ export const portalApi = createApi({
       }),
       invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
     }),
-    
+
     // NEW: Contract signing
     signContract: builder.mutation<any, string>({
       query: (id) => ({
@@ -673,7 +755,7 @@ export const portalApi = createApi({
       }),
       invalidatesTags: ["PortalContracts", "ActionItems", "ActivityFeed"],
     }),
-    
+
     getPortalReports: builder.query<ReportSummary, void>({
       query: () => "/portal/reports",
       providesTags: ["PortalReports"],
@@ -739,6 +821,14 @@ export const portalApi = createApi({
       query: (id) => `/portal/projects/${id}/revisions`,
     }),
 
+    // NOTE: both per-id endpoints below provide `[{ type: "PortalProjects", id }]`.
+    // This is intentionally the SAME tag shape as the list endpoint
+    // (`getPortalProjects`). RTK Query matches by tag identity, so any
+    // mutation that invalidates `"PortalProjects"` (e.g. `approveProject`)
+    // correctly refetches all three — list, detail, and periods. Do NOT
+    // switch these to a different tag without updating every mutation that
+    // invalidates the parent tag. (Audit issue #13)
+
     getPortalProjectPeriods: builder.query<PortalPeriodSummary[], string>({
       query: (projectId) => `/portal/projects/${projectId}/periods`,
       providesTags: (_result, _error, id) => [{ type: "PortalProjects", id }],
@@ -754,16 +844,20 @@ export const portalApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "PortalInvoices", id }],
     }),
 
-    downloadPeriodReport: builder.query<DownloadUrlResponse, string>({
-      query: (periodId) => `/portal/projects/_/periods/${periodId}/report/download`,
+    downloadPeriodReport: builder.query<
+      DownloadUrlResponse,
+      { projectId: string; periodId: string }
+    >({
+      query: ({ projectId, periodId }) =>
+        `/portal/projects/${projectId}/periods/${periodId}/report/download`,
     }),
 
     downloadPeriodFile: builder.query<
       DownloadUrlResponse,
-      { periodId: string; fileId: string }
+      { projectId: string; periodId: string; fileId: string }
     >({
-      query: ({ periodId, fileId }) =>
-        `/portal/projects/_/periods/${periodId}/files/${fileId}/download`,
+      query: ({ projectId, periodId, fileId }) =>
+        `/portal/projects/${projectId}/periods/${periodId}/files/${fileId}/download`,
     }),
 
     getTeamMembers: builder.query<TeamMembersResponse, void>({
@@ -813,7 +907,10 @@ export const portalApi = createApi({
 
     // ─── Dispute Endpoints ──────────────────────────────────────────────────
 
-    getClientDisputes: builder.query<DisputeListResponse, DisputeFilterInput | void>({
+    getClientDisputes: builder.query<
+      DisputeListResponse,
+      DisputeFilterInput | void
+    >({
       query: (params) => ({
         url: "/portal/disputes",
         params: params || undefined,
@@ -821,7 +918,10 @@ export const portalApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({ type: "ClientDispute" as const, id })),
+              ...result.data.map(({ id }) => ({
+                type: "ClientDispute" as const,
+                id,
+              })),
               "ClientDisputes",
             ]
           : ["ClientDisputes"],
@@ -832,7 +932,10 @@ export const portalApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "ClientDispute", id }],
     }),
 
-    createDispute: builder.mutation<DisputeDetail, CreateDisputeInput & { files?: File[] }>({
+    createDispute: builder.mutation<
+      DisputeDetail,
+      CreateDisputeInput & { files?: File[] }
+    >({
       query: ({ files, ...data }) => {
         const formData = new FormData();
         formData.append("projectId", data.projectId);
@@ -845,17 +948,29 @@ export const portalApi = createApi({
       invalidatesTags: ["ClientDisputes"],
     }),
 
-    addDisputeMessage: builder.mutation<DisputeMessage, { disputeId: string; content: string; files?: File[] }>({
+    addDisputeMessage: builder.mutation<
+      DisputeMessage,
+      { disputeId: string; content: string; files?: File[] }
+    >({
       query: ({ disputeId, content, files }) => {
         const formData = new FormData();
         formData.append("content", content);
         if (files?.length) files.forEach((f) => formData.append("files", f));
-        return { url: `/portal/disputes/${disputeId}/messages`, method: "POST", body: formData };
+        return {
+          url: `/portal/disputes/${disputeId}/messages`,
+          method: "POST",
+          body: formData,
+        };
       },
-      invalidatesTags: (_result, _error, { disputeId }) => [{ type: "ClientDispute", id: disputeId }],
+      invalidatesTags: (_result, _error, { disputeId }) => [
+        { type: "ClientDispute", id: disputeId },
+      ],
     }),
 
-    confirmDisputeResolution: builder.mutation<DisputeDetail, { disputeId: string; input: ClientConfirmInput }>({
+    confirmDisputeResolution: builder.mutation<
+      DisputeDetail,
+      { disputeId: string; input: ClientConfirmInput }
+    >({
       query: ({ disputeId, input }) => ({
         url: `/portal/disputes/${disputeId}/confirm`,
         method: "POST",
@@ -874,7 +989,10 @@ export const portalApi = createApi({
       providesTags: ["IntakeFormDraft"],
     }),
 
-    saveIntakeFormDraft: builder.mutation<IntakeFormDraft, Partial<IntakeFormDraft>>({
+    saveIntakeFormDraft: builder.mutation<
+      IntakeFormDraft,
+      Partial<IntakeFormDraft>
+    >({
       query: (body) => ({
         url: "/portal/intake-form/draft",
         method: "PATCH",
@@ -883,7 +1001,10 @@ export const portalApi = createApi({
       invalidatesTags: ["IntakeFormDraft"],
     }),
 
-    submitIntakeForm: builder.mutation<{ success: boolean }, Partial<IntakeFormDraft>>({
+    submitIntakeForm: builder.mutation<
+      { success: boolean },
+      Partial<IntakeFormDraft>
+    >({
       query: (body) => ({
         url: "/portal/intake-form",
         method: "POST",

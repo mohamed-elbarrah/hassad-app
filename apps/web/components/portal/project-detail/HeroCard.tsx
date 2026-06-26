@@ -7,11 +7,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { CircularProgress } from "@/components/design-system/CircularProgress";
-import {
-  formatShortDate,
-  formatDate,
-  getDaysRemaining,
-} from "./helpers";
+import { formatShortDate, formatDate, getDaysRemaining } from "./helpers";
 
 interface HeroCardProps {
   period: PortalPeriodSummary;
@@ -95,7 +91,6 @@ export function HeroCard({
               {downloading ? "جاري التحميل..." : "تحميل تقرير الفترة"}
             </ActionButton>
           )}
-         
         </div>
       </div>
     </SurfaceCard>

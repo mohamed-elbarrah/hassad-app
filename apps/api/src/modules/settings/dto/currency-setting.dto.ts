@@ -7,6 +7,7 @@ import {
   Min,
   IsUUID,
 } from "class-validator";
+import { SanitizeSvg } from "../../../common/security/sanitize-svg.decorator";
 
 export enum SymbolType {
   TEXT = "TEXT",
@@ -28,8 +29,11 @@ export class CreateCurrencySettingDto {
   @IsOptional()
   symbolType?: SymbolType;
 
+  // SanitizeSvg closes the gap where the file-upload endpoint sanitized
+  // SVG content but the JSON DTO path did not. Idempotent on clean input.
   @IsString()
   @IsOptional()
+  @SanitizeSvg()
   svgKey?: string;
 
   @IsNumber()
@@ -73,6 +77,7 @@ export class UpdateCurrencySettingDto {
 
   @IsString()
   @IsOptional()
+  @SanitizeSvg()
   svgKey?: string;
 
   @IsNumber()

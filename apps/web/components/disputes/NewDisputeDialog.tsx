@@ -52,7 +52,9 @@ export function NewDisputeDialog({
   projectId: initialProjectId,
   projectName: initialProjectName,
 }: NewDisputeDialogProps) {
-  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(initialProjectId);
+  const [selectedProjectId, setSelectedProjectId] = useState<
+    string | undefined
+  >(initialProjectId);
   const [category, setCategory] = useState<DisputeCategory | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -60,10 +62,8 @@ export function NewDisputeDialog({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch client projects for selection (only if no initial projectId)
-  const { data: projectsData, isLoading: isLoadingProjects } = useGetPortalProjectsQuery(
-    undefined,
-    { skip: !!initialProjectId }
-  );
+  const { data: projectsData, isLoading: isLoadingProjects } =
+    useGetPortalProjectsQuery(undefined, { skip: !!initialProjectId });
 
   const projects = projectsData?.data || [];
   const showProjectSelector = !initialProjectId;
@@ -105,7 +105,7 @@ export function NewDisputeDialog({
         title: title.trim(),
         description: description.trim(),
       },
-      files.length > 0 ? files : undefined
+      files.length > 0 ? files : undefined,
     );
   };
 
@@ -122,12 +122,28 @@ export function NewDisputeDialog({
     onClose();
   };
 
-  const selectedProjectName = initialProjectName || 
-    projects.find(p => p.id === selectedProjectId)?.name;
+  const selectedProjectName =
+    initialProjectName ||
+    projects.find((p) => p.id === selectedProjectId)?.name;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden" dir="rtl">
+      <DialogContent
+        className="max-w-lg p-0 overflow-hidden"
+        dir="rtl"
+        // Prevent accidental form loss while a request is in-flight
+        // (audit issue #10). Always-on while loading; while idle we
+        // still want a confirmation, but we keep it lightweight via
+        // the explicit "Cancel" button and disable outside-click on
+        // Escape as well so the user can't lose typed content by
+        // hitting Esc by mistake.
+        onInteractOutside={(e) => {
+          if (isLoading) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (isLoading) e.preventDefault();
+        }}
+      >
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-xl font-semibold text-natural-100">
             فتح تذكرة نزاع جديدة
@@ -203,7 +219,7 @@ export function NewDisputeDialog({
                     category === cat.value
                       ? "border-secondary-500 bg-secondary-50/50"
                       : "border-portal-divider hover:border-secondary-300",
-                    isLoading && "opacity-50 cursor-not-allowed"
+                    isLoading && "opacity-50 cursor-not-allowed",
                   )}
                 >
                   <DisputeCategoryIcon category={cat.value} size="sm" />
@@ -237,7 +253,7 @@ export function NewDisputeDialog({
                 "w-full rounded-xl border-[1.5px] bg-natural-0 px-4 py-3 text-sm text-natural-100 placeholder:text-portal-placeholder focus:border-secondary-500 focus:outline-none",
                 errors.title
                   ? "border-danger-300 focus:border-danger-500"
-                  : "border-portal-divider"
+                  : "border-portal-divider",
               )}
             />
             {errors.title && (
@@ -266,7 +282,7 @@ export function NewDisputeDialog({
                 "w-full resize-none rounded-xl border-[1.5px] bg-natural-0 px-4 py-3 text-sm text-natural-100 placeholder:text-portal-placeholder focus:border-secondary-500 focus:outline-none",
                 errors.description
                   ? "border-danger-300 focus:border-danger-500"
-                  : "border-portal-divider"
+                  : "border-portal-divider",
               )}
             />
             {errors.description && (
@@ -306,7 +322,13 @@ export function NewDisputeDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isLoading || !category || !title || !description || (showProjectSelector && !selectedProjectId)}
+            disabled={
+              isLoading ||
+              !category ||
+              !title ||
+              !description ||
+              (showProjectSelector && !selectedProjectId)
+            }
             className="rounded-xl bg-secondary-500 px-6 hover:bg-secondary-600"
           >
             {isLoading ? (

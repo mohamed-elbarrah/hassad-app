@@ -25,7 +25,11 @@ export function ProgressBar({
   showLabel = false,
   className,
 }: ProgressBarProps) {
-  const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  // Defensive: backend may ship null/undefined for completionPercentage.
+  // Coerce to a finite number so we never render NaN% or a broken bar.
+  const safeValue = Number.isFinite(value) ? (value as number) : 0;
+  const safeMax = Number.isFinite(max) && max > 0 ? max : 100;
+  const pct = Math.min(100, Math.max(0, (safeValue / safeMax) * 100));
   return (
     <div className={cn("w-full", className)}>
       <div

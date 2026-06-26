@@ -14,6 +14,7 @@ import {
   NotFoundException,
   ForbiddenException,
   Logger,
+  ParseUUIDPipe,
 } from "@nestjs/common";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { PortalService } from "../services/portal.service";
@@ -32,7 +33,10 @@ import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
-import { ClientApproveStrategyDto, ClientRequestRevisionDto as StrategyRevisionDto } from "../../marketing/dto/marketing-strategy.dto";
+import {
+  ClientApproveStrategyDto,
+  ClientRequestRevisionDto as StrategyRevisionDto,
+} from "../../marketing/dto/marketing-strategy.dto";
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -113,6 +117,51 @@ export class PortalController {
       select: { clientId: true },
     });
     return proj?.clientId === clientId;
+  }
+
+  /** Verify the period exists, belongs to the given project, and that project
+   *  is owned by the current client. Used to defend download URLs against
+   *  IDOR — the periodId alone is not sufficient authorization context.
+   *  (Audit issue #3) */
+  private async verifyPeriodBelongsToProject(
+    clientId: string,
+    projectId: string,
+    periodId: string,
+  ): Promise<void> {
+    const period = await this.prisma.projectPeriod.findUnique({
+      where: { id: periodId },
+      select: { projectId: true, project: { select: { clientId: true } } },
+    });
+    if (
+      !period ||
+      period.projectId !== projectId ||
+      period.project.clientId !== clientId
+    ) {
+      throw new NotFoundException("Report not available");
+    }
+  }
+
+  /** Verify the file exists, belongs to the given project, and that project
+   *  is owned by the current client. (Audit issue #3) */
+  private async verifyFileBelongsToProject(
+    clientId: string,
+    projectId: string,
+    fileId: string,
+  ): Promise<void> {
+    const file = await this.prisma.projectFile.findUnique({
+      where: { id: fileId },
+      select: {
+        projectId: true,
+        project: { select: { clientId: true } },
+      },
+    });
+    if (
+      !file ||
+      file.projectId !== projectId ||
+      file.project.clientId !== clientId
+    ) {
+      throw new NotFoundException("File not found");
+    }
   }
 
   @Get("portal/dashboard")
@@ -471,10 +520,13 @@ export class PortalController {
 
   @Get("portal/campaigns")
   @RequirePermissions("portal.read")
-  async getPortalCampaigns(@CurrentUser() user: any) {
+  async getPortalCampaigns(
+    @CurrentUser() user: any,
+    @Query("projectId", ParseUUIDPipe) projectId?: string,
+  ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) return [];
-    return this.portalService.findCampaignsByClient(clientId);
+    return this.portalService.findCampaignsByClient(clientId, { projectId });
   }
 
   @Get("portal/projects")
@@ -498,10 +550,12 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getProjectPeriods(
     @CurrentUser() user: any,
-    @Param("id") projectId: string,
+    @Param("id", ParseUUIDPipe) projectId: string,
   ) {
     const clientId = await this.resolveClientId(user);
-    if (!clientId) return [];
+    if (!clientId) throw new ForbiddenException();
+    // Service throws NotFoundException for not-found / not-owned — let it
+    // bubble so the client sees a real 404, not a misleading []. (Audit #9)
     return this.portalService.getProjectPeriods(clientId, projectId);
   }
 
@@ -697,7 +751,7 @@ export class PortalController {
   @Get("portal/projects/:id")
   @RequirePermissions("portal.read")
   async getPortalProjectDetail(
-    @Param("id") id: string,
+    @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
@@ -705,25 +759,34 @@ export class PortalController {
     return this.portalService.getProjectDetail(clientId, id);
   }
 
-  @Get("portal/projects/:id/periods/:periodId/report/download")
+  @Get("portal/projects/:projectId/periods/:periodId/report/download")
   @RequirePermissions("portal.read")
   async downloadPeriodReport(
-    @Param("periodId") periodId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("periodId", ParseUUIDPipe) periodId: string,
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
+    // Defense in depth: validate the URL projectId matches the period's
+    // owning project. The service already checks client ownership via the
+    // period, but the URL contract should be enforced too. (Audit issue #3)
+    await this.verifyPeriodBelongsToProject(clientId, projectId, periodId);
     return this.portalService.getPeriodReportDownloadUrl(clientId, periodId);
   }
 
-  @Get("portal/projects/:id/periods/:periodId/files/:fileId/download")
+  @Get("portal/projects/:projectId/periods/:periodId/files/:fileId/download")
   @RequirePermissions("portal.read")
   async downloadPeriodFile(
-    @Param("fileId") fileId: string,
+    @Param("projectId", ParseUUIDPipe) projectId: string,
+    @Param("fileId", ParseUUIDPipe) fileId: string,
     @CurrentUser() user: any,
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
+    // Defense in depth: validate the URL projectId matches the file's
+    // owning project. (Audit issue #3)
+    await this.verifyFileBelongsToProject(clientId, projectId, fileId);
     return this.portalService.getPeriodFileDownloadUrl(clientId, fileId);
   }
 
@@ -799,10 +862,7 @@ export class PortalController {
 
   @Get("portal/marketing-strategies/:id/download")
   @RequirePermissions("portal.read")
-  async downloadStrategy(
-    @Param("id") id: string,
-    @CurrentUser() user: any,
-  ) {
+  async downloadStrategy(@Param("id") id: string, @CurrentUser() user: any) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
 

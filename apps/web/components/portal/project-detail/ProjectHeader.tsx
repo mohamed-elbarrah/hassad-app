@@ -22,7 +22,6 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
 
-  
   const handleCreateDispute = async (
     data: CreateDisputeInput,
     files?: File[],
@@ -41,7 +40,10 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" dir="rtl">
+    <div
+      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      dir="rtl"
+    >
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.push("/portal/projects")}
@@ -73,7 +75,6 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
           <Ticket className="h-4 w-4" />
           فتح تذكرة
         </ActionButton>
-        
       </div>
 
       <NewDisputeDialog

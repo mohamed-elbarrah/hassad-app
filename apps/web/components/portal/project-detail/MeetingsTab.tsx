@@ -1,15 +1,27 @@
 "use client";
 
-import { Calendar, Users, Video, MapPin, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Calendar,
+  Users,
+  Video,
+  MapPin,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import type { PortalPeriodMeeting } from "@/features/portal/portalApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { EmptyState } from "./EmptyState";
 import { formatDateTime } from "./helpers";
+import { safeHttpUrl } from "@/lib/utils";
 
 function MeetingRow({ meeting }: { meeting: PortalPeriodMeeting }) {
   const isDone = meeting.status === "DONE";
   const isCancelled = meeting.status === "CANCELLED";
+  // Defense in depth: server validates http(s) on write, but legacy rows
+  // pre-dating that validation could still contain dangerous protocols.
+  // safeHttpUrl filters them out at render time.
+  const safeMeetingLink = safeHttpUrl(meeting.meetingLink);
 
   return (
     <div className="flex items-start gap-4 border-b border-portal-divider py-4 last:border-0">
@@ -53,9 +65,9 @@ function MeetingRow({ meeting }: { meeting: PortalPeriodMeeting }) {
               {meeting.location}
             </span>
           )}
-          {meeting.meetingLink && (
+          {safeMeetingLink && (
             <a
-              href={meeting.meetingLink}
+              href={safeMeetingLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-action-blue hover:underline"
@@ -66,7 +78,7 @@ function MeetingRow({ meeting }: { meeting: PortalPeriodMeeting }) {
           )}
         </div>
         {meeting.notes && (
-          <p className="mt-2 whitespace-pre-line rounded-lg bg-badge-gray-bg p-2 text-xs leading-5 text-portal-note-text">
+          <p className="mt-2 whitespace-pre-line rounded-lg bg-badge-gray-bg p-2 text-xs leading-5 text-portal-note-text max-h-40 overflow-y-auto">
             {meeting.notes}
           </p>
         )}

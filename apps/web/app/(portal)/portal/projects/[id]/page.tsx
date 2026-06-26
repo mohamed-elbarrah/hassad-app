@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
 import {
+  AlertTriangle,
   Calendar,
   DollarSign,
   FileText,
   Megaphone,
   Paperclip,
+  RefreshCw,
   Target,
   Users,
 } from "lucide-react";
@@ -67,10 +70,18 @@ export default function PortalProjectPeriodsPage() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const { data: project, isLoading: projectLoading } =
-    useGetPortalProjectDetailQuery(projectId);
-  const { data: periods, isLoading: periodsLoading } =
-    useGetPortalProjectPeriodsQuery(projectId);
+  const {
+    data: project,
+    isLoading: projectLoading,
+    isError: projectError,
+    refetch: refetchProject,
+  } = useGetPortalProjectDetailQuery(projectId);
+  const {
+    data: periods,
+    isLoading: periodsLoading,
+    isError: periodsError,
+    refetch: refetchPeriods,
+  } = useGetPortalProjectPeriodsQuery(projectId);
 
   const [triggerReportDownload] = useLazyDownloadPeriodReportQuery();
   const [triggerFileDownload] = useLazyDownloadPeriodFileQuery();
@@ -78,30 +89,80 @@ export default function PortalProjectPeriodsPage() {
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("goals");
 
+  // Reset client-side selection whenever the user navigates to a different
+  // project. Next.js App Router reuses this component instance across
+  // [id] changes, so without this reset the previously-selected periodId
+  // leaks into the new project and `selectedPeriod` becomes null
+  // (silent broken UI). See audit issue #2.
+  useEffect(() => {
+    setSelectedPeriodId(null);
+    setActiveTab("goals");
+  }, [projectId]);
+
   // Auto-select the active (or first) period once periods load.
+  // Depends ONLY on periods — when the user explicitly picks a different
+  // period we don't want to re-run this effect. (Audit issue #12.)
   useEffect(() => {
     if (periods && periods.length > 0 && !selectedPeriodId) {
       setSelectedPeriodId(pickInitialPeriod(periods));
     }
-  }, [periods, selectedPeriodId]);
+    // selectedPeriodId intentionally omitted — see comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periods]);
 
-  const selectedPeriod = periods?.find((p) => p.id === selectedPeriodId) ?? null;
+  const selectedPeriod =
+    periods?.find((p) => p.id === selectedPeriodId) ?? null;
 
   // ── Download handlers ────────────────────────────────────────────────────
 
+  /**
+   * Open a presigned download URL in a new tab.
+   * Centralized so every download surfaces a user-visible toast on failure
+   * (audit issue #17 — silent broken downloads).
+   */
+  const openDownload = (url: string | undefined) => {
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return true;
+    }
+    return false;
+  };
+
   const downloadPeriodReport = async () => {
     if (!selectedPeriod) return;
-    const res = await triggerReportDownload(selectedPeriod.id);
-    if (res.data?.url) window.open(res.data.url, "_blank");
+    const res = await triggerReportDownload({
+      projectId,
+      periodId: selectedPeriod.id,
+    });
+    if (res.error) {
+      toast.error("تعذّر تحميل التقرير", {
+        description:
+          "الملف لم يعد متوفراً. يرجى المحاولة لاحقاً أو التواصل مع مدير المشروع.",
+      });
+      return;
+    }
+    if (!openDownload(res.data?.url)) {
+      toast.error("تعذّر تحميل التقرير");
+    }
   };
 
   const downloadPeriodFile = async (file: PortalPeriodFile) => {
     if (!selectedPeriod) return;
     const res = await triggerFileDownload({
+      projectId,
       periodId: selectedPeriod.id,
       fileId: file.id,
     });
-    if (res.data?.url) window.open(res.data.url, "_blank");
+    if (res.error) {
+      toast.error("تعذّر تحميل الملف", {
+        description:
+          "الملف لم يعد متوفراً. يرجى المحاولة لاحقاً أو التواصل مع مدير المشروع.",
+      });
+      return;
+    }
+    if (!openDownload(res.data?.url)) {
+      toast.error("تعذّر تحميل الملف");
+    }
   };
 
   // ── Loading ────────────────────────────────────────────────────────────────
@@ -113,6 +174,42 @@ export default function PortalProjectPeriodsPage() {
         <Skeleton className="h-48 w-full rounded-[30px]" />
         <Skeleton className="h-16 w-full rounded-2xl" />
         <Skeleton className="h-64 w-full rounded-[30px]" />
+      </div>
+    );
+  }
+
+  // ── Error ─────────────────────────────────────────────────────────────────
+  // Without this branch a 403/404/500 is silently swallowed and the page
+  // shows the “no periods yet” empty state. See audit issue #1.
+  if (periodsError || projectError) {
+    const handleRetry = () => {
+      if (periodsError) void refetchPeriods();
+      if (projectError) void refetchProject();
+    };
+    return (
+      <div className="flex flex-col gap-6" dir="rtl">
+        {project && <ProjectHeader project={project} />}
+        <SurfaceCard>
+          <div className="flex flex-col items-center gap-4 py-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-danger-100 text-danger-600">
+              <AlertTriangle className="size-8" />
+            </div>
+            <p className="text-lg font-medium text-natural-100">
+              تعذّر تحميل بيانات المشروع
+            </p>
+            <p className="max-w-md text-sm leading-6 text-portal-note-text">
+              حدث خطأ أثناء الاتصال بالخادم. قد يكون المشروع غير متاح أو تم نقله
+              إلى حساب آخر. يرجى المحاولة مرة أخرى.
+            </p>
+            <button
+              onClick={handleRetry}
+              className="inline-flex items-center gap-2 rounded-xl border border-portal-card-border bg-natural-0 px-4 py-2 text-sm font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
+            >
+              <RefreshCw className="size-4" />
+              إعادة المحاولة
+            </button>
+          </div>
+        </SurfaceCard>
       </div>
     );
   }
@@ -168,7 +265,11 @@ export default function PortalProjectPeriodsPage() {
             {TABS.map((tab) => {
               const Icon = tab.icon;
               return (
-                <TabsTrigger key={tab.id} value={tab.id} className="gap-2 py-2.5">
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className="gap-2 py-2.5"
+                >
                   <Icon className="size-4" />
                   {tab.label}
                 </TabsTrigger>
@@ -195,7 +296,7 @@ export default function PortalProjectPeriodsPage() {
           </TabsContent>
 
           <TabsContent value="campaigns" className="mt-4">
-            <CampaignsTab />
+            <CampaignsTab projectId={projectId} />
           </TabsContent>
 
           <TabsContent value="meetings" className="mt-4">

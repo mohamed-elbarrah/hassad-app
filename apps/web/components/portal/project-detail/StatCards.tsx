@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Calendar,
-  FileText,
-  Folder,
-  Target,
-  Clock,
-} from "lucide-react";
+import { Calendar, FileText, Folder, Target, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { PortalPeriodStats } from "@/features/portal/portalApi";
 import { cn } from "@/lib/utils";
@@ -102,7 +96,9 @@ export function StatCards({ stats }: StatCardsProps) {
             : "—"
         }
         label="الاجتماع القادم"
-        subtext={nextMeeting ? formatDateTime(nextMeeting.scheduledAt) : undefined}
+        subtext={
+          nextMeeting ? formatDateTime(nextMeeting.scheduledAt) : undefined
+        }
         color="amber"
       />
     </div>

@@ -1,8 +1,11 @@
 // apps/web/proxy.ts
 // Edge auth guard — runs before every matching request.
 // Next.js 16 uses proxy.ts instead of middleware.ts.
-// Verifies JWT from HttpOnly cookie when JWT_SECRET is available;
-// falls back to cookie-existence check when not configured.
+// Verifies JWT from HttpOnly cookie when JWT_SECRET is available.
+// Falls back to cookie-existence check when not configured — but in
+// production this is a hard failure: refusing to start prevents shipping
+// a deploy that silently disables role-based edge routing. (Audit #6)
+//
 // Client-side layout handles role-based routing and full auth verification.
 
 import { NextResponse } from "next/server";
@@ -10,6 +13,15 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET;
+
+// In production, refuse to start the proxy without a JWT secret. Without
+// this, the proxy silently degrades to cookie-existence auth, which lets
+// any request with a cookie named "token" pass the role-redirect guard.
+if (process.env.NODE_ENV === "production" && !JWT_SECRET_RAW) {
+  throw new Error(
+    "JWT_SECRET is required in production. Refusing to start the edge proxy with weakened auth.",
+  );
+}
 
 interface JwtPayload {
   id: string;

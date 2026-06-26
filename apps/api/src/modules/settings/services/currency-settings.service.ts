@@ -11,29 +11,7 @@ import {
   UpdateCurrencySettingDto,
 } from "../dto/currency-setting.dto";
 import { StorageCategory } from "../../../common/storage/storage.constants";
-
-function cleanSvgContent(svg: string): string {
-  // Remove <script> tags (with and without namespace)
-  let cleaned = svg.replace(/<script[\s\S]*?<\/script>/gi, "");
-  // Remove event handlers
-  cleaned = cleaned.replace(/\son\w+\s*=\s*["'][^"']*["']/gi, "");
-  // Remove href / xlink:href that could be javascript: / data:
-  cleaned = cleaned.replace(/\shref\s*=\s*["']javascript:[^"]*["']/gi, "");
-  cleaned = cleaned.replace(
-    /\sxlink:href\s*=\s*["']javascript:[^"]*["']/gi,
-    "",
-  );
-  // Remove foreignObject, iframe, object, embed, link tags (possibly namespaced)
-  cleaned = cleaned.replace(
-    /<\w*:\s*(foreignObject|iframe|object|embed|link)[\s\S]*?<\/\w*:\s*\1>/gi,
-    "",
-  );
-  cleaned = cleaned.replace(
-    /<(foreignObject|iframe|object|embed|link)[\s\S]*?<\/\1>/gi,
-    "",
-  );
-  return cleaned.trim();
-}
+import { cleanSvgContent } from "../../../common/security/svg-sanitizer";
 
 @Injectable()
 export class CurrencySettingsService {

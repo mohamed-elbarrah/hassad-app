@@ -15,9 +15,13 @@ import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
 import { EmptyState } from "./EmptyState";
 import { useCurrency } from "@/hooks/useCurrency";
 
-function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
-  const { fmtAmount } = useCurrency();
-
+function CampaignCard({
+  campaign,
+  fmtAmount,
+}: {
+  campaign: PortalCampaign;
+  fmtAmount: (n: number | undefined | null) => string;
+}) {
   return (
     <Link
       href={`/portal/campaigns/${campaign.id}`}
@@ -37,7 +41,9 @@ function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
         <div>
           <p className="text-portal-note-text">الانطباعات</p>
           <p className="font-medium text-natural-100">
-            {campaign.analytics?.impressions?.toLocaleString("ar-SA-u-nu-latn") ?? 0}
+            {campaign.analytics?.impressions?.toLocaleString(
+              "ar-SA-u-nu-latn",
+            ) ?? 0}
           </p>
         </div>
         <div>
@@ -49,7 +55,9 @@ function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
         <div>
           <p className="text-portal-note-text">التحويلات</p>
           <p className="font-medium text-natural-100">
-            {campaign.analytics?.conversions?.toLocaleString("ar-SA-u-nu-latn") ?? 0}
+            {campaign.analytics?.conversions?.toLocaleString(
+              "ar-SA-u-nu-latn",
+            ) ?? 0}
           </p>
         </div>
         <div>
@@ -71,8 +79,18 @@ function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
 }
 
 /** Campaigns tab — all of the client's campaigns (period filtering deferred). */
-export function CampaignsTab() {
-  const { data: campaigns, isLoading } = useGetPortalCampaignsQuery();
+interface CampaignsTabProps {
+  /** Optional projectId to scope the list to campaigns of one project. */
+  projectId?: string;
+}
+
+export function CampaignsTab({ projectId }: CampaignsTabProps = {}) {
+  const { data: campaigns, isLoading } = useGetPortalCampaignsQuery(
+    projectId ? { projectId } : undefined,
+  );
+  // Hoist useCurrency to the parent so a single subscription is shared
+  // across all rendered cards (audit issue #21).
+  const { fmtAmount } = useCurrency();
 
   if (isLoading) {
     return (
@@ -97,8 +115,14 @@ export function CampaignsTab() {
     return (
       <EmptyState
         icon={TrendingUp}
-        title="لا توجد حملات حالياً"
-        description="ستظهر هنا جميع الحملات الإعلانية المرتبطة بحسابك بمجرد إطلاقها."
+        title={
+          projectId ? "لا توجد حملات لهذا المشروع" : "لا توجد حملات حالياً"
+        }
+        description={
+          projectId
+            ? "ستظهر هنا الحملات المرتبطة بهذا المشروع فور إطلاقها."
+            : "ستظهر هنا جميع الحملات الإعلانية المرتبطة بحسابك بمجرد إطلاقها."
+        }
       />
     );
   }
@@ -107,7 +131,11 @@ export function CampaignsTab() {
     <SurfaceCard title="الحملات" icon={Megaphone}>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2" dir="rtl">
         {campaigns.map((campaign) => (
-          <CampaignCard key={campaign.id} campaign={campaign} />
+          <CampaignCard
+            key={campaign.id}
+            campaign={campaign}
+            fmtAmount={fmtAmount}
+          />
         ))}
       </div>
     </SurfaceCard>

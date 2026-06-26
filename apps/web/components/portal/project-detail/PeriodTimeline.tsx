@@ -18,10 +18,7 @@ export function PeriodTimeline({
   onSelect,
 }: PeriodTimelineProps) {
   return (
-    <div
-      className="rounded-[30px]   p-6"
-      dir="rtl"
-    >
+    <div className="rounded-[30px]   p-6" dir="rtl">
       <div className="relative flex items-start justify-between overflow-x-auto px-2 scrollbar-hide">
         <div className="absolute right-10 left-10 top-[22px] h-0.5 bg-portal-divider" />
 
