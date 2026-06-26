@@ -15,7 +15,8 @@
 import type { Client, ClientProfile } from "@hassad/shared";
 import { ClientStatus, BusinessType } from "@hassad/shared";
 import type { PillTone } from "@/components/design-system/Pill";
-import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/format";
+import { formatDate, formatRelativeTime } from "@/lib/format";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export type ClientBriefView = "portal" | "sales" | "internal";
 
@@ -86,6 +87,7 @@ export function useClientBrief({
   profile,
   viewAs = "internal",
 }: UseClientBriefOptions): ClientBriefViewModel {
+  const { fmtAmount } = useCurrency();
   const status = client.status as ClientStatus;
   const statusTone = STATUS_TONE[status] ?? "neutral";
   const statusLabel = STATUS_LABELS[status] ?? client.status;
@@ -150,8 +152,8 @@ export function useClientBrief({
       activeProjects: client.activeProjects ?? 0,
       completedProjects: client.completedProjects ?? 0,
       cancelledProjects: client.cancelledProjects ?? 0,
-      contractValue: formatCurrency(client.totalContractValue),
-      totalPaid: formatCurrency(client.totalPaid),
+      contractValue: fmtAmount(client.totalContractValue),
+      totalPaid: fmtAmount(client.totalPaid),
       paidRatioPercent,
     },
     profile,

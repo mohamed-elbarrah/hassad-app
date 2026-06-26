@@ -6,6 +6,8 @@ import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { Pill } from "@/components/design-system/Pill";
 import { ClientBriefField } from "./ClientBriefField";
 import { formatDate } from "@/lib/format";
+import { useCurrency } from "@/hooks/useCurrency";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import type { ClientBriefView } from "./ClientBrief";
 import {
   Building2,
@@ -63,6 +65,7 @@ export function ClientBriefIdentity({
   profile,
   viewAs,
 }: ClientBriefIdentityProps) {
+  const { fmtAmount } = useCurrency();
   const statusTone = STATUS_TONE[client.status as ClientStatus] ?? "neutral";
   const statusLabel =
     STATUS_LABELS[client.status as ClientStatus] ?? client.status;
@@ -209,15 +212,27 @@ export function ClientBriefIdentity({
                   value={
                     profile?.budgetRangeMin != null ||
                     profile?.budgetRangeMax != null
-                      ? `${
-                          profile?.budgetRangeMin != null
-                            ? `${profile.budgetRangeMin.toLocaleString("ar-SA")} ر.س`
-                            : "—"
-                        } — ${
-                          profile?.budgetRangeMax != null
-                            ? `${profile.budgetRangeMax.toLocaleString("ar-SA")} ر.س`
-                            : "—"
-                        }`
+                      ? (
+                        <>
+                          {profile?.budgetRangeMin != null
+                            ? (
+                              <>
+                                {fmtAmount(profile.budgetRangeMin)}{" "}
+                                <CurrencySymbol className="inline-block" />
+                              </>
+                            )
+                            : "—"}
+                          {" — "}
+                          {profile?.budgetRangeMax != null
+                            ? (
+                              <>
+                                {fmtAmount(profile.budgetRangeMax)}{" "}
+                                <CurrencySymbol className="inline-block" />
+                              </>
+                            )
+                            : "—"}
+                        </>
+                      )
                       : null
                   }
                 />

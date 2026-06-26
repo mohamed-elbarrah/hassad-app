@@ -8,16 +8,16 @@ import {
 } from "@/features/portal/portalApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
 import { EmptyState } from "./EmptyState";
-
-function fmt(n: number) {
-  return n.toLocaleString("ar-SA-u-nu-latn");
-}
+import { useCurrency } from "@/hooks/useCurrency";
 
 function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
+  const { fmtAmount } = useCurrency();
+
   return (
     <Link
       href={`/portal/campaigns/${campaign.id}`}
@@ -37,19 +37,19 @@ function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
         <div>
           <p className="text-portal-note-text">الانطباعات</p>
           <p className="font-medium text-natural-100">
-            {fmt(campaign.analytics?.impressions ?? 0)}
+            {campaign.analytics?.impressions?.toLocaleString("ar-SA-u-nu-latn") ?? 0}
           </p>
         </div>
         <div>
           <p className="text-portal-note-text">النقرات</p>
           <p className="font-medium text-natural-100">
-            {fmt(campaign.analytics?.clicks ?? 0)}
+            {campaign.analytics?.clicks?.toLocaleString("ar-SA-u-nu-latn") ?? 0}
           </p>
         </div>
         <div>
           <p className="text-portal-note-text">التحويلات</p>
           <p className="font-medium text-natural-100">
-            {fmt(campaign.analytics?.conversions ?? 0)}
+            {campaign.analytics?.conversions?.toLocaleString("ar-SA-u-nu-latn") ?? 0}
           </p>
         </div>
         <div>
@@ -61,8 +61,10 @@ function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
       </div>
 
       <div className="mt-3 border-t-[1.5px] border-portal-divider pt-3 text-xs text-portal-note-text">
-        الميزانية: {fmt(campaign.budgetTotal)} ر.س | المنفق:{" "}
-        {fmt(campaign.budgetSpent)} ر.س
+        الميزانية: {fmtAmount(campaign.budgetTotal)}{" "}
+        <CurrencySymbol className="inline-block" /> | المنفق:{" "}
+        {fmtAmount(campaign.budgetSpent)}{" "}
+        <CurrencySymbol className="inline-block" />
       </div>
     </Link>
   );

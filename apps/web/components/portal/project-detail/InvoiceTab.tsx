@@ -4,6 +4,7 @@ import { DollarSign, FileText } from "lucide-react";
 import type { PortalPeriodInvoice } from "@/features/portal/portalApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import { EmptyState } from "./EmptyState";
 import { formatDate } from "./helpers";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -12,7 +13,12 @@ interface InvoiceTabProps {
   invoice: PortalPeriodInvoice | null;
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+interface DetailRowProps {
+  label: string;
+  value: string | React.ReactNode;
+}
+
+function DetailRow({ label, value }: DetailRowProps) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-sm text-portal-note-text">{label}</span>
@@ -23,7 +29,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 /** Invoice tab — the period's invoice summary (PDF generation deferred). */
 export function InvoiceTab({ invoice }: InvoiceTabProps) {
-  const { fmtAmount, currency } = useCurrency();
+  const { fmtAmount } = useCurrency();
 
   if (!invoice) {
     return (
@@ -34,8 +40,6 @@ export function InvoiceTab({ invoice }: InvoiceTabProps) {
       />
     );
   }
-
-  const symbol = currency.symbolType === "TEXT" ? currency.symbol : "ر.س";
 
   return (
     <SurfaceCard title="فاتورة هذه الفترة" icon={DollarSign}>
@@ -50,7 +54,8 @@ export function InvoiceTab({ invoice }: InvoiceTabProps) {
           <div>
             <p className="text-sm text-portal-note-text">المبلغ المستحق</p>
             <p className="text-3xl font-bold text-natural-100">
-              {fmtAmount(invoice.remainingAmount)} {symbol}
+              {fmtAmount(invoice.remainingAmount)}{" "}
+              <CurrencySymbol className="inline-block" />
             </p>
           </div>
         </div>
@@ -59,11 +64,21 @@ export function InvoiceTab({ invoice }: InvoiceTabProps) {
           <DetailRow label="رقم الفاتورة" value={invoice.invoiceNumber} />
           <DetailRow
             label="المبلغ الإجمالي"
-            value={`${fmtAmount(invoice.amount)} ${symbol}`}
+            value={
+              <>
+                {fmtAmount(invoice.amount)}{" "}
+                <CurrencySymbol className="inline-block" />
+              </>
+            }
           />
           <DetailRow
             label="المدفوع"
-            value={`${fmtAmount(invoice.paidAmount)} ${symbol}`}
+            value={
+              <>
+                {fmtAmount(invoice.paidAmount)}{" "}
+                <CurrencySymbol className="inline-block" />
+              </>
+            }
           />
           <DetailRow
             label="تاريخ الاستحقاق"

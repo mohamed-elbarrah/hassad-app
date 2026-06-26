@@ -14,7 +14,7 @@ export type StatTone =
 interface ClientBriefStatCardProps {
   icon: LucideIcon;
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   trend?: { direction: "up" | "down" | "neutral"; value: string } | null;
   tone?: StatTone;
   colorClass?: string;

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 interface ClientBriefFieldProps {
   icon: LucideIcon;
   label: string;
-  value?: string | number | null;
+  value?: React.ReactNode;
   dir?: "rtl" | "ltr";
   href?: string;
   className?: string;
@@ -20,7 +20,7 @@ export function ClientBriefField({
   href,
   className,
 }: ClientBriefFieldProps) {
-  if (value == null || value === "") return null;
+  if (value == null || value === "" || value === undefined) return null;
 
   const content = (
     <div className={cn("flex items-start gap-3", className)}>

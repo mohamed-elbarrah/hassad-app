@@ -2,6 +2,7 @@
 
 import { BriefCard } from "./BriefCard";
 import { ClientBriefStatCard } from "./ClientBriefStatCard";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import type { KpiViewModel } from "./useClientBrief";
 import {
   Briefcase,
@@ -51,13 +52,21 @@ export function KpiGrid({ kpis }: KpiGridProps) {
         <ClientBriefStatCard
           icon={DollarSign}
           label="قيمة العقود"
-          value={kpis.contractValue}
+          value={
+            <>
+              {kpis.contractValue} <CurrencySymbol className="inline-block" />
+            </>
+          }
           tone="primary"
         />
         <ClientBriefStatCard
           icon={CreditCard}
           label="إجمالي المدفوع"
-          value={kpis.totalPaid}
+          value={
+            <>
+              {kpis.totalPaid} <CurrencySymbol className="inline-block" />
+            </>
+          }
           tone="action-purple"
         />
       </div>

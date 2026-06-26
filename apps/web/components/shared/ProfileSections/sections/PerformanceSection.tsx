@@ -30,6 +30,7 @@ import {
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import {
   TrendingUp,
   BarChart3,
@@ -37,6 +38,7 @@ import {
   DollarSign,
   FileText,
 } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 import {
   SectionLayout,
   NavigationButtons,
@@ -86,6 +88,7 @@ export function PerformanceSection({
   onSkip,
   hideNavigation = false,
 }: PerformanceSectionProps) {
+  const { fmtAmount } = useCurrency();
   const [reportFiles, setReportFiles] = useState<File[]>([]);
 
   const form = useForm<PerformanceForm>({
@@ -209,13 +212,20 @@ export function PerformanceSection({
             <div className="space-y-3">
               <SectionSubtitle>الميزانية</SectionSubtitle>
               {data.budgetInfo?.budgetRange && (
-                <ClientBriefField
-                  icon={DollarSign}
-                  label="الميزانية الشهرية"
-                  value={`${data.budgetInfo.budgetRange.toLocaleString(
-                    "ar-SA",
-                  )} ر.س`}
-                />
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 w-9 h-9 rounded-lg bg-secondary-50 flex items-center justify-center">
+                    <DollarSign className="h-4 w-4 text-secondary-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] uppercase tracking-wide text-neutral-300 font-medium">
+                      الميزانية الشهرية
+                    </p>
+                    <p className="text-sm font-medium text-natural-100 mt-0.5">
+                      {fmtAmount(data.budgetInfo.budgetRange)}{" "}
+                      <CurrencySymbol className="inline-block" />
+                    </p>
+                  </div>
+                </div>
               )}
               {data.budgetInfo?.previousReports &&
                 data.budgetInfo.previousReports.length > 0 && (

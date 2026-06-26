@@ -4,7 +4,9 @@ import type { Client, ClientProfile } from "@hassad/shared";
 import { BriefCard } from "./BriefCard";
 import { ClientBriefStatCard } from "./ClientBriefStatCard";
 import { ClientBriefField } from "./ClientBriefField";
-import { formatCurrency, formatRelativeTime } from "@/lib/format";
+import { formatRelativeTime } from "@/lib/format";
+import { useCurrency } from "@/hooks/useCurrency";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import type { ClientBriefView } from "./ClientBrief";
 import {
   Briefcase,
@@ -64,6 +66,7 @@ export function ClientBriefOverview({
   profile,
   viewAs,
 }: ClientBriefOverviewProps) {
+  const { fmtAmount } = useCurrency();
   const totalProjects =
     (client.activeProjects ?? 0) +
     (client.completedProjects ?? 0) +
@@ -102,13 +105,22 @@ export function ClientBriefOverview({
         <ClientBriefStatCard
           icon={DollarSign}
           label="قيمة العقود"
-          value={formatCurrency(client.totalContractValue)}
+          value={
+            <>
+              {fmtAmount(client.totalContractValue)}{" "}
+              <CurrencySymbol className="inline-block" />
+            </>
+          }
           colorClass="text-primary-500"
         />
         <ClientBriefStatCard
           icon={CreditCard}
           label="إجمالي المدفوع"
-          value={formatCurrency(client.totalPaid)}
+          value={
+            <>
+              {fmtAmount(client.totalPaid)} <CurrencySymbol className="inline-block" />
+            </>
+          }
           colorClass="text-action-purple"
         />
       </div>
@@ -127,7 +139,8 @@ export function ClientBriefOverview({
                   إجمالي قيمة العقود
                 </span>
                 <span className="text-sm font-bold text-natural-100">
-                  {formatCurrency(client.totalContractValue)}
+                  {fmtAmount(client.totalContractValue)}{" "}
+                  <CurrencySymbol className="inline-block" />
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -135,15 +148,17 @@ export function ClientBriefOverview({
                   إجمالي المدفوع
                 </span>
                 <span className="text-sm font-bold text-success-600">
-                  {formatCurrency(client.totalPaid)}
+                  {fmtAmount(client.totalPaid)}{" "}
+                  <CurrencySymbol className="inline-block" />
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-portal-note-text">المتبقي</span>
                 <span className="text-sm font-bold text-natural-100">
-                  {formatCurrency(
+                  {fmtAmount(
                     (client.totalContractValue ?? 0) - (client.totalPaid ?? 0),
-                  )}
+                  )}{" "}
+                  <CurrencySymbol className="inline-block" />
                 </span>
               </div>
               <div className="h-2 rounded-full bg-secondary-100 overflow-hidden">
