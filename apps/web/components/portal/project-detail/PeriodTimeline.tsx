@@ -9,16 +9,26 @@ interface PeriodTimelineProps {
   periods: PortalPeriodSummary[];
   selectedId: string;
   onSelect: (period: PortalPeriodSummary) => void;
+  /** When true, the timeline renders without its own card chrome — meant to
+   *  sit inside another container (e.g. as a footer strip in HeroCard). */
+  compact?: boolean;
 }
 
-/** Horizontal clickable timeline of all project periods. */
+/**
+ * Horizontal clickable timeline of all project periods.
+ *
+ * Two modes:
+ *   - standalone (default): wrapped in its own rounded panel with `p-6`
+ *   - compact: bare flex row, designed to live inside another card
+ */
 export function PeriodTimeline({
   periods,
   selectedId,
   onSelect,
+  compact = false,
 }: PeriodTimelineProps) {
   return (
-    <div className="rounded-[30px]   p-6" dir="rtl">
+    <div className={cn(compact ? "" : "rounded-[30px] p-6")} dir="rtl">
       <div className="relative flex items-start justify-between overflow-x-auto px-2 scrollbar-hide">
         <div className="absolute right-10 left-10 top-[22px] h-0.5 bg-portal-divider" />
 
@@ -29,11 +39,22 @@ export function PeriodTimeline({
           const isActive = period.status === "ACTIVE";
           const highlight = isSelected || isActive;
 
+          const statusLabel = isClosed
+            ? "مكتمل"
+            : isActive || isSelected
+              ? "الحالية"
+              : "قادم";
+
+          const tooltip = `${statusLabel} — الفترة ${period.periodNumber}: ${formatShortDate(period.startDate)} — ${formatShortDate(period.endDate)}`;
+
           return (
             <button
               key={period.id}
               onClick={() => onSelect(period)}
-              className="group relative z-10 flex min-w-[100px] flex-col items-center gap-2 pb-2 focus:outline-none"
+              title={tooltip}
+              // focus-visible:ring gives keyboard users a clear focus indicator
+              // without polluting mouse-click aesthetics (UX polish #4).
+              className="group relative z-10 flex min-w-[100px] flex-col items-center gap-2 pb-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500 focus-visible:ring-offset-2"
             >
               <div
                 className={cn(
@@ -63,11 +84,7 @@ export function PeriodTimeline({
                       : "text-neutral-400",
                   )}
                 >
-                  {isClosed
-                    ? "مكتمل"
-                    : isActive || isSelected
-                      ? "الحالية"
-                      : "قادم"}
+                  {statusLabel}
                 </p>
                 <p className="mt-0.5 whitespace-nowrap text-[10px] text-portal-note-text">
                   {formatShortDate(period.startDate)}-

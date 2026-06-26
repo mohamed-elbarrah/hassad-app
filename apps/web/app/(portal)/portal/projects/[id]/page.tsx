@@ -34,7 +34,6 @@ import {
 import {
   ProjectHeader,
   HeroCard,
-  PeriodTimeline,
   StatCards,
   GoalsTab,
   FilesTab,
@@ -64,6 +63,30 @@ function pickInitialPeriod(periods: PortalPeriodSummary[]): string | null {
   if (periods.length === 0) return null;
   const active = periods.find((p) => p.status === "ACTIVE");
   return (active ?? periods[0]).id;
+}
+
+/**
+ * Pick the most informative tab to land on for a given period.
+ *
+ * Priority order — chose these because each is a concrete artifact the
+ * client can act on or review:
+ *   1. reports   — PM-uploaded end-of-period deliverable (highest signal)
+ *   2. invoices  — money owed / paid (high attention)
+ *   3. meetings  — upcoming action items
+ *   4. files     — uploaded artifacts
+ *   5. goals     — the project's progress story
+ *   6. fallback  — goals (matches the original default)
+ *
+ * Only ever called on first-load (see the auto-select effect below) so we
+ * never yank the user's explicit tab choice away from them on subsequent
+ * period switches.
+ */
+function pickInitialTab(period: PortalPeriodSummary): string {
+  if (period.stats.hasReport) return "reports";
+  if (period.invoice) return "invoices";
+  if (period.meetings.length > 0) return "meetings";
+  if (period.files.length > 0) return "files";
+  return "goals";
 }
 
 export default function PortalProjectPeriodsPage() {
@@ -99,12 +122,18 @@ export default function PortalProjectPeriodsPage() {
     setActiveTab("goals");
   }, [projectId]);
 
-  // Auto-select the active (or first) period once periods load.
-  // Depends ONLY on periods — when the user explicitly picks a different
-  // period we don't want to re-run this effect. (Audit issue #12.)
+  // Auto-select the active (or first) period once periods load, AND pick
+  // the most informative initial tab for that period.
+  //
+  // Depends ONLY on `periods` — when the user explicitly picks a different
+  // period we don't want to re-run this effect and override their tab.
+  // (Audit issue #12, polish issue #1.)
   useEffect(() => {
     if (periods && periods.length > 0 && !selectedPeriodId) {
-      setSelectedPeriodId(pickInitialPeriod(periods));
+      const periodId = pickInitialPeriod(periods);
+      const period = periods.find((p) => p.id === periodId);
+      setSelectedPeriodId(periodId);
+      if (period) setActiveTab(pickInitialTab(period));
     }
     // selectedPeriodId intentionally omitted — see comment above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -236,23 +265,32 @@ export default function PortalProjectPeriodsPage() {
       {project && <ProjectHeader project={project} />}
 
       {selectedPeriod && (
-        <HeroCard
-          period={selectedPeriod}
-          totalPeriods={periods.length}
-          onDownloadReport={downloadPeriodReport}
-          onViewInvoice={() => setActiveTab("invoices")}
-        />
+        // Top section: HeroCard (60%) + StatCards (40%) side-by-side on
+        // tablet+, stacked on mobile. The 5-column grid with col-span-3 /
+        // col-span-2 split is the standard 60/40 pattern in Tailwind —
+        // no magic numbers, no per-breakpoint overrides, no `grid-cols-12`
+        // ceremony. `items-start` lets each card size to its own content
+        // rather than stretching to match the other (UX polish #10).
+        <div
+          className="grid grid-cols-1 items-start gap-5 md:grid-cols-5"
+          dir="rtl"
+        >
+          <div className="md:col-span-3">
+            <HeroCard
+              period={selectedPeriod}
+              totalPeriods={periods.length}
+              periods={periods}
+              selectedPeriodId={selectedPeriod.id}
+              onSelectPeriod={(period) => setSelectedPeriodId(period.id)}
+              onDownloadReport={downloadPeriodReport}
+              onViewInvoice={() => setActiveTab("invoices")}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <StatCards stats={selectedPeriod.stats} />
+          </div>
+        </div>
       )}
-
-      {selectedPeriod && (
-        <PeriodTimeline
-          periods={periods}
-          selectedId={selectedPeriod.id}
-          onSelect={(period) => setSelectedPeriodId(period.id)}
-        />
-      )}
-
-      {selectedPeriod && <StatCards stats={selectedPeriod.stats} />}
 
       {selectedPeriod && (
         <Tabs
@@ -296,7 +334,7 @@ export default function PortalProjectPeriodsPage() {
           </TabsContent>
 
           <TabsContent value="campaigns" className="mt-4">
-            <CampaignsTab projectId={projectId} />
+            <CampaignsTab projectId={projectId} periodId={selectedPeriod.id} />
           </TabsContent>
 
           <TabsContent value="meetings" className="mt-4">

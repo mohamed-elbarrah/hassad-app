@@ -638,14 +638,18 @@ export const portalApi = createApi({
     // (Audit issue #8)
     getPortalCampaigns: builder.query<
       PortalCampaign[],
-      { projectId?: string } | void
+      { projectId?: string; periodId?: string } | void
     >({
       query: (arg) => {
         // RTK Query passes `void` when called with no args; narrow at runtime.
-        const projectId =
-          typeof arg === "object" && arg !== null ? arg.projectId : undefined;
-        const params = projectId ? { projectId } : undefined;
-        return params
+        const { projectId, periodId } =
+          typeof arg === "object" && arg !== null
+            ? arg
+            : { projectId: undefined, periodId: undefined };
+        const params: Record<string, string> = {};
+        if (projectId) params.projectId = projectId;
+        if (periodId) params.periodId = periodId;
+        return Object.keys(params).length > 0
           ? { url: "/portal/campaigns", params }
           : { url: "/portal/campaigns" };
       },

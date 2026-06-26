@@ -523,10 +523,14 @@ export class PortalController {
   async getPortalCampaigns(
     @CurrentUser() user: any,
     @Query("projectId", ParseUUIDPipe) projectId?: string,
+    @Query("periodId", ParseUUIDPipe) periodId?: string,
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) return [];
-    return this.portalService.findCampaignsByClient(clientId, { projectId });
+    return this.portalService.findCampaignsByClient(clientId, {
+      projectId,
+      periodId,
+    });
   }
 
   @Get("portal/projects")

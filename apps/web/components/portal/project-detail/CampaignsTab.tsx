@@ -78,15 +78,17 @@ function CampaignCard({
   );
 }
 
-/** Campaigns tab — all of the client's campaigns (period filtering deferred). */
+/** Campaigns tab — campaigns of the client, optionally scoped to a
+ *  project and/or period. Project-wide campaigns (no period) surface in
+ *  every period view. */
 interface CampaignsTabProps {
-  /** Optional projectId to scope the list to campaigns of one project. */
   projectId?: string;
+  periodId?: string;
 }
 
-export function CampaignsTab({ projectId }: CampaignsTabProps = {}) {
+export function CampaignsTab({ projectId, periodId }: CampaignsTabProps = {}) {
   const { data: campaigns, isLoading } = useGetPortalCampaignsQuery(
-    projectId ? { projectId } : undefined,
+    projectId || periodId ? { projectId, periodId } : undefined,
   );
   // Hoist useCurrency to the parent so a single subscription is shared
   // across all rendered cards (audit issue #21).
@@ -112,15 +114,14 @@ export function CampaignsTab({ projectId }: CampaignsTabProps = {}) {
   }
 
   if (!campaigns || campaigns.length === 0) {
+    const scoped = Boolean(projectId || periodId);
     return (
       <EmptyState
         icon={TrendingUp}
-        title={
-          projectId ? "لا توجد حملات لهذا المشروع" : "لا توجد حملات حالياً"
-        }
+        title={scoped ? "لا توجد حملات لهذه الفترة" : "لا توجد حملات حالياً"}
         description={
-          projectId
-            ? "ستظهر هنا الحملات المرتبطة بهذا المشروع فور إطلاقها."
+          scoped
+            ? "ستظهر هنا الحملات المرتبطة بهذه الفترة أو الحملات العامة للمشروع فور إطلاقها."
             : "ستظهر هنا جميع الحملات الإعلانية المرتبطة بحسابك بمجرد إطلاقها."
         }
       />

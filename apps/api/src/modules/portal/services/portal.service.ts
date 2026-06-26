@@ -1781,15 +1781,30 @@ export class PortalService {
    * Optional `projectId` filter narrows the result to campaigns attached to
    * a specific project. (Audit issue #8)
    */
+  /**
+   * List a client's non-archived campaigns.
+   *
+   * Optional filters:
+   *   - `projectId`: narrow to campaigns attached to one project.
+   *   - `periodId`:  narrow to campaigns attached to one period. Campaigns
+   *                  with no period (project-wide campaigns) are also
+   *                  returned — they're meant to surface everywhere.
+   */
   async findCampaignsByClient(
     clientId: string,
-    opts: { projectId?: string } = {},
+    opts: { projectId?: string; periodId?: string } = {},
   ) {
     const campaigns = await this.prisma.campaign.findMany({
       where: {
         clientId,
         isArchived: false,
         ...(opts.projectId ? { projectId: opts.projectId } : {}),
+        ...(opts.periodId
+          ? {
+              // Match period-scoped campaigns OR project-wide (periodId IS NULL)
+              OR: [{ periodId: opts.periodId }, { periodId: null }],
+            }
+          : {}),
       },
       orderBy: { createdAt: "desc" },
     });
