@@ -7,6 +7,8 @@ import { Pill } from "@/components/design-system/Pill";
 import { BriefCard } from "./BriefCard";
 import { ClientBriefField } from "./ClientBriefField";
 import { formatDate } from "@/lib/format";
+import { useCurrency } from "@/hooks/useCurrency";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import type { ClientBriefView } from "./ClientBrief";
 import {
   Building2,
@@ -102,13 +104,21 @@ export function ClientBriefCompact({
   profile,
   viewAs = "internal",
 }: ClientBriefCompactProps) {
+  const { fmtAmount } = useCurrency();
   const statusTone = STATUS_TONE[client.status as ClientStatus] ?? "neutral";
   const statusLabel =
     STATUS_LABELS[client.status as ClientStatus] ?? client.status;
 
-  const logoUrl = profile?.brandAssets?.logoUrl ?? null;
-  const brandAssets = profile?.brandAssets;
+  // Prefer V2 visualIdentityInfo.brandAssets over legacy brandAssets
+  const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
+  const legacyBrandAssets = profile?.brandAssets;
+
+  const logoUrl = v2BrandAssets?.logoUrl ?? legacyBrandAssets?.logoUrl ?? null;
+  const brandAssets = v2BrandAssets ?? legacyBrandAssets;
   const isInternalRestricted = viewAs === "internal";
+
+  // Prefer V2 communicationInfo.industry over legacy industry
+  const industry = profile?.communicationInfo?.industry ?? profile?.industry;
 
   const hasSocialLinks =
     profile?.website ||
@@ -119,7 +129,7 @@ export function ClientBriefCompact({
     profile?.snapchatHandle;
 
   const hasBusinessInfo =
-    profile?.industry ||
+    industry ||
     profile?.targetAudience ||
     profile?.budgetRangeMin != null ||
     profile?.budgetRangeMax != null ||
@@ -128,7 +138,7 @@ export function ClientBriefCompact({
     profile?.businessDescription;
 
   return (
-    <div className="space-y-5" dir="rtl">
+    <div className="space-y-5">
       {/* Identity + Business Info merged card */}
       <section className="rounded-2xl border border-portal-card-border bg-natural-0 p-5 shadow-sm">
         <div className="flex flex-col items-center text-center">
@@ -241,7 +251,7 @@ export function ClientBriefCompact({
               <ClientBriefField
                 icon={Building2}
                 label="المجال / القطاع"
-                value={profile?.industry}
+                value={industry}
               />
               <ClientBriefField
                 icon={Target}
@@ -255,15 +265,27 @@ export function ClientBriefCompact({
                   value={
                     profile?.budgetRangeMin != null ||
                     profile?.budgetRangeMax != null
-                      ? `${
-                          profile?.budgetRangeMin != null
-                            ? `${profile.budgetRangeMin.toLocaleString("ar-SA")} ر.س`
-                            : "—"
-                        } — ${
-                          profile?.budgetRangeMax != null
-                            ? `${profile.budgetRangeMax.toLocaleString("ar-SA")} ر.س`
-                            : "—"
-                        }`
+                      ? (
+                        <>
+                          {profile?.budgetRangeMin != null
+                            ? (
+                              <>
+                                {fmtAmount(profile.budgetRangeMin)}{" "}
+                                <CurrencySymbol className="inline-block" />
+                              </>
+                            )
+                            : "—"}
+                          {" — "}
+                          {profile?.budgetRangeMax != null
+                            ? (
+                              <>
+                                {fmtAmount(profile.budgetRangeMax)}{" "}
+                                <CurrencySymbol className="inline-block" />
+                              </>
+                            )
+                            : "—"}
+                        </>
+                      )
                       : null
                   }
                 />

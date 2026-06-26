@@ -1,45 +1,93 @@
 import type { PeriodGoal } from "@hassad/shared";
 
-/** Short Arabic date: "12 يونيو" */
+/** Arabic month names ordered Jan → Dec — used by timezone-safe formatters
+ *  below so we never depend on `Intl.DateTimeFormat` interpreting UTC
+ *  midnight in the user's local timezone (audit issue #5). */
+const ARABIC_MONTHS_SHORT = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+
+/** Parse a YYYY-MM-DD (or full ISO) string into its calendar date components
+ *  WITHOUT timezone shift. Falls back to `new Date(...)` for non-ISO inputs.
+ *  Returns `{ year, month (0-11), day }`. */
+function parseCalendarDate(input: string | Date): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  if (typeof input === "string") {
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(input);
+    if (isoMatch) {
+      return {
+        year: Number(isoMatch[1]),
+        month: Number(isoMatch[2]) - 1,
+        day: Number(isoMatch[3]),
+      };
+    }
+  }
+  const d = new Date(input);
+  return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
+}
+
+/** Short Arabic date: "12 يونيو" — timezone-safe (uses the calendar date
+ *  embedded in the ISO string, not the local-time interpretation). */
 export function formatShortDate(dateStr: string | Date): string {
-  return new Date(dateStr).toLocaleDateString("ar-SA-u-nu-latn", {
-    day: "numeric",
-    month: "short",
-  });
+  const { day, month } = parseCalendarDate(dateStr);
+  return `${day} ${ARABIC_MONTHS_SHORT[month]}`;
 }
 
-/** Full Arabic date: "12 يونيو 2026" */
+/** Full Arabic date: "12 يونيو 2026" — timezone-safe. */
 export function formatDate(dateStr: string | Date): string {
-  return new Date(dateStr).toLocaleDateString("ar-SA-u-nu-latn", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const { year, month, day } = parseCalendarDate(dateStr);
+  return `${day} ${ARABIC_MONTHS_SHORT[month]} ${year}`;
 }
 
-/** Date + time: "12 يونيو 2026 - 11:00 ص" */
+/** Date + time: "12 يونيو 2026 - 11:00 ص" — uses the user's local time
+ *  because the time portion IS timezone-sensitive and meaningful. */
 export function formatDateTime(dateStr: string | Date): string {
-  return new Date(dateStr).toLocaleDateString("ar-SA-u-nu-latn", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
+  const { year, month, day } = parseCalendarDate(dateStr);
+  const d = new Date(dateStr);
+  const time = d.toLocaleTimeString("ar-SA-u-nu-latn", {
     hour: "numeric",
     minute: "2-digit",
   });
+  return `${day} ${ARABIC_MONTHS_SHORT[month]} ${year} - ${time}`;
 }
 
-/** Whole days from now until `endDate` (can be negative). */
+/** Whole days from now until `endDate` (can be negative). Compares the
+ *  end-of-day timestamp of the calendar date against now so the result is
+ *  consistent regardless of the user's timezone. */
 export function getDaysRemaining(endDate: string | Date): number {
-  const end = new Date(endDate).getTime();
+  const { year, month, day } = parseCalendarDate(endDate);
+  // Build a UTC timestamp for the END of that calendar day (23:59:59.999)
+  // so a period ending today still has ≥0 days remaining until midnight.
+  const end = Date.UTC(year, month, day, 23, 59, 59, 999);
   const now = Date.now();
   return Math.ceil((end - now) / (1000 * 60 * 60 * 24));
 }
 
-/** Human-readable file size: "1.2 MB" */
+/** Human-readable file size: "1.2 MB".
+ *  Guards against non-finite or negative inputs — callers occasionally
+ *  pass through untrusted data from APIs.
+ */
 export function formatFileSize(bytes: number): string {
-  if (!bytes) return "0 B";
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB"];
-  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  const i = Math.min(
+    units.length - 1,
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+  );
   const value = bytes / Math.pow(1024, i);
   return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
 }

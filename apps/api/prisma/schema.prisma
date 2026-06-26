@@ -319,28 +319,52 @@ model ClientProfile {
   clientId                String   @unique @map("client_id")
   client                  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  // Section 1: Business Basics
+  // Section 1: Business Basics (legacy - kept for backward compatibility)
   industry                String?
   businessDescription     String?  @db.Text @map("business_description")
   targetAudience          String?  @db.Text @map("target_audience")
   budgetRangeMin          Float?   @map("budget_range_min")
   budgetRangeMax          Float?   @map("budget_range_max")
 
-  // Section 2: Marketing Goals
+  // Section 2: Marketing Goals (legacy)
   campaignGoals           Json?    @map("campaign_goals")
   campaignOffer           String?  @db.Text @map("campaign_offer")
   competitors             String?
   seasonalTiming          String?  @map("seasonal_timing")
 
-  // Section 3: Customer Journey
+  // Section 3: Customer Journey (legacy)
   orderMethods            Json?    @map("order_methods")
   abandonedCartSystem     Boolean? @default(false) @map("abandoned_cart_system")
 
-  // Section 4: Creative & Brand Assets
+  // Section 4: Creative & Brand Assets (legacy)
   hasVisualIdentity       Boolean? @default(false) @map("has_visual_identity")
   brandAssets             Json?    @map("brand_assets")
   visualReferences        String?  @map("visual_references")
   uploadedFiles           Json?    @map("uploaded_files")
+
+  // ── V2: New JSON sections (unified with IntakeFormV2) ─────────────────────────
+  // Step 1: Communication
+  communicationInfo       Json?    @map("communication_info")
+
+  // Step 2: Product/Service Info
+  productInfo             Json?    @map("product_info")
+
+  // Step 3: Audience & Brand Voice
+  audienceInfo            Json?    @map("audience_info")
+  brandVoice              Json?    @map("brand_voice")
+
+  // Step 4: Customer Journey
+  customerJourney         Json?    @map("customer_journey")
+
+  // Step 5: Campaign Info
+  campaignInfo            Json?    @map("campaign_info")
+
+  // Step 6: Past Performance & Budget
+  pastPerformance         Json?    @map("past_performance")
+  budgetInfo              Json?    @map("budget_info")
+
+  // Step 7: Visual Identity
+  visualIdentityInfo      Json?    @map("visual_identity_info")
 
   createdBy               String?  @map("created_by")
   createdAt               DateTime @default(now()) @map("created_at")

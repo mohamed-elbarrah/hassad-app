@@ -50,6 +50,7 @@ interface Step7Props {
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
+  hideNavigation?: boolean;
 }
 
 const DEFAULT_COLORS = ["#e7be52", "#121936", "#ffffff"];
@@ -61,6 +62,7 @@ export function Step7_VisualIdentity({
   onNext,
   onBack,
   onSkip,
+  hideNavigation = false,
 }: Step7Props) {
   const [hasIdentity, setHasIdentity] = useState(
     initialData?.hasVisualIdentity ?? false,
@@ -332,21 +334,23 @@ export function Step7_VisualIdentity({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-            {onBack && (
-              <ActionButton type="button" variant="outline" onClick={onBack}>
-                السابق
+          {!hideNavigation && (
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
+              {onBack && (
+                <ActionButton type="button" variant="outline" onClick={onBack}>
+                  السابق
+                </ActionButton>
+              )}
+              <ActionButton
+                type="button"
+                variant="primary"
+                className="mr-auto"
+                onClick={form.handleSubmit(onSubmit)}
+              >
+                التالي
               </ActionButton>
-            )}
-            <ActionButton
-              type="button"
-              variant="primary"
-              className="mr-auto"
-              onClick={form.handleSubmit(onSubmit)}
-            >
-              التالي
-            </ActionButton>
-          </div>
+            </div>
+          )}
         </form>
       </Form>
     </StepLayout>

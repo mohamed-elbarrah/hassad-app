@@ -66,6 +66,7 @@ interface Step6Props {
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
+  hideNavigation?: boolean;
 }
 
 export function Step6_PerformanceBudget({
@@ -75,6 +76,7 @@ export function Step6_PerformanceBudget({
   onNext,
   onBack,
   onSkip,
+  hideNavigation = false,
 }: Step6Props) {
   const [reportFiles, setReportFiles] = useState<File[]>([]);
 
@@ -245,16 +247,18 @@ export function Step6_PerformanceBudget({
             />
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-            {onBack && (
-              <ActionButton type="button" variant="outline" onClick={onBack}>
-                السابق
+          {!hideNavigation && (
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
+              {onBack && (
+                <ActionButton type="button" variant="outline" onClick={onBack}>
+                  السابق
+                </ActionButton>
+              )}
+              <ActionButton type="submit" variant="primary" className="mr-auto">
+                التالي
               </ActionButton>
-            )}
-            <ActionButton type="submit" variant="primary" className="mr-auto">
-              التالي
-            </ActionButton>
-          </div>
+            </div>
+          )}
         </form>
       </Form>
     </StepLayout>

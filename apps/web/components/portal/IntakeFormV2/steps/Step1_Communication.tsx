@@ -40,6 +40,7 @@ interface Step1Props {
   onDataChange: (data: IntakeFormV2Input["communicationInfo"]) => void;
   onValid: (valid: boolean) => void;
   onNext?: () => void;
+  hideNavigation?: boolean;
 }
 
 export function Step1_Communication({
@@ -47,6 +48,7 @@ export function Step1_Communication({
   onDataChange,
   onValid,
   onNext,
+  hideNavigation = false,
 }: Step1Props) {
   const form = useForm<IntakeFormV2Input["communicationInfo"]>({
     resolver: zodResolver(CommunicationInfoSchema),
@@ -185,11 +187,13 @@ export function Step1_Communication({
             )}
           />
 
-          <div className="flex justify-end pt-2">
-            <ActionButton type="submit" variant="primary" size="lg">
-              التالي
-            </ActionButton>
-          </div>
+          {!hideNavigation && (
+            <div className="flex justify-end pt-2">
+              <ActionButton type="submit" variant="primary" size="lg">
+                التالي
+              </ActionButton>
+            </div>
+          )}
         </form>
       </Form>
     </StepLayout>

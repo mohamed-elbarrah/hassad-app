@@ -25,7 +25,10 @@ export function CircularProgress({
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const clampedValue = Math.min(100, Math.max(0, value));
+  // Defensive: backend may ship null/undefined for completionPercentage.
+  // Coerce to a finite number before clamping so we never render NaN%.
+  const safeValue = Number.isFinite(value) ? (value as number) : 0;
+  const clampedValue = Math.min(100, Math.max(0, safeValue));
   const offset = circumference - (clampedValue / 100) * circumference;
 
   return (

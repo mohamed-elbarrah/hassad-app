@@ -37,6 +37,7 @@ interface Step2Props {
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
+  hideNavigation?: boolean;
 }
 
 export function Step2_ProductInfo({
@@ -46,6 +47,7 @@ export function Step2_ProductInfo({
   onNext,
   onBack,
   onSkip,
+  hideNavigation = false,
 }: Step2Props) {
   const [benefits, setBenefits] = useState<string[]>(initialData?.benefits ?? []);
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -295,16 +297,18 @@ export function Step2_ProductInfo({
             )}
           />
 
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-            {onBack && (
-              <ActionButton type="button" variant="outline" onClick={onBack}>
-                السابق
+          {!hideNavigation && (
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
+              {onBack && (
+                <ActionButton type="button" variant="outline" onClick={onBack}>
+                  السابق
+                </ActionButton>
+              )}
+              <ActionButton type="submit" variant="primary" className="mr-auto">
+                التالي
               </ActionButton>
-            )}
-            <ActionButton type="submit" variant="primary" className="mr-auto">
-              التالي
-            </ActionButton>
-          </div>
+            </div>
+          )}
         </form>
       </Form>
     </StepLayout>

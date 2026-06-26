@@ -6,6 +6,7 @@ import {
   Min,
   IsEnum,
   IsInt,
+  IsUrl,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { MeetingStatus, type PeriodGoal } from "@hassad/shared";
@@ -45,6 +46,20 @@ export class SavePeriodGoalsDto {
   goals: PeriodGoal[];
 }
 
+/**
+ * Validate a URL the client will navigate to via `<a href>`.
+ * Only http/https are allowed — blocks `javascript:`, `data:`, `vbscript:`,
+ * and all other dangerous protocols at the framework boundary.
+ * Existing rows in the DB that pre-date this validation are NOT blocked at
+ * read time (defense-in-depth lives in the frontend, see MeetingsTab).
+ */
+function IsMeetingUrl() {
+  return IsUrl(
+    { protocols: ["http", "https"], require_protocol: true },
+    { message: "meetingLink must be a valid http(s) URL" },
+  );
+}
+
 /** PM schedules a client meeting for a period. */
 export class CreateMeetingDto {
   @IsString()
@@ -64,6 +79,7 @@ export class CreateMeetingDto {
 
   @IsOptional()
   @IsString()
+  @IsMeetingUrl()
   meetingLink?: string;
 }
 
@@ -88,6 +104,7 @@ export class UpdateMeetingDto {
 
   @IsOptional()
   @IsString()
+  @IsMeetingUrl()
   meetingLink?: string;
 
   @IsOptional()

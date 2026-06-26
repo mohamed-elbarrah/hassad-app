@@ -8,16 +8,20 @@ import {
 } from "@/features/portal/portalApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
 import { EmptyState } from "./EmptyState";
+import { useCurrency } from "@/hooks/useCurrency";
 
-function fmt(n: number) {
-  return n.toLocaleString("ar-SA-u-nu-latn");
-}
-
-function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
+function CampaignCard({
+  campaign,
+  fmtAmount,
+}: {
+  campaign: PortalCampaign;
+  fmtAmount: (n: number | undefined | null) => string;
+}) {
   return (
     <Link
       href={`/portal/campaigns/${campaign.id}`}
@@ -37,19 +41,23 @@ function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
         <div>
           <p className="text-portal-note-text">الانطباعات</p>
           <p className="font-medium text-natural-100">
-            {fmt(campaign.analytics?.impressions ?? 0)}
+            {campaign.analytics?.impressions?.toLocaleString(
+              "ar-SA-u-nu-latn",
+            ) ?? 0}
           </p>
         </div>
         <div>
           <p className="text-portal-note-text">النقرات</p>
           <p className="font-medium text-natural-100">
-            {fmt(campaign.analytics?.clicks ?? 0)}
+            {campaign.analytics?.clicks?.toLocaleString("ar-SA-u-nu-latn") ?? 0}
           </p>
         </div>
         <div>
           <p className="text-portal-note-text">التحويلات</p>
           <p className="font-medium text-natural-100">
-            {fmt(campaign.analytics?.conversions ?? 0)}
+            {campaign.analytics?.conversions?.toLocaleString(
+              "ar-SA-u-nu-latn",
+            ) ?? 0}
           </p>
         </div>
         <div>
@@ -61,16 +69,30 @@ function CampaignCard({ campaign }: { campaign: PortalCampaign }) {
       </div>
 
       <div className="mt-3 border-t-[1.5px] border-portal-divider pt-3 text-xs text-portal-note-text">
-        الميزانية: {fmt(campaign.budgetTotal)} ر.س | المنفق:{" "}
-        {fmt(campaign.budgetSpent)} ر.س
+        الميزانية: {fmtAmount(campaign.budgetTotal)}{" "}
+        <CurrencySymbol className="inline-block" /> | المنفق:{" "}
+        {fmtAmount(campaign.budgetSpent)}{" "}
+        <CurrencySymbol className="inline-block" />
       </div>
     </Link>
   );
 }
 
-/** Campaigns tab — all of the client's campaigns (period filtering deferred). */
-export function CampaignsTab() {
-  const { data: campaigns, isLoading } = useGetPortalCampaignsQuery();
+/** Campaigns tab — campaigns of the client, optionally scoped to a
+ *  project and/or period. Project-wide campaigns (no period) surface in
+ *  every period view. */
+interface CampaignsTabProps {
+  projectId?: string;
+  periodId?: string;
+}
+
+export function CampaignsTab({ projectId, periodId }: CampaignsTabProps = {}) {
+  const { data: campaigns, isLoading } = useGetPortalCampaignsQuery(
+    projectId || periodId ? { projectId, periodId } : undefined,
+  );
+  // Hoist useCurrency to the parent so a single subscription is shared
+  // across all rendered cards (audit issue #21).
+  const { fmtAmount } = useCurrency();
 
   if (isLoading) {
     return (
@@ -92,11 +114,16 @@ export function CampaignsTab() {
   }
 
   if (!campaigns || campaigns.length === 0) {
+    const scoped = Boolean(projectId || periodId);
     return (
       <EmptyState
         icon={TrendingUp}
-        title="لا توجد حملات حالياً"
-        description="ستظهر هنا جميع الحملات الإعلانية المرتبطة بحسابك بمجرد إطلاقها."
+        title={scoped ? "لا توجد حملات لهذه الفترة" : "لا توجد حملات حالياً"}
+        description={
+          scoped
+            ? "ستظهر هنا الحملات المرتبطة بهذه الفترة أو الحملات العامة للمشروع فور إطلاقها."
+            : "ستظهر هنا جميع الحملات الإعلانية المرتبطة بحسابك بمجرد إطلاقها."
+        }
       />
     );
   }
@@ -105,7 +132,11 @@ export function CampaignsTab() {
     <SurfaceCard title="الحملات" icon={Megaphone}>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2" dir="rtl">
         {campaigns.map((campaign) => (
-          <CampaignCard key={campaign.id} campaign={campaign} />
+          <CampaignCard
+            key={campaign.id}
+            campaign={campaign}
+            fmtAmount={fmtAmount}
+          />
         ))}
       </div>
     </SurfaceCard>

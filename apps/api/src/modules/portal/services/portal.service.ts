@@ -3,7 +3,19 @@ import {
   BadRequestException,
   NotFoundException,
 } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
+
+/** Shape of `getContractById` — derived from Prisma's generated types so it
+ *  stays in sync with the actual `include` inside the method. (Audit #14) */
+export type PortalContractDetail = Prisma.ContractGetPayload<{
+  include: {
+    client: { select: { id: true; companyName: true; contactName: true } };
+    proposal: true;
+    invoices: { include: { items: true; payments: true } };
+    request: { select: { id: true; status: true } };
+  };
+}>;
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import {
   CreateDeliverableDto,
@@ -44,7 +56,10 @@ export class PortalService {
 
   /** Broadcast invalidations to client's WebSocket connections (NEW) */
   private async broadcastInvalidations(clientId: string, tags: string[]) {
-    await this.notificationsService.broadcastPortalInvalidations(clientId, tags);
+    await this.notificationsService.broadcastPortalInvalidations(
+      clientId,
+      tags,
+    );
   }
 
   private getPendingRequestStageLabel(status: string) {
@@ -198,7 +213,11 @@ export class PortalService {
     // Add sales reps
     const salesIds = new Set<string>();
     for (const request of requests) {
-      if (request.assignee && request.assignedSalesId && !salesIds.has(request.assignedSalesId)) {
+      if (
+        request.assignee &&
+        request.assignedSalesId &&
+        !salesIds.has(request.assignedSalesId)
+      ) {
         salesIds.add(request.assignedSalesId);
         members.push({
           id: request.assignee.id,
@@ -260,7 +279,11 @@ export class PortalService {
     // Add PMs
     const pmIds = new Set<string>();
     for (const project of projects) {
-      if (project.manager && project.projectManagerId && !pmIds.has(project.projectManagerId)) {
+      if (
+        project.manager &&
+        project.projectManagerId &&
+        !pmIds.has(project.projectManagerId)
+      ) {
         pmIds.add(project.projectManagerId);
         // Check if this PM is not already added as sales/account manager
         if (!salesIds.has(project.projectManagerId)) {
@@ -399,7 +422,11 @@ export class PortalService {
       where: { id: projectId },
       select: { clientId: true },
     });
-    if (!project || project.clientId !== clientId) return [];
+    // Consistent 404 for both not-found and not-owned, so callers can't
+    // distinguish the two (prevents IDOR probing). (Audit issue #9)
+    if (!project || project.clientId !== clientId) {
+      throw new NotFoundException("Project not found");
+    }
 
     const periods = await this.prisma.projectPeriod.findMany({
       where: { projectId },
@@ -455,7 +482,9 @@ export class PortalService {
     if (periods.length === 0) return [];
 
     // Presign all file URLs in one batch (covers period files).
-    const allFileKeys = periods.flatMap((p) => p.files.map((f) => f.filePath)).filter(Boolean);
+    const allFileKeys = periods
+      .flatMap((p) => p.files.map((f) => f.filePath))
+      .filter(Boolean);
     const fileUrlMap =
       allFileKeys.length > 0
         ? await this.storageService.getMultiplePresignedUrls(allFileKeys)
@@ -535,9 +564,15 @@ export class PortalService {
     if (!Array.isArray(raw)) return [];
     return raw.map((g: any) => {
       const progress =
-        typeof g?.progress === "number" ? Math.max(0, Math.min(100, g.progress)) : g?.completed ? 100 : 0;
+        typeof g?.progress === "number"
+          ? Math.max(0, Math.min(100, g.progress))
+          : g?.completed
+            ? 100
+            : 0;
       const status =
-        g?.status === "done" || g?.status === "in_progress" || g?.status === "pending"
+        g?.status === "done" ||
+        g?.status === "in_progress" ||
+        g?.status === "pending"
           ? g.status
           : progress >= 100
             ? "done"
@@ -580,7 +615,9 @@ export class PortalService {
       name: project.name,
       description: project.description,
       status: project.status,
-      statusAr: PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ?? project.status,
+      statusAr:
+        PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ??
+        project.status,
       priority: project.priority,
       startDate: project.startDate,
       endDate: project.endDate,
@@ -588,7 +625,11 @@ export class PortalService {
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       manager: project.manager
-        ? { id: project.manager.id, name: project.manager.name, isOnline: project.manager.isActive }
+        ? {
+            id: project.manager.id,
+            name: project.manager.name,
+            isOnline: project.manager.isActive,
+          }
         : null,
       client: {
         id: project.client.id,
@@ -604,8 +645,18 @@ export class PortalService {
       where: { id: invoiceId, clientId },
       include: {
         contract: { select: { id: true, title: true } },
-        items: { select: { id: true, description: true, quantity: true, unitPrice: true, total: true } },
-        payments: { select: { id: true, amount: true, status: true, createdAt: true } },
+        items: {
+          select: {
+            id: true,
+            description: true,
+            quantity: true,
+            unitPrice: true,
+            total: true,
+          },
+        },
+        payments: {
+          select: { id: true, amount: true, status: true, createdAt: true },
+        },
       },
     });
     if (!invoice) throw new NotFoundException("Invoice not found");
@@ -628,10 +679,21 @@ export class PortalService {
         project: { select: { clientId: true } },
       },
     });
-    if (!period || period.project.clientId !== clientId || !period.reportFilePath) {
+    if (
+      !period ||
+      period.project.clientId !== clientId ||
+      !period.reportFilePath
+    ) {
       throw new NotFoundException("Report not available");
     }
-    const url = await this.storageService.getPresignedUrl(period.reportFilePath);
+    // Use the existence-checked presigner: a stale `reportFilePath` (e.g.
+    // file deleted from R2 but DB row still pointing at it) used to silently
+    // return a 403-producing URL. Now we throw a clean 404 instead.
+    // (Audit issue #17)
+    const url = await this.storageService.getPresignedUrlIfExists(
+      period.reportFilePath,
+    );
+    if (!url) throw new NotFoundException("Report file is no longer available");
     return { url };
   }
 
@@ -644,7 +706,10 @@ export class PortalService {
     if (!file || file.project.clientId !== clientId) {
       throw new NotFoundException("File not found");
     }
-    const url = await this.storageService.getPresignedUrl(file.filePath);
+    const url = await this.storageService.getPresignedUrlIfExists(
+      file.filePath,
+    );
+    if (!url) throw new NotFoundException("File is no longer available");
     return { url };
   }
 
@@ -775,7 +840,8 @@ export class PortalService {
     const fetchInvoices = !typeFilter || typeFilter === "INVOICE_PAYMENT";
     const fetchProposals = !typeFilter || typeFilter === "PROPOSAL_REVIEW";
     const fetchContracts = !typeFilter || typeFilter === "CONTRACT_SIGN";
-    const fetchStrategyReviews = !typeFilter || typeFilter === "STRATEGY_REVIEW";
+    const fetchStrategyReviews =
+      !typeFilter || typeFilter === "STRATEGY_REVIEW";
 
     if (fetchDeliverables) {
       const projects = await this.prisma.project.findMany({
@@ -1167,7 +1233,7 @@ export class PortalService {
     contractId: string;
     clientId: string | null;
     role: string;
-  }) {
+  }): Promise<PortalContractDetail> {
     const { contractId, clientId, role } = params;
 
     let where: any = {
@@ -1591,24 +1657,47 @@ export class PortalService {
         },
       });
 
+      // Sync all V2 fields to ClientProfile (single source of truth)
       await tx.clientProfile.upsert({
         where: { clientId },
         update: {
+          // Legacy fields (kept for backward compatibility)
           industry: dto.industry,
           businessDescription: dto.businessDescription,
           targetAudience: dto.targetAudience,
           budgetRangeMin: dto.budgetRangeMin,
           budgetRangeMax: dto.budgetRangeMax,
           brandAssets: dto.brandAssets,
+          // V2 fields (unified with IntakeFormV2)
+          communicationInfo: dto.communicationInfo ?? undefined,
+          productInfo: dto.productInfo ?? undefined,
+          audienceInfo: dto.audienceInfo ?? undefined,
+          brandVoice: dto.brandVoice ?? undefined,
+          customerJourney: dto.customerJourney ?? undefined,
+          campaignInfo: dto.campaignInfo ?? undefined,
+          pastPerformance: dto.pastPerformance ?? undefined,
+          budgetInfo: dto.budgetInfo ?? undefined,
+          visualIdentityInfo: dto.visualIdentityInfo ?? undefined,
         },
         create: {
           clientId,
+          // Legacy fields
           industry: dto.industry,
           businessDescription: dto.businessDescription,
           targetAudience: dto.targetAudience,
           budgetRangeMin: dto.budgetRangeMin,
           budgetRangeMax: dto.budgetRangeMax,
           brandAssets: dto.brandAssets,
+          // V2 fields
+          communicationInfo: dto.communicationInfo ?? undefined,
+          productInfo: dto.productInfo ?? undefined,
+          audienceInfo: dto.audienceInfo ?? undefined,
+          brandVoice: dto.brandVoice ?? undefined,
+          customerJourney: dto.customerJourney ?? undefined,
+          campaignInfo: dto.campaignInfo ?? undefined,
+          pastPerformance: dto.pastPerformance ?? undefined,
+          budgetInfo: dto.budgetInfo ?? undefined,
+          visualIdentityInfo: dto.visualIdentityInfo ?? undefined,
         },
       });
 
@@ -1687,9 +1776,36 @@ export class PortalService {
     });
   }
 
-  async findCampaignsByClient(clientId: string) {
+  /**
+   * List a client's non-archived campaigns.
+   * Optional `projectId` filter narrows the result to campaigns attached to
+   * a specific project. (Audit issue #8)
+   */
+  /**
+   * List a client's non-archived campaigns.
+   *
+   * Optional filters:
+   *   - `projectId`: narrow to campaigns attached to one project.
+   *   - `periodId`:  narrow to campaigns attached to one period. Campaigns
+   *                  with no period (project-wide campaigns) are also
+   *                  returned — they're meant to surface everywhere.
+   */
+  async findCampaignsByClient(
+    clientId: string,
+    opts: { projectId?: string; periodId?: string } = {},
+  ) {
     const campaigns = await this.prisma.campaign.findMany({
-      where: { clientId, isArchived: false },
+      where: {
+        clientId,
+        isArchived: false,
+        ...(opts.projectId ? { projectId: opts.projectId } : {}),
+        ...(opts.periodId
+          ? {
+              // Match period-scoped campaigns OR project-wide (periodId IS NULL)
+              OR: [{ periodId: opts.periodId }, { periodId: null }],
+            }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
     });
 

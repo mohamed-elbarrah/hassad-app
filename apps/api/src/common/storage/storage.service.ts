@@ -6,6 +6,8 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadBucketCommand,
+  HeadObjectCommand,
+  S3ServiceException,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomBytes } from "crypto";
@@ -309,6 +311,60 @@ export class StorageService implements OnModuleInit {
       }),
     );
     return urlMap;
+  }
+
+  /**
+   * Cheap existence check via `HeadObjectCommand` — does NOT download the
+   * object, so it's safe to call before signing a download URL.
+   *
+   * Returns:
+   *   - `true`  when the object exists.
+   *   - `false` only when R2 returns `NotFound` for the key.
+   *   - `true` (optimistic) on any transient/permission/network error,
+   *     with a logged warning. Rationale: a transient R2 hiccup must NOT
+   *     cascade into broken downloads — the user already has a stale URL,
+   *     failing closed would silently lock them out. The presigned URL
+   *     remains valid; if the object is genuinely gone they'll see R2's
+   *     own 403 response at download time, which is still better than a
+   *     silent "no URL generated" failure.
+   */
+  async exists(key: string): Promise<boolean> {
+    if (!key) return false;
+    try {
+      await this.s3.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      return true;
+    } catch (err) {
+      if (
+        err instanceof S3ServiceException &&
+        (err.name === "NotFound" || err.$metadata?.httpStatusCode === 404)
+      ) {
+        return false;
+      }
+      this.logger.warn(
+        `HeadObject failed for "${key}": ${err instanceof Error ? err.message : err}. Treating as existing (optimistic).`,
+      );
+      return true;
+    }
+  }
+
+  /**
+   * Sign a download URL only if the object exists. Returns `null` when the
+   * object is definitively missing, so callers can throw a clean 404.
+   *
+   * Single source of truth for the "generate a presigned URL" decision —
+   * the bare `getPresignedUrl` is still used for batch / background flows
+   * where we accept a later download-time failure.
+   * (Audit issue #17)
+   */
+  async getPresignedUrlIfExists(
+    key: string,
+    expiresInSeconds: number = PRESIGNED_URL_EXPIRY_SECONDS.DOWNLOAD,
+  ): Promise<string | null> {
+    if (!key) return null;
+    if (!(await this.exists(key))) return null;
+    return this.getPresignedUrl(key, expiresInSeconds);
   }
 
   isConfigured(): boolean {

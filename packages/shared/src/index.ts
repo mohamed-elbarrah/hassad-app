@@ -121,9 +121,86 @@ export interface ClientHistoryLogItem {
   user?: { id: string; name: string } | null;
 }
 
+// ── V2 Profile Types (unified with IntakeFormV2) ────────────────────────────────
+
+export interface CommunicationInfo {
+  contactName?: string;
+  businessName?: string;
+  industry?: string;
+  contactNumber?: string;
+  email?: string;
+}
+
+export interface ProductInfo {
+  productStory?: string;
+  detailedDescription?: string;
+  valueProposition?: string;
+  advantages?: string;
+  benefits?: string[];
+  contentDirection?: string;
+}
+
+export interface FaqPair {
+  question?: string;
+  answer?: string;
+}
+
+export interface AudienceInfo {
+  customerAnalysis?: string;
+  faq?: FaqPair[];
+}
+
+export interface BrandVoice {
+  toneOfVoice?: string;
+  boundaries?: string;
+  verbalSlogan?: string;
+  appearanceMethod?: string;
+}
+
+export interface CustomerJourney {
+  orderMethods?: string[];
+  followUpTools?: string;
+}
+
+export interface CampaignInfo {
+  campaignGoal?: string;
+  campaignDetails?: string;
+  campaignOffer?: string;
+  guarantees?: string;
+  campaignSeason?: string;
+  competitors?: string;
+}
+
+export interface PastPerformance {
+  bestCampaigns?: string;
+  pastPerformance?: string;
+  trackingSetup?: string;
+}
+
+export interface BudgetInfo {
+  budgetRange?: number;
+  previousReports?: string[];
+}
+
+export interface VisualIdentityBrandAssets {
+  logoUrl?: string;
+  brandColors?: string[];
+  fonts?: string[];
+  guidelinesUrl?: string;
+}
+
+export interface VisualIdentityInfo {
+  hasVisualIdentity?: boolean;
+  brandAssets?: VisualIdentityBrandAssets;
+  pastDesigns?: string;
+  productPhotos?: string[];
+  visualDirection?: string[];
+}
+
 export interface ClientProfile {
   id: string;
   clientId: string;
+  // Legacy fields (retained for backward compatibility)
   industry?: string | null;
   businessDescription?: string | null;
   targetAudience?: string | null;
@@ -150,6 +227,18 @@ export interface ClientProfile {
   decisionMakerName?: string | null;
   decisionMakerPhone?: string | null;
   painPoints?: string | null;
+  // V2 fields (unified with IntakeFormV2)
+  communicationInfo?: CommunicationInfo | null;
+  productInfo?: ProductInfo | null;
+  audienceInfo?: AudienceInfo | null;
+  brandVoice?: BrandVoice | null;
+  customerJourney?: CustomerJourney | null;
+  campaignInfo?: CampaignInfo | null;
+  pastPerformance?: PastPerformance | null;
+  budgetInfo?: BudgetInfo | null;
+  visualIdentityInfo?: VisualIdentityInfo | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Request {

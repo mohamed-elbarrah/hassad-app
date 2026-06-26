@@ -2,18 +2,18 @@
 
 import { useCallback } from "react";
 import {
-  StepProgressBar,
-  Step1_Communication,
-  Step2_ProductInfo,
-  Step3_AudienceMessaging,
-  Step4_CustomerJourney,
-  Step5_Campaign,
-  Step6_PerformanceBudget,
-  Step7_VisualIdentity,
-  Step8_Review,
-} from ".";
+  CommunicationSection,
+  ProductSection,
+  AudienceSection,
+  JourneySection,
+  CampaignSection,
+  PerformanceSection,
+  VisualSection,
+} from "@/components/shared/ProfileSections";
+import { StepProgressBar } from "./components/StepProgressBar";
 import { AutoSaveIndicator } from "./components/AutoSaveIndicator";
 import { useIntakeFormV2, STEP_SECTION_MAP } from "./hooks/useIntakeFormV2";
+import { Step8_Review } from "./steps/Step8_Review";
 
 interface IntakeFormV2Props {
   onSuccess: () => void;
@@ -71,7 +71,8 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
     switch (currentStep) {
       case 0:
         return (
-          <Step1_Communication
+          <CommunicationSection
+            mode="wizard"
             initialData={getStepData(0)}
             onDataChange={(data) => handleStepDataChange(0, data)}
             onValid={() => {}}
@@ -80,7 +81,8 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         );
       case 1:
         return (
-          <Step2_ProductInfo
+          <ProductSection
+            mode="wizard"
             initialData={getStepData(1)}
             onDataChange={(data) => handleStepDataChange(1, data)}
             onValid={() => {}}
@@ -91,7 +93,8 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         );
       case 2:
         return (
-          <Step3_AudienceMessaging
+          <AudienceSection
+            mode="wizard"
             initialData={{
               customerAnalysis: sectionData.audienceInfo?.customerAnalysis,
               faq: sectionData.audienceInfo?.faq,
@@ -109,7 +112,8 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         );
       case 3:
         return (
-          <Step4_CustomerJourney
+          <JourneySection
+            mode="wizard"
             initialData={getStepData(3)}
             onDataChange={(data) => handleStepDataChange(3, data)}
             onValid={() => {}}
@@ -120,7 +124,8 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         );
       case 4:
         return (
-          <Step5_Campaign
+          <CampaignSection
+            mode="wizard"
             initialData={getStepData(4)}
             onDataChange={(data) => handleStepDataChange(4, data)}
             onValid={() => {}}
@@ -131,7 +136,8 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         );
       case 5:
         return (
-          <Step6_PerformanceBudget
+          <PerformanceSection
+            mode="wizard"
             initialData={getStepData(5)}
             onDataChange={(data) => handleStepDataChange(5, data)}
             onValid={() => {}}
@@ -142,7 +148,8 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         );
       case 6:
         return (
-          <Step7_VisualIdentity
+          <VisualSection
+            mode="wizard"
             initialData={getStepData(6)}
             onDataChange={(data) => handleStepDataChange(6, data)}
             onValid={() => {}}

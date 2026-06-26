@@ -35,6 +35,7 @@ interface Step5Props {
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
+  hideNavigation?: boolean;
 }
 
 export function Step5_Campaign({
@@ -44,6 +45,7 @@ export function Step5_Campaign({
   onNext,
   onBack,
   onSkip,
+  hideNavigation = false,
 }: Step5Props) {
   const form = useForm<CampaignForm>({
     resolver: zodResolver(formSchema),
@@ -203,16 +205,18 @@ export function Step5_Campaign({
             )}
           />
 
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-            {onBack && (
-              <ActionButton type="button" variant="outline" onClick={onBack}>
-                السابق
+          {!hideNavigation && (
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
+              {onBack && (
+                <ActionButton type="button" variant="outline" onClick={onBack}>
+                  السابق
+                </ActionButton>
+              )}
+              <ActionButton type="submit" variant="primary" className="mr-auto">
+                التالي
               </ActionButton>
-            )}
-            <ActionButton type="submit" variant="primary" className="mr-auto">
-              التالي
-            </ActionButton>
-          </div>
+            </div>
+          )}
         </form>
       </Form>
     </StepLayout>

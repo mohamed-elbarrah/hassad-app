@@ -6,6 +6,8 @@ import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { Pill } from "@/components/design-system/Pill";
 import { ClientBriefField } from "./ClientBriefField";
 import { formatDate } from "@/lib/format";
+import { useCurrency } from "@/hooks/useCurrency";
+import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import type { ClientBriefView } from "./ClientBrief";
 import {
   Building2,
@@ -63,11 +65,19 @@ export function ClientBriefIdentity({
   profile,
   viewAs,
 }: ClientBriefIdentityProps) {
+  const { fmtAmount } = useCurrency();
   const statusTone = STATUS_TONE[client.status as ClientStatus] ?? "neutral";
   const statusLabel =
     STATUS_LABELS[client.status as ClientStatus] ?? client.status;
 
-  const logoUrl = profile?.brandAssets?.logoUrl ?? null;
+  // Prefer V2 visualIdentityInfo.brandAssets for logo
+  const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
+  const legacyBrandAssets = profile?.brandAssets;
+
+  const logoUrl = v2BrandAssets?.logoUrl ?? legacyBrandAssets?.logoUrl ?? null;
+
+  // Prefer V2 field (communicationInfo.industry) over legacy field
+  const industry = profile?.communicationInfo?.industry ?? profile?.industry;
   const subtitle = client.contactName
     ? `المسؤول: ${client.contactName}`
     : (BUSINESS_TYPE_LABELS[client.businessType as BusinessType] ??
@@ -171,7 +181,7 @@ export function ClientBriefIdentity({
         </div>
 
         {/* Divider + Business Info */}
-        {((profile?.industry && profile.industry !== BUSINESS_TYPE_LABELS[client.businessType as BusinessType]) ||
+        {(industry ||
           profile?.targetAudience ||
           profile?.budgetRangeMin != null ||
           profile?.budgetRangeMax != null ||
@@ -188,7 +198,7 @@ export function ClientBriefIdentity({
               <ClientBriefField
                 icon={Building2}
                 label="المجال / القطاع"
-                value={profile?.industry}
+                value={industry}
               />
               <ClientBriefField
                 icon={Target}
@@ -202,15 +212,27 @@ export function ClientBriefIdentity({
                   value={
                     profile?.budgetRangeMin != null ||
                     profile?.budgetRangeMax != null
-                      ? `${
-                          profile?.budgetRangeMin != null
-                            ? `${profile.budgetRangeMin.toLocaleString("ar-SA")} ر.س`
-                            : "—"
-                        } — ${
-                          profile?.budgetRangeMax != null
-                            ? `${profile.budgetRangeMax.toLocaleString("ar-SA")} ر.س`
-                            : "—"
-                        }`
+                      ? (
+                        <>
+                          {profile?.budgetRangeMin != null
+                            ? (
+                              <>
+                                {fmtAmount(profile.budgetRangeMin)}{" "}
+                                <CurrencySymbol className="inline-block" />
+                              </>
+                            )
+                            : "—"}
+                          {" — "}
+                          {profile?.budgetRangeMax != null
+                            ? (
+                              <>
+                                {fmtAmount(profile.budgetRangeMax)}{" "}
+                                <CurrencySymbol className="inline-block" />
+                              </>
+                            )
+                            : "—"}
+                        </>
+                      )
                       : null
                   }
                 />

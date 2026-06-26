@@ -8,7 +8,11 @@ interface EmptyStateProps {
 }
 
 /** Generic "nothing here yet" panel used by the per-period tabs. */
-export function EmptyState({ icon: Icon, title, description }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+}: EmptyStateProps) {
   return (
     <SurfaceCard>
       <div className="flex flex-col items-center gap-3 py-16 text-center text-portal-note-text">

@@ -37,7 +37,10 @@ function GoalRow({ goal }: { goal: PeriodGoal }) {
       <div className="hidden w-40 items-center gap-3 sm:flex">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100">
           <div
-            className={cn("h-full rounded-full transition-all", config.barColor)}
+            className={cn(
+              "h-full rounded-full transition-all",
+              config.barColor,
+            )}
             style={{ width: `${goal.progress}%` }}
           />
         </div>

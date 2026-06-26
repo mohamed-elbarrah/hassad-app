@@ -74,6 +74,7 @@ interface Step3Props {
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
+  hideNavigation?: boolean;
 }
 
 export function Step3_AudienceMessaging({
@@ -83,6 +84,7 @@ export function Step3_AudienceMessaging({
   onNext,
   onBack,
   onSkip,
+  hideNavigation = false,
 }: Step3Props) {
   const [faqPairs, setFaqPairs] = useState<FaqPair[]>(() => {
     if (!initialData?.faq) return [];
@@ -350,16 +352,18 @@ export function Step3_AudienceMessaging({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-            {onBack && (
-              <ActionButton type="button" variant="outline" onClick={onBack}>
-                السابق
+          {!hideNavigation && (
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
+              {onBack && (
+                <ActionButton type="button" variant="outline" onClick={onBack}>
+                  السابق
+                </ActionButton>
+              )}
+              <ActionButton type="submit" variant="primary" className="mr-auto">
+                التالي
               </ActionButton>
-            )}
-            <ActionButton type="submit" variant="primary" className="mr-auto">
-              التالي
-            </ActionButton>
-          </div>
+            </div>
+          )}
         </form>
       </Form>
     </StepLayout>

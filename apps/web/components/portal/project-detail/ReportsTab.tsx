@@ -77,7 +77,7 @@ export function ReportsTab({ period, onDownloadReport }: ReportsTabProps) {
             <p className="mb-2 text-sm font-semibold text-natural-100">
               ملخص الفترة
             </p>
-            <p className="whitespace-pre-line text-sm leading-6 text-portal-note-text">
+            <p className="whitespace-pre-line text-sm leading-6 text-portal-note-text max-h-60 overflow-y-auto">
               {period.summary}
             </p>
           </div>

@@ -19,7 +19,7 @@ export function ClientBrief({
   viewAs = "internal",
 }: ClientBriefProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5" dir="rtl">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
       <div className="lg:col-span-3">
         <ClientBriefIdentity
           client={client}
@@ -35,11 +35,7 @@ export function ClientBrief({
         />
       </div>
       <div className="lg:col-span-3">
-        <ClientBriefSidebar
-          client={client}
-          profile={profile}
-          viewAs={viewAs}
-        />
+        <ClientBriefSidebar client={client} profile={profile} viewAs={viewAs} />
       </div>
     </div>
   );
