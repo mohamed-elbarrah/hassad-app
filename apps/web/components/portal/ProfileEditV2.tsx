@@ -31,10 +31,15 @@ type FormData = {
   [K in keyof IntakeFormV2Input]?: IntakeFormV2Input[K];
 };
 
-export function ProfileEditV2({ clientId, onCancel, onSuccess }: ProfileEditV2Props) {
+export function ProfileEditV2({
+  clientId,
+  onCancel,
+  onSuccess,
+}: ProfileEditV2Props) {
   // Use the V2 profile endpoint (canonical source for V2 fields)
   const { data: profile, isLoading } = useGetClientProfileV2Query(clientId);
-  const [upsertProfile, { isLoading: isSaving }] = useUpsertClientProfileV2Mutation();
+  const [upsertProfile, { isLoading: isSaving }] =
+    useUpsertClientProfileV2Mutation();
 
   const [formData, setFormData] = useState<FormData>({});
   const [isDirty, setIsDirty] = useState(false);
@@ -88,11 +93,13 @@ export function ProfileEditV2({ clientId, onCancel, onSuccess }: ProfileEditV2Pr
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-natural-100">تعديل الملف التعريفي</h2>
+          <h2 className="text-xl font-bold text-natural-100">
+            تعديل الملف التعريفي
+          </h2>
           <p className="text-sm text-portal-note-text mt-1">
             قم بتحديث معلومات نشاطك التجاري
           </p>
@@ -125,7 +132,9 @@ export function ProfileEditV2({ clientId, onCancel, onSuccess }: ProfileEditV2Pr
         mode="edit"
         initialData={{
           customerAnalysis: formData.audienceInfo?.customerAnalysis,
-          faq: formData.audienceInfo?.faq as { question?: string; answer?: string }[] | undefined,
+          faq: formData.audienceInfo?.faq as
+            | { question?: string; answer?: string }[]
+            | undefined,
           toneOfVoice: formData.brandVoice?.toneOfVoice,
           boundaries: formData.brandVoice?.boundaries,
           verbalSlogan: formData.brandVoice?.verbalSlogan,
@@ -175,7 +184,9 @@ export function ProfileEditV2({ clientId, onCancel, onSuccess }: ProfileEditV2Pr
       <VisualSection
         mode="edit"
         initialData={formData.visualIdentityInfo as any}
-        onDataChange={(data) => updateSection("visualIdentityInfo", data as any)}
+        onDataChange={(data) =>
+          updateSection("visualIdentityInfo", data as any)
+        }
         hideNavigation
       />
 

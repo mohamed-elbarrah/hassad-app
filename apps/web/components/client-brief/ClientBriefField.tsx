@@ -16,14 +16,14 @@ export function ClientBriefField({
   icon: Icon,
   label,
   value,
-  dir,
+  dir = "rtl",
   href,
   className,
 }: ClientBriefFieldProps) {
   if (value == null || value === "") return null;
 
   const content = (
-    <div className={cn("flex items-start gap-3", className)} >
+    <div className={cn("flex items-start gap-3", className)}>
       <div className="shrink-0 w-9 h-9 rounded-lg bg-secondary-50 flex items-center justify-center">
         <Icon className="h-4 w-4 text-secondary-500" />
       </div>
@@ -36,6 +36,7 @@ export function ClientBriefField({
             "text-sm font-medium text-natural-100 mt-0.5",
             href && "text-secondary-500 hover:underline cursor-pointer",
           )}
+          dir={dir}
         >
           {value}
         </p>

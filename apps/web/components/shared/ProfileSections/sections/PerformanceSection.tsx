@@ -1,6 +1,6 @@
 /**
  * PerformanceSection - Section 6: Past Performance & Budget
- * 
+ *
  * Handles past campaigns, tracking setup, and budget range.
  * Supports three modes: wizard, edit, view
  */
@@ -29,8 +29,19 @@ import {
 } from "@/components/design-system/FormSelectControl";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { TrendingUp, BarChart3, Link2, DollarSign, FileText } from "lucide-react";
-import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
+import {
+  TrendingUp,
+  BarChart3,
+  Link2,
+  DollarSign,
+  FileText,
+} from "lucide-react";
+import {
+  SectionLayout,
+  NavigationButtons,
+  SectionSubtitle,
+} from "../SectionLayout";
 import type { ProfileMode, PastPerformance, BudgetInfo } from "../types";
 
 const formSchema = z.object({
@@ -121,7 +132,7 @@ export function PerformanceSection({
 
   useEffect(() => {
     if (mode === "view") return;
-    
+
     const sub = form.watch((values) => {
       onDataChange?.(buildPerformanceData(values as PerformanceForm));
     });
@@ -140,61 +151,92 @@ export function PerformanceSection({
   if (mode === "view") {
     const data = initialData;
     if (!data) return null;
-    
-    const hasPerformance = data.pastPerformance?.bestCampaigns || 
-      data.pastPerformance?.pastPerformance || data.pastPerformance?.trackingSetup;
-    const hasBudget = data.budgetInfo?.budgetRange || 
-      (data.budgetInfo?.previousReports && data.budgetInfo.previousReports.length > 0);
-    
+
+    const hasPerformance =
+      data.pastPerformance?.bestCampaigns ||
+      data.pastPerformance?.pastPerformance ||
+      data.pastPerformance?.trackingSetup;
+    const hasBudget =
+      data.budgetInfo?.budgetRange ||
+      (data.budgetInfo?.previousReports &&
+        data.budgetInfo.previousReports.length > 0);
+
     if (!hasPerformance && !hasBudget) return null;
-    
+
+    const performanceFields = [
+      {
+        icon: TrendingUp,
+        label: "أفضل الحملات السابقة",
+        value: data.pastPerformance?.bestCampaigns,
+      },
+      {
+        icon: BarChart3,
+        label: "أداء الحملات",
+        value: data.pastPerformance?.pastPerformance,
+      },
+      {
+        icon: Link2,
+        label: "الربط",
+        value: data.pastPerformance?.trackingSetup
+          ? TRACKING_OPTIONS.find(
+              (t) => t.value === data.pastPerformance?.trackingSetup,
+            )?.label
+          : undefined,
+      },
+    ];
+
     return (
       <SectionLayout mode="view" title="الأداء السابق والميزانية">
         <div className="space-y-6">
           {hasPerformance && (
-            <ViewFieldGroup>
-              <h4 className="text-sm font-semibold text-natural-100 mb-4">الأداء السابق</h4>
-              <ViewField icon={TrendingUp} label="أفضل الحملات السابقة" value={data.pastPerformance?.bestCampaigns} />
-              <ViewField icon={BarChart3} label="أداء الحملات" value={data.pastPerformance?.pastPerformance} />
-              {data.pastPerformance?.trackingSetup && (
-                <ViewField 
-                  icon={Link2} 
-                  label="الربط" 
-                  value={TRACKING_OPTIONS.find(t => t.value === data.pastPerformance?.trackingSetup)?.label} 
-                />
+            <div className="space-y-3">
+              <SectionSubtitle>الأداء السابق</SectionSubtitle>
+              {performanceFields.map(
+                (f) =>
+                  f.value && (
+                    <ClientBriefField
+                      key={f.label}
+                      icon={f.icon}
+                      label={f.label}
+                      value={f.value}
+                    />
+                  ),
               )}
-            </ViewFieldGroup>
+            </div>
           )}
-          
+
           {hasBudget && (
-            <ViewFieldGroup>
-              <h4 className="text-sm font-semibold text-natural-100 mb-4">الميزانية</h4>
+            <div className="space-y-3">
+              <SectionSubtitle>الميزانية</SectionSubtitle>
               {data.budgetInfo?.budgetRange && (
-                <ViewField 
-                  icon={DollarSign} 
-                  label="الميزانية الشهرية" 
-                  value={`${data.budgetInfo.budgetRange.toLocaleString("ar-SA")} ر.س`} 
+                <ClientBriefField
+                  icon={DollarSign}
+                  label="الميزانية الشهرية"
+                  value={`${data.budgetInfo.budgetRange.toLocaleString(
+                    "ar-SA",
+                  )} ر.س`}
                 />
               )}
-              {data.budgetInfo?.previousReports && data.budgetInfo.previousReports.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    التقارير السابقة
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {data.budgetInfo.previousReports.map((report, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
-                      >
-                        {report}
-                      </span>
-                    ))}
+              {data.budgetInfo?.previousReports &&
+                data.budgetInfo.previousReports.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
+                      <FileText className="w-4 h-4" aria-hidden="true" />
+                      التقارير السابقة
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {data.budgetInfo.previousReports.map((report, i) => (
+                        <span
+                          key={i}
+                          className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
+                        >
+                          {report}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </ViewFieldGroup>
+                )}
+            </div>
           )}
         </div>
       </SectionLayout>

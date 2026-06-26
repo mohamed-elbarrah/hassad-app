@@ -1,6 +1,6 @@
 /**
  * CampaignSection - Section 5: Campaign Info
- * 
+ *
  * Handles campaign goals, details, offers, and competitors.
  * Supports three modes: wizard, edit, view
  */
@@ -21,8 +21,16 @@ import {
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Target, Megaphone, Gift, ShieldCheck, Calendar, Users } from "lucide-react";
-import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
+import {
+  Target,
+  Megaphone,
+  Gift,
+  ShieldCheck,
+  Calendar,
+  Users,
+} from "lucide-react";
+import { SectionLayout, NavigationButtons } from "../SectionLayout";
 import type { ProfileMode } from "../types";
 
 const formSchema = z.object({
@@ -83,7 +91,7 @@ export function CampaignSection({
 
   useEffect(() => {
     if (mode === "view") return;
-    
+
     const sub = form.watch((values) => {
       onDataChange?.(values as CampaignForm);
     });
@@ -102,21 +110,38 @@ export function CampaignSection({
   if (mode === "view") {
     const data = initialData;
     if (!data) return null;
-    
-    const hasData = data.campaignGoal || data.campaignDetails || data.campaignOffer || 
-      data.guarantees || data.campaignSeason || data.competitors;
+
+    const fields = [
+      { icon: Target, label: "الهدف", value: data.campaignGoal },
+      { icon: Megaphone, label: "تفاصيل الحملة", value: data.campaignDetails },
+      { icon: Gift, label: "العرض في الحملة", value: data.campaignOffer },
+      { icon: ShieldCheck, label: "الضمانات", value: data.guarantees },
+      {
+        icon: Calendar,
+        label: "المناسبة / الموسم",
+        value: data.campaignSeason,
+      },
+      { icon: Users, label: "المنافسون", value: data.competitors },
+    ];
+
+    const hasData = fields.some((f) => f.value);
     if (!hasData) return null;
-    
+
     return (
       <SectionLayout mode="view" title="الحملة الإعلانية">
-        <ViewFieldGroup>
-          <ViewField icon={Target} label="الهدف" value={data.campaignGoal} />
-          <ViewField icon={Megaphone} label="تفاصيل الحملة" value={data.campaignDetails} />
-          <ViewField icon={Gift} label="العرض في الحملة" value={data.campaignOffer} />
-          <ViewField icon={ShieldCheck} label="الضمانات" value={data.guarantees} />
-          <ViewField icon={Calendar} label="المناسبة / الموسم" value={data.campaignSeason} />
-          <ViewField icon={Users} label="المنافسون" value={data.competitors} />
-        </ViewFieldGroup>
+        <div className="space-y-3">
+          {fields.map(
+            (f) =>
+              f.value && (
+                <ClientBriefField
+                  key={f.label}
+                  icon={f.icon}
+                  label={f.label}
+                  value={f.value}
+                />
+              ),
+          )}
+        </div>
       </SectionLayout>
     );
   }

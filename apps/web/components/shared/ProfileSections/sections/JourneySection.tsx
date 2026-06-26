@@ -1,6 +1,6 @@
 /**
  * JourneySection - Section 4: Customer Journey
- * 
+ *
  * Handles order methods and follow-up tools.
  * Supports three modes: wizard, edit, view
  */
@@ -20,9 +20,14 @@ import {
 } from "@/components/design-system/Form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { ShoppingCart, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import {
+  SectionLayout,
+  NavigationButtons,
+  SectionSubtitle,
+} from "../SectionLayout";
 import type { ProfileMode } from "../types";
 
 const formSchema = z.object({
@@ -83,7 +88,7 @@ export function JourneySection({
 
   useEffect(() => {
     if (mode === "view") return;
-    
+
     const sub = form.watch((values) => {
       onDataChange?.(values as JourneyForm);
     });
@@ -115,22 +120,22 @@ export function JourneySection({
   if (mode === "view") {
     const data = initialData;
     if (!data) return null;
-    
-    const hasData = (data.orderMethods && data.orderMethods.length > 0) || data.followUpTools;
+
+    const hasData =
+      (data.orderMethods && data.orderMethods.length > 0) || data.followUpTools;
     if (!hasData) return null;
-    
+
     return (
       <SectionLayout mode="view" title="رحلة العميل">
-        <ViewFieldGroup>
+        <div className="space-y-4">
           {data.orderMethods && data.orderMethods.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                طريقة الطلب
-              </p>
+              <SectionSubtitle icon={ShoppingCart}>طريقة الطلب</SectionSubtitle>
               <div className="flex flex-wrap gap-2">
                 {data.orderMethods.map((method) => {
-                  const label = ORDER_METHODS.find((m) => m.value === method)?.label ?? method;
+                  const label =
+                    ORDER_METHODS.find((m) => m.value === method)?.label ??
+                    method;
                   return (
                     <span
                       key={method}
@@ -143,8 +148,12 @@ export function JourneySection({
               </div>
             </div>
           )}
-          <ViewField icon={ClipboardList} label="أدوات المتابعة" value={data.followUpTools} />
-        </ViewFieldGroup>
+          <ClientBriefField
+            icon={ClipboardList}
+            label="أدوات المتابعة"
+            value={data.followUpTools}
+          />
+        </div>
       </SectionLayout>
     );
   }

@@ -109,7 +109,7 @@ export function ClientBriefCompact({
   // Prefer V2 visualIdentityInfo.brandAssets over legacy brandAssets
   const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
   const legacyBrandAssets = profile?.brandAssets;
-  
+
   const logoUrl = v2BrandAssets?.logoUrl ?? legacyBrandAssets?.logoUrl ?? null;
   const brandAssets = v2BrandAssets ?? legacyBrandAssets;
   const isInternalRestricted = viewAs === "internal";
@@ -135,7 +135,7 @@ export function ClientBriefCompact({
     profile?.businessDescription;
 
   return (
-    <div className="space-y-5" dir="rtl">
+    <div className="space-y-5">
       {/* Identity + Business Info merged card */}
       <section className="rounded-2xl border border-portal-card-border bg-natural-0 p-5 shadow-sm">
         <div className="flex flex-col items-center text-center">

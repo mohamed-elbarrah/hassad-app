@@ -70,9 +70,9 @@ export function ClientBriefIdentity({
   // Prefer V2 visualIdentityInfo.brandAssets for logo
   const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
   const legacyBrandAssets = profile?.brandAssets;
-  
+
   const logoUrl = v2BrandAssets?.logoUrl ?? legacyBrandAssets?.logoUrl ?? null;
-  
+
   // Prefer V2 field (communicationInfo.industry) over legacy field
   const industry = profile?.communicationInfo?.industry ?? profile?.industry;
   const subtitle = client.contactName

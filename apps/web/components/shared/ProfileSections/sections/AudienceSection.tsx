@@ -1,6 +1,6 @@
 /**
  * AudienceSection - Section 3: Audience & Brand Voice
- * 
+ *
  * Handles customer analysis, FAQs, tone of voice, and appearance.
  * Supports three modes: wizard, edit, view
  */
@@ -28,8 +28,21 @@ import {
   FormSelectItem,
 } from "@/components/design-system/FormSelectControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Users, MessageCircle, ShieldCheck, Hash, Video, Plus, X } from "lucide-react";
-import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
+import {
+  Users,
+  MessageCircle,
+  ShieldCheck,
+  Hash,
+  Video,
+  Plus,
+  X,
+} from "lucide-react";
+import {
+  SectionLayout,
+  NavigationButtons,
+  SectionSubtitle,
+} from "../SectionLayout";
 import type { ProfileMode, FaqPair } from "../types";
 
 const formSchema = z.object({
@@ -128,7 +141,7 @@ export function AudienceSection({
 
   useEffect(() => {
     if (mode === "view") return;
-    
+
     const sub = form.watch((values) => {
       const v = values as AudienceForm;
       onDataChange?.({
@@ -158,7 +171,9 @@ export function AudienceSection({
   const updateFaqPair = useCallback(
     (index: number, field: "question" | "answer", value: string) => {
       setFaqPairs((prev) =>
-        prev.map((pair, i) => (i === index ? { ...pair, [field]: value } : pair)),
+        prev.map((pair, i) =>
+          i === index ? { ...pair, [field]: value } : pair,
+        ),
       );
     },
     [],
@@ -187,47 +202,99 @@ export function AudienceSection({
   if (mode === "view") {
     const data = initialData;
     if (!data) return null;
-    
-    const hasAudience = data.customerAnalysis || (data.faq && data.faq.length > 0);
-    const hasBrandVoice = data.toneOfVoice || data.boundaries || data.verbalSlogan || data.appearanceMethod;
-    
+
+    const hasAudience =
+      data.customerAnalysis || (data.faq && data.faq.length > 0);
+    const hasBrandVoice =
+      data.toneOfVoice ||
+      data.boundaries ||
+      data.verbalSlogan ||
+      data.appearanceMethod;
+
     if (!hasAudience && !hasBrandVoice) return null;
-    
+
+    const brandVoiceFields = [
+      {
+        icon: Hash,
+        label: "النبرة",
+        value: TONE_OPTIONS.find((t) => t.value === data.toneOfVoice)?.label,
+      },
+      {
+        icon: Video,
+        label: "طريقة الظهور",
+        value: APPEARANCE_OPTIONS.find((a) => a.value === data.appearanceMethod)
+          ?.label,
+      },
+      {
+        icon: Hash,
+        label: "الشعار اللفظي",
+        value: data.verbalSlogan,
+      },
+      {
+        icon: ShieldCheck,
+        label: "الحدود / العوائق",
+        value: data.boundaries,
+      },
+    ];
+
     return (
       <SectionLayout mode="view" title="الجمهور المستهدف والرسائل">
         <div className="space-y-6">
           {hasBrandVoice && (
-            <ViewFieldGroup>
-              <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2 mb-4">
-                <MessageCircle className="w-4 h-4 text-portal-icon" />
+            <div className="space-y-4">
+              <SectionSubtitle icon={MessageCircle}>
                 الرسائل والهوية
-              </h4>
-              <ViewField icon={Hash} label="النبرة" value={TONE_OPTIONS.find(t => t.value === data.toneOfVoice)?.label} />
-              <ViewField icon={Video} label="طريقة الظهور" value={APPEARANCE_OPTIONS.find(a => a.value === data.appearanceMethod)?.label} />
-              <ViewField icon={Hash} label="الشعار اللفظي" value={data.verbalSlogan} />
-              <ViewField icon={ShieldCheck} label="الحدود / العوائق" value={data.boundaries} />
-            </ViewFieldGroup>
+              </SectionSubtitle>
+              <div className="space-y-3">
+                {brandVoiceFields.map(
+                  (f) =>
+                    f.value && (
+                      <ClientBriefField
+                        key={f.label}
+                        icon={f.icon}
+                        label={f.label}
+                        value={f.value}
+                      />
+                    ),
+                )}
+              </div>
+            </div>
           )}
-          
+
           {hasAudience && (
-            <ViewFieldGroup>
-              <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2 mb-4">
-                <Users className="w-4 h-4 text-portal-icon" />
-                تحليل الجمهور
-              </h4>
-              <ViewField label="تحليل العملاء" value={data.customerAnalysis} />
+            <div className="space-y-4">
+              <SectionSubtitle icon={Users}>تحليل الجمهور</SectionSubtitle>
+              {data.customerAnalysis && (
+                <div>
+                  <p className="text-xs font-medium text-portal-icon">
+                    تحليل العملاء
+                  </p>
+                  <p className="text-sm text-natural-100 mt-1 leading-relaxed">
+                    {data.customerAnalysis}
+                  </p>
+                </div>
+              )}
               {data.faq && data.faq.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-xs font-medium text-portal-icon">الأسئلة الشائعة</p>
+                  <p className="text-xs font-medium text-portal-icon">
+                    الأسئلة الشائعة
+                  </p>
                   {data.faq.map((pair, i) => (
-                    <div key={i} className="rounded-lg border border-portal-divider p-3">
-                      <p className="text-sm font-medium text-natural-100">{pair.question}</p>
-                      <p className="text-sm text-portal-note-text mt-1">{pair.answer}</p>
+                    <div
+                      key={i}
+                      className="rounded-lg border border-portal-divider p-3"
+                    >
+                      <p className="text-sm font-medium text-natural-100">
+                        {pair.question}
+                      </p>
+                      <p className="text-sm text-portal-note-text mt-1">
+                        {pair.answer}
+                      </p>
                     </div>
                   ))}
                 </div>
               )}
-            </ViewFieldGroup>
+            </div>
           )}
         </div>
       </SectionLayout>

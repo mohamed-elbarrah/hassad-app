@@ -20,9 +20,10 @@ export function ClientBriefSidebar({
   // Prefer V2 visualIdentityInfo.brandAssets over legacy brandAssets
   const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
   const legacyBrandAssets = profile?.brandAssets;
-  
+
   const brandAssets = v2BrandAssets ?? legacyBrandAssets;
-  const hasVisualIdentity = profile?.visualIdentityInfo?.hasVisualIdentity ?? !!brandAssets?.logoUrl;
+  const hasVisualIdentity =
+    profile?.visualIdentityInfo?.hasVisualIdentity ?? !!brandAssets?.logoUrl;
 
   return (
     <div className="space-y-5">

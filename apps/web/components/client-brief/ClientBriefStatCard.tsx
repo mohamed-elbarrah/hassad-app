@@ -3,23 +3,50 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export type StatTone =
+  | "secondary"
+  | "success"
+  | "primary"
+  | "danger"
+  | "action-blue"
+  | "action-purple";
+
 interface ClientBriefStatCardProps {
   icon: LucideIcon;
   label: string;
   value: string | number;
   trend?: { direction: "up" | "down" | "neutral"; value: string } | null;
+  tone?: StatTone;
   colorClass?: string;
   className?: string;
 }
+
+const toneClasses: Record<StatTone, { iconBg: string; iconText: string }> = {
+  secondary: { iconBg: "bg-secondary-50", iconText: "text-secondary-500" },
+  success: { iconBg: "bg-success-50", iconText: "text-success-500" },
+  primary: { iconBg: "bg-primary-50", iconText: "text-primary-500" },
+  danger: { iconBg: "bg-danger-50", iconText: "text-danger-500" },
+  "action-blue": {
+    iconBg: "bg-action-blue-soft",
+    iconText: "text-action-blue",
+  },
+  "action-purple": {
+    iconBg: "bg-action-purple-soft",
+    iconText: "text-action-purple",
+  },
+};
 
 export function ClientBriefStatCard({
   icon: Icon,
   label,
   value,
   trend,
-  colorClass = "text-secondary-500",
+  tone = "secondary",
+  colorClass,
   className,
 }: ClientBriefStatCardProps) {
+  const toneStyle = toneClasses[tone];
+
   return (
     <div
       className={cn(
@@ -53,10 +80,11 @@ export function ClientBriefStatCard({
         </div>
         <div
           className={cn(
-            "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-secondary-50",
+            "shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
+            toneStyle.iconBg,
           )}
         >
-          <Icon className={cn("h-5 w-5", colorClass)} />
+          <Icon className={cn("h-5 w-5", colorClass ?? toneStyle.iconText)} />
         </div>
       </div>
     </div>

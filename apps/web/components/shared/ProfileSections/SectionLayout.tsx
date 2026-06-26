@@ -1,10 +1,12 @@
 /**
  * SectionLayout - Layout wrapper for profile section components
- * 
+ *
  * Renders appropriate layout based on mode:
  * - wizard: Shows step number, instructions, skip button
  * - edit: Shows title only, no navigation
- * - view: Shows title with formatted display
+ * - view: Read-only display using the shared BriefCard system
+ *
+ * RTL is handled by the root layout. No dir attributes are added here.
  */
 
 "use client";
@@ -13,7 +15,9 @@ import type { ReactNode } from "react";
 import { SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { BriefCard } from "@/components/client-brief/BriefCard";
+import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
+import type { LucideIcon } from "lucide-react";
 import type { ProfileMode, ViewFieldProps } from "./types";
 
 interface SectionLayoutProps {
@@ -48,7 +52,7 @@ export function SectionLayout({
   // Wizard mode: show step number, instructions, skip button
   if (mode === "wizard") {
     return (
-      <SurfaceCard className={className ?? "shadow-none"} contentClassName="p-6">
+      <BriefCard className={className} contentClassName="p-6">
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -80,30 +84,30 @@ export function SectionLayout({
 
           {children}
         </div>
-      </SurfaceCard>
+      </BriefCard>
     );
   }
 
   // Edit mode: show title only, no step number or instructions
   if (mode === "edit") {
     return (
-      <SurfaceCard className={className ?? "shadow-none"} contentClassName="p-6">
+      <BriefCard className={className} contentClassName="p-6">
         <div className="space-y-5">
           <h3 className="text-lg font-bold text-natural-100">{title}</h3>
           {children}
         </div>
-      </SurfaceCard>
+      </BriefCard>
     );
   }
 
-  // View mode: show title with formatted display
+  // View mode: show title with formatted display using shared BriefCard
   return (
-    <SurfaceCard className={className ?? "shadow-none"} contentClassName="p-6">
+    <BriefCard className={className} contentClassName="p-6">
       <div className="space-y-4">
         <h3 className="text-lg font-bold text-natural-100">{title}</h3>
         {children}
       </div>
-    </SurfaceCard>
+    </BriefCard>
   );
 }
 
@@ -137,46 +141,51 @@ export function NavigationButtons({
 
 /**
  * ViewField - Display a single field in view mode
+ *
+ * Thin wrapper around ClientBriefField to keep existing section code working
+ * while centralizing the actual presentation.
  */
 export function ViewField({
   label,
   value,
   icon: Icon,
   dir = "rtl",
-  asList = false,
 }: ViewFieldProps) {
   if (!value) {
     return null;
   }
 
-  const displayValue = Array.isArray(value) ? value.join("، ") : value;
-
   return (
-    <div className={cn("flex items-start gap-3", dir === "rtl" ? "flex-row-reverse" : "")}>
-      {Icon && (
-        <div className="shrink-0 w-8 h-8 rounded-lg bg-secondary-50 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-secondary-500" />
-        </div>
-      )}
-      <div className={cn("min-w-0", dir === "rtl" ? "text-right" : "text-left")}>
-        <p className="text-xs font-medium text-portal-icon">{label}</p>
-        {asList && Array.isArray(value) ? (
-          <ul className="text-sm text-natural-100 mt-1">
-            {value.map((item, index) => (
-              <li key={index} className="list-disc list-inside">
-                {item}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-natural-100 mt-1" dir={dir}>
-            {displayValue}
-          </p>
-        )}
-      </div>
-    </div>
+    <ClientBriefField
+      icon={(Icon ?? ViewFieldFallbackIcon) as LucideIcon}
+      label={label}
+      value={Array.isArray(value) ? value.join("، ") : value}
+      dir={dir}
+    />
   );
 }
+
+const ViewFieldFallbackIcon = ({ className }: { className?: string }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn("h-4 w-4", className)}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </svg>
+  );
+};
 
 /**
  * ViewFieldGroup - Container for multiple view fields
@@ -188,4 +197,24 @@ interface ViewFieldGroupProps {
 
 export function ViewFieldGroup({ children, className }: ViewFieldGroupProps) {
   return <div className={cn("space-y-4", className)}>{children}</div>;
+}
+
+/**
+ * SectionSubtitle - Sub-section title inside a profile card
+ */
+interface SectionSubtitleProps {
+  icon?: LucideIcon;
+  children: ReactNode;
+}
+
+export function SectionSubtitle({
+  icon: Icon,
+  children,
+}: SectionSubtitleProps) {
+  return (
+    <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2 mb-4">
+      {Icon && <Icon className="w-4 h-4 text-portal-icon" aria-hidden="true" />}
+      {children}
+    </h4>
+  );
 }

@@ -114,51 +114,56 @@ export function ClientBriefOverview({
       </div>
 
       {/* Financial snapshot — only for sales/portal (portal sees their own) */}
-      {!isInternalRestricted && (
-        client.totalContractValue > 0 || client.totalPaid > 0) && (
-        <BriefCard
-          title="ملخص مالي"
-          description="نظرة سريعة على الوضع المالي"
-          icon={DollarSign}
-        >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-portal-note-text">إجمالي قيمة العقود</span>
-              <span className="text-sm font-bold text-natural-100">
-                {formatCurrency(client.totalContractValue)}
-              </span>
+      {!isInternalRestricted &&
+        (client.totalContractValue > 0 || client.totalPaid > 0) && (
+          <BriefCard
+            title="ملخص مالي"
+            description="نظرة سريعة على الوضع المالي"
+            icon={DollarSign}
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-portal-note-text">
+                  إجمالي قيمة العقود
+                </span>
+                <span className="text-sm font-bold text-natural-100">
+                  {formatCurrency(client.totalContractValue)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-portal-note-text">
+                  إجمالي المدفوع
+                </span>
+                <span className="text-sm font-bold text-success-600">
+                  {formatCurrency(client.totalPaid)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-portal-note-text">المتبقي</span>
+                <span className="text-sm font-bold text-natural-100">
+                  {formatCurrency(
+                    (client.totalContractValue ?? 0) - (client.totalPaid ?? 0),
+                  )}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-secondary-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-success-500"
+                  style={{
+                    width: `${Math.min(
+                      (client.totalContractValue ?? 0) > 0
+                        ? ((client.totalPaid ?? 0) /
+                            client.totalContractValue) *
+                            100
+                        : 0,
+                      100,
+                    )}%`,
+                  }}
+                />
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-portal-note-text">إجمالي المدفوع</span>
-              <span className="text-sm font-bold text-success-600">
-                {formatCurrency(client.totalPaid)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-portal-note-text">المتبقي</span>
-              <span className="text-sm font-bold text-natural-100">
-                {formatCurrency(
-                  (client.totalContractValue ?? 0) - (client.totalPaid ?? 0),
-                )}
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-secondary-100 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-success-500"
-                style={{
-                  width: `${Math.min(
-                    (client.totalContractValue ?? 0) > 0
-                      ? ((client.totalPaid ?? 0) / client.totalContractValue) *
-                          100
-                      : 0,
-                    100,
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-        </BriefCard>
-      )}
+          </BriefCard>
+        )}
 
       {/* Activity + Digital Presence side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -195,7 +200,9 @@ export function ClientBriefOverview({
             {viewAs !== "internal" && client.avgSatisfactionScore != null && (
               <div className="pt-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-portal-note-text">معدل الرضا</span>
+                  <span className="text-sm text-portal-note-text">
+                    معدل الرضا
+                  </span>
                   <span className="text-sm font-bold text-natural-100">
                     {client.avgSatisfactionScore} / 5
                   </span>

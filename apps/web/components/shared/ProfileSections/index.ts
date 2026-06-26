@@ -41,7 +41,13 @@ export { PerformanceSection } from "./sections/PerformanceSection";
 export { VisualSection } from "./sections/VisualSection";
 
 // Layout components
-export { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "./SectionLayout";
+export {
+  SectionLayout,
+  NavigationButtons,
+  ViewField,
+  ViewFieldGroup,
+  SectionSubtitle,
+} from "./SectionLayout";
 
 // Hooks
 export { useProfileSection, useFieldArray } from "./useProfileSection";

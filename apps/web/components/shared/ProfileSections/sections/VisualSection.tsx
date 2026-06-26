@@ -1,6 +1,6 @@
 /**
  * VisualSection - Section 7: Visual Identity
- * 
+ *
  * Handles brand assets, colors, fonts, and visual direction.
  * Supports three modes: wizard, edit, view
  */
@@ -22,11 +22,24 @@ import { FormTextareaControl } from "@/components/design-system/FormTextareaCont
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { ColorPickerControl } from "@/components/design-system/ColorPickerControl";
 import { cn } from "@/lib/utils";
-import { Palette, Image, Camera, Eye, Plus, Check } from "lucide-react";
+import {
+  Palette,
+  Image,
+  Camera,
+  Eye,
+  Plus,
+  Check,
+  ExternalLink,
+} from "lucide-react";
 import { VisualIdentityInfoSchema } from "@hassad/shared";
-import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import {
+  SectionLayout,
+  NavigationButtons,
+  SectionSubtitle,
+} from "../SectionLayout";
 import type { ProfileMode, BrandAssets } from "../types";
 
 const formSchema = z.object({
@@ -111,7 +124,7 @@ export function VisualSection({
 
   useEffect(() => {
     if (mode === "view") return;
-    
+
     const sub = form.watch((values) => {
       const fonts = fontInput
         .split("،")
@@ -130,7 +143,16 @@ export function VisualSection({
       });
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange, mode, logoFiles, guidelinesFiles, brandColors, fontInput, photoFiles]);
+  }, [
+    form,
+    onDataChange,
+    mode,
+    logoFiles,
+    guidelinesFiles,
+    brandColors,
+    fontInput,
+    photoFiles,
+  ]);
 
   const toggleIdentity = useCallback(
     (value: boolean) => {
@@ -159,7 +181,15 @@ export function VisualSection({
       });
       onNext?.();
     },
-    [onDataChange, onNext, logoFiles, guidelinesFiles, brandColors, fontInput, photoFiles],
+    [
+      onDataChange,
+      onNext,
+      logoFiles,
+      guidelinesFiles,
+      brandColors,
+      fontInput,
+      photoFiles,
+    ],
   );
 
   const visualDirection = form.watch("visualDirection") ?? ["", "", ""];
@@ -180,27 +210,31 @@ export function VisualSection({
   if (mode === "view") {
     const data = initialData;
     if (!data) return null;
-    
-    const hasBrandAssets = data.brandAssets?.logoUrl || 
-      (data.brandAssets?.brandColors && data.brandAssets.brandColors.length > 0) ||
+
+    const hasBrandAssets =
+      data.brandAssets?.logoUrl ||
+      (data.brandAssets?.brandColors &&
+        data.brandAssets.brandColors.length > 0) ||
       (data.brandAssets?.fonts && data.brandAssets.fonts.length > 0) ||
       data.brandAssets?.guidelinesUrl;
-    const hasVisual = data.hasVisualIdentity || hasBrandAssets || 
-      data.pastDesigns || data.productPhotos?.length || 
-      (data.visualDirection && data.visualDirection.some(v => v));
-    
+    const hasVisual =
+      data.hasVisualIdentity ||
+      hasBrandAssets ||
+      data.pastDesigns ||
+      data.productPhotos?.length ||
+      (data.visualDirection && data.visualDirection.some((v) => v));
+
     if (!hasVisual) return null;
-    
+
     return (
       <SectionLayout mode="view" title="الهوية البصرية والتصميم">
         <div className="space-y-6">
           {hasBrandAssets && (
-            <ViewFieldGroup>
-              <h4 className="text-sm font-semibold text-natural-100 mb-4 flex items-center gap-2">
-                <Palette className="w-4 h-4 text-portal-icon" />
+            <div className="space-y-4">
+              <SectionSubtitle icon={Palette}>
                 ملفات براندك البصرية
-              </h4>
-              
+              </SectionSubtitle>
+
               {data.brandAssets?.logoUrl && (
                 <div className="flex items-center gap-3">
                   <img
@@ -210,60 +244,76 @@ export function VisualSection({
                   />
                   <div className="min-w-0">
                     <p className="text-xs text-neutral-300">الشعار</p>
-                    <p className="text-xs text-portal-note-text truncate" dir="ltr">
+                    <p
+                      className="text-xs text-portal-note-text truncate"
+                      dir="ltr"
+                    >
                       {data.brandAssets.logoUrl}
                     </p>
                   </div>
                 </div>
               )}
-              
-              {data.brandAssets?.brandColors && data.brandAssets.brandColors.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-portal-icon">ألوان العلامة</p>
-                  <div className="flex flex-wrap gap-2">
-                    {data.brandAssets.brandColors.map((color, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-2 rounded-lg border border-portal-card-border px-2 py-1.5"
-                      >
-                        <span
-                          className="w-5 h-5 rounded-full border border-portal-card-border"
-                          style={{ backgroundColor: color }}
-                        />
-                        <span className="text-xs text-natural-100" dir="ltr">
-                          {color}
-                        </span>
-                      </div>
-                    ))}
+
+              {data.brandAssets?.brandColors &&
+                data.brandAssets.brandColors.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-portal-icon">
+                      ألوان العلامة
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {data.brandAssets.brandColors.map((color, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 rounded-lg border border-portal-card-border px-2 py-1.5"
+                        >
+                          <span
+                            className="w-5 h-5 rounded-full border border-portal-card-border"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="text-xs text-natural-100" dir="ltr">
+                            {color}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              
+                )}
+
               {data.brandAssets?.fonts && data.brandAssets.fonts.length > 0 && (
-                <ViewField label="الخطوط" value={data.brandAssets.fonts.join("، ")} />
+                <ClientBriefField
+                  icon={Palette}
+                  label="الخطوط"
+                  value={data.brandAssets.fonts.join("، ")}
+                />
               )}
-              
+
               {data.brandAssets?.guidelinesUrl && (
                 <a
                   href={data.brandAssets.guidelinesUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-secondary-500 hover:underline"
+                  className="inline-flex items-center gap-2 text-sm text-secondary-500 hover:underline"
                 >
-                  <Check className="w-4 h-4" />
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
                   دليل الهوية البصرية
                 </a>
               )}
-            </ViewFieldGroup>
+            </div>
           )}
-          
-          <ViewFieldGroup>
-            <ViewField icon={Image} label="تصاميم سابقة" value={data.pastDesigns} />
-            
+
+          <div className="space-y-4">
+            {data.pastDesigns && (
+              <ClientBriefField
+                icon={Image}
+                label="تصاميم سابقة"
+                value={data.pastDesigns}
+              />
+            )}
+
             {data.productPhotos && data.productPhotos.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
-                  <Camera className="w-4 h-4" />
+                  <Camera className="w-4 h-4" aria-hidden="true" />
                   صور المنتج ({data.productPhotos.length} ملفات)
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -283,26 +333,28 @@ export function VisualSection({
                 </div>
               </div>
             )}
-            
-            {data.visualDirection && data.visualDirection.some(v => v) && (
+
+            {data.visualDirection && data.visualDirection.some((v) => v) && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4" aria-hidden="true" />
                   التوجه البصري
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {data.visualDirection.filter(v => v).map((account, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
-                    >
-                      {account}
-                    </span>
-                  ))}
+                  {data.visualDirection
+                    .filter((v): v is string => Boolean(v))
+                    .map((account, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
+                      >
+                        {account}
+                      </span>
+                    ))}
                 </div>
               </div>
             )}
-          </ViewFieldGroup>
+          </div>
         </div>
       </SectionLayout>
     );

@@ -1,6 +1,6 @@
 /**
  * CommunicationSection - Section 1: Communication Info
- * 
+ *
  * Handles contact and basic business information.
  * Supports three modes: wizard, edit, view
  */
@@ -26,11 +26,12 @@ import {
   FormSelectItem,
 } from "@/components/design-system/FormSelectControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { User, Building2, Phone, Mail, Briefcase } from "lucide-react";
 import { z } from "zod";
 import { CommunicationInfoSchema } from "@hassad/shared";
 import type { CommunicationInfo } from "../types";
-import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import { SectionLayout, NavigationButtons } from "../SectionLayout";
 import type { ProfileMode } from "../types";
 
 // Schema type for form (validation)
@@ -97,7 +98,7 @@ export function CommunicationSection({
   // Sync form changes to parent
   useEffect(() => {
     if (mode === "view") return;
-    
+
     const sub = form.watch((values) => {
       onDataChange?.(values as CommunicationForm);
     });
@@ -116,16 +117,44 @@ export function CommunicationSection({
   if (mode === "view") {
     const data = initialData;
     if (!data) return null;
-    
+
+    const fields = [
+      { icon: User, label: "الاسم", value: data.contactName },
+      { icon: Building2, label: "اسم النشاط", value: data.businessName },
+      { icon: Briefcase, label: "المجال", value: data.industry },
+      {
+        icon: Phone,
+        label: "رقم التواصل",
+        value: data.contactNumber,
+        dir: "ltr" as const,
+      },
+      {
+        icon: Mail,
+        label: "البريد الإلكتروني",
+        value: data.email,
+        dir: "ltr" as const,
+      },
+    ];
+
+    const hasData = fields.some((f) => f.value);
+    if (!hasData) return null;
+
     return (
       <SectionLayout mode="view" title="معلومات التواصل">
-        <ViewFieldGroup>
-          <ViewField icon={User} label="الاسم" value={data.contactName} />
-          <ViewField icon={Building2} label="اسم النشاط" value={data.businessName} />
-          <ViewField icon={Briefcase} label="المجال" value={data.industry} />
-          <ViewField icon={Phone} label="رقم التواصل" value={data.contactNumber} dir="ltr" />
-          <ViewField icon={Mail} label="البريد الإلكتروني" value={data.email} dir="ltr" />
-        </ViewFieldGroup>
+        <div className="space-y-3">
+          {fields.map(
+            (f) =>
+              f.value && (
+                <ClientBriefField
+                  key={f.label}
+                  icon={f.icon}
+                  label={f.label}
+                  value={f.value}
+                  dir={f.dir}
+                />
+              ),
+          )}
+        </div>
       </SectionLayout>
     );
   }
@@ -138,7 +167,10 @@ export function CommunicationSection({
       title="الملخص التواصلي"
       instructions={
         mode === "wizard"
-          ? ["هذه المعلومات الأساسية للتواصل معك", "جميع الحقول مطلوبة للمتابعة"]
+          ? [
+              "هذه المعلومات الأساسية للتواصل معك",
+              "جميع الحقول مطلوبة للمتابعة",
+            ]
           : undefined
       }
     >
@@ -217,7 +249,12 @@ export function CommunicationSection({
                   رقم التواصل
                   <span className="text-danger-500">*</span>
                 </FormLabel>
-                <FormInputControl placeholder="رقم التواصل" type="tel" dir="ltr" {...field} />
+                <FormInputControl
+                  placeholder="رقم التواصل"
+                  type="tel"
+                  dir="ltr"
+                  {...field}
+                />
                 <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
@@ -233,7 +270,12 @@ export function CommunicationSection({
                   البريد الإلكتروني
                   <span className="text-danger-500">*</span>
                 </FormLabel>
-                <FormInputControl placeholder="البريد الإلكتروني" type="email" dir="ltr" {...field} />
+                <FormInputControl
+                  placeholder="البريد الإلكتروني"
+                  type="email"
+                  dir="ltr"
+                  {...field}
+                />
                 <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}

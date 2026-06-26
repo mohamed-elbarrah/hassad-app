@@ -1,6 +1,6 @@
 /**
  * ProductSection - Section 2: Product/Service Info
- * 
+ *
  * Handles product story, description, value proposition, and benefits.
  * Supports three modes: wizard, edit, view
  */
@@ -21,10 +21,15 @@ import {
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { X, Plus, Check, Ban, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductInfoSchema } from "@hassad/shared";
-import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import {
+  SectionLayout,
+  NavigationButtons,
+  SectionSubtitle,
+} from "../SectionLayout";
 import type { ProfileMode } from "../types";
 
 type ProductForm = z.infer<typeof ProductInfoSchema>;
@@ -59,7 +64,9 @@ export function ProductSection({
   onSkip,
   hideNavigation = false,
 }: ProductSectionProps) {
-  const [benefits, setBenefits] = useState<string[]>(initialData?.benefits ?? []);
+  const [benefits, setBenefits] = useState<string[]>(
+    initialData?.benefits ?? [],
+  );
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customInputValue, setCustomInputValue] = useState("");
 
@@ -90,7 +97,7 @@ export function ProductSection({
 
   useEffect(() => {
     if (mode === "view") return;
-    
+
     const sub = form.watch((values) => {
       onDataChange?.({ ...values, benefits } as ProductForm);
     });
@@ -139,20 +146,37 @@ export function ProductSection({
   if (mode === "view") {
     const data = initialData;
     if (!data) return null;
-    
-    const hasData = data.productStory || data.detailedDescription || 
-      data.valueProposition || data.advantages || 
-      (data.benefits && data.benefits.length > 0) || data.contentDirection;
-    
+
+    const fields = [
+      { label: "قصة المنتج أو الخدمة", value: data.productStory },
+      { label: "وصف تفصيلي", value: data.detailedDescription },
+      { label: "القيمة المضافة", value: data.valueProposition },
+      { label: "المزايا", value: data.advantages },
+      { label: "المحتوى", value: data.contentDirection },
+    ];
+
+    const hasData =
+      fields.some((f) => f.value) ||
+      (data.benefits && data.benefits.length > 0);
     if (!hasData) return null;
-    
+
     return (
       <SectionLayout mode="view" title="معلومات المنتج / الخدمة">
-        <ViewFieldGroup>
-          <ViewField label="قصة المنتج أو الخدمة" value={data.productStory} />
-          <ViewField label="وصف تفصيلي" value={data.detailedDescription} />
-          <ViewField label="القيمة المضافة" value={data.valueProposition} />
-          <ViewField label="المزايا" value={data.advantages} />
+        <div className="space-y-4">
+          {fields.map(
+            (f) =>
+              f.value && (
+                <div key={f.label}>
+                  <p className="text-xs font-medium text-portal-icon">
+                    {f.label}
+                  </p>
+                  <p className="text-sm text-natural-100 mt-1 leading-relaxed">
+                    {f.value}
+                  </p>
+                </div>
+              ),
+          )}
+
           {data.benefits && data.benefits.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-portal-icon">الفوائد</p>
@@ -168,8 +192,7 @@ export function ProductSection({
               </div>
             </div>
           )}
-          <ViewField label="المحتوى" value={data.contentDirection} />
-        </ViewFieldGroup>
+        </div>
       </SectionLayout>
     );
   }
@@ -213,7 +236,9 @@ export function ProductSection({
             name="detailedDescription"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm">وصف تفصيلي للمنتج أو الخدمة</FormLabel>
+                <FormLabel className="text-sm">
+                  وصف تفصيلي للمنتج أو الخدمة
+                </FormLabel>
                 <FormTextareaControl
                   placeholder="وش سالفة منتجك / خدمتك؟ اشرح لنا بالتفصيل وش تقدم تخيل العميل واقف قدامك وودك تقنعه"
                   className="min-h-[120px]"
@@ -254,7 +279,9 @@ export function ProductSection({
           />
 
           <div className="space-y-3">
-            <span className="text-sm font-medium text-natural-100">الفوائد</span>
+            <span className="text-sm font-medium text-natural-100">
+              الفوائد
+            </span>
             <p className="text-xs text-portal-note-text">
               وش بيستفيد العميل؟ زبونك وش بيتغير في حياته أو يومه بعد ما يجرب
               منتجك أو خدمتك؟
