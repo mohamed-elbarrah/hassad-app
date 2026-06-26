@@ -53,8 +53,8 @@ export default function PortalContractsPage() {
     <Input
       icon={<Search className="h-4 w-4 text-portal-icon" />}
       placeholder="البحث..."
-      className="h-8"
-      wrapperClassName="w-full max-w-md"
+      size="sm"
+      className="w-full max-w-md"
       value={search}
       onChange={(e) => {
         setSearch(e.target.value);

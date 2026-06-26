@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Ticket, Search, AlertTriangle, Clock, CheckCircle, Inbox, Ban } from "lucide-react";
+import {
+  Ticket,
+  Search,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  Inbox,
+  Ban,
+} from "lucide-react";
 import type { DisputeStatus, DisputePriority } from "@hassad/shared";
 import { DISPUTE_STATUS_AR } from "@hassad/shared";
 import {
@@ -10,11 +18,19 @@ import {
 } from "@/features/disputes/adminDisputesApi";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { Pagination } from "@/components/design-system/Pagination";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { Input } from "@/components/design-system/Input";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
 import { AdminDisputeCard } from "@/components/disputes/AdminDisputeCard";
 import { DisputeEmptyState } from "@/components/disputes/DisputeEmptyState";
 
@@ -60,7 +76,9 @@ const TABS = [
 ] as const;
 
 export default function AdminDisputesPage() {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState("");
@@ -77,7 +95,7 @@ export default function AdminDisputesPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 60_000 }
+    { pollingInterval: 60_000 },
   );
 
   // Fetch stats
@@ -87,10 +105,13 @@ export default function AdminDisputesPage() {
   const total = data?.meta?.total ?? 0;
   const totalPages = data?.meta?.totalPages ?? 1;
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    setPage(1);
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setPage(1);
+    },
+    [],
+  );
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -105,7 +126,7 @@ export default function AdminDisputesPage() {
           d.title.toLowerCase().includes(search.toLowerCase()) ||
           d.client.name.toLowerCase().includes(search.toLowerCase()) ||
           d.pm.name.toLowerCase().includes(search.toLowerCase()) ||
-          d.project.name.toLowerCase().includes(search.toLowerCase())
+          d.project.name.toLowerCase().includes(search.toLowerCase()),
       )
     : disputes;
 
@@ -156,9 +177,10 @@ export default function AdminDisputesPage() {
         <TabsList>
           {TABS.map((tab) => {
             const Icon = tab.icon;
-            const count = tab.value === ""
-              ? total
-              : disputes.filter((d) => d.status === tab.value).length;
+            const count =
+              tab.value === ""
+                ? total
+                : disputes.filter((d) => d.status === tab.value).length;
             return (
               <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
                 <Icon className="h-4 w-4" />
@@ -185,7 +207,7 @@ export default function AdminDisputesPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="pr-9 h-10"
+                className="pr-9"
               />
             </div>
             <FilterBar
@@ -255,7 +277,9 @@ function StatsCard({ icon: Icon, label, value, color }: StatsCardProps) {
   return (
     <SurfaceCard className="p-4">
       <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${colors.bg}`}>
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-full ${colors.bg}`}
+        >
           <Icon className={`h-5 w-5 ${colors.icon}`} />
         </div>
         <div>

@@ -1,21 +1,34 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Ticket, Search, AlertTriangle, Clock, CheckCircle, Inbox } from "lucide-react";
 import {
-  useGetPmDisputesQuery,
-} from "@/features/disputes/pmDisputesApi";
+  Ticket,
+  Search,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  Inbox,
+} from "lucide-react";
+import { useGetPmDisputesQuery } from "@/features/disputes/pmDisputesApi";
 import type { DisputeStatus } from "@hassad/shared";
 import { DISPUTE_STATUS_AR } from "@hassad/shared";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { Pagination } from "@/components/design-system/Pagination";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { Input } from "@/components/design-system/Input";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { PmDisputeCard } from "@/components/disputes/PmDisputeCard";
 import { DisputeEmptyState } from "@/components/disputes/DisputeEmptyState";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
 
 const STATUS_GROUPS: FilterGroup[] = [
   {
@@ -46,7 +59,9 @@ const TABS = [
 ] as const;
 
 export default function PmDisputesPage() {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState("");
@@ -59,7 +74,7 @@ export default function PmDisputesPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 60_000 }
+    { pollingInterval: 60_000 },
   );
 
   const disputes = data?.data ?? [];
@@ -73,10 +88,13 @@ export default function PmDisputesPage() {
     ESCALATED: disputes.filter((d) => d.status === "ESCALATED").length,
   };
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    setPage(1);
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setPage(1);
+    },
+    [],
+  );
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -90,7 +108,7 @@ export default function PmDisputesPage() {
         (d) =>
           d.title.toLowerCase().includes(search.toLowerCase()) ||
           d.client.name.toLowerCase().includes(search.toLowerCase()) ||
-          d.project.name.toLowerCase().includes(search.toLowerCase())
+          d.project.name.toLowerCase().includes(search.toLowerCase()),
       )
     : disputes;
 
@@ -110,7 +128,9 @@ export default function PmDisputesPage() {
               <Clock className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-natural-100">{statusCounts.APPROVED + statusCounts.IN_PROGRESS}</p>
+              <p className="text-2xl font-bold text-natural-100">
+                {statusCounts.APPROVED + statusCounts.IN_PROGRESS}
+              </p>
               <p className="text-sm text-portal-note-text">تذاكر نشطة</p>
             </div>
           </div>
@@ -121,7 +141,9 @@ export default function PmDisputesPage() {
               <AlertTriangle className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-natural-100">{statusCounts.ESCALATED}</p>
+              <p className="text-2xl font-bold text-natural-100">
+                {statusCounts.ESCALATED}
+              </p>
               <p className="text-sm text-portal-note-text">تم التصعيد</p>
             </div>
           </div>
@@ -132,7 +154,12 @@ export default function PmDisputesPage() {
               <CheckCircle className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-natural-100">{total - statusCounts.APPROVED - statusCounts.IN_PROGRESS - statusCounts.ESCALATED}</p>
+              <p className="text-2xl font-bold text-natural-100">
+                {total -
+                  statusCounts.APPROVED -
+                  statusCounts.IN_PROGRESS -
+                  statusCounts.ESCALATED}
+              </p>
               <p className="text-sm text-portal-note-text">تم الحل / مغلق</p>
             </div>
           </div>
@@ -144,9 +171,10 @@ export default function PmDisputesPage() {
         <TabsList>
           {TABS.map((tab) => {
             const Icon = tab.icon;
-            const count = tab.value === ""
-              ? total
-              : disputes.filter((d) => d.status === tab.value).length;
+            const count =
+              tab.value === ""
+                ? total
+                : disputes.filter((d) => d.status === tab.value).length;
             return (
               <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
                 <Icon className="h-4 w-4" />
@@ -173,7 +201,7 @@ export default function PmDisputesPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="pr-9 h-10"
+                className="pr-9"
               />
             </div>
             <FilterBar
