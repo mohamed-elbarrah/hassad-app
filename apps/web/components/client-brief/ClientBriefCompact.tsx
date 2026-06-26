@@ -106,9 +106,16 @@ export function ClientBriefCompact({
   const statusLabel =
     STATUS_LABELS[client.status as ClientStatus] ?? client.status;
 
-  const logoUrl = profile?.brandAssets?.logoUrl ?? null;
-  const brandAssets = profile?.brandAssets;
+  // Prefer V2 visualIdentityInfo.brandAssets over legacy brandAssets
+  const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
+  const legacyBrandAssets = profile?.brandAssets;
+  
+  const logoUrl = v2BrandAssets?.logoUrl ?? legacyBrandAssets?.logoUrl ?? null;
+  const brandAssets = v2BrandAssets ?? legacyBrandAssets;
   const isInternalRestricted = viewAs === "internal";
+
+  // Prefer V2 communicationInfo.industry over legacy industry
+  const industry = profile?.communicationInfo?.industry ?? profile?.industry;
 
   const hasSocialLinks =
     profile?.website ||
@@ -119,7 +126,7 @@ export function ClientBriefCompact({
     profile?.snapchatHandle;
 
   const hasBusinessInfo =
-    profile?.industry ||
+    industry ||
     profile?.targetAudience ||
     profile?.budgetRangeMin != null ||
     profile?.budgetRangeMax != null ||
@@ -241,7 +248,7 @@ export function ClientBriefCompact({
               <ClientBriefField
                 icon={Building2}
                 label="المجال / القطاع"
-                value={profile?.industry}
+                value={industry}
               />
               <ClientBriefField
                 icon={Target}

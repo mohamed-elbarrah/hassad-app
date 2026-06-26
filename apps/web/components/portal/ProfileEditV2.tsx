@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
-import { useUpsertClientProfileV2Mutation } from "@/features/clients/clientsApi";
-import type { IntakeFormV2Input } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import {
+  useGetClientProfileV2Query,
+  useUpsertClientProfileV2Mutation,
+} from "@/features/clients/clientsApi";
+import type { IntakeFormV2Input } from "@hassad/shared";
 
 // Shared section components
 import {
@@ -18,16 +21,19 @@ import {
   VisualSection,
 } from "@/components/shared/ProfileSections";
 
-interface ProfileEditTabProps {
+interface ProfileEditV2Props {
   clientId: string;
-  profile: any;
+  onCancel?: () => void;
+  onSuccess?: () => void;
 }
 
 type FormData = {
   [K in keyof IntakeFormV2Input]?: IntakeFormV2Input[K];
 };
 
-export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
+export function ProfileEditV2({ clientId, onCancel, onSuccess }: ProfileEditV2Props) {
+  // Use the V2 profile endpoint (canonical source for V2 fields)
+  const { data: profile, isLoading } = useGetClientProfileV2Query(clientId);
   const [upsertProfile, { isLoading: isSaving }] = useUpsertClientProfileV2Mutation();
 
   const [formData, setFormData] = useState<FormData>({});
@@ -67,23 +73,32 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
       }).unwrap();
       toast.success("تم حفظ التغييرات بنجاح");
       setIsDirty(false);
+      onSuccess?.();
     } catch (error: any) {
       toast.error(error.message || "حدث خطأ أثناء الحفظ");
     }
-  }, [clientId, formData, upsertProfile]);
+  }, [clientId, formData, upsertProfile, onSuccess]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-natural-100">تعديل الملف التعريفي</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            قم بتحديث معلومات العميل
+          <h2 className="text-xl font-bold text-natural-100">تعديل الملف التعريفي</h2>
+          <p className="text-sm text-portal-note-text mt-1">
+            قم بتحديث معلومات نشاطك التجاري
           </p>
         </div>
         {isDirty && (
-          <span className="text-xs text-red-500">
+          <span className="text-xs text-alert-500">
             لديك تغييرات غير محفوظة
           </span>
         )}
@@ -165,7 +180,17 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
       />
 
       {/* Global Save Button */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex items-center justify-end gap-3">
+      <div className="sticky bottom-0 bg-natural-0 border-t border-portal-divider p-4 flex items-center justify-end gap-3">
+        {onCancel && (
+          <ActionButton
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSaving}
+          >
+            إلغاء
+          </ActionButton>
+        )}
         <ActionButton
           type="button"
           variant="primary"

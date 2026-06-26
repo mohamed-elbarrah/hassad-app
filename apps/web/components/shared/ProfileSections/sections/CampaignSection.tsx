@@ -1,3 +1,10 @@
+/**
+ * CampaignSection - Section 5: Campaign Info
+ * 
+ * Handles campaign goals, details, offers, and competitors.
+ * Supports three modes: wizard, edit, view
+ */
+
 "use client";
 
 import { useCallback, useEffect } from "react";
@@ -15,7 +22,8 @@ import { FormTextareaControl } from "@/components/design-system/FormTextareaCont
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Target, Megaphone, Gift, ShieldCheck, Calendar, Users } from "lucide-react";
-import { StepLayout } from "../components/StepLayout";
+import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import type { ProfileMode } from "../types";
 
 const formSchema = z.object({
   campaignGoal: z.string().optional(),
@@ -28,17 +36,19 @@ const formSchema = z.object({
 
 type CampaignForm = z.infer<typeof formSchema>;
 
-interface Step5Props {
+interface CampaignSectionProps {
+  mode: ProfileMode;
   initialData?: CampaignForm;
-  onDataChange: (data: CampaignForm) => void;
-  onValid: (valid: boolean) => void;
+  onDataChange?: (data: CampaignForm) => void;
+  onValid?: (valid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
   hideNavigation?: boolean;
 }
 
-export function Step5_Campaign({
+export function CampaignSection({
+  mode,
   initialData,
   onDataChange,
   onValid,
@@ -46,7 +56,7 @@ export function Step5_Campaign({
   onBack,
   onSkip,
   hideNavigation = false,
-}: Step5Props) {
+}: CampaignSectionProps) {
   const form = useForm<CampaignForm>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ?? {
@@ -60,42 +70,80 @@ export function Step5_Campaign({
     mode: "onChange",
   });
 
+  // Reset form when initialData changes (e.g., when profile loads from API)
   useEffect(() => {
-    onValid(true);
+    if (initialData) {
+      form.reset(initialData);
+    }
+  }, [initialData, form]);
+
+  useEffect(() => {
+    onValid?.(true);
   }, [onValid]);
 
   useEffect(() => {
+    if (mode === "view") return;
+    
     const sub = form.watch((values) => {
-      onDataChange(values as CampaignForm);
+      onDataChange?.(values as CampaignForm);
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange]);
+  }, [form, onDataChange, mode]);
 
   const onSubmit = useCallback(
     (data: CampaignForm) => {
-      onDataChange(data);
+      onDataChange?.(data);
       onNext?.();
     },
     [onDataChange, onNext],
   );
 
+  // View mode: render read-only display
+  if (mode === "view") {
+    const data = initialData;
+    if (!data) return null;
+    
+    const hasData = data.campaignGoal || data.campaignDetails || data.campaignOffer || 
+      data.guarantees || data.campaignSeason || data.competitors;
+    if (!hasData) return null;
+    
+    return (
+      <SectionLayout mode="view" title="الحملة الإعلانية">
+        <ViewFieldGroup>
+          <ViewField icon={Target} label="الهدف" value={data.campaignGoal} />
+          <ViewField icon={Megaphone} label="تفاصيل الحملة" value={data.campaignDetails} />
+          <ViewField icon={Gift} label="العرض في الحملة" value={data.campaignOffer} />
+          <ViewField icon={ShieldCheck} label="الضمانات" value={data.guarantees} />
+          <ViewField icon={Calendar} label="المناسبة / الموسم" value={data.campaignSeason} />
+          <ViewField icon={Users} label="المنافسون" value={data.competitors} />
+        </ViewFieldGroup>
+      </SectionLayout>
+    );
+  }
+
+  // Edit/Wizard mode: render form
   return (
-    <StepLayout
-      stepNumber={5}
+    <SectionLayout
+      mode={mode}
+      stepNumber={mode === "wizard" ? 5 : undefined}
       title="الحملة الإعلانية"
-      instructions={[
-        "وش الهدف الأول والثاني من هالحملة؟ وكيف تقيس نجاح حملاتك عادة؟",
-        "وش عرضك القوي؟ وش الحافز والعروض القوية اللي بنصيد فيها العميل؟",
-      ]}
-      isOptional
-      onSkip={onSkip}
+      instructions={
+        mode === "wizard"
+          ? [
+              "وش الهدف الأول والثاني من هالحملة؟ وكيف تقيس نجاح حملاتك عادة؟",
+              "وش عرضك القوي؟ وش الحافز والعروض القوية اللي بنصيد فيها العميل؟",
+            ]
+          : undefined
+      }
+      isOptional={mode === "wizard"}
+      onSkip={mode === "wizard" ? onSkip : undefined}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <FormField
             control={form.control}
             name="campaignGoal"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <Target className="w-4 h-4 text-portal-icon" />
@@ -106,7 +154,6 @@ export function Step5_Campaign({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -114,7 +161,7 @@ export function Step5_Campaign({
           <FormField
             control={form.control}
             name="campaignDetails"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <Megaphone className="w-4 h-4 text-portal-icon" />
@@ -125,7 +172,6 @@ export function Step5_Campaign({
                   className="min-h-[120px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -133,7 +179,7 @@ export function Step5_Campaign({
           <FormField
             control={form.control}
             name="campaignOffer"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <Gift className="w-4 h-4 text-portal-icon" />
@@ -144,7 +190,6 @@ export function Step5_Campaign({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -152,7 +197,7 @@ export function Step5_Campaign({
           <FormField
             control={form.control}
             name="guarantees"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-portal-icon" />
@@ -163,7 +208,6 @@ export function Step5_Campaign({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -171,7 +215,7 @@ export function Step5_Campaign({
           <FormField
             control={form.control}
             name="campaignSeason"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-portal-icon" />
@@ -181,7 +225,6 @@ export function Step5_Campaign({
                   placeholder="هل الحملة مرتبطة بموسم أو توقيت معين؟"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -189,7 +232,7 @@ export function Step5_Campaign({
           <FormField
             control={form.control}
             name="competitors"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <Users className="w-4 h-4 text-portal-icon" />
@@ -200,25 +243,15 @@ export function Step5_Campaign({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
 
-          {!hideNavigation && (
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-              {onBack && (
-                <ActionButton type="button" variant="outline" onClick={onBack}>
-                  السابق
-                </ActionButton>
-              )}
-              <ActionButton type="submit" variant="primary" className="mr-auto">
-                التالي
-              </ActionButton>
-            </div>
+          {!hideNavigation && mode === "wizard" && (
+            <NavigationButtons onBack={onBack} submitLabel="التالي" />
           )}
         </form>
       </Form>
-    </StepLayout>
+    </SectionLayout>
   );
 }

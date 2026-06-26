@@ -11,6 +11,110 @@ import type {
 } from "@hassad/shared";
 import type { ClientStatus } from "@hassad/shared";
 
+// ── V2 Profile Types (unified with IntakeFormV2) ────────────────────────────────
+
+export interface CommunicationInfo {
+  contactName?: string;
+  businessName?: string;
+  industry?: string;
+  contactNumber?: string;
+  email?: string;
+}
+
+export interface ProductInfo {
+  productStory?: string;
+  detailedDescription?: string;
+  valueProposition?: string;
+  advantages?: string;
+  benefits?: string[];
+  contentDirection?: string;
+}
+
+export interface FaqPair {
+  question?: string;
+  answer?: string;
+}
+
+export interface AudienceInfo {
+  customerAnalysis?: string;
+  faq?: FaqPair[];
+}
+
+export interface BrandVoice {
+  toneOfVoice?: string;
+  boundaries?: string;
+  verbalSlogan?: string;
+  appearanceMethod?: string;
+}
+
+export interface CustomerJourney {
+  orderMethods?: string[];
+  followUpTools?: string;
+}
+
+export interface CampaignInfo {
+  campaignGoal?: string;
+  campaignDetails?: string;
+  campaignOffer?: string;
+  guarantees?: string;
+  campaignSeason?: string;
+  competitors?: string;
+}
+
+export interface PastPerformance {
+  bestCampaigns?: string;
+  pastPerformance?: string;
+  trackingSetup?: string;
+}
+
+export interface BudgetInfo {
+  budgetRange?: number;
+  previousReports?: string[];
+}
+
+export interface VisualIdentityBrandAssets {
+  logoUrl?: string;
+  brandColors?: string[];
+  fonts?: string[];
+  guidelinesUrl?: string;
+}
+
+export interface VisualIdentityInfo {
+  hasVisualIdentity?: boolean;
+  brandAssets?: VisualIdentityBrandAssets;
+  pastDesigns?: string;
+  productPhotos?: string[];
+  visualDirection?: string[];
+}
+
+export interface ClientProfileV2 {
+  id: string;
+  clientId: string;
+  communicationInfo?: CommunicationInfo | null;
+  productInfo?: ProductInfo | null;
+  audienceInfo?: AudienceInfo | null;
+  brandVoice?: BrandVoice | null;
+  customerJourney?: CustomerJourney | null;
+  campaignInfo?: CampaignInfo | null;
+  pastPerformance?: PastPerformance | null;
+  budgetInfo?: BudgetInfo | null;
+  visualIdentityInfo?: VisualIdentityInfo | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertClientProfileV2Input {
+  communicationInfo?: CommunicationInfo;
+  productInfo?: ProductInfo;
+  audienceInfo?: AudienceInfo;
+  brandVoice?: BrandVoice;
+  customerJourney?: CustomerJourney;
+  campaignInfo?: CampaignInfo;
+  pastPerformance?: PastPerformance;
+  budgetInfo?: BudgetInfo;
+  visualIdentityInfo?: VisualIdentityInfo;
+}
+
 // ── Response types ────────────────────────────────────────────────────────────
 
 export interface PaginatedClients {
@@ -146,6 +250,36 @@ export const clientsApi = createApi({
         { type: "Client", id },
       ],
     }),
+
+    /**
+     * GET /v1/clients/:id/profile/v2
+     * Returns V2 profile data (unified with IntakeFormV2 structure)
+     */
+    getClientProfileV2: builder.query<ClientProfileV2, string>({
+      query: (id) => `/clients/${id}/profile/v2`,
+      providesTags: (_result, _err, id) => [{ type: "ClientProfile", id }],
+    }),
+
+    /**
+     * PUT /v1/clients/:id/profile/v2
+     * Upserts V2 profile data (same structure as IntakeFormV2)
+     * This is the canonical endpoint for updating client profile from both
+     * intake form submission and profile edit.
+     */
+    upsertClientProfileV2: builder.mutation<
+      ClientProfile,
+      { id: string; data: UpsertClientProfileV2Input }
+    >({
+      query: ({ id, data }) => ({
+        url: `/clients/${id}/profile/v2`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: (_result, _err, { id }) => [
+        { type: "ClientProfile", id },
+        { type: "Client", id },
+      ],
+    }),
   }),
 });
 
@@ -158,4 +292,6 @@ export const {
   useGetClientProfileQuery,
   useGetClientTeamViewQuery,
   useUpsertClientProfileMutation,
+  useGetClientProfileV2Query,
+  useUpsertClientProfileV2Mutation,
 } = clientsApi;

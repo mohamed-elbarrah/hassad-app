@@ -3,25 +3,27 @@
 import { useState } from "react";
 import { useAppSelector } from "@/lib/hooks";
 import {
-  useGetClientProfileQuery,
+  useGetClientProfileV2Query,
   useGetClientByIdQuery,
 } from "@/features/clients/clientsApi";
 import { Skeleton } from "@/components/design-system/Skeleton";
-import { ClientBrief } from "@/components/client-brief";
-import { PortalProfileEditForm } from "@/components/portal/PortalProfileEditForm";
+import { ClientBriefV2 } from "@/components/client-brief/ClientBriefV2";
+import { ProfileEditV2 } from "@/components/portal/ProfileEditV2";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Pencil } from "lucide-react";
+import { Pencil, ArrowRight } from "lucide-react";
 
 export default function PortalProfilePage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
   const [isEditing, setIsEditing] = useState(false);
 
+  // Use V2 endpoint for fetching profile data
   const {
     data: profile,
     isLoading: profileLoading,
     isError: profileError,
-  } = useGetClientProfileQuery(clientId, {
+    refetch: refetchProfile,
+  } = useGetClientProfileV2Query(clientId, {
     skip: !clientId,
   });
 
@@ -82,11 +84,27 @@ export default function PortalProfilePage() {
     );
   }
 
+  const handleEditSuccess = () => {
+    setIsEditing(false);
+    refetchProfile();
+  };
+
   return (
     <div className="flex flex-col gap-5" dir="rtl">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-natural-100">الملف التعريفي</h1>
-        {!isEditing && (
+        <h1 className="text-xl font-bold text-natural-100">
+          {isEditing ? "تعديل الملف التعريفي" : "الملف التعريفي"}
+        </h1>
+        {isEditing ? (
+          <ActionButton
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditing(false)}
+            icon={<ArrowRight className="h-4 w-4" />}
+          >
+            العودة للعرض
+          </ActionButton>
+        ) : (
           <ActionButton
             variant="outline"
             size="sm"
@@ -99,14 +117,13 @@ export default function PortalProfilePage() {
       </div>
 
       {isEditing ? (
-        <PortalProfileEditForm
+        <ProfileEditV2
           clientId={clientId}
-          profile={profile ?? null}
           onCancel={() => setIsEditing(false)}
-          onSuccess={() => setIsEditing(false)}
+          onSuccess={handleEditSuccess}
         />
       ) : (
-        <ClientBrief
+        <ClientBriefV2
           client={client}
           profile={profile ?? null}
           viewAs="portal"

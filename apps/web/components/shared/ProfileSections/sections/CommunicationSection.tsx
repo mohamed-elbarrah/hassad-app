@@ -1,3 +1,10 @@
+/**
+ * CommunicationSection - Section 1: Communication Info
+ * 
+ * Handles contact and basic business information.
+ * Supports three modes: wizard, edit, view
+ */
+
 "use client";
 
 import { useCallback, useEffect } from "react";
@@ -20,8 +27,17 @@ import {
 } from "@/components/design-system/FormSelectControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { User, Building2, Phone, Mail, Briefcase } from "lucide-react";
-import { CommunicationInfoSchema, type IntakeFormV2Input } from "@hassad/shared";
-import { StepLayout } from "../components/StepLayout";
+import { z } from "zod";
+import { CommunicationInfoSchema } from "@hassad/shared";
+import type { CommunicationInfo } from "../types";
+import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import type { ProfileMode } from "../types";
+
+// Schema type for form (validation)
+type CommunicationForm = z.infer<typeof CommunicationInfoSchema>;
+
+// Input type for view mode (all optional)
+type CommunicationViewData = CommunicationInfo;
 
 const INDUSTRIES = [
   "تقنية",
@@ -35,22 +51,26 @@ const INDUSTRIES = [
   "أخرى",
 ];
 
-interface Step1Props {
-  initialData?: IntakeFormV2Input["communicationInfo"];
-  onDataChange: (data: IntakeFormV2Input["communicationInfo"]) => void;
-  onValid: (valid: boolean) => void;
+interface CommunicationSectionProps {
+  mode: ProfileMode;
+  initialData?: CommunicationViewData;
+  onDataChange?: (data: CommunicationForm) => void;
+  onValid?: (valid: boolean) => void;
   onNext?: () => void;
+  onBack?: () => void;
   hideNavigation?: boolean;
 }
 
-export function Step1_Communication({
+export function CommunicationSection({
+  mode,
   initialData,
   onDataChange,
   onValid,
   onNext,
+  onBack,
   hideNavigation = false,
-}: Step1Props) {
-  const form = useForm<IntakeFormV2Input["communicationInfo"]>({
+}: CommunicationSectionProps) {
+  const form = useForm<CommunicationForm>({
     resolver: zodResolver(CommunicationInfoSchema),
     defaultValues: initialData ?? {
       contactName: "",
@@ -62,33 +82,65 @@ export function Step1_Communication({
     mode: "onChange",
   });
 
+  // Reset form when initialData changes (e.g., when profile loads from API)
   useEffect(() => {
-    onValid(form.formState.isValid);
+    if (initialData && Object.keys(initialData).length > 0) {
+      form.reset(initialData);
+    }
+  }, [initialData, form]);
+
+  // Track validity
+  useEffect(() => {
+    onValid?.(form.formState.isValid);
   }, [form.formState.isValid, onValid]);
 
+  // Sync form changes to parent
   useEffect(() => {
+    if (mode === "view") return;
+    
     const sub = form.watch((values) => {
-      onDataChange(values as IntakeFormV2Input["communicationInfo"]);
+      onDataChange?.(values as CommunicationForm);
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange]);
+  }, [form, onDataChange, mode]);
 
   const onSubmit = useCallback(
-    (data: IntakeFormV2Input["communicationInfo"]) => {
-      onDataChange(data);
+    (data: CommunicationForm) => {
+      onDataChange?.(data);
       onNext?.();
     },
     [onDataChange, onNext],
   );
 
+  // View mode: render read-only display
+  if (mode === "view") {
+    const data = initialData;
+    if (!data) return null;
+    
+    return (
+      <SectionLayout mode="view" title="معلومات التواصل">
+        <ViewFieldGroup>
+          <ViewField icon={User} label="الاسم" value={data.contactName} />
+          <ViewField icon={Building2} label="اسم النشاط" value={data.businessName} />
+          <ViewField icon={Briefcase} label="المجال" value={data.industry} />
+          <ViewField icon={Phone} label="رقم التواصل" value={data.contactNumber} dir="ltr" />
+          <ViewField icon={Mail} label="البريد الإلكتروني" value={data.email} dir="ltr" />
+        </ViewFieldGroup>
+      </SectionLayout>
+    );
+  }
+
+  // Edit/Wizard mode: render form
   return (
-    <StepLayout
-      stepNumber={1}
+    <SectionLayout
+      mode={mode}
+      stepNumber={mode === "wizard" ? 1 : undefined}
       title="الملخص التواصلي"
-      instructions={[
-        "هذه المعلومات الأساسية للتواصل معك",
-        "جميع الحقول مطلوبة للمتابعة",
-      ]}
+      instructions={
+        mode === "wizard"
+          ? ["هذه المعلومات الأساسية للتواصل معك", "جميع الحقول مطلوبة للمتابعة"]
+          : undefined
+      }
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -187,15 +239,11 @@ export function Step1_Communication({
             )}
           />
 
-          {!hideNavigation && (
-            <div className="flex justify-end pt-2">
-              <ActionButton type="submit" variant="primary" size="lg">
-                التالي
-              </ActionButton>
-            </div>
+          {!hideNavigation && mode === "wizard" && (
+            <NavigationButtons onBack={onBack} submitLabel="التالي" />
           )}
         </form>
       </Form>
-    </StepLayout>
+    </SectionLayout>
   );
 }

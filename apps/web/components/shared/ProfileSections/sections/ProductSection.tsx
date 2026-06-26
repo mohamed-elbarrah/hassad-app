@@ -1,3 +1,10 @@
+/**
+ * ProductSection - Section 2: Product/Service Info
+ * 
+ * Handles product story, description, value proposition, and benefits.
+ * Supports three modes: wizard, edit, view
+ */
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -12,14 +19,15 @@ import {
   FormMessage,
 } from "@/components/design-system/Form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormInput } from "@/components/design-system/FormInput";
-import { X, Plus, Check, Ban } from "lucide-react";
+import { X, Plus, Check, Ban, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ProductInfoSchema, type IntakeFormV2Input } from "@hassad/shared";
-import { StepLayout } from "../components/StepLayout";
+import { ProductInfoSchema } from "@hassad/shared";
+import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import type { ProfileMode } from "../types";
 
-type ProductInfoForm = z.infer<typeof ProductInfoSchema>;
+type ProductForm = z.infer<typeof ProductInfoSchema>;
 
 const BENEFIT_SUGGESTIONS = [
   "توفير وقت",
@@ -30,17 +38,19 @@ const BENEFIT_SUGGESTIONS = [
   "تجربة فريدة",
 ];
 
-interface Step2Props {
-  initialData?: IntakeFormV2Input["productInfo"];
-  onDataChange: (data: IntakeFormV2Input["productInfo"]) => void;
-  onValid: (valid: boolean) => void;
+interface ProductSectionProps {
+  mode: ProfileMode;
+  initialData?: ProductForm;
+  onDataChange?: (data: ProductForm) => void;
+  onValid?: (valid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
   hideNavigation?: boolean;
 }
 
-export function Step2_ProductInfo({
+export function ProductSection({
+  mode,
   initialData,
   onDataChange,
   onValid,
@@ -48,12 +58,12 @@ export function Step2_ProductInfo({
   onBack,
   onSkip,
   hideNavigation = false,
-}: Step2Props) {
+}: ProductSectionProps) {
   const [benefits, setBenefits] = useState<string[]>(initialData?.benefits ?? []);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customInputValue, setCustomInputValue] = useState("");
 
-  const form = useForm<ProductInfoForm>({
+  const form = useForm<ProductForm>({
     resolver: zodResolver(ProductInfoSchema),
     defaultValues: initialData ?? {
       productStory: "",
@@ -66,27 +76,34 @@ export function Step2_ProductInfo({
     mode: "onChange",
   });
 
+  // Reset form when initialData changes (e.g., when profile loads from API)
   useEffect(() => {
-    onValid(true);
+    if (initialData && Object.keys(initialData).length > 0) {
+      form.reset(initialData);
+      setBenefits(initialData.benefits ?? []);
+    }
+  }, [initialData, form]);
+
+  useEffect(() => {
+    onValid?.(true);
   }, [onValid]);
 
   useEffect(() => {
+    if (mode === "view") return;
+    
     const sub = form.watch((values) => {
-      onDataChange({ ...values, benefits } as IntakeFormV2Input["productInfo"]);
+      onDataChange?.({ ...values, benefits } as ProductForm);
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange, benefits]);
+  }, [form, onDataChange, mode, benefits]);
 
-  const toggleBenefit = useCallback(
-    (benefit: string) => {
-      setBenefits((prev) =>
-        prev.includes(benefit)
-          ? prev.filter((b) => b !== benefit)
-          : [...prev, benefit],
-      );
-    },
-    [],
-  );
+  const toggleBenefit = useCallback((benefit: string) => {
+    setBenefits((prev) =>
+      prev.includes(benefit)
+        ? prev.filter((b) => b !== benefit)
+        : [...prev, benefit],
+    );
+  }, []);
 
   const addCustomBenefit = useCallback(() => {
     const value = customInputValue.trim();
@@ -111,30 +128,75 @@ export function Step2_ProductInfo({
   );
 
   const onSubmit = useCallback(
-    (data: ProductInfoForm) => {
-      onDataChange({ ...data, benefits } as IntakeFormV2Input["productInfo"]);
+    (data: ProductForm) => {
+      onDataChange?.({ ...data, benefits });
       onNext?.();
     },
     [onDataChange, onNext, benefits],
   );
 
+  // View mode: render read-only display
+  if (mode === "view") {
+    const data = initialData;
+    if (!data) return null;
+    
+    const hasData = data.productStory || data.detailedDescription || 
+      data.valueProposition || data.advantages || 
+      (data.benefits && data.benefits.length > 0) || data.contentDirection;
+    
+    if (!hasData) return null;
+    
+    return (
+      <SectionLayout mode="view" title="معلومات المنتج / الخدمة">
+        <ViewFieldGroup>
+          <ViewField label="قصة المنتج أو الخدمة" value={data.productStory} />
+          <ViewField label="وصف تفصيلي" value={data.detailedDescription} />
+          <ViewField label="القيمة المضافة" value={data.valueProposition} />
+          <ViewField label="المزايا" value={data.advantages} />
+          {data.benefits && data.benefits.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-portal-icon">الفوائد</p>
+              <div className="flex flex-wrap gap-2">
+                {data.benefits.map((benefit, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1.5 rounded-full text-sm bg-secondary-100 text-secondary-700"
+                  >
+                    {benefit}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <ViewField label="المحتوى" value={data.contentDirection} />
+        </ViewFieldGroup>
+      </SectionLayout>
+    );
+  }
+
+  // Edit/Wizard mode: render form
   return (
-    <StepLayout
-      stepNumber={2}
+    <SectionLayout
+      mode={mode}
+      stepNumber={mode === "wizard" ? 2 : undefined}
       title="معلومات المنتج / الخدمة"
-      instructions={[
-        "قصة المنتج أو الخدمة — قصة البراند علمنا عن البداية و كواليس التصنيع أو تجارب عملائك الأوائل عشان نصنع منها قصة تبيع.",
-        "وش ميزتك الجوهرية؟ وش الشيء الرهيب اللي يخليك تفرق عن كل الموجودين بالسوق؟",
-      ]}
-      isOptional
-      onSkip={onSkip}
+      instructions={
+        mode === "wizard"
+          ? [
+              "قصة المنتج أو الخدمة — قصة البراند علمنا عن البداية و كواليس التصنيع أو تجارب عملائك الأوائل عشان نصنع منها قصة تبيع.",
+              "وش ميزتك الجوهرية؟ وش الشيء الرهيب اللي يخليك تفرق عن كل الموجودين بالسوق؟",
+            ]
+          : undefined
+      }
+      isOptional={mode === "wizard"}
+      onSkip={mode === "wizard" ? onSkip : undefined}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <FormField
             control={form.control}
             name="productStory"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">قصة المنتج أو الخدمة</FormLabel>
                 <FormTextareaControl
@@ -142,7 +204,6 @@ export function Step2_ProductInfo({
                   className="min-h-[120px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -150,7 +211,7 @@ export function Step2_ProductInfo({
           <FormField
             control={form.control}
             name="detailedDescription"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">وصف تفصيلي للمنتج أو الخدمة</FormLabel>
                 <FormTextareaControl
@@ -158,7 +219,6 @@ export function Step2_ProductInfo({
                   className="min-h-[120px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -166,7 +226,7 @@ export function Step2_ProductInfo({
           <FormField
             control={form.control}
             name="valueProposition"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">القيمة المضافة</FormLabel>
                 <FormTextareaControl
@@ -174,7 +234,6 @@ export function Step2_ProductInfo({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -182,7 +241,7 @@ export function Step2_ProductInfo({
           <FormField
             control={form.control}
             name="advantages"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">المزايا</FormLabel>
                 <FormTextareaControl
@@ -190,7 +249,6 @@ export function Step2_ProductInfo({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -284,7 +342,7 @@ export function Step2_ProductInfo({
           <FormField
             control={form.control}
             name="contentDirection"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm">المحتوى</FormLabel>
                 <FormTextareaControl
@@ -292,25 +350,18 @@ export function Step2_ProductInfo({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
 
-          {!hideNavigation && (
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-              {onBack && (
-                <ActionButton type="button" variant="outline" onClick={onBack}>
-                  السابق
-                </ActionButton>
-              )}
-              <ActionButton type="submit" variant="primary" className="mr-auto">
-                التالي
-              </ActionButton>
-            </div>
+          {!hideNavigation && mode === "wizard" && (
+            <NavigationButtons onBack={onBack} submitLabel="التالي" />
           )}
         </form>
       </Form>
-    </StepLayout>
+    </SectionLayout>
   );
 }
+
+// Import FormInput for the custom benefit input
+import { FormInput } from "@/components/design-system/FormInput";

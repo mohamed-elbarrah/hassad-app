@@ -67,7 +67,14 @@ export function ClientBriefIdentity({
   const statusLabel =
     STATUS_LABELS[client.status as ClientStatus] ?? client.status;
 
-  const logoUrl = profile?.brandAssets?.logoUrl ?? null;
+  // Prefer V2 visualIdentityInfo.brandAssets for logo
+  const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
+  const legacyBrandAssets = profile?.brandAssets;
+  
+  const logoUrl = v2BrandAssets?.logoUrl ?? legacyBrandAssets?.logoUrl ?? null;
+  
+  // Prefer V2 field (communicationInfo.industry) over legacy field
+  const industry = profile?.communicationInfo?.industry ?? profile?.industry;
   const subtitle = client.contactName
     ? `المسؤول: ${client.contactName}`
     : (BUSINESS_TYPE_LABELS[client.businessType as BusinessType] ??
@@ -171,7 +178,7 @@ export function ClientBriefIdentity({
         </div>
 
         {/* Divider + Business Info */}
-        {((profile?.industry && profile.industry !== BUSINESS_TYPE_LABELS[client.businessType as BusinessType]) ||
+        {(industry ||
           profile?.targetAudience ||
           profile?.budgetRangeMin != null ||
           profile?.budgetRangeMax != null ||
@@ -188,7 +195,7 @@ export function ClientBriefIdentity({
               <ClientBriefField
                 icon={Building2}
                 label="المجال / القطاع"
-                value={profile?.industry}
+                value={industry}
               />
               <ClientBriefField
                 icon={Target}

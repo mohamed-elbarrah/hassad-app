@@ -1,3 +1,10 @@
+/**
+ * VisualSection - Section 7: Visual Identity
+ * 
+ * Handles brand assets, colors, fonts, and visual direction.
+ * Supports three modes: wizard, edit, view
+ */
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -14,11 +21,13 @@ import {
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { FileDropzone } from "@/components/shared/FileDropzone";
-import { cn } from "@/lib/utils";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ColorPickerControl } from "@/components/design-system/ColorPickerControl";
-import { Palette, Image, Camera, Eye, Plus } from "lucide-react";
-import { StepLayout } from "../components/StepLayout";
+import { cn } from "@/lib/utils";
+import { Palette, Image, Camera, Eye, Plus, Check } from "lucide-react";
+import { VisualIdentityInfoSchema } from "@hassad/shared";
+import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import type { ProfileMode, BrandAssets } from "../types";
 
 const formSchema = z.object({
   hasVisualIdentity: z.boolean().optional(),
@@ -26,27 +35,21 @@ const formSchema = z.object({
   visualDirection: z.array(z.string()).max(3).optional(),
 });
 
-type VisualIdentityForm = z.infer<typeof formSchema>;
+type VisualForm = z.infer<typeof formSchema>;
 
-interface BrandAssets {
-  logoUrl?: string;
-  brandColors?: string[];
-  fonts?: string[];
-  guidelinesUrl?: string;
-}
-
-interface Step7Props {
-  initialData?: VisualIdentityForm & {
+interface VisualSectionProps {
+  mode: ProfileMode;
+  initialData?: VisualForm & {
     brandAssets?: BrandAssets;
     productPhotos?: string[];
   };
-  onDataChange: (
-    data: VisualIdentityForm & {
+  onDataChange?: (
+    data: VisualForm & {
       brandAssets?: BrandAssets;
       productPhotos?: string[];
     },
   ) => void;
-  onValid: (valid: boolean) => void;
+  onValid?: (valid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
@@ -55,7 +58,8 @@ interface Step7Props {
 
 const DEFAULT_COLORS = ["#e7be52", "#121936", "#ffffff"];
 
-export function Step7_VisualIdentity({
+export function VisualSection({
+  mode,
   initialData,
   onDataChange,
   onValid,
@@ -63,7 +67,7 @@ export function Step7_VisualIdentity({
   onBack,
   onSkip,
   hideNavigation = false,
-}: Step7Props) {
+}: VisualSectionProps) {
   const [hasIdentity, setHasIdentity] = useState(
     initialData?.hasVisualIdentity ?? false,
   );
@@ -77,7 +81,7 @@ export function Step7_VisualIdentity({
   );
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
 
-  const form = useForm<VisualIdentityForm>({
+  const form = useForm<VisualForm>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       hasVisualIdentity: initialData?.hasVisualIdentity ?? false,
@@ -87,19 +91,35 @@ export function Step7_VisualIdentity({
     mode: "onChange",
   });
 
+  // Reset form when initialData changes (e.g., when profile loads from API)
   useEffect(() => {
-    onValid(true);
+    if (initialData) {
+      form.reset({
+        hasVisualIdentity: initialData.hasVisualIdentity ?? false,
+        pastDesigns: initialData.pastDesigns ?? "",
+        visualDirection: initialData.visualDirection ?? ["", "", ""],
+      });
+      setHasIdentity(initialData.hasVisualIdentity ?? false);
+      setBrandColors(initialData.brandAssets?.brandColors ?? DEFAULT_COLORS);
+      setFontInput(initialData.brandAssets?.fonts?.join("، ") ?? "");
+    }
+  }, [initialData, form]);
+
+  useEffect(() => {
+    onValid?.(true);
   }, [onValid]);
 
   useEffect(() => {
+    if (mode === "view") return;
+    
     const sub = form.watch((values) => {
       const fonts = fontInput
         .split("،")
         .map((f) => f.trim())
         .filter(Boolean);
 
-      onDataChange({
-        ...(values as VisualIdentityForm),
+      onDataChange?.({
+        ...(values as VisualForm),
         brandAssets: {
           logoUrl: logoFiles[0]?.name ?? "",
           brandColors,
@@ -110,7 +130,7 @@ export function Step7_VisualIdentity({
       });
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange, logoFiles, guidelinesFiles, brandColors, fontInput, photoFiles]);
+  }, [form, onDataChange, mode, logoFiles, guidelinesFiles, brandColors, fontInput, photoFiles]);
 
   const toggleIdentity = useCallback(
     (value: boolean) => {
@@ -121,13 +141,13 @@ export function Step7_VisualIdentity({
   );
 
   const onSubmit = useCallback(
-    (data: VisualIdentityForm) => {
+    (data: VisualForm) => {
       const fonts = fontInput
         .split("،")
         .map((f) => f.trim())
         .filter(Boolean);
 
-      onDataChange({
+      onDataChange?.({
         ...data,
         brandAssets: {
           logoUrl: logoFiles[0]?.name ?? "",
@@ -156,16 +176,154 @@ export function Step7_VisualIdentity({
     setBrandColors((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  // View mode: render read-only display
+  if (mode === "view") {
+    const data = initialData;
+    if (!data) return null;
+    
+    const hasBrandAssets = data.brandAssets?.logoUrl || 
+      (data.brandAssets?.brandColors && data.brandAssets.brandColors.length > 0) ||
+      (data.brandAssets?.fonts && data.brandAssets.fonts.length > 0) ||
+      data.brandAssets?.guidelinesUrl;
+    const hasVisual = data.hasVisualIdentity || hasBrandAssets || 
+      data.pastDesigns || data.productPhotos?.length || 
+      (data.visualDirection && data.visualDirection.some(v => v));
+    
+    if (!hasVisual) return null;
+    
+    return (
+      <SectionLayout mode="view" title="الهوية البصرية والتصميم">
+        <div className="space-y-6">
+          {hasBrandAssets && (
+            <ViewFieldGroup>
+              <h4 className="text-sm font-semibold text-natural-100 mb-4 flex items-center gap-2">
+                <Palette className="w-4 h-4 text-portal-icon" />
+                ملفات براندك البصرية
+              </h4>
+              
+              {data.brandAssets?.logoUrl && (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={data.brandAssets.logoUrl}
+                    alt="الشعار"
+                    className="w-12 h-12 rounded-lg object-contain border border-portal-card-border bg-white"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs text-neutral-300">الشعار</p>
+                    <p className="text-xs text-portal-note-text truncate" dir="ltr">
+                      {data.brandAssets.logoUrl}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {data.brandAssets?.brandColors && data.brandAssets.brandColors.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-portal-icon">ألوان العلامة</p>
+                  <div className="flex flex-wrap gap-2">
+                    {data.brandAssets.brandColors.map((color, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2 rounded-lg border border-portal-card-border px-2 py-1.5"
+                      >
+                        <span
+                          className="w-5 h-5 rounded-full border border-portal-card-border"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="text-xs text-natural-100" dir="ltr">
+                          {color}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {data.brandAssets?.fonts && data.brandAssets.fonts.length > 0 && (
+                <ViewField label="الخطوط" value={data.brandAssets.fonts.join("، ")} />
+              )}
+              
+              {data.brandAssets?.guidelinesUrl && (
+                <a
+                  href={data.brandAssets.guidelinesUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-secondary-500 hover:underline"
+                >
+                  <Check className="w-4 h-4" />
+                  دليل الهوية البصرية
+                </a>
+              )}
+            </ViewFieldGroup>
+          )}
+          
+          <ViewFieldGroup>
+            <ViewField icon={Image} label="تصاميم سابقة" value={data.pastDesigns} />
+            
+            {data.productPhotos && data.productPhotos.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  صور المنتج ({data.productPhotos.length} ملفات)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {data.productPhotos.slice(0, 5).map((photo, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-1 rounded text-xs bg-secondary-100 text-secondary-700"
+                    >
+                      {photo}
+                    </span>
+                  ))}
+                  {data.productPhotos.length > 5 && (
+                    <span className="px-2 py-1 text-xs text-portal-note-text">
+                      +{data.productPhotos.length - 5} أخرى
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {data.visualDirection && data.visualDirection.some(v => v) && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
+                  <Eye className="w-4 h-4" />
+                  التوجه البصري
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {data.visualDirection.filter(v => v).map((account, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
+                    >
+                      {account}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </ViewFieldGroup>
+        </div>
+      </SectionLayout>
+    );
+  }
+
+  // Edit/Wizard mode: render form
   return (
-    <StepLayout
-      stepNumber={7}
+    <SectionLayout
+      mode={mode}
+      stepNumber={mode === "wizard" ? 7 : undefined}
       title="الهوية البصرية + التصميم"
-      instructions={[
-        "هل عندك هوية بصرية جاهزة؟ (شعار، خطوط، ألوان) أو بنصممها من الصفر؟",
-        "عطنا 3 حسابات يعجبك ستايل تصاميمها في السوشيال ميديا؟ ودنا نعرف المظهر البصري اللي تبيه في التصاميم",
-      ]}
-      isOptional
-      onSkip={onSkip}
+      instructions={
+        mode === "wizard"
+          ? [
+              "هل عندك هوية بصرية جاهزة؟ (شعار، خطوط، ألوان) أو بنصممها من الصفر؟",
+              "عطنا 3 حسابات يعجبك ستايل تصاميمها في السوشيال ميديا؟ ودنا نعرف المظهر البصري اللي تبيه في التصاميم",
+            ]
+          : undefined
+      }
+      isOptional={mode === "wizard"}
+      onSkip={mode === "wizard" ? onSkip : undefined}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -281,7 +439,7 @@ export function Step7_VisualIdentity({
           <FormField
             control={form.control}
             name="pastDesigns"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <Image className="w-4 h-4 text-portal-icon" />
@@ -292,7 +450,6 @@ export function Step7_VisualIdentity({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -334,25 +491,11 @@ export function Step7_VisualIdentity({
             </div>
           </div>
 
-          {!hideNavigation && (
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-              {onBack && (
-                <ActionButton type="button" variant="outline" onClick={onBack}>
-                  السابق
-                </ActionButton>
-              )}
-              <ActionButton
-                type="button"
-                variant="primary"
-                className="mr-auto"
-                onClick={form.handleSubmit(onSubmit)}
-              >
-                التالي
-              </ActionButton>
-            </div>
+          {!hideNavigation && mode === "wizard" && (
+            <NavigationButtons onBack={onBack} submitLabel="التالي" />
           )}
         </form>
       </Form>
-    </StepLayout>
+    </SectionLayout>
   );
 }

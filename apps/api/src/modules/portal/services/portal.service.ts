@@ -1591,24 +1591,47 @@ export class PortalService {
         },
       });
 
+      // Sync all V2 fields to ClientProfile (single source of truth)
       await tx.clientProfile.upsert({
         where: { clientId },
         update: {
+          // Legacy fields (kept for backward compatibility)
           industry: dto.industry,
           businessDescription: dto.businessDescription,
           targetAudience: dto.targetAudience,
           budgetRangeMin: dto.budgetRangeMin,
           budgetRangeMax: dto.budgetRangeMax,
           brandAssets: dto.brandAssets,
+          // V2 fields (unified with IntakeFormV2)
+          communicationInfo: dto.communicationInfo ?? undefined,
+          productInfo: dto.productInfo ?? undefined,
+          audienceInfo: dto.audienceInfo ?? undefined,
+          brandVoice: dto.brandVoice ?? undefined,
+          customerJourney: dto.customerJourney ?? undefined,
+          campaignInfo: dto.campaignInfo ?? undefined,
+          pastPerformance: dto.pastPerformance ?? undefined,
+          budgetInfo: dto.budgetInfo ?? undefined,
+          visualIdentityInfo: dto.visualIdentityInfo ?? undefined,
         },
         create: {
           clientId,
+          // Legacy fields
           industry: dto.industry,
           businessDescription: dto.businessDescription,
           targetAudience: dto.targetAudience,
           budgetRangeMin: dto.budgetRangeMin,
           budgetRangeMax: dto.budgetRangeMax,
           brandAssets: dto.brandAssets,
+          // V2 fields
+          communicationInfo: dto.communicationInfo ?? undefined,
+          productInfo: dto.productInfo ?? undefined,
+          audienceInfo: dto.audienceInfo ?? undefined,
+          brandVoice: dto.brandVoice ?? undefined,
+          customerJourney: dto.customerJourney ?? undefined,
+          campaignInfo: dto.campaignInfo ?? undefined,
+          pastPerformance: dto.pastPerformance ?? undefined,
+          budgetInfo: dto.budgetInfo ?? undefined,
+          visualIdentityInfo: dto.visualIdentityInfo ?? undefined,
         },
       });
 

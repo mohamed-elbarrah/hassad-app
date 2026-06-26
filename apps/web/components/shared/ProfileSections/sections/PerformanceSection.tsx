@@ -1,3 +1,10 @@
+/**
+ * PerformanceSection - Section 6: Past Performance & Budget
+ * 
+ * Handles past campaigns, tracking setup, and budget range.
+ * Supports three modes: wizard, edit, view
+ */
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -23,7 +30,8 @@ import {
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { TrendingUp, BarChart3, Link2, DollarSign, FileText } from "lucide-react";
-import { StepLayout } from "../components/StepLayout";
+import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import type { ProfileMode, PastPerformance, BudgetInfo } from "../types";
 
 const formSchema = z.object({
   bestCampaigns: z.string().optional(),
@@ -32,7 +40,7 @@ const formSchema = z.object({
   budgetRange: z.number().positive().optional(),
 });
 
-type PerformanceBudgetForm = z.infer<typeof formSchema>;
+type PerformanceForm = z.infer<typeof formSchema>;
 
 const TRACKING_OPTIONS = [
   { value: "active", label: "مربوطة وشغالة تمام" },
@@ -40,36 +48,25 @@ const TRACKING_OPTIONS = [
   { value: "partial", label: "مربوطة بس محتاجة تحديث" },
 ];
 
-interface PerformanceSection {
-  bestCampaigns?: string;
-  pastPerformance?: string;
-  trackingSetup?: string;
-}
-
-interface BudgetSection {
-  budgetRange?: number;
-  previousReports?: string[];
-}
-
-interface Step6InitialData {
-  pastPerformance?: PerformanceSection;
-  budgetInfo?: BudgetSection;
-}
-
-interface Step6Props {
-  initialData?: Step6InitialData;
-  onDataChange: (data: {
-    pastPerformance: PerformanceSection;
-    budgetInfo: BudgetSection;
+interface PerformanceSectionProps {
+  mode: ProfileMode;
+  initialData?: {
+    pastPerformance?: PastPerformance;
+    budgetInfo?: BudgetInfo;
+  };
+  onDataChange?: (data: {
+    pastPerformance: PastPerformance;
+    budgetInfo: BudgetInfo;
   }) => void;
-  onValid: (valid: boolean) => void;
+  onValid?: (valid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
   hideNavigation?: boolean;
 }
 
-export function Step6_PerformanceBudget({
+export function PerformanceSection({
+  mode,
   initialData,
   onDataChange,
   onValid,
@@ -77,10 +74,10 @@ export function Step6_PerformanceBudget({
   onBack,
   onSkip,
   hideNavigation = false,
-}: Step6Props) {
+}: PerformanceSectionProps) {
   const [reportFiles, setReportFiles] = useState<File[]>([]);
 
-  const form = useForm<PerformanceBudgetForm>({
+  const form = useForm<PerformanceForm>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       bestCampaigns: initialData?.pastPerformance?.bestCampaigns ?? "",
@@ -91,12 +88,24 @@ export function Step6_PerformanceBudget({
     mode: "onChange",
   });
 
+  // Reset form when initialData changes (e.g., when profile loads from API)
   useEffect(() => {
-    onValid(true);
+    if (initialData) {
+      form.reset({
+        bestCampaigns: initialData.pastPerformance?.bestCampaigns ?? "",
+        pastPerformance: initialData.pastPerformance?.pastPerformance ?? "",
+        trackingSetup: initialData.pastPerformance?.trackingSetup ?? "",
+        budgetRange: initialData.budgetInfo?.budgetRange ?? undefined,
+      });
+    }
+  }, [initialData, form]);
+
+  useEffect(() => {
+    onValid?.(true);
   }, [onValid]);
 
   const buildPerformanceData = useCallback(
-    (values: PerformanceBudgetForm) => ({
+    (values: PerformanceForm) => ({
       pastPerformance: {
         bestCampaigns: values.bestCampaigns,
         pastPerformance: values.pastPerformance,
@@ -111,38 +120,111 @@ export function Step6_PerformanceBudget({
   );
 
   useEffect(() => {
+    if (mode === "view") return;
+    
     const sub = form.watch((values) => {
-      onDataChange(buildPerformanceData(values as PerformanceBudgetForm));
+      onDataChange?.(buildPerformanceData(values as PerformanceForm));
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange, buildPerformanceData]);
+  }, [form, onDataChange, mode, buildPerformanceData]);
 
   const onSubmit = useCallback(
-    (data: PerformanceBudgetForm) => {
-      onDataChange(buildPerformanceData(data));
+    (data: PerformanceForm) => {
+      onDataChange?.(buildPerformanceData(data));
       onNext?.();
     },
     [onDataChange, onNext, buildPerformanceData],
   );
 
+  // View mode: render read-only display
+  if (mode === "view") {
+    const data = initialData;
+    if (!data) return null;
+    
+    const hasPerformance = data.pastPerformance?.bestCampaigns || 
+      data.pastPerformance?.pastPerformance || data.pastPerformance?.trackingSetup;
+    const hasBudget = data.budgetInfo?.budgetRange || 
+      (data.budgetInfo?.previousReports && data.budgetInfo.previousReports.length > 0);
+    
+    if (!hasPerformance && !hasBudget) return null;
+    
+    return (
+      <SectionLayout mode="view" title="الأداء السابق والميزانية">
+        <div className="space-y-6">
+          {hasPerformance && (
+            <ViewFieldGroup>
+              <h4 className="text-sm font-semibold text-natural-100 mb-4">الأداء السابق</h4>
+              <ViewField icon={TrendingUp} label="أفضل الحملات السابقة" value={data.pastPerformance?.bestCampaigns} />
+              <ViewField icon={BarChart3} label="أداء الحملات" value={data.pastPerformance?.pastPerformance} />
+              {data.pastPerformance?.trackingSetup && (
+                <ViewField 
+                  icon={Link2} 
+                  label="الربط" 
+                  value={TRACKING_OPTIONS.find(t => t.value === data.pastPerformance?.trackingSetup)?.label} 
+                />
+              )}
+            </ViewFieldGroup>
+          )}
+          
+          {hasBudget && (
+            <ViewFieldGroup>
+              <h4 className="text-sm font-semibold text-natural-100 mb-4">الميزانية</h4>
+              {data.budgetInfo?.budgetRange && (
+                <ViewField 
+                  icon={DollarSign} 
+                  label="الميزانية الشهرية" 
+                  value={`${data.budgetInfo.budgetRange.toLocaleString("ar-SA")} ر.س`} 
+                />
+              )}
+              {data.budgetInfo?.previousReports && data.budgetInfo.previousReports.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    التقارير السابقة
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {data.budgetInfo.previousReports.map((report, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
+                      >
+                        {report}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </ViewFieldGroup>
+          )}
+        </div>
+      </SectionLayout>
+    );
+  }
+
+  // Edit/Wizard mode: render form
   return (
-    <StepLayout
-      stepNumber={6}
+    <SectionLayout
+      mode={mode}
+      stepNumber={mode === "wizard" ? 6 : undefined}
       title="الأداء السابق والميزانية"
-      instructions={[
-        "وش الإعلانات الأكثر نجاحًا وليش نجحت؟",
-        "هل البكسل وأكواد التتبع والـ API مربوطة وشغالة تمام، ولا بنأسسها من الصفر؟",
-        "كم ناوي تصرف في الشهر على المنصات؟",
-      ]}
-      isOptional
-      onSkip={onSkip}
+      instructions={
+        mode === "wizard"
+          ? [
+              "وش الإعلانات الأكثر نجاحًا وليش نجحت؟",
+              "هل البكسل وأكواد التتبع والـ API مربوطة وشغالة تمام، ولا بنأسسها من الصفر؟",
+              "كم ناوي تصرف في الشهر على المنصات؟",
+            ]
+          : undefined
+      }
+      isOptional={mode === "wizard"}
+      onSkip={mode === "wizard" ? onSkip : undefined}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <FormField
             control={form.control}
             name="bestCampaigns"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-portal-icon" />
@@ -153,7 +235,6 @@ export function Step6_PerformanceBudget({
                   className="min-h-[120px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -161,7 +242,7 @@ export function Step6_PerformanceBudget({
           <FormField
             control={form.control}
             name="pastPerformance"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-portal-icon" />
@@ -172,7 +253,6 @@ export function Step6_PerformanceBudget({
                   className="min-h-[120px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -181,7 +261,7 @@ export function Step6_PerformanceBudget({
             <FormField
               control={form.control}
               name="trackingSetup"
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm flex items-center gap-2">
                     <Link2 className="w-4 h-4 text-portal-icon" />
@@ -203,7 +283,6 @@ export function Step6_PerformanceBudget({
                       ))}
                     </FormSelectContent>
                   </FormSelect>
-                  <FormMessage>{fieldState.error?.message}</FormMessage>
                 </FormItem>
               )}
             />
@@ -211,7 +290,7 @@ export function Step6_PerformanceBudget({
             <FormField
               control={form.control}
               name="budgetRange"
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-portal-icon" />
@@ -228,7 +307,6 @@ export function Step6_PerformanceBudget({
                     }}
                     value={field.value ?? ""}
                   />
-                  <FormMessage>{fieldState.error?.message}</FormMessage>
                 </FormItem>
               )}
             />
@@ -247,20 +325,11 @@ export function Step6_PerformanceBudget({
             />
           </div>
 
-          {!hideNavigation && (
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-              {onBack && (
-                <ActionButton type="button" variant="outline" onClick={onBack}>
-                  السابق
-                </ActionButton>
-              )}
-              <ActionButton type="submit" variant="primary" className="mr-auto">
-                التالي
-              </ActionButton>
-            </div>
+          {!hideNavigation && mode === "wizard" && (
+            <NavigationButtons onBack={onBack} submitLabel="التالي" />
           )}
         </form>
       </Form>
-    </StepLayout>
+    </SectionLayout>
   );
 }

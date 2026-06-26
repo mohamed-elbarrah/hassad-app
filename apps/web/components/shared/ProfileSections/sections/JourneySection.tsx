@@ -1,3 +1,10 @@
+/**
+ * JourneySection - Section 4: Customer Journey
+ * 
+ * Handles order methods and follow-up tools.
+ * Supports three modes: wizard, edit, view
+ */
+
 "use client";
 
 import { useCallback, useEffect } from "react";
@@ -12,17 +19,18 @@ import {
   FormMessage,
 } from "@/components/design-system/Form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
-import { cn } from "@/lib/utils";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ShoppingCart, ClipboardList } from "lucide-react";
-import { StepLayout } from "../components/StepLayout";
+import { cn } from "@/lib/utils";
+import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import type { ProfileMode } from "../types";
 
 const formSchema = z.object({
   orderMethods: z.array(z.string()).optional(),
   followUpTools: z.string().optional(),
 });
 
-type CustomerJourneyForm = z.infer<typeof formSchema>;
+type JourneyForm = z.infer<typeof formSchema>;
 
 const ORDER_METHODS = [
   { value: "store", label: "من المتجر دايركت" },
@@ -32,17 +40,19 @@ const ORDER_METHODS = [
   { value: "email", label: "بريد إلكتروني" },
 ];
 
-interface Step4Props {
-  initialData?: CustomerJourneyForm;
-  onDataChange: (data: CustomerJourneyForm) => void;
-  onValid: (valid: boolean) => void;
+interface JourneySectionProps {
+  mode: ProfileMode;
+  initialData?: JourneyForm;
+  onDataChange?: (data: JourneyForm) => void;
+  onValid?: (valid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
   hideNavigation?: boolean;
 }
 
-export function Step4_CustomerJourney({
+export function JourneySection({
+  mode,
   initialData,
   onDataChange,
   onValid,
@@ -50,8 +60,8 @@ export function Step4_CustomerJourney({
   onBack,
   onSkip,
   hideNavigation = false,
-}: Step4Props) {
-  const form = useForm<CustomerJourneyForm>({
+}: JourneySectionProps) {
+  const form = useForm<JourneyForm>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ?? {
       orderMethods: [],
@@ -60,16 +70,25 @@ export function Step4_CustomerJourney({
     mode: "onChange",
   });
 
+  // Reset form when initialData changes (e.g., when profile loads from API)
   useEffect(() => {
-    onValid(true);
+    if (initialData) {
+      form.reset(initialData);
+    }
+  }, [initialData, form]);
+
+  useEffect(() => {
+    onValid?.(true);
   }, [onValid]);
 
   useEffect(() => {
+    if (mode === "view") return;
+    
     const sub = form.watch((values) => {
-      onDataChange(values as CustomerJourneyForm);
+      onDataChange?.(values as JourneyForm);
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange]);
+  }, [form, onDataChange, mode]);
 
   const selectedMethods = form.watch("orderMethods") ?? [];
 
@@ -85,23 +104,67 @@ export function Step4_CustomerJourney({
   );
 
   const onSubmit = useCallback(
-    (data: CustomerJourneyForm) => {
-      onDataChange(data);
+    (data: JourneyForm) => {
+      onDataChange?.(data);
       onNext?.();
     },
     [onDataChange, onNext],
   );
 
+  // View mode: render read-only display
+  if (mode === "view") {
+    const data = initialData;
+    if (!data) return null;
+    
+    const hasData = (data.orderMethods && data.orderMethods.length > 0) || data.followUpTools;
+    if (!hasData) return null;
+    
+    return (
+      <SectionLayout mode="view" title="رحلة العميل">
+        <ViewFieldGroup>
+          {data.orderMethods && data.orderMethods.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4" />
+                طريقة الطلب
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {data.orderMethods.map((method) => {
+                  const label = ORDER_METHODS.find((m) => m.value === method)?.label ?? method;
+                  return (
+                    <span
+                      key={method}
+                      className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <ViewField icon={ClipboardList} label="أدوات المتابعة" value={data.followUpTools} />
+        </ViewFieldGroup>
+      </SectionLayout>
+    );
+  }
+
+  // Edit/Wizard mode: render form
   return (
-    <StepLayout
-      stepNumber={4}
+    <SectionLayout
+      mode={mode}
+      stepNumber={mode === "wizard" ? 4 : undefined}
       title="رحلة العميل"
-      instructions={[
-        "العميل كيف يشتري؟ (من المتجر دايركت، وإلا يكلمك واتساب، وإلا نموذج يعبيه؟)",
-        "هل عندكم نظام يتابع السلات المتروكة أو العملاء المترددين؟",
-      ]}
-      isOptional
-      onSkip={onSkip}
+      instructions={
+        mode === "wizard"
+          ? [
+              "العميل كيف يشتري؟ (من المتجر دايركت، وإلا يكلمك واتساب، وإلا نموذج يعبيه؟)",
+              "هل عندكم نظام يتابع السلات المتروكة أو العملاء المترددين؟",
+            ]
+          : undefined
+      }
+      isOptional={mode === "wizard"}
+      onSkip={mode === "wizard" ? onSkip : undefined}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -135,7 +198,7 @@ export function Step4_CustomerJourney({
           <FormField
             control={form.control}
             name="followUpTools"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
                   <ClipboardList className="w-4 h-4 text-portal-icon" />
@@ -146,25 +209,15 @@ export function Step4_CustomerJourney({
                   className="min-h-[80px]"
                   {...field}
                 />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}
           />
 
-          {!hideNavigation && (
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-              {onBack && (
-                <ActionButton type="button" variant="outline" onClick={onBack}>
-                  السابق
-                </ActionButton>
-              )}
-              <ActionButton type="submit" variant="primary" className="mr-auto">
-                التالي
-              </ActionButton>
-            </div>
+          {!hideNavigation && mode === "wizard" && (
+            <NavigationButtons onBack={onBack} submitLabel="التالي" />
           )}
         </form>
       </Form>
-    </StepLayout>
+    </SectionLayout>
   );
 }

@@ -5,7 +5,10 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { UpsertClientProfileDto } from "../dto/client-profile.dto";
+import {
+  UpsertClientProfileDto,
+  UpsertClientProfileV2Dto,
+} from "../dto/client-profile.dto";
 
 interface AuthenticatedUser {
   id: string;
@@ -99,10 +102,6 @@ export class ClientProfileService {
   ) {
     await this.assertClientOwnership(user, clientId);
 
-    /**
-     * Serialize the validated DTO into JSON-compatible plain objects so Prisma's
-     * Json fields (competitors, brandAssets, customFields) accept the payload.
-     */
     const plainDto = JSON.parse(JSON.stringify(dto)) as Record<string, unknown>;
 
     const existing = await this.prisma.clientProfile.findUnique({
@@ -150,6 +149,87 @@ export class ClientProfileService {
         description: existing
           ? "Client profile updated"
           : "Client profile created",
+        metadata: { profileId: profile.id },
+      },
+    });
+
+    return profile;
+  }
+
+  /**
+   * Upsert client profile with V2 data (unified with IntakeFormV2)
+   * This is the canonical method for updating client profile from both
+   * intake form submission and profile edit.
+   */
+  async upsertV2(
+    clientId: string,
+    dto: UpsertClientProfileV2Dto,
+    user: AuthenticatedUser,
+  ) {
+    await this.assertClientOwnership(user, clientId);
+
+    const existing = await this.prisma.clientProfile.findUnique({
+      where: { clientId },
+    });
+
+    const profile = await this.prisma.$transaction(async (tx) => {
+      let result;
+
+      // Helper to cast JSON values properly
+      const toJson = (val: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined => {
+        if (val === undefined || val === null) return undefined;
+        return val as Prisma.InputJsonValue;
+      };
+
+      if (existing) {
+        result = await tx.clientProfile.update({
+          where: { clientId },
+          data: {
+            communicationInfo: toJson(dto.communicationInfo) ?? existing.communicationInfo,
+            productInfo: toJson(dto.productInfo) ?? existing.productInfo,
+            audienceInfo: toJson(dto.audienceInfo) ?? existing.audienceInfo,
+            brandVoice: toJson(dto.brandVoice) ?? existing.brandVoice,
+            customerJourney: toJson(dto.customerJourney) ?? existing.customerJourney,
+            campaignInfo: toJson(dto.campaignInfo) ?? existing.campaignInfo,
+            pastPerformance: toJson(dto.pastPerformance) ?? existing.pastPerformance,
+            budgetInfo: toJson(dto.budgetInfo) ?? existing.budgetInfo,
+            visualIdentityInfo: toJson(dto.visualIdentityInfo) ?? existing.visualIdentityInfo,
+          },
+        });
+      } else {
+        result = await tx.clientProfile.create({
+          data: {
+            clientId,
+            createdBy: user.id,
+            communicationInfo: toJson(dto.communicationInfo) ?? Prisma.JsonNull,
+            productInfo: toJson(dto.productInfo) ?? Prisma.JsonNull,
+            audienceInfo: toJson(dto.audienceInfo) ?? Prisma.JsonNull,
+            brandVoice: toJson(dto.brandVoice) ?? Prisma.JsonNull,
+            customerJourney: toJson(dto.customerJourney) ?? Prisma.JsonNull,
+            campaignInfo: toJson(dto.campaignInfo) ?? Prisma.JsonNull,
+            pastPerformance: toJson(dto.pastPerformance) ?? Prisma.JsonNull,
+            budgetInfo: toJson(dto.budgetInfo) ?? Prisma.JsonNull,
+            visualIdentityInfo: toJson(dto.visualIdentityInfo) ?? Prisma.JsonNull,
+          } as Prisma.ClientProfileUncheckedCreateInput,
+        });
+
+        await tx.client.update({
+          where: { id: clientId },
+          data: { intakeCompleted: true },
+        });
+      }
+
+      return result;
+    });
+
+    await this.prisma.clientHistoryLog.create({
+      data: {
+        clientId,
+        userId: user.id,
+        eventType: existing ? "CLIENT_PROFILE_UPDATED" : "CLIENT_PROFILE_CREATED",
+        description: existing
+          ? "Client profile updated (V2)"
+          : "Client profile created (V2)",
         metadata: { profileId: profile.id },
       },
     });

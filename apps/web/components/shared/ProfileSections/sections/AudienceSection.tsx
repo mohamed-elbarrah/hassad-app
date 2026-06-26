@@ -1,3 +1,10 @@
+/**
+ * AudienceSection - Section 3: Audience & Brand Voice
+ * 
+ * Handles customer analysis, FAQs, tone of voice, and appearance.
+ * Supports three modes: wizard, edit, view
+ */
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -22,7 +29,8 @@ import {
 } from "@/components/design-system/FormSelectControl";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Users, MessageCircle, ShieldCheck, Hash, Video, Plus, X } from "lucide-react";
-import { StepLayout } from "../components/StepLayout";
+import { SectionLayout, NavigationButtons, ViewField, ViewFieldGroup } from "../SectionLayout";
+import type { ProfileMode, FaqPair } from "../types";
 
 const formSchema = z.object({
   customerAnalysis: z.string().optional(),
@@ -32,7 +40,7 @@ const formSchema = z.object({
   appearanceMethod: z.string().optional(),
 });
 
-type AudienceMessagingForm = z.infer<typeof formSchema>;
+type AudienceForm = z.infer<typeof formSchema>;
 
 const TONE_OPTIONS = [
   { value: "formal", label: "رسمي وجاد" },
@@ -47,21 +55,17 @@ const APPEARANCE_OPTIONS = [
   { value: "hands", label: "تصوير يدين للمنتج" },
 ];
 
-interface FaqPair {
-  question: string;
-  answer: string;
-}
-
-interface Step3Props {
+interface AudienceSectionProps {
+  mode: ProfileMode;
   initialData?: {
     customerAnalysis?: string;
-    faq?: FaqPair[] | string;
+    faq?: FaqPair[];
     toneOfVoice?: string;
     boundaries?: string;
     verbalSlogan?: string;
     appearanceMethod?: string;
   };
-  onDataChange: (data: {
+  onDataChange?: (data: {
     audienceInfo: { customerAnalysis?: string; faq?: FaqPair[] };
     brandVoice: {
       toneOfVoice?: string;
@@ -70,14 +74,15 @@ interface Step3Props {
       appearanceMethod?: string;
     };
   }) => void;
-  onValid: (valid: boolean) => void;
+  onValid?: (valid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
   onSkip?: () => void;
   hideNavigation?: boolean;
 }
 
-export function Step3_AudienceMessaging({
+export function AudienceSection({
+  mode,
   initialData,
   onDataChange,
   onValid,
@@ -85,13 +90,13 @@ export function Step3_AudienceMessaging({
   onBack,
   onSkip,
   hideNavigation = false,
-}: Step3Props) {
+}: AudienceSectionProps) {
   const [faqPairs, setFaqPairs] = useState<FaqPair[]>(() => {
     if (!initialData?.faq) return [];
     return Array.isArray(initialData.faq) ? initialData.faq : [];
   });
 
-  const form = useForm<AudienceMessagingForm>({
+  const form = useForm<AudienceForm>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       customerAnalysis: initialData?.customerAnalysis ?? "",
@@ -103,14 +108,30 @@ export function Step3_AudienceMessaging({
     mode: "onChange",
   });
 
+  // Reset form when initialData changes (e.g., when profile loads from API)
   useEffect(() => {
-    onValid(true);
+    if (initialData) {
+      form.reset({
+        customerAnalysis: initialData.customerAnalysis ?? "",
+        toneOfVoice: initialData.toneOfVoice ?? "",
+        boundaries: initialData.boundaries ?? "",
+        verbalSlogan: initialData?.verbalSlogan ?? "",
+        appearanceMethod: initialData?.appearanceMethod ?? "",
+      });
+      setFaqPairs(initialData.faq ?? []);
+    }
+  }, [initialData, form]);
+
+  useEffect(() => {
+    onValid?.(true);
   }, [onValid]);
 
   useEffect(() => {
+    if (mode === "view") return;
+    
     const sub = form.watch((values) => {
-      const v = values as AudienceMessagingForm;
-      onDataChange({
+      const v = values as AudienceForm;
+      onDataChange?.({
         audienceInfo: {
           customerAnalysis: v.customerAnalysis,
           faq: faqPairs,
@@ -124,7 +145,7 @@ export function Step3_AudienceMessaging({
       });
     });
     return () => sub.unsubscribe();
-  }, [form, onDataChange, faqPairs]);
+  }, [form, onDataChange, mode, faqPairs]);
 
   const addFaqPair = useCallback(() => {
     setFaqPairs((prev) => [...prev, { question: "", answer: "" }]);
@@ -144,8 +165,8 @@ export function Step3_AudienceMessaging({
   );
 
   const onSubmit = useCallback(
-    (data: AudienceMessagingForm) => {
-      onDataChange({
+    (data: AudienceForm) => {
+      onDataChange?.({
         audienceInfo: {
           customerAnalysis: data.customerAnalysis,
           faq: faqPairs,
@@ -162,20 +183,77 @@ export function Step3_AudienceMessaging({
     [onDataChange, onNext, faqPairs],
   );
 
+  // View mode: render read-only display
+  if (mode === "view") {
+    const data = initialData;
+    if (!data) return null;
+    
+    const hasAudience = data.customerAnalysis || (data.faq && data.faq.length > 0);
+    const hasBrandVoice = data.toneOfVoice || data.boundaries || data.verbalSlogan || data.appearanceMethod;
+    
+    if (!hasAudience && !hasBrandVoice) return null;
+    
+    return (
+      <SectionLayout mode="view" title="الجمهور المستهدف والرسائل">
+        <div className="space-y-6">
+          {hasBrandVoice && (
+            <ViewFieldGroup>
+              <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2 mb-4">
+                <MessageCircle className="w-4 h-4 text-portal-icon" />
+                الرسائل والهوية
+              </h4>
+              <ViewField icon={Hash} label="النبرة" value={TONE_OPTIONS.find(t => t.value === data.toneOfVoice)?.label} />
+              <ViewField icon={Video} label="طريقة الظهور" value={APPEARANCE_OPTIONS.find(a => a.value === data.appearanceMethod)?.label} />
+              <ViewField icon={Hash} label="الشعار اللفظي" value={data.verbalSlogan} />
+              <ViewField icon={ShieldCheck} label="الحدود / العوائق" value={data.boundaries} />
+            </ViewFieldGroup>
+          )}
+          
+          {hasAudience && (
+            <ViewFieldGroup>
+              <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2 mb-4">
+                <Users className="w-4 h-4 text-portal-icon" />
+                تحليل الجمهور
+              </h4>
+              <ViewField label="تحليل العملاء" value={data.customerAnalysis} />
+              {data.faq && data.faq.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-portal-icon">الأسئلة الشائعة</p>
+                  {data.faq.map((pair, i) => (
+                    <div key={i} className="rounded-lg border border-portal-divider p-3">
+                      <p className="text-sm font-medium text-natural-100">{pair.question}</p>
+                      <p className="text-sm text-portal-note-text mt-1">{pair.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ViewFieldGroup>
+          )}
+        </div>
+      </SectionLayout>
+    );
+  }
+
+  // Edit/Wizard mode: render form
   return (
-    <StepLayout
-      stepNumber={3}
+    <SectionLayout
+      mode={mode}
+      stepNumber={mode === "wizard" ? 3 : undefined}
       title="الجمهور المستهدف + الرسائل والهوية"
-      instructions={[
-        "أوصف لنا عميلك المثالي: كم عمره؟ وش جنسه؟ وين ساكن؟ وش اهتماماته؟ وش مشاكله اللي بتحلها؟",
-        "الخطوط الحمراء: وش الأشياء أو الكلمات اللي ما ودك تطلع في المحتوى و إعلاناتك أبد؟",
-      ]}
-      isOptional
-      onSkip={onSkip}
+      instructions={
+        mode === "wizard"
+          ? [
+              "أوصف لنا عميلك المثالي: كم عمره؟ وش جنسه؟ وين ساكن؟ وش اهتماماته؟ وش مشاكله اللي بتحلها؟",
+              "الخطوط الحمراء: وش الأشياء أو الكلمات اللي ما ودك تطلع في المحتوى و إعلاناتك أبد؟",
+            ]
+          : undefined
+      }
+      isOptional={mode === "wizard"}
+      onSkip={mode === "wizard" ? onSkip : undefined}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* ── الرسائل والهوية ── */}
+          {/* Brand Voice Section */}
           <div className="space-y-5">
             <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2">
               <MessageCircle className="w-4 h-4 text-portal-icon" />
@@ -186,7 +264,7 @@ export function Step3_AudienceMessaging({
               <FormField
                 control={form.control}
                 name="toneOfVoice"
-                render={({ field, fieldState }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm">النبرة</FormLabel>
                     <FormSelect
@@ -205,7 +283,6 @@ export function Step3_AudienceMessaging({
                         ))}
                       </FormSelectContent>
                     </FormSelect>
-                    <FormMessage>{fieldState.error?.message}</FormMessage>
                   </FormItem>
                 )}
               />
@@ -213,7 +290,7 @@ export function Step3_AudienceMessaging({
               <FormField
                 control={form.control}
                 name="appearanceMethod"
-                render={({ field, fieldState }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm flex items-center gap-2">
                       <Video className="w-4 h-4 text-portal-icon" />
@@ -235,7 +312,6 @@ export function Step3_AudienceMessaging({
                         ))}
                       </FormSelectContent>
                     </FormSelect>
-                    <FormMessage>{fieldState.error?.message}</FormMessage>
                   </FormItem>
                 )}
               />
@@ -244,7 +320,7 @@ export function Step3_AudienceMessaging({
             <FormField
               control={form.control}
               name="verbalSlogan"
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm flex items-center gap-2">
                     <Hash className="w-4 h-4 text-portal-icon" />
@@ -254,7 +330,6 @@ export function Step3_AudienceMessaging({
                     placeholder="وش الشعار اللفظي الثابت لبراندك؟"
                     {...field}
                   />
-                  <FormMessage>{fieldState.error?.message}</FormMessage>
                 </FormItem>
               )}
             />
@@ -262,7 +337,7 @@ export function Step3_AudienceMessaging({
             <FormField
               control={form.control}
               name="boundaries"
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-portal-icon" />
@@ -273,13 +348,12 @@ export function Step3_AudienceMessaging({
                     className="min-h-[80px]"
                     {...field}
                   />
-                  <FormMessage>{fieldState.error?.message}</FormMessage>
                 </FormItem>
               )}
             />
           </div>
 
-          {/* ── تحليل الجمهور ── */}
+          {/* Audience Section */}
           <div className="space-y-5">
             <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2">
               <Users className="w-4 h-4 text-portal-icon" />
@@ -289,7 +363,7 @@ export function Step3_AudienceMessaging({
             <FormField
               control={form.control}
               name="customerAnalysis"
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm">تحليل العملاء</FormLabel>
                   <FormTextareaControl
@@ -297,7 +371,6 @@ export function Step3_AudienceMessaging({
                     className="min-h-[120px]"
                     {...field}
                   />
-                  <FormMessage>{fieldState.error?.message}</FormMessage>
                 </FormItem>
               )}
             />
@@ -352,20 +425,11 @@ export function Step3_AudienceMessaging({
             </div>
           </div>
 
-          {!hideNavigation && (
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-              {onBack && (
-                <ActionButton type="button" variant="outline" onClick={onBack}>
-                  السابق
-                </ActionButton>
-              )}
-              <ActionButton type="submit" variant="primary" className="mr-auto">
-                التالي
-              </ActionButton>
-            </div>
+          {!hideNavigation && mode === "wizard" && (
+            <NavigationButtons onBack={onBack} submitLabel="التالي" />
           )}
         </form>
       </Form>
-    </StepLayout>
+    </SectionLayout>
   );
 }

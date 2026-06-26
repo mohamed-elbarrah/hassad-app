@@ -12,7 +12,10 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { ClientProfileService } from "../services/client-profile.service";
-import { UpsertClientProfileDto } from "../dto/client-profile.dto";
+import {
+  UpsertClientProfileDto,
+  UpsertClientProfileV2Dto,
+} from "../dto/client-profile.dto";
 
 @Controller("clients")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -21,6 +24,16 @@ export class ClientProfileController {
 
   @Get(":id/profile")
   async getProfile(@Param("id") id: string, @Req() req: any) {
+    return this.profileService.getByClientId(id, req.user);
+  }
+
+  /**
+   * V2: Get client profile with unified IntakeFormV2 data structure
+   * Returns the same data as GET /clients/:id/profile but explicitly
+   * typed for V2 consumers.
+   */
+  @Get(":id/profile/v2")
+  async getProfileV2(@Param("id") id: string, @Req() req: any) {
     return this.profileService.getByClientId(id, req.user);
   }
 
@@ -36,6 +49,20 @@ export class ClientProfileController {
     @Req() req: any,
   ) {
     return this.profileService.upsert(id, dto, req.user);
+  }
+
+  /**
+   * V2: Upsert client profile with unified IntakeFormV2 data structure
+   * This endpoint accepts the same JSON structure as IntakeFormV2 steps.
+   * Used by portal profile edit page to update client info.
+   */
+  @Put(":id/profile/v2")
+  async upsertProfileV2(
+    @Param("id") id: string,
+    @Body() dto: UpsertClientProfileV2Dto,
+    @Req() req: any,
+  ) {
+    return this.profileService.upsertV2(id, dto, req.user);
   }
 
   @Delete(":id/profile")
