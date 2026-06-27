@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { ClientCounterService } from "../src/modules/crm/services/client-counter.service";
 import * as bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
@@ -811,6 +812,25 @@ async function main() {
     { clientId: client.id, userId: userIds["PM"], eventType: "PROJECT_COMPLETED", description: "تم اكتمال مشروع إطلاق متجر التراث", occurredAt: d(2024, 6, 15) },
     { clientId: client.id, userId: userIds["ACCOUNTANT"], eventType: "INVOICE_ISSUED", description: "تم إصدار فاتورة الفترة 4", occurredAt: d(2026, 6, 30) },
   ] });
+
+  // ── Recompute denormalized client counters ─────────────────────────────
+  // The seed bypasses the contract / project / payment services (it
+  // inserts rows directly via Prisma), so the production hooks that
+  // would otherwise fire `ClientCounterService.recomputeAll()` never
+  // run. Without this explicit recompute, `/portal/profile` would render
+  // all-zeros for the KPI grid because every counter defaults to 0 in
+  // the schema. We delegate to the SAME method the runtime hooks call,
+  // so the formula stays in lockstep with production behavior.
+  //
+  // We reuse the existing `prisma` connection instead of creating a new
+  // `PrismaService()` — the service only needs the Prisma client API,
+  // and spinning up a second connection just for one recompute is wasteful.
+  // The cast is safe because `PrismaService extends PrismaClient` and
+  // `ClientCounterService` never calls Nest lifecycle hooks on it.
+  const counterService = new ClientCounterService(
+    prisma as unknown as ConstructorParameters<typeof ClientCounterService>[0],
+  );
+  await counterService.recomputeAll(client.id);
 
   console.log("✓ Seed complete — ONE test client (client@hassad.com / password123) with 3 scenario projects (ACTIVE, AWAITING_REVIEW, NEEDS_REVISION) — all monthly retainers.");
   // Salaries

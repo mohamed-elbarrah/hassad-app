@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
+import { ClientCounterService } from "../../crm/services/client-counter.service";
 import {
   InvoiceStatus,
   ContractStatus,
@@ -17,6 +18,7 @@ export class BillingCronService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private clientCounterService: ClientCounterService,
   ) {}
 
   /**
@@ -205,6 +207,14 @@ export class BillingCronService {
             })
             .catch(() => undefined);
         }
+
+        // Refresh the owning client's counters — auto-suspension moves
+        // the project from ACTIVE to ON_HOLD, which changes the
+        // `activeProjects` bucket on the KPI grid. Fire-and-forget so a
+        // counter glitch never aborts the rest of the billing sweep.
+        this.clientCounterService
+          .onProjectStatusChange(project.id)
+          .catch(() => undefined);
       } catch (err) {
         this.logger.error(`Failed to suspend for invoice ${invoice.id}: ${(err as Error).message}`);
       }

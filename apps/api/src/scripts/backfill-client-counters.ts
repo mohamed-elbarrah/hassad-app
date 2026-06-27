@@ -1,63 +1,63 @@
-import { PrismaClient } from "@prisma/client";
+/**
+ * Manual counter-recovery script.
+ *
+ * **You should NOT need to run this under normal operation.**
+ *
+ * The standard deploy path is:
+ *   1. `prisma migrate deploy` runs the new migration
+ *      `20260627020000_backfill_client_counters`, which backfills every
+ *      client's denormalized counters atomically as part of the deploy.
+ *   2. The runtime hooks in `ClientCounterService` keep counters in sync
+ *      on every relevant state transition (contract signed, invoice paid,
+ *      project approved, etc.).
+ *
+ * This script exists for the rare cases where the normal path doesn't
+ * apply:
+ *   - Manual SQL data imports / fix-ups outside migrations.
+ *   - Bulk backfills from a staging DB into production.
+ *   - Drift diagnosis (e.g. "the KPI grid looks wrong, recompute everything").
+ *
+ * Idempotent: safe to run any number of times. The output of
+ * `recomputeAll()` is deterministic given the current aggregate state, so
+ * re-running always converges to the same answer.
+ *
+ * Single source of truth: this script delegates to
+ * `ClientCounterService.recomputeAll()` so the formula stays in lockstep
+ * with the runtime code. If you change the formula, update both the
+ * service AND the migration `20260627020000_backfill_client_counters`.
+ */
 
-const prisma = new PrismaClient();
+import { ClientCounterService } from "../modules/crm/services/client-counter.service";
+import { PrismaService } from "../prisma/prisma.service";
 
 async function main() {
-  const clients = await prisma.client.findMany({
-    select: { id: true },
-  });
+  // We instantiate the service with a raw `PrismaService` instead of
+  // bootstrapping a full Nest application — this script has no DI
+  // dependencies beyond Prisma, and skipping Nest keeps the startup
+  // under a second even on large databases. `PrismaService` extends
+  // `PrismaClient` so all the queries work identically; the difference
+  // is only in lifecycle hooks (which we don't need for a one-shot
+  // backfill).
+  const prisma = new PrismaService();
+  const counterService = new ClientCounterService(prisma);
 
-  for (const client of clients) {
-    const [projectStats, contractStats, invoiceStats, satisfactionStats, lastProject] =
-      await Promise.all([
-        prisma.project.groupBy({
-          by: ["status"],
-          where: { clientId: client.id, isArchived: false },
-          _count: true,
-        }),
-        prisma.contract.aggregate({
-          where: { clientId: client.id, status: { in: ["SIGNED", "ACTIVE"] } },
-          _sum: { totalValue: true },
-        }),
-        prisma.invoice.aggregate({
-          where: { clientId: client.id, status: "PAID" },
-          _sum: { amount: true },
-        }),
-        prisma.satisfactionRating.aggregate({
-          where: { clientId: client.id },
-          _avg: { score: true },
-        }),
-        prisma.project.findFirst({
-          where: { clientId: client.id },
-          orderBy: { createdAt: "desc" },
-          select: { createdAt: true },
-        }),
-      ]);
+  try {
+    const clients = await prisma.client.findMany({ select: { id: true } });
+    console.log(`Recomputing counters for ${clients.length} clients...`);
 
-    await prisma.client.update({
-      where: { id: client.id },
-      data: {
-        totalProjects: projectStats.reduce((sum, g) => sum + g._count, 0),
-        activeProjects:
-          projectStats.find((g) => g.status === "ACTIVE")?._count ?? 0,
-        completedProjects:
-          projectStats.find((g) => g.status === "COMPLETED")?._count ?? 0,
-        cancelledProjects:
-          projectStats.find((g) => g.status === "CANCELLED")?._count ?? 0,
-        totalContractValue: contractStats._sum.totalValue ?? 0,
-        totalInvoiced: invoiceStats._sum.amount ?? 0,
-        totalPaid: invoiceStats._sum.amount ?? 0,
-        lastProjectAt: lastProject?.createdAt ?? null,
-        avgSatisfactionScore: satisfactionStats._avg.score ?? null,
-      },
-    });
+    let updated = 0;
+    for (const client of clients) {
+      await counterService.recomputeAll(client.id);
+      updated++;
+    }
 
-    console.log(`Updated counters for client ${client.id}`);
+    console.log(`Done. ${updated} clients updated.`);
+  } finally {
+    await prisma.$disconnect();
   }
-
-  console.log("Done. All counters backfilled.");
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

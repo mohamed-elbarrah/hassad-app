@@ -7,6 +7,7 @@ import {
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
+import { ClientCounterService } from "../../crm/services/client-counter.service";
 import {
   PaymentStatus,
   PaymentGatewayType,
@@ -28,6 +29,7 @@ export class PaymentsService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private clientCounterService: ClientCounterService,
     private eventEmitter: EventEmitter2,
   ) {
     const key = process.env.PAYMENT_ENCRYPTION_KEY;
@@ -341,6 +343,16 @@ export class PaymentsService implements OnModuleInit {
         amount: payment.invoice.amount,
         userId: payment.invoice.createdBy,
       });
+    }
+
+    // Refresh the owning client's denormalized counters so the portal
+    // profile KPI grid stays in sync. Fire-and-forget — a counter glitch
+    // must never break the payment confirmation the client just saw.
+    // Mirrors the pattern in `contracts.service.ts:onContractSigned`.
+    if (status === PaymentStatus.SUCCESS) {
+      this.clientCounterService
+        .onInvoicePaid(payment.invoiceId)
+        .catch(() => undefined);
     }
 
     return updatedPayment;

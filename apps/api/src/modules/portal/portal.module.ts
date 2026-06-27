@@ -7,11 +7,13 @@ import { PortalService } from "./services/portal.service";
 import { SnoozeReminderScheduler } from "./services/snooze-reminder.scheduler";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { MarketingModule } from "../marketing/marketing.module";
+import { CrmModule } from "../crm/crm.module";
 
 @Module({
   imports: [
     NotificationsModule,
     MarketingModule,
+    CrmModule,
     MulterModule.register({
       storage: memoryStorage(),
       limits: {

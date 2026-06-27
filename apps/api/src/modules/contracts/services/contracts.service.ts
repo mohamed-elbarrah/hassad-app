@@ -588,6 +588,16 @@ export class ContractsService {
         body: `تم استئناف الفترة رقم ${period.periodNumber} بعد دفع الفاتورة`,
       })
       .catch(() => undefined);
+
+    // Refresh the owning client's counters — resuming a project moves it
+    // from ON_HOLD back to ACTIVE, which changes the `activeProjects` /
+    // project-status breakdown on the KPI grid. Fire-and-forget to keep
+    // the resume path snappy.
+    if (projectStatus?.status === "ON_HOLD") {
+      this.clientCounterService
+        .onProjectStatusChange(period.projectId)
+        .catch(() => undefined);
+    }
   }
 
   /** An invoice is the down-payment invoice if its linked plan row is `ON_SIGN`. */

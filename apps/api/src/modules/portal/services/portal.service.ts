@@ -17,6 +17,7 @@ export type PortalContractDetail = Prisma.ContractGetPayload<{
   };
 }>;
 import { NotificationsService } from "../../notifications/services/notifications.service";
+import { ClientCounterService } from "../../crm/services/client-counter.service";
 import {
   CreateDeliverableDto,
   CreateRevisionDto,
@@ -52,6 +53,7 @@ export class PortalService {
     private notificationsService: NotificationsService,
     private storageService: StorageService,
     private marketingStrategyService: MarketingStrategyService,
+    private clientCounterService: ClientCounterService,
   ) {}
 
   /** Broadcast invalidations to client's WebSocket connections (NEW) */
@@ -2836,6 +2838,14 @@ export class PortalService {
       where: { id: projectId },
       data: { status: ProjectStatus.COMPLETED },
     });
+
+    // Refresh the client's denormalized counters — approval moves the
+    // project from AWAITING_REVIEW to COMPLETED, which changes
+    // `completedProjects` on the KPI grid. Fire-and-forget so a counter
+    // glitch never blocks the client's approval confirmation.
+    this.clientCounterService
+      .onProjectStatusChange(projectId)
+      .catch(() => undefined);
 
     if (project.projectManagerId) {
       this.notificationsService
