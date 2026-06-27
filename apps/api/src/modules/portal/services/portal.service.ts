@@ -1003,6 +1003,32 @@ export class PortalService {
     return { items: paginatedItems, total, page, limit };
   }
 
+  /**
+   * Resolve a `deliverableId` (the value embedded in `actionUrl` for
+   * DELIVERABLE_APPROVAL items) back to its owning project, so the client
+   * portal can deep-link into the right review surface.
+   *
+   * Why this exists:
+   *   `getActionItems` emits `actionUrl: /portal/deliverables/${deliverableId}`,
+   *   but the actual client review UX is project-scoped (one modal per
+   *   project). Without this resolver the deep-link 404s. The redirect is
+   *   served from the controller, this just enforces ownership.
+   */
+  async resolveDeliverableForReview(clientId: string, deliverableId: string) {
+    const deliverable = await this.prisma.deliverable.findUnique({
+      where: { id: deliverableId },
+      select: {
+        id: true,
+        projectId: true,
+        project: { select: { clientId: true } },
+      },
+    });
+    if (!deliverable || deliverable.project.clientId !== clientId) {
+      throw new NotFoundException("Deliverable not found");
+    }
+    return { projectId: deliverable.projectId };
+  }
+
   async snoozeActionItem(
     clientId: string,
     itemType: string,

@@ -136,7 +136,8 @@ export interface ActionItem {
     | "DELIVERABLE_APPROVAL"
     | "INVOICE_PAYMENT"
     | "PROPOSAL_REVIEW"
-    | "CONTRACT_SIGN";
+    | "CONTRACT_SIGN"
+    | "STRATEGY_REVIEW";
   title: string;
   subtitle: string;
   actionUrl: string;
@@ -848,6 +849,17 @@ export const portalApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "PortalInvoices", id }],
     }),
 
+    /**
+     * Resolves a `deliverableId` (embedded in action items' `actionUrl`)
+     * back to its owning `projectId`. The detail page uses this to deep-link
+     * into the project-scoped review modal — see
+     * `apps/web/app/(portal)/portal/deliverables/[id]/page.tsx`.
+     */
+    getDeliverableRedirect: builder.query<{ projectId: string }, string>({
+      query: (id) => `/portal/deliverables/${id}/redirect`,
+      providesTags: (_result, _error, id) => [{ type: "ReviewProjects", id }],
+    }),
+
     downloadPeriodReport: builder.query<
       DownloadUrlResponse,
       { projectId: string; periodId: string }
@@ -1053,6 +1065,7 @@ export const {
   useLazyDownloadPeriodFileQuery,
   useGetPortalProjectDetailQuery,
   useGetPortalInvoiceDetailQuery,
+  useGetDeliverableRedirectQuery,
   // Strategy hooks
   useGetClientStrategiesQuery,
   useGetClientStrategyQuery,

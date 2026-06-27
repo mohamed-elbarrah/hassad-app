@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import {
@@ -70,6 +71,25 @@ export default function PortalDeliverablesPage() {
   );
   const [revisionComment, setRevisionComment] = useState("");
   const [showRevisionForm, setShowRevisionForm] = useState(false);
+
+  const searchParams = useSearchParams();
+
+  // Deep-link handler: when redirected from `/portal/deliverables/[id]`
+  // we get a `?focus=<projectId>` hint that auto-opens the right modal.
+  // We strip the param from the URL after consuming it so a refresh
+  // doesn't re-trigger the focus.
+  useEffect(() => {
+    const focus = searchParams?.get("focus");
+    if (!focus) return;
+    if (selectedProjectId === focus) return;
+    setSelectedProjectId(focus);
+    setShowRevisionForm(false);
+    setRevisionComment("");
+    if (typeof window !== "undefined") {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }, [searchParams, selectedProjectId]);
 
   const { data: selectedProject } = useGetProjectReviewDetailQuery(
     selectedProjectId!,

@@ -522,8 +522,8 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getPortalCampaigns(
     @CurrentUser() user: any,
-    @Query("projectId", ParseUUIDPipe) projectId?: string,
-    @Query("periodId", ParseUUIDPipe) periodId?: string,
+    @Query("projectId", new ParseUUIDPipe({ optional: true })) projectId?: string,
+    @Query("periodId", new ParseUUIDPipe({ optional: true })) periodId?: string,
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) return [];
@@ -803,6 +803,24 @@ export class PortalController {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
     return this.portalService.getInvoiceDetail(clientId, id);
+  }
+
+  /**
+   * Resolve a deliverable deep-link (`/portal/deliverables/:id`) back to
+   * the owning project id. The frontend uses this to redirect into the
+   * existing project-scoped review modal at `/portal/deliverables?focus=...`
+   * instead of building a duplicate deliverable-only UI.
+   * See: `getActionItems` for the matching `actionUrl` shape.
+   */
+  @Get("portal/deliverables/:id/redirect")
+  @RequirePermissions("portal.read")
+  async redirectDeliverableToProject(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.resolveDeliverableForReview(clientId, id);
   }
 
   // ── Marketing Strategy Portal Endpoints ────────────────────────────────

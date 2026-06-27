@@ -10,6 +10,7 @@ import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBa
 import { Pill } from "@/components/design-system/Pill";
 import { DataTable } from "@/components/design-system/DataTable";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { useAppSelector } from "@/lib/hooks";
 import { useGetActionItemsQuery } from "@/features/portal/portalApi";
 
 const FILTER_GROUPS: FilterGroup[] = [
@@ -54,13 +55,19 @@ export default function PortalActionsPage() {
 
   const typeFilter = activeFilters["type"]?.[0] ?? "";
 
+  // Mirror the dashboard: skip the query when we have no clientId to scope
+  // to. Otherwise an un-scoped clientId leaks into `resolveClientId` on the
+  // backend and triggers a 403 + the noisy error state. (Audit #L1)
+  const { user } = useAppSelector((state) => state.auth);
+  const clientId = user?.clientId ?? "";
+
   const { data, isLoading, isError } = useGetActionItemsQuery(
     {
       type: typeFilter || undefined,
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 120_000 },
+    { skip: !clientId, pollingInterval: 120_000 },
   );
 
   const items = data?.items ?? [];

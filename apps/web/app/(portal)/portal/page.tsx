@@ -74,6 +74,11 @@ const ACTION_TYPE_CONFIG: Record<
     primaryColor: "blue",
     icon: PenTool,
   },
+  STRATEGY_REVIEW: {
+    primaryAction: "مراجعة الدراسة",
+    primaryColor: "purple",
+    icon: ClipboardList,
+  },
 };
 
 const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
@@ -134,7 +139,7 @@ export default function PortalPage() {
   const activityItems = activityFeedData?.items ?? [];
 
   const handleSnooze = async (item: { id: string; type: string }) => {
-    const itemId = item.id.replace(/^(del|inv|prop|con)-/, "");
+    const itemId = item.id.replace(/^(del|inv|prop|con|strat)-/, "");
     try {
       await snoozeActionItem({ itemType: item.type, itemId }).unwrap();
     } catch (err: any) {
