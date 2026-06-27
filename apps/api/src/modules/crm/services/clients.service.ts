@@ -118,6 +118,16 @@ export class ClientsService {
         include: {
           manager: { select: { id: true, name: true } },
           profile: filters.includeCounters ? true : undefined,
+          // Personal identity lives on `User` (joined via userId).
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phoneWhatsapp: true,
+              avatarUrl: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
@@ -141,6 +151,16 @@ export class ClientsService {
           take: 5,
         },
         profile: true,
+        // Personal identity (name, email, phone) on `User`.
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneWhatsapp: true,
+            avatarUrl: true,
+          },
+        },
         historyLogs: {
           orderBy: { occurredAt: "desc" },
           take: 50,

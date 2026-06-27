@@ -37,7 +37,7 @@ export default function NewOrderPage() {
   const router = useRouter();
   const [mode, setMode] = useState<ClientMode>("existing");
   const [search, setSearch] = useState("");
-  const [selectedClient, setSelectedClient] = useState<{ id: string; companyName: string; contactName: string } | null>(null);
+  const [selectedClient, setSelectedClient] = useState<{ id: string; companyName: string; user?: { name: string } | null } | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
@@ -61,10 +61,10 @@ export default function NewOrderPage() {
 
   const filteredClients = clientsData?.items ?? [];
 
-  const handleSelectClient = useCallback((client: { id: string; companyName: string; contactName: string }) => {
+  const handleSelectClient = useCallback((client: { id: string; companyName: string; user?: { name: string } | null }) => {
     setSelectedClient(client);
     setShowDropdown(false);
-    setSearch(client.companyName || client.contactName);
+    setSearch(client.companyName || client.user?.name || "");
   }, []);
 
   const handleClearClient = useCallback(() => {
@@ -238,9 +238,9 @@ export default function NewOrderPage() {
                         onClick={() => handleSelectClient(client)}
                         className="w-full px-4 py-2.5 text-right text-sm hover:bg-neutral-50/60 transition-colors border-b border-neutral-50 last:border-0"
                       >
-                        <span className="font-medium">{client.companyName || client.contactName}</span>
-                        {client.contactName && (
-                          <span className="text-neutral-300 mr-2">{client.contactName}</span>
+                        <span className="font-medium">{client.companyName || client.user?.name}</span>
+                        {client.user?.name && (
+                          <span className="text-neutral-300 mr-2">{client.user.name}</span>
                         )}
                       </button>
                     ))
@@ -253,12 +253,12 @@ export default function NewOrderPage() {
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-success-500 shrink-0" />
                     <span className="text-sm font-medium">
-                      {selectedClient.companyName || selectedClient.contactName}
+                      {selectedClient.companyName || selectedClient.user?.name}
                     </span>
                   </div>
-                  {selectedClient.contactName && (
+                  {selectedClient.user?.name && (
                     <p className="text-xs text-neutral-300 mr-6 mt-0.5">
-                      {selectedClient.contactName}
+                      {selectedClient.user.name}
                     </p>
                   )}
                 </div>

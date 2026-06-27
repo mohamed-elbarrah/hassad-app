@@ -20,10 +20,10 @@ interface Props {
   client: {
     id: string;
     companyName: string;
-    contactName: string;
-    phoneWhatsapp: string;
     businessName: string;
     businessType: string;
+    // Personal identity now on `User` (joined via userId).
+    user?: { name: string; email: string; phoneWhatsapp: string | null } | null;
   };
   open: boolean;
   onClose: () => void;
@@ -66,8 +66,8 @@ export function NewRequestForClientModal({ client, open, onClose }: Props) {
         <div className="space-y-4">
           <div className="rounded-lg bg-muted p-4 space-y-1 text-sm">
             <p><span className="font-medium">الشركة:</span> {client.companyName}</p>
-            <p><span className="font-medium">جهة الاتصال:</span> {client.contactName}</p>
-            <p><span className="font-medium">الهاتف:</span> {client.phoneWhatsapp}</p>
+            <p><span className="font-medium">جهة الاتصال:</span> {client.user?.name ?? "—"}</p>
+            <p><span className="font-medium">الهاتف:</span> {client.user?.phoneWhatsapp ?? "—"}</p>
             <p><span className="font-medium">نوع النشاط:</span> {client.businessType}</p>
           </div>
 

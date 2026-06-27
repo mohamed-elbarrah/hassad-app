@@ -63,19 +63,19 @@ export function RequirementsForm({ client }: RequirementsFormProps) {
         </div>
         <div>
           <p className="text-neutral-300 mb-1">المسؤول</p>
-          <p className="font-medium">{client.contactName}</p>
+          <p className="font-medium">{client.user?.name ?? "—"}</p>
         </div>
         <div>
           <p className="text-neutral-300 mb-1">واتساب</p>
           <p className="font-medium font-mono" dir="ltr">
-            {client.phoneWhatsapp}
+            {client.user?.phoneWhatsapp ?? "—"}
           </p>
         </div>
-        {client.email && (
+        {client.user?.email && (
           <div>
             <p className="text-neutral-300 mb-1">البريد الإلكتروني</p>
             <p className="font-medium" dir="ltr">
-              {client.email}
+              {client.user.email}
             </p>
           </div>
         )}

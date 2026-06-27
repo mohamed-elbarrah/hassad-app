@@ -158,7 +158,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
           {data.client?.companyName && (
             <p className="text-sm text-portal-note-text">
               {data.client.companyName}
-              {data.client.contactName ? ` — ${data.client.contactName}` : ""}
+              {data.client.user?.name ? ` — ${data.client.user.name}` : ""}
             </p>
           )}
           {data.type && (

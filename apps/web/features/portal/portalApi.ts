@@ -468,7 +468,12 @@ export interface PortalProjectDetail {
   createdAt: string;
   updatedAt: string;
   manager: { id: string; name: string; isOnline: boolean } | null;
-  client: { id: string; companyName: string; contactName: string };
+  // Personal identity now lives on `User` (joined via the `user` field).
+  client: {
+    id: string;
+    companyName: string;
+    user: { name: string; email: string; phoneWhatsapp: string | null } | null;
+  };
 }
 
 export interface PortalInvoiceItem {
@@ -536,7 +541,8 @@ export interface IntakeFormDraft {
 export interface PortalContractClient {
   id: string;
   companyName: string;
-  contactName: string;
+  // Personal identity (name, email, phone) now lives on `User`.
+  user: { name: string; email: string; phoneWhatsapp: string | null } | null;
 }
 
 export interface PortalContractInvoiceItem {

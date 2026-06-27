@@ -16,7 +16,8 @@ import type {
 export interface ContractClient {
   id: string;
   companyName: string;
-  contactName: string;
+  // Personal identity now on `User` (joined via userId).
+  user: { name: string; email: string; phoneWhatsapp: string | null } | null;
   leadId?: string | null;
 }
 

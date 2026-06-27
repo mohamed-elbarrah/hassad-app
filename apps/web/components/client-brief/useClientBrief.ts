@@ -152,11 +152,14 @@ export function useClientBrief({
   const displayIndustry = communication?.industry;
 
   const displayBusinessName = communication?.businessName || client.companyName;
-  const displayContactName =
-    user?.name ?? communication?.contactName ?? client.contactName;
-  const displayPhone =
-    user?.phoneWhatsapp ?? communication?.contactNumber ?? client.phoneWhatsapp;
-  const displayEmail = user?.email ?? communication?.email ?? client.email;
+  // Personal identity now lives on `User` (unified migration). In the
+  // portal context the hook receives a `user` and uses it. Outside
+  // portal (CRM dashboard, admin views), the `user` may be undefined;
+  // in that case we gracefully fall back to empty — the surrounding UI
+  // is expected to fetch the User separately when it needs identity.
+  const displayContactName = user?.name ?? "";
+  const displayPhone = user?.phoneWhatsapp ?? "";
+  const displayEmail = user?.email ?? "";
 
   const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
   const legacyBrandAssets = profile?.brandAssets;
