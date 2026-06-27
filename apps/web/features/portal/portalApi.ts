@@ -146,6 +146,17 @@ export interface ActionItem {
   createdAt: string;
 }
 
+/**
+ * An `ActionItem` plus its snooze metadata. Returned by
+ * `GET /portal/action-items/snoozed` so the UI can render the snoozed
+ * items view with a countdown + unsnooze affordance.
+ */
+export interface SnoozedActionItem extends ActionItem {
+  snoozedUntil: string;
+  reminderSentAt: string | null;
+  isActive: boolean;
+}
+
 export interface ActivityFeedItem {
   id: string;
   date: string;
@@ -735,6 +746,32 @@ export const portalApi = createApi({
       invalidatesTags: ["ActionItems", "ActivityFeed"], // NEW
     }),
 
+    /**
+     * List the client's currently-snoozed action items, joined with the
+     * action-item shape so the UI can render the same row UI it uses on
+     * `/portal/actions`. Used by the new "الإجراءات المؤجلة" page.
+     *
+     * The response includes:
+     *   - id / type / title / subtitle / actionUrl / priority / createdAt
+     *   - snoozedUntil (Date ISO)
+     *   - reminderSentAt (Date ISO | null)
+     *   - isActive (boolean — true if snooze is still in the future)
+     */
+    getSnoozedActionItems: builder.query<SnoozedActionItem[], { activeOnly?: boolean } | void>({
+      query: (params) => {
+        // RTK Query passes `void` when called with no args; narrow at runtime.
+        const activeOnly =
+          typeof params === "object" && params !== null
+            ? params.activeOnly ?? true
+            : true;
+        return {
+          url: "/portal/action-items/snoozed",
+          params: { activeOnly: String(activeOnly) },
+        };
+      },
+      providesTags: ["ActionItems"],
+    }),
+
     // NEW: Deliverable approval
     approveDeliverable: builder.mutation<any, string>({
       query: (id) => ({
@@ -1047,6 +1084,7 @@ export const {
   useGetPortalContractByIdQuery,
   useSnoozeActionItemMutation,
   useUnsnoozeActionItemMutation,
+  useGetSnoozedActionItemsQuery,
   // NEW: Deliverable approval
   useApproveDeliverableMutation,
   useRejectDeliverableMutation,

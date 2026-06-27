@@ -1004,7 +1004,7 @@ export class PortalService {
   }
 
   /**
-   * Resolve a `deliverableId` (the value embedded in `actionUrl` for
+ * Resolve a `deliverableId` (the value embedded in `actionUrl` for
    * DELIVERABLE_APPROVAL items) back to its owning project, so the client
    * portal can deep-link into the right review surface.
    *
@@ -1029,6 +1029,188 @@ export class PortalService {
     return { projectId: deliverable.projectId };
   }
 
+  /**
+   * List the client's currently-snoozed action items, joined with the
+   * original action-item shape so the UI can render the same row UI it
+   * uses on `/portal/actions`.
+   *
+   * Two filter modes:
+   *   - `activeOnly=true` (default) — only items whose snooze is still
+   *     in the future. Matches what the client perceives as "snoozed".
+   *   - `activeOnly=false` — also include items whose snooze already
+   *     expired (i.e. the reminder was already sent). Useful for "history"
+   *     views and debugging.
+   */
+  async getSnoozedItems(clientId: string, activeOnly: boolean = true) {
+    const now = new Date();
+    const where: any = { clientId };
+    if (activeOnly) {
+      where.snoozedUntil = { gt: now };
+    } else {
+      where.snoozedUntil = { lte: now };
+    }
+
+    const snoozed = await this.prisma.clientSnoozedItem.findMany({
+      where,
+      orderBy: { snoozedUntil: "asc" },
+    });
+
+    if (snoozed.length === 0) return [];
+
+    // Resolve each snoozed item back into the action-item shape so the UI
+    // can reuse the same row rendering pipeline (ActionItemCard + Pill +
+    // ActionButton). We do this in O(n) by batching the lookups per type.
+    const byType = new Map<string, Set<string>>();
+    for (const s of snoozed) {
+      if (!byType.has(s.itemType)) byType.set(s.itemType, new Set());
+      byType.get(s.itemType)!.add(s.itemId);
+    }
+
+    const enriched: any[] = [];
+    for (const s of snoozed) {
+      enriched.push({
+        ...(await this.resolveActionItemShape(
+          clientId,
+          s.itemType,
+          s.itemId,
+        )),
+        snoozedUntil: s.snoozedUntil,
+        reminderSentAt: s.reminderSentAt,
+        isActive: s.snoozedUntil > now,
+      });
+    }
+    return enriched;
+  }
+
+  /**
+   * Build the same `{ id, type, title, subtitle, actionUrl, priority,
+   * createdAt }` shape that `getActionItems` emits, but for a SINGLE
+   * `(itemType, itemId)` pair. Returns `null` if the underlying entity
+   * is gone (e.g. deliverable was approved and deleted). The controller
+   * surfaces `null` as an empty list rather than 404 — it's expected
+   * that the underlying state moved on.
+   */
+  private async resolveActionItemShape(
+    clientId: string,
+    itemType: string,
+    itemId: string,
+  ): Promise<{
+    id: string;
+    type: string;
+    title: string;
+    subtitle: string;
+    actionUrl: string;
+    priority: string;
+    createdAt: Date | null;
+  } | null> {
+    const now = new Date();
+
+    switch (itemType) {
+      case "DELIVERABLE_APPROVAL": {
+        const d = await this.prisma.deliverable.findFirst({
+          where: { id: itemId, isVisibleToClient: true },
+          include: { project: { select: { clientId: true, name: true } } },
+        });
+        if (!d || d.project.clientId !== clientId) return null;
+        return {
+          id: `del-${d.id}`,
+          type: "DELIVERABLE_APPROVAL",
+          title: d.title,
+          subtitle: `مشروع: ${d.project.name}`,
+          actionUrl: `/portal/deliverables/${d.id}`,
+          priority: d.status === "IN_REVIEW" ? "high" : "normal",
+          createdAt: d.createdAt,
+        };
+      }
+      case "INVOICE_PAYMENT": {
+        const inv = await this.prisma.invoice.findFirst({
+          where: { id: itemId, clientId },
+        });
+        if (!inv) return null;
+        const daysUntilDue = inv.dueDate
+          ? Math.ceil(
+              (new Date(inv.dueDate).getTime() - now.getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
+          : 999;
+        let priority: string = "low";
+        if (daysUntilDue <= 3 || inv.status === "LATE") priority = "high";
+        else if (daysUntilDue <= 7) priority = "normal";
+        return {
+          id: `inv-${inv.id}`,
+          type: "INVOICE_PAYMENT",
+          title: `فاتورة ${inv.invoiceNumber}`,
+          subtitle: `المبلغ: ${inv.amount.toLocaleString("ar-SA-u-nu-latn")} ر.س${daysUntilDue <= 3 ? " — مستحقة قريباً" : ""}`,
+          actionUrl: `/portal/invoices/${inv.id}`,
+          priority,
+          createdAt: inv.createdAt,
+        };
+      }
+      case "CONTRACT_SIGN": {
+        const c = await this.prisma.contract.findFirst({
+          where: { id: itemId, clientId },
+        });
+        if (!c) return null;
+        return {
+          id: `con-${c.id}`,
+          type: "CONTRACT_SIGN",
+          title: c.title,
+          subtitle: "عقد بانتظار توقيعك",
+          actionUrl: c.shareLinkToken
+            ? `/portal/contracts/${c.shareLinkToken}`
+            : "/portal/contracts",
+          priority: "high",
+          createdAt: c.createdAt,
+        };
+      }
+      case "PROPOSAL_REVIEW": {
+        const p = await this.prisma.proposal.findFirst({
+          where: {
+            id: itemId,
+            OR: [{ clientId }, { request: { clientId } }],
+          },
+        });
+        if (!p) return null;
+        return {
+          id: `prop-${p.id}`,
+          type: "PROPOSAL_REVIEW",
+          title: p.title,
+          subtitle: "عرض فني بانتظار مراجعتك",
+          actionUrl: p.shareLinkToken
+            ? `/portal/proposals/${p.shareLinkToken}`
+            : "/portal/proposals",
+          priority: "normal",
+          createdAt: p.sentAt ?? p.createdAt,
+        };
+      }
+      case "STRATEGY_REVIEW": {
+        const s = await this.prisma.marketingStrategy.findFirst({
+          where: { id: itemId, clientId },
+          include: {
+            task: {
+              select: {
+                title: true,
+                project: { select: { name: true } },
+              },
+            },
+          },
+        });
+        if (!s) return null;
+        return {
+          id: `strat-${s.id}`,
+          type: "STRATEGY_REVIEW",
+          title: `دراسة تسويقية — ${s.task?.project?.name ?? ""}`,
+          subtitle: `دراسة تسويقية للمهمة "${s.task?.title ?? ""}" بانتظار مراجعتك`,
+          actionUrl: `/portal/marketing-strategies/${s.id}`,
+          priority: "high",
+          createdAt: s.sentAt ?? s.createdAt,
+        };
+      }
+      default:
+        return null;
+    }
+  }
+
   async snoozeActionItem(
     clientId: string,
     itemType: string,
@@ -1038,13 +1220,65 @@ export class PortalService {
     const snoozedUntil = new Date();
     snoozedUntil.setHours(snoozedUntil.getHours() + hours);
 
-    return this.prisma.clientSnoozedItem.upsert({
+    const result = await this.prisma.clientSnoozedItem.upsert({
       where: {
         clientId_itemType_itemId: { clientId, itemType, itemId },
       },
-      update: { snoozedUntil },
+      update: { snoozedUntil, reminderSentAt: null },
       create: { clientId, itemType, itemId, snoozedUntil },
     });
+
+    // Write a history log so the PM / admin side can see the snooze.
+    // Wrapped in a try/catch + silent fallback: a history-log failure
+    // must never roll back the snooze write — the snooze is the
+    // user-visible state, the history is a derived audit trail.
+    try {
+      const client = await this.prisma.client.findUnique({
+        where: { id: clientId },
+        select: { userId: true, companyName: true },
+      });
+      if (client?.userId) {
+        await this.prisma.clientHistoryLog.create({
+          data: {
+            clientId,
+            userId: client.userId,
+            eventType: "ACTION_ITEM_SNOOZED",
+            description: `العميل أخفى إجراءً من النوع ${itemType} لمدة ${hours} ساعة (${this.itemTypeAr(itemType)}).`,
+            metadata: {
+              itemType,
+              itemId,
+              hours,
+              snoozedUntil: snoozedUntil.toISOString(),
+            },
+          },
+        });
+      }
+    } catch {
+      // Silent — audit-log failure is non-critical.
+    }
+
+    return result;
+  }
+
+  /**
+   * Map the internal `itemType` enum to its Arabic display label so the
+   * `ClientHistoryLog.description` is human-readable on the PM/admin side.
+   */
+  private itemTypeAr(itemType: string): string {
+    switch (itemType) {
+      case "DELIVERABLE_APPROVAL":
+        return "مراجعة تسليم";
+      case "INVOICE_PAYMENT":
+        return "دفع فاتورة";
+      case "PROPOSAL_REVIEW":
+        return "مراجعة عرض";
+      case "CONTRACT_SIGN":
+        return "توقيع عقد";
+      case "STRATEGY_REVIEW":
+        return "مراجعة دراسة تسويقية";
+      default:
+        return itemType;
+    }
   }
 
   async unsnoozeActionItem(clientId: string, itemType: string, itemId: string) {

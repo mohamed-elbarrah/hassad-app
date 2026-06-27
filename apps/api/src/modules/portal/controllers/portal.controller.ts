@@ -692,6 +692,26 @@ export class PortalController {
     return this.portalService.unsnoozeActionItem(clientId, itemType, itemId);
   }
 
+  /**
+   * List the client's currently-snoozed action items so the UI can show
+   * a "snoozed" view and offer an "unsnooze" affordance.
+   *
+   * Pass `?activeOnly=false` to include items whose snooze already expired
+   * (i.e. the reminder notification was already pushed). Useful for a
+   * "history" view if you add one later.
+   */
+  @Get("portal/action-items/snoozed")
+  @RequirePermissions("portal.read")
+  async getSnoozedActionItems(
+    @CurrentUser() user: any,
+    @Query("activeOnly") activeOnly?: string,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return [];
+    const flag = activeOnly === undefined ? true : activeOnly !== "false";
+    return this.portalService.getSnoozedItems(clientId, flag);
+  }
+
   @Get("portal/campaigns/:id")
   @RequirePermissions("portal.read")
   async getPortalCampaignOne(
