@@ -140,8 +140,8 @@ function ContractSharePageInner({ token }: { token: string }) {
                 {data.client?.companyName && (
                   <p className="text-sm text-neutral-300 mt-1">
                     {data.client.companyName}
-                    {data.client.contactName
-                      ? ` — ${data.client.contactName}`
+                    {data.client.user?.name
+                      ? ` — ${data.client.user.name}`
                       : ""}
                   </p>
                 )}

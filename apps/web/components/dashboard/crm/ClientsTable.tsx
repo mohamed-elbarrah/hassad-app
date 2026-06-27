@@ -88,12 +88,14 @@ export function ClientsTable({
         </div>
       ),
     }),
-    columnHelper.accessor("contactName", {
+    // Personal identity now on `User` (joined via `user` field).
+    // We use a custom accessor with `accessorFn` since the data is nested.
+    columnHelper.accessor((row) => row.user?.name ?? "", {
       id: "contactName",
       header: "المسؤول",
       cell: (info) => info.getValue(),
     }),
-    columnHelper.accessor("phoneWhatsapp", {
+    columnHelper.accessor((row) => row.user?.phoneWhatsapp ?? "", {
       id: "phoneWhatsapp",
       header: "الجوّال / واتساب",
       cell: (info) => (
@@ -102,7 +104,7 @@ export function ClientsTable({
         </span>
       ),
     }),
-    columnHelper.accessor("email", {
+    columnHelper.accessor((row) => row.user?.email ?? "", {
       id: "email",
       header: "البريد الإلكتروني",
       cell: (info) => (

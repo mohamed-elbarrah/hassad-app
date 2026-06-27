@@ -48,6 +48,10 @@ export class ClientsService {
           data: {
             name: dto.contactName || dto.email.split("@")[0],
             email: dto.email.trim().toLowerCase(),
+            // OWNERSHIP: User owns phone — single source of truth for
+            // personal identity. Client.phoneWhatsapp is a CRM-side
+            // legacy field kept for backward compatibility.
+            phoneWhatsapp: dto.phoneWhatsapp || null,
             passwordHash,
             roleId: role.id,
           },
@@ -64,11 +68,8 @@ export class ClientsService {
       const result = await this.canonicalClientService.upsertCanonicalClient(
         tx,
         {
-          email: dto.email ?? null,
           userId: newUserId,
           companyName: dto.companyName || nameFallback,
-          contactName: nameFallback,
-          phoneWhatsapp: dto.phoneWhatsapp || "00000000000",
           businessName: dto.businessName || dto.companyName || nameFallback,
           businessType: dto.businessType || BusinessType.OTHER,
           preferredManagerId: dto.accountManager ?? null,
@@ -117,6 +118,16 @@ export class ClientsService {
         include: {
           manager: { select: { id: true, name: true } },
           profile: filters.includeCounters ? true : undefined,
+          // Personal identity lives on `User` (joined via userId).
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phoneWhatsapp: true,
+              avatarUrl: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
@@ -140,6 +151,16 @@ export class ClientsService {
           take: 5,
         },
         profile: true,
+        // Personal identity (name, email, phone) on `User`.
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneWhatsapp: true,
+            avatarUrl: true,
+          },
+        },
         historyLogs: {
           orderBy: { occurredAt: "desc" },
           take: 50,

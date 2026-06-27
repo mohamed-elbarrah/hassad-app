@@ -387,7 +387,7 @@ export class DisputesService {
         orderBy: { openedAt: "desc" },
         include: {
           project: { select: { id: true, name: true } },
-          client: { select: { id: true, companyName: true, contactName: true } },
+          client: { select: { id: true, companyName: true,  } },
           messages: {
             take: 1,
             orderBy: { createdAt: "desc" },
@@ -417,7 +417,7 @@ export class DisputesService {
       where: { id: disputeId, pmId },
       include: {
         project: { select: { id: true, name: true } },
-        client: { select: { id: true, companyName: true, contactName: true } },
+        client: { select: { id: true, companyName: true,  } },
         messages: {
           where: { isInternal: false }, // PM cannot see internal admin notes
           orderBy: { createdAt: "asc" },
@@ -559,7 +559,7 @@ export class DisputesService {
         orderBy: { openedAt: "desc" },
         include: {
           project: { select: { id: true, name: true } },
-          client: { select: { id: true, companyName: true, contactName: true } },
+          client: { select: { id: true, companyName: true,  } },
           pm: { select: { id: true, name: true, avatarUrl: true } },
           reviewer: { select: { id: true, name: true } },
           resolver: { select: { id: true, name: true } },
@@ -588,8 +588,8 @@ export class DisputesService {
       where: { id: disputeId },
       include: {
         project: { select: { id: true, name: true } },
-        client: { select: { id: true, companyName: true, contactName: true, email: true } },
-        pm: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        client: { select: { id: true, companyName: true } },
+        pm: { select: { id: true, name: true, avatarUrl: true } },
         reviewer: { select: { id: true, name: true } },
         resolver: { select: { id: true, name: true } },
         newPm: { select: { id: true, name: true } },

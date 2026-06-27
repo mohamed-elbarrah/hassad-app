@@ -14,11 +14,12 @@ import type { ClientStatus } from "@hassad/shared";
 // ── V2 Profile Types (unified with IntakeFormV2) ────────────────────────────────
 
 export interface CommunicationInfo {
-  contactName?: string;
+  // Personal identity (name/email/phone) now lives on `User`,
+  // not on `ClientProfile.communicationInfo`. Schema-level
+  // enforcement: `CommunicationInfoSchema` (in @hassad/shared)
+  // only accepts business fields.
   businessName?: string;
   industry?: string;
-  contactNumber?: string;
-  email?: string;
 }
 
 export interface ProductInfo {

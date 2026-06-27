@@ -4,13 +4,16 @@ import { memoryStorage } from "multer";
 import { PortalController } from "./controllers/portal.controller";
 import { PortalNotificationsController } from "./controllers/portal-notifications.controller";
 import { PortalService } from "./services/portal.service";
+import { SnoozeReminderScheduler } from "./services/snooze-reminder.scheduler";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { MarketingModule } from "../marketing/marketing.module";
+import { CrmModule } from "../crm/crm.module";
 
 @Module({
   imports: [
     NotificationsModule,
     MarketingModule,
+    CrmModule,
     MulterModule.register({
       storage: memoryStorage(),
       limits: {
@@ -20,7 +23,7 @@ import { MarketingModule } from "../marketing/marketing.module";
     }),
   ],
   controllers: [PortalController, PortalNotificationsController],
-  providers: [PortalService],
+  providers: [PortalService, SnoozeReminderScheduler],
   exports: [PortalService],
 })
 export class PortalModule {}

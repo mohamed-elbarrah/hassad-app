@@ -78,8 +78,8 @@ export function ClientBriefIdentity({
 
   // Prefer V2 field (communicationInfo.industry) over legacy field
   const industry = profile?.communicationInfo?.industry ?? profile?.industry;
-  const subtitle = client.contactName
-    ? `المسؤول: ${client.contactName}`
+  const subtitle = client.user?.name
+    ? `المسؤول: ${client.user.name}`
     : (BUSINESS_TYPE_LABELS[client.businessType as BusinessType] ??
       client.businessType);
 
@@ -126,17 +126,17 @@ export function ClientBriefIdentity({
           <ClientBriefField
             icon={Mail}
             label="البريد الإلكتروني"
-            value={client.email}
-            href={client.email ? `mailto:${client.email}` : undefined}
+            value={client.user?.email}
+            href={client.user?.email ? `mailto:${client.user.email}` : undefined}
             dir="ltr"
           />
           <ClientBriefField
             icon={Phone}
             label="واتساب / هاتف"
-            value={client.phoneWhatsapp}
+            value={client.user?.phoneWhatsapp}
             href={
-              client.phoneWhatsapp
-                ? `https://wa.me/${client.phoneWhatsapp}`
+              client.user?.phoneWhatsapp
+                ? `https://wa.me/${client.user.phoneWhatsapp}`
                 : undefined
             }
             dir="ltr"

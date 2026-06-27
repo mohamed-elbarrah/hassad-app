@@ -65,10 +65,10 @@ export class PortalController {
     if (user.clientId) return user.clientId;
     if (user.role !== "CLIENT") return null;
 
+    // Personal identity (email) now lives on `User`; we look up the
+    // client by its linked `userId` only.
     const client = await this.prisma.client.findFirst({
-      where: {
-        OR: [{ userId: user.id }, { email: user.email }],
-      },
+      where: { userId: user.id },
     });
 
     if (client) return client.id;
@@ -76,14 +76,13 @@ export class PortalController {
     // Edge case: CLIENT user exists but has no Client record.
     // This can happen if a user was created outside the normal
     // onboarding flow (admin-created, legacy import, etc.).
-    // Auto-create a minimal record so portal endpoints work.
+    // Auto-create a minimal business record so portal endpoints work.
+    // Personal identity (name, email, phone) is NOT stored here — it
+    // lives on the `User` table and is joined via `userId`.
     const created = await this.prisma.client.create({
       data: {
         userId: user.id,
-        email: user.email,
         companyName: user.name || "Unknown",
-        contactName: user.name || "Unknown",
-        phoneWhatsapp: "",
         businessName: user.name || "Unknown",
         businessType: "OTHER",
         status: "ACTIVE",
@@ -522,8 +521,8 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getPortalCampaigns(
     @CurrentUser() user: any,
-    @Query("projectId", ParseUUIDPipe) projectId?: string,
-    @Query("periodId", ParseUUIDPipe) periodId?: string,
+    @Query("projectId", new ParseUUIDPipe({ optional: true })) projectId?: string,
+    @Query("periodId", new ParseUUIDPipe({ optional: true })) periodId?: string,
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) return [];
@@ -692,6 +691,26 @@ export class PortalController {
     return this.portalService.unsnoozeActionItem(clientId, itemType, itemId);
   }
 
+  /**
+   * List the client's currently-snoozed action items so the UI can show
+   * a "snoozed" view and offer an "unsnooze" affordance.
+   *
+   * Pass `?activeOnly=false` to include items whose snooze already expired
+   * (i.e. the reminder notification was already pushed). Useful for a
+   * "history" view if you add one later.
+   */
+  @Get("portal/action-items/snoozed")
+  @RequirePermissions("portal.read")
+  async getSnoozedActionItems(
+    @CurrentUser() user: any,
+    @Query("activeOnly") activeOnly?: string,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) return [];
+    const flag = activeOnly === undefined ? true : activeOnly !== "false";
+    return this.portalService.getSnoozedItems(clientId, flag);
+  }
+
   @Get("portal/campaigns/:id")
   @RequirePermissions("portal.read")
   async getPortalCampaignOne(
@@ -803,6 +822,24 @@ export class PortalController {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
     return this.portalService.getInvoiceDetail(clientId, id);
+  }
+
+  /**
+   * Resolve a deliverable deep-link (`/portal/deliverables/:id`) back to
+   * the owning project id. The frontend uses this to redirect into the
+   * existing project-scoped review modal at `/portal/deliverables?focus=...`
+   * instead of building a duplicate deliverable-only UI.
+   * See: `getActionItems` for the matching `actionUrl` shape.
+   */
+  @Get("portal/deliverables/:id/redirect")
+  @RequirePermissions("portal.read")
+  async redirectDeliverableToProject(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+  ) {
+    const clientId = await this.resolveClientId(user);
+    if (!clientId) throw new ForbiddenException();
+    return this.portalService.resolveDeliverableForReview(clientId, id);
   }
 
   // ── Marketing Strategy Portal Endpoints ────────────────────────────────

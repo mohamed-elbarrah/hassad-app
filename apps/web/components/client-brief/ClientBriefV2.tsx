@@ -17,7 +17,7 @@ import type { Client, ClientProfile } from "@hassad/shared";
 import { IdentitySidebar } from "./IdentitySidebar";
 import { KpiGrid } from "./KpiGrid";
 import { EmptySection } from "./EmptySection";
-import { useClientBrief, type ClientBriefView } from "./useClientBrief";
+import { useClientBrief, type ClientBriefView, type ClientBriefUser } from "./useClientBrief";
 import {
   CommunicationSection,
   ProductSection,
@@ -31,12 +31,20 @@ import {
 interface ClientBriefV2Props {
   client: Client;
   profile: ClientProfile | null;
+  /**
+   * Pass the authenticated `User` in portal contexts so personal identity
+   * fields are read from `User` (single source of truth) instead of
+   * `Client`. Omit for CRM / dashboard contexts where `Client` fields
+   * are the authoritative business-contact source.
+   */
+  user?: ClientBriefUser | null;
   viewAs?: ClientBriefView;
 }
 
 export function ClientBriefV2({
   client,
   profile,
+  user = null,
   viewAs = "internal",
 }: ClientBriefV2Props) {
   const {
@@ -47,6 +55,7 @@ export function ClientBriefV2({
   } = useClientBrief({
     client,
     profile,
+    user,
     viewAs,
   });
 

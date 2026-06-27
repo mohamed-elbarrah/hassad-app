@@ -15,10 +15,15 @@ async function main() {
       where: { status: "SIGNED", projects: { none: {} } },
       include: {
         client: {
+          // Personal identity now lives on the linked `User` — include it.
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, phoneWhatsapp: true },
+            },
+          },
           select: {
             id: true,
             companyName: true,
-            contactName: true,
             accountManager: true,
             leadId: true,
           },
@@ -82,7 +87,7 @@ async function main() {
         const projectName = `${contract.client.companyName} — ${contract.title}`;
         const projectDescription = [
           `Auto-created after signing contract: ${contract.title}`,
-          `Client contact: ${contract.client.contactName || "N/A"}`,
+          `Client contact: ${contract.client.user?.name || "N/A"}`,
           `Backfill createdAt: ${new Date().toISOString()}`,
         ].join("\n");
 

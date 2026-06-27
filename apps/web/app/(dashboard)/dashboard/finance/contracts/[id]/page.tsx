@@ -106,7 +106,7 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
         </div>
         <p className="text-sm text-neutral-300">
           {data.client?.companyName}
-          {data.client?.contactName ? ` — ${data.client.contactName}` : ""}
+          {data.client?.user?.name ? ` — ${data.client.user.name}` : ""}
         </p>
       </div>
 

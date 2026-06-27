@@ -15,12 +15,18 @@ export type ProfileMode = "wizard" | "edit" | "view";
 
 // ── Section Data Types (mirrors IntakeFormV2Input from @hassad/shared) ───────────
 
+/**
+ * Communication section data — marketing/wizard fields only.
+ *
+ * Personal identity (name, email, phone) lives on `User` and is edited
+ * via `PersonalInfoSection`. This section must NOT contain copies of
+ * personal identity fields — that was the root cause of the
+ * three-table duplication that made `/portal/account` and
+ * `/portal/profile` show different names for the same person.
+ */
 export interface CommunicationInfo {
-  contactName?: string;
   businessName?: string;
   industry?: string;
-  contactNumber?: string;
-  email?: string;
 }
 
 export interface ProductInfo {

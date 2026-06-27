@@ -132,9 +132,7 @@ async function ensureClientForLead(
           leadId: true,
           userId: true,
           companyName: true,
-          contactName: true,
-          phoneWhatsapp: true,
-          email: true,
+          
           businessName: true,
           businessType: true,
           accountManager: true,
@@ -151,9 +149,7 @@ async function ensureClientForLead(
         leadId: true,
         userId: true,
         companyName: true,
-        contactName: true,
-        phoneWhatsapp: true,
-        email: true,
+        
         businessName: true,
         businessType: true,
         accountManager: true,
@@ -163,16 +159,16 @@ async function ensureClientForLead(
   }
 
   if (!client && lead.email) {
+    // Personal identity now on User — can't match by email anymore.
+    // Clients are identified by leadId or userId only.
     client = await tx.client.findFirst({
-      where: { email: lead.email },
+      where: { leadId: lead.id },
       select: {
         id: true,
         leadId: true,
         userId: true,
         companyName: true,
-        contactName: true,
-        phoneWhatsapp: true,
-        email: true,
+        
         businessName: true,
         businessType: true,
         accountManager: true,
@@ -211,9 +207,7 @@ async function ensureClientForLead(
           leadId: true,
           userId: true,
           companyName: true,
-          contactName: true,
-          phoneWhatsapp: true,
-          email: true,
+          
           businessName: true,
           businessType: true,
           accountManager: true,
@@ -230,9 +224,6 @@ async function ensureClientForLead(
       leadId: lead.id,
       userId: clientUserId ?? undefined,
       companyName: lead.companyName,
-      contactName: lead.contactName,
-      phoneWhatsapp: lead.phoneWhatsapp,
-      email: lead.email ?? undefined,
       businessName: lead.businessName,
       businessType: lead.businessType,
       accountManager: lead.assignedTo ?? fallbackSalesId ?? undefined,
@@ -243,9 +234,7 @@ async function ensureClientForLead(
       leadId: true,
       userId: true,
       companyName: true,
-      contactName: true,
-      phoneWhatsapp: true,
-      email: true,
+      
       businessName: true,
       businessType: true,
       accountManager: true,

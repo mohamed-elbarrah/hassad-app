@@ -74,6 +74,11 @@ const ACTION_TYPE_CONFIG: Record<
     primaryColor: "blue",
     icon: PenTool,
   },
+  STRATEGY_REVIEW: {
+    primaryAction: "مراجعة الدراسة",
+    primaryColor: "purple",
+    icon: ClipboardList,
+  },
 };
 
 const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
@@ -133,10 +138,22 @@ export default function PortalPage() {
   const actionItems = actionItemsData?.items ?? [];
   const activityItems = activityFeedData?.items ?? [];
 
-  const handleSnooze = async (item: { id: string; type: string }) => {
-    const itemId = item.id.replace(/^(del|inv|prop|con)-/, "");
+  const handleSnooze = async (item: { id: string; type: string; title: string }) => {
+    const itemId = item.id.replace(/^(del|inv|prop|con|strat)-/, "");
     try {
-      await snoozeActionItem({ itemType: item.type, itemId }).unwrap();
+      const result = await snoozeActionItem({ itemType: item.type, itemId }).unwrap();
+      const until = result?.snoozedUntil
+        ? new Date(result.snoozedUntil).toLocaleString("ar-SA-u-nu-latn", {
+            day: "numeric",
+            month: "long",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "بعد 24 ساعة";
+      toast.success(`سيتم تذكيرك بـ «${item.title}» ${until}`, {
+        description: "يمكنك التراجع عن التأجيل من صفحة الإجراءات المؤجلة.",
+        duration: 5000,
+      });
     } catch (err: any) {
       toast.error(err?.data?.message || "فشل في إخفاء الإجراء");
     }

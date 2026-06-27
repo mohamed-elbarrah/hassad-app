@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { ClientCounterService } from "../src/modules/crm/services/client-counter.service";
 import * as bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
@@ -362,10 +363,11 @@ async function main() {
       name: "Sara Accountant",
       role: "ACCOUNTANT",
     },
-    { email: "client@hassad.com", name: "Tech Ventures CEO", role: "CLIENT" },
+    { email: "client@hassad.com", name: "فيصل القحطاني", role: "CLIENT" },
   ];
 
   const userIds: Record<string, string> = {};
+
   for (const u of userDefs) {
     const created = await prisma.user.upsert({
       where: { email: u.email },
@@ -373,6 +375,11 @@ async function main() {
       create: {
         email: u.email,
         name: u.name,
+        // OWNERSHIP: User owns phone — single source of truth.
+        // The demo client user is created with the same phone as
+        // Client.phoneWhatsapp so the portal shows a complete profile.
+        phoneWhatsapp:
+          u.email === "client@hassad.com" ? "+966501234567" : null,
         passwordHash,
         role: { connect: { name: u.role } },
         isPayrollEligible: u.role !== "CLIENT",
@@ -450,13 +457,14 @@ async function main() {
 
   const d = (y: number, m: number, day: number) => new Date(y, m - 1, day, 0, 0, 0, 0);
 
+  // Personal identity (contactName, email, phoneWhatsapp) is NOT set
+  // here — it lives on the linked `User` row. The seed already populates
+  // `User.name`, `User.email`, and `User.phoneWhatsapp` for the demo
+  // client user (see the userDefs loop above).
   const clientA = await prisma.client.create({
     data: {
       userId: userIds["CLIENT1"],
       companyName: "تقنيات المستقبل",
-      contactName: "فيصل القحطاني",
-      phoneWhatsapp: "+966501234567",
-      email: "ceo@futuretech.sa",
       businessName: "Future Technologies",
       businessType: "OTHER",
       status: "ACTIVE",
@@ -811,6 +819,25 @@ async function main() {
     { clientId: client.id, userId: userIds["PM"], eventType: "PROJECT_COMPLETED", description: "تم اكتمال مشروع إطلاق متجر التراث", occurredAt: d(2024, 6, 15) },
     { clientId: client.id, userId: userIds["ACCOUNTANT"], eventType: "INVOICE_ISSUED", description: "تم إصدار فاتورة الفترة 4", occurredAt: d(2026, 6, 30) },
   ] });
+
+  // ── Recompute denormalized client counters ─────────────────────────────
+  // The seed bypasses the contract / project / payment services (it
+  // inserts rows directly via Prisma), so the production hooks that
+  // would otherwise fire `ClientCounterService.recomputeAll()` never
+  // run. Without this explicit recompute, `/portal/profile` would render
+  // all-zeros for the KPI grid because every counter defaults to 0 in
+  // the schema. We delegate to the SAME method the runtime hooks call,
+  // so the formula stays in lockstep with production behavior.
+  //
+  // We reuse the existing `prisma` connection instead of creating a new
+  // `PrismaService()` — the service only needs the Prisma client API,
+  // and spinning up a second connection just for one recompute is wasteful.
+  // The cast is safe because `PrismaService extends PrismaClient` and
+  // `ClientCounterService` never calls Nest lifecycle hooks on it.
+  const counterService = new ClientCounterService(
+    prisma as unknown as ConstructorParameters<typeof ClientCounterService>[0],
+  );
+  await counterService.recomputeAll(client.id);
 
   console.log("✓ Seed complete — ONE test client (client@hassad.com / password123) with 3 scenario projects (ACTIVE, AWAITING_REVIEW, NEEDS_REVISION) — all monthly retainers.");
   // Salaries

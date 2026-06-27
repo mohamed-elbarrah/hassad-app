@@ -83,9 +83,6 @@ export interface Client {
   id: string;
   leadId?: string | null;
   companyName: string;
-  contactName: string;
-  phoneWhatsapp: string;
-  email?: string | null;
   businessName: string;
   businessType: BusinessType;
   accountManager?: string | null;
@@ -108,6 +105,15 @@ export interface Client {
   profile?: ClientProfile | null;
   manager?: { id: string; name: string } | null;
   historyLogs?: ClientHistoryLogItem[];
+  // Personal identity (name, email, phone) is NOT here.
+  // It lives on the linked `User` (joined via `userId`).
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    phoneWhatsapp: string | null;
+    avatarUrl: string | null;
+  } | null;
 }
 
 export interface ClientHistoryLogItem {

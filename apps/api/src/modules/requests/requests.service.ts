@@ -136,7 +136,7 @@ export class RequestsService {
           select: {
             id: true,
             companyName: true,
-            contactName: true,
+            
             userId: true,
             totalProjects: true,
             activeProjects: true,
@@ -193,12 +193,15 @@ export class RequestsService {
       where: { id },
       include: {
         client: {
+          // Personal identity now on User — include it.
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, phoneWhatsapp: true },
+            },
+          },
           select: {
             id: true,
             companyName: true,
-            contactName: true,
-            phoneWhatsapp: true,
-            email: true,
             businessName: true,
             businessType: true,
             accountManager: true,
@@ -334,10 +337,7 @@ export class RequestsService {
       const { client } =
         await this.canonicalClientService.upsertCanonicalClient(tx, {
           userId: clientUserId,
-          email: dto.email ?? null,
           companyName: dto.companyName,
-          contactName: dto.contactName,
-          phoneWhatsapp: dto.phoneWhatsapp,
           businessName: dto.businessName,
           businessType: dto.businessType,
         });
@@ -397,7 +397,7 @@ export class RequestsService {
             select: {
               id: true,
               companyName: true,
-              contactName: true,
+              
               userId: true,
             },
           },
@@ -518,7 +518,7 @@ export class RequestsService {
             select: {
               id: true,
               companyName: true,
-              contactName: true,
+              
               userId: true,
             },
           },
@@ -547,7 +547,7 @@ export class RequestsService {
         .notifyUsers({
           userIds: [request.assignee.id],
           title: "طلب جديد",
-          message: `تم استلام طلب جديد من ${client.contactName} - ${client.companyName}`,
+          message: `تم استلام طلب جديد من ${request.contactName} - ${request.companyName}`,
           entityId: request.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",
@@ -574,7 +574,7 @@ export class RequestsService {
           select: {
             id: true,
             companyName: true,
-            contactName: true,
+            
             userId: true,
             totalProjects: true,
             activeProjects: true,
@@ -597,10 +597,8 @@ export class RequestsService {
     const { client } = await this.canonicalClientService.upsertCanonicalClient(
       db,
       {
-        email: lead.email ?? null,
+        leadId: lead.id,
         companyName: lead.companyName,
-        contactName: lead.contactName,
-        phoneWhatsapp: lead.phoneWhatsapp,
         businessName: lead.businessName,
         businessType: lead.businessType,
         preferredManagerId: lead.assignedTo ?? null,
@@ -665,7 +663,7 @@ export class RequestsService {
           select: {
             id: true,
             companyName: true,
-            contactName: true,
+            
             userId: true,
           },
         },
@@ -693,7 +691,7 @@ export class RequestsService {
             select: {
               id: true,
               companyName: true,
-              contactName: true,
+              
               userId: true,
             },
           },

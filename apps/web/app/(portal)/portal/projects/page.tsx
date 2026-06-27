@@ -15,7 +15,10 @@ import { ProjectStatus } from "@hassad/shared";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { Pagination } from "@/components/design-system/Pagination";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { Input } from "@/components/design-system/Input";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton } from "@/components/design-system/Skeleton";
@@ -42,7 +45,9 @@ const STATUS_GROUPS: FilterGroup[] = [
 const PAGE_SIZE = 9;
 
 export default function PortalProjectsPage() {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
@@ -61,10 +66,13 @@ export default function PortalProjectsPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    setPage(1);
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setPage(1);
+    },
+    [],
+  );
 
   // Filter by search locally
   const filtered = search
@@ -92,10 +100,14 @@ export default function PortalProjectsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="pr-9 h-10"
+            className="pr-9"
           />
         </div>
-        <FilterBar groups={STATUS_GROUPS} activeFilters={activeFilters} onFilterChange={handleFilterChange} />
+        <FilterBar
+          groups={STATUS_GROUPS}
+          activeFilters={activeFilters}
+          onFilterChange={handleFilterChange}
+        />
       </div>
 
       {/* ── Projects Grid ─────────────────────────────────────────────────── */}
@@ -172,7 +184,9 @@ export default function PortalProjectsPage() {
                   {/* Progress */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-portal-note-text">نسبة الإنجاز</span>
+                      <span className="text-portal-note-text">
+                        نسبة الإنجاز
+                      </span>
                       <span className="font-medium text-secondary-500">
                         {project.progress}%
                       </span>

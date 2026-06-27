@@ -1,3 +1,18 @@
+/**
+ * Step1_Communication - DEPRECATED legacy wizard step
+ *
+ * This component is no longer used by the main wizard (`IntakeFormV2`
+ * now uses the shared `CommunicationSection` and `PersonalInfoSection`
+ * components from `@/components/shared/ProfileSections`). It is kept
+ * as a re-export for backward compatibility with any external code that
+ * imports it, but its form now only collects business-level fields
+ * (businessName, industry). Personal identity (name, email, phone)
+ * belongs to the `User` table and is collected separately by
+ * `PersonalInfoSection`.
+ *
+ * @deprecated Use `CommunicationSection` and `PersonalInfoSection` instead.
+ */
+
 "use client";
 
 import { useCallback, useEffect } from "react";
@@ -18,8 +33,7 @@ import {
   FormSelectContent,
   FormSelectItem,
 } from "@/components/design-system/FormSelectControl";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { User, Building2, Phone, Mail, Briefcase } from "lucide-react";
+import { Building2, Briefcase } from "lucide-react";
 import { CommunicationInfoSchema, type IntakeFormV2Input } from "@hassad/shared";
 import { StepLayout } from "../components/StepLayout";
 
@@ -53,11 +67,8 @@ export function Step1_Communication({
   const form = useForm<IntakeFormV2Input["communicationInfo"]>({
     resolver: zodResolver(CommunicationInfoSchema),
     defaultValues: initialData ?? {
-      contactName: "",
       businessName: "",
       industry: "",
-      contactNumber: "",
-      email: "",
     },
     mode: "onChange",
   });
@@ -84,30 +95,14 @@ export function Step1_Communication({
   return (
     <StepLayout
       stepNumber={1}
-      title="الملخص التواصلي"
+      title="بيانات النشاط"
       instructions={[
-        "هذه المعلومات الأساسية للتواصل معك",
+        "هذه بيانات نشاطك التجاري",
         "جميع الحقول مطلوبة للمتابعة",
       ]}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          <FormField
-            control={form.control}
-            name="contactName"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2 text-sm">
-                  <User className="w-4 h-4 text-portal-icon" />
-                  اسمك
-                  <span className="text-danger-500">*</span>
-                </FormLabel>
-                <FormInputControl placeholder="اسمك" {...field} />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
-              </FormItem>
-            )}
-          />
-
           <FormField
             control={form.control}
             name="businessName"
@@ -155,43 +150,14 @@ export function Step1_Communication({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="contactNumber"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2 text-sm">
-                  <Phone className="w-4 h-4 text-portal-icon" />
-                  رقم التواصل
-                  <span className="text-danger-500">*</span>
-                </FormLabel>
-                <FormInputControl placeholder="رقم التواصل" type="tel" dir="ltr" {...field} />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4 text-portal-icon" />
-                  البريد الإلكتروني
-                  <span className="text-danger-500">*</span>
-                </FormLabel>
-                <FormInputControl placeholder="البريد الإلكتروني" type="email" dir="ltr" {...field} />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
-              </FormItem>
-            )}
-          />
-
           {!hideNavigation && (
             <div className="flex justify-end pt-2">
-              <ActionButton type="submit" variant="primary" size="lg">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl bg-secondary-500 px-5 py-2.5 text-sm font-medium text-white"
+              >
                 التالي
-              </ActionButton>
+              </button>
             </div>
           )}
         </form>

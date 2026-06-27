@@ -10,7 +10,10 @@ import { KpiPill, KpiCurrency } from "@/components/design-system/KpiPill";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Pagination } from "@/components/design-system/Pagination";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import {
   PaymentSheet,
@@ -74,7 +77,9 @@ function getInvoiceStatus(status?: string) {
 export default function PortalFinancePage() {
   const { currency, fmtAmount } = useCurrency();
   const [page, setPage] = useState(1);
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<PayableInvoice | null>(
     null,
@@ -99,10 +104,13 @@ export default function PortalFinancePage() {
   const total = invoicesData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    setPage(1);
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setPage(1);
+    },
+    [],
+  );
 
   const filteredInvoices = useMemo(() => {
     if (!searchQuery.trim()) return invoices;
@@ -186,7 +194,11 @@ export default function PortalFinancePage() {
         description="جميع فواتيرك مع حالة الدفع والإجراءات المتاحة"
         icon={Receipt}
         action={
-          <FilterBar groups={FILTER_GROUPS} activeFilters={activeFilters} onFilterChange={handleFilterChange} />
+          <FilterBar
+            groups={FILTER_GROUPS}
+            activeFilters={activeFilters}
+            onFilterChange={handleFilterChange}
+          />
         }
       >
         {/* Toolbar inside card */}
@@ -199,7 +211,7 @@ export default function PortalFinancePage() {
               setSearchQuery(e.target.value);
               setPage(1);
             }}
-            className="pr-9 h-10"
+            className="pr-9"
           />
         </div>
 
