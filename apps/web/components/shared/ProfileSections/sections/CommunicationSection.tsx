@@ -1,7 +1,13 @@
 /**
- * CommunicationSection - Section 1: Communication Info
+ * CommunicationSection - Section 2: Business Communication Info
  *
- * Handles contact and basic business information.
+ * Collects business-level communication data (businessName, industry).
+ * Personal identity (name, email, phone) is collected separately by
+ * `PersonalInfoSection` and written to the `User` table. This separation
+ * eliminates the three-table duplication that previously caused
+ * `/portal/account` and `/portal/profile` to show different names for
+ * the same person.
+ *
  * Supports three modes: wizard, edit, view
  */
 
@@ -25,20 +31,15 @@ import {
   FormSelectContent,
   FormSelectItem,
 } from "@/components/design-system/FormSelectControl";
-import { ActionButton } from "@/components/design-system/ActionButton";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
-import { User, Building2, Phone, Mail, Briefcase } from "lucide-react";
+import { Building2, Briefcase } from "lucide-react";
 import { z } from "zod";
 import { CommunicationInfoSchema } from "@hassad/shared";
 import type { CommunicationInfo } from "../types";
 import { SectionLayout, NavigationButtons } from "../SectionLayout";
 import type { ProfileMode } from "../types";
 
-// Schema type for form (validation)
 type CommunicationForm = z.infer<typeof CommunicationInfoSchema>;
-
-// Input type for view mode (all optional)
-type CommunicationViewData = CommunicationInfo;
 
 const INDUSTRIES = [
   "تقنية",
@@ -54,7 +55,7 @@ const INDUSTRIES = [
 
 interface CommunicationSectionProps {
   mode: ProfileMode;
-  initialData?: CommunicationViewData;
+  initialData?: CommunicationInfo;
   onDataChange?: (data: CommunicationForm) => void;
   onValid?: (valid: boolean) => void;
   onNext?: () => void;
@@ -74,28 +75,22 @@ export function CommunicationSection({
   const form = useForm<CommunicationForm>({
     resolver: zodResolver(CommunicationInfoSchema),
     defaultValues: initialData ?? {
-      contactName: "",
       businessName: "",
       industry: "",
-      contactNumber: "",
-      email: "",
     },
     mode: "onChange",
   });
 
-  // Reset form when initialData changes (e.g., when profile loads from API)
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       form.reset(initialData);
     }
   }, [initialData, form]);
 
-  // Track validity
   useEffect(() => {
     onValid?.(form.formState.isValid);
   }, [form.formState.isValid, onValid]);
 
-  // Sync form changes to parent
   useEffect(() => {
     if (mode === "view") return;
 
@@ -113,34 +108,21 @@ export function CommunicationSection({
     [onDataChange, onNext],
   );
 
-  // View mode: render read-only display
+  // ── View mode: read-only display ────────────────────────────────
   if (mode === "view") {
     const data = initialData;
     if (!data) return null;
 
     const fields = [
-      { icon: User, label: "الاسم", value: data.contactName },
       { icon: Building2, label: "اسم النشاط", value: data.businessName },
       { icon: Briefcase, label: "المجال", value: data.industry },
-      {
-        icon: Phone,
-        label: "رقم التواصل",
-        value: data.contactNumber,
-        dir: "ltr" as const,
-      },
-      {
-        icon: Mail,
-        label: "البريد الإلكتروني",
-        value: data.email,
-        dir: "ltr" as const,
-      },
     ];
 
     const hasData = fields.some((f) => f.value);
     if (!hasData) return null;
 
     return (
-      <SectionLayout mode="view" title="معلومات التواصل">
+      <SectionLayout mode="view" title="بيانات النشاط">
         <div className="space-y-3">
           {fields.map(
             (f) =>
@@ -150,7 +132,6 @@ export function CommunicationSection({
                   icon={f.icon}
                   label={f.label}
                   value={f.value}
-                  dir={f.dir}
                 />
               ),
           )}
@@ -159,16 +140,16 @@ export function CommunicationSection({
     );
   }
 
-  // Edit/Wizard mode: render form
+  // ── Edit/Wizard mode: form with businessName + industry ─────────
   return (
     <SectionLayout
       mode={mode}
-      stepNumber={mode === "wizard" ? 1 : undefined}
-      title="الملخص التواصلي"
+      stepNumber={mode === "wizard" ? 2 : undefined}
+      title="بيانات النشاط"
       instructions={
         mode === "wizard"
           ? [
-              "هذه المعلومات الأساسية للتواصل معك",
+              "هذه بيانات نشاطك التجاري — بياناتك الشخصية تم إدخالها في الخطوة السابقة",
               "جميع الحقول مطلوبة للمتابعة",
             ]
           : undefined
@@ -176,22 +157,6 @@ export function CommunicationSection({
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          <FormField
-            control={form.control}
-            name="contactName"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2 text-sm">
-                  <User className="w-4 h-4 text-portal-icon" />
-                  اسمك
-                  <span className="text-danger-500">*</span>
-                </FormLabel>
-                <FormInputControl placeholder="اسمك" {...field} />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
-              </FormItem>
-            )}
-          />
-
           <FormField
             control={form.control}
             name="businessName"
@@ -234,48 +199,6 @@ export function CommunicationSection({
                     ))}
                   </FormSelectContent>
                 </FormSelect>
-                <FormMessage>{fieldState.error?.message}</FormMessage>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="contactNumber"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2 text-sm">
-                  <Phone className="w-4 h-4 text-portal-icon" />
-                  رقم التواصل
-                  <span className="text-danger-500">*</span>
-                </FormLabel>
-                <FormInputControl
-                  placeholder="رقم التواصل"
-                  type="tel"
-                  dir="ltr"
-                  {...field}
-                />
-                <FormMessage>{fieldState.error?.message}</FormMessage>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4 text-portal-icon" />
-                  البريد الإلكتروني
-                  <span className="text-danger-500">*</span>
-                </FormLabel>
-                <FormInputControl
-                  placeholder="البريد الإلكتروني"
-                  type="email"
-                  dir="ltr"
-                  {...field}
-                />
                 <FormMessage>{fieldState.error?.message}</FormMessage>
               </FormItem>
             )}

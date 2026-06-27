@@ -248,10 +248,7 @@ export class LeadsService {
       const { client, created } =
         await this.canonicalClientService.upsertCanonicalClient(tx, {
           leadId: lead.id,
-          email: lead.email ?? null,
           companyName: lead.companyName,
-          contactName: lead.contactName,
-          phoneWhatsapp: lead.phoneWhatsapp,
           businessName: lead.businessName,
           businessType: lead.businessType,
           preferredManagerId: lead.assignedTo ?? null,

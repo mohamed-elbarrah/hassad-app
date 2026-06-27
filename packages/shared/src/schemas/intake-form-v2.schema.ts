@@ -3,11 +3,8 @@ import { z } from "zod";
 // ── Section schemas ───────────────────────────────────────────
 
 export const CommunicationInfoSchema = z.object({
-  contactName: z.string().min(2, "اسم يجب أن يكون 2 أحرف على الأقل"),
   businessName: z.string().min(2, "اسم النشاط يجب أن يكون 2 أحرف على الأقل"),
   industry: z.string().min(1, "مجال النشاط مطلوب"),
-  contactNumber: z.string().min(5, "رقم التواصل يجب أن يكون 5 أحرف على الأقل"),
-  email: z.string().email("البريد الإلكتروني غير صحيح"),
 });
 
 export const ProductInfoSchema = z.object({

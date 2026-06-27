@@ -102,9 +102,13 @@ export class AuthService {
     let clientId: string | undefined;
     let intakeCompleted = false;
     if (user.role.name === UserRole.CLIENT) {
+      // Personal identity (name, email, phone) now lives on `User`
+      // (single source of truth). The `Client` table no longer stores
+      // these fields — we link a client to their portal login via
+      // `userId` only.
       const client = await this.prisma.client.findFirst({
         where: {
-          OR: [{ userId: user.id }, { email: user.email }],
+          userId: user.id,
         },
         select: { id: true, intakeCompleted: true },
       });
@@ -157,9 +161,13 @@ export class AuthService {
     let clientId: string | undefined;
     let intakeCompleted = false;
     if (user.role.name === UserRole.CLIENT) {
+      // Personal identity (name, email, phone) now lives on `User`
+      // (single source of truth). The `Client` table no longer stores
+      // these fields — we link a client to their portal login via
+      // `userId` only.
       const client = await this.prisma.client.findFirst({
         where: {
-          OR: [{ userId: user.id }, { email: user.email }],
+          userId: user.id,
         },
         select: { id: true, intakeCompleted: true },
       });
@@ -199,6 +207,7 @@ export class AuthService {
         data: {
           name: dto.name,
           email: dto.email,
+          phoneWhatsapp: dto.phone, // OWNERSHIP: User owns phone — single source of truth
           passwordHash,
           role: { connect: { name: UserRole.CLIENT } },
         },
@@ -206,10 +215,7 @@ export class AuthService {
 
       await this.canonicalClientService.upsertCanonicalClient(tx, {
         userId: user.id,
-        email: dto.email,
         companyName: dto.name,
-        contactName: dto.name,
-        phoneWhatsapp: dto.phone,
         businessName: dto.name,
         businessType: dto.businessType,
         status: ClientStatus.ACTIVE,
@@ -309,10 +315,7 @@ export class AuthService {
 
       await this.canonicalClientService.upsertCanonicalClient(tx, {
         userId: createdUser.id,
-        email: data.email,
         companyName: data.name,
-        contactName: data.name,
-        phoneWhatsapp: "00000000000",
         businessName: data.name,
         businessType: BusinessType.OTHER,
         status: ClientStatus.ACTIVE,

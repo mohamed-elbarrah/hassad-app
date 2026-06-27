@@ -117,6 +117,16 @@ export default function PortalProfilePage() {
         <ClientBriefV2
           client={client}
           profile={profile ?? null}
+          // Pass the authenticated User so the profile page reads
+          // personal identity fields (name, email, phone) from User
+          // — the single source of truth — instead of from Client.
+          // This keeps `/portal/profile` consistent with `/portal/account`.
+          user={user ? {
+            name: user.name,
+            email: user.email,
+            phoneWhatsapp: user.phoneWhatsapp,
+            avatarUrl: user.avatarUrl,
+          } : null}
           viewAs="portal"
         />
       )}

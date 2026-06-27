@@ -65,10 +65,10 @@ export class PortalController {
     if (user.clientId) return user.clientId;
     if (user.role !== "CLIENT") return null;
 
+    // Personal identity (email) now lives on `User`; we look up the
+    // client by its linked `userId` only.
     const client = await this.prisma.client.findFirst({
-      where: {
-        OR: [{ userId: user.id }, { email: user.email }],
-      },
+      where: { userId: user.id },
     });
 
     if (client) return client.id;
@@ -76,14 +76,13 @@ export class PortalController {
     // Edge case: CLIENT user exists but has no Client record.
     // This can happen if a user was created outside the normal
     // onboarding flow (admin-created, legacy import, etc.).
-    // Auto-create a minimal record so portal endpoints work.
+    // Auto-create a minimal business record so portal endpoints work.
+    // Personal identity (name, email, phone) is NOT stored here — it
+    // lives on the `User` table and is joined via `userId`.
     const created = await this.prisma.client.create({
       data: {
         userId: user.id,
-        email: user.email,
         companyName: user.name || "Unknown",
-        contactName: user.name || "Unknown",
-        phoneWhatsapp: "",
         businessName: user.name || "Unknown",
         businessType: "OTHER",
         status: "ACTIVE",

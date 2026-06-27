@@ -7,15 +7,16 @@ import { SalesAssignmentService } from "./sales-assignment.service";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
 
-const PLACEHOLDER_PHONE = "00000000000";
-
 interface UpsertCanonicalClientParams {
+  /**
+   * The `User.id` that owns this client. Personal identity (name,
+   * email, phone) lives on `User` — callers must write personal
+   * identity via `PATCH /v1/users/:id` before/after calling this
+   * service. This service is responsible for business fields only.
+   */
   userId?: string | null;
   leadId?: string | null;
-  email?: string | null;
   companyName: string;
-  contactName: string;
-  phoneWhatsapp: string;
   businessName: string;
   businessType: any;
   preferredManagerId?: string | null;
@@ -30,20 +31,13 @@ export class CanonicalClientService {
     private readonly salesAssignmentService: SalesAssignmentService,
   ) {}
 
-  private normalizeEmail(email?: string | null) {
-    const normalized = email?.trim().toLowerCase();
-    return normalized ? normalized : null;
-  }
-
-  private hasUsablePhone(phoneWhatsapp: string) {
-    return !!phoneWhatsapp && phoneWhatsapp !== PLACEHOLDER_PHONE;
-  }
-
   private async findExistingClient(
     db: DbClient,
     params: UpsertCanonicalClientParams,
   ) {
-    const normalizedEmail = this.normalizeEmail(params.email);
+    // Personal identity is no longer used to find/merge clients.
+    // Clients are identified by their linked `User` (via `userId`)
+    // or by a previous `Lead` (via `leadId`).
     const identityFilters: Prisma.ClientWhereInput[] = [];
 
     if (params.userId) {
@@ -54,12 +48,6 @@ export class CanonicalClientService {
       identityFilters.push({ leadId: params.leadId });
     }
 
-    if (normalizedEmail) {
-      identityFilters.push({
-        email: { equals: normalizedEmail, mode: "insensitive" },
-      });
-    }
-
     let existingClient = identityFilters.length
       ? await db.client.findFirst({
           where: { OR: identityFilters },
@@ -67,11 +55,8 @@ export class CanonicalClientService {
             id: true,
             userId: true,
             leadId: true,
-            email: true,
             accountManager: true,
             companyName: true,
-            contactName: true,
-            phoneWhatsapp: true,
             businessName: true,
             businessType: true,
             status: true,
@@ -79,41 +64,22 @@ export class CanonicalClientService {
         })
       : null;
 
-    if (!existingClient && this.hasUsablePhone(params.phoneWhatsapp)) {
-      existingClient = await db.client.findFirst({
-        where: { phoneWhatsapp: params.phoneWhatsapp },
-        select: {
-          id: true,
-          userId: true,
-          leadId: true,
-          email: true,
-          accountManager: true,
-          companyName: true,
-          contactName: true,
-          phoneWhatsapp: true,
-          businessName: true,
-          businessType: true,
-          status: true,
-        },
-      });
-    }
-
     if (!existingClient) {
+      // Fallback: match by business identity (company name) when no
+      // user/lead link exists. This preserves the old "match by
+      // company name" behavior for cases where a client was created
+      // before a user was linked.
       existingClient = await db.client.findFirst({
         where: {
           companyName: params.companyName,
-          contactName: params.contactName,
           businessName: params.businessName,
         },
         select: {
           id: true,
           userId: true,
           leadId: true,
-          email: true,
           accountManager: true,
           companyName: true,
-          contactName: true,
-          phoneWhatsapp: true,
           businessName: true,
           businessType: true,
           status: true,
@@ -147,11 +113,7 @@ export class CanonicalClientService {
     db: DbClient,
     params: UpsertCanonicalClientParams,
   ) {
-    const normalizedEmail = this.normalizeEmail(params.email);
-    const existingClient = await this.findExistingClient(db, {
-      ...params,
-      email: normalizedEmail,
-    });
+    const existingClient = await this.findExistingClient(db, params);
 
     const assignment = existingClient?.accountManager
       ? null
@@ -185,35 +147,15 @@ export class CanonicalClientService {
         updateData.leadId = params.leadId;
       }
 
-      if (!existingClient.email && normalizedEmail) {
-        updateData.email = normalizedEmail;
-      }
-
       if (!existingClient.accountManager && accountManagerId) {
         updateData.accountManager = accountManagerId;
       }
 
       if (
-        existingClient.companyName === existingClient.contactName &&
+        existingClient.companyName === existingClient.businessName &&
         existingClient.companyName !== params.companyName
       ) {
         updateData.companyName = params.companyName;
-      }
-
-      if (
-        existingClient.contactName === existingClient.companyName &&
-        existingClient.contactName !== params.contactName
-      ) {
-        updateData.contactName = params.contactName;
-      }
-
-      if (
-        (!existingClient.phoneWhatsapp ||
-          existingClient.phoneWhatsapp === PLACEHOLDER_PHONE) &&
-        params.phoneWhatsapp &&
-        existingClient.phoneWhatsapp !== params.phoneWhatsapp
-      ) {
-        updateData.phoneWhatsapp = params.phoneWhatsapp;
       }
 
       if (
@@ -267,9 +209,6 @@ export class CanonicalClientService {
         userId: params.userId ?? undefined,
         leadId: params.leadId ?? undefined,
         companyName: params.companyName,
-        contactName: params.contactName,
-        phoneWhatsapp: params.phoneWhatsapp,
-        email: normalizedEmail ?? undefined,
         businessName: params.businessName,
         businessType: params.businessType,
         accountManager: accountManagerId ?? undefined,

@@ -8,6 +8,23 @@
  * - No backend logic here.
  * - All formatting (currency, labels, dates) happens in this hook.
  * - Consumers receive plain data ready for JSX.
+ *
+ * Ownership boundaries:
+ * - `Client` owns business fields (companyName, businessType, accountManager,
+ *   status, denormalized counters).
+ * - `User` owns the logged-in person's identity (name, email, phoneWhatsapp,
+ *   avatarUrl). This is the single source of truth for personal contact
+ *   info shown on portal pages.
+ * - `Client.contactName` / `ClientProfile.communicationInfo.contactName`
+ *   are CRM-side fields used by the internal dashboard. They can differ
+ *   from `User.name` (B2B context: the contact at the company may not be
+ *   the same person who logs in).
+ *
+ * When the `user` option is provided (portal context), personal identity
+ * fields are read from `User` — guaranteeing the portal profile page
+ * shows the same name/email/phone as `/portal/account`. When `user` is
+ * omitted (dashboard / CRM context), the hook falls back to `Client` for
+ * backward compatibility.
  */
 
 "use client";
@@ -17,6 +34,18 @@ import { ClientStatus, BusinessType } from "@hassad/shared";
 import type { PillTone } from "@/components/design-system/Pill";
 import { formatDate, formatRelativeTime } from "@/lib/format";
 import { useCurrency } from "@/hooks/useCurrency";
+
+/**
+ * Minimal User shape required by this hook. We accept the shape rather
+ * than the full `User` type so callers (which read from Redux auth state)
+ * don't need to satisfy every relation on the full model.
+ */
+export interface ClientBriefUser {
+  name: string;
+  email: string;
+  phoneWhatsapp?: string | null;
+  avatarUrl?: string | null;
+}
 
 export type ClientBriefView = "portal" | "sales" | "internal";
 
@@ -79,12 +108,20 @@ export interface ClientBriefViewModel {
 interface UseClientBriefOptions {
   client: Client;
   profile: ClientProfile | null;
+  /**
+   * When provided (portal context), personal identity fields are read
+   * from this User object — guaranteeing the portal profile page shows
+   * the same name/email/phone as `/portal/account`. When omitted
+   * (dashboard / CRM context), the hook falls back to `Client` fields.
+   */
+  user?: ClientBriefUser | null;
   viewAs?: ClientBriefView;
 }
 
 export function useClientBrief({
   client,
   profile,
+  user = null,
   viewAs = "internal",
 }: UseClientBriefOptions): ClientBriefViewModel {
   const { fmtAmount } = useCurrency();
@@ -97,18 +134,29 @@ export function useClientBrief({
     BUSINESS_TYPE_LABELS[businessType] ?? client.businessType;
 
   // -----------------------------------------------------------------
-  // Unified contact data: prefer the client's own profile wizard data
-  // when available so the identity sidebar and Communication section
-  // never show conflicting names/phones/business names.
-  // CRM data (client.*) is kept as the fallback and for internal fields
-  // such as account manager and creation date.
+  // Ownership-aware contact resolution.
+  //
+  // When `user` is provided (portal), personal identity fields come from
+  // `User` — the single source of truth for the logged-in person. This
+  // guarantees `/portal/profile` shows the same name/email/phone as
+  // `/portal/account` (both read from `User`).
+  //
+  // When `user` is omitted (dashboard / CRM), the hook falls back to
+  // `Client` fields, preserving the existing CRM behavior where the
+  // business contact at the company may differ from the login identity.
+  //
+  // `industry` is marketing-specific and always comes from the intake
+  // wizard (ClientProfile.communicationInfo.industry) when available.
   // -----------------------------------------------------------------
   const communication = profile?.communicationInfo;
-  const displayBusinessName = communication?.businessName || client.companyName;
-  const displayContactName = communication?.contactName || client.contactName;
-  const displayPhone = communication?.contactNumber || client.phoneWhatsapp;
-  const displayEmail = communication?.email || client.email;
   const displayIndustry = communication?.industry;
+
+  const displayBusinessName = communication?.businessName || client.companyName;
+  const displayContactName =
+    user?.name ?? communication?.contactName ?? client.contactName;
+  const displayPhone =
+    user?.phoneWhatsapp ?? communication?.contactNumber ?? client.phoneWhatsapp;
+  const displayEmail = user?.email ?? communication?.email ?? client.email;
 
   const v2BrandAssets = profile?.visualIdentityInfo?.brandAssets;
   const legacyBrandAssets = profile?.brandAssets;

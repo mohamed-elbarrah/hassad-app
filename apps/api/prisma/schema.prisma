@@ -247,9 +247,11 @@ model Client {
   id                   String                   @id @default(uuid())
   leadId               String?                  @unique @map("lead_id")
   companyName          String                   @map("company_name")
-  contactName          String                   @map("contact_name")
-  phoneWhatsapp        String                   @map("phone_whatsapp")
-  email                String?
+  // ── Personal identity fields were removed ─────────────────────────────
+  // contactName, email, phoneWhatsapp are no longer stored here.
+  // They live on the `User` table (single source of truth) and are
+  // joined via `Client.userId`. Reading personal identity from
+  // `Client` will throw a TypeScript error — use `client.user.name` etc.
   businessName         String                   @map("business_name")
   businessType         BusinessType             @map("business_type")
   accountManager       String?                  @map("account_manager")

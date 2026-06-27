@@ -74,12 +74,26 @@ export class ContractsService {
       where: { id: contractId },
       include: {
         client: {
+          // Personal identity (name, email, phone) now lives on the
+          // `User` table — we must include it here to use it below.
+          // The old `contactName` field on Client was removed as part
+          // of the unification migration.
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneWhatsapp: true,
+              },
+            },
+          },
           select: {
             id: true,
             companyName: true,
-            contactName: true,
             accountManager: true,
             userId: true,
+            // FK to the linked User; included above via `include: { user }`.
           },
         },
         proposal: {
@@ -139,11 +153,11 @@ export class ContractsService {
           `Services: ${typeof contract.proposal.servicesList === "string" ? contract.proposal.servicesList : JSON.stringify(contract.proposal.servicesList)}`,
           `Budget: ${contract.proposal.totalPrice} SAR`,
           `Duration: ${contract.proposal.durationDays} days`,
-          `Client contact: ${contract.client.contactName}`,
+          `Client contact: ${contract.client.user?.name ?? "N/A"}`,
         ].join("\n")
       : [
           `Auto-created after signing contract: ${contract.title}`,
-          `Client contact: ${contract.client.contactName}`,
+          `Client contact: ${contract.client.user?.name ?? "N/A"}`,
           "Next step: PM creates and assigns tasks from the project board.",
         ].join("\n");
 
@@ -850,7 +864,7 @@ export class ContractsService {
           select: {
             id: true,
             companyName: true,
-            contactName: true,
+            
           },
         },
         proposal: true,
@@ -1209,7 +1223,7 @@ export class ContractsService {
       },
       include: {
         client: {
-          select: { id: true, companyName: true, contactName: true },
+          select: { id: true, companyName: true,  },
         },
         request: { select: { id: true, status: true } },
       },

@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import {
+  PersonalInfoSection,
   CommunicationSection,
   ProductSection,
   AudienceSection,
@@ -70,6 +71,18 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
   const renderStep = () => {
     switch (currentStep) {
       case 0:
+        // Step 1: Personal info — writes to `User` (single source of
+        // truth for personal identity). Not part of the wizard
+        // sectionData because it doesn't touch ClientProfile.
+        return (
+          <PersonalInfoSection
+            mode="wizard"
+            onNext={() => nextStep()}
+            onBack={() => undefined}
+          />
+        );
+      case 1:
+        // Step 2: Business communication info (businessName, industry)
         return (
           <CommunicationSection
             mode="wizard"
@@ -77,9 +90,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onDataChange={(data) => handleStepDataChange(0, data)}
             onValid={() => {}}
             onNext={() => handleStepNext(0)}
+            onBack={prevStep}
           />
         );
-      case 1:
+      case 2:
         return (
           <ProductSection
             mode="wizard"
@@ -88,10 +102,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(1)}
             onBack={prevStep}
-            onSkip={() => goToStep(2)}
+            onSkip={() => goToStep(3)}
           />
         );
-      case 2:
+      case 3:
         return (
           <AudienceSection
             mode="wizard"
@@ -107,10 +121,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(2)}
             onBack={prevStep}
-            onSkip={() => goToStep(3)}
+            onSkip={() => goToStep(4)}
           />
         );
-      case 3:
+      case 4:
         return (
           <JourneySection
             mode="wizard"
@@ -119,10 +133,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(3)}
             onBack={prevStep}
-            onSkip={() => goToStep(4)}
+            onSkip={() => goToStep(5)}
           />
         );
-      case 4:
+      case 5:
         return (
           <CampaignSection
             mode="wizard"
@@ -131,10 +145,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(4)}
             onBack={prevStep}
-            onSkip={() => goToStep(5)}
+            onSkip={() => goToStep(6)}
           />
         );
-      case 5:
+      case 6:
         return (
           <PerformanceSection
             mode="wizard"
@@ -143,10 +157,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(5)}
             onBack={prevStep}
-            onSkip={() => goToStep(6)}
+            onSkip={() => goToStep(7)}
           />
         );
-      case 6:
+      case 7:
         return (
           <VisualSection
             mode="wizard"
@@ -155,10 +169,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
             onValid={() => {}}
             onNext={() => handleStepNext(6)}
             onBack={prevStep}
-            onSkip={() => goToStep(7)}
+            onSkip={() => goToStep(8)}
           />
         );
-      case 7:
+      case 8:
         return (
           <Step8_Review
             formData={sectionData as any}

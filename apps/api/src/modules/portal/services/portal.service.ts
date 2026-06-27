@@ -10,7 +10,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
  *  stays in sync with the actual `include` inside the method. (Audit #14) */
 export type PortalContractDetail = Prisma.ContractGetPayload<{
   include: {
-    client: { select: { id: true; companyName: true; contactName: true } };
+    client: { select: { id: true; companyName: true } };
     proposal: true;
     invoices: { include: { items: true; payments: true } };
     request: { select: { id: true; status: true } };
@@ -606,7 +606,13 @@ export class PortalService {
         createdAt: true,
         updatedAt: true,
         manager: { select: { id: true, name: true, isActive: true } },
-        client: { select: { id: true, companyName: true, contactName: true } },
+        client: {
+          // Personal identity (name) now on the linked User.
+          include: {
+            user: { select: { name: true, email: true, phoneWhatsapp: true } },
+          },
+          select: { id: true, companyName: true },
+        },
       },
     });
     if (!project || project.client.id !== clientId) {
@@ -636,7 +642,9 @@ export class PortalService {
       client: {
         id: project.client.id,
         companyName: project.client.companyName,
-        contactName: project.client.contactName,
+        contactName: project.client.user?.name ?? null,
+        email: project.client.user?.email ?? null,
+        phoneWhatsapp: project.client.user?.phoneWhatsapp ?? null,
       },
     };
   }
@@ -728,6 +736,8 @@ export class PortalService {
           id: true,
           companyName: true,
           contactName: true,
+          phoneWhatsapp: true,
+          email: true,
           notes: true,
           status: true,
           createdAt: true,
@@ -1509,7 +1519,7 @@ export class PortalService {
       where,
       include: {
         client: {
-          select: { id: true, companyName: true, contactName: true },
+          select: { id: true, companyName: true },
         },
         proposal: true,
         invoices: {

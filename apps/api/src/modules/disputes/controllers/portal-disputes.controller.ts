@@ -34,8 +34,9 @@ export class PortalDisputesController {
   private async resolveClientId(user: any): Promise<string | null> {
     if (user.clientId) return user.clientId;
     if (user.role !== "CLIENT") return null;
+    // Personal identity (email) now on `User`; link via `userId`.
     const client = await this.prisma.client.findFirst({
-      where: { OR: [{ userId: user.id }, { email: user.email }] },
+      where: { userId: user.id },
     });
     return client?.id ?? null;
   }

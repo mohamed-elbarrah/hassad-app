@@ -363,10 +363,11 @@ async function main() {
       name: "Sara Accountant",
       role: "ACCOUNTANT",
     },
-    { email: "client@hassad.com", name: "Tech Ventures CEO", role: "CLIENT" },
+    { email: "client@hassad.com", name: "فيصل القحطاني", role: "CLIENT" },
   ];
 
   const userIds: Record<string, string> = {};
+
   for (const u of userDefs) {
     const created = await prisma.user.upsert({
       where: { email: u.email },
@@ -374,6 +375,11 @@ async function main() {
       create: {
         email: u.email,
         name: u.name,
+        // OWNERSHIP: User owns phone — single source of truth.
+        // The demo client user is created with the same phone as
+        // Client.phoneWhatsapp so the portal shows a complete profile.
+        phoneWhatsapp:
+          u.email === "client@hassad.com" ? "+966501234567" : null,
         passwordHash,
         role: { connect: { name: u.role } },
         isPayrollEligible: u.role !== "CLIENT",
@@ -451,13 +457,14 @@ async function main() {
 
   const d = (y: number, m: number, day: number) => new Date(y, m - 1, day, 0, 0, 0, 0);
 
+  // Personal identity (contactName, email, phoneWhatsapp) is NOT set
+  // here — it lives on the linked `User` row. The seed already populates
+  // `User.name`, `User.email`, and `User.phoneWhatsapp` for the demo
+  // client user (see the userDefs loop above).
   const clientA = await prisma.client.create({
     data: {
       userId: userIds["CLIENT1"],
       companyName: "تقنيات المستقبل",
-      contactName: "فيصل القحطاني",
-      phoneWhatsapp: "+966501234567",
-      email: "ceo@futuretech.sa",
       businessName: "Future Technologies",
       businessType: "OTHER",
       status: "ACTIVE",

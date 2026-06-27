@@ -12,6 +12,7 @@ import type { IntakeFormV2Input } from "@hassad/shared";
 
 // Shared section components
 import {
+  PersonalInfoSection,
   CommunicationSection,
   ProductSection,
   AudienceSection,
@@ -111,7 +112,10 @@ export function ProfileEditV2({
         )}
       </div>
 
-      {/* Section 1: Communication */}
+      {/* Section 1: Personal Info — writes to User (single source of truth) */}
+      <PersonalInfoSection mode="edit" hideNavigation />
+
+      {/* Section 2: Business Communication */}
       <CommunicationSection
         mode="edit"
         initialData={formData.communicationInfo}

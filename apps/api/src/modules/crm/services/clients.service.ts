@@ -48,6 +48,10 @@ export class ClientsService {
           data: {
             name: dto.contactName || dto.email.split("@")[0],
             email: dto.email.trim().toLowerCase(),
+            // OWNERSHIP: User owns phone — single source of truth for
+            // personal identity. Client.phoneWhatsapp is a CRM-side
+            // legacy field kept for backward compatibility.
+            phoneWhatsapp: dto.phoneWhatsapp || null,
             passwordHash,
             roleId: role.id,
           },
@@ -64,11 +68,8 @@ export class ClientsService {
       const result = await this.canonicalClientService.upsertCanonicalClient(
         tx,
         {
-          email: dto.email ?? null,
           userId: newUserId,
           companyName: dto.companyName || nameFallback,
-          contactName: nameFallback,
-          phoneWhatsapp: dto.phoneWhatsapp || "00000000000",
           businessName: dto.businessName || dto.companyName || nameFallback,
           businessType: dto.businessType || BusinessType.OTHER,
           preferredManagerId: dto.accountManager ?? null,

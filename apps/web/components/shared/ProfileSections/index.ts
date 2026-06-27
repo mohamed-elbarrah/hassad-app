@@ -32,6 +32,7 @@
  */
 
 // Section components
+export { PersonalInfoSection } from "./sections/PersonalInfoSection";
 export { CommunicationSection } from "./sections/CommunicationSection";
 export { ProductSection } from "./sections/ProductSection";
 export { AudienceSection } from "./sections/AudienceSection";
