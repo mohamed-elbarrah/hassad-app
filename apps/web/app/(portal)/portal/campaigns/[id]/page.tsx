@@ -16,6 +16,7 @@ import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
 import { useCurrency } from "@/hooks/useCurrency";
+import { CampaignStatus } from "@hassad/shared";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -227,12 +228,12 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
             <div className="flex items-center gap-3 rounded-2xl border border-portal-card-border p-4">
               <div
                 className={`h-3 w-3 rounded-full ${
-                  campaignData.status === "ACTIVE"
+                  campaignData.status === CampaignStatus.ACTIVE
                     ? "bg-badge-green-text"
-                    : campaignData.status === "COMPLETED"
+                    : campaignData.status === CampaignStatus.COMPLETED
                       ? "bg-action-blue"
-                      : campaignData.status === "PAUSED" ||
-                          campaignData.status === "STOPPED"
+                      : campaignData.status === CampaignStatus.PAUSED ||
+                          campaignData.status === CampaignStatus.STOPPED
                         ? "bg-badge-orange-text"
                         : "bg-portal-note-text"
                 }`}

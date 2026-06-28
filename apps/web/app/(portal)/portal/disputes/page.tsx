@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Ticket, Search, Plus, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { useGetClientDisputesQuery, useCreateDisputeMutation } from "@/features/portal/portalApi";
-import type { DisputeStatus } from "@hassad/shared";
-import { DISPUTE_STATUS_AR } from "@hassad/shared";
+import { DISPUTE_STATUS_AR, DisputeStatus } from "@hassad/shared";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { Pagination } from "@/components/design-system/Pagination";
 import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
@@ -25,13 +24,13 @@ const STATUS_GROUPS: FilterGroup[] = [
     label: "الحالة",
     options: [
       { label: "الكل", value: "" },
-      { label: "بانتظار الموافقة", value: "PENDING_APPROVAL" },
-      { label: "تمت الموافقة", value: "APPROVED" },
-      { label: "قيد المعالجة", value: "IN_PROGRESS" },
-      { label: "بانتظار تأكيدي", value: "PENDING_CLIENT" },
-      { label: "تم التصعيد", value: "ESCALATED" },
-      { label: "تم الحل", value: "RESOLVED" },
-      { label: "مغلق", value: "CLOSED" },
+      { label: "بانتظار الموافقة", value: DisputeStatus.PENDING_APPROVAL },
+      { label: "تمت الموافقة", value: DisputeStatus.APPROVED },
+      { label: "قيد المعالجة", value: DisputeStatus.IN_PROGRESS },
+      { label: "بانتظار تأكيدي", value: DisputeStatus.PENDING_CLIENT },
+      { label: "تم التصعيد", value: DisputeStatus.ESCALATED },
+      { label: "تم الحل", value: DisputeStatus.RESOLVED },
+      { label: "مغلق", value: DisputeStatus.CLOSED },
     ],
   },
 ];

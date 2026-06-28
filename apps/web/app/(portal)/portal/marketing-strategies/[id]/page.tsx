@@ -7,7 +7,7 @@ import {
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
 } from "@/features/portal/portalApi";
-import { MARKETING_STRATEGY_STATUS_AR } from "@hassad/shared";
+import { MARKETING_STRATEGY_STATUS_AR, MarketingStrategyStatus } from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -129,7 +129,7 @@ export default function MarketingStrategyDetailPage() {
                 </p>
               </div>
             </div>
-            <StatusBadge status={strategy.status ?? "DRAFT"} label={statusLabel} />
+            <StatusBadge status={strategy.status ?? MarketingStrategyStatus.DRAFT} label={statusLabel} />
           </div>
 
           {/* File info */}
@@ -153,7 +153,7 @@ export default function MarketingStrategyDetailPage() {
           </div>
 
           {/* Status-specific messages and actions */}
-          {strategy.status === "SENT" && (
+          {strategy.status === MarketingStrategyStatus.SENT && (
             <div className="space-y-4">
               <div className="p-4 border border-amber-200 bg-amber-50 rounded-lg">
                 <p className="text-sm text-amber-800">
@@ -214,7 +214,7 @@ export default function MarketingStrategyDetailPage() {
             </div>
           )}
 
-          {strategy.status === "APPROVED" && (
+          {strategy.status === MarketingStrategyStatus.APPROVED && (
             <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
               <p className="text-sm text-green-800">
                 ✅ تمت الموافقة على هذه الدراسة التسويقية — يمكن الآن بدء الحملات الإعلانية.
@@ -236,7 +236,7 @@ export default function MarketingStrategyDetailPage() {
             </div>
           )}
 
-          {strategy.status === "REJECTED" && (
+          {strategy.status === MarketingStrategyStatus.REJECTED && (
             <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
               <p className="text-sm text-red-800">
                 ❌ تم رفض الدراسة التسويقية.
@@ -244,7 +244,7 @@ export default function MarketingStrategyDetailPage() {
             </div>
           )}
 
-          {strategy.status === "DRAFT" && (
+          {strategy.status === MarketingStrategyStatus.DRAFT && (
             <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600">
                 الدراسة في مرحلة الإعداد ولم يتم إرسالها بعد.

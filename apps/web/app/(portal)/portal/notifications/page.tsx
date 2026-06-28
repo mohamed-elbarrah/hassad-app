@@ -14,6 +14,7 @@ import {
   type PortalNotificationItem,
 } from "@/features/portal-notifications/portalNotificationsApi";
 import { formatRelativeTime } from "@/lib/format";
+import { NotificationEventType } from "@hassad/shared";
 
 const FILTER_GROUPS: FilterGroup[] = [
   {
@@ -296,22 +297,22 @@ function isActionRequired(
   eventType: string | null | undefined,
 ): boolean {
   const actionTypes = [
-    "CONTRACT_SENT",
-    "INVOICE_SENT",
-    "INVOICE_CREATED",
-    "PROPOSAL_SENT",
-    "DELIVERABLE_APPROVAL",
-    "DELIVERABLE_READY",
-    "ACTION_REQUIRED",
+    NotificationEventType.CONTRACT_SENT,
+    NotificationEventType.INVOICE_SENT,
+    NotificationEventType.INVOICE_CREATED,
+    NotificationEventType.PROPOSAL_SENT,
+    NotificationEventType.DELIVERABLE_APPROVAL,
+    NotificationEventType.DELIVERABLE_READY,
+    NotificationEventType.ACTION_REQUIRED,
   ];
-  if (eventType && actionTypes.includes(eventType)) return true;
+  if (eventType && actionTypes.includes(eventType as NotificationEventType)) return true;
   if (entityType === "proposal") {
-    const actionEvents = ["PROPOSAL_SENT"];
-    return eventType ? actionEvents.includes(eventType) : true;
+    const actionEvents = [NotificationEventType.PROPOSAL_SENT];
+    return eventType ? actionEvents.includes(eventType as NotificationEventType) : true;
   }
   if (entityType === "contract") {
     const actionEvents = ["CONTRACT_SENT"];
-    return eventType ? actionEvents.includes(eventType) : true;
+    return eventType ? actionEvents.includes(eventType as NotificationEventType) : true;
   }
   return false;
 }

@@ -6,7 +6,7 @@ import {
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
 } from "@/features/portal/portalApi";
-import { MARKETING_STRATEGY_STATUS_AR } from "@hassad/shared";
+import { MARKETING_STRATEGY_STATUS_AR, MarketingStrategyStatus } from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -91,7 +91,7 @@ export default function MarketingStrategiesPage() {
                         {strategy.task?.title ?? "—"}
                       </p>
                     </div>
-                    <StatusBadge status={strategy.status ?? "DRAFT"} label={statusLabel} />
+                    <StatusBadge status={strategy.status ?? MarketingStrategyStatus.DRAFT} label={statusLabel} />
                   </div>
                 </SurfaceCard>
               </Link>

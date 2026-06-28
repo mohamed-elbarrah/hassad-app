@@ -9,7 +9,7 @@ import {
   useAddDisputeMessageMutation,
   useConfirmDisputeResolutionMutation,
 } from "@/features/portal/portalApi";
-import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR } from "@hassad/shared";
+import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR, DisputeStatus } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -105,9 +105,9 @@ export default function PortalDisputeDetailPage({
     );
   }
 
-  const showConfirmButton = dispute.status === "PENDING_CLIENT";
-  const canSendMessage = ["APPROVED", "IN_PROGRESS", "ESCALATED", "PENDING_CLIENT"].includes(
-    dispute.status
+  const showConfirmButton = dispute.status === DisputeStatus.PENDING_CLIENT;
+  const canSendMessage = [DisputeStatus.APPROVED, DisputeStatus.IN_PROGRESS, DisputeStatus.ESCALATED, DisputeStatus.PENDING_CLIENT].includes(
+    dispute.status as DisputeStatus
   );
 
   return (
@@ -181,14 +181,14 @@ export default function PortalDisputeDetailPage({
         )}
 
         {/* ── Rejected/Resolved Banner ─────────────────────────────────────── */}
-        {dispute.status === "REJECTED" && dispute.rejectionReason && (
+        {dispute.status === DisputeStatus.REJECTED && dispute.rejectionReason && (
           <SurfaceCard className="p-4 bg-gray-50 border-gray-200">
             <p className="text-sm font-medium text-natural-100 mb-2">سبب الرفض:</p>
             <p className="text-sm text-portal-note-text">{dispute.rejectionReason}</p>
           </SurfaceCard>
         )}
 
-        {dispute.status === "RESOLVED" && dispute.resolution && (
+        {dispute.status === DisputeStatus.RESOLVED && dispute.resolution && (
           <SurfaceCard className="p-4 bg-green-50 border-green-200">
             <p className="text-sm font-medium text-natural-100 mb-2">ملاحظات الحل:</p>
             <p className="text-sm text-portal-note-text">{dispute.resolution}</p>

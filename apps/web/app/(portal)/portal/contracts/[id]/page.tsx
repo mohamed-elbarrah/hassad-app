@@ -23,6 +23,7 @@ import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { toast } from "sonner";
 
+import { ContractStatus, InvoiceStatus } from "@hassad/shared";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import { mapContractStatusToUI } from "@/lib/utils/statusMapping";
 
@@ -100,11 +101,11 @@ function PortalContractDetailInner({ id }: { id: string }) {
     );
   }
 
-  const canSign = data.status === "SENT" && !!data.shareLinkToken;
+  const canSign = data.status === ContractStatus.SENT && !!data.shareLinkToken;
   const invoices = data.invoices ?? [];
 
   const allInvoicesPaid =
-    invoices.length > 0 && invoices.every((inv) => inv.status === "PAID");
+    invoices.length > 0 && invoices.every((inv) => inv.status === InvoiceStatus.PAID);
   const canSignNow =
     canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
   const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
@@ -223,7 +224,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
             onPaymentComplete={() => window.location.reload()}
           />
 
-          {data.status === "SIGNED" && (
+          {data.status === ContractStatus.SIGNED && (
             <StatusBanner variant="success" title="تم توقيع هذا العقد.">
               {data.signedAt
                 ? new Date(data.signedAt).toLocaleString("ar-SA-u-nu-latn")

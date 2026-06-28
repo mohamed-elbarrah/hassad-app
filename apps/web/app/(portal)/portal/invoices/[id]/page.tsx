@@ -26,13 +26,14 @@ import {
 } from "lucide-react";
 import { mapFinanceStatusToUI } from "@/lib/utils/statusMapping";
 import { useCurrency } from "@/hooks/useCurrency";
+import { InvoiceStatus } from "@hassad/shared";
 
 const PAYABLE_STATUSES = new Set([
-  "DUE",
-  "SENT",
-  "PARTIAL",
-  "LATE",
-  "PENDING",
+  InvoiceStatus.DUE,
+  InvoiceStatus.SENT,
+  InvoiceStatus.PARTIAL,
+  InvoiceStatus.LATE,
+  InvoiceStatus.PENDING,
 ]);
 
 function fmtDate(iso?: string | null) {
@@ -115,9 +116,9 @@ export default function PortalInvoiceDetailPage() {
     );
   }
 
-  const isPayable = PAYABLE_STATUSES.has(invoice.status);
-  const isPaid = invoice.status === "PAID";
-  const isPartial = invoice.status === "PARTIAL";
+  const isPayable = PAYABLE_STATUSES.has(invoice.status as InvoiceStatus);
+  const isPaid = invoice.status === InvoiceStatus.PAID;
+  const isPartial = invoice.status === InvoiceStatus.PARTIAL;
 
   // Reuse the existing payment sheet — its `invoice` prop only needs the
   // minimal `PayableInvoice` shape (id, number, amount, status).
@@ -223,7 +224,7 @@ export default function PortalInvoiceDetailPage() {
             />
           )}
 
-          {invoice.status === "LATE" && (
+          {invoice.status === InvoiceStatus.LATE && (
             <StatusBanner
               variant="danger"
               title="هذه الفاتورة متأخرة السداد."
