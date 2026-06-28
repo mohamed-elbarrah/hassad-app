@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { ReportTimeline } from "@/features/portal/portalApi";
+import { formatCompactNumber } from "@/lib/format";
 
 const METRIC_LABELS: Record<string, string> = {
   impressions: "الظهور",
@@ -17,12 +18,7 @@ const METRIC_LABELS: Record<string, string> = {
   spend: "الإنفاق",
 };
 
-function fmtCompact(n: number): string {
-  if (n >= 1_000_000)
-    return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
-  return n.toLocaleString("ar-SA-u-nu-latn");
-}
+const fmtCompact = formatCompactNumber;
 
 interface MonthlyComparisonBarChartProps {
   timeline: ReportTimeline | undefined;

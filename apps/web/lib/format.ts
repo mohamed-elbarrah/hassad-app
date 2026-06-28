@@ -215,6 +215,24 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
+ * Compact number formatting for axis labels and dense tables:
+ * 999 → "999", 1,200 → "1.2K", 12,000 → "12K", 3,400,000 → "3.4M".
+ * Trailing ".0" is trimmed ("1.0K" → "1K"). Below 1,000 falls back
+ * to Arabic-locale grouping.
+ */
+export function formatCompactNumber(n: number): string {
+  if (n >= 1_000_000) {
+    const v = (n / 1_000_000).toFixed(1).replace(/\.0$/, "");
+    return `${v}M`;
+  }
+  if (n >= 1_000) {
+    const v = (n / 1_000).toFixed(1).replace(/\.0$/, "");
+    return `${v}K`;
+  }
+  return n.toLocaleString("ar-SA-u-nu-latn");
+}
+
+/**
  * Calculate days until a target date from today.
  * Returns positive number for future dates, negative for past dates.
  */
