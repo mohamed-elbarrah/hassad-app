@@ -52,6 +52,15 @@ export const PLATFORM_DOT: Record<string, string> = {
 };
 
 /**
+ * Display label for a campaign platform — falls back to the raw
+ * value if unknown. Co-located with PLATFORM_LABELS so callers
+ * importing the labels also get the lookup helper.
+ */
+export function platformLabel(platform: string): string {
+  return PLATFORM_LABELS[platform] ?? platform;
+}
+
+/**
  * Compute derived metrics from raw campaign data.
  * Expects `analytics` object (from API response) or flat fields.
  */

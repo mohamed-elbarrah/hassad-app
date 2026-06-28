@@ -2,16 +2,12 @@
 
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { PLATFORM_ICON_BG } from "@/lib/utils/campaign-constants";
+import { PLATFORM_ICON_BG, platformLabel } from "@/lib/utils/campaign-constants";
 import { Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PortalCampaign } from "@/features/portal/portalApi";
 import { CampaignStatusPill } from "./CampaignStatusPill";
-import {
-  formatShortDateLong,
-  budgetProgress,
-  platformLabel,
-} from "@/lib/format";
+import { formatShortDateLong, budgetProgress } from "@/lib/format";
 
 /**
  * Cells-only renderer for the campaigns queue. The <tr> chrome

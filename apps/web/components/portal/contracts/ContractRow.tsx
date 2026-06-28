@@ -7,7 +7,8 @@ import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { cn } from "@/lib/utils";
 import type { PortalContractSummary } from "@/features/portal/portalApi";
 import { ContractStatusPill } from "./ContractStatusPill";
-import { contractTypeLabel, formatShortDateLong } from "@/lib/format";
+import { contractTypeLabel } from "@/lib/i18n";
+import { formatShortDateLong } from "@/lib/format";
 
 interface ContractRowProps {
   contract: PortalContractSummary & { type?: string };

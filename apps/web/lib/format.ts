@@ -1,10 +1,8 @@
 // apps/web/lib/format.ts
 // Shared currency, date, and locale formatting utilities.
 
-import { PLATFORM_LABELS } from "./utils/campaign-constants";
-
-export const DEFAULT_CURRENCY = "SAR";
-export const DEFAULT_LOCALE = "ar-SA-u-nu-latn";
+const DEFAULT_CURRENCY = "SAR";
+const DEFAULT_LOCALE = "ar-SA-u-nu-latn";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   SAR: "ر.س",
@@ -20,7 +18,7 @@ const CURRENCY_LOCALES: Record<string, string> = {
   EUR: "en-EU",
 };
 
-export function getCurrencySymbol(currency?: string): string {
+function getCurrencySymbol(currency?: string): string {
   return (
     CURRENCY_SYMBOLS[currency || DEFAULT_CURRENCY] ||
     CURRENCY_SYMBOLS[DEFAULT_CURRENCY]
@@ -192,38 +190,12 @@ export function formatNumber(
   }
 }
 
-/**
- * Re-export the platform label map so callers don't import from
- * a separate `campaign-constants` module just to render a name.
- */
-export { PLATFORM_LABELS as platformLabels } from "./utils/campaign-constants";
-
-/**
- * Display label for a campaign platform — falls back to the raw
- * value if unknown. Pure helper, no DOM coupling.
- */
-export function platformLabel(platform: string): string {
-  return PLATFORM_LABELS[platform] ?? platform;
-}
-
 /** Budget progress 0..1 — clamped, NaN-safe. */
 export function budgetProgress(spent: number, total: number): number {
   if (!total || total <= 0) return 0;
   const ratio = spent / total;
   if (Number.isNaN(ratio)) return 0;
   return Math.max(0, Math.min(1, ratio));
-}
-
-/** Contract-type display labels (Arabic). */
-export const CONTRACT_TYPE_LABELS: Record<string, string> = {
-  MONTHLY_RETAINER: "شهري ثابت",
-  FIXED_PROJECT: "مشروع محدد",
-  ONE_TIME_SERVICE: "خدمة مرة واحدة",
-};
-
-/** Display label for a contract type — falls back to the raw value. */
-export function contractTypeLabel(type: string): string {
-  return CONTRACT_TYPE_LABELS[type] ?? type;
 }
 
 /**
