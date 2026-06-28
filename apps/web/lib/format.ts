@@ -228,3 +228,88 @@ export function daysUntil(date: string | Date | undefined | null): number | null
   const diffTime = target.getTime() - now.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
+
+// ── Timezone-Safe Formatters ──────────────────────────────────────────────────
+//
+// The Intl-based formatters above interpret date strings in the user's local
+// timezone, which can shift the displayed day by ±1 when the user is in a
+// timezone west/east of UTC. For dates that represent *calendar dates* (a
+// period start, an invoice due date, a meeting day), this is wrong.
+//
+// The functions below parse the calendar date embedded in an ISO YYYY-MM-DD
+// string and never invoke the Date timezone machinery. Use them for any
+// date that came from the backend as a date-only ISO string.
+
+const ARABIC_MONTHS_SHORT = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+
+/** Parse a YYYY-MM-DD (or full ISO) string into its calendar date components
+ *  WITHOUT timezone shift. Falls back to `new Date(...)` for non-ISO inputs.
+ *  Returns `{ year, month (0-11), day }`. */
+function parseCalendarDate(input: string | Date): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  if (typeof input === "string") {
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(input);
+    if (isoMatch) {
+      return {
+        year: Number(isoMatch[1]),
+        month: Number(isoMatch[2]) - 1,
+        day: Number(isoMatch[3]),
+      };
+    }
+  }
+  const d = new Date(input);
+  return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
+}
+
+/** Short Arabic date: "12 يونيو" — timezone-safe. */
+export function formatShortDateTz(dateStr: string | Date): string {
+  const { day, month } = parseCalendarDate(dateStr);
+  return `${day} ${ARABIC_MONTHS_SHORT[month]}`;
+}
+
+/** Full Arabic date: "12 يونيو 2026" — timezone-safe. */
+export function formatDateTz(dateStr: string | Date): string {
+  const { year, month, day } = parseCalendarDate(dateStr);
+  return `${day} ${ARABIC_MONTHS_SHORT[month]} ${year}`;
+}
+
+/** Date + time: "12 يونيو 2026 - 11:00 ص" — calendar date is timezone-safe,
+ *  the time portion uses the user's local time (which IS timezone-sensitive
+ *  and meaningful). */
+export function formatDateTimeTz(dateStr: string | Date): string {
+  const { year, month, day } = parseCalendarDate(dateStr);
+  const d = new Date(dateStr);
+  const time = d.toLocaleTimeString("ar-SA-u-nu-latn", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${day} ${ARABIC_MONTHS_SHORT[month]} ${year} - ${time}`;
+}
+
+/** Whole days from now until `endDate` (can be negative). Compares the
+ *  end-of-day timestamp of the calendar date against now so the result is
+ *  consistent regardless of the user's timezone. */
+export function getDaysRemaining(endDate: string | Date): number {
+  const { year, month, day } = parseCalendarDate(endDate);
+  // Build a UTC timestamp for the END of that calendar day (23:59:59.999)
+  // so a period ending today still has ≥0 days remaining until midnight.
+  const end = Date.UTC(year, month, day, 23, 59, 59, 999);
+  const now = Date.now();
+  return Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+}

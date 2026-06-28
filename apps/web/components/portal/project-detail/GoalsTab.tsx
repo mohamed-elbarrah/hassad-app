@@ -1,11 +1,33 @@
 "use client";
 
 import { CheckCircle2, Circle, Loader2, Target } from "lucide-react";
-import type { PeriodGoal } from "@hassad/shared";
+import type { PeriodGoal, PeriodGoalStatus } from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { EmptyState } from "./EmptyState";
 import { cn } from "@/lib/utils";
-import { GOAL_STATUS_CONFIG, type GoalStatus } from "./helpers";
+
+type GoalStatus = PeriodGoalStatus;
+
+const GOAL_STATUS_CONFIG: Record<
+  GoalStatus,
+  { badge: string; barColor: string; label: string }
+> = {
+  done: {
+    badge: "bg-emerald-100 text-emerald-700",
+    barColor: "bg-emerald-500",
+    label: "مكتمل",
+  },
+  in_progress: {
+    badge: "bg-secondary-100 text-secondary-700",
+    barColor: "bg-secondary-500",
+    label: "قيد التنفيذ",
+  },
+  pending: {
+    badge: "bg-neutral-100 text-neutral-500",
+    barColor: "bg-neutral-300",
+    label: "معلق",
+  },
+};
 
 const STATUS_ICON: Record<GoalStatus, React.ReactNode> = {
   done: <CheckCircle2 className="size-5 text-emerald-500" />,

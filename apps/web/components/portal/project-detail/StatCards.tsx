@@ -11,7 +11,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { PortalPeriodStats } from "@/features/portal/portalApi";
 import { cn } from "@/lib/utils";
-import { formatDateTime } from "./helpers";
+import { formatDateTimeTz } from "@/lib/format";
 
 type StatColor = "emerald" | "blue" | "violet" | "amber";
 
@@ -186,7 +186,7 @@ function MeetingCard({
           icon={Calendar}
           value="اليوم"
           label="الاجتماع القادم"
-          subtext={meeting ? formatDateTime(meeting.scheduledAt) : undefined}
+          subtext={meeting ? formatDateTimeTz(meeting.scheduledAt) : undefined}
           color="amber"
         />
       );
@@ -196,7 +196,7 @@ function MeetingCard({
           icon={Calendar}
           value={`${state.days} يوم`}
           label="الاجتماع القادم"
-          subtext={meeting ? formatDateTime(meeting.scheduledAt) : undefined}
+          subtext={meeting ? formatDateTimeTz(meeting.scheduledAt) : undefined}
           color="amber"
         />
       );
@@ -206,7 +206,7 @@ function MeetingCard({
           icon={History}
           value={`منذ ${state.daysAgo} يوم`}
           label="آخر اجتماع"
-          subtext={meeting ? formatDateTime(meeting.scheduledAt) : undefined}
+          subtext={meeting ? formatDateTimeTz(meeting.scheduledAt) : undefined}
           color="amber"
           muted
         />

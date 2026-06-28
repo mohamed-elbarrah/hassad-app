@@ -9,4 +9,3 @@ export { CampaignsTab } from "./CampaignsTab";
 export { MeetingsTab } from "./MeetingsTab";
 export { InvoiceTab } from "./InvoiceTab";
 export { EmptyState } from "./EmptyState";
-export * from "./helpers";
