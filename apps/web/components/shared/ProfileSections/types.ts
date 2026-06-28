@@ -1,6 +1,6 @@
 /**
  * ProfileSections - Shared Types
- * 
+ *
  * These types support the unified profile section components that work in three modes:
  * - wizard: Step-by-step intake form with navigation
  * - edit: Profile editing with all sections visible
@@ -8,12 +8,25 @@
  */
 
 import type { ReactNode } from "react";
+import type {
+  CommunicationInfo as SharedCommunicationInfo,
+  ProductInfo,
+  FaqPair,
+  AudienceInfo,
+  BrandVoice,
+  CustomerJourney,
+  CampaignInfo,
+  PastPerformance,
+  BudgetInfo,
+  VisualIdentityBrandAssets,
+  VisualIdentityInfo,
+} from "@hassad/shared";
 
 // ── Mode Types ───────────────────────────────────────────────────────────────────
 
 export type ProfileMode = "wizard" | "edit" | "view";
 
-// ── Section Data Types (mirrors IntakeFormV2Input from @hassad/shared) ───────────
+// ── Section Data Types (re-exported from @hassad/shared) ─────────────────────────
 
 /**
  * Communication section data — marketing/wizard fields only.
@@ -23,77 +36,37 @@ export type ProfileMode = "wizard" | "edit" | "view";
  * personal identity fields — that was the root cause of the
  * three-table duplication that made `/portal/account` and
  * `/portal/profile` show different names for the same person.
+ *
+ * Shared's `CommunicationInfo` has 3 extra fields (contactName, contactNumber,
+ * email) that the wizard intentionally does not surface here. We narrow via
+ * `Pick<>` to preserve the local invariant — single source of truth for the
+ * schema, but a section-local type that enforces the no-personal-identity rule.
  */
-export interface CommunicationInfo {
-  businessName?: string;
-  industry?: string;
-}
+export type CommunicationInfo = Pick<
+  SharedCommunicationInfo,
+  "businessName" | "industry"
+>;
 
-export interface ProductInfo {
-  productStory?: string;
-  detailedDescription?: string;
-  valueProposition?: string;
-  advantages?: string;
-  benefits?: string[];
-  contentDirection?: string;
-}
+export type {
+  ProductInfo,
+  FaqPair,
+  AudienceInfo,
+  BrandVoice,
+  CustomerJourney,
+  CampaignInfo,
+  PastPerformance,
+  BudgetInfo,
+  VisualIdentityInfo,
+};
 
-export interface FaqPair {
-  question?: string;
-  answer?: string;
-}
-
-export interface AudienceInfo {
-  customerAnalysis?: string;
-  faq?: FaqPair[];
-}
-
-export interface BrandVoice {
-  toneOfVoice?: string;
-  boundaries?: string;
-  verbalSlogan?: string;
-  appearanceMethod?: string;
-}
-
-export interface CustomerJourney {
-  orderMethods?: string[];
-  followUpTools?: string;
-}
-
-export interface CampaignInfo {
-  campaignGoal?: string;
-  campaignDetails?: string;
-  campaignOffer?: string;
-  guarantees?: string;
-  campaignSeason?: string;
-  competitors?: string;
-}
-
-export interface PastPerformance {
-  bestCampaigns?: string;
-  pastPerformance?: string;
-  trackingSetup?: string;
-}
-
-export interface BudgetInfo {
-  budgetRange?: number;
-  previousReports?: string[];
-}
-
-export interface BrandAssets {
-  logoUrl?: string;
-  brandColors?: string[];
-  fonts?: string[];
-  guidelinesUrl?: string;
-}
-
-export interface VisualIdentityInfo {
-  hasVisualIdentity?: boolean;
-  brandAssets?: BrandAssets;
-  pastDesigns?: string;
-  productPhotos?: string[];
-  visualDirection?: string[];
-}
+/**
+ * Local alias for `VisualIdentityBrandAssets` — kept for backwards
+ * compatibility with existing `VisualIdentityInfo.brandAssets?: BrandAssets`
+ * references throughout the codebase. The shared package uses the longer
+ * name to avoid collision with the global concept of brand assets outside
+ * the visual-identity section.
+ */
+export type BrandAssets = VisualIdentityBrandAssets;
 
 // ── Section Props Base ───────────────────────────────────────────────────────────
 

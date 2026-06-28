@@ -1,12 +1,15 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { ServiceItem, PaymentMethod, InvoiceStatus } from "@hassad/shared";
 import type {
+  ServiceItem,
+  PaymentMethod,
+  InvoiceStatus,
   PeriodGoal,
   MeetingStatus,
   DisputeStatus,
   DisputeCategory,
   DisputePriority,
+  MarketingStrategyStatus,
 } from "@hassad/shared";
 
 // ─── Dispute Types ───────────────────────────────────────────────────────────
@@ -365,6 +368,39 @@ export interface ProjectReviewRevision {
   comment: string;
   createdAt: string;
   client: { id: string; companyName: string };
+}
+
+export interface PortalStrategyTaskRef {
+  id: string;
+  title: string;
+  project: { id: string; name: string } | null;
+}
+
+export interface PortalStrategyUserRef {
+  id: string;
+  name: string;
+}
+
+export interface PortalStrategySummary {
+  id: string;
+  taskId: string;
+  createdBy: string;
+  clientId: string;
+  projectId: string | null;
+  status: MarketingStrategyStatus;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  fileType: string;
+  revisionNote: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  task: PortalStrategyTaskRef | null;
+  creator?: PortalStrategyUserRef | null;
+  approver?: PortalStrategyUserRef | null;
 }
 
 export interface ProjectReviewDetail {
@@ -926,12 +962,12 @@ export const portalApi = createApi({
 
     // ── Marketing Strategy Portal Endpoints ────────────────────────────
 
-    getClientStrategies: builder.query<any[], void>({
+    getClientStrategies: builder.query<PortalStrategySummary[], void>({
       query: () => "/portal/marketing-strategies",
       providesTags: ["PortalStrategies"],
     }),
 
-    getClientStrategy: builder.query<any, string>({
+    getClientStrategy: builder.query<PortalStrategySummary, string>({
       query: (id) => `/portal/marketing-strategies/${id}`,
       providesTags: (result, error, id) => [{ type: "PortalStrategies", id }],
     }),

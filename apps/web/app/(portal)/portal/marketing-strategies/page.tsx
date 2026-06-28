@@ -66,7 +66,7 @@ export default function MarketingStrategiesPage() {
         </SurfaceCard>
       ) : (
         <div className="space-y-4">
-          {strategies.map((strategy: any) => {
+          {strategies.map((strategy) => {
             const statusLabel =
               MARKETING_STRATEGY_STATUS_AR[strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR] ??
               strategy.status;
