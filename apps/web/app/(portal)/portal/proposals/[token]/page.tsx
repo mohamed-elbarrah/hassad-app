@@ -194,7 +194,7 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                         size="sm"
                         className="gap-2 shrink-0"
                       >
-                        <MessageSquare className="w-4 w-4" />
+                        <MessageSquare className="w-4 h-4" />
                         تواصل معه
                       </ActionButton>
                     </Link>

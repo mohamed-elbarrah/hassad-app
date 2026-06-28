@@ -16,7 +16,6 @@ import Link from "next/link";
 import type { PortalRequestSummary } from "@/features/portal/portalApi";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { cn } from "@/lib/utils";
 import {
   getRequestAction,
@@ -288,36 +287,6 @@ function RequestDetail({ request }: { request: PortalRequestSummary }) {
         </div>
       </div>
     </div>
-  );
-}
-
-/**
- * Skeleton row used by the parent `DataTable` during loading. Lives here
- * (rather than in the parent) so the row geometry stays consistent with
- * the actual row layout above.
- */
-export function RequestRowSkeleton() {
-  return (
-    <tr className="border-b-[1.5px] border-portal-divider">
-      <td className="px-5 py-4">
-        <Skeleton className="h-8 w-24 rounded-lg" />
-      </td>
-      <td className="px-5 py-4">
-        <Skeleton className="h-6 w-20 rounded-full" />
-      </td>
-      <td className="px-5 py-4">
-        <Skeleton className="h-4 w-32" />
-      </td>
-      <td className="px-5 py-4">
-        <Skeleton className="h-4 w-28" />
-      </td>
-      <td className="px-5 py-4">
-        <Skeleton className="h-4 w-24" />
-      </td>
-      <td className="px-3 py-4">
-        <Skeleton className="h-8 w-8 rounded-lg" />
-      </td>
-    </tr>
   );
 }
 

@@ -109,19 +109,6 @@
   --color-card: #ffffff;
   --color-card-foreground: #000000;
 
-  /* ── Spacing Scale ────────────────────────────────────────────────────── */
-  --spacing-space-1: 4px;
-  --spacing-space-2: 8px;
-  --spacing-space-3: 12px;
-  --spacing-space-4: 16px;
-  --spacing-space-5: 24px;
-  --spacing-space-6: 32px;
-  --spacing-space-8: 40px;
-  --spacing-space-10: 48px;
-  --spacing-space-12: 64px;
-  --spacing-space-16: 80px;
-  --spacing-space-20: 96px;
-
   /* ── Portal Exact Colors (from design source) ───────────────────────── */
   --color-portal-bg: #f9fafb;
   --color-portal-card-border: #e1e4ea;

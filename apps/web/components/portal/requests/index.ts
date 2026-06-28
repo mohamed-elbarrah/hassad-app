@@ -1,6 +1,5 @@
 export {
   RequestRow,
-  RequestRowSkeleton,
   getRequestDescription,
 } from "./RequestRow";
 export {

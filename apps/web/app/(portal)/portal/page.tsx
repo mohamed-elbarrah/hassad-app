@@ -30,10 +30,6 @@ import {
   useGetCampaignSummaryQuery,
   useSnoozeActionItemMutation,
   useGetTeamMembersQuery,
-  // NEW: Missing mutations
-  useApproveProjectMutation,
-  useRejectDeliverableMutation,
-  useApproveDeliverableMutation,
 } from "@/features/portal/portalApi";
 
 import { DashboardCard } from "@/components/design-system/DashboardCard";
@@ -451,47 +447,6 @@ export default function PortalPage() {
             </p>
           )}
         </DashboardCard>
-        {/* ── ملخص سريع ────────────────────────────── */}
-        {/* <DashboardCard
-          title="ملخص سريع"
-          icon={ClipboardList}
-          onShowAll={() => router.push("/portal/deliverables")}
-        >
-          {totalDeliverables > 0 && deliverables ? (
-            <div className="space-y-3">
-              {deliverables.slice(0, 4).map((d) => {
-                const uiStatus = mapTaskStatusToUI(d.status);
-                const statusLabels: Record<string, string> = {
-                  completed: "تم التسليم",
-                  "in-progress": "نشط",
-                  "not-started": "معلق",
-                  pending: "قادمة",
-                  revision: "تعديل",
-                };
-                return (
-                  <DeliverableItem
-                    key={d.id}
-                    title={d.title}
-                    description={d.description ?? ""}
-                    date={new Date(d.createdAt).toLocaleDateString(
-                      "ar-SA-u-nu-latn",
-                      {
-                        day: "numeric",
-                        month: "short",
-                      },
-                    )}
-                    status={uiStatus}
-                    statusLabel={statusLabels[uiStatus] ?? d.status}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-base text-portal-note-text text-center py-4">
-              لا توجد تسليمات حالياً
-            </p>
-          )}
-        </DashboardCard> */}
 
         {/* ── المسؤولون عن مشروعي ──────────────────────────── */}
         <DashboardCard

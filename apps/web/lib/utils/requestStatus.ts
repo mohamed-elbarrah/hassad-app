@@ -145,26 +145,6 @@ export function getRequestActionLabel(action: RequestAction): string {
 }
 
 /**
- * Distinct visual tone for an action's button. The action button uses
- * this to pick between filled-primary, outline, and muted variants so
- * the highest-priority action (sign contract) is the most prominent.
- */
-export type ActionTone = "primary" | "outline" | "muted";
-
-export function getRequestActionTone(action: RequestAction): ActionTone {
-  switch (action.kind) {
-    case "sign-contract":
-      return "primary";
-    case "review-proposal":
-      return "outline";
-    case "in-progress":
-      return "muted";
-    case "completed":
-      return "muted";
-  }
-}
-
-/**
  * High-level status group used by the toolbar filter and summary chips.
  *
  * Six groups instead of nine statuses — gives the user meaningful filter
