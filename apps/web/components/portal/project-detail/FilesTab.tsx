@@ -5,7 +5,8 @@ import type { PortalPeriodFile } from "@/features/portal/portalApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow";
 import { EmptyState } from "./EmptyState";
-import { formatFileSize, formatDate } from "./helpers";
+import { formatFileSize } from "@/lib/format";
+import { formatDate } from "./helpers";
 
 interface FilesTabProps {
   files: PortalPeriodFile[];

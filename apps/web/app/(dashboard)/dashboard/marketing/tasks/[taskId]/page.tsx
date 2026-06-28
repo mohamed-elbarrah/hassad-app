@@ -46,6 +46,7 @@ import { CampaignFormModal } from "@/components/dashboard/marketing/CampaignForm
 import { ClientBriefCompact } from "@/components/client-brief";
 import { MarketingStrategySection } from "@/components/dashboard/marketing/MarketingStrategySection";
 import { downloadTaskFile } from "@/lib/downloadFile";
+import { formatFileSize } from "@/lib/format";
 import {
   useGetClientTeamViewQuery,
 } from "@/features/clients/clientsApi";
@@ -1048,11 +1049,6 @@ function CommentCard({ comment }: { comment: TaskComment }) {
       </div>
     </div>
   );
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
-  return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
 // ── Task Timeline ───────────────────────────────────────────────────────────

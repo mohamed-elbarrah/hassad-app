@@ -53,7 +53,11 @@ import {
   useGetClientTeamViewQuery,
 } from "@/features/clients/clientsApi";
 import { useAppSelector } from "@/lib/hooks";
-import { formatRelativeTime, formatShortDate } from "@/lib/format";
+import {
+  formatFileSize,
+  formatRelativeTime,
+  formatShortDate,
+} from "@/lib/format";
 import {
   TaskStatus,
   TaskPriority,
@@ -151,11 +155,6 @@ function FileIcon({ mimeType }: { mimeType: string }) {
   if (mimeType.startsWith("text/") || mimeType.includes("pdf"))
     return <FileText className="size-5 text-amber-500" />;
   return <File className="size-5 text-neutral-400" />;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
-  return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
 function CommentCard({ comment }: { comment: TaskComment }) {

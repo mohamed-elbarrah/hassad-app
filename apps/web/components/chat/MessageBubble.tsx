@@ -2,16 +2,10 @@
 
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
-import { formatRelativeTime } from "@/lib/format";
+import { formatFileSize, formatRelativeTime } from "@/lib/format";
 import { useAppSelector } from "@/lib/hooks";
 import { FileIcon, Download } from "lucide-react";
 import type { Message, MessageAttachment } from "@/features/chat/chatApi";
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function isImageType(mimeType: string): boolean {
   return mimeType.startsWith("image/");

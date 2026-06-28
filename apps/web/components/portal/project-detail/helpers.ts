@@ -1,4 +1,5 @@
 import type { PeriodGoal } from "@hassad/shared";
+export { formatFileSize } from "@/lib/format";
 
 /** Arabic month names ordered Jan → Dec — used by timezone-safe formatters
  *  below so we never depend on `Intl.DateTimeFormat` interpreting UTC
@@ -54,7 +55,8 @@ export function formatDate(dateStr: string | Date): string {
 }
 
 /** Date + time: "12 يونيو 2026 - 11:00 ص" — uses the user's local time
- *  because the time portion IS timezone-sensitive and meaningful. */
+ *  because the time portion IS timezone-sensitive and meaningful.
+ */
 export function formatDateTime(dateStr: string | Date): string {
   const { year, month, day } = parseCalendarDate(dateStr);
   const d = new Date(dateStr);
@@ -75,21 +77,6 @@ export function getDaysRemaining(endDate: string | Date): number {
   const end = Date.UTC(year, month, day, 23, 59, 59, 999);
   const now = Date.now();
   return Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-}
-
-/** Human-readable file size: "1.2 MB".
- *  Guards against non-finite or negative inputs — callers occasionally
- *  pass through untrusted data from APIs.
- */
-export function formatFileSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.min(
-    units.length - 1,
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-  );
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
 export type GoalStatus = PeriodGoal["status"];

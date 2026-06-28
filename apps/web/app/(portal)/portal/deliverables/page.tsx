@@ -1,47 +1,34 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
+import { Eye } from "lucide-react";
+import Link from "next/link";
 import { useAppSelector } from "@/lib/hooks";
-import { buildPortalFileUrl } from "@/lib/portal-files";
 import {
   useGetReviewProjectsQuery,
   useGetProjectReviewDetailQuery,
-  useApproveProjectMutation,
-  useRequestProjectRevisionMutation,
-  useGetProjectProgressQuery,
+  type ReviewProject,
 } from "@/features/portal/portalApi";
-import {
-  CheckCircle2,
-  Clock,
-  Eye,
-  PackageOpen,
-  AlertTriangle,
-  FileText,
-  Download,
-  X,
-} from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormTextarea } from "@/components/design-system/FormTextarea";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { MetricCard } from "@/components/design-system/MetricCard";
 import { PageIntro } from "@/components/design-system/PageIntro";
-import { ProgressCard } from "@/components/design-system/ProgressCard";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { cn } from "@/lib/utils";
-import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
+import { DataTable } from "@/components/design-system/DataTable";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { EmptyState, ErrorState } from "@/components/design-system/EmptyState";
+import {
+  renderProjectRowCells,
+  ReviewModal,
+  Toolbar,
+} from "@/components/portal/deliverables";
 
-function formatPortalDate(date?: string | null) {
-  if (!date) return null;
-  return new Date(date).toLocaleDateString("ar-SA-u-nu-latn", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
+/**
+ * Page architecture (page IS the queue):
+ *
+ *   PageIntro        ← context (one line)
+ *   Toolbar          ← search + status filter + count
+ *   DataTable        ← the queue
+ *   ReviewModal      ← the decision moment
+ */
 export default function PortalDeliverablesPage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
@@ -50,44 +37,28 @@ export default function PortalDeliverablesPage() {
     data: reviewProjects,
     isLoading,
     isError,
-    refetch: refetchReviewProjects,
+    refetch,
   } = useGetReviewProjectsQuery(undefined, {
     skip: !clientId,
     pollingInterval: 120_000,
   });
 
-  const { data: projectProgress } = useGetProjectProgressQuery(undefined, {
-    skip: !clientId,
-    pollingInterval: 120_000,
-  });
-
-  const [approveProject, { isLoading: isApproving }] =
-    useApproveProjectMutation();
-  const [requestRevision, { isLoading: isRequestingRevision }] =
-    useRequestProjectRevisionMutation();
-
+  const [search, setSearch] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
-  const [revisionComment, setRevisionComment] = useState("");
-  const [showRevisionForm, setShowRevisionForm] = useState(false);
 
+  // Deep-link `?focus=<id>` — opens the modal for that project.
   const searchParams = useSearchParams();
-
-  // Deep-link handler: when redirected from `/portal/deliverables/[id]`
-  // we get a `?focus=<projectId>` hint that auto-opens the right modal.
-  // We strip the param from the URL after consuming it so a refresh
-  // doesn't re-trigger the focus.
   useEffect(() => {
     const focus = searchParams?.get("focus");
-    if (!focus) return;
-    if (selectedProjectId === focus) return;
+    if (!focus || selectedProjectId === focus) return;
     setSelectedProjectId(focus);
-    setShowRevisionForm(false);
-    setRevisionComment("");
     if (typeof window !== "undefined") {
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
+      window.history.replaceState({}, "", window.location.pathname);
     }
   }, [searchParams, selectedProjectId]);
 
@@ -96,433 +67,153 @@ export default function PortalDeliverablesPage() {
     { skip: !selectedProjectId, pollingInterval: 120_000 },
   );
 
-  async function handleApprove(projectId: string) {
-    try {
-      await approveProject(projectId).unwrap();
-      setSelectedProjectId(null);
-      refetchReviewProjects();
-      toast.success("تمت الموافقة على المشروع بنجاح");
-    } catch (err: any) {
-      toast.error(err?.data?.message || "حدث خطأ أثناء الموافقة على المشروع");
-    }
+  const fallbackProject = useMemo<ReviewProject | undefined>(
+    () => reviewProjects?.find((p) => p.id === selectedProjectId) ?? undefined,
+    [reviewProjects, selectedProjectId],
+  );
+
+  const filtered = useMemo(() => {
+    if (!reviewProjects) return [];
+    const q = search.trim().toLowerCase();
+    const statusFilter = activeFilters["status"]?.[0];
+
+    return reviewProjects.filter((p) => {
+      if (statusFilter && p.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        (p.description?.toLowerCase().includes(q) ?? false) ||
+        (p.manager?.name.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [reviewProjects, search, activeFilters]);
+
+  const hasActiveSearchOrFilter =
+    search.trim().length > 0 ||
+    Object.values(activeFilters).some((v) => v.length > 0);
+
+  const handleSelect = useCallback((id: string) => {
+    setSelectedProjectId(id);
+  }, []);
+
+  const handleModalChange = useCallback((open: boolean) => {
+    if (!open) setSelectedProjectId(null);
+  }, []);
+
+  const handleActionComplete = useCallback(
+    (handledProjectId: string) => {
+      refetch().then(() => {
+        setTimeout(() => {
+          const next = (reviewProjects ?? []).find(
+            (p) => p.id !== handledProjectId,
+          );
+          if (next) {
+            toast("لا يزال هناك مشاريع بانتظار قرارك.", {
+              description: next.name,
+              action: {
+                label: "افتح التالي",
+                onClick: () => setSelectedProjectId(next.id),
+              },
+            });
+          }
+        }, 200);
+      });
+    },
+    [refetch, reviewProjects],
+  );
+
+  if (!clientId) {
+    return (
+      <div className="flex flex-col gap-5" dir="rtl">
+        <PageIntro
+          title="مراجعة المشاريع"
+          description="المشاريع الجاهزة للمراجعة والموافقة."
+          icon={Eye}
+        />
+        <p className="text-sm text-portal-note-text">
+          لم يتم ربط حسابك بملف عميل.
+        </p>
+      </div>
+    );
   }
 
-  async function handleRequestRevision(projectId: string) {
-    if (!revisionComment.trim()) return;
-    try {
-      await requestRevision({
-        id: projectId,
-        comment: revisionComment,
-      }).unwrap();
-      setRevisionComment("");
-      setShowRevisionForm(false);
-      setSelectedProjectId(null);
-      refetchReviewProjects();
-      toast.success("تم إرسال طلب التعديل بنجاح");
-    } catch (err: any) {
-      toast.error(err?.data?.message || "حدث خطأ أثناء إرسال طلب التعديل");
-    }
-  }
-
-  const metrics = useMemo(() => {
-    const total = projectProgress?.overallProgress ?? 0;
-    const totalProjects = projectProgress?.totalProjects ?? 0;
-    const awaitingReview = reviewProjects?.length ?? 0;
-
-    return { total, totalProjects, awaitingReview };
-  }, [projectProgress, reviewProjects]);
-
-  const progressValue = Math.round(metrics.total);
-
-  function closeModal() {
-    setSelectedProjectId(null);
-    setShowRevisionForm(false);
-    setRevisionComment("");
-  }
+  const totalCount = reviewProjects?.length ?? 0;
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
       <PageIntro
         title="مراجعة المشاريع"
-        description="المشاريع الجاهزة للمراجعة والموافقة. راجع أعمال فريقك ووافق عليها أو اطلب تعديلات."
+        description="راجع أعمال فريقك ووافق عليها أو اطلب تعديلات."
         icon={Eye}
       />
 
-      {!clientId && (
-        <SurfaceCard title="تعذر تحميل المشاريع" icon={PackageOpen}>
-          <p className="text-sm leading-6 text-portal-note-text">
-            لم يتم ربط حسابك بملف عميل.
-          </p>
-        </SurfaceCard>
-      )}
-
-      {clientId && (
+      {isError ? (
+        <ErrorState onRetry={() => refetch()} />
+      ) : totalCount === 0 && !isLoading ? (
+        <EmptyState
+          icon={Eye}
+          title="كل مشاريعك تمت مراجعتها!"
+          hint="لا يوجد حالياً أي مشروع بانتظار قرارك. سنُعلمك فور تسليم مشروع جديد للمراجعة."
+          tone="success"
+          action={
+            <Link href="/portal/projects">
+              <ActionButton variant="primary" size="lg">
+                عرض كل مشاريعي
+              </ActionButton>
+            </Link>
+          }
+        />
+      ) : (
         <>
-          {/* ── Metrics ─────────────────────────────────────────────────── */}
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <MetricCard
-              title="بانتظار المراجعة"
-              value={metrics.awaitingReview}
-              pillText="مشاريع"
-              pillTone="warning"
-            />
-            <MetricCard
-              title="إجمالي المشاريع"
-              value={metrics.totalProjects}
-              pillText="مشروع"
-              pillTone="neutral"
-            />
-            <ProgressCard
-              title="تقدم المشاريع"
-              value={progressValue}
-              max={100}
-              summary={`${progressValue}% إنجاز`}
-            />
-          </div>
+          <Toolbar
+            search={search}
+            onSearchChange={setSearch}
+            activeFilters={activeFilters}
+            onFilterChange={(k, v) =>
+              setActiveFilters((prev) => ({ ...prev, [k]: v }))
+            }
+            totalCount={totalCount}
+            visibleCount={filtered.length}
+            projects={reviewProjects}
+          />
 
-          {/* ── Loading ─────────────────────────────────────────────────── */}
-          {isLoading && (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-56 rounded-[30px]" />
-              ))}
-            </div>
-          )}
-
-          {/* ── Error ───────────────────────────────────────────────────── */}
-          {isError && (
-            <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-8 text-center">
-              <p className="text-base font-medium text-danger-700">
-                حدث خطأ أثناء تحميل المشاريع.
-              </p>
-              <p className="mt-2 text-sm text-danger-600">
-                يرجى المحاولة لاحقاً أو تحديث الصفحة.
-              </p>
-            </div>
-          )}
-
-          {/* ── Empty ───────────────────────────────────────────────────── */}
-          {!isLoading &&
-            !isError &&
-            (!reviewProjects || reviewProjects.length === 0) && (
-              <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
-                  <CheckCircle2 className="h-8 w-8 text-secondary-500" />
-                </div>
-                <p className="text-lg font-medium text-natural-100">
-                  لا توجد مشاريع بانتظار المراجعة حالياً.
-                </p>
-                <p className="max-w-md text-sm leading-6 text-portal-note-text">
-                  ستظهر هنا المشاريع عندما يكتملها فريقك ويقدمها لمراجعتك.
-                </p>
-              </div>
-            )}
-
-          {/* ── Review Cards Grid ───────────────────────────────────────── */}
-          {!isLoading &&
-            !isError &&
-            reviewProjects &&
-            reviewProjects.length > 0 && (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {reviewProjects.map((project) => (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedProjectId(project.id);
-                      setShowRevisionForm(false);
-                      setRevisionComment("");
-                    }}
-                    className="group relative flex flex-col rounded-[30px] border-[1.5px] border-portal-divider bg-natural-0 p-5 text-right transition-all hover:border-secondary-500/30 hover:shadow-sm cursor-pointer"
-                  >
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-natural-100 truncate group-hover:text-secondary-500 transition-colors">
-                          {project.name}
-                        </h3>
-                        {project.description && (
-                          <p className="text-xs text-portal-note-text mt-1 line-clamp-2">
-                            {project.description}
-                          </p>
-                        )}
-                      </div>
-                      <StatusBadge
-                        status={mapProjectStatusToUI(project.status)}
-                      />
-                    </div>
-
-                    {/* Spacer */}
-                    <div className="mt-4 flex-1">
-                      {/* Progress */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-portal-note-text">
-                            نسبة الإنجاز
-                          </span>
-                          <span className="font-medium text-secondary-500">
-                            {project.completionPercentage}%
-                          </span>
-                        </div>
-                        <div className="h-2.5 w-full overflow-hidden rounded-full bg-gauge-track">
-                          <div
-                            className="h-full rounded-full bg-gauge-fill transition-all duration-500"
-                            style={{
-                              width: `${project.completionPercentage}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Meta */}
-                      <div className="mt-3 flex items-center gap-3 text-xs text-portal-note-text">
-                        <span className="flex items-center gap-1">
-                          <FileText className="h-3.5 w-3.5 shrink-0" />
-                          {project.taskCount} مهمة
-                        </span>
-                        <span>·</span>
-                        <span>{project.deliverableCount} تسليم</span>
-                      </div>
-
-                      {/* Dates */}
-                      <div className="mt-3 flex items-center gap-4 text-xs text-portal-note-text">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          {formatPortalDate(project.startDate)} —{" "}
-                          {formatPortalDate(project.endDate)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="mt-4 pt-3 border-t border-portal-divider">
-                      <span className="text-xs font-medium text-secondary-500 group-hover:text-secondary-600 transition-colors">
-                        اضغط للمراجعة ←
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+          <DataTable
+            columns={[
+              { id: "name", label: "المشروع" },
+              { id: "files", label: "الملفات", align: "center" },
+              { id: "manager", label: "المدير" },
+              { id: "dates", label: "الفترة" },
+              { id: "status", label: "الحالة" },
+              { id: "action", label: "", align: "left", width: "110px" },
+            ]}
+            data={filtered}
+            isLoading={isLoading}
+            isError={false}
+            skeletonRows={6}
+            emptyState={{
+              icon: Eye,
+              message: hasActiveSearchOrFilter
+                ? "لا توجد نتائج مطابقة"
+                : "لا توجد مشاريع بانتظار المراجعة.",
+              hint: hasActiveSearchOrFilter
+                ? "جرّب كلمات بحث مختلفة أو امسح عوامل التصفية."
+                : "ستظهر هنا المشاريع عندما يقدمها فريقك.",
+            }}
+            onRowActivate={(p: ReviewProject) => handleSelect(p.id)}
+            renderCells={(p: ReviewProject, { onActivate }) =>
+              renderProjectRowCells(p, { project: p, onSelect: handleSelect }, { onActivate })
+            }
+          />
         </>
       )}
 
-      {/* ── Project Review Modal ──────────────────────────────────────────── */}
-      {selectedProjectId && selectedProject && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          dir="rtl"
-          onClick={closeModal}
-        >
-          <div
-            className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[30px] border-[1.5px] border-portal-divider bg-natural-0 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-4 p-6 pb-0">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-xl font-bold text-natural-100">
-                  {selectedProject.name}
-                </h2>
-                {selectedProject.description && (
-                  <p className="text-sm text-portal-note-text mt-1">
-                    {selectedProject.description}
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm text-portal-note-text">
-                  <span>
-                    {formatPortalDate(selectedProject.startDate)} —{" "}
-                    {formatPortalDate(selectedProject.endDate)}
-                  </span>
-                  {selectedProject.manager && (
-                    <span>المدير: {selectedProject.manager.name}</span>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="shrink-0 flex items-center justify-center h-8 w-8 rounded-full hover:bg-badge-gray-bg transition-colors cursor-pointer"
-              >
-                <X className="h-5 w-5 text-portal-icon" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-5">
-              {/* Status + Progress */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <StatusBadge
-                  status={mapProjectStatusToUI(selectedProject.status)}
-                />
-                <span className="text-sm font-medium text-secondary-500">
-                  {selectedProject.completionPercentage}% مكتمل
-                </span>
-              </div>
-              <div className="h-2.5 w-full overflow-hidden rounded-full bg-gauge-track">
-                <div
-                  className="h-full rounded-full bg-gauge-fill transition-all"
-                  style={{
-                    width: `${selectedProject.completionPercentage}%`,
-                  }}
-                />
-              </div>
-
-              {/* Project Files */}
-              {selectedProject.files &&
-                selectedProject.files.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-natural-100 mb-3">
-                      ملفات المشروع ({selectedProject.files.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {selectedProject.files.map((file) => (
-                        <div
-                          key={file.id}
-                          className="flex items-center justify-between rounded-xl border-[1.5px] border-portal-divider px-4 py-3"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <FileText className="h-4 w-4 shrink-0 text-portal-note-text" />
-                            <span className="text-sm text-natural-100 truncate">
-                              {file.fileName}
-                            </span>
-                            <span className="text-xs text-portal-note-text shrink-0">
-                              ({(file.fileSize / 1024).toFixed(0)} KB)
-                            </span>
-                          </div>
-                          <a
-                            href={
-                              file.url || buildPortalFileUrl(file.filePath)
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="shrink-0"
-                          >
-                            <ActionButton
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-2"
-                            >
-                              <Download className="h-4 w-4" />
-                            </ActionButton>
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              {/* Revision History */}
-              {selectedProject.revisionRequests &&
-                selectedProject.revisionRequests.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-natural-100 mb-3">
-                      طلبات تعديل سابقة
-                    </h3>
-                    <div className="space-y-2">
-                      {selectedProject.revisionRequests.map((rev) => (
-                        <div
-                          key={rev.id}
-                          className="rounded-xl border-[1.5px] border-portal-divider bg-portal-bg px-4 py-3"
-                        >
-                          <p className="text-sm text-natural-100">
-                            {rev.comment}
-                          </p>
-                          <p className="mt-1 text-xs text-portal-note-text">
-                            {rev.client.companyName} —{" "}
-                            {formatPortalDate(rev.createdAt)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-              {/* Action Buttons */}
-              <div className="pt-2">
-                {!showRevisionForm ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <ActionButton
-                      type="button"
-                      variant="primary"
-                      size="md"
-                      className="h-12 rounded-2xl bg-success-600 text-base font-medium hover:bg-success-700"
-                      disabled={isApproving}
-                      onClick={() => handleApprove(selectedProject.id)}
-                    >
-                      <CheckCircle2 className="ml-2 h-5 w-5" />
-                      {isApproving
-                        ? "جارٍ الموافقة..."
-                        : "موافقة على المشروع"}
-                    </ActionButton>
-                    <ActionButton
-                      type="button"
-                      variant="outline"
-                      size="md"
-                      className="h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 text-base font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
-                      onClick={() => setShowRevisionForm(true)}
-                    >
-                      <AlertTriangle className="ml-2 h-5 w-5" />
-                      طلب تعديلات
-                    </ActionButton>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border-[1.5px] border-portal-divider bg-portal-bg p-4">
-                    <FormTextarea
-                      label="ما التعديلات المطلوبة؟"
-                      className="min-h-28"
-                      onChange={(e) => setRevisionComment(e.target.value)}
-                      placeholder="اكتب تفاصيل التعديلات المطلوبة على المشروع..."
-                      rows={4}
-                      value={revisionComment}
-                    />
-                    <div className="mt-3 flex flex-wrap justify-end gap-2">
-                      <ActionButton
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
-                        onClick={() => {
-                          setShowRevisionForm(false);
-                          setRevisionComment("");
-                        }}
-                      >
-                        إلغاء
-                      </ActionButton>
-                      <ActionButton
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        className="h-9 rounded-xl bg-action-blue px-3 text-xs font-medium hover:bg-action-blue-hover"
-                        disabled={
-                          isRequestingRevision || !revisionComment.trim()
-                        }
-                        onClick={() =>
-                          handleRequestRevision(selectedProject.id)
-                        }
-                      >
-                        {isRequestingRevision
-                          ? "جارٍ الإرسال..."
-                          : "إرسال طلب التعديل"}
-                      </ActionButton>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-3 text-center">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="text-sm text-portal-note-text hover:text-natural-100 transition-colors cursor-pointer"
-                  >
-                    إغلاق
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ReviewModal
+        selectedProjectId={selectedProjectId}
+        selectedProject={selectedProject}
+        fallbackProject={fallbackProject}
+        onActionComplete={handleActionComplete}
+        onOpenChange={handleModalChange}
+      />
     </div>
   );
 }

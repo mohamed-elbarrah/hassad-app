@@ -24,6 +24,50 @@ export interface DataTableEmptyState {
   hint: string;
 }
 
+/**
+ * Renders the standard <tr> chrome (divider, hover, focus ring,
+ * background) so individual row components don't have to
+ * duplicate these classes. If a caller needs a fully custom row
+ * (e.g. expandable rows), they can still use `renderRow` and
+ * skip `renderCells`.
+ */
+interface QueueRowProps {
+  onActivate?: () => void;
+  cells: React.ReactNode[];
+  className?: string;
+}
+
+function QueueRow({ onActivate, cells, className }: QueueRowProps) {
+  return (
+    <tr
+      onClick={onActivate}
+      onKeyDown={
+        onActivate
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onActivate();
+              }
+            }
+          : undefined
+      }
+      tabIndex={onActivate ? 0 : -1}
+      className={cn(
+        "group border-b-[1.5px] border-portal-divider bg-natural-0",
+        "outline-none transition-colors",
+        onActivate && "cursor-pointer",
+        onActivate && "hover:bg-primary-100/50",
+        onActivate && "focus-visible:bg-primary-100/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500",
+        className,
+      )}
+    >
+      {cells.map((cell, idx) => (
+        <Fragment key={idx}>{cell}</Fragment>
+      ))}
+    </tr>
+  );
+}
+
 interface DataTableProps<T> {
   columns: DataTableColumn[];
   data: T[];
@@ -32,9 +76,26 @@ interface DataTableProps<T> {
   errorMessage?: string;
   skeletonRows?: number;
   emptyState: DataTableEmptyState;
+  /**
+   * Preferred: returns the <td> elements for a single row.
+   * `DataTable` owns the surrounding <tr> chrome so all rows
+   * look and behave identically. `onActivate` is optional —
+   * pass it to make the row clickable + keyboard-activatable.
+   */
+  renderCells?: (row: T, helpers: { onActivate?: () => void }) => React.ReactNode[];
+  /**
+   * Legacy: full custom <tr>. Use only when the row needs
+   * structural variation beyond what `renderCells` supports
+   * (e.g. expandable rows).
+   */
   renderRow?: (row: T, index: number) => React.ReactNode;
   minWidth?: string;
   className?: string;
+  /**
+   * Called when a row is clicked / Enter-pressed. Used by
+   * `renderCells` callers to wire up navigation.
+   */
+  onRowActivate?: (row: T) => void;
 }
 
 export function DataTable<T>({
@@ -45,9 +106,11 @@ export function DataTable<T>({
   errorMessage,
   skeletonRows = 4,
   emptyState,
+  renderCells,
   renderRow,
   minWidth,
   className,
+  onRowActivate,
 }: DataTableProps<T>) {
   if (isError) {
     return (
@@ -90,8 +153,8 @@ export function DataTable<T>({
                 className={cn(
                   "h-12 whitespace-nowrap px-5 text-sm font-medium text-portal-note-text",
                   col.align === "center" && "text-center",
-                  col.align === "left" && "text-left",
-                  (!col.align || col.align === "right") && "text-right",
+                  col.align === "left" && "text-start",
+                  col.align === "right" && "text-end",
                 )}
                 style={col.width ? { width: col.width } : undefined}
               >
@@ -115,6 +178,13 @@ export function DataTable<T>({
                 ))}
               </TableRow>
             ))
+          ) : renderCells ? (
+            data.map((row, idx) => {
+              const key = String((row as any).id ?? `row-${idx}`);
+              const onActivate = onRowActivate ? () => onRowActivate(row) : undefined;
+              const cells = renderCells(row, { onActivate });
+              return <QueueRow key={key} cells={cells} onActivate={onActivate} />;
+            })
           ) : renderRow ? (
             data.map((row, idx) => {
               const key = String((row as any).id ?? `row-${idx}`);
