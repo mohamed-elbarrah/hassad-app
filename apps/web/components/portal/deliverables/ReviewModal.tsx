@@ -32,7 +32,7 @@ import {
   useApproveProjectMutation,
   useRequestProjectRevisionMutation,
 } from "@/features/portal/portalApi";
-import { formatPortalDate, formatRelative } from "./utils";
+import { formatFileSize, formatPortalDate, formatRelative } from "./utils";
 
 interface ReviewModalProps {
   selectedProjectId: string | null;
@@ -720,10 +720,4 @@ function EmptyFallback({
       )}
     </div>
   );
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

@@ -36,7 +36,7 @@ export function KpiCurrency({ amount, className }: KpiCurrencyProps) {
   const { fmtAmount, currency } = useCurrency();
 
   return (
-    <div className={cn("flex items-baseline justify-end gap-1", className)}>
+    <div className={cn("flex items-baseline justify-start gap-1", className)}>
       <span className="text-[28px] font-bold text-natural-100">
         {fmtAmount(amount)}
       </span>

@@ -13,126 +13,141 @@ import { ProjectStatusPill } from "./ProjectStatusPill";
 import { formatRelative } from "./utils";
 import { buildPortalFileUrl, getPortalFileKind } from "@/lib/portal-files";
 
-interface ProjectRowProps {
+export interface ProjectRowProps {
   project: ReviewProject;
   previews?: { id: string; fileName: string; filePath: string; url?: string }[];
   onSelect: (id: string) => void;
 }
 
 /**
- * One row of the deliverables table. The row IS the click target.
- * Keyboard-activatable. The CTA on the right is a clean gold pill —
- * the brand accent, not a chevron, and it doesn't move on hover
- * (motion is reserved for the row, not the button).
+ * Cells-only renderer for the deliverables queue. The
+ * surrounding <tr> chrome (divider, hover, focus ring) is
+ * owned by `<DataTable>` — this component only emits <td>s.
  */
-export function ProjectRow({ project, previews, onSelect }: ProjectRowProps) {
-  const hasFiles = project.deliverableCount > 0;
-
-  return (
-    <tr
-      onClick={() => onSelect(project.id)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect(project.id);
-        }
-      }}
-      tabIndex={0}
-      className={cn(
-        "group border-b-[1.5px] border-portal-divider cursor-pointer bg-natural-0",
-        "outline-none transition-colors",
-        // Subtle brand-tinted hover, never translate any inner element.
-        "hover:bg-primary-100/50",
-        "focus-visible:bg-primary-100/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500",
-      )}
-    >
-      {/* Project name + meta line */}
-      <td className="px-5 py-3.5 align-middle">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-semibold text-natural-100 truncate max-w-[300px]">
-            {project.name}
-          </span>
-          <span className="inline-flex items-center gap-3 text-[11px] text-portal-note-text">
-            <span className="inline-flex items-center gap-1.5">
-              <Clock className="h-3 w-3" />
-              <span>
-                آخر تحديث{" "}
-                {formatRelative(project.updatedAt ?? project.createdAt)}
-              </span>
-            </span>
-          </span>
-        </div>
-      </td>
-
-      {/* Files preview */}
-      <td className="px-3 py-3.5 align-middle">
-        <FilePreview
-          previews={previews}
-          count={project.deliverableCount}
-          hasFiles={hasFiles}
-        />
-      </td>
-
-      {/* Manager */}
-      <td className="px-3 py-3.5 align-middle">
-        <ManagerCell project={project} />
-      </td>
-
-      {/* Dates */}
-      <td className="px-3 py-3.5 align-middle text-[13px] text-portal-note-text tabular-nums">
-        {formatRange(project.startDate, project.endDate)}
-      </td>
-
-      {/* Status */}
-      <td className="px-3 py-3.5 align-middle">
-        <ProjectStatusPill status={project.status} />
-      </td>
-
-      {/* CTA */}
-      <td className="px-5 py-3.5 align-middle text-left w-[100px]">
-        <span
-          className={cn(
-            "inline-flex h-8 items-center gap-1.5 rounded-lg px-3",
-            "text-[13px] font-semibold",
-            "bg-primary-100 text-primary-700",
-            "ring-1 ring-inset ring-primary-200",
-            "transition-colors",
-            "group-hover:bg-primary-500 group-hover:text-secondary-500 group-hover:ring-primary-500",
-          )}
-        >
-          <span>مراجعة</span>
-          <ArrowLeft className="h-3.5 w-3.5" />
-        </span>
-      </td>
-    </tr>
-  );
+export function renderProjectRowCells(
+  project: ReviewProject,
+  props: ProjectRowProps,
+  helpers: { onActivate?: () => void },
+): React.ReactNode[] {
+  return [
+    <NameCell key="name" project={project} />,
+    <FileCell
+      key="files"
+      previews={props.previews}
+      count={project.deliverableCount}
+      hasFiles={project.deliverableCount > 0}
+    />,
+    <ManagerCell key="manager" project={project} />,
+    <DateCell
+      key="dates"
+      start={project.startDate}
+      end={project.endDate}
+    />,
+    <td key="status" className="px-5 py-3.5 align-middle">
+      <ProjectStatusPill status={project.status} />
+    </td>,
+    <CtaCell key="action" onActivate={helpers.onActivate} />,
+  ];
 }
 
-// ─── Manager cell ────────────────────────────────────────────────────────────
+// ─── Cells ───────────────────────────────────────────────────────────────────
+
+function NameCell({ project }: { project: ReviewProject }) {
+  return (
+    <td className="px-5 py-3.5 align-middle">
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-semibold text-natural-100 truncate max-w-[300px]">
+          {project.name}
+        </span>
+        <span className="inline-flex items-center gap-3 text-[11px] text-portal-note-text">
+          <span className="inline-flex items-center gap-1.5">
+            <Clock className="h-3 w-3" />
+            <span>
+              آخر تحديث{" "}
+              {formatRelative(project.updatedAt ?? project.createdAt)}
+            </span>
+          </span>
+        </span>
+      </div>
+    </td>
+  );
+}
 
 function ManagerCell({ project }: { project: ReviewProject }) {
   const name = project.manager?.name ?? "—";
-
   if (!project.manager) {
     return (
-      <span className="inline-flex items-center gap-2 text-sm text-portal-note-text">
-        <CircleUserRound className="h-4 w-4" />
-        <span>بدون مدير</span>
-      </span>
+      <td className="px-5 py-3.5 align-middle">
+        <span className="inline-flex items-center gap-2 text-sm text-portal-note-text">
+          <CircleUserRound className="h-4 w-4" />
+          <span>بدون مدير</span>
+        </span>
+      </td>
     );
   }
-
   return (
-    <div className="inline-flex items-center gap-2.5 min-w-0">
-      <UserAvatar name={name} size="sm" variant="circle" />
-      <span className="text-[13px] text-natural-100 truncate max-w-[140px]">
-        {name}
-      </span>
-    </div>
+    <td className="px-5 py-3.5 align-middle">
+      <div className="inline-flex items-center gap-2.5 min-w-0">
+        <UserAvatar name={name} size="sm" variant="circle" />
+        <span className="text-[13px] text-natural-100 truncate max-w-[140px]">
+          {name}
+        </span>
+      </div>
+    </td>
   );
 }
 
-// ─── File preview strip ──────────────────────────────────────────────────────
+function FileCell({
+  previews,
+  count,
+  hasFiles,
+}: {
+  previews?: { id: string; fileName: string; filePath: string; url?: string }[];
+  count: number;
+  hasFiles: boolean;
+}) {
+  return (
+    <td className="px-5 py-3.5 align-middle">
+      <FilePreview previews={previews} count={count} hasFiles={hasFiles} />
+    </td>
+  );
+}
+
+function DateCell({
+  start,
+  end,
+}: {
+  start?: string | null;
+  end?: string | null;
+}) {
+  return (
+    <td className="px-5 py-3.5 align-middle text-[13px] text-portal-note-text tabular-nums">
+      {formatRange(start, end)}
+    </td>
+  );
+}
+
+function CtaCell({ onActivate }: { onActivate?: () => void }) {
+  return (
+    <td className="px-5 py-3.5 align-middle text-start w-[100px]">
+      <span
+        className={cn(
+          "inline-flex h-8 items-center gap-1.5 rounded-lg px-3",
+          "text-[13px] font-semibold",
+          "bg-primary-100 text-primary-700",
+          "ring-1 ring-inset ring-primary-200",
+          "transition-colors",
+          onActivate && "group-hover:bg-primary-500 group-hover:text-secondary-500 group-hover:ring-primary-500",
+        )}
+      >
+        <span>مراجعة</span>
+        <ArrowLeft className="h-3.5 w-3.5" />
+      </span>
+    </td>
+  );
+}
+
+// ─── Atoms ───────────────────────────────────────────────────────────────────
 
 function FilePreview({
   previews,
@@ -218,8 +233,6 @@ function FilePreview({
     </div>
   );
 }
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatRange(start?: string | null, end?: string | null): string {
   const s = formatShort(start);

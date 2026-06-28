@@ -4,17 +4,12 @@ import { useState } from "react";
 import { Download, Trash2, File, FileImage, FileText } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { downloadTaskFile } from "@/lib/downloadFile";
-import { formatShortDate } from "@/lib/format";
+import { formatFileSize, formatShortDate } from "@/lib/format";
 import { toast } from "sonner";
 import type { TaskFile } from "@hassad/shared";
 import { FilePurpose } from "@hassad/shared";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`;
-  return `${(bytes / 1024).toFixed(0)} KB`;
-}
 
 function FileIcon({ mimeType }: { mimeType: string }) {
   if (mimeType.startsWith("image/"))
