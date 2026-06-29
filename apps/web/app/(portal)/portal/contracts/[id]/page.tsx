@@ -2,6 +2,7 @@
 
 import { useState, use, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useDispatch } from "react-redux";
 import {
   FileText,
   Download,
@@ -12,7 +13,7 @@ import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import { useSignContractByTokenMutation } from "@/features/contracts/contractsApi";
-import { useGetPortalContractByIdQuery } from "@/features/portal/portalApi";
+import { useGetPortalContractByIdQuery, portalApi } from "@/features/portal/portalApi";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInput } from "@/components/design-system/FormInput";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
@@ -53,6 +54,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
   const { data, isLoading, isError } = useGetPortalContractByIdQuery(id, {
     pollingInterval: 120_000,
   });
+  const dispatch = useDispatch();
   const [signContract, { isLoading: signing }] =
     useSignContractByTokenMutation();
 
@@ -105,6 +107,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
           signedByEmail: signedByEmail.trim() || undefined,
         },
       }).unwrap();
+      dispatch(portalApi.util.invalidateTags(["PortalContracts"]));
       toast.success("تم توقيع العقد بنجاح — شكراً لك");
     } catch {
       toast.error("تعذّر توقيع العقد. حاول مجدداً.");
