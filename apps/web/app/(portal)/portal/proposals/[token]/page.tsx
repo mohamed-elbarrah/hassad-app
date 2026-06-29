@@ -109,14 +109,11 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
           <div className="flex flex-col md:flex-row md:gap-4 gap-5">
             {/* Services List (80%) */}
             {Array.isArray(data.servicesList) &&
-              (data.servicesList as { name: string; price: number }[]).length >
-                0 && (
+              data.servicesList.length > 0 && (
                 <div className="md:w-[80%]">
                   <InfoPanel variant="bordered" title="الخدمات المطلوبة">
                     <div className="space-y-2">
-                      {(
-                        data.servicesList as { name: string; price: number }[]
-                      ).map((service, idx) => (
+                      {data.servicesList.map((service, idx) => (
                         <div
                           key={idx}
                           className="flex items-center justify-between text-sm"

@@ -647,6 +647,7 @@ export const portalApi = createApi({
     "PortalProjects",
     "PortalRequests",
     "PortalInvoices",
+    "PortalFinanceSummary",
     "PortalContracts",
     "PortalReports",
     "ReviewProjects",
@@ -663,7 +664,7 @@ export const portalApi = createApi({
     }),
     getPortalFinanceSummary: builder.query<PortalFinanceSummary, void>({
       query: () => "/portal/finance/summary",
-      providesTags: ["PortalInvoices"],
+      providesTags: ["PortalFinanceSummary"],
     }),
     getProjectProgress: builder.query<ProjectProgress | null, void>({
       query: () => "/portal/project-progress",
@@ -820,7 +821,7 @@ export const portalApi = createApi({
         url: `/deliverables/${id}/approve`,
         method: "POST",
       }),
-      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
+      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress", "ReviewProjects"],
     }),
 
     rejectDeliverable: builder.mutation<any, string>({
@@ -828,7 +829,7 @@ export const portalApi = createApi({
         url: `/deliverables/${id}/reject`,
         method: "POST",
       }),
-      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
+      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress", "ReviewProjects"],
     }),
 
     // NEW: Contract signing
@@ -837,7 +838,7 @@ export const portalApi = createApi({
         url: `/portal/contracts/${id}/sign`,
         method: "POST",
       }),
-      invalidatesTags: ["PortalContracts", "ActionItems", "ActivityFeed"],
+      invalidatesTags: ["PortalContracts", "PortalInvoices", "ActionItems", "ActivityFeed"],
     }),
 
     getPortalReports: builder.query<ReportSummary, void>({
@@ -936,7 +937,6 @@ export const portalApi = createApi({
      */
     getDeliverableRedirect: builder.query<{ projectId: string }, string>({
       query: (id) => `/portal/deliverables/${id}/redirect`,
-      providesTags: (_result, _error, id) => [{ type: "ReviewProjects", id }],
     }),
 
     downloadPeriodReport: builder.query<
@@ -1059,6 +1059,7 @@ export const portalApi = createApi({
       },
       invalidatesTags: (_result, _error, { disputeId }) => [
         { type: "ClientDispute", id: disputeId },
+        "ClientDisputes",
       ],
     }),
 
