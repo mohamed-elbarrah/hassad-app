@@ -11,6 +11,7 @@ import {
   AlertCircle,
   PenLine,
 } from "lucide-react";
+import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
 import { useSignContractByTokenMutation } from "@/features/contracts/contractsApi";
 import { useGetPortalContractByIdQuery } from "@/features/portal/portalApi";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -131,23 +132,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2">
-        <Link href="/portal/contracts">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العقود
-          </ActionButton>
-        </Link>
-        <span className="text-portal-note-text">/</span>
-        <span className="max-w-xs truncate text-sm font-medium text-natural-100">
-          {data.title}
-        </span>
-      </div>
+      <DetailBreadcrumb backHref="/portal/contracts" backLabel="العقود" title={data.title} />
 
       {/* Main contract card */}
       <SurfaceCard

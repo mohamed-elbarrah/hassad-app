@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import { Upload, X, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatFileSize } from "@/lib/format";
 
 interface FileDropzoneProps {
   files: File[];
@@ -32,6 +33,15 @@ export function FileDropzone({
 }: FileDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const urlMapRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    const map = urlMapRef.current;
+    return () => {
+      map.forEach((url) => URL.revokeObjectURL(url));
+      map.clear();
+    };
+  }, []);
 
   const validateFile = useCallback(
     (file: File): string | null => {
@@ -91,16 +101,17 @@ export function FileDropzone({
 
   const removeFile = useCallback(
     (index: number) => {
+      const file = files[index];
+      const key = `${file.name}-${file.size}-${file.lastModified}`;
+      const url = urlMapRef.current.get(key);
+      if (url) {
+        URL.revokeObjectURL(url);
+        urlMapRef.current.delete(key);
+      }
       onFilesChange(files.filter((_, i) => i !== index));
     },
     [files, onFilesChange]
   );
-
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} بايت`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} كيلوبايت`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} ميجابايت`;
-  };
 
   const isImage = (file: File) => file.type.startsWith("image/");
 
@@ -117,6 +128,14 @@ export function FileDropzone({
         }}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={0}
         className={cn(
           "relative border-2 border-dashed rounded-2xl p-6 transition-all cursor-pointer",
           "hover:border-secondary-400 hover:bg-secondary-50/30",
@@ -164,7 +183,13 @@ export function FileDropzone({
             >
               {isImage(file) ? (
                 <img
-                  src={URL.createObjectURL(file)}
+                  src={(() => {
+                    const key = `${file.name}-${file.size}-${file.lastModified}`;
+                    if (!urlMapRef.current.has(key)) {
+                      urlMapRef.current.set(key, URL.createObjectURL(file));
+                    }
+                    return urlMapRef.current.get(key)!;
+                  })()}
                   alt={file.name}
                   className="w-10 h-10 object-cover rounded-lg"
                 />
@@ -178,7 +203,7 @@ export function FileDropzone({
                   {file.name}
                 </p>
                 <p className="text-xs text-neutral-500">
-                  {formatSize(file.size)}
+                  {formatFileSize(file.size)}
                 </p>
               </div>
               <button

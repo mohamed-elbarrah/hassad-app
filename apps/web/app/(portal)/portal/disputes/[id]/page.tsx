@@ -10,7 +10,7 @@ import {
   useConfirmDisputeResolutionMutation,
 } from "@/features/portal/portalApi";
 import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR, DisputeStatus } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
@@ -96,10 +96,10 @@ export default function PortalDisputeDetailPage({
         <h1 className="text-xl font-semibold text-natural-100">التذكرة غير موجودة</h1>
         <p className="text-portal-note-text">لا يمكنك الوصول إلى هذه التذكرة</p>
         <Link href="/portal/disputes">
-          <Button variant="outline" className="mt-4 rounded-xl">
-            <ArrowRight className="ml-2 h-4 w-4" />
-            العودة للقائمة
-          </Button>
+          <ActionButton variant="outline" className="mt-4 rounded-xl">
+            <ArrowRight className="w-4 h-4" />
+            العودة إلى التذاكر
+          </ActionButton>
         </Link>
       </div>
     );
@@ -170,12 +170,12 @@ export default function PortalDisputeDetailPage({
                   </p>
                 </div>
               </div>
-              <Button
+              <ActionButton
+                variant="primary"
                 onClick={() => setIsConfirmDialogOpen(true)}
-                className="rounded-xl bg-cyan-600 hover:bg-cyan-700"
               >
                 تأكيد أو تصعيد
-              </Button>
+              </ActionButton>
             </div>
           </SurfaceCard>
         )}

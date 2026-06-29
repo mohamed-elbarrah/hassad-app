@@ -11,6 +11,7 @@ import {
   XCircle,
   MessageSquare,
 } from "lucide-react";
+import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
 import {
   useGetProposalByTokenQuery,
   useApproveProposalByTokenMutation,
@@ -103,23 +104,7 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2">
-        <Link href="/portal/proposals">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العروض الفنية
-          </ActionButton>
-        </Link>
-        <span className="text-portal-note-text">/</span>
-        <span className="max-w-xs truncate text-sm font-medium text-natural-100">
-          {data.title}
-        </span>
-      </div>
+      <DetailBreadcrumb backHref="/portal/proposals" backLabel="الطلبات" title={data.title} />
 
       <SurfaceCard
         title={data.title}

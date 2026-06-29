@@ -39,7 +39,7 @@ export default function PortalFinancePage() {
   const { data: summaryData, isLoading: summaryLoading } =
     useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: 120_000 });
 
-  const { data: invoicesData, isLoading: invoicesLoading } =
+  const { data: invoicesData, isLoading: invoicesLoading, isError } =
     useGetPortalInvoicesQuery(
       {
         status: statusFilter === "ALL" ? undefined : statusFilter,
@@ -118,7 +118,7 @@ export default function PortalFinancePage() {
         ]}
         data={visibleInvoices}
         isLoading={invoicesLoading}
-        isError={false}
+        isError={isError}
         skeletonRows={PAGE_SIZE}
         emptyState={{
           icon: Receipt,

@@ -2,11 +2,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Ticket, Search, Plus, Filter } from "lucide-react";
+import { Ticket, Search, Plus, Filter, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useGetClientDisputesQuery, useCreateDisputeMutation } from "@/features/portal/portalApi";
 import { DISPUTE_STATUS_AR, DisputeStatus } from "@hassad/shared";
 import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pagination } from "@/components/design-system/Pagination";
 import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
 import { Input } from "@/components/design-system/Input";
@@ -48,7 +49,7 @@ export default function PortalDisputesPage() {
 
   const statusFilter = activeFilters["status"]?.[0] ?? "";
 
-  const { data, isLoading, refetch } = useGetClientDisputesQuery(
+  const { data, isLoading, isError, refetch } = useGetClientDisputesQuery(
     {
       status: statusFilter as DisputeStatus | undefined,
       page,
@@ -136,7 +137,15 @@ export default function PortalDisputesPage() {
       </div>
 
       {/* ── Disputes Grid ──────────────────────────────────────────────────── */}
-      {isLoading ? (
+      {isError ? (
+        <SurfaceCard>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <AlertCircle className="w-12 h-12 text-danger-500 mb-4" />
+            <p className="text-lg font-medium text-natural-100 mb-2">تعذر تحميل التذاكر</p>
+            <ActionButton variant="primary" onClick={() => refetch()}>إعادة المحاولة</ActionButton>
+          </div>
+        </SurfaceCard>
+      ) : isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-48 rounded-[24px]" />

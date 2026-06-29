@@ -24,6 +24,7 @@ import {
   CreditCard,
   Clock,
 } from "lucide-react";
+import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
 import { mapFinanceStatusToUI } from "@/lib/utils/statusMapping";
 import { useCurrency } from "@/hooks/useCurrency";
 import { InvoiceStatus } from "@hassad/shared";
@@ -146,23 +147,7 @@ export default function PortalInvoiceDetailPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2">
-        <Link href="/portal/finance">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            الفواتير
-          </ActionButton>
-        </Link>
-        <span className="text-portal-note-text">/</span>
-        <span className="max-w-xs truncate text-sm font-medium text-natural-100">
-          فاتورة {invoice.invoiceNumber}
-        </span>
-      </div>
+      <DetailBreadcrumb backHref="/portal/finance" backLabel="المالية" title={`فاتورة #${invoice.invoiceNumber}`} />
 
       <SurfaceCard
         title={`فاتورة ${invoice.invoiceNumber}`}

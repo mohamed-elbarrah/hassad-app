@@ -11,6 +11,7 @@ import {
   Bell,
   Hourglass,
   CalendarClock,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageIntro } from "@/components/design-system/PageIntro";
@@ -117,6 +118,7 @@ export default function PortalActionsPage() {
     data,
     isLoading,
     isError,
+    refetch,
   } = useGetActionItemsQuery(
     {
       type: typeFilter || undefined,
@@ -227,6 +229,15 @@ export default function PortalActionsPage() {
         </TabsList>
 
         {/* ── Tab: الآن ───────────────────────────────────────────────── */}
+        {isError ? (
+          <SurfaceCard>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="w-12 h-12 text-danger-500 mb-4" />
+              <p className="text-lg font-medium text-natural-100 mb-2">تعذر تحميل الإجراءات</p>
+              <ActionButton variant="primary" onClick={() => refetch()}>إعادة المحاولة</ActionButton>
+            </div>
+          </SurfaceCard>
+        ) : (
         <TabsContent value="now" className="mt-4">
           <SurfaceCard
             title="الإجراءات المعلقة"
@@ -338,6 +349,7 @@ export default function PortalActionsPage() {
             )}
           </SurfaceCard>
         </TabsContent>
+        )}
 
         {/* ── Tab: المؤجلة ────────────────────────────────────────────── */}
         <TabsContent value="snoozed" className="mt-4">
