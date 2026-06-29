@@ -3,33 +3,12 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  Inbox,
-  FileText,
-  BarChart3,
-  Settings,
-  CheckCircle2,
-  FolderOpen,
-  Bell,
-  ClipboardList,
-  MessageSquare,
-  X,
-  TrendingUp,
-} from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const MORE_ITEMS = [
-  { label: "المحادثات", href: "/portal/chat", icon: MessageSquare },
-  { label: "الإشعارات", href: "/portal/notifications", icon: Bell },
-  { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
-  { label: "العقود", href: "/portal/contracts", icon: FileText },
-  { label: "العروض", href: "/portal/proposals", icon: FileText },
-  { label: "مراجعة التسليمات", href: "/portal/deliverables", icon: Inbox },
-  { label: "الحملات", href: "/portal/campaigns", icon: TrendingUp },
-  { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
-  { label: "الإعدادات", href: "/portal/account", icon: Settings },
-];
+import {
+  PORTAL_MORE_ITEMS,
+  isPortalActiveLink,
+} from "@/lib/portal-navigation";
 
 interface MoreMenuProps {
   isOpen: boolean;
@@ -72,10 +51,9 @@ export function MoreMenu({ isOpen, onClose }: MoreMenuProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          {MORE_ITEMS.map((item) => {
+          {PORTAL_MORE_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive = isPortalActiveLink(item.href, pathname);
             return (
               <Link
                 key={item.href}

@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useMemo, useState } from "react";
 import { Package } from "lucide-react";
 import { useGetPortalRequestsQuery } from "@/features/portal/portalApi";
@@ -26,7 +27,7 @@ export default function PortalRequestsPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 120_000 },
+    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const requests = data?.data ?? [];

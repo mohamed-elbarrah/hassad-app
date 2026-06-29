@@ -413,79 +413,18 @@ export function VisualSection({
           </div>
 
           {hasIdentity && (
-            <div className="rounded-2xl bg-secondary-50 border border-secondary-100 p-4 sm:p-6 space-y-5">
-              <p className="text-sm font-medium text-secondary-700">
-                ملفات براندك البصرية
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-natural-100">
-                    الشعار
-                  </span>
-                  <FileDropzone
-                    files={logoFiles}
-                    onFilesChange={setLogoFiles}
-                    maxFiles={1}
-                    maxSizeMB={5}
-                    acceptedTypes={["image/png", "image/svg+xml"]}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-natural-100">
-                    دليل الهوية
-                  </span>
-                  <FileDropzone
-                    files={guidelinesFiles}
-                    onFilesChange={setGuidelinesFiles}
-                    maxFiles={1}
-                    maxSizeMB={10}
-                    acceptedTypes={["application/pdf"]}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-natural-100">
-                    ألوان العلامة التجارية
-                  </span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {brandColors.map((color, index) => (
-                      <ColorPickerControl
-                        key={index}
-                        value={color}
-                        onChange={(value) => updateColor(index, value)}
-                        onRemove={
-                          brandColors.length > 1
-                            ? () => removeColor(index)
-                            : undefined
-                        }
-                      />
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addColor}
-                      className="w-9 h-9 rounded-lg border border-dashed border-portal-divider flex items-center justify-center text-portal-icon hover:border-secondary-300 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-natural-100">
-                    الخطوط
-                  </span>
-                  <FormInputControl
-                    placeholder="أسماء الخطوط المستخدمة"
-                    value={fontInput}
-                    onChange={(e) => setFontInput(e.target.value)}
-                  />
-                  <p className="text-xs text-portal-note-text">
-                    اكتب أسماء الخطوط مفصولة بفاصلة (،)
-                  </p>
-                </div>
-              </div>
-            </div>
+            <BrandAssetsForm
+              logoFiles={logoFiles}
+              onLogoFilesChange={setLogoFiles}
+              guidelinesFiles={guidelinesFiles}
+              onGuidelinesFilesChange={setGuidelinesFiles}
+              brandColors={brandColors}
+              onAddColor={addColor}
+              onUpdateColor={updateColor}
+              onRemoveColor={removeColor}
+              fontInput={fontInput}
+              onFontInputChange={setFontInput}
+            />
           )}
 
           <FormField
@@ -520,28 +459,16 @@ export function VisualSection({
             />
           </div>
 
-          <div className="space-y-3">
-            <span className="text-sm font-medium text-natural-100 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-portal-icon" />
-              التوجه البصري — 3 حسابات يعجبك ستايلها
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[0, 1, 2].map((i) => (
-                <FormInputControl
-                  key={i}
-                  placeholder={`حساب ${i + 1}`}
-                  value={visualDirection[i] ?? ""}
-                  onChange={(e) => {
-                    const updated = [...visualDirection];
-                    updated[i] = e.target.value;
-                    form.setValue("visualDirection", updated, {
-                      shouldDirty: true,
-                    });
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+          <VisualDirectionForm
+            visualDirection={visualDirection}
+            onChange={(index, value) => {
+              const updated = [...visualDirection];
+              updated[index] = value;
+              form.setValue("visualDirection", updated, {
+                shouldDirty: true,
+              });
+            }}
+          />
 
           {!hideNavigation && mode === "wizard" && (
             <NavigationButtons onBack={onBack} submitLabel="التالي" />
@@ -549,5 +476,136 @@ export function VisualSection({
         </form>
       </Form>
     </SectionLayout>
+  );
+}
+
+// ─── BrandAssetsForm sub-component ────────────────────────────────────────────
+
+function BrandAssetsForm({
+  logoFiles,
+  onLogoFilesChange,
+  guidelinesFiles,
+  onGuidelinesFilesChange,
+  brandColors,
+  onAddColor,
+  onUpdateColor,
+  onRemoveColor,
+  fontInput,
+  onFontInputChange,
+}: {
+  logoFiles: File[];
+  onLogoFilesChange: (files: File[]) => void;
+  guidelinesFiles: File[];
+  onGuidelinesFilesChange: (files: File[]) => void;
+  brandColors: string[];
+  onAddColor: () => void;
+  onUpdateColor: (index: number, value: string) => void;
+  onRemoveColor: (index: number) => void;
+  fontInput: string;
+  onFontInputChange: (value: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl bg-secondary-50 border border-secondary-100 p-4 sm:p-6 space-y-5">
+      <p className="text-sm font-medium text-secondary-700">
+        ملفات براندك البصرية
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="space-y-2">
+          <span className="text-xs font-medium text-natural-100">
+            الشعار
+          </span>
+          <FileDropzone
+            files={logoFiles}
+            onFilesChange={onLogoFilesChange}
+            maxFiles={1}
+            maxSizeMB={5}
+            acceptedTypes={["image/png", "image/svg+xml"]}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <span className="text-xs font-medium text-natural-100">
+            دليل الهوية
+          </span>
+          <FileDropzone
+            files={guidelinesFiles}
+            onFilesChange={onGuidelinesFilesChange}
+            maxFiles={1}
+            maxSizeMB={10}
+            acceptedTypes={["application/pdf"]}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <span className="text-xs font-medium text-natural-100">
+            ألوان العلامة التجارية
+          </span>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {brandColors.map((color, index) => (
+              <ColorPickerControl
+                key={index}
+                value={color}
+                onChange={(value) => onUpdateColor(index, value)}
+                onRemove={
+                  brandColors.length > 1
+                    ? () => onRemoveColor(index)
+                    : undefined
+                }
+              />
+            ))}
+            <button
+              type="button"
+              onClick={onAddColor}
+              className="w-9 h-9 rounded-lg border border-dashed border-portal-divider flex items-center justify-center text-portal-icon hover:border-secondary-300 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <span className="text-xs font-medium text-natural-100">
+            الخطوط
+          </span>
+          <FormInputControl
+            placeholder="أسماء الخطوط المستخدمة"
+            value={fontInput}
+            onChange={(e) => onFontInputChange(e.target.value)}
+          />
+          <p className="text-xs text-portal-note-text">
+            اكتب أسماء الخطوط مفصولة بفاصلة (،)
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── VisualDirectionForm sub-component ────────────────────────────────────────
+
+function VisualDirectionForm({
+  visualDirection,
+  onChange,
+}: {
+  visualDirection: (string | undefined)[];
+  onChange: (index: number, value: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <span className="text-sm font-medium text-natural-100 flex items-center gap-2">
+        <Eye className="w-4 h-4 text-portal-icon" />
+        التوجه البصري — 3 حسابات يعجبك ستايلها
+      </span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[0, 1, 2].map((i) => (
+          <FormInputControl
+            key={i}
+            placeholder={`حساب ${i + 1}`}
+            value={visualDirection[i] ?? ""}
+            onChange={(e) => onChange(i, e.target.value)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

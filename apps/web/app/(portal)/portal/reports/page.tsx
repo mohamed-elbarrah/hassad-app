@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useMemo, useState } from "react";
 import { useAppSelector } from "@/lib/hooks";
 import {
@@ -28,20 +29,10 @@ import {
   getTimeRangeParams,
   type TimeRange,
 } from "@/components/design-system/TimeRangeSelector";
+import { formatCompactNumber } from "@/lib/format";
 
-function fmtCompact(n: number): string {
-  if (n >= 1_000_000)
-    return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
-  return n.toLocaleString("ar-SA-u-nu-latn");
-}
-
-function fmtSpend(n: number): string {
-  if (n >= 1_000_000)
-    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-  return n.toLocaleString("ar-SA-u-nu-latn");
-}
+const fmtCompact = formatCompactNumber;
+const fmtSpend = formatCompactNumber;
 
 function KpiCardShell() {
   return (
@@ -111,7 +102,7 @@ export default function PortalReportsPage() {
     refetch,
   } = useGetPortalReportsQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
   const { data: timeline } = useGetReportTimelineQuery(
     {
@@ -119,7 +110,7 @@ export default function PortalReportsPage() {
       dateTo: rangeParams.dateTo,
       granularity: rangeParams.granularity,
     },
-    { skip: !clientId, pollingInterval: 120_000 },
+    { skip: !clientId, pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   return (

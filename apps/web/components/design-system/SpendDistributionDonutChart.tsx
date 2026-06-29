@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type { ReportPlatformDistribution } from "@/features/portal/portalApi";
+import { formatCompactNumber } from "@/lib/format";
 
 const PLATFORM_COLORS: Record<string, string> = {
   جوجل: "#e7be52",
@@ -16,12 +17,7 @@ interface SpendDistributionDonutChartProps {
   data: ReportPlatformDistribution[];
 }
 
-function fmtSpend(n: number): string {
-  if (n >= 1_000_000)
-    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-  return n.toLocaleString("ar-SA-u-nu-latn");
-}
+const fmtSpend = formatCompactNumber;
 
 export function SpendDistributionDonutChart({
   data,

@@ -1,27 +1,28 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, use } from "react";
-import Link from "next/link";
 import {
-  ArrowRight,
   FileText,
   Download,
   CheckCircle,
   AlertCircle,
-  XCircle,
   MessageSquare,
 } from "lucide-react";
+import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
+import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import {
-  useGetProposalByTokenQuery,
-  useApproveProposalByTokenMutation,
-  useRequestRevisionByTokenMutation,
-} from "@/features/proposals/proposalsApi";
+  useGetPortalProposalByTokenQuery,
+  useApprovePortalProposalMutation,
+  useRequestPortalProposalRevisionMutation,
+} from "@/features/portal/portalApi";
 import { ProposalStatus } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { FormTextarea } from "@/components/design-system/FormTextarea";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import Link from "next/link";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
@@ -36,39 +37,26 @@ interface PageProps {
 
 export default function PortalProposalDetailPage({ params }: PageProps) {
   const { token } = use(params);
-  const { data, isLoading, isError } = useGetProposalByTokenQuery(token, {
-    pollingInterval: 120_000,
+  const { data, isLoading, isError } = useGetPortalProposalByTokenQuery(token, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
   const [approveProposal, { isLoading: approving }] =
-    useApproveProposalByTokenMutation();
+    useApprovePortalProposalMutation();
   const [requestRevision, { isLoading: requesting }] =
-    useRequestRevisionByTokenMutation();
+    useRequestPortalProposalRevisionMutation();
   const [notes, setNotes] = useState("");
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
+    return <DetailSkeleton variant="proposal" />;
   }
 
   if (isError || !data) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Link href="/portal/proposals">
-          <ActionButton variant="ghost" size="sm" className="gap-2">
-            <ArrowRight className="h-4 w-4" />
-            العروض الفنية
-          </ActionButton>
-        </Link>
-        <SurfaceCard title="تعذر تحميل العرض" icon={AlertCircle}>
-          <p className="text-center text-sm text-portal-note-text">
-            العرض غير متوفر أو انتهت صلاحية الرابط.
-          </p>
-        </SurfaceCard>
-      </div>
+      <DetailErrorState
+        title="تعذر تحميل العرض"
+        backHref="/portal/proposals"
+        backLabel="العروض الفنية"
+      />
     );
   }
 
@@ -103,23 +91,7 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2">
-        <Link href="/portal/proposals">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العروض الفنية
-          </ActionButton>
-        </Link>
-        <span className="text-portal-note-text">/</span>
-        <span className="max-w-xs truncate text-sm font-medium text-natural-100">
-          {data.title}
-        </span>
-      </div>
+      <DetailBreadcrumb backHref="/portal/proposals" backLabel="الطلبات" title={data.title} />
 
       <SurfaceCard
         title={data.title}
@@ -138,14 +110,11 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
           <div className="flex flex-col md:flex-row md:gap-4 gap-5">
             {/* Services List (80%) */}
             {Array.isArray(data.servicesList) &&
-              (data.servicesList as { name: string; price: number }[]).length >
-                0 && (
+              data.servicesList.length > 0 && (
                 <div className="md:w-[80%]">
                   <InfoPanel variant="bordered" title="الخدمات المطلوبة">
                     <div className="space-y-2">
-                      {(
-                        data.servicesList as { name: string; price: number }[]
-                      ).map((service, idx) => (
+                      {data.servicesList.map((service, idx) => (
                         <div
                           key={idx}
                           className="flex items-center justify-between text-sm"
@@ -194,7 +163,7 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
                         size="sm"
                         className="gap-2 shrink-0"
                       >
-                        <MessageSquare className="w-4 w-4" />
+                        <MessageSquare className="w-4 h-4" />
                         تواصل معه
                       </ActionButton>
                     </Link>

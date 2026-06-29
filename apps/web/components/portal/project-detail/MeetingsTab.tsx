@@ -12,7 +12,7 @@ import type { PortalPeriodMeeting } from "@/features/portal/portalApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { EmptyState } from "./EmptyState";
-import { formatDateTime } from "./helpers";
+import { formatDateTimeTz } from "@/lib/format";
 import { safeHttpUrl } from "@/lib/utils";
 
 function MeetingRow({ meeting }: { meeting: PortalPeriodMeeting }) {
@@ -55,7 +55,7 @@ function MeetingRow({ meeting }: { meeting: PortalPeriodMeeting }) {
           <StatusBadge status={meeting.status} />
         </div>
         <p className="mt-1 text-xs text-portal-note-text">
-          {formatDateTime(meeting.scheduledAt)}
+          {formatDateTimeTz(meeting.scheduledAt)}
           {meeting.durationMin ? ` · ${meeting.durationMin} دقيقة` : ""}
         </p>
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-portal-note-text">

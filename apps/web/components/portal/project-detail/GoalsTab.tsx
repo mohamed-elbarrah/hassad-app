@@ -1,14 +1,36 @@
 "use client";
 
 import { CheckCircle2, Circle, Loader2, Target } from "lucide-react";
-import type { PeriodGoal } from "@hassad/shared";
+import type { PeriodGoal, PeriodGoalStatus } from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { EmptyState } from "./EmptyState";
 import { cn } from "@/lib/utils";
-import { GOAL_STATUS_CONFIG, type GoalStatus } from "./helpers";
+
+type GoalStatus = PeriodGoalStatus;
+
+const GOAL_STATUS_CONFIG: Record<
+  GoalStatus,
+  { badge: string; barColor: string; label: string }
+> = {
+  done: {
+    badge: "bg-success-100 text-success-700",
+    barColor: "bg-success-1000",
+    label: "مكتمل",
+  },
+  in_progress: {
+    badge: "bg-secondary-100 text-secondary-700",
+    barColor: "bg-secondary-500",
+    label: "قيد التنفيذ",
+  },
+  pending: {
+    badge: "bg-neutral-100 text-neutral-500",
+    barColor: "bg-neutral-300",
+    label: "معلق",
+  },
+};
 
 const STATUS_ICON: Record<GoalStatus, React.ReactNode> = {
-  done: <CheckCircle2 className="size-5 text-emerald-500" />,
+  done: <CheckCircle2 className="size-5 text-success-500" />,
   in_progress: <Loader2 className="size-5 animate-spin text-secondary-500" />,
   pending: <Circle className="size-5 text-neutral-300" />,
 };
@@ -50,7 +72,7 @@ function GoalRow({ goal }: { goal: PeriodGoal }) {
       </div>
       <span
         className={cn(
-          "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium",
+          "shrink-0 rounded-full px-2.5 py-1 text-caption font-medium",
           config.badge,
         )}
       >

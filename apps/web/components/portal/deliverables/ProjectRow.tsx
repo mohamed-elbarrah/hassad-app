@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import type { ReviewProject } from "@/features/portal/portalApi";
-import { ProjectStatusPill } from "./ProjectStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { formatRelative } from "./utils";
 import { buildPortalFileUrl, getPortalFileKind } from "@/lib/portal-files";
 
@@ -44,7 +44,7 @@ export function renderProjectRowCells(
       end={project.endDate}
     />,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <ProjectStatusPill status={project.status} />
+      <DomainStatusPill domain="project" status={project.status} />
     </td>,
     <CtaCell key="action" onActivate={helpers.onActivate} />,
   ];
@@ -59,7 +59,7 @@ function NameCell({ project }: { project: ReviewProject }) {
         <span className="text-sm font-semibold text-natural-100 truncate max-w-[300px]">
           {project.name}
         </span>
-        <span className="inline-flex items-center gap-3 text-[11px] text-portal-note-text">
+        <span className="inline-flex items-center gap-3 text-xs text-portal-note-text">
           <span className="inline-flex items-center gap-1.5">
             <Clock className="h-3 w-3" />
             <span>
@@ -89,7 +89,7 @@ function ManagerCell({ project }: { project: ReviewProject }) {
     <td className="px-5 py-3.5 align-middle">
       <div className="inline-flex items-center gap-2.5 min-w-0">
         <UserAvatar name={name} size="sm" variant="circle" />
-        <span className="text-[13px] text-natural-100 truncate max-w-[140px]">
+        <span className="text-sm text-natural-100 truncate max-w-[140px]">
           {name}
         </span>
       </div>
@@ -121,7 +121,7 @@ function DateCell({
   end?: string | null;
 }) {
   return (
-    <td className="px-5 py-3.5 align-middle text-[13px] text-portal-note-text tabular-nums">
+    <td className="px-5 py-3.5 align-middle text-sm text-portal-note-text tabular-nums">
       {formatRange(start, end)}
     </td>
   );
@@ -133,7 +133,7 @@ function CtaCell({ onActivate }: { onActivate?: () => void }) {
       <span
         className={cn(
           "inline-flex h-8 items-center gap-1.5 rounded-lg px-3",
-          "text-[13px] font-semibold",
+          "text-sm font-semibold",
           "bg-primary-100 text-primary-700",
           "ring-1 ring-inset ring-primary-200",
           "transition-colors",
@@ -163,7 +163,7 @@ function FilePreview({
       <span
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-          "text-[11px] font-medium",
+          "text-xs font-medium",
           "bg-alert-100 text-alert-700 ring-1 ring-inset ring-alert-200",
         )}
         title="لم يتم إرفاق ملفات مع هذا المشروع"
@@ -185,7 +185,7 @@ function FilePreview({
       <span
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-          "text-[11px] font-medium tabular-nums",
+          "text-xs font-medium tabular-nums",
           "bg-action-blue-soft text-action-blue ring-1 ring-inset ring-action-blue/20",
         )}
       >
@@ -223,7 +223,7 @@ function FilePreview({
           className={cn(
             "relative inline-flex h-8 w-8 items-center justify-center rounded-md",
             "bg-badge-gray-bg text-secondary-500 ring-2 ring-natural-0",
-            "text-[10px] font-semibold tabular-nums",
+            "text-caption font-semibold tabular-nums",
           )}
           title={`${overflow} ملف إضافي`}
         >

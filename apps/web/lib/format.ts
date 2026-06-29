@@ -1,9 +1,7 @@
 // apps/web/lib/format.ts
 // Shared currency, date, and locale formatting utilities.
 
-import { PLATFORM_LABELS } from "./utils/campaign-constants";
-
-export const DEFAULT_CURRENCY = "SAR";
+const DEFAULT_CURRENCY = "SAR";
 export const DEFAULT_LOCALE = "ar-SA-u-nu-latn";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -20,7 +18,7 @@ const CURRENCY_LOCALES: Record<string, string> = {
   EUR: "en-EU",
 };
 
-export function getCurrencySymbol(currency?: string): string {
+function getCurrencySymbol(currency?: string): string {
   return (
     CURRENCY_SYMBOLS[currency || DEFAULT_CURRENCY] ||
     CURRENCY_SYMBOLS[DEFAULT_CURRENCY]
@@ -192,38 +190,12 @@ export function formatNumber(
   }
 }
 
-/**
- * Re-export the platform label map so callers don't import from
- * a separate `campaign-constants` module just to render a name.
- */
-export { PLATFORM_LABELS as platformLabels } from "./utils/campaign-constants";
-
-/**
- * Display label for a campaign platform — falls back to the raw
- * value if unknown. Pure helper, no DOM coupling.
- */
-export function platformLabel(platform: string): string {
-  return PLATFORM_LABELS[platform] ?? platform;
-}
-
 /** Budget progress 0..1 — clamped, NaN-safe. */
 export function budgetProgress(spent: number, total: number): number {
   if (!total || total <= 0) return 0;
   const ratio = spent / total;
   if (Number.isNaN(ratio)) return 0;
   return Math.max(0, Math.min(1, ratio));
-}
-
-/** Contract-type display labels (Arabic). */
-export const CONTRACT_TYPE_LABELS: Record<string, string> = {
-  MONTHLY_RETAINER: "شهري ثابت",
-  FIXED_PROJECT: "مشروع محدد",
-  ONE_TIME_SERVICE: "خدمة مرة واحدة",
-};
-
-/** Display label for a contract type — falls back to the raw value. */
-export function contractTypeLabel(type: string): string {
-  return CONTRACT_TYPE_LABELS[type] ?? type;
 }
 
 /**
@@ -243,6 +215,24 @@ export function formatFileSize(bytes: number): string {
 }
 
 /**
+ * Compact number formatting for axis labels and dense tables:
+ * 999 → "999", 1,200 → "1.2K", 12,000 → "12K", 3,400,000 → "3.4M".
+ * Trailing ".0" is trimmed ("1.0K" → "1K"). Below 1,000 falls back
+ * to Arabic-locale grouping.
+ */
+export function formatCompactNumber(n: number): string {
+  if (n >= 1_000_000) {
+    const v = (n / 1_000_000).toFixed(1).replace(/\.0$/, "");
+    return `${v}M`;
+  }
+  if (n >= 1_000) {
+    const v = (n / 1_000).toFixed(1).replace(/\.0$/, "");
+    return `${v}K`;
+  }
+  return n.toLocaleString("ar-SA-u-nu-latn");
+}
+
+/**
  * Calculate days until a target date from today.
  * Returns positive number for future dates, negative for past dates.
  */
@@ -255,4 +245,89 @@ export function daysUntil(date: string | Date | undefined | null): number | null
   now.setHours(0, 0, 0, 0);
   const diffTime = target.getTime() - now.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+// ── Timezone-Safe Formatters ──────────────────────────────────────────────────
+//
+// The Intl-based formatters above interpret date strings in the user's local
+// timezone, which can shift the displayed day by ±1 when the user is in a
+// timezone west/east of UTC. For dates that represent *calendar dates* (a
+// period start, an invoice due date, a meeting day), this is wrong.
+//
+// The functions below parse the calendar date embedded in an ISO YYYY-MM-DD
+// string and never invoke the Date timezone machinery. Use them for any
+// date that came from the backend as a date-only ISO string.
+
+const ARABIC_MONTHS_SHORT = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+
+/** Parse a YYYY-MM-DD (or full ISO) string into its calendar date components
+ *  WITHOUT timezone shift. Falls back to `new Date(...)` for non-ISO inputs.
+ *  Returns `{ year, month (0-11), day }`. */
+function parseCalendarDate(input: string | Date): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  if (typeof input === "string") {
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(input);
+    if (isoMatch) {
+      return {
+        year: Number(isoMatch[1]),
+        month: Number(isoMatch[2]) - 1,
+        day: Number(isoMatch[3]),
+      };
+    }
+  }
+  const d = new Date(input);
+  return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
+}
+
+/** Short Arabic date: "12 يونيو" — timezone-safe. */
+export function formatShortDateTz(dateStr: string | Date): string {
+  const { day, month } = parseCalendarDate(dateStr);
+  return `${day} ${ARABIC_MONTHS_SHORT[month]}`;
+}
+
+/** Full Arabic date: "12 يونيو 2026" — timezone-safe. */
+export function formatDateTz(dateStr: string | Date): string {
+  const { year, month, day } = parseCalendarDate(dateStr);
+  return `${day} ${ARABIC_MONTHS_SHORT[month]} ${year}`;
+}
+
+/** Date + time: "12 يونيو 2026 - 11:00 ص" — calendar date is timezone-safe,
+ *  the time portion uses the user's local time (which IS timezone-sensitive
+ *  and meaningful). */
+export function formatDateTimeTz(dateStr: string | Date): string {
+  const { year, month, day } = parseCalendarDate(dateStr);
+  const d = new Date(dateStr);
+  const time = d.toLocaleTimeString("ar-SA-u-nu-latn", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${day} ${ARABIC_MONTHS_SHORT[month]} ${year} - ${time}`;
+}
+
+/** Whole days from now until `endDate` (can be negative). Compares the
+ *  end-of-day timestamp of the calendar date against now so the result is
+ *  consistent regardless of the user's timezone. */
+export function getDaysRemaining(endDate: string | Date): number {
+  const { year, month, day } = parseCalendarDate(endDate);
+  // Build a UTC timestamp for the END of that calendar day (23:59:59.999)
+  // so a period ending today still has ≥0 days remaining until midnight.
+  const end = Date.UTC(year, month, day, 23, 59, 59, 999);
+  const now = Date.now();
+  return Math.ceil((end - now) / (1000 * 60 * 60 * 24));
 }

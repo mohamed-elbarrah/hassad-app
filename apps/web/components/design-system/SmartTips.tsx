@@ -2,6 +2,7 @@
 
 import { Wallet, AlertCircle, Lightbulb } from "lucide-react";
 import type { ReportSmartTip } from "@/features/portal/portalApi";
+import { cn } from "@/lib/utils";
 
 const TIP_ICONS: Record<string, React.ElementType> = {
   budget: Wallet,
@@ -10,15 +11,15 @@ const TIP_ICONS: Record<string, React.ElementType> = {
 };
 
 const TIP_ICON_BG: Record<string, string> = {
-  budget: "#FFF7ED",
-  warning: "#FEF2F2",
-  insight: "#F0FDF4",
+  budget: "bg-alert-100",
+  warning: "bg-danger-100",
+  insight: "bg-success-100",
 };
 
 const TIP_ICON_COLOR: Record<string, string> = {
-  budget: "#e7be52",
-  warning: "#F43F5E",
-  insight: "#10B981",
+  budget: "text-alert-600",
+  warning: "text-danger-600",
+  insight: "text-success-600",
 };
 
 interface SmartTipsProps {
@@ -35,16 +36,18 @@ export function SmartTips({ tips }: SmartTipsProps) {
         return (
           <div key={i} className="flex items-start gap-3">
             <div
-              className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: TIP_ICON_BG[tip.type] || "#f9fafb" }}
+              className={cn(
+                "shrink-0 w-9 h-9 rounded-full flex items-center justify-center",
+                TIP_ICON_BG[tip.type] || "bg-portal-bg",
+              )}
             >
               <Icon
                 size={18}
-                style={{ color: TIP_ICON_COLOR[tip.type] || "#6B7280" }}
+                className={TIP_ICON_COLOR[tip.type] || "text-neutral-500"}
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold" style={{ color: "#121936" }}>
+              <p className="text-sm font-semibold text-secondary-500">
                 {tip.title}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">

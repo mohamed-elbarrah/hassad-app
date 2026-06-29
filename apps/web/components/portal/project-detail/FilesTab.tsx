@@ -5,8 +5,7 @@ import type { PortalPeriodFile } from "@/features/portal/portalApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow";
 import { EmptyState } from "./EmptyState";
-import { formatFileSize } from "@/lib/format";
-import { formatDate } from "./helpers";
+import { formatDateTz, formatFileSize } from "@/lib/format";
 
 interface FilesTabProps {
   files: PortalPeriodFile[];
@@ -37,7 +36,7 @@ export function FilesTab({ files, onDownload }: FilesTabProps) {
             onDownload={() => onDownload(file)}
             action={
               <span className="hidden text-xs text-portal-note-text sm:block">
-                {formatDate(file.uploadedAt)}
+                {formatDateTz(file.uploadedAt)}
               </span>
             }
           />

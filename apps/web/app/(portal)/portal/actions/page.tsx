@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -11,8 +12,8 @@ import {
   Bell,
   Hourglass,
   CalendarClock,
+  AlertCircle,
 } from "lucide-react";
-import { toast } from "sonner";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pagination } from "@/components/design-system/Pagination";
@@ -26,12 +27,11 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/design-system/Tabs";
+import { useSnoozeActionItem } from "@/hooks/useSnoozeActionItem";
 import { useAppSelector } from "@/lib/hooks";
 import {
   useGetActionItemsQuery,
   useGetSnoozedActionItemsQuery,
-  useSnoozeActionItemMutation,
-  useUnsnoozeActionItemMutation,
   type SnoozedActionItem,
 } from "@/features/portal/portalApi";
 
@@ -71,11 +71,6 @@ const PRIORITY_PILL: Record<
 };
 
 const PAGE_SIZE = 6;
-
-/** Strip the `del-` / `inv-` / etc. prefix from an action item id. */
-function stripPrefix(id: string): string {
-  return id.replace(/^(del|inv|prop|con|strat)-/, "");
-}
 
 /** Friendly "23 Aug 2026, 14:30" formatter using Arabic-locale Latin digits. */
 function formatReminderTime(iso: string): string {
@@ -117,13 +112,14 @@ export default function PortalActionsPage() {
     data,
     isLoading,
     isError,
+    refetch,
   } = useGetActionItemsQuery(
     {
       type: typeFilter || undefined,
       page,
       limit: PAGE_SIZE,
     },
-    { skip: !clientId || activeTab !== "now", pollingInterval: 120_000 },
+    { skip: !clientId || activeTab !== "now", pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const {
@@ -132,11 +128,10 @@ export default function PortalActionsPage() {
     isError: snoozedError,
   } = useGetSnoozedActionItemsQuery(
     { activeOnly: true },
-    { skip: !clientId || activeTab !== "snoozed", pollingInterval: 120_000 },
+    { skip: !clientId || activeTab !== "snoozed", pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
-  const [snoozeActionItem] = useSnoozeActionItemMutation();
-  const [unsnoozeActionItem] = useUnsnoozeActionItemMutation();
+  const { snoozeItem, unsnoozeItem } = useSnoozeActionItem();
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -154,42 +149,16 @@ export default function PortalActionsPage() {
     type: string;
     title: string;
   }) => {
-    const itemId = stripPrefix(item.id);
     setBusyId(item.id);
-    try {
-      const result = await snoozeActionItem({
-        itemType: item.type,
-        itemId,
-      }).unwrap();
-      const until = result?.snoozedUntil
-        ? formatReminderTime(result.snoozedUntil)
-        : "بعد 24 ساعة";
-      toast.success(`سيتم تذكيرك بـ «${item.title}» ${until}`, {
-        description: "يمكنك التراجع من تبويب «المؤجلة».",
-        duration: 5000,
-      });
-    } catch (err: any) {
-      toast.error(err?.data?.message || "فشل في إخفاء الإجراء");
-    } finally {
-      setBusyId(null);
-    }
+    await snoozeItem(item.type, item.id);
+    setBusyId(null);
   };
 
   /** Cancel an existing snooze from the "المؤجلة" tab. */
   const handleUnsnooze = async (item: SnoozedActionItem) => {
-    const itemId = stripPrefix(item.id);
     setBusyId(item.id);
-    try {
-      await unsnoozeActionItem({ itemType: item.type, itemId }).unwrap();
-      toast.success(`تم إعادة «${item.title}» إلى قائمة الإجراءات`, {
-        description: "ستجده في تبويب «الآن».",
-        duration: 4000,
-      });
-    } catch (err: any) {
-      toast.error(err?.data?.message || "فشل في إلغاء التأجيل");
-    } finally {
-      setBusyId(null);
-    }
+    await unsnoozeItem(item.type, item.id);
+    setBusyId(null);
   };
 
   return (
@@ -210,7 +179,7 @@ export default function PortalActionsPage() {
             <Bell className="h-4 w-4" />
             الآن
             {!isLoading && items.length > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary-500 px-1.5 text-[11px] font-semibold text-white">
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary-500 px-1.5 text-xs font-semibold text-white">
                 {items.length}
               </span>
             )}
@@ -219,7 +188,7 @@ export default function PortalActionsPage() {
             <Hourglass className="h-4 w-4" />
             المؤجلة
             {!snoozedLoading && snoozedItems.length > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-portal-note-text/20 px-1.5 text-[11px] font-semibold text-portal-note-text">
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-portal-note-text/20 px-1.5 text-xs font-semibold text-portal-note-text">
                 {snoozedItems.length}
               </span>
             )}
@@ -227,6 +196,15 @@ export default function PortalActionsPage() {
         </TabsList>
 
         {/* ── Tab: الآن ───────────────────────────────────────────────── */}
+        {isError ? (
+          <SurfaceCard>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="w-12 h-12 text-danger-500 mb-4" />
+              <p className="text-lg font-medium text-natural-100 mb-2">تعذر تحميل الإجراءات</p>
+              <ActionButton variant="primary" onClick={() => refetch()}>إعادة المحاولة</ActionButton>
+            </div>
+          </SurfaceCard>
+        ) : (
         <TabsContent value="now" className="mt-4">
           <SurfaceCard
             title="الإجراءات المعلقة"
@@ -338,6 +316,7 @@ export default function PortalActionsPage() {
             )}
           </SurfaceCard>
         </TabsContent>
+        )}
 
         {/* ── Tab: المؤجلة ────────────────────────────────────────────── */}
         <TabsContent value="snoozed" className="mt-4">

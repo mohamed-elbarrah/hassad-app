@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Inbox, TrendingUp } from "lucide-react";
@@ -35,7 +36,7 @@ export default function PortalCampaignsPage() {
     refetch,
   } = useGetPortalCampaignsQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
 
   const filtered = useMemo<PortalCampaign[]>(() => {

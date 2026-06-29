@@ -2,16 +2,12 @@
 
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { PLATFORM_ICON_BG } from "@/lib/utils/campaign-constants";
+import { PLATFORM_ICON_BG, platformLabel } from "@/lib/utils/campaign-constants";
 import { Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PortalCampaign } from "@/features/portal/portalApi";
-import { CampaignStatusPill } from "./CampaignStatusPill";
-import {
-  formatShortDateLong,
-  budgetProgress,
-  platformLabel,
-} from "@/lib/format";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
+import { formatShortDateLong, budgetProgress } from "@/lib/format";
 
 /**
  * Cells-only renderer for the campaigns queue. The <tr> chrome
@@ -45,12 +41,12 @@ export function renderCampaignRowCells(
           <span className="text-sm font-semibold text-natural-100 truncate max-w-[220px]">
             {campaign.name}
           </span>
-          <span className="text-[11px] text-portal-note-text">{platform}</span>
+          <span className="text-xs text-portal-note-text">{platform}</span>
         </div>
       </div>
     </td>,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <CampaignStatusPill status={campaign.status} />
+      <DomainStatusPill domain="campaign" status={campaign.status} />
     </td>,
     <td key="period" className="px-5 py-3.5 align-middle text-[12.5px] text-portal-note-text tabular-nums">
       {period}

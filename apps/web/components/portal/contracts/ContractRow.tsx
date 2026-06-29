@@ -6,8 +6,9 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { cn } from "@/lib/utils";
 import type { PortalContractSummary } from "@/features/portal/portalApi";
-import { ContractStatusPill } from "./ContractStatusPill";
-import { contractTypeLabel, formatShortDateLong } from "@/lib/format";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
+import { contractTypeLabel } from "@/lib/i18n";
+import { formatShortDateLong } from "@/lib/format";
 
 interface ContractRowProps {
   contract: PortalContractSummary & { type?: string };
@@ -42,7 +43,7 @@ export function renderContractRowCells(
           <span className="text-sm font-semibold text-natural-100 truncate max-w-[280px]">
             {contract.title}
           </span>
-          <span className="text-[11px] text-portal-note-text">
+          <span className="text-xs text-portal-note-text">
             {contract.type ? contractTypeLabel(contract.type) : "عقد"}
           </span>
         </div>
@@ -52,7 +53,7 @@ export function renderContractRowCells(
       <CurrencyDisplay
         amount={contract.totalValue}
         size="sm"
-        className="text-[13px] font-semibold text-natural-100 tabular-nums"
+        className="text-sm font-semibold text-natural-100 tabular-nums"
       />
     </td>,
     <td key="period" className="px-5 py-3.5 align-middle">
@@ -62,9 +63,9 @@ export function renderContractRowCells(
       </span>
     </td>,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <ContractStatusPill status={contract.status} />
+      <DomainStatusPill domain="contract" status={contract.status} />
     </td>,
-    <td key="manager" className="px-5 py-3.5 align-middle text-[13px] text-portal-note-text">
+    <td key="manager" className="px-5 py-3.5 align-middle text-sm text-portal-note-text">
       {contract.projectManager ?? "غير معين"}
     </td>,
     <td key="action" className="px-5 py-3.5 align-middle text-start w-[150px]">

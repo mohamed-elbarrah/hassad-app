@@ -42,6 +42,7 @@ import {
   MeetingsTab,
   InvoiceTab,
 } from "@/components/portal/project-detail";
+import { ProjectPeriodStatus } from "@hassad/shared";
 
 interface TabDef {
   id: string;
@@ -61,7 +62,7 @@ const TABS: TabDef[] = [
 /** Resolve the initially selected period (ACTIVE → first → null). */
 function pickInitialPeriod(periods: PortalPeriodSummary[]): string | null {
   if (periods.length === 0) return null;
-  const active = periods.find((p) => p.status === "ACTIVE");
+  const active = periods.find((p) => p.status === ProjectPeriodStatus.ACTIVE);
   return (active ?? periods[0]).id;
 }
 

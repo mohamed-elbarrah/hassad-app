@@ -6,7 +6,7 @@ import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { cn } from "@/lib/utils";
 import type { PortalInvoiceSummary } from "@/features/portal/portalApi";
 import type { PayableInvoice } from "@/components/payments/PaymentSheet";
-import { InvoiceStatusPill } from "./InvoiceStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { formatShortDateLong, isInvoicePayable as isPayable } from "@/lib/format";
 
 export interface InvoiceRowProps {
@@ -46,7 +46,7 @@ export function renderInvoiceRowCells(
             {invoice.invoiceNumber ?? "—"}
           </span>
           {invoice.contract?.title && (
-            <span className="text-[11px] text-portal-note-text truncate max-w-[260px]">
+            <span className="text-xs text-portal-note-text truncate max-w-[260px]">
               {invoice.contract.title}
             </span>
           )}
@@ -62,19 +62,19 @@ export function renderInvoiceRowCells(
           amount={invoice.amount}
           size="sm"
           className={cn(
-            "text-[13px] font-semibold tabular-nums",
+            "text-sm font-semibold tabular-nums",
             isPartial ? "text-natural-100/70" : "text-natural-100",
           )}
         />
         {isPartial && remaining != null && (
-          <span className="text-[11px] font-semibold text-danger-700 tabular-nums">
+          <span className="text-xs font-semibold text-danger-700 tabular-nums">
             متبقي <CurrencyDisplay amount={remaining} size="sm" />
           </span>
         )}
       </div>
     </td>,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <InvoiceStatusPill status={invoice.status} />
+      <DomainStatusPill domain="invoice" status={invoice.status} />
     </td>,
     <td key="action" className="px-5 py-3.5 align-middle text-start w-[140px]">
       {canPay ? (

@@ -1,5 +1,7 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { DEFAULT_LOCALE } from "@/lib/format";
 import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, MessageSquare, History } from "lucide-react";
@@ -9,9 +11,10 @@ import {
   useAddDisputeMessageMutation,
   useConfirmDisputeResolutionMutation,
 } from "@/features/portal/portalApi";
-import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR, DisputeStatus } from "@hassad/shared";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
+import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
   DisputeStatusBadge,
@@ -35,7 +38,7 @@ export default function PortalDisputeDetailPage({
     isLoading,
     refetch,
   } = useGetClientDisputeDetailQuery(id, {
-    pollingInterval: 30_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
 
   const [addMessage, { isLoading: isSendingMessage }] = useAddDisputeMessageMutation();
@@ -45,7 +48,7 @@ export default function PortalDisputeDetailPage({
     try {
       await addMessage({ disputeId: id, content, files }).unwrap();
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
       toast.error(message);
     }
@@ -62,7 +65,7 @@ export default function PortalDisputeDetailPage({
       });
       setIsConfirmDialogOpen(false);
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء تأكيد الحل";
       toast.error(message);
     }
@@ -79,35 +82,29 @@ export default function PortalDisputeDetailPage({
       });
       setIsConfirmDialogOpen(false);
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء التصعيد";
       toast.error(message);
     }
   };
 
   if (isLoading) {
-    return <DisputeDetailSkeleton />;
+    return <DetailSkeleton variant="contract" />;
   }
 
   if (!dispute) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16" dir="rtl">
-        <div className="text-6xl">🔍</div>
-        <h1 className="text-xl font-semibold text-natural-100">التذكرة غير موجودة</h1>
-        <p className="text-portal-note-text">لا يمكنك الوصول إلى هذه التذكرة</p>
-        <Link href="/portal/disputes">
-          <Button variant="outline" className="mt-4 rounded-xl">
-            <ArrowRight className="ml-2 h-4 w-4" />
-            العودة للقائمة
-          </Button>
-        </Link>
-      </div>
+      <DetailErrorState
+        title="التذكرة غير موجودة"
+        backHref="/portal/disputes"
+        backLabel="العودة إلى التذاكر"
+      />
     );
   }
 
-  const showConfirmButton = dispute.status === "PENDING_CLIENT";
-  const canSendMessage = ["APPROVED", "IN_PROGRESS", "ESCALATED", "PENDING_CLIENT"].includes(
-    dispute.status
+  const showConfirmButton = dispute.status === DisputeStatus.PENDING_CLIENT;
+  const canSendMessage = [DisputeStatus.APPROVED, DisputeStatus.IN_PROGRESS, DisputeStatus.ESCALATED, DisputeStatus.PENDING_CLIENT].includes(
+    dispute.status as DisputeStatus
   );
 
   return (
@@ -138,7 +135,7 @@ export default function PortalDisputeDetailPage({
               <span>•</span>
               <span>مدير المشروع: {dispute.pm.name}</span>
               <span>•</span>
-              <span>تاريخ الفتح: {new Date(dispute.openedAt).toLocaleDateString("ar-SA")}</span>
+              <span>تاريخ الفتح: {new Date(dispute.openedAt).toLocaleDateString(DEFAULT_LOCALE)}</span>
             </div>
           </div>
 
@@ -157,11 +154,11 @@ export default function PortalDisputeDetailPage({
 
         {/* ── Action Area ──────────────────────────────────────────────────── */}
         {showConfirmButton && (
-          <SurfaceCard className="p-4 bg-cyan-50/50 border-cyan-200">
+          <SurfaceCard className="p-4 bg-action-blue-soft border-action-blue-soft">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100">
-                  <MessageSquare className="h-5 w-5 text-cyan-600" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-action-blue-soft">
+                  <MessageSquare className="h-5 w-5 text-action-blue" />
                 </div>
                 <div>
                   <p className="font-medium text-natural-100">هل تم حل المشكلة؟</p>
@@ -170,25 +167,25 @@ export default function PortalDisputeDetailPage({
                   </p>
                 </div>
               </div>
-              <Button
+              <ActionButton
+                variant="primary"
                 onClick={() => setIsConfirmDialogOpen(true)}
-                className="rounded-xl bg-cyan-600 hover:bg-cyan-700"
               >
                 تأكيد أو تصعيد
-              </Button>
+              </ActionButton>
             </div>
           </SurfaceCard>
         )}
 
         {/* ── Rejected/Resolved Banner ─────────────────────────────────────── */}
-        {dispute.status === "REJECTED" && dispute.rejectionReason && (
+        {dispute.status === DisputeStatus.REJECTED && dispute.rejectionReason && (
           <SurfaceCard className="p-4 bg-gray-50 border-gray-200">
             <p className="text-sm font-medium text-natural-100 mb-2">سبب الرفض:</p>
             <p className="text-sm text-portal-note-text">{dispute.rejectionReason}</p>
           </SurfaceCard>
         )}
 
-        {dispute.status === "RESOLVED" && dispute.resolution && (
+        {dispute.status === DisputeStatus.RESOLVED && dispute.resolution && (
           <SurfaceCard className="p-4 bg-green-50 border-green-200">
             <p className="text-sm font-medium text-natural-100 mb-2">ملاحظات الحل:</p>
             <p className="text-sm text-portal-note-text">{dispute.resolution}</p>
@@ -229,7 +226,7 @@ export default function PortalDisputeDetailPage({
                       {event.changer.name}
                     </span>
                     <span className="text-xs text-portal-note-text">
-                      {new Date(event.changedAt).toLocaleString("ar-SA", {
+                      {new Date(event.changedAt).toLocaleString(DEFAULT_LOCALE, {
                         dateStyle: "short",
                         timeStyle: "short",
                       })}
@@ -258,16 +255,4 @@ export default function PortalDisputeDetailPage({
   );
 }
 
-function DisputeDetailSkeleton() {
-  return (
-    <div className="flex flex-col gap-5" dir="rtl">
-      <Skeleton className="h-8 w-24 rounded-lg" />
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-48 rounded-lg" />
-        <Skeleton className="h-10 w-full max-w-md rounded-lg" />
-      </div>
-      <Skeleton className="h-32 rounded-[24px]" />
-      <Skeleton className="h-64 rounded-[24px]" />
-    </div>
-  );
-}
+

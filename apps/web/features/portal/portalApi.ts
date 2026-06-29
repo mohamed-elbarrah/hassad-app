@@ -1,13 +1,18 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { ServiceItem, PaymentMethod, InvoiceStatus } from "@hassad/shared";
 import type {
+  ServiceItem,
+  PaymentMethod,
+  InvoiceStatus,
   PeriodGoal,
   MeetingStatus,
   DisputeStatus,
   DisputeCategory,
   DisputePriority,
+  MarketingStrategyStatus,
+  Client,
 } from "@hassad/shared";
+import type { ClientProfileV2 } from "@/features/clients/clientsApi";
 
 // ─── Dispute Types ───────────────────────────────────────────────────────────
 
@@ -367,6 +372,39 @@ export interface ProjectReviewRevision {
   client: { id: string; companyName: string };
 }
 
+export interface PortalStrategyTaskRef {
+  id: string;
+  title: string;
+  project: { id: string; name: string } | null;
+}
+
+export interface PortalStrategyUserRef {
+  id: string;
+  name: string;
+}
+
+export interface PortalStrategySummary {
+  id: string;
+  taskId: string;
+  createdBy: string;
+  clientId: string;
+  projectId: string | null;
+  status: MarketingStrategyStatus;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  fileType: string;
+  revisionNote: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  task: PortalStrategyTaskRef | null;
+  creator?: PortalStrategyUserRef | null;
+  approver?: PortalStrategyUserRef | null;
+}
+
 export interface ProjectReviewDetail {
   id: string;
   name: string;
@@ -611,6 +649,7 @@ export const portalApi = createApi({
     "PortalProjects",
     "PortalRequests",
     "PortalInvoices",
+    "PortalFinanceSummary",
     "PortalContracts",
     "PortalReports",
     "ReviewProjects",
@@ -619,6 +658,7 @@ export const portalApi = createApi({
     "ClientDisputes",
     "ClientDispute",
     "IntakeFormDraft",
+    "PortalClient",
   ],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
@@ -627,7 +667,7 @@ export const portalApi = createApi({
     }),
     getPortalFinanceSummary: builder.query<PortalFinanceSummary, void>({
       query: () => "/portal/finance/summary",
-      providesTags: ["PortalInvoices"],
+      providesTags: ["PortalFinanceSummary"],
     }),
     getProjectProgress: builder.query<ProjectProgress | null, void>({
       query: () => "/portal/project-progress",
@@ -784,7 +824,7 @@ export const portalApi = createApi({
         url: `/deliverables/${id}/approve`,
         method: "POST",
       }),
-      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
+      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress", "ReviewProjects"],
     }),
 
     rejectDeliverable: builder.mutation<any, string>({
@@ -792,7 +832,7 @@ export const portalApi = createApi({
         url: `/deliverables/${id}/reject`,
         method: "POST",
       }),
-      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
+      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress", "ReviewProjects"],
     }),
 
     // NEW: Contract signing
@@ -801,7 +841,7 @@ export const portalApi = createApi({
         url: `/portal/contracts/${id}/sign`,
         method: "POST",
       }),
-      invalidatesTags: ["PortalContracts", "ActionItems", "ActivityFeed"],
+      invalidatesTags: ["PortalContracts", "PortalInvoices", "ActionItems", "ActivityFeed"],
     }),
 
     getPortalReports: builder.query<ReportSummary, void>({
@@ -900,7 +940,6 @@ export const portalApi = createApi({
      */
     getDeliverableRedirect: builder.query<{ projectId: string }, string>({
       query: (id) => `/portal/deliverables/${id}/redirect`,
-      providesTags: (_result, _error, id) => [{ type: "ReviewProjects", id }],
     }),
 
     downloadPeriodReport: builder.query<
@@ -926,12 +965,12 @@ export const portalApi = createApi({
 
     // ── Marketing Strategy Portal Endpoints ────────────────────────────
 
-    getClientStrategies: builder.query<any[], void>({
+    getClientStrategies: builder.query<PortalStrategySummary[], void>({
       query: () => "/portal/marketing-strategies",
       providesTags: ["PortalStrategies"],
     }),
 
-    getClientStrategy: builder.query<any, string>({
+    getClientStrategy: builder.query<PortalStrategySummary, string>({
       query: (id) => `/portal/marketing-strategies/${id}`,
       providesTags: (result, error, id) => [{ type: "PortalStrategies", id }],
     }),
@@ -1023,6 +1062,7 @@ export const portalApi = createApi({
       },
       invalidatesTags: (_result, _error, { disputeId }) => [
         { type: "ClientDispute", id: disputeId },
+        "ClientDisputes",
       ],
     }),
 
@@ -1039,6 +1079,53 @@ export const portalApi = createApi({
         { type: "ClientDispute", id: disputeId },
         "ClientDisputes",
       ],
+    }),
+
+    // ── Portal-aliased contract/proposal endpoints ─────────────────────
+
+    signPortalContract: builder.mutation<
+      { success: boolean },
+      { token: string; body: { signedByName: string; signedByEmail?: string } }
+    >({
+      query: ({ token, body }) => ({
+        url: `/contracts/share/${token}/sign`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PortalContracts", "PortalInvoices", "ActionItems", "ActivityFeed"],
+    }),
+
+    getPortalProposalByToken: builder.query<any, string>({
+      query: (token) => `/proposals/share/${token}`,
+    }),
+
+    approvePortalProposal: builder.mutation<
+      { success: boolean },
+      { token: string; body: { notes?: string } }
+    >({
+      query: ({ token, body }) => ({
+        url: `/proposals/share/${token}/approve`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PortalRequests", "ActionItems", "ActivityFeed"],
+    }),
+
+    requestPortalProposalRevision: builder.mutation<
+      { success: boolean },
+      { token: string; body: { notes: string } }
+    >({
+      query: ({ token, body }) => ({
+        url: `/proposals/share/${token}/revision`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PortalRequests", "ActionItems", "ActivityFeed"],
+    }),
+
+    getMyPortalProposals: builder.query<any[], void>({
+      query: () => `/proposals/my`,
+      providesTags: ["PortalRequests"],
     }),
 
     // ── Intake Form V2 ──────────────────────────────────────────────
@@ -1070,6 +1157,18 @@ export const portalApi = createApi({
         body,
       }),
       invalidatesTags: ["IntakeFormDraft"],
+    }),
+
+    // ── Portal-aliased client endpoints ──────────────────────────────
+
+    getPortalClientProfile: builder.query<ClientProfileV2, string>({
+      query: (id) => `/clients/${id}/profile-v2`,
+      providesTags: (_result, _error, id) => [{ type: "PortalClient", id }],
+    }),
+
+    getPortalClientById: builder.query<Client, string>({
+      query: (id) => `/clients/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "PortalClient", id }],
     }),
   }),
 });
@@ -1125,4 +1224,13 @@ export const {
   useGetIntakeFormDraftQuery,
   useSaveIntakeFormDraftMutation,
   useSubmitIntakeFormMutation,
+  // Portal-aliased contract/proposal hooks
+  useSignPortalContractMutation,
+  useGetPortalProposalByTokenQuery,
+  useApprovePortalProposalMutation,
+  useRequestPortalProposalRevisionMutation,
+  useGetMyPortalProposalsQuery,
+  // Portal-aliased client hooks
+  useGetPortalClientProfileQuery,
+  useGetPortalClientByIdQuery,
 } = portalApi;

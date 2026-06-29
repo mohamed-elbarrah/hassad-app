@@ -17,7 +17,7 @@ import { useGetTeamMembersQuery } from "@/features/portal/portalApi";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatWindow } from "@/components/chat/ChatWindow";
-import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
+import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import { MessageInput } from "@/components/chat/MessageInput";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import type { Conversation, Message } from "@/features/chat/chatApi";
@@ -159,7 +159,7 @@ export default function PortalChatPage() {
           conversationId: selectedId,
           content,
         }).unwrap();
-      } catch (err: any) {
+      } catch (err) {
         toast.error(err?.data?.message || "فشل في إرسال الرسالة");
       }
     },
@@ -176,18 +176,12 @@ export default function PortalChatPage() {
 
       <div className="h-[calc(100vh-15rem)] lg:h-[calc(100vh-13rem)]">
         {conversations.length === 0 && !convLoading ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
-              <MessageSquare className="h-8 w-8 text-secondary-500" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-natural-100">
-                لا توجد محادثات
-              </h3>
-              <p className="mt-1 text-sm text-portal-note-text">
-                سيتم إنشاء محادثة تلقائياً عند تعيين مسؤول حساب أو مدير مشروع
-              </p>
-            </div>
+          <div className="flex h-full flex-col items-center justify-center rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg">
+            <PortalEmptyState
+              icon={MessageSquare}
+              title="لا توجد محادثات"
+              description="سيتم إنشاء محادثة تلقائياً عند تعيين مسؤول حساب أو مدير مشروع"
+            />
           </div>
         ) : (
           <div className="flex h-full gap-4">
@@ -232,7 +226,11 @@ export default function PortalChatPage() {
             ) : (
               <div className="hidden min-w-0 flex-1 md:flex">
                 <div className="flex h-full w-full flex-col items-center justify-center rounded-2xl border-portal-card-border border bg-natural-0">
-                  <ChatEmptyState />
+                  <PortalEmptyState
+                    icon={MessageSquare}
+                    title="ابدأ محادثة"
+                    description="اختر محادثة من القائمة للبدء"
+                  />
                 </div>
               </div>
             )}

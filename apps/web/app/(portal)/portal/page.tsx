@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -21,19 +22,14 @@ import {
 } from "lucide-react";
 
 import { useAppSelector } from "@/lib/hooks";
-import { toast } from "sonner"; // NEW
+import { useSnoozeActionItem } from "@/hooks/useSnoozeActionItem";
 import {
   useGetPortalRequestsQuery,
   useGetProjectProgressQuery,
   useGetActionItemsQuery,
   useGetActivityFeedQuery,
   useGetCampaignSummaryQuery,
-  useSnoozeActionItemMutation,
   useGetTeamMembersQuery,
-  // NEW: Missing mutations
-  useApproveProjectMutation,
-  useRejectDeliverableMutation,
-  useApproveDeliverableMutation,
 } from "@/features/portal/portalApi";
 
 import { DashboardCard } from "@/components/design-system/DashboardCard";
@@ -94,30 +90,34 @@ export default function PortalPage() {
   const router = useRouter();
   const clientId = user?.clientId ?? "";
 
-  const [snoozeActionItem] = useSnoozeActionItemMutation();
+  const { snoozeItem } = useSnoozeActionItem();
 
   const { data: pendingRequestsData, error: pendingRequestsError } =
     useGetPortalRequestsQuery(
       { page: 1, limit: 3 },
       {
         skip: !clientId,
-        pollingInterval: 120_000,
+        pollingInterval: PORTAL_POLLING_INTERVAL_MS,
       },
     );
-  const { data: projectProgress, error: projectError } =
-    useGetProjectProgressQuery(undefined, {
-      skip: !clientId,
-      pollingInterval: 120_000,
-    });
+  const { data: projectProgress, error: projectError } = useGetProjectProgressQuery(undefined, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
+  const { data: activity } = useGetActivityFeedQuery(undefined, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
+  const { data: requests } = useGetPortalRequestsQuery(undefined, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
   const { data: actionItemsData, error: actionItemsError } =
     useGetActionItemsQuery(undefined, {
       skip: !clientId,
-      pollingInterval: 120_000,
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
     });
   const { data: activityFeedData, error: activityError } =
     useGetActivityFeedQuery(undefined, {
       skip: !clientId,
-      pollingInterval: 120_000,
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
     });
   const {
     data: campaignSummary,
@@ -125,11 +125,11 @@ export default function PortalPage() {
     isLoading: campaignLoading,
   } = useGetCampaignSummaryQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
   const { data: teamMembersData } = useGetTeamMembersQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
 
   const projects = projectProgress?.projects ?? [];
@@ -139,24 +139,7 @@ export default function PortalPage() {
   const activityItems = activityFeedData?.items ?? [];
 
   const handleSnooze = async (item: { id: string; type: string; title: string }) => {
-    const itemId = item.id.replace(/^(del|inv|prop|con|strat)-/, "");
-    try {
-      const result = await snoozeActionItem({ itemType: item.type, itemId }).unwrap();
-      const until = result?.snoozedUntil
-        ? new Date(result.snoozedUntil).toLocaleString("ar-SA-u-nu-latn", {
-            day: "numeric",
-            month: "long",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "بعد 24 ساعة";
-      toast.success(`سيتم تذكيرك بـ «${item.title}» ${until}`, {
-        description: "يمكنك التراجع عن التأجيل من صفحة الإجراءات المؤجلة.",
-        duration: 5000,
-      });
-    } catch (err: any) {
-      toast.error(err?.data?.message || "فشل في إخفاء الإجراء");
-    }
+    await snoozeItem(item.type, item.id);
   };
 
   if (!clientId) {
@@ -451,47 +434,6 @@ export default function PortalPage() {
             </p>
           )}
         </DashboardCard>
-        {/* ── ملخص سريع ────────────────────────────── */}
-        {/* <DashboardCard
-          title="ملخص سريع"
-          icon={ClipboardList}
-          onShowAll={() => router.push("/portal/deliverables")}
-        >
-          {totalDeliverables > 0 && deliverables ? (
-            <div className="space-y-3">
-              {deliverables.slice(0, 4).map((d) => {
-                const uiStatus = mapTaskStatusToUI(d.status);
-                const statusLabels: Record<string, string> = {
-                  completed: "تم التسليم",
-                  "in-progress": "نشط",
-                  "not-started": "معلق",
-                  pending: "قادمة",
-                  revision: "تعديل",
-                };
-                return (
-                  <DeliverableItem
-                    key={d.id}
-                    title={d.title}
-                    description={d.description ?? ""}
-                    date={new Date(d.createdAt).toLocaleDateString(
-                      "ar-SA-u-nu-latn",
-                      {
-                        day: "numeric",
-                        month: "short",
-                      },
-                    )}
-                    status={uiStatus}
-                    statusLabel={statusLabels[uiStatus] ?? d.status}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-base text-portal-note-text text-center py-4">
-              لا توجد تسليمات حالياً
-            </p>
-          )}
-        </DashboardCard> */}
 
         {/* ── المسؤولون عن مشروعي ──────────────────────────── */}
         <DashboardCard
@@ -504,7 +446,7 @@ export default function PortalPage() {
               {teamMembersData.members.map((member) => (
                 <div
                   key={member.id}
-                  className="p-4 bg-white border-[1.5px] border-portal-card-border rounded-2xl space-y-3"
+                  className="p-4 bg-card border-[1.5px] border-portal-card-border rounded-2xl space-y-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">

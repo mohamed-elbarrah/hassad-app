@@ -21,7 +21,7 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormTextarea } from "@/components/design-system/FormTextarea";
 import { IconCircle } from "@/components/design-system/IconCircle";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
-import { ProjectStatusPill } from "./ProjectStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { cn } from "@/lib/utils";
 import { buildPortalFileUrl, getPortalFileKind } from "@/lib/portal-files";
 import type {
@@ -125,7 +125,7 @@ export function ReviewModal({
       toast.success("تمت الموافقة على المشروع بنجاح");
       onActionComplete(selectedProjectId);
       handleClose();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message ?? "حدث خطأ أثناء الموافقة على المشروع");
     }
   }
@@ -138,7 +138,7 @@ export function ReviewModal({
       toast.success("تم إرسال طلب التعديل بنجاح");
       onActionComplete(selectedProjectId);
       handleClose();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message ?? "حدث خطأ أثناء إرسال طلب التعديل");
     }
   }
@@ -207,7 +207,7 @@ export function ReviewModal({
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2 text-alert-700">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
-                  <p className="text-[13px] font-medium">
+                  <p className="text-sm font-medium">
                     صف التعديلات المطلوبة بدقة حتى يتسنى للفريق معالجتها.
                   </p>
                 </div>
@@ -294,7 +294,7 @@ function Header({
             <h2 className="text-lg sm:text-xl font-bold text-white leading-tight">
               {project.name}
             </h2>
-            <ProjectStatusPill status={project.status} />
+            <DomainStatusPill domain="project" status={project.status} />
           </div>
 
           {/* Sub-row: who · when · wait time */}
@@ -358,7 +358,7 @@ function Description({ text }: { text: string }) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-[11px] font-semibold text-portal-note-text uppercase tracking-wider">
+    <h3 className="text-xs font-semibold text-portal-note-text uppercase tracking-wider">
       {children}
     </h3>
   );
@@ -490,10 +490,10 @@ function FileRow({ file }: { file: ProjectFile }) {
           <FileIcon className="h-4 w-4" />
         </span>
         <span className="flex-1 min-w-0">
-          <span className="block text-[13px] font-medium text-natural-100 truncate group-hover:text-secondary-500 transition-colors">
+          <span className="block text-sm font-medium text-natural-100 truncate group-hover:text-secondary-500 transition-colors">
             {file.fileName}
           </span>
-          <span className="block text-[11px] text-portal-note-text tabular-nums">
+          <span className="block text-xs text-portal-note-text tabular-nums">
             {formatFileSize(file.fileSize)}
           </span>
         </span>
@@ -525,7 +525,7 @@ function ZeroFilesNudge() {
           size="sm"
           className="!bg-alert-100 !border-alert-300 !text-alert-600 !h-7 !w-7"
         />
-        <h3 className="text-[13px] font-semibold text-natural-100">
+        <h3 className="text-sm font-semibold text-natural-100">
           لا توجد ملفات مرفقة مع هذا المشروع
         </h3>
       </div>
@@ -557,11 +557,11 @@ function RevisionHistory({
               <span className="text-[12px] font-semibold text-secondary-500">
                 {r.client?.companyName ?? "—"}
               </span>
-              <span className="text-[11px] text-portal-note-text tabular-nums">
+              <span className="text-xs text-portal-note-text tabular-nums">
                 {formatRelative(r.createdAt)}
               </span>
             </div>
-            <p className="text-[13px] leading-5 text-natural-100 whitespace-pre-line">
+            <p className="text-sm leading-5 text-natural-100 whitespace-pre-line">
               {r.comment}
             </p>
           </li>

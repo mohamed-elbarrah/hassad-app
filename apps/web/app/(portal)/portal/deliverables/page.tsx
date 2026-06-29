@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
@@ -40,7 +41,7 @@ export default function PortalDeliverablesPage() {
     refetch,
   } = useGetReviewProjectsQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
 
   const [search, setSearch] = useState("");
@@ -64,7 +65,7 @@ export default function PortalDeliverablesPage() {
 
   const { data: selectedProject } = useGetProjectReviewDetailQuery(
     selectedProjectId!,
-    { skip: !selectedProjectId, pollingInterval: 120_000 },
+    { skip: !selectedProjectId, pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const fallbackProject = useMemo<ReviewProject | undefined>(

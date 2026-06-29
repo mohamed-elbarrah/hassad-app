@@ -160,24 +160,7 @@ export function AudienceSection({
     return () => sub.unsubscribe();
   }, [form, onDataChange, mode, faqPairs]);
 
-  const addFaqPair = useCallback(() => {
-    setFaqPairs((prev) => [...prev, { question: "", answer: "" }]);
-  }, []);
-
-  const removeFaqPair = useCallback((index: number) => {
-    setFaqPairs((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const updateFaqPair = useCallback(
-    (index: number, field: "question" | "answer", value: string) => {
-      setFaqPairs((prev) =>
-        prev.map((pair, i) =>
-          i === index ? { ...pair, [field]: value } : pair,
-        ),
-      );
-    },
-    [],
-  );
+  const { addFaqPair, removeFaqPair, updateFaqPair } = useFaqManager(setFaqPairs);
 
   const onSubmit = useCallback(
     (data: AudienceForm) => {
@@ -442,54 +425,12 @@ export function AudienceSection({
               )}
             />
 
-            <div className="space-y-3">
-              <span className="text-sm font-medium text-natural-100">
-                الأسئلة الشائعة
-              </span>
-
-              {faqPairs.map((pair, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border border-portal-divider p-4 space-y-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <FormInputControl
-                      value={pair.question}
-                      onChange={(e) =>
-                        updateFaqPair(index, "question", e.target.value)
-                      }
-                      placeholder="السؤال"
-                      className="flex-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeFaqPair(index)}
-                      className="p-1.5 rounded-full text-portal-icon hover:text-danger-500 hover:bg-danger-50 transition-colors shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <FormTextareaControl
-                    value={pair.answer}
-                    onChange={(e) =>
-                      updateFaqPair(index, "answer", e.target.value)
-                    }
-                    placeholder="الجواب"
-                    className="min-h-[60px] resize-y"
-                    rows={2}
-                  />
-                </div>
-              ))}
-
-              <button
-                type="button"
-                onClick={addFaqPair}
-                className="w-full px-4 py-2 rounded-xl text-sm border border-dashed border-portal-divider text-portal-icon hover:border-secondary-300 transition-colors flex items-center gap-2 justify-center"
-              >
-                <Plus className="w-4 h-4" />
-                إضافة سؤال وجواب
-              </button>
-            </div>
+            <FaqEditor
+              faqPairs={faqPairs}
+              onUpdate={updateFaqPair}
+              onRemove={removeFaqPair}
+              onAdd={addFaqPair}
+            />
           </div>
 
           {!hideNavigation && mode === "wizard" && (
@@ -498,5 +439,93 @@ export function AudienceSection({
         </form>
       </Form>
     </SectionLayout>
+  );
+}
+
+// ─── useFaqManager hook ──────────────────────────────────────────────────────
+
+function useFaqManager(
+  setFaqPairs: React.Dispatch<React.SetStateAction<FaqPair[]>>,
+) {
+  const addFaqPair = useCallback(() => {
+    setFaqPairs((prev) => [...prev, { question: "", answer: "" }]);
+  }, [setFaqPairs]);
+
+  const removeFaqPair = useCallback((index: number) => {
+    setFaqPairs((prev) => prev.filter((_, i) => i !== index));
+  }, [setFaqPairs]);
+
+  const updateFaqPair = useCallback(
+    (index: number, field: "question" | "answer", value: string) => {
+      setFaqPairs((prev) =>
+        prev.map((pair, i) =>
+          i === index ? { ...pair, [field]: value } : pair,
+        ),
+      );
+    },
+    [setFaqPairs],
+  );
+
+  return { addFaqPair, removeFaqPair, updateFaqPair };
+}
+
+// ─── FaqEditor sub-component ──────────────────────────────────────────────────
+
+function FaqEditor({
+  faqPairs,
+  onUpdate,
+  onRemove,
+  onAdd,
+}: {
+  faqPairs: FaqPair[];
+  onUpdate: (index: number, field: "question" | "answer", value: string) => void;
+  onRemove: (index: number) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <span className="text-sm font-medium text-natural-100">
+        الأسئلة الشائعة
+      </span>
+
+      {faqPairs.map((pair, index) => (
+        <div
+          key={index}
+          className="rounded-xl border border-portal-divider p-4 space-y-3"
+        >
+          <div className="flex items-center gap-2">
+            <FormInputControl
+              value={pair.question}
+              onChange={(e) => onUpdate(index, "question", e.target.value)}
+              placeholder="السؤال"
+              className="flex-1"
+            />
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              className="p-1.5 rounded-full text-portal-icon hover:text-danger-500 hover:bg-danger-50 transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <FormTextareaControl
+            value={pair.answer}
+            onChange={(e) => onUpdate(index, "answer", e.target.value)}
+            placeholder="الجواب"
+            className="min-h-[60px] resize-y"
+            rows={2}
+          />
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={onAdd}
+        className="w-full px-4 py-2 rounded-xl text-sm border border-dashed border-portal-divider text-portal-icon hover:border-secondary-300 transition-colors flex items-center gap-2 justify-center"
+      >
+        <Plus className="w-4 h-4" />
+        إضافة سؤال وجواب
+      </button>
+    </div>
   );
 }

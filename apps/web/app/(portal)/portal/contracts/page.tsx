@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, useCallback } from "react";
 import { useGetPortalContractsQuery } from "@/features/portal/portalApi";
 import { PageIntro } from "@/components/design-system/PageIntro";
@@ -27,7 +28,7 @@ export default function PortalContractsPage() {
       dateFrom: dateRange.from?.toISOString(),
       dateTo: dateRange.to?.toISOString(),
     },
-    { pollingInterval: 120_000 },
+    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const contracts = data?.data ?? [];

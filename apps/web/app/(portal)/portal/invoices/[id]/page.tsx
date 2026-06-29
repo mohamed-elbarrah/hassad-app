@@ -9,30 +9,31 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import {
   PaymentSheet,
   type PayableInvoice,
 } from "@/components/payments/PaymentSheet";
 import { toast } from "sonner";
 import {
-  ArrowRight,
   Receipt,
   Download,
   CheckCircle2,
-  AlertCircle,
   CreditCard,
   Clock,
 } from "lucide-react";
+import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
+import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import { mapFinanceStatusToUI } from "@/lib/utils/statusMapping";
 import { useCurrency } from "@/hooks/useCurrency";
+import { InvoiceStatus } from "@hassad/shared";
 
 const PAYABLE_STATUSES = new Set([
-  "DUE",
-  "SENT",
-  "PARTIAL",
-  "LATE",
-  "PENDING",
+  InvoiceStatus.DUE,
+  InvoiceStatus.SENT,
+  InvoiceStatus.PARTIAL,
+  InvoiceStatus.LATE,
+  InvoiceStatus.PENDING,
 ]);
 
 function fmtDate(iso?: string | null) {
@@ -73,51 +74,22 @@ export default function PortalInvoiceDetailPage() {
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-80 w-full rounded-2xl" />
-      </div>
-    );
+    return <DetailSkeleton variant="invoice" />;
   }
 
   if (isError || !invoice) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Link href="/portal/finance">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-2 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            الفواتير
-          </ActionButton>
-        </Link>
-        <SurfaceCard title="تعذر تحميل الفاتورة" icon={AlertCircle}>
-          <p className="text-sm text-portal-note-text">
-            الفاتورة غير متوفرة أو تم حذفها. يمكنك العودة لقائمة الفواتير
-            للاطلاع على باقي الفواتير.
-          </p>
-          <div className="mt-4">
-            <Link href="/portal/finance">
-              <ActionButton
-                variant="primary"
-                icon={<Receipt className="h-4 w-4" />}
-                className="gap-2"
-              >
-                قائمة الفواتير
-              </ActionButton>
-            </Link>
-          </div>
-        </SurfaceCard>
-      </div>
+      <DetailErrorState
+        title="تعذر تحميل الفاتورة"
+        backHref="/portal/finance"
+        backLabel="الفواتير"
+      />
     );
   }
 
-  const isPayable = PAYABLE_STATUSES.has(invoice.status);
-  const isPaid = invoice.status === "PAID";
-  const isPartial = invoice.status === "PARTIAL";
+  const isPayable = PAYABLE_STATUSES.has(invoice.status as InvoiceStatus);
+  const isPaid = invoice.status === InvoiceStatus.PAID;
+  const isPartial = invoice.status === InvoiceStatus.PARTIAL;
 
   // Reuse the existing payment sheet — its `invoice` prop only needs the
   // minimal `PayableInvoice` shape (id, number, amount, status).
@@ -145,23 +117,7 @@ export default function PortalInvoiceDetailPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2">
-        <Link href="/portal/finance">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            الفواتير
-          </ActionButton>
-        </Link>
-        <span className="text-portal-note-text">/</span>
-        <span className="max-w-xs truncate text-sm font-medium text-natural-100">
-          فاتورة {invoice.invoiceNumber}
-        </span>
-      </div>
+      <DetailBreadcrumb backHref="/portal/finance" backLabel="المالية" title={`فاتورة #${invoice.invoiceNumber}`} />
 
       <SurfaceCard
         title={`فاتورة ${invoice.invoiceNumber}`}
@@ -223,7 +179,7 @@ export default function PortalInvoiceDetailPage() {
             />
           )}
 
-          {invoice.status === "LATE" && (
+          {invoice.status === InvoiceStatus.LATE && (
             <StatusBanner
               variant="danger"
               title="هذه الفاتورة متأخرة السداد."

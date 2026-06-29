@@ -3,7 +3,7 @@
 import { CheckCircle2, Lock } from "lucide-react";
 import type { PortalPeriodSummary } from "@/features/portal/portalApi";
 import { cn } from "@/lib/utils";
-import { formatShortDate } from "./helpers";
+import { formatShortDateTz } from "@/lib/format";
 
 interface PeriodTimelineProps {
   periods: PortalPeriodSummary[];
@@ -45,7 +45,7 @@ export function PeriodTimeline({
               ? "الحالية"
               : "قادم";
 
-          const tooltip = `${statusLabel} — الفترة ${period.periodNumber}: ${formatShortDate(period.startDate)} — ${formatShortDate(period.endDate)}`;
+          const tooltip = `${statusLabel} — الفترة ${period.periodNumber}: ${formatShortDateTz(period.startDate)} — ${formatShortDateTz(period.endDate)}`;
 
           return (
             <button
@@ -86,9 +86,9 @@ export function PeriodTimeline({
                 >
                   {statusLabel}
                 </p>
-                <p className="mt-0.5 whitespace-nowrap text-[10px] text-portal-note-text">
-                  {formatShortDate(period.startDate)}-
-                  {formatShortDate(period.endDate)}
+                <p className="mt-0.5 whitespace-nowrap text-caption text-portal-note-text">
+                  {formatShortDateTz(period.startDate)}-
+                  {formatShortDateTz(period.endDate)}
                 </p>
               </div>
             </button>

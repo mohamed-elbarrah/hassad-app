@@ -1,28 +1,34 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, use, useEffect, Suspense } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useDispatch } from "react-redux";
 import {
-  ArrowRight,
   FileText,
   Download,
   CheckCircle,
-  AlertCircle,
   PenLine,
 } from "lucide-react";
-import { useSignContractByTokenMutation } from "@/features/contracts/contractsApi";
-import { useGetPortalContractByIdQuery } from "@/features/portal/portalApi";
+import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
+import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
+import {
+  useGetPortalContractByIdQuery,
+  useSignPortalContractMutation,
+  portalApi,
+} from "@/features/portal/portalApi";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInput } from "@/components/design-system/FormInput";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import Link from "next/link";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { toast } from "sonner";
 
+import { ContractStatus, InvoiceStatus } from "@hassad/shared";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import { mapContractStatusToUI } from "@/lib/utils/statusMapping";
 
@@ -40,12 +46,7 @@ export default function PortalContractDetailPage({ params }: PageProps) {
   const { id } = use(params);
   return (
     <Suspense
-      fallback={
-        <div className="flex flex-col gap-4" dir="rtl">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-80 w-full" />
-        </div>
-      }
+      fallback={<DetailSkeleton variant="contract" />}
     >
       <PortalContractDetailInner id={id} />
     </Suspense>
@@ -55,10 +56,11 @@ export default function PortalContractDetailPage({ params }: PageProps) {
 function PortalContractDetailInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const { data, isLoading, isError } = useGetPortalContractByIdQuery(id, {
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
+  const dispatch = useDispatch();
   const [signContract, { isLoading: signing }] =
-    useSignContractByTokenMutation();
+    useSignPortalContractMutation();
 
   const [signedByName, setSignedByName] = useState("");
   const [signedByEmail, setSignedByEmail] = useState("");
@@ -74,37 +76,24 @@ function PortalContractDetailInner({ id }: { id: string }) {
   }, [searchParams]);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-80 w-full" />
-      </div>
-    );
+    return <DetailSkeleton variant="contract" />;
   }
 
   if (isError || !data) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Link href="/portal/contracts">
-          <ActionButton variant="ghost" size="sm" className="gap-2">
-            <ArrowRight className="h-4 w-4" />
-            العقود
-          </ActionButton>
-        </Link>
-        <SurfaceCard title="تعذر تحميل العقد" icon={AlertCircle}>
-          <p className="text-center text-sm text-portal-note-text">
-            العقد غير متوفر.
-          </p>
-        </SurfaceCard>
-      </div>
+      <DetailErrorState
+        title="تعذر تحميل العقد"
+        backHref="/portal/contracts"
+        backLabel="العقود"
+      />
     );
   }
 
-  const canSign = data.status === "SENT" && !!data.shareLinkToken;
+  const canSign = data.status === ContractStatus.SENT && !!data.shareLinkToken;
   const invoices = data.invoices ?? [];
 
   const allInvoicesPaid =
-    invoices.length > 0 && invoices.every((inv) => inv.status === "PAID");
+    invoices.length > 0 && invoices.every((inv) => inv.status === InvoiceStatus.PAID);
   const canSignNow =
     canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
   const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
@@ -122,6 +111,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
           signedByEmail: signedByEmail.trim() || undefined,
         },
       }).unwrap();
+      dispatch(portalApi.util.invalidateTags(["PortalContracts"]));
       toast.success("تم توقيع العقد بنجاح — شكراً لك");
     } catch {
       toast.error("تعذّر توقيع العقد. حاول مجدداً.");
@@ -130,23 +120,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2">
-        <Link href="/portal/contracts">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العقود
-          </ActionButton>
-        </Link>
-        <span className="text-portal-note-text">/</span>
-        <span className="max-w-xs truncate text-sm font-medium text-natural-100">
-          {data.title}
-        </span>
-      </div>
+      <DetailBreadcrumb backHref="/portal/contracts" backLabel="العقود" title={data.title} />
 
       {/* Main contract card */}
       <SurfaceCard
@@ -223,7 +197,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
             onPaymentComplete={() => window.location.reload()}
           />
 
-          {data.status === "SIGNED" && (
+          {data.status === ContractStatus.SIGNED && (
             <StatusBanner variant="success" title="تم توقيع هذا العقد.">
               {data.signedAt
                 ? new Date(data.signedAt).toLocaleString("ar-SA-u-nu-latn")

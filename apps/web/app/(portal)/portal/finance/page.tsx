@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, useCallback, useMemo } from "react";
 import { Receipt } from "lucide-react";
 import {
@@ -37,16 +38,16 @@ export default function PortalFinancePage() {
   const statusFilter = activeFilters["status"]?.[0] ?? "ALL";
 
   const { data: summaryData, isLoading: summaryLoading } =
-    useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: 120_000 });
+    useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: PORTAL_POLLING_INTERVAL_MS });
 
-  const { data: invoicesData, isLoading: invoicesLoading } =
+  const { data: invoicesData, isLoading: invoicesLoading, isError } =
     useGetPortalInvoicesQuery(
       {
         status: statusFilter === "ALL" ? undefined : statusFilter,
         page,
         limit: PAGE_SIZE,
       },
-      { pollingInterval: 120_000 },
+      { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
     );
 
   const invoices: PortalInvoiceSummary[] = invoicesData?.data ?? [];
@@ -118,7 +119,7 @@ export default function PortalFinancePage() {
         ]}
         data={visibleInvoices}
         isLoading={invoicesLoading}
-        isError={false}
+        isError={isError}
         skeletonRows={PAGE_SIZE}
         emptyState={{
           icon: Receipt,

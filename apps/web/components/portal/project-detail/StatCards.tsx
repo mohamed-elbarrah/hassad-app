@@ -11,14 +11,14 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { PortalPeriodStats } from "@/features/portal/portalApi";
 import { cn } from "@/lib/utils";
-import { formatDateTime } from "./helpers";
+import { formatDateTimeTz } from "@/lib/format";
 
 type StatColor = "emerald" | "blue" | "violet" | "amber";
 
 const COLOR_MAP: Record<StatColor, string> = {
-  emerald: "bg-emerald-50 text-emerald-600",
+  emerald: "bg-success-100 text-success-600",
   blue: "bg-blue-50 text-blue-600",
-  violet: "bg-violet-50 text-violet-600",
+  violet: "bg-action-purple-soft text-action-purple",
   amber: "bg-amber-50 text-amber-600",
 };
 
@@ -101,7 +101,7 @@ function StatCard({
         </p>
         {subtext && (
           <p
-            className="mt-0.5 truncate text-[10px] text-portal-note-text"
+            className="mt-0.5 truncate text-caption text-portal-note-text"
             title={subtext}
           >
             {subtext}
@@ -186,7 +186,7 @@ function MeetingCard({
           icon={Calendar}
           value="اليوم"
           label="الاجتماع القادم"
-          subtext={meeting ? formatDateTime(meeting.scheduledAt) : undefined}
+          subtext={meeting ? formatDateTimeTz(meeting.scheduledAt) : undefined}
           color="amber"
         />
       );
@@ -196,7 +196,7 @@ function MeetingCard({
           icon={Calendar}
           value={`${state.days} يوم`}
           label="الاجتماع القادم"
-          subtext={meeting ? formatDateTime(meeting.scheduledAt) : undefined}
+          subtext={meeting ? formatDateTimeTz(meeting.scheduledAt) : undefined}
           color="amber"
         />
       );
@@ -206,7 +206,7 @@ function MeetingCard({
           icon={History}
           value={`منذ ${state.daysAgo} يوم`}
           label="آخر اجتماع"
-          subtext={meeting ? formatDateTime(meeting.scheduledAt) : undefined}
+          subtext={meeting ? formatDateTimeTz(meeting.scheduledAt) : undefined}
           color="amber"
           muted
         />

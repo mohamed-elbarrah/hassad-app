@@ -6,7 +6,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import { EmptyState } from "./EmptyState";
-import { formatDate } from "./helpers";
+import { formatDateTz } from "@/lib/format";
 import { useCurrency } from "@/hooks/useCurrency";
 
 interface InvoiceTabProps {
@@ -48,7 +48,7 @@ export function InvoiceTab({ invoice }: InvoiceTabProps) {
         dir="rtl"
       >
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-alert-100 text-alert-500">
             <DollarSign className="size-7" />
           </div>
           <div>
@@ -82,7 +82,7 @@ export function InvoiceTab({ invoice }: InvoiceTabProps) {
           />
           <DetailRow
             label="تاريخ الاستحقاق"
-            value={formatDate(invoice.dueDate)}
+            value={formatDateTz(invoice.dueDate)}
           />
         </div>
 
@@ -90,7 +90,7 @@ export function InvoiceTab({ invoice }: InvoiceTabProps) {
           <StatusBadge status={invoice.status} />
           <span className="inline-flex items-center gap-1.5 text-xs text-portal-note-text">
             <FileText className="size-4" />
-            {formatDate(invoice.issueDate)}
+            {formatDateTz(invoice.issueDate)}
           </span>
         </div>
       </div>

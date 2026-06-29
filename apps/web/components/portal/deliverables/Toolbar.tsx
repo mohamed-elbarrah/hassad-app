@@ -1,10 +1,7 @@
 "use client";
 
-import { Inbox, Search } from "lucide-react";
-import { Input } from "@/components/design-system/Input";
-import { FilterBar } from "@/components/design-system/FilterBar";
-import { CountChip } from "@/components/design-system/CountChip";
 import { useFilterGroups } from "@/hooks/useFilterGroups";
+import { QueueToolbar } from "@/components/portal/shared/QueueToolbar";
 import type { ReviewProject } from "@/features/portal/portalApi";
 
 interface ToolbarProps {
@@ -61,39 +58,16 @@ export function Toolbar({
     preference: STATUS_ORDER,
   });
 
-  const hasFilter =
-    search.trim().length > 0 || hasAnyActiveFilter(activeFilters);
-
   return (
-    <div className="flex flex-col md:flex-row md:items-center gap-3">
-      <div className="flex-1 min-w-0">
-        <Input
-          placeholder="ابحث باسم المشروع أو المدير…"
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          icon={<Search className="size-4" />}
-        />
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <FilterBar
-          groups={derivedGroups}
-          activeFilters={activeFilters}
-          onFilterChange={onFilterChange}
-        />
-
-        <CountChip
-          hasFilter={hasFilter}
-          total={totalCount}
-          visible={visibleCount}
-          icon={<Inbox className="h-3.5 w-3.5" />}
-          unfilteredLabel="مشروع بانتظارك"
-        />
-      </div>
-    </div>
+    <QueueToolbar
+      searchValue={search}
+      onSearchChange={onSearchChange}
+      searchPlaceholder="ابحث باسم المشروع أو المدير…"
+      filterGroups={derivedGroups}
+      activeFilters={activeFilters}
+      onFilterChange={onFilterChange}
+      countLabel="مشروع"
+      count={visibleCount}
+    />
   );
-}
-
-function hasAnyActiveFilter(filters: Record<string, string[]>): boolean {
-  return Object.values(filters).some((v) => v.length > 0);
 }

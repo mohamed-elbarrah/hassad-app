@@ -1,5 +1,7 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { DEFAULT_LOCALE } from "@/lib/format";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -7,7 +9,7 @@ import {
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
 } from "@/features/portal/portalApi";
-import { MARKETING_STRATEGY_STATUS_AR } from "@hassad/shared";
+import { MARKETING_STRATEGY_STATUS_AR, MarketingStrategyStatus } from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -57,7 +59,7 @@ export default function MarketingStrategyDetailPage() {
     try {
       await approveStrategy(id).unwrap();
       toast.success("تمت الموافقة على الدراسة التسويقية بنجاح");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message || "حدث خطأ أثناء الموافقة");
     }
   };
@@ -72,7 +74,7 @@ export default function MarketingStrategyDetailPage() {
       toast.success("تم إرسال طلب التعديل بنجاح");
       setShowRevisionForm(false);
       setRevisionComment("");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message || "حدث خطأ أثناء إرسال طلب التعديل");
     }
   };
@@ -129,7 +131,7 @@ export default function MarketingStrategyDetailPage() {
                 </p>
               </div>
             </div>
-            <StatusBadge status={strategy.status ?? "DRAFT"} label={statusLabel} />
+            <StatusBadge status={strategy.status ?? MarketingStrategyStatus.DRAFT} label={statusLabel} />
           </div>
 
           {/* File info */}
@@ -139,7 +141,7 @@ export default function MarketingStrategyDetailPage() {
               <p className="font-medium truncate">{strategy.fileName}</p>
               <p className="text-sm text-muted-foreground">
                 {(strategy.fileSize / 1024).toFixed(1)} KB ·{" "}
-                {new Date(strategy.createdAt).toLocaleDateString("ar-SA")}
+                {new Date(strategy.createdAt).toLocaleDateString(DEFAULT_LOCALE)}
               </p>
             </div>
             <ActionButton
@@ -153,10 +155,10 @@ export default function MarketingStrategyDetailPage() {
           </div>
 
           {/* Status-specific messages and actions */}
-          {strategy.status === "SENT" && (
+          {strategy.status === MarketingStrategyStatus.SENT && (
             <div className="space-y-4">
-              <div className="p-4 border border-amber-200 bg-amber-50 rounded-lg">
-                <p className="text-sm text-amber-800">
+              <div className="p-4 border border-alert-200 bg-alert-100 rounded-lg">
+                <p className="text-sm text-alert-700">
                   📋 الدراسة التسويقية بانتظار مراجعتك وموافقتك.
                 </p>
               </div>
@@ -214,7 +216,7 @@ export default function MarketingStrategyDetailPage() {
             </div>
           )}
 
-          {strategy.status === "APPROVED" && (
+          {strategy.status === MarketingStrategyStatus.APPROVED && (
             <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
               <p className="text-sm text-green-800">
                 ✅ تمت الموافقة على هذه الدراسة التسويقية — يمكن الآن بدء الحملات الإعلانية.
@@ -236,7 +238,7 @@ export default function MarketingStrategyDetailPage() {
             </div>
           )}
 
-          {strategy.status === "REJECTED" && (
+          {strategy.status === MarketingStrategyStatus.REJECTED && (
             <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
               <p className="text-sm text-red-800">
                 ❌ تم رفض الدراسة التسويقية.
@@ -244,7 +246,7 @@ export default function MarketingStrategyDetailPage() {
             </div>
           )}
 
-          {strategy.status === "DRAFT" && (
+          {strategy.status === MarketingStrategyStatus.DRAFT && (
             <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600">
                 الدراسة في مرحلة الإعداد ولم يتم إرسالها بعد.

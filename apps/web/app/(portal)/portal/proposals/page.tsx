@@ -1,8 +1,9 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, useCallback, useMemo } from "react";
 import { FileText } from "lucide-react";
-import { useGetMyProposalsQuery } from "@/features/proposals/proposalsApi";
+import { useGetMyPortalProposalsQuery } from "@/features/portal/portalApi";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { DataTable } from "@/components/design-system/DataTable";
 import {
@@ -11,9 +12,9 @@ import {
 } from "@/components/portal/proposals";
 
 export default function PortalProposalsPage() {
-  const { data: proposals, isLoading, isError } = useGetMyProposalsQuery(
+  const { data: proposals, isLoading, isError } = useGetMyPortalProposalsQuery(
     undefined,
-    { pollingInterval: 120_000 },
+    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const [search, setSearch] = useState("");

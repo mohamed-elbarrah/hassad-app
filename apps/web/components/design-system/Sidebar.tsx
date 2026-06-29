@@ -3,99 +3,18 @@
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  Inbox,
-  FileText,
-  Receipt,
-  BarChart3,
-  CheckCircle2,
-  FolderOpen,
-  Bell,
-  ClipboardList,
-  MessageSquare,
-  ChevronDown,
-  ChevronLeft,
-  TrendingUp,
-  User,
-} from "lucide-react";
+import { ChevronDown, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
 import { UserMenu } from "./UserMenu";
 import Image from "next/image";
-
-/* ── Navigation groups ─────────────────────────────────────────────────── */
-const STANDALONE_ITEMS = [
-  { label: "الرئيسية", href: "/portal", icon: Home },
-  { label: "الملف التعريفي", href: "/portal/profile", icon: User },
-];
-
-interface NavGroup {
-  key: string;
-  label: string;
-  icon: typeof Home;
-  items: { label: string; href: string; icon: typeof Home }[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    key: "orders",
-    label: "الطلبات والمشاريع",
-    icon: ClipboardList,
-    items: [
-      { label: "الطلبات", href: "/portal/requests", icon: ClipboardList },
-      { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
-    ],
-  },
-  {
-    key: "communication",
-    label: "التواصل",
-    icon: MessageSquare,
-    items: [
-      { label: "المحادثات", href: "/portal/chat", icon: MessageSquare },
-      { label: "الإشعارات", href: "/portal/notifications", icon: Bell },
-      { label: "إجراءاتي", href: "/portal/actions", icon: CheckCircle2 },
-    ],
-  },
-  {
-    key: "documents",
-    label: "المستندات",
-    icon: FileText,
-    items: [
-      { label: "العقود", href: "/portal/contracts", icon: FileText },
-      { label: "العروض الفنية", href: "/portal/proposals", icon: FileText },
-      { label: "مراجعة التسليمات", href: "/portal/deliverables", icon: Inbox },
-    ],
-  },
-  {
-    key: "finance",
-    label: "المالية والتسويق",
-    icon: Receipt,
-    items: [
-      { label: "الفواتير والمدفوعات", href: "/portal/finance", icon: Receipt },
-      {
-        label: "الحملات الإعلانية",
-        href: "/portal/campaigns",
-        icon: TrendingUp,
-      },
-      {
-        label: "الدراسات التسويقية",
-        href: "/portal/marketing-strategies",
-        icon: FileText,
-      },
-      { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
-    ],
-  },
-];
-
-function isActiveLink(href: string, pathname: string) {
-  if (href === "/portal") {
-    return pathname === "/portal";
-  }
-  return pathname === href || pathname.startsWith(href + "/");
-}
+import {
+  PORTAL_STANDALONE_ITEMS,
+  PORTAL_NAV_GROUPS,
+  isPortalActiveLink,
+} from "@/lib/portal-navigation";
 
 /* ── Component ────────────────────────────────────────────────────────── */
 export function Sidebar() {
@@ -104,10 +23,9 @@ export function Sidebar() {
   const dispatch = useAppDispatch();
   const [logoutMutation] = useLogoutMutation();
 
-  /* Determine which group (if any) contains the active page */
   const activeGroupKey = useMemo(() => {
-    for (const group of NAV_GROUPS) {
-      if (group.items.some((item) => isActiveLink(item.href, pathname))) {
+    for (const group of PORTAL_NAV_GROUPS) {
+      if (group.items.some((item) => isPortalActiveLink(item.href, pathname))) {
         return group.key;
       }
     }
@@ -165,9 +83,9 @@ export function Sidebar() {
       {/* ── Navigation ──────────────────────────────────────────── */}
       <nav className="flex-1 px-8 pt-6 space-y-1 overflow-y-auto">
         {/* Standalone items (always visible) */}
-        {STANDALONE_ITEMS.map((item) => {
+        {PORTAL_STANDALONE_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = isActiveLink(item.href, pathname);
+          const isActive = isPortalActiveLink(item.href, pathname);
           return (
             <Link
               key={item.href}
@@ -182,11 +100,11 @@ export function Sidebar() {
         })}
 
         {/* Accordion groups */}
-        {NAV_GROUPS.map((group) => {
+        {PORTAL_NAV_GROUPS.map((group) => {
           const GroupIcon = group.icon;
           const isOpen = openGroup === group.key;
           const hasActiveItem = group.items.some((item) =>
-            isActiveLink(item.href, pathname),
+            isPortalActiveLink(item.href, pathname),
           );
 
           return (
@@ -235,7 +153,7 @@ export function Sidebar() {
                 <div className="mr-6 space-y-1 border-r-[1.5px] border-portal-card-border pr-2">
                   {group.items.map((item) => {
                     const Icon = item.icon;
-                    const isActive = isActiveLink(item.href, pathname);
+                    const isActive = isPortalActiveLink(item.href, pathname);
                     return (
                       <Link
                         key={item.href}
