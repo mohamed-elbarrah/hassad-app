@@ -170,7 +170,7 @@ function RequestActionCell({
           variant="outline"
           size="sm"
           icon={<FileText className="size-3.5" />}
-          className="h-8 rounded-lg border border-portal-card-border bg-white px-3 text-xs"
+          className="h-8 rounded-lg border border-portal-card-border bg-card px-3 text-xs"
         >
           {getRequestActionLabel(action)}
         </ActionButton>

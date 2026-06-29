@@ -13,8 +13,8 @@ const GOAL_STATUS_CONFIG: Record<
   { badge: string; barColor: string; label: string }
 > = {
   done: {
-    badge: "bg-emerald-100 text-emerald-700",
-    barColor: "bg-emerald-500",
+    badge: "bg-success-100 text-success-700",
+    barColor: "bg-success-1000",
     label: "مكتمل",
   },
   in_progress: {
@@ -30,7 +30,7 @@ const GOAL_STATUS_CONFIG: Record<
 };
 
 const STATUS_ICON: Record<GoalStatus, React.ReactNode> = {
-  done: <CheckCircle2 className="size-5 text-emerald-500" />,
+  done: <CheckCircle2 className="size-5 text-success-500" />,
   in_progress: <Loader2 className="size-5 animate-spin text-secondary-500" />,
   pending: <Circle className="size-5 text-neutral-300" />,
 };

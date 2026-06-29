@@ -24,11 +24,11 @@ export default function PortalNewOrderPage() {
           </p>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-right">
-          <p className="text-sm text-amber-800 font-medium">
+        <div className="bg-alert-100 border border-alert-200 rounded-2xl p-4 text-right">
+          <p className="text-sm text-alert-700 font-medium">
             💡 هل تعلم؟
           </p>
-          <p className="text-sm text-amber-700 mt-1 leading-relaxed">
+          <p className="text-sm text-alert-600 mt-1 leading-relaxed">
             فريق المبيعات يمكنه إنشاء الطلب نيابة عنك بشكل أسرع، مع ضمان دقة
             المعلومات واختيار الخدمات المناسبة لنشاطك.
           </p>

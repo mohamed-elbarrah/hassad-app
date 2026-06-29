@@ -152,11 +152,11 @@ export default function PortalDisputeDetailPage({
 
         {/* ── Action Area ──────────────────────────────────────────────────── */}
         {showConfirmButton && (
-          <SurfaceCard className="p-4 bg-cyan-50/50 border-cyan-200">
+          <SurfaceCard className="p-4 bg-action-blue-soft border-action-blue-soft">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100">
-                  <MessageSquare className="h-5 w-5 text-cyan-600" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-action-blue-soft">
+                  <MessageSquare className="h-5 w-5 text-action-blue" />
                 </div>
                 <div>
                   <p className="font-medium text-natural-100">هل تم حل المشكلة؟</p>

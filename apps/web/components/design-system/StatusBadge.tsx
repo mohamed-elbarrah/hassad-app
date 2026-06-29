@@ -36,21 +36,21 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
   
   // Blue/Purple statuses - "Under Review" states (distinct from gray)
   AWAITING_REVIEW: {
-    bg: "bg-blue-100",
-    text: "text-blue-600",
-    border: "border-blue-200",
+    bg: "bg-action-blue-soft",
+    text: "text-action-blue",
+    border: "border-action-blue-soft",
     label: "بانتظار المراجعة",
   },
   IN_REVIEW: {
-    bg: "bg-purple-100",
-    text: "text-purple-600",
-    border: "border-purple-200",
+    bg: "bg-action-purple-soft",
+    text: "text-action-purple",
+    border: "border-action-purple-soft",
     label: "قيد المراجعة",
   },
   SENT: {
-    bg: "bg-blue-100",
-    text: "text-blue-600",
-    border: "border-blue-200",
+    bg: "bg-action-blue-soft",
+    text: "text-action-blue",
+    border: "border-action-blue-soft",
     label: "مرسل",
   },
   
@@ -68,15 +68,15 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     label: "معلق",
   },
   NEEDS_REVISION: {
-    bg: "bg-orange-100",
-    text: "text-orange-600",
-    border: "border-orange-200",
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
     label: "مطلوب تعديلات",
   },
   REVISION: {
-    bg: "bg-orange-100",
-    text: "text-orange-600",
-    border: "border-orange-200",
+    bg: "bg-alert-100",
+    text: "text-alert-600",
+    border: "border-alert-200",
     label: "تعديل مطلوب",
   },
   PAUSED: {
@@ -210,33 +210,33 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
   
   // Lowercase - Blue/Purple (Review states)
   "awaiting-review": {
-    bg: "bg-blue-100",
-    text: "text-blue-600",
-    border: "border-blue-200",
+    bg: "bg-action-blue-soft",
+    text: "text-action-blue",
+    border: "border-action-blue-soft",
     label: "بانتظار المراجعة",
   },
   "in-review": {
-    bg: "bg-purple-100",
-    text: "text-purple-600",
-    border: "border-purple-200",
+    bg: "bg-action-purple-soft",
+    text: "text-action-purple",
+    border: "border-action-purple-soft",
     label: "قيد المراجعة",
   },
   sent: {
-    bg: "bg-blue-100",
-    text: "text-blue-600",
-    border: "border-blue-200",
+    bg: "bg-action-blue-soft",
+    text: "text-action-blue",
+    border: "border-action-blue-soft",
     label: "مرسل",
   },
   awaiting: {
-    bg: "bg-blue-100",
-    text: "text-blue-600",
-    border: "border-blue-200",
+    bg: "bg-action-blue-soft",
+    text: "text-action-blue",
+    border: "border-action-blue-soft",
     label: "بانتظار المراجعة",
   },
   inreview: {
-    bg: "bg-purple-100",
-    text: "text-purple-600",
-    border: "border-purple-200",
+    bg: "bg-action-purple-soft",
+    text: "text-action-purple",
+    border: "border-action-purple-soft",
     label: "قيد المراجعة",
   },
   

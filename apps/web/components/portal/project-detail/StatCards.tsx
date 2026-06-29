@@ -16,9 +16,9 @@ import { formatDateTimeTz } from "@/lib/format";
 type StatColor = "emerald" | "blue" | "violet" | "amber";
 
 const COLOR_MAP: Record<StatColor, string> = {
-  emerald: "bg-emerald-50 text-emerald-600",
+  emerald: "bg-success-100 text-success-600",
   blue: "bg-blue-50 text-blue-600",
-  violet: "bg-violet-50 text-violet-600",
+  violet: "bg-action-purple-soft text-action-purple",
   amber: "bg-amber-50 text-amber-600",
 };
 

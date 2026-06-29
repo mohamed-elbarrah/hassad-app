@@ -155,8 +155,8 @@ export default function MarketingStrategyDetailPage() {
           {/* Status-specific messages and actions */}
           {strategy.status === MarketingStrategyStatus.SENT && (
             <div className="space-y-4">
-              <div className="p-4 border border-amber-200 bg-amber-50 rounded-lg">
-                <p className="text-sm text-amber-800">
+              <div className="p-4 border border-alert-200 bg-alert-100 rounded-lg">
+                <p className="text-sm text-alert-700">
                   📋 الدراسة التسويقية بانتظار مراجعتك وموافقتك.
                 </p>
               </div>

@@ -441,7 +441,7 @@ export default function PortalPage() {
               {teamMembersData.members.map((member) => (
                 <div
                   key={member.id}
-                  className="p-4 bg-white border-[1.5px] border-portal-card-border rounded-2xl space-y-3"
+                  className="p-4 bg-card border-[1.5px] border-portal-card-border rounded-2xl space-y-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
