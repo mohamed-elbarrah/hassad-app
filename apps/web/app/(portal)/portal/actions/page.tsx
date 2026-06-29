@@ -13,7 +13,6 @@ import {
   CalendarClock,
   AlertCircle,
 } from "lucide-react";
-import { toast } from "sonner";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pagination } from "@/components/design-system/Pagination";
@@ -27,12 +26,11 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/design-system/Tabs";
+import { useSnoozeActionItem } from "@/hooks/useSnoozeActionItem";
 import { useAppSelector } from "@/lib/hooks";
 import {
   useGetActionItemsQuery,
   useGetSnoozedActionItemsQuery,
-  useSnoozeActionItemMutation,
-  useUnsnoozeActionItemMutation,
   type SnoozedActionItem,
 } from "@/features/portal/portalApi";
 
@@ -72,11 +70,6 @@ const PRIORITY_PILL: Record<
 };
 
 const PAGE_SIZE = 6;
-
-/** Strip the `del-` / `inv-` / etc. prefix from an action item id. */
-function stripPrefix(id: string): string {
-  return id.replace(/^(del|inv|prop|con|strat)-/, "");
-}
 
 /** Friendly "23 Aug 2026, 14:30" formatter using Arabic-locale Latin digits. */
 function formatReminderTime(iso: string): string {
@@ -137,8 +130,7 @@ export default function PortalActionsPage() {
     { skip: !clientId || activeTab !== "snoozed", pollingInterval: 120_000 },
   );
 
-  const [snoozeActionItem] = useSnoozeActionItemMutation();
-  const [unsnoozeActionItem] = useUnsnoozeActionItemMutation();
+  const { snoozeItem, unsnoozeItem } = useSnoozeActionItem();
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -156,42 +148,16 @@ export default function PortalActionsPage() {
     type: string;
     title: string;
   }) => {
-    const itemId = stripPrefix(item.id);
     setBusyId(item.id);
-    try {
-      const result = await snoozeActionItem({
-        itemType: item.type,
-        itemId,
-      }).unwrap();
-      const until = result?.snoozedUntil
-        ? formatReminderTime(result.snoozedUntil)
-        : "بعد 24 ساعة";
-      toast.success(`سيتم تذكيرك بـ «${item.title}» ${until}`, {
-        description: "يمكنك التراجع من تبويب «المؤجلة».",
-        duration: 5000,
-      });
-    } catch (err: any) {
-      toast.error(err?.data?.message || "فشل في إخفاء الإجراء");
-    } finally {
-      setBusyId(null);
-    }
+    await snoozeItem(item.type, item.id);
+    setBusyId(null);
   };
 
   /** Cancel an existing snooze from the "المؤجلة" tab. */
   const handleUnsnooze = async (item: SnoozedActionItem) => {
-    const itemId = stripPrefix(item.id);
     setBusyId(item.id);
-    try {
-      await unsnoozeActionItem({ itemType: item.type, itemId }).unwrap();
-      toast.success(`تم إعادة «${item.title}» إلى قائمة الإجراءات`, {
-        description: "ستجده في تبويب «الآن».",
-        duration: 4000,
-      });
-    } catch (err: any) {
-      toast.error(err?.data?.message || "فشل في إلغاء التأجيل");
-    } finally {
-      setBusyId(null);
-    }
+    await unsnoozeItem(item.type, item.id);
+    setBusyId(null);
   };
 
   return (

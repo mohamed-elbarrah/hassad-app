@@ -21,14 +21,13 @@ import {
 } from "lucide-react";
 
 import { useAppSelector } from "@/lib/hooks";
-import { toast } from "sonner"; // NEW
+import { useSnoozeActionItem } from "@/hooks/useSnoozeActionItem";
 import {
   useGetPortalRequestsQuery,
   useGetProjectProgressQuery,
   useGetActionItemsQuery,
   useGetActivityFeedQuery,
   useGetCampaignSummaryQuery,
-  useSnoozeActionItemMutation,
   useGetTeamMembersQuery,
 } from "@/features/portal/portalApi";
 
@@ -90,7 +89,7 @@ export default function PortalPage() {
   const router = useRouter();
   const clientId = user?.clientId ?? "";
 
-  const [snoozeActionItem] = useSnoozeActionItemMutation();
+  const { snoozeItem } = useSnoozeActionItem();
 
   const { data: pendingRequestsData, error: pendingRequestsError } =
     useGetPortalRequestsQuery(
@@ -135,24 +134,7 @@ export default function PortalPage() {
   const activityItems = activityFeedData?.items ?? [];
 
   const handleSnooze = async (item: { id: string; type: string; title: string }) => {
-    const itemId = item.id.replace(/^(del|inv|prop|con|strat)-/, "");
-    try {
-      const result = await snoozeActionItem({ itemType: item.type, itemId }).unwrap();
-      const until = result?.snoozedUntil
-        ? new Date(result.snoozedUntil).toLocaleString("ar-SA-u-nu-latn", {
-            day: "numeric",
-            month: "long",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "بعد 24 ساعة";
-      toast.success(`سيتم تذكيرك بـ «${item.title}» ${until}`, {
-        description: "يمكنك التراجع عن التأجيل من صفحة الإجراءات المؤجلة.",
-        duration: 5000,
-      });
-    } catch (err: any) {
-      toast.error(err?.data?.message || "فشل في إخفاء الإجراء");
-    }
+    await snoozeItem(item.type, item.id);
   };
 
   if (!clientId) {
