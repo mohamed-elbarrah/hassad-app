@@ -47,7 +47,7 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         description: "تم استلام تذكرتك. سيتم مراجعتها من قبل الإدارة.",
       });
       setDisputeOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       const message =
         error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
       toast.error("خطأ", { description: message });

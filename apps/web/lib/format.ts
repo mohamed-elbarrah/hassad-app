@@ -2,7 +2,7 @@
 // Shared currency, date, and locale formatting utilities.
 
 const DEFAULT_CURRENCY = "SAR";
-const DEFAULT_LOCALE = "ar-SA-u-nu-latn";
+export const DEFAULT_LOCALE = "ar-SA-u-nu-latn";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   SAR: "ر.س",

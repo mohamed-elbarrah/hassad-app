@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, use, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
@@ -55,7 +56,7 @@ export default function PortalContractDetailPage({ params }: PageProps) {
 function PortalContractDetailInner({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const { data, isLoading, isError } = useGetPortalContractByIdQuery(id, {
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
   const dispatch = useDispatch();
   const [signContract, { isLoading: signing }] =

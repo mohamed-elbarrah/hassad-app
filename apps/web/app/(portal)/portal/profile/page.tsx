@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useAppSelector } from "@/lib/hooks";
 import {
-  useGetClientProfileV2Query,
-  useGetClientByIdQuery,
-} from "@/features/clients/clientsApi";
+  useGetPortalClientProfileQuery,
+  useGetPortalClientByIdQuery,
+} from "@/features/portal/portalApi";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ClientBriefV2 } from "@/components/client-brief/ClientBriefV2";
 import { ProfileEditV2 } from "@/components/portal/ProfileEditV2";
@@ -23,7 +23,7 @@ export default function PortalProfilePage() {
     isLoading: profileLoading,
     isError: profileError,
     refetch: refetchProfile,
-  } = useGetClientProfileV2Query(clientId, {
+  } = useGetPortalClientProfileQuery(clientId, {
     skip: !clientId,
   });
 
@@ -31,7 +31,7 @@ export default function PortalProfilePage() {
     data: client,
     isLoading: clientLoading,
     isError: clientError,
-  } = useGetClientByIdQuery(clientId, {
+  } = useGetPortalClientByIdQuery(clientId, {
     skip: !clientId,
   });
 

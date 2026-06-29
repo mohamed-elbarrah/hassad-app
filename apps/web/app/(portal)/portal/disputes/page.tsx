@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Ticket, Search, Plus, Filter, AlertCircle } from "lucide-react";
@@ -55,7 +56,7 @@ export default function PortalDisputesPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 60_000 }
+    { pollingInterval: PORTAL_POLLING_INTERVAL_MS }
   );
 
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
@@ -88,7 +89,7 @@ export default function PortalDisputesPage() {
       });
       setIsNewDisputeOpen(false);
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
       toast.error("خطأ", {
         description: message,

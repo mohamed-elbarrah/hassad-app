@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useMemo, useState } from "react";
 import { useAppSelector } from "@/lib/hooks";
 import {
@@ -101,7 +102,7 @@ export default function PortalReportsPage() {
     refetch,
   } = useGetPortalReportsQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
   const { data: timeline } = useGetReportTimelineQuery(
     {
@@ -109,7 +110,7 @@ export default function PortalReportsPage() {
       dateTo: rangeParams.dateTo,
       granularity: rangeParams.granularity,
     },
-    { skip: !clientId, pollingInterval: 120_000 },
+    { skip: !clientId, pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   return (

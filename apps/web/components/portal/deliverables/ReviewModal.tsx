@@ -125,7 +125,7 @@ export function ReviewModal({
       toast.success("تمت الموافقة على المشروع بنجاح");
       onActionComplete(selectedProjectId);
       handleClose();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message ?? "حدث خطأ أثناء الموافقة على المشروع");
     }
   }
@@ -138,7 +138,7 @@ export function ReviewModal({
       toast.success("تم إرسال طلب التعديل بنجاح");
       onActionComplete(selectedProjectId);
       handleClose();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message ?? "حدث خطأ أثناء إرسال طلب التعديل");
     }
   }

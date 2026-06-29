@@ -10,7 +10,9 @@ import type {
   DisputeCategory,
   DisputePriority,
   MarketingStrategyStatus,
+  Client,
 } from "@hassad/shared";
+import type { ClientProfileV2 } from "@/features/clients/clientsApi";
 
 // ─── Dispute Types ───────────────────────────────────────────────────────────
 
@@ -656,6 +658,7 @@ export const portalApi = createApi({
     "ClientDisputes",
     "ClientDispute",
     "IntakeFormDraft",
+    "PortalClient",
   ],
   endpoints: (builder) => ({
     getPortalDashboard: builder.query<PortalDashboard, void>({
@@ -1155,6 +1158,18 @@ export const portalApi = createApi({
       }),
       invalidatesTags: ["IntakeFormDraft"],
     }),
+
+    // ── Portal-aliased client endpoints ──────────────────────────────
+
+    getPortalClientProfile: builder.query<ClientProfileV2, string>({
+      query: (id) => `/clients/${id}/profile-v2`,
+      providesTags: (_result, _error, id) => [{ type: "PortalClient", id }],
+    }),
+
+    getPortalClientById: builder.query<Client, string>({
+      query: (id) => `/clients/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "PortalClient", id }],
+    }),
   }),
 });
 
@@ -1215,4 +1230,7 @@ export const {
   useApprovePortalProposalMutation,
   useRequestPortalProposalRevisionMutation,
   useGetMyPortalProposalsQuery,
+  // Portal-aliased client hooks
+  useGetPortalClientProfileQuery,
+  useGetPortalClientByIdQuery,
 } = portalApi;

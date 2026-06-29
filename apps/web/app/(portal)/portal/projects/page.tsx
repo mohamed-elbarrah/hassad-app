@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -59,7 +60,7 @@ export default function PortalProjectsPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: 120_000 },
+    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const projects = data?.data ?? [];

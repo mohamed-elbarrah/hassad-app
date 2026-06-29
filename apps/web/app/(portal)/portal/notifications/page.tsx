@@ -225,7 +225,7 @@ export default function PortalNotificationsPage() {
   async function handleMarkRead(id: string) {
     try {
       await markAsRead(id).unwrap();
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message || "فشل في وضع علامة مقروءة");
     }
   }

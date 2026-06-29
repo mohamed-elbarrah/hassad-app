@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, use } from "react";
 import {
   FileText,
@@ -37,7 +38,7 @@ interface PageProps {
 export default function PortalProposalDetailPage({ params }: PageProps) {
   const { token } = use(params);
   const { data, isLoading, isError } = useGetPortalProposalByTokenQuery(token, {
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
   const [approveProposal, { isLoading: approving }] =
     useApprovePortalProposalMutation();

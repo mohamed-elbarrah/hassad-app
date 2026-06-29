@@ -93,7 +93,7 @@ export function ProfileEditV2({
       toast.success("تم حفظ التغييرات بنجاح");
       setIsDirty(false);
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       toast.error(error.message || "حدث خطأ أثناء الحفظ");
     }
   }, [clientId, personalInfo, formData, upsertProfile, updateUser, onSuccess]);

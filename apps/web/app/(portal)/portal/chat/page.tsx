@@ -159,7 +159,7 @@ export default function PortalChatPage() {
           conversationId: selectedId,
           content,
         }).unwrap();
-      } catch (err: any) {
+      } catch (err) {
         toast.error(err?.data?.message || "فشل في إرسال الرسالة");
       }
     },

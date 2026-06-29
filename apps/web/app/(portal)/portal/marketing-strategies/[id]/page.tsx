@@ -1,5 +1,7 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { DEFAULT_LOCALE } from "@/lib/format";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -57,7 +59,7 @@ export default function MarketingStrategyDetailPage() {
     try {
       await approveStrategy(id).unwrap();
       toast.success("تمت الموافقة على الدراسة التسويقية بنجاح");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message || "حدث خطأ أثناء الموافقة");
     }
   };
@@ -72,7 +74,7 @@ export default function MarketingStrategyDetailPage() {
       toast.success("تم إرسال طلب التعديل بنجاح");
       setShowRevisionForm(false);
       setRevisionComment("");
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err?.data?.message || "حدث خطأ أثناء إرسال طلب التعديل");
     }
   };
@@ -139,7 +141,7 @@ export default function MarketingStrategyDetailPage() {
               <p className="font-medium truncate">{strategy.fileName}</p>
               <p className="text-sm text-muted-foreground">
                 {(strategy.fileSize / 1024).toFixed(1)} KB ·{" "}
-                {new Date(strategy.createdAt).toLocaleDateString("ar-SA")}
+                {new Date(strategy.createdAt).toLocaleDateString(DEFAULT_LOCALE)}
               </p>
             </div>
             <ActionButton

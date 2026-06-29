@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -96,23 +97,27 @@ export default function PortalPage() {
       { page: 1, limit: 3 },
       {
         skip: !clientId,
-        pollingInterval: 120_000,
+        pollingInterval: PORTAL_POLLING_INTERVAL_MS,
       },
     );
-  const { data: projectProgress, error: projectError } =
-    useGetProjectProgressQuery(undefined, {
-      skip: !clientId,
-      pollingInterval: 120_000,
-    });
+  const { data: projectProgress, error: projectError } = useGetProjectProgressQuery(undefined, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
+  const { data: activity } = useGetActivityFeedQuery(undefined, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
+  const { data: requests } = useGetPortalRequestsQuery(undefined, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
   const { data: actionItemsData, error: actionItemsError } =
     useGetActionItemsQuery(undefined, {
       skip: !clientId,
-      pollingInterval: 120_000,
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
     });
   const { data: activityFeedData, error: activityError } =
     useGetActivityFeedQuery(undefined, {
       skip: !clientId,
-      pollingInterval: 120_000,
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
     });
   const {
     data: campaignSummary,
@@ -120,11 +125,11 @@ export default function PortalPage() {
     isLoading: campaignLoading,
   } = useGetCampaignSummaryQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
   const { data: teamMembersData } = useGetTeamMembersQuery(undefined, {
     skip: !clientId,
-    pollingInterval: 120_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
 
   const projects = projectProgress?.projects ?? [];

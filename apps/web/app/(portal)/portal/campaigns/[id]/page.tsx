@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { use } from "react";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
@@ -44,7 +45,7 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
     isLoading,
     isError,
     refetch,
-  } = useGetPortalCampaignQuery(id, { pollingInterval: 120_000 });
+  } = useGetPortalCampaignQuery(id, { pollingInterval: PORTAL_POLLING_INTERVAL_MS });
 
   if (isLoading) {
     return <DetailSkeleton variant="campaign" />;

@@ -1,5 +1,6 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -118,7 +119,7 @@ export default function PortalActionsPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { skip: !clientId || activeTab !== "now", pollingInterval: 120_000 },
+    { skip: !clientId || activeTab !== "now", pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const {
@@ -127,7 +128,7 @@ export default function PortalActionsPage() {
     isError: snoozedError,
   } = useGetSnoozedActionItemsQuery(
     { activeOnly: true },
-    { skip: !clientId || activeTab !== "snoozed", pollingInterval: 120_000 },
+    { skip: !clientId || activeTab !== "snoozed", pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const { snoozeItem, unsnoozeItem } = useSnoozeActionItem();

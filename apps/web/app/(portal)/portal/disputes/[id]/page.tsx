@@ -1,5 +1,7 @@
 "use client";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { DEFAULT_LOCALE } from "@/lib/format";
 import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, MessageSquare, History } from "lucide-react";
@@ -36,7 +38,7 @@ export default function PortalDisputeDetailPage({
     isLoading,
     refetch,
   } = useGetClientDisputeDetailQuery(id, {
-    pollingInterval: 30_000,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
 
   const [addMessage, { isLoading: isSendingMessage }] = useAddDisputeMessageMutation();
@@ -46,7 +48,7 @@ export default function PortalDisputeDetailPage({
     try {
       await addMessage({ disputeId: id, content, files }).unwrap();
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
       toast.error(message);
     }
@@ -63,7 +65,7 @@ export default function PortalDisputeDetailPage({
       });
       setIsConfirmDialogOpen(false);
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء تأكيد الحل";
       toast.error(message);
     }
@@ -80,7 +82,7 @@ export default function PortalDisputeDetailPage({
       });
       setIsConfirmDialogOpen(false);
       refetch();
-    } catch (error: any) {
+    } catch (error) {
       const message = error?.data?.error?.message || "حدث خطأ أثناء التصعيد";
       toast.error(message);
     }
@@ -133,7 +135,7 @@ export default function PortalDisputeDetailPage({
               <span>•</span>
               <span>مدير المشروع: {dispute.pm.name}</span>
               <span>•</span>
-              <span>تاريخ الفتح: {new Date(dispute.openedAt).toLocaleDateString("ar-SA")}</span>
+              <span>تاريخ الفتح: {new Date(dispute.openedAt).toLocaleDateString(DEFAULT_LOCALE)}</span>
             </div>
           </div>
 
@@ -224,7 +226,7 @@ export default function PortalDisputeDetailPage({
                       {event.changer.name}
                     </span>
                     <span className="text-xs text-portal-note-text">
-                      {new Date(event.changedAt).toLocaleString("ar-SA", {
+                      {new Date(event.changedAt).toLocaleString(DEFAULT_LOCALE, {
                         dateStyle: "short",
                         timeStyle: "short",
                       })}
