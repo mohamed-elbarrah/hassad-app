@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { toast } from "sonner";
 import {
   PersonalInfoSection,
   CommunicationSection,
@@ -11,6 +12,8 @@ import {
   PerformanceSection,
   VisualSection,
 } from "@/components/shared/ProfileSections";
+import { useUpdateUserMutation } from "@/features/users/usersApi";
+import { useAppSelector } from "@/lib/hooks";
 import { StepProgressBar } from "./components/StepProgressBar";
 import { AutoSaveIndicator } from "./components/AutoSaveIndicator";
 import { useIntakeFormV2, STEP_SECTION_MAP } from "./hooks/useIntakeFormV2";
@@ -21,6 +24,9 @@ interface IntakeFormV2Props {
 }
 
 export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
+  const { user } = useAppSelector((state) => state.auth);
+  const [updateUser] = useUpdateUserMutation();
+
   const {
     currentStep,
     sectionData,
@@ -77,6 +83,21 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         return (
           <PersonalInfoSection
             mode="wizard"
+            onDataChange={async (data) => {
+              if (!user) return;
+              try {
+                await updateUser({
+                  id: user.id,
+                  body: {
+                    name: data.name,
+                    email: data.email || undefined,
+                    phoneWhatsapp: data.phoneWhatsapp || undefined,
+                  },
+                }).unwrap();
+              } catch {
+                toast.error("فشل تحديث البيانات الشخصية");
+              }
+            }}
             onNext={() => nextStep()}
             onBack={() => undefined}
           />

@@ -8,6 +8,7 @@ import {
   useGetClientProfileV2Query,
   useUpsertClientProfileV2Mutation,
 } from "@/features/clients/clientsApi";
+import { useUpdateUserMutation } from "@/features/users/usersApi";
 import type { IntakeFormV2Input } from "@hassad/shared";
 
 // Shared section components
@@ -41,8 +42,10 @@ export function ProfileEditV2({
   const { data: profile, isLoading } = useGetClientProfileV2Query(clientId);
   const [upsertProfile, { isLoading: isSaving }] =
     useUpsertClientProfileV2Mutation();
+  const [updateUser] = useUpdateUserMutation();
 
   const [formData, setFormData] = useState<FormData>({});
+  const [personalInfo, setPersonalInfo] = useState<Record<string, any> | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
   // Initialize form data when profile loads
@@ -73,6 +76,16 @@ export function ProfileEditV2({
 
   const handleSave = useCallback(async () => {
     try {
+      if (personalInfo) {
+        await updateUser({
+          id: clientId,
+          body: {
+            name: personalInfo.name,
+            email: personalInfo.email || undefined,
+            phoneWhatsapp: personalInfo.phoneWhatsapp || undefined,
+          },
+        }).unwrap();
+      }
       await upsertProfile({
         id: clientId,
         data: formData as any,
@@ -83,7 +96,7 @@ export function ProfileEditV2({
     } catch (error: any) {
       toast.error(error.message || "حدث خطأ أثناء الحفظ");
     }
-  }, [clientId, formData, upsertProfile, onSuccess]);
+  }, [clientId, personalInfo, formData, upsertProfile, updateUser, onSuccess]);
 
   if (isLoading) {
     return (
@@ -113,7 +126,14 @@ export function ProfileEditV2({
       </div>
 
       {/* Section 1: Personal Info — writes to User (single source of truth) */}
-      <PersonalInfoSection mode="edit" hideNavigation />
+      <PersonalInfoSection
+        mode="edit"
+        hideNavigation
+        onDataChange={(data) => {
+          setPersonalInfo(data);
+          setIsDirty(true);
+        }}
+      />
 
       {/* Section 2: Business Communication */}
       <CommunicationSection

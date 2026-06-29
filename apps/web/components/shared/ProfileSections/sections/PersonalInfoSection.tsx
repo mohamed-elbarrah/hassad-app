@@ -27,7 +27,6 @@ import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
 import {
   Form,
   FormField,
@@ -40,7 +39,6 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { User, Mail, Phone } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
-import { useUpdateUserMutation } from "@/features/users/usersApi";
 import { SectionLayout, NavigationButtons } from "../SectionLayout";
 import type { ProfileMode } from "../types";
 
@@ -62,6 +60,8 @@ interface PersonalInfoSectionProps {
   /** Called when the user saves changes. Returns a promise so the
    *  wizard can await it before navigating to the next step. */
   onSave?: (data: PersonalInfo) => Promise<void> | void;
+  /** Called when data changes (edit/wizard mode). */
+  onDataChange?: (data: PersonalInfo) => void;
   /** Called when form validity changes (wizard/edit mode only). */
   onValid?: (isValid: boolean) => void;
   /** Wizard navigation. */
@@ -73,13 +73,13 @@ interface PersonalInfoSectionProps {
 export function PersonalInfoSection({
   mode,
   onSave,
+  onDataChange,
   onValid,
   onNext,
   onBack,
   hideNavigation = false,
 }: PersonalInfoSectionProps) {
   const { user } = useAppSelector((state) => state.auth);
-  const [updateUser, { isLoading }] = useUpdateUserMutation();
 
   const form = useForm<PersonalInfo>({
     resolver: zodResolver(PersonalInfoSchema),
@@ -107,25 +107,11 @@ export function PersonalInfoSection({
   }, [form.formState.isValid, onValid]);
 
   const onSubmit = useCallback(
-    async (data: PersonalInfo) => {
-      try {
-        if (!user) return;
-        await updateUser({
-          id: user.id,
-          body: {
-            name: data.name,
-            email: data.email || undefined,
-            phoneWhatsapp: data.phoneWhatsapp || undefined,
-          },
-        }).unwrap();
-        toast.success("تم تحديث بياناتك الشخصية");
-        await onSave?.(data);
-        onNext?.();
-      } catch (err: any) {
-        toast.error(err?.data?.message || "فشل تحديث البيانات الشخصية");
-      }
+    (data: PersonalInfo) => {
+      onDataChange?.(data);
+      onNext?.();
     },
-    [user, updateUser, onSave, onNext],
+    [onDataChange, onNext],
   );
 
   // ── View mode: read-only display from auth state ────────────────────
@@ -261,10 +247,9 @@ export function PersonalInfoSection({
             <ActionButton
               type="submit"
               variant="primary"
-              disabled={isLoading}
               className="w-full"
             >
-              {isLoading ? "جاري الحفظ..." : "حفظ البيانات الشخصية"}
+              حفظ البيانات الشخصية
             </ActionButton>
           )}
         </form>
