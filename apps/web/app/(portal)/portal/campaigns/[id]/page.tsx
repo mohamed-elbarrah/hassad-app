@@ -2,13 +2,14 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowRight, TrendingUp, AlertCircle } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
+import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import {
   useGetPortalCampaignQuery,
   type PortalCampaignDetail,
 } from "@/features/portal/portalApi";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -46,58 +47,17 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
   } = useGetPortalCampaignQuery(id, { pollingInterval: 120_000 });
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-6" dir="rtl">
-        <Skeleton className="h-6 w-48" />
-        <SurfaceCard icon={TrendingUp}>
-          <div className="space-y-4">
-            <Skeleton className="h-7 w-64" />
-            <Skeleton className="mt-2 h-4 w-40" />
-            <div className="grid grid-cols-2 gap-3">
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-10 w-full rounded-2xl" />
-              <Skeleton className="h-10 w-full rounded-2xl" />
-            </div>
-            <Skeleton className="h-[200px] w-full rounded-2xl" />
-          </div>
-        </SurfaceCard>
-      </div>
-    );
+    return <DetailSkeleton variant="campaign" />;
   }
 
   if (isError || !campaign) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Link href="/portal/campaigns">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-2 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            الحملات الإعلانية
-          </ActionButton>
-        </Link>
-        <SurfaceCard title="تعذر تحميل الحملة" icon={AlertCircle}>
-          <div className="flex flex-col items-center gap-4 text-center">
-            <p className="text-sm text-portal-note-text">
-              {isError
-                ? "تعذر تحميل بيانات الحملة. يرجى المحاولة مرة أخرى."
-                : "الحملة غير موجودة."}
-            </p>
-            {isError && (
-              <ActionButton
-                variant="ghost"
-                className="h-9 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 text-xs font-medium text-portal-icon hover:bg-badge-gray-bg"
-                onClick={() => refetch()}
-              >
-                إعادة المحاولة
-              </ActionButton>
-            )}
-          </div>
-        </SurfaceCard>
-      </div>
+      <DetailErrorState
+        title={isError ? "تعذر تحميل الحملة" : "الحملة غير موجودة"}
+        onRetry={isError ? refetch : undefined}
+        backHref="/portal/campaigns"
+        backLabel="الحملات الإعلانية"
+      />
     );
   }
 

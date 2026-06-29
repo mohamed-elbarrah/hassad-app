@@ -1,24 +1,23 @@
 "use client";
 
 import { useState, use, useEffect, Suspense } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
-  ArrowRight,
   FileText,
   Download,
   CheckCircle,
-  AlertCircle,
   PenLine,
 } from "lucide-react";
 import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
+import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import { useSignContractByTokenMutation } from "@/features/contracts/contractsApi";
 import { useGetPortalContractByIdQuery } from "@/features/portal/portalApi";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInput } from "@/components/design-system/FormInput";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import Link from "next/link";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
@@ -42,12 +41,7 @@ export default function PortalContractDetailPage({ params }: PageProps) {
   const { id } = use(params);
   return (
     <Suspense
-      fallback={
-        <div className="flex flex-col gap-4" dir="rtl">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-80 w-full" />
-        </div>
-      }
+      fallback={<DetailSkeleton variant="contract" />}
     >
       <PortalContractDetailInner id={id} />
     </Suspense>
@@ -76,29 +70,16 @@ function PortalContractDetailInner({ id }: { id: string }) {
   }, [searchParams]);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-80 w-full" />
-      </div>
-    );
+    return <DetailSkeleton variant="contract" />;
   }
 
   if (isError || !data) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Link href="/portal/contracts">
-          <ActionButton variant="ghost" size="sm" className="gap-2">
-            <ArrowRight className="h-4 w-4" />
-            العقود
-          </ActionButton>
-        </Link>
-        <SurfaceCard title="تعذر تحميل العقد" icon={AlertCircle}>
-          <p className="text-center text-sm text-portal-note-text">
-            العقد غير متوفر.
-          </p>
-        </SurfaceCard>
-      </div>
+      <DetailErrorState
+        title="تعذر تحميل العقد"
+        backHref="/portal/contracts"
+        backLabel="العقود"
+      />
     );
   }
 

@@ -9,22 +9,21 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import {
   PaymentSheet,
   type PayableInvoice,
 } from "@/components/payments/PaymentSheet";
 import { toast } from "sonner";
 import {
-  ArrowRight,
   Receipt,
   Download,
   CheckCircle2,
-  AlertCircle,
   CreditCard,
   Clock,
 } from "lucide-react";
 import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
+import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import { mapFinanceStatusToUI } from "@/lib/utils/statusMapping";
 import { useCurrency } from "@/hooks/useCurrency";
 import { InvoiceStatus } from "@hassad/shared";
@@ -75,45 +74,16 @@ export default function PortalInvoiceDetailPage() {
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-80 w-full rounded-2xl" />
-      </div>
-    );
+    return <DetailSkeleton variant="invoice" />;
   }
 
   if (isError || !invoice) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Link href="/portal/finance">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-2 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            الفواتير
-          </ActionButton>
-        </Link>
-        <SurfaceCard title="تعذر تحميل الفاتورة" icon={AlertCircle}>
-          <p className="text-sm text-portal-note-text">
-            الفاتورة غير متوفرة أو تم حذفها. يمكنك العودة لقائمة الفواتير
-            للاطلاع على باقي الفواتير.
-          </p>
-          <div className="mt-4">
-            <Link href="/portal/finance">
-              <ActionButton
-                variant="primary"
-                icon={<Receipt className="h-4 w-4" />}
-                className="gap-2"
-              >
-                قائمة الفواتير
-              </ActionButton>
-            </Link>
-          </div>
-        </SurfaceCard>
-      </div>
+      <DetailErrorState
+        title="تعذر تحميل الفاتورة"
+        backHref="/portal/finance"
+        backLabel="الفواتير"
+      />
     );
   }
 

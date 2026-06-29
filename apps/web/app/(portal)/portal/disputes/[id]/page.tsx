@@ -10,8 +10,9 @@ import {
   useConfirmDisputeResolutionMutation,
 } from "@/features/portal/portalApi";
 import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR, DisputeStatus } from "@hassad/shared";
+import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
+import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
   DisputeStatusBadge,
@@ -86,22 +87,16 @@ export default function PortalDisputeDetailPage({
   };
 
   if (isLoading) {
-    return <DisputeDetailSkeleton />;
+    return <DetailSkeleton variant="contract" />;
   }
 
   if (!dispute) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16" dir="rtl">
-        <div className="text-6xl">🔍</div>
-        <h1 className="text-xl font-semibold text-natural-100">التذكرة غير موجودة</h1>
-        <p className="text-portal-note-text">لا يمكنك الوصول إلى هذه التذكرة</p>
-        <Link href="/portal/disputes">
-          <ActionButton variant="outline" className="mt-4 rounded-xl">
-            <ArrowRight className="w-4 h-4" />
-            العودة إلى التذاكر
-          </ActionButton>
-        </Link>
-      </div>
+      <DetailErrorState
+        title="التذكرة غير موجودة"
+        backHref="/portal/disputes"
+        backLabel="العودة إلى التذاكر"
+      />
     );
   }
 
@@ -258,16 +253,4 @@ export default function PortalDisputeDetailPage({
   );
 }
 
-function DisputeDetailSkeleton() {
-  return (
-    <div className="flex flex-col gap-5" dir="rtl">
-      <Skeleton className="h-8 w-24 rounded-lg" />
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-48 rounded-lg" />
-        <Skeleton className="h-10 w-full max-w-md rounded-lg" />
-      </div>
-      <Skeleton className="h-32 rounded-[24px]" />
-      <Skeleton className="h-64 rounded-[24px]" />
-    </div>
-  );
-}
+
