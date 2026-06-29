@@ -12,8 +12,11 @@ import {
 import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
-import { useSignContractByTokenMutation } from "@/features/contracts/contractsApi";
-import { useGetPortalContractByIdQuery, portalApi } from "@/features/portal/portalApi";
+import {
+  useGetPortalContractByIdQuery,
+  useSignPortalContractMutation,
+  portalApi,
+} from "@/features/portal/portalApi";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInput } from "@/components/design-system/FormInput";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
@@ -56,7 +59,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
   });
   const dispatch = useDispatch();
   const [signContract, { isLoading: signing }] =
-    useSignContractByTokenMutation();
+    useSignPortalContractMutation();
 
   const [signedByName, setSignedByName] = useState("");
   const [signedByEmail, setSignedByEmail] = useState("");

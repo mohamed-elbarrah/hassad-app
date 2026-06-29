@@ -12,10 +12,10 @@ import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import {
-  useGetProposalByTokenQuery,
-  useApproveProposalByTokenMutation,
-  useRequestRevisionByTokenMutation,
-} from "@/features/proposals/proposalsApi";
+  useGetPortalProposalByTokenQuery,
+  useApprovePortalProposalMutation,
+  useRequestPortalProposalRevisionMutation,
+} from "@/features/portal/portalApi";
 import { ProposalStatus } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
@@ -36,13 +36,13 @@ interface PageProps {
 
 export default function PortalProposalDetailPage({ params }: PageProps) {
   const { token } = use(params);
-  const { data, isLoading, isError } = useGetProposalByTokenQuery(token, {
+  const { data, isLoading, isError } = useGetPortalProposalByTokenQuery(token, {
     pollingInterval: 120_000,
   });
   const [approveProposal, { isLoading: approving }] =
-    useApproveProposalByTokenMutation();
+    useApprovePortalProposalMutation();
   const [requestRevision, { isLoading: requesting }] =
-    useRequestRevisionByTokenMutation();
+    useRequestPortalProposalRevisionMutation();
   const [notes, setNotes] = useState("");
 
   if (isLoading) {

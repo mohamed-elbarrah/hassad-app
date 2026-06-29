@@ -1078,6 +1078,53 @@ export const portalApi = createApi({
       ],
     }),
 
+    // ── Portal-aliased contract/proposal endpoints ─────────────────────
+
+    signPortalContract: builder.mutation<
+      { success: boolean },
+      { token: string; body: { signedByName: string; signedByEmail?: string } }
+    >({
+      query: ({ token, body }) => ({
+        url: `/contracts/share/${token}/sign`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PortalContracts", "PortalInvoices", "ActionItems", "ActivityFeed"],
+    }),
+
+    getPortalProposalByToken: builder.query<any, string>({
+      query: (token) => `/proposals/share/${token}`,
+    }),
+
+    approvePortalProposal: builder.mutation<
+      { success: boolean },
+      { token: string; body: { notes?: string } }
+    >({
+      query: ({ token, body }) => ({
+        url: `/proposals/share/${token}/approve`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PortalRequests", "ActionItems", "ActivityFeed"],
+    }),
+
+    requestPortalProposalRevision: builder.mutation<
+      { success: boolean },
+      { token: string; body: { notes: string } }
+    >({
+      query: ({ token, body }) => ({
+        url: `/proposals/share/${token}/revision`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["PortalRequests", "ActionItems", "ActivityFeed"],
+    }),
+
+    getMyPortalProposals: builder.query<any[], void>({
+      query: () => `/proposals/my`,
+      providesTags: ["PortalRequests"],
+    }),
+
     // ── Intake Form V2 ──────────────────────────────────────────────
 
     getIntakeFormDraft: builder.query<IntakeFormDraft | null, void>({
@@ -1162,4 +1209,10 @@ export const {
   useGetIntakeFormDraftQuery,
   useSaveIntakeFormDraftMutation,
   useSubmitIntakeFormMutation,
+  // Portal-aliased contract/proposal hooks
+  useSignPortalContractMutation,
+  useGetPortalProposalByTokenQuery,
+  useApprovePortalProposalMutation,
+  useRequestPortalProposalRevisionMutation,
+  useGetMyPortalProposalsQuery,
 } = portalApi;
