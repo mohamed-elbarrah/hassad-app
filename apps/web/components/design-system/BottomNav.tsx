@@ -3,20 +3,13 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FolderOpen, Receipt, CheckCircle2, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MoreMenu } from "./MoreMenu";
-
-const PRIMARY_ITEMS = [
-  { label: "الرئيسية", href: "/portal", icon: Home },
-  { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
-  { label: "الفواتير", href: "/portal/finance", icon: Receipt },
-  { label: "إجراءاتي", href: "/portal/actions", icon: CheckCircle2 },
-];
-
-function isActive(href: string, pathname: string) {
-  return pathname === href || pathname.startsWith(href + "/");
-}
+import {
+  PORTAL_BOTTOM_PRIMARY,
+  isPortalActiveLink,
+} from "@/lib/portal-navigation";
 
 /* ── Bottom Navigation Bar (Mobile + Tablet) ──────────────────────────── */
 export function BottomNav() {
@@ -24,8 +17,8 @@ export function BottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const isMoreActive = useMemo(() => {
-    const primaryHrefs = PRIMARY_ITEMS.map((i) => i.href);
-    return !primaryHrefs.some((h) => isActive(h, pathname));
+    const primaryHrefs = PORTAL_BOTTOM_PRIMARY.map((i) => i.href);
+    return !primaryHrefs.some((h) => isPortalActiveLink(h, pathname));
   }, [pathname]);
 
   const toggleMore = () => setMoreOpen((v) => !v);
@@ -37,9 +30,9 @@ export function BottomNav() {
         style={{ borderTopWidth: 1.5 }}
       >
         <div className="flex items-center justify-around">
-          {PRIMARY_ITEMS.map((item) => {
+          {PORTAL_BOTTOM_PRIMARY.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.href, pathname);
+            const active = isPortalActiveLink(item.href, pathname);
             return (
               <Link
                 key={item.href}
