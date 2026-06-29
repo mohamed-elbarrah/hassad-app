@@ -6,7 +6,7 @@ import { PLATFORM_ICON_BG, platformLabel } from "@/lib/utils/campaign-constants"
 import { Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PortalCampaign } from "@/features/portal/portalApi";
-import { CampaignStatusPill } from "./CampaignStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { formatShortDateLong, budgetProgress } from "@/lib/format";
 
 /**
@@ -46,7 +46,7 @@ export function renderCampaignRowCells(
       </div>
     </td>,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <CampaignStatusPill status={campaign.status} />
+      <DomainStatusPill domain="campaign" status={campaign.status} />
     </td>,
     <td key="period" className="px-5 py-3.5 align-middle text-[12.5px] text-portal-note-text tabular-nums">
       {period}

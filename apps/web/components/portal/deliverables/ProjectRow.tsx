@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import type { ReviewProject } from "@/features/portal/portalApi";
-import { ProjectStatusPill } from "./ProjectStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { formatRelative } from "./utils";
 import { buildPortalFileUrl, getPortalFileKind } from "@/lib/portal-files";
 
@@ -44,7 +44,7 @@ export function renderProjectRowCells(
       end={project.endDate}
     />,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <ProjectStatusPill status={project.status} />
+      <DomainStatusPill domain="project" status={project.status} />
     </td>,
     <CtaCell key="action" onActivate={helpers.onActivate} />,
   ];

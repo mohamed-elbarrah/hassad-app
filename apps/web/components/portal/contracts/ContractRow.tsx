@@ -6,7 +6,7 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { cn } from "@/lib/utils";
 import type { PortalContractSummary } from "@/features/portal/portalApi";
-import { ContractStatusPill } from "./ContractStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { contractTypeLabel } from "@/lib/i18n";
 import { formatShortDateLong } from "@/lib/format";
 
@@ -63,7 +63,7 @@ export function renderContractRowCells(
       </span>
     </td>,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <ContractStatusPill status={contract.status} />
+      <DomainStatusPill domain="contract" status={contract.status} />
     </td>,
     <td key="manager" className="px-5 py-3.5 align-middle text-[13px] text-portal-note-text">
       {contract.projectManager ?? "غير معين"}

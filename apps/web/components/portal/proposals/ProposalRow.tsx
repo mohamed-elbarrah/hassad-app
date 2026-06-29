@@ -6,7 +6,7 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { cn } from "@/lib/utils";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";
-import { ProposalStatusPill } from "./ProposalStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { formatShortDateLong } from "@/lib/format";
 
 /**
@@ -61,7 +61,7 @@ export function renderProposalRowCells(
       </span>
     </td>,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <ProposalStatusPill status={proposal.status} />
+      <DomainStatusPill domain="proposal" status={proposal.status} />
     </td>,
     <td key="action" className="px-5 py-3.5 align-middle text-start w-[150px]">
       {href ? (

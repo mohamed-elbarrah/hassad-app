@@ -6,7 +6,7 @@ import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { cn } from "@/lib/utils";
 import type { PortalInvoiceSummary } from "@/features/portal/portalApi";
 import type { PayableInvoice } from "@/components/payments/PaymentSheet";
-import { InvoiceStatusPill } from "./InvoiceStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { formatShortDateLong, isInvoicePayable as isPayable } from "@/lib/format";
 
 export interface InvoiceRowProps {
@@ -74,7 +74,7 @@ export function renderInvoiceRowCells(
       </div>
     </td>,
     <td key="status" className="px-5 py-3.5 align-middle">
-      <InvoiceStatusPill status={invoice.status} />
+      <DomainStatusPill domain="invoice" status={invoice.status} />
     </td>,
     <td key="action" className="px-5 py-3.5 align-middle text-start w-[140px]">
       {canPay ? (

@@ -21,7 +21,7 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormTextarea } from "@/components/design-system/FormTextarea";
 import { IconCircle } from "@/components/design-system/IconCircle";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
-import { ProjectStatusPill } from "./ProjectStatusPill";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { cn } from "@/lib/utils";
 import { buildPortalFileUrl, getPortalFileKind } from "@/lib/portal-files";
 import type {
@@ -294,7 +294,7 @@ function Header({
             <h2 className="text-lg sm:text-xl font-bold text-white leading-tight">
               {project.name}
             </h2>
-            <ProjectStatusPill status={project.status} />
+            <DomainStatusPill domain="project" status={project.status} />
           </div>
 
           {/* Sub-row: who · when · wait time */}
