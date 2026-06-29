@@ -127,6 +127,8 @@
   --color-action-blue-soft: rgba(38, 132, 252, 0.12);
   --color-action-blue-hover: #1a74e6;
   --color-action-gray-text: #6c6f75;
+  --color-action-cyan: #00aeff;
+  --color-action-cyan-soft: rgba(0, 174, 255, 0.12);
   --color-pm-button-bg: rgba(28, 39, 77, 0.1);
   --color-pm-button-text: #1c274d;
 

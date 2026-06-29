@@ -2,7 +2,19 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, ExternalLink } from "lucide-react";
+import {
+  AlertCircle,
+  Bell,
+  CheckCheck,
+  CreditCard,
+  ExternalLink,
+  FileText,
+  Layout,
+  MessageSquare,
+  Package,
+  Receipt,
+  TrendingUp,
+} from "lucide-react";
 import { toast } from "sonner"; // NEW
 import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import { PageIntro } from "@/components/design-system/PageIntro";
@@ -36,215 +48,59 @@ const ENTITY_ICON_MAP: Record<
   { bg: string; color: string; icon: React.ReactNode }
 > = {
   proposal: {
-    bg: "rgba(122, 19, 232, 0.12)",
-    color: "#7A13E8",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-    ),
+    bg: "bg-action-purple-soft",
+    color: "text-action-purple",
+    icon: <FileText className="w-5 h-5" />,
   },
   contract: {
-    bg: "rgba(38, 132, 252, 0.12)",
-    color: "#2684FC",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-      </svg>
-    ),
+    bg: "bg-action-blue-soft",
+    color: "text-action-blue",
+    icon: <FileText className="w-5 h-5" />,
   },
   invoice: {
-    bg: "rgba(38, 132, 252, 0.12)",
-    color: "#2684FC",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="2" y="5" width="20" height="14" rx="2" />
-        <line x1="2" y1="10" x2="22" y2="10" />
-      </svg>
-    ),
+    bg: "bg-action-blue-soft",
+    color: "text-action-blue",
+    icon: <Receipt className="w-5 h-5" />,
   },
   INVOICE: {
-    bg: "rgba(38, 132, 252, 0.12)",
-    color: "#2684FC",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="2" y="5" width="20" height="14" rx="2" />
-        <line x1="2" y1="10" x2="22" y2="10" />
-      </svg>
-    ),
+    bg: "bg-action-blue-soft",
+    color: "text-action-blue",
+    icon: <Receipt className="w-5 h-5" />,
   },
   deliverable: {
-    bg: "rgba(122, 19, 232, 0.12)",
-    color: "#7A13E8",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-    ),
+    bg: "bg-action-purple-soft",
+    color: "text-action-purple",
+    icon: <Package className="w-5 h-5" />,
   },
   project: {
-    bg: "rgba(18, 25, 54, 0.08)",
-    color: "#121936",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <line x1="3" y1="9" x2="21" y2="9" />
-        <line x1="9" y1="21" x2="9" y2="9" />
-      </svg>
-    ),
+    bg: "bg-badge-gray-bg",
+    color: "text-badge-gray-text",
+    icon: <Layout className="w-5 h-5" />,
   },
   campaign: {
-    bg: "rgba(14, 213, 137, 0.12)",
-    color: "#0ED589",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-        <polyline points="17 6 23 6 23 12" />
-      </svg>
-    ),
+    bg: "bg-badge-green-bg",
+    color: "text-badge-green-text",
+    icon: <TrendingUp className="w-5 h-5" />,
   },
   conversation: {
-    bg: "rgba(0, 174, 255, 0.12)",
-    color: "#00AEFF",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    ),
+    bg: "bg-action-cyan-soft",
+    color: "text-action-cyan",
+    icon: <MessageSquare className="w-5 h-5" />,
   },
   payment: {
-    bg: "rgba(14, 213, 137, 0.12)",
-    color: "#0ED589",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="16" />
-        <line x1="8" y1="12" x2="16" y2="12" />
-      </svg>
-    ),
+    bg: "bg-badge-green-bg",
+    color: "text-badge-green-text",
+    icon: <CreditCard className="w-5 h-5" />,
   },
   PAYMENT: {
-    bg: "rgba(14, 213, 137, 0.12)",
-    color: "#0ED589",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="16" />
-        <line x1="8" y1="12" x2="16" y2="12" />
-      </svg>
-    ),
+    bg: "bg-badge-green-bg",
+    color: "text-badge-green-text",
+    icon: <CreditCard className="w-5 h-5" />,
   },
   default: {
-    bg: "rgba(18, 25, 54, 0.08)",
-    color: "#121936",
-    icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="16" x2="12" y2="12" />
-        <line x1="12" y1="8" x2="12.01" y2="8" />
-      </svg>
-    ),
+    bg: "bg-badge-gray-bg",
+    color: "text-badge-gray-text",
+    icon: <AlertCircle className="w-5 h-5" />,
   },
 };
 
@@ -468,13 +324,8 @@ export default function PortalNotificationsPage() {
                   >
                     <div className="flex items-start gap-4">
                       <div
-                        className="flex items-center justify-center rounded-full shrink-0"
-                        style={{
-                          width: 44,
-                          height: 44,
-                          backgroundColor: entityConfig.bg,
-                          color: entityConfig.color,
-                        }}
+                        className={`flex items-center justify-center rounded-full shrink-0 ${entityConfig.bg} ${entityConfig.color}`}
+                        style={{ width: 44, height: 44 }}
                       >
                         {entityConfig.icon}
                       </div>
