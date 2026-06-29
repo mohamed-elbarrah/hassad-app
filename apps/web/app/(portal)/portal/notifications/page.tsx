@@ -2,8 +2,9 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, BellOff, CheckCheck, ExternalLink } from "lucide-react";
+import { Bell, CheckCheck, ExternalLink } from "lucide-react";
 import { toast } from "sonner"; // NEW
+import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
@@ -433,21 +434,11 @@ export default function PortalNotificationsPage() {
             ))}
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-4 text-portal-note-text">
-            <BellOff className="h-14 w-14 text-portal-icon" />
-            <p className="text-xl font-medium text-natural-100">
-              {filter === "action"
-                ? "لا توجد إجراءات مطلوبة"
-                : filter === "info"
-                  ? "لا توجد إشعارات"
-                  : "لا توجد إشعارات"}
-            </p>
-            <p className="text-base text-portal-note-text">
-              {filter === "all"
-                ? "ستظهر هنا جميع الإشعارات المتعلقة بمشاريعك"
-                : ""}
-            </p>
-          </div>
+          <PortalEmptyState
+            icon={Bell}
+            title={filter === "action" ? "لا توجد إجراءات مطلوبة" : "لا توجد إشعارات"}
+            description={filter === "all" ? "ستظهر هنا جميع الإشعارات المتعلقة بمشاريعك" : undefined}
+          />
         ) : (
           <div className="divide-y-[1.5px] border-portal-divider">
             {filteredNotifications.map((n) => {
