@@ -41,7 +41,7 @@ export function renderCampaignRowCells(
           <span className="text-sm font-semibold text-natural-100 truncate max-w-[220px]">
             {campaign.name}
           </span>
-          <span className="text-[11px] text-portal-note-text">{platform}</span>
+          <span className="text-xs text-portal-note-text">{platform}</span>
         </div>
       </div>
     </td>,

@@ -117,7 +117,7 @@ function DateRangePanel({
         <button
           type="button"
           onClick={() => onChange({})}
-          className="text-[11px] font-medium text-portal-note-text hover:text-secondary-500 transition-colors"
+          className="text-xs font-medium text-portal-note-text hover:text-secondary-500 transition-colors"
         >
           مسح
         </button>
@@ -169,7 +169,7 @@ function DateField({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-medium text-portal-note-text">
+      <span className="text-xs font-medium text-portal-note-text">
         {label}
       </span>
       <input

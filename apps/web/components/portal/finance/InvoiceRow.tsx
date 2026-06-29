@@ -46,7 +46,7 @@ export function renderInvoiceRowCells(
             {invoice.invoiceNumber ?? "—"}
           </span>
           {invoice.contract?.title && (
-            <span className="text-[11px] text-portal-note-text truncate max-w-[260px]">
+            <span className="text-xs text-portal-note-text truncate max-w-[260px]">
               {invoice.contract.title}
             </span>
           )}
@@ -62,12 +62,12 @@ export function renderInvoiceRowCells(
           amount={invoice.amount}
           size="sm"
           className={cn(
-            "text-[13px] font-semibold tabular-nums",
+            "text-sm font-semibold tabular-nums",
             isPartial ? "text-natural-100/70" : "text-natural-100",
           )}
         />
         {isPartial && remaining != null && (
-          <span className="text-[11px] font-semibold text-danger-700 tabular-nums">
+          <span className="text-xs font-semibold text-danger-700 tabular-nums">
             متبقي <CurrencyDisplay amount={remaining} size="sm" />
           </span>
         )}

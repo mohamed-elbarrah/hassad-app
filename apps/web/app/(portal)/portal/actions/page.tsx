@@ -178,7 +178,7 @@ export default function PortalActionsPage() {
             <Bell className="h-4 w-4" />
             الآن
             {!isLoading && items.length > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary-500 px-1.5 text-[11px] font-semibold text-white">
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary-500 px-1.5 text-xs font-semibold text-white">
                 {items.length}
               </span>
             )}
@@ -187,7 +187,7 @@ export default function PortalActionsPage() {
             <Hourglass className="h-4 w-4" />
             المؤجلة
             {!snoozedLoading && snoozedItems.length > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-portal-note-text/20 px-1.5 text-[11px] font-semibold text-portal-note-text">
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-portal-note-text/20 px-1.5 text-xs font-semibold text-portal-note-text">
                 {snoozedItems.length}
               </span>
             )}

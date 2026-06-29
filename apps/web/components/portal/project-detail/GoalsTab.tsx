@@ -72,7 +72,7 @@ function GoalRow({ goal }: { goal: PeriodGoal }) {
       </div>
       <span
         className={cn(
-          "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium",
+          "shrink-0 rounded-full px-2.5 py-1 text-caption font-medium",
           config.badge,
         )}
       >

@@ -86,7 +86,7 @@ export function PeriodTimeline({
                 >
                   {statusLabel}
                 </p>
-                <p className="mt-0.5 whitespace-nowrap text-[10px] text-portal-note-text">
+                <p className="mt-0.5 whitespace-nowrap text-caption text-portal-note-text">
                   {formatShortDateTz(period.startDate)}-
                   {formatShortDateTz(period.endDate)}
                 </p>

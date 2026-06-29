@@ -41,7 +41,7 @@ export function renderProposalRowCells(
           <span className="text-sm font-semibold text-natural-100 truncate max-w-[280px]">
             {proposal.title}
           </span>
-          <span className="text-[11px] text-portal-note-text truncate max-w-[280px]">
+          <span className="text-xs text-portal-note-text truncate max-w-[280px]">
             {company}
           </span>
         </div>
@@ -51,7 +51,7 @@ export function renderProposalRowCells(
       <CurrencyDisplay
         amount={proposal.totalPrice}
         size="sm"
-        className="text-[13px] font-semibold text-natural-100 tabular-nums"
+        className="text-sm font-semibold text-natural-100 tabular-nums"
       />
     </td>,
     <td key="sentDate" className="px-5 py-3.5 align-middle">

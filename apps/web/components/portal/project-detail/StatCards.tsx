@@ -101,7 +101,7 @@ function StatCard({
         </p>
         {subtext && (
           <p
-            className="mt-0.5 truncate text-[10px] text-portal-note-text"
+            className="mt-0.5 truncate text-caption text-portal-note-text"
             title={subtext}
           >
             {subtext}

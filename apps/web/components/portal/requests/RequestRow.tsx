@@ -240,7 +240,7 @@ function RequestDetail({ request }: { request: PortalRequestSummary }) {
                 <FileText className="size-3 text-portal-icon" />
                 {s.nameAr ?? s.name}
                 {s.quantity > 1 && (
-                  <span className="text-[10px] opacity-60">×{s.quantity}</span>
+                  <span className="text-caption opacity-60">×{s.quantity}</span>
                 )}
               </span>
             ))}
