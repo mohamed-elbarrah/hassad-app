@@ -1,5 +1,9 @@
 /**
- * ClientBriefV2 - View mode implementation using shared ProfileSections
+ * ClientBriefV2 - Role-aware profile view
+ *
+ * Renders a client's profile with role-based visibility. Each role sees
+ * only the sidebar fields, KPIs, and profile sections relevant to them.
+ * Visibility rules are defined centrally in `profile-visibility.ts`.
  *
  * Architecture:
  * - useClientBrief transforms raw Client + ClientProfile into a ViewModel.
@@ -14,12 +18,17 @@
 "use client";
 
 import type { Client, ClientProfile } from "@hassad/shared";
+import { UserRole } from "@hassad/shared";
 import { IdentitySidebar } from "./IdentitySidebar";
 import { KpiGrid } from "./KpiGrid";
 import { EmptySection } from "./EmptySection";
-import { useClientBrief, type ClientBriefView, type ClientBriefUser } from "./useClientBrief";
+import { useClientBrief, type ClientBriefUser } from "./useClientBrief";
 import {
-  CommunicationSection,
+  PROFILE_SECTION_VISIBILITY,
+  type ProfileSectionKey,
+} from "./profile-visibility";
+import {
+  PersonalInfoSection,
   ProductSection,
   AudienceSection,
   JourneySection,
@@ -38,44 +47,127 @@ interface ClientBriefV2Props {
    * are the authoritative business-contact source.
    */
   user?: ClientBriefUser | null;
-  viewAs?: ClientBriefView;
+  /** The role of the viewer — determines what fields/sections are visible */
+  role?: UserRole;
 }
+
+/** Map each ProfileSectionKey to its render function */
+const SECTION_RENDERERS: Record<
+  ProfileSectionKey,
+  (viewProfile: NonNullable<ClientBriefV2Props["profile"]>) => React.ReactNode
+> = {
+  personalInfo: () => <PersonalInfoSection mode="view" />,
+
+  product: (viewProfile) => (
+    <ProductSection
+      mode="view"
+      initialData={viewProfile.productInfo ?? undefined}
+    />
+  ),
+
+  audience: (viewProfile) => {
+    const hasData = viewProfile.audienceInfo || viewProfile.brandVoice;
+    if (!hasData) return null;
+    return (
+      <AudienceSection
+        mode="view"
+        initialData={{
+          customerAnalysis: viewProfile.audienceInfo?.customerAnalysis,
+          faq: viewProfile.audienceInfo?.faq,
+          toneOfVoice: viewProfile.brandVoice?.toneOfVoice,
+          boundaries: viewProfile.brandVoice?.boundaries,
+          verbalSlogan: viewProfile.brandVoice?.verbalSlogan,
+          appearanceMethod: viewProfile.brandVoice?.appearanceMethod,
+        }}
+      />
+    );
+  },
+
+  journey: (viewProfile) => {
+    if (!viewProfile.customerJourney) return null;
+    return (
+      <JourneySection
+        mode="view"
+        initialData={viewProfile.customerJourney ?? undefined}
+      />
+    );
+  },
+
+  campaign: (viewProfile) => {
+    if (!viewProfile.campaignInfo) return null;
+    return (
+      <CampaignSection
+        mode="view"
+        initialData={viewProfile.campaignInfo ?? undefined}
+      />
+    );
+  },
+
+  performance: (viewProfile) => {
+    const hasData = viewProfile.pastPerformance || viewProfile.budgetInfo;
+    if (!hasData) return null;
+    return (
+      <PerformanceSection
+        mode="view"
+        initialData={{
+          pastPerformance: viewProfile.pastPerformance ?? undefined,
+          budgetInfo: viewProfile.budgetInfo ?? undefined,
+        }}
+      />
+    );
+  },
+
+  visual: (viewProfile) => (
+    <VisualSection
+      mode="view"
+      initialData={{
+        hasVisualIdentity: viewProfile.visualIdentityInfo?.hasVisualIdentity,
+        pastDesigns: viewProfile.visualIdentityInfo?.pastDesigns,
+        visualDirection: viewProfile.visualIdentityInfo?.visualDirection,
+        brandAssets: viewProfile.visualIdentityInfo?.brandAssets,
+        productPhotos: viewProfile.visualIdentityInfo?.productPhotos,
+      }}
+    />
+  ),
+};
 
 export function ClientBriefV2({
   client,
   profile,
   user = null,
-  viewAs = "internal",
+  role = UserRole.ADMIN,
 }: ClientBriefV2Props) {
-  const {
-    identity,
-    kpis,
-    profile: viewProfile,
-    meta,
-  } = useClientBrief({
+  const { identity, kpis, profile: viewProfile, meta } = useClientBrief({
     client,
     profile,
     user,
-    viewAs,
   });
 
-  const hasAnyProfileSection = Boolean(
-    viewProfile?.communicationInfo ||
-    viewProfile?.productInfo ||
-    viewProfile?.audienceInfo ||
-    viewProfile?.brandVoice ||
-    viewProfile?.customerJourney ||
-    viewProfile?.campaignInfo ||
-    viewProfile?.pastPerformance ||
-    viewProfile?.budgetInfo ||
-    viewProfile?.visualIdentityInfo,
-  );
+  const visibleSections = PROFILE_SECTION_VISIBILITY[role] ?? PROFILE_SECTION_VISIBILITY[UserRole.ADMIN];
+
+  // Render visible sections, filtering out those with no data
+  const renderedSections = visibleSections
+    .map((key) => {
+      const renderer = SECTION_RENDERERS[key];
+      if (!renderer) return null;
+      const rendered = renderer(viewProfile!);
+      if (!rendered) return null;
+      return (
+        <div key={key} className="break-inside-avoid mb-5">
+          {rendered}
+        </div>
+      );
+    })
+    .filter(Boolean);
+
+  const hasAnyRenderedSection = renderedSections.length > 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
       <aside className="lg:col-span-4 xl:col-span-3">
         <IdentitySidebar
           identity={identity}
+          role={role}
           decisionMakerName={viewProfile?.decisionMakerName}
           decisionMakerPhone={viewProfile?.decisionMakerPhone}
           workingHours={viewProfile?.workingHours}
@@ -83,76 +175,11 @@ export function ClientBriefV2({
       </aside>
 
       <div className="lg:col-span-8 xl:col-span-9 space-y-5">
-        <KpiGrid kpis={kpis} />
+        <KpiGrid kpis={kpis} role={role} />
 
-        {hasAnyProfileSection ? (
+        {hasAnyRenderedSection ? (
           <div className="columns-1 xl:columns-2 gap-5">
-            <div className="break-inside-avoid mb-5">
-              <CommunicationSection
-                mode="view"
-                initialData={viewProfile?.communicationInfo ?? undefined}
-              />
-            </div>
-
-            <div className="break-inside-avoid mb-5">
-              <ProductSection
-                mode="view"
-                initialData={viewProfile?.productInfo ?? undefined}
-              />
-            </div>
-
-            <div className="break-inside-avoid mb-5">
-              <AudienceSection
-                mode="view"
-                initialData={{
-                  customerAnalysis: viewProfile?.audienceInfo?.customerAnalysis,
-                  faq: viewProfile?.audienceInfo?.faq,
-                  toneOfVoice: viewProfile?.brandVoice?.toneOfVoice,
-                  boundaries: viewProfile?.brandVoice?.boundaries,
-                  verbalSlogan: viewProfile?.brandVoice?.verbalSlogan,
-                  appearanceMethod: viewProfile?.brandVoice?.appearanceMethod,
-                }}
-              />
-            </div>
-
-            <div className="break-inside-avoid mb-5">
-              <JourneySection
-                mode="view"
-                initialData={viewProfile?.customerJourney ?? undefined}
-              />
-            </div>
-
-            <div className="break-inside-avoid mb-5">
-              <CampaignSection
-                mode="view"
-                initialData={viewProfile?.campaignInfo ?? undefined}
-              />
-            </div>
-
-            <div className="break-inside-avoid mb-5">
-              <PerformanceSection
-                mode="view"
-                initialData={{
-                  pastPerformance: viewProfile?.pastPerformance ?? undefined,
-                  budgetInfo: viewProfile?.budgetInfo ?? undefined,
-                }}
-              />
-            </div>
-
-            <div className="break-inside-avoid mb-5">
-              <VisualSection
-                mode="view"
-                initialData={{
-                  hasVisualIdentity:
-                    viewProfile?.visualIdentityInfo?.hasVisualIdentity,
-                  pastDesigns: viewProfile?.visualIdentityInfo?.pastDesigns,
-                  visualDirection:
-                    viewProfile?.visualIdentityInfo?.visualDirection,
-                  brandAssets: viewProfile?.visualIdentityInfo?.brandAssets,
-                  productPhotos: viewProfile?.visualIdentityInfo?.productPhotos,
-                }}
-              />
-            </div>
+            {renderedSections}
           </div>
         ) : (
           <EmptySection message="لم يتم إكمال الملف التعريفي بعد" />
