@@ -1162,7 +1162,7 @@ export const portalApi = createApi({
     // ── Portal-aliased client endpoints ──────────────────────────────
 
     getPortalClientProfile: builder.query<ClientProfileV2, string>({
-      query: (id) => `/clients/${id}/profile-v2`,
+      query: (id) => `/clients/${id}/profile/v2`,
       providesTags: (_result, _error, id) => [{ type: "PortalClient", id }],
     }),
 

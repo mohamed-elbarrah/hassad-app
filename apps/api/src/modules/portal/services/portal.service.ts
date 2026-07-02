@@ -607,11 +607,11 @@ export class PortalService {
         updatedAt: true,
         manager: { select: { id: true, name: true, isActive: true } },
         client: {
-          // Personal identity (name) now on the linked User.
-          include: {
+          select: {
+            id: true,
+            companyName: true,
             user: { select: { name: true, email: true, phoneWhatsapp: true } },
           },
-          select: { id: true, companyName: true },
         },
       },
     });

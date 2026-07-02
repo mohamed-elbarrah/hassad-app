@@ -40,9 +40,7 @@ export function Dialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className="fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-        />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           className={cn(
             "fixed left-[50%] top-[50%] z-50 w-full translate-x-[-50%] translate-y-[-50%] border-[1.5px] border-portal-card-border bg-natural-0 p-0 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-[24px] flex flex-col overflow-hidden",
@@ -59,27 +57,25 @@ export function Dialog({
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
           )}
-          
+
           {/* Header with title for accessibility */}
-          {(title || description) && (
-            <div className={cn("px-6 pt-6 pb-0 text-right", headerClassName)}>
-              {title && (
-                <DialogPrimitive.Title className="text-xl font-bold text-natural-100 leading-tight">
-                  {title}
-                </DialogPrimitive.Title>
-              )}
-              {/* Hidden title for accessibility when no visible title provided */}
-              {!title && (
-                <DialogPrimitive.Title className="sr-only">Dialog</DialogPrimitive.Title>
-              )}
-              {description && (
-                <DialogPrimitive.Description className="text-sm text-neutral-400 mt-1.5 leading-relaxed">
-                  {description}
-                </DialogPrimitive.Description>
-              )}
-            </div>
-          )}
-          
+          <div className={cn("text-right", headerClassName)}>
+            {title ? (
+              <DialogPrimitive.Title className="text-xl font-bold text-natural-100 leading-tight">
+                {title}
+              </DialogPrimitive.Title>
+            ) : (
+              <DialogPrimitive.Title className="sr-only">
+                Dialog
+              </DialogPrimitive.Title>
+            )}
+            {description && (
+              <DialogPrimitive.Description className="text-sm text-neutral-400 mt-1.5 leading-relaxed">
+                {description}
+              </DialogPrimitive.Description>
+            )}
+          </div>
+
           <div
             className={cn(
               "px-6 overflow-y-auto flex-1",
@@ -90,7 +86,7 @@ export function Dialog({
           >
             {children}
           </div>
-          
+
           {footer && (
             <div className="px-6 pb-6 pt-2 flex flex-col-reverse sm:flex-row sm:justify-start gap-3">
               {footer}
