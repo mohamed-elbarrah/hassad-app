@@ -96,7 +96,6 @@ export type ProfileSectionKey =
 export const PROFILE_SECTION_VISIBILITY: Record<UserRole, ProfileSectionKey[]> = {
   [UserRole.CLIENT]: ["personalInfo", "product", "visual"],
   [UserRole.SALES]: [
-    "personalInfo",
     "product",
     "audience",
     "journey",

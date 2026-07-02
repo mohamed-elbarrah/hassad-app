@@ -44,7 +44,20 @@ interface FinanceTabProps {
 }
 
 export function FinanceTab({ clientId }: FinanceTabProps) {
-  const { data, isLoading, isError } = useGetInvoicesQuery({ clientId });
+  const { data, isLoading, isError, error } = useGetInvoicesQuery({ clientId });
+
+  const isPermissionDenied =
+    isError &&
+    (error as any)?.status === 403;
+
+  if (isPermissionDenied) {
+    return (
+      <div className="text-center py-12">
+        <FileText className="h-12 w-12 text-neutral-200 mx-auto mb-3" />
+        <p className="text-neutral-300">ليس لديك صلاحية لعرض البيانات المالية</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

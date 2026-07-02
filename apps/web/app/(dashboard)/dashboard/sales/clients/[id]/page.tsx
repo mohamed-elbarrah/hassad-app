@@ -6,17 +6,18 @@ import {
   useGetClientByIdQuery,
   useGetClientProfileQuery,
 } from "@/features/clients/clientsApi";
+import { useAppSelector } from "@/lib/hooks";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
 import { ArrowRight, PlusCircle } from "lucide-react";
 import { OverviewTab } from "./overview-tab";
 import { ProjectsTab } from "./projects-tab";
 import { FinanceTab } from "./finance-tab";
 import { ActivityTab } from "./activity-tab";
-import { ProfileEditTab } from "./profile-edit-tab";
 import { NewRequestForClientModal } from "@/components/dashboard/crm/NewRequestForClientModal";
 import { formatRelativeTime } from "@/lib/format";
+import { getVisibleTabs } from "./tab-visibility";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -29,21 +30,23 @@ export default function ClientProfilePage({ params }: PageProps) {
 
   const { data: client, isLoading, isError } = useGetClientByIdQuery(id);
   const { data: profile } = useGetClientProfileQuery(id);
+  const { user } = useAppSelector((state) => state.auth);
+
+  const visibleTabs = user ? getVisibleTabs(user.role) : getVisibleTabs("ADMIN" as any);
+  const defaultTab = visibleTabs[0]?.value ?? "overview";
 
   if (isLoading) {
     return (
       <div className="space-y-6" dir="rtl">
         <Skeleton className="h-8 w-48 rounded" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-3 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="lg:col-span-4 xl:col-span-3">
             <Skeleton className="h-80 rounded-2xl" />
           </div>
-          <div className="lg:col-span-6 space-y-4">
+          <div className="lg:col-span-8 xl:col-span-9 space-y-5">
+            <Skeleton className="h-24 rounded-2xl" />
             <Skeleton className="h-40 rounded-2xl" />
             <Skeleton className="h-64 rounded-2xl" />
-          </div>
-          <div className="lg:col-span-3 space-y-4">
-            <Skeleton className="h-80 rounded-2xl" />
           </div>
         </div>
       </div>
@@ -96,59 +99,38 @@ export default function ClientProfilePage({ params }: PageProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="w-full" dir="rtl">
-        <TabsList className="w-full justify-start gap-1 bg-transparent p-0 h-auto border-b rounded-none">
-          <TabsTrigger
-            value="overview"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none px-4 py-2"
-          >
-            نظرة عامة
-          </TabsTrigger>
-          <TabsTrigger
-            value="projects"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none px-4 py-2"
-          >
-            المشاريع
-          </TabsTrigger>
-          <TabsTrigger
-            value="finance"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none px-4 py-2"
-          >
-            المالية
-          </TabsTrigger>
-          <TabsTrigger
-            value="activity"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none px-4 py-2"
-          >
-            النشاط
-          </TabsTrigger>
-          <TabsTrigger
-            value="profile"
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-none px-4 py-2"
-          >
-            الملف التعريفي
-          </TabsTrigger>
+      <Tabs defaultValue={defaultTab} dir="rtl">
+        <TabsList>
+          {visibleTabs.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="overview" className="mt-6">
-          <OverviewTab client={client} profile={profile ?? null} />
-        </TabsContent>
+        {visibleTabs.some((t) => t.value === "overview") && (
+          <TabsContent value="overview">
+            <OverviewTab client={client} profile={profile ?? null} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="projects" className="mt-6">
-          <ProjectsTab clientId={id} />
-        </TabsContent>
+        {visibleTabs.some((t) => t.value === "projects") && (
+          <TabsContent value="projects">
+            <ProjectsTab clientId={id} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="finance" className="mt-6">
-          <FinanceTab clientId={id} />
-        </TabsContent>
+        {visibleTabs.some((t) => t.value === "finance") && (
+          <TabsContent value="finance">
+            <FinanceTab clientId={id} />
+          </TabsContent>
+        )}
 
-        <TabsContent value="activity" className="mt-6">
-          <ActivityTab client={client} />
-        </TabsContent>
-
-        <TabsContent value="profile" className="mt-6">
-          <ProfileEditTab clientId={id} profile={profile ?? null} />
-        </TabsContent>
+        {visibleTabs.some((t) => t.value === "activity") && (
+          <TabsContent value="activity">
+            <ActivityTab client={client} />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* New Request Modal */}

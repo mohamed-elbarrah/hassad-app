@@ -137,10 +137,20 @@ export function ClientBriefV2({
   user = null,
   role = UserRole.ADMIN,
 }: ClientBriefV2Props) {
+  // Derive user data from client.user when no explicit user prop is passed.
+  // This ensures the sidebar shows the client's contact info (name, email, phone)
+  // for roles like SALES that view other people's profiles.
+  const resolvedUser = user ?? (client.user ? {
+    name: client.user.name,
+    email: client.user.email,
+    phoneWhatsapp: client.user.phoneWhatsapp,
+    avatarUrl: client.user.avatarUrl,
+  } : null);
+
   const { identity, kpis, profile: viewProfile, meta } = useClientBrief({
     client,
     profile,
-    user,
+    user: resolvedUser,
   });
 
   const visibleSections = PROFILE_SECTION_VISIBILITY[role] ?? PROFILE_SECTION_VISIBILITY[UserRole.ADMIN];

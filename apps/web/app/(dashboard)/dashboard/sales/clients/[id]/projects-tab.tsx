@@ -34,13 +34,26 @@ interface ProjectsTabProps {
 }
 
 export function ProjectsTab({ clientId }: ProjectsTabProps) {
-  const { data, isLoading, isError } = useGetProjectsQuery({ clientId });
+  const { data, isLoading, isError, error } = useGetProjectsQuery({ clientId });
+
+  const isPermissionDenied =
+    isError &&
+    (error as any)?.status === 403;
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (isPermissionDenied) {
+    return (
+      <div className="text-center py-12">
+        <FolderKanban className="h-12 w-12 text-neutral-200 mx-auto mb-3" />
+        <p className="text-neutral-300">ليس لديك صلاحية لعرض المشاريع</p>
       </div>
     );
   }
