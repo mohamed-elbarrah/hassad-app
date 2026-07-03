@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, Info } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,13 @@ const STATUS_BANNER_VARIANTS = {
     iconClass: "text-danger-500",
     textClass: "text-danger-500",
     Icon: XCircle,
+  },
+  info: {
+    border: "border-blue-200",
+    bg: "bg-blue-50",
+    iconClass: "text-blue-600",
+    textClass: "text-blue-700",
+    Icon: Info,
   },
 };
 

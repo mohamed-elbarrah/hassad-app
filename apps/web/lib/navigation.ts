@@ -52,11 +52,11 @@ export const adminNavSections: NavSection[] = [
     ],
   },
   {
-    label: "إدارة المستخدمين",
+    label: "إدارة المستخدمين والوصول",
     items: [
       {
-        title: "الموظفون",
-        url: "/dashboard/admin/employees",
+        title: "المستخدمون",
+        url: "/dashboard/admin/users",
         icon: Users,
         roles: ["ADMIN"],
       },
@@ -67,7 +67,7 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
-        title: "الأدوار والصلاحيات",
+        title: "الأدوار",
         url: "/dashboard/admin/roles",
         icon: Shield,
         roles: ["ADMIN"],

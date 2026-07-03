@@ -9,6 +9,7 @@ export interface StatCardProps {
   variant?: "default" | "success" | "warning" | "danger";
   trend?: "up" | "down" | "neutral";
   trendValue?: string;
+  extra?: React.ReactNode;
   className?: string;
 }
 
@@ -32,6 +33,7 @@ export function StatCard({
   variant = "default",
   trend,
   trendValue,
+  extra,
   className,
 }: StatCardProps) {
   return (
@@ -52,7 +54,10 @@ export function StatCard({
             </p>
           )}
         </div>
-        {Icon && <Icon className="h-5 w-5 text-secondary-500" />}
+        <div className="flex flex-col items-end gap-2">
+          {Icon && <Icon className="h-5 w-5 text-secondary-500" />}
+          {extra}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import { AdminService } from "../services/admin.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -24,6 +24,24 @@ export class AdminController {
   @RequirePermissions("admin.stats")
   getStats() {
     return this.adminService.getStats();
+  }
+
+  @Get("stats/trends")
+  @RequirePermissions("admin.stats.trends")
+  getTrends(@Query("days") days?: string) {
+    return this.adminService.getTrends(days ? parseInt(days, 10) : 30);
+  }
+
+  @Get("funnel")
+  @RequirePermissions("admin.funnel")
+  getFunnel() {
+    return this.adminService.getFunnel();
+  }
+
+  @Get("alerts")
+  @RequirePermissions("admin.alerts")
+  getAlerts() {
+    return this.adminService.getAlerts();
   }
 
   @Get("health")

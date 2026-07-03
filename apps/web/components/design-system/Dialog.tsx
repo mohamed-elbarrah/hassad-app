@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, ComponentType } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DialogProps {
@@ -12,6 +13,7 @@ interface DialogProps {
   description?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
+  icon?: LucideIcon;
   className?: string;
   contentClassName?: string;
   headerClassName?: string;
@@ -30,6 +32,7 @@ export function Dialog({
   description,
   children,
   footer,
+  icon: Icon,
   className,
   contentClassName,
   headerClassName,
@@ -60,6 +63,13 @@ export function Dialog({
 
           {/* Header with title for accessibility */}
           <div className={cn("text-right", headerClassName)}>
+            {Icon && (
+              <div className="flex justify-center mb-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-50">
+                  <Icon className="h-6 w-6 text-danger-500" />
+                </div>
+              </div>
+            )}
             {title ? (
               <DialogPrimitive.Title className="text-xl font-bold text-natural-100 leading-tight">
                 {title}
