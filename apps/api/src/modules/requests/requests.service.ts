@@ -193,12 +193,6 @@ export class RequestsService {
       where: { id },
       include: {
         client: {
-          // Personal identity now on User — include it.
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, phoneWhatsapp: true },
-            },
-          },
           select: {
             id: true,
             companyName: true,
@@ -208,6 +202,9 @@ export class RequestsService {
             userId: true,
             totalProjects: true,
             activeProjects: true,
+            user: {
+              select: { id: true, name: true, email: true, phoneWhatsapp: true },
+            },
           },
         },
         assignee: {
