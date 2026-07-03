@@ -1,80 +1,52 @@
 "use client";
 
 import { useGetInvoicesQuery } from "@/features/finance/financeApi";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pill } from "@/components/design-system/Pill";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { DataTable } from "@/components/design-system/DataTable";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { SalesStatusBadge } from "@/components/dashboard/sales/shared/SalesStatusBadge";
+import { formatShortDate } from "@/lib/format";
 import { InvoiceStatus } from "@hassad/shared";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { DollarSign, CreditCard, FileText, AlertCircle } from "lucide-react";
-
-const STATUS_LABELS: Record<InvoiceStatus, string> = {
-  [InvoiceStatus.DUE]: "مستحقة",
-  [InvoiceStatus.SENT]: "مرسلة",
-  [InvoiceStatus.PAID]: "مدفوعة",
-  [InvoiceStatus.PARTIAL]: "مدفوعة جزئياً",
-  [InvoiceStatus.PENDING]: "معلقة",
-  [InvoiceStatus.LATE]: "متأخرة",
-  [InvoiceStatus.CANCELLED]: "ملغية",
-};
-
-const STATUS_TONE: Record<
-  InvoiceStatus,
-  import("@/components/design-system/Pill").PillTone
-> = {
-  [InvoiceStatus.DUE]: "warning",
-  [InvoiceStatus.SENT]: "blue",
-  [InvoiceStatus.PAID]: "success",
-  [InvoiceStatus.PARTIAL]: "warning",
-  [InvoiceStatus.PENDING]: "neutral",
-  [InvoiceStatus.LATE]: "danger",
-  [InvoiceStatus.CANCELLED]: "neutral",
-};
 
 interface FinanceTabProps {
   clientId: string;
 }
 
 export function FinanceTab({ clientId }: FinanceTabProps) {
-  const { data, isLoading, isError, error } = useGetInvoicesQuery({ clientId });
+  const { data, isLoading, isError, error } = useGetInvoicesQuery({
+    clientId,
+  });
 
-  const isPermissionDenied =
-    isError &&
-    (error as any)?.status === 403;
+  const isPermissionDenied = isError && (error as any)?.status === 403;
 
   if (isPermissionDenied) {
     return (
       <div className="text-center py-12">
-        <FileText className="h-12 w-12 text-neutral-200 mx-auto mb-3" />
-        <p className="text-neutral-300">ليس لديك صلاحية لعرض البيانات المالية</p>
+        <FileText className="h-12 w-12 text-portal-note-text mx-auto mb-3" />
+        <p className="text-portal-note-text">
+          ليس لديك صلاحية لعرض البيانات المالية
+        </p>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
-          ))}
-        </div>
-        <Skeleton className="h-64 rounded-xl" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SurfaceCard key={i} className="animate-pulse">
+            <div className="h-4 w-24 bg-portal-bg rounded" />
+            <div className="h-8 w-32 bg-portal-bg rounded mt-2" />
+          </SurfaceCard>
+        ))}
       </div>
     );
   }
 
   if (isError || !data) {
     return (
-      <p className="text-sm text-neutral-300 text-center py-8">
+      <p className="text-sm text-portal-note-text text-center py-8">
         تعذر تحميل البيانات المالية
       </p>
     );
@@ -95,126 +67,100 @@ export function FinanceTab({ clientId }: FinanceTabProps) {
       inv.status === InvoiceStatus.DUE,
   ).length;
 
-  if (data.items.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <FileText className="h-12 w-12 text-neutral-200 mx-auto mb-3" />
-        <p className="text-neutral-300">لا توجد فواتير لهذا العميل</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-neutral-300">
-              إجمالي الفواتير
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-neutral-300" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {formatCurrency(totalInvoiced)}
-            </p>
-            <p className="text-xs text-neutral-300 mt-1">
-              {data.items.length} فاتورة
-            </p>
-          </CardContent>
-        </Card>
+        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-portal-note-text">إجمالي الفواتير</p>
+            <DollarSign className="h-4 w-4 text-portal-note-text" />
+          </div>
+          <p className="text-2xl font-bold text-natural-100 mt-1">
+            <CurrencyDisplay amount={totalInvoiced} />
+          </p>
+          <p className="text-xs text-portal-note-text mt-1">
+            {data.items.length} فاتورة
+          </p>
+        </SurfaceCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-neutral-300">
-              المدفوع
-            </CardTitle>
-            <CreditCard className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{formatCurrency(totalPaid)}</p>
-          </CardContent>
-        </Card>
+        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-portal-note-text">المدفوع</p>
+            <CreditCard className="h-4 w-4 text-success-600" />
+          </div>
+          <p className="text-2xl font-bold text-success-600 mt-1">
+            <CurrencyDisplay amount={totalPaid} />
+          </p>
+        </SurfaceCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-neutral-300">
-              فواتير معلقة
-            </CardTitle>
-            <FileText className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{pendingCount}</p>
-          </CardContent>
-        </Card>
+        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-portal-note-text">فواتير معلقة</p>
+            <FileText className="h-4 w-4 text-action-blue" />
+          </div>
+          <p className="text-2xl font-bold text-natural-100 mt-1">
+            {pendingCount}
+          </p>
+        </SurfaceCard>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-neutral-300">
-              فواتير متأخرة
-            </CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{overdueCount}</p>
-          </CardContent>
-        </Card>
+        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-portal-note-text">فواتير متأخرة</p>
+            <AlertCircle className="h-4 w-4 text-danger-600" />
+          </div>
+          <p className="text-2xl font-bold text-danger-600 mt-1">
+            {overdueCount}
+          </p>
+        </SurfaceCard>
       </div>
 
       {/* Invoices Table */}
-      <div className="rounded-[30px] border-[1.5px] border-portal-card-border overflow-hidden">
-        <Table>
-          <TableHeader className="[tr]:border-b-[1.5px] [tr]:border-portal-divider">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="h-12 whitespace-nowrap px-5 text-sm font-medium text-portal-note-text">
-                رقم الفاتورة
-              </TableHead>
-              <TableHead className="h-12 whitespace-nowrap px-5 text-sm font-medium text-portal-note-text">
-                المبلغ
-              </TableHead>
-              <TableHead className="h-12 whitespace-nowrap px-5 text-sm font-medium text-portal-note-text">
-                الحالة
-              </TableHead>
-              <TableHead className="h-12 whitespace-nowrap px-5 text-sm font-medium text-portal-note-text">
-                تاريخ الإصدار
-              </TableHead>
-              <TableHead className="h-12 whitespace-nowrap px-5 text-sm font-medium text-portal-note-text">
-                تاريخ الاستحقاق
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="[&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-[#f0f2f5] [&_tr:hover]:bg-black/[0.03]">
-            {data.items.map((invoice) => (
-              <TableRow
-                key={invoice.id}
-                className="border-b-[1.5px] border-portal-divider hover:bg-transparent text-right"
-              >
-                <TableCell className="px-5 py-4 font-medium font-mono" dir="ltr">
-                  {invoice.invoiceNumber}
-                </TableCell>
-                <TableCell className="px-5 py-4">
-                  {formatCurrency(invoice.amount)}
-                </TableCell>
-                <TableCell className="px-5 py-4">
-                  <Pill
-                    tone={STATUS_TONE[invoice.status] ?? "neutral"}
-                    className="text-xs h-6 px-2"
-                  >
-                    {STATUS_LABELS[invoice.status] ?? invoice.status}
-                  </Pill>
-                </TableCell>
-                <TableCell className="px-5 py-4">
-                  {formatDate(invoice.issueDate)}
-                </TableCell>
-                <TableCell className="px-5 py-4">
-                  {formatDate(invoice.dueDate)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        columns={[
+          { id: "invoiceNumber", label: "رقم الفاتورة" },
+          { id: "amount", label: "المبلغ" },
+          { id: "status", label: "الحالة" },
+          { id: "issueDate", label: "تاريخ الإصدار" },
+          { id: "dueDate", label: "تاريخ الاستحقاق" },
+        ]}
+        data={data.items}
+        isLoading={false}
+        isError={false}
+        skeletonRows={5}
+        emptyState={{
+          icon: FileText,
+          message: "لا توجد فواتير لهذا العميل",
+          hint: "سيظهر هنا الفواتير المرتبطة بالعميل عند إنشائها.",
+        }}
+        renderCells={(invoice) => [
+          <td key="invoiceNumber" className="px-5 py-3.5 align-middle">
+            <span className="text-sm font-mono text-natural-100" dir="ltr">
+              {invoice.invoiceNumber}
+            </span>
+          </td>,
+          <td key="amount" className="px-5 py-3.5 align-middle">
+            <CurrencyDisplay
+              amount={invoice.amount}
+              size="sm"
+              className="text-sm font-semibold text-natural-100"
+            />
+          </td>,
+          <td key="status" className="px-5 py-3.5 align-middle">
+            <SalesStatusBadge domain="invoice" status={invoice.status} />
+          </td>,
+          <td key="issueDate" className="px-5 py-3.5 align-middle">
+            <span className="text-sm text-portal-note-text">
+              {formatShortDate(invoice.issueDate)}
+            </span>
+          </td>,
+          <td key="dueDate" className="px-5 py-3.5 align-middle">
+            <span className="text-sm text-portal-note-text">
+              {formatShortDate(invoice.dueDate)}
+            </span>
+          </td>,
+        ]}
+      />
     </div>
   );
 }

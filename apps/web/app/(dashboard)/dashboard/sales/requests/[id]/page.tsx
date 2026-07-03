@@ -20,40 +20,12 @@ import {
   useGetRequestByIdQuery,
   type RequestDetail,
 } from "@/features/requests/requestsApi";
-import { Pill } from "@/components/design-system/Pill";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBanner } from "@/components/design-system/StatusBanner";
+import { SalesDetailBreadcrumb } from "@/components/dashboard/sales/shared/SalesDetailBreadcrumb";
+import { SalesDetailError } from "@/components/dashboard/sales/shared/SalesDetailError";
+import { SalesDetailSkeleton } from "@/components/dashboard/sales/shared/SalesDetailSkeleton";
+import { SalesStatusBadge } from "@/components/dashboard/sales/shared/SalesStatusBadge";
 import { cn } from "@/lib/utils";
-
-const STATUS_LABELS: Record<RequestStatus, string> = {
-  [RequestStatus.SUBMITTED]: "طلب جديد",
-  [RequestStatus.QUALIFYING]: "مراجعة المبيعات",
-  [RequestStatus.PROPOSAL_IN_PROGRESS]: "إعداد العرض",
-  [RequestStatus.PROPOSAL_SENT]: "تم إرسال العرض",
-  [RequestStatus.NEGOTIATION]: "تفاوض",
-  [RequestStatus.CONTRACT_PREPARATION]: "إعداد العقد",
-  [RequestStatus.CONTRACT_SENT]: "العقد مرسل",
-  [RequestStatus.SIGNED]: "تم التوقيع",
-  [RequestStatus.PROJECT_CREATED]: "تحول إلى مشروع",
-  [RequestStatus.CANCELLED]: "ملغي",
-};
-
-const STATUS_TONE: Record<
-  RequestStatus,
-  import("@/components/design-system/Pill").PillTone
-> = {
-  [RequestStatus.SUBMITTED]: "neutral",
-  [RequestStatus.QUALIFYING]: "blue",
-  [RequestStatus.PROPOSAL_IN_PROGRESS]: "purple",
-  [RequestStatus.PROPOSAL_SENT]: "warning",
-  [RequestStatus.NEGOTIATION]: "warning",
-  [RequestStatus.CONTRACT_PREPARATION]: "warning",
-  [RequestStatus.CONTRACT_SENT]: "success",
-  [RequestStatus.SIGNED]: "success",
-  [RequestStatus.PROJECT_CREATED]: "success",
-  [RequestStatus.CANCELLED]: "danger",
-};
 
 const BUSINESS_TYPE_LABELS: Record<string, string> = {
   RESTAURANT: "مطعم",
@@ -112,12 +84,12 @@ function InfoRow({
   if (!value) return null;
   return (
     <div className="flex items-start gap-3">
-      <span className="mt-0.5 text-neutral-300 shrink-0">{icon}</span>
+      <span className="mt-0.5 text-portal-note-text shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-xs text-neutral-300">{label}</p>
+        <p className="text-xs text-portal-note-text">{label}</p>
         <p
           className={cn(
-            "text-sm font-medium break-all",
+            "text-sm font-medium text-natural-100 break-all",
             dir === "ltr" && "font-mono",
           )}
           dir={dir}
@@ -125,23 +97,6 @@ function InfoRow({
           {value}
         </p>
       </div>
-    </div>
-  );
-}
-
-function DetailSkeleton() {
-  return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-8 w-8 rounded" />
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-6 w-24 rounded-full mr-auto" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Skeleton className="h-44" />
-        <Skeleton className="h-44" />
-      </div>
-      <Skeleton className="h-36" />
     </div>
   );
 }
@@ -160,45 +115,54 @@ function RelatedRecords({ request }: { request: RequestDetail }) {
         {request.proposals.map((proposal) => (
           <div
             key={proposal.id}
-            className="flex items-start gap-3 rounded-lg border p-3"
+            className="flex items-start gap-3 rounded-lg border border-portal-card-border p-3"
           >
-            <FileText className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
+            <FileText className="w-4 h-4 text-portal-note-text mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{proposal.title}</p>
-              <p className="text-xs text-neutral-300">
+              <p className="text-sm font-medium text-natural-100">
+                {proposal.title}
+              </p>
+              <p className="text-xs text-portal-note-text">
                 عرض فني • {formatDate(proposal.createdAt)}
               </p>
             </div>
-            <Pill tone="neutral">{proposal.status}</Pill>
+            <SalesStatusBadge domain="proposal" status={proposal.status} />
           </div>
         ))}
 
         {request.contracts.map((contract) => (
           <div
             key={contract.id}
-            className="flex items-start gap-3 rounded-lg border p-3"
+            className="flex items-start gap-3 rounded-lg border border-portal-card-border p-3"
           >
-            <FileSignature className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
+            <FileSignature className="w-4 h-4 text-portal-note-text mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{contract.title}</p>
-              <p className="text-xs text-neutral-300">
+              <p className="text-sm font-medium text-natural-100">
+                {contract.title}
+              </p>
+              <p className="text-xs text-portal-note-text">
                 عقد • {formatDate(contract.createdAt)}
               </p>
             </div>
-            <Pill tone="neutral">{contract.status}</Pill>
+            <SalesStatusBadge domain="contract" status={contract.status} />
           </div>
         ))}
 
         {request.project && (
-          <div className="flex items-start gap-3 rounded-lg border p-3">
-            <FolderKanban className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
+          <div className="flex items-start gap-3 rounded-lg border border-portal-card-border p-3">
+            <FolderKanban className="w-4 h-4 text-portal-note-text mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{request.project.name}</p>
-              <p className="text-xs text-neutral-300">
+              <p className="text-sm font-medium text-natural-100">
+                {request.project.name}
+              </p>
+              <p className="text-xs text-portal-note-text">
                 مشروع • {formatDate(request.project.createdAt)}
               </p>
             </div>
-            <Pill tone="neutral">{request.project.status}</Pill>
+            <SalesStatusBadge
+              domain="project"
+              status={request.project.status}
+            />
           </div>
         )}
       </div>
@@ -217,31 +181,26 @@ export default function RequestDetailPage({
     isLoading,
     isError,
     error,
+    refetch,
   } = useGetRequestByIdQuery(id);
 
-  if (isLoading) return <DetailSkeleton />;
+  if (isLoading) return <SalesDetailSkeleton variant="request" />;
 
   if (isError) {
     const status = (error as { status?: number })?.status;
-    const message =
+    const title =
       status === 404
         ? "لم يتم العثور على هذا الطلب."
         : status === 403
           ? "لا تملك صلاحية عرض هذا الطلب."
           : "حدث خطأ أثناء تحميل بيانات الطلب.";
     return (
-      <div
-        className="flex flex-col items-center justify-center py-24 gap-4"
-        dir="rtl"
-      >
-        <StatusBanner variant="danger" title={message} />
-        <Link
-          href="/dashboard/sales/pipeline"
-          className="text-sm text-primary underline underline-offset-2"
-        >
-          العودة إلى لوحة المبيعات
-        </Link>
-      </div>
+      <SalesDetailError
+        title={title}
+        onRetry={refetch}
+        backHref="/dashboard/sales/pipeline"
+        backLabel="لوحة المبيعات"
+      />
     );
   }
 
@@ -262,44 +221,38 @@ export default function RequestDetailPage({
           (service) => service.service.nameAr || service.service.name,
         )
       : services;
-  const statusLabel = STATUS_LABELS[request.status] ?? request.status;
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl" dir="rtl">
+    <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
+      <SalesDetailBreadcrumb
+        backHref="/dashboard/sales/pipeline"
+        backLabel="لوحة المبيعات"
+        title={contactName || companyName || "طلب"}
+      />
+
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href="/dashboard/sales/pipeline"
-            className="p-1.5 rounded-md hover:bg-neutral-50 transition-colors shrink-0"
-            title="العودة إلى لوحة المبيعات"
-          >
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold truncate">
-              {contactName}
-            </h1>
-            {companyName && (
-              <p className="text-sm text-neutral-300">{companyName}</p>
-            )}
-            {client && (
-              <Link
-                href={`/dashboard/sales/clients/${client.id}`}
-                className="text-xs text-primary hover:underline"
-              >
-                عرض ملف العميل
-              </Link>
-            )}
-          </div>
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold text-natural-100 truncate">
+            {contactName}
+          </h1>
+          {companyName && (
+            <p className="text-sm text-portal-note-text">{companyName}</p>
+          )}
+          {client && (
+            <Link
+              href={`/dashboard/sales/clients/${client.id}`}
+              className="text-xs text-secondary-500 hover:underline"
+            >
+              عرض ملف العميل
+            </Link>
+          )}
         </div>
         <div className="shrink-0">
-          <Pill tone={STATUS_TONE[request.status]} className="text-xs h-6 px-2">
-            {statusLabel}
-          </Pill>
+          <SalesStatusBadge domain="request" status={request.status} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <SurfaceCard title="بيانات التواصل" icon={User}>
           <div className="space-y-4">
             <InfoRow
@@ -344,36 +297,36 @@ export default function RequestDetailPage({
               label="نوع النشاط"
               value={
                 businessType
-                  ? (BUSINESS_TYPE_LABELS[businessType] ??
-                    businessType)
+                  ? (BUSINESS_TYPE_LABELS[businessType] ?? businessType)
                   : null
               }
             />
             {description && (
               <div className="flex items-start gap-3">
-                <MessageSquare className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
+                <MessageSquare className="w-4 h-4 text-portal-note-text shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs text-neutral-300">الوصف</p>
-                  <p className="text-sm leading-relaxed">{description}</p>
+                  <p className="text-xs text-portal-note-text">الوصف</p>
+                  <p className="text-sm text-natural-100 leading-relaxed">
+                    {description}
+                  </p>
                 </div>
               </div>
             )}
             {selectedServices.length > 0 && (
               <div className="flex items-start gap-3">
-                <Tag className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
+                <Tag className="w-4 h-4 text-portal-note-text shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs text-neutral-300 mb-1.5">
+                  <p className="text-xs text-portal-note-text mb-1.5">
                     الخدمات المطلوبة
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedServices.map((service) => (
-                      <Pill
+                      <span
                         key={service}
-                        tone="neutral"
-                        className="text-xs h-6 px-2"
+                        className="inline-flex items-center rounded-full bg-badge-gray-bg px-3 py-1 text-xs font-medium text-portal-note-text"
                       >
                         {service}
-                      </Pill>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -393,11 +346,11 @@ export default function RequestDetailPage({
           <li className="mr-4">
             <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-natural-0 bg-neutral-400" />
             <div className="flex flex-wrap items-center gap-2 mb-0.5">
-              <Pill tone="neutral" className="text-xs h-6 px-2">
+              <span className="inline-flex items-center rounded-full bg-badge-gray-bg px-3 py-1 text-xs font-medium text-portal-note-text">
                 تم استلام الطلب
-              </Pill>
+              </span>
             </div>
-            <p className="text-xs text-neutral-300">
+            <p className="text-xs text-portal-note-text">
               {formatDate(request.createdAt)}
             </p>
           </li>
@@ -413,29 +366,25 @@ export default function RequestDetailPage({
                 <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-background bg-secondary-500" />
                 <div className="flex flex-wrap items-center gap-2 mb-0.5">
                   {entry.fromStatus && (
-                    <Pill
-                      tone={STATUS_TONE[entry.fromStatus]}
-                      className="text-xs h-6 px-2"
-                    >
-                      {STATUS_LABELS[entry.fromStatus] ?? entry.fromStatus}
-                    </Pill>
+                    <SalesStatusBadge
+                      domain="request"
+                      status={entry.fromStatus}
+                    />
                   )}
                   {entry.fromStatus && (
-                    <ArrowRight className="w-3 h-3 text-neutral-300 rotate-180" />
+                    <ArrowRight className="w-3 h-3 text-portal-note-text rotate-180" />
                   )}
-                  <Pill
-                    tone={STATUS_TONE[entry.toStatus]}
-                    className="text-xs h-6 px-2"
-                  >
-                    {STATUS_LABELS[entry.toStatus] ?? entry.toStatus}
-                  </Pill>
+                  <SalesStatusBadge
+                    domain="request"
+                    status={entry.toStatus}
+                  />
                 </div>
                 {entry.note && (
-                  <p className="text-sm text-neutral-300 leading-relaxed mb-1">
+                  <p className="text-sm text-portal-note-text leading-relaxed mb-1">
                     {entry.note}
                   </p>
                 )}
-                <p className="text-xs text-neutral-300">
+                <p className="text-xs text-portal-note-text">
                   {formatDate(entry.changedAt)}
                 </p>
               </li>
