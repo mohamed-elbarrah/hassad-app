@@ -23,6 +23,7 @@ import {
   Bell,
   Ticket,
   AlertTriangle,
+  Globe,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -76,6 +77,59 @@ export const adminNavSections: NavSection[] = [
         title: "الأقسام",
         url: "/dashboard/admin/departments",
         icon: Briefcase,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "العمليات",
+    items: [
+      {
+        title: "المشاريع",
+        url: "/dashboard/admin/projects",
+        icon: Briefcase,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "المهام",
+        url: "/dashboard/admin/tasks",
+        icon: ListChecks,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العقود",
+        url: "/dashboard/admin/contracts",
+        icon: FileSignature,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العملاء المحتملون",
+        url: "/dashboard/admin/leads",
+        icon: TrendingUp,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "طلبات الخدمة",
+        url: "/dashboard/admin/requests",
+        icon: ClipboardList,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الحملات",
+        url: "/dashboard/admin/campaigns",
+        icon: BarChart3,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "المحادثات",
+        url: "/dashboard/admin/chat",
+        icon: MessageSquare,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "بوابة العملاء",
+        url: "/dashboard/admin/portal",
+        icon: Globe,
         roles: ["ADMIN"],
       },
     ],

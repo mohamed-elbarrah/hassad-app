@@ -253,6 +253,71 @@ export interface AlertsData {
   pendingRequests: AlertItem;
 }
 
+// ── Business Operations types ─────────────────────────────────────────────────
+
+export interface ProjectRow {
+  id: string; name: string; clientName: string; pmId: string | null; pmName: string;
+  status: string; completionPercentage: number; overdueTasksCount: number;
+  priority: string | null; startDate: string | null; endDate: string | null; createdAt: string;
+}
+export interface PaginatedProjects { items: ProjectRow[]; total: number; page: number; limit: number; totalPages: number; }
+
+export interface TaskRow {
+  id: string; title: string; projectName: string; assigneeId: string | null; assigneeName: string;
+  department: string | null; status: string; priority: string | null;
+  dueDate: string | null; isOverdue: boolean; revisionCount: number; createdAt: string;
+}
+export interface PaginatedTasks { items: TaskRow[]; total: number; page: number; limit: number; totalPages: number; }
+
+export interface ContractRow {
+  id: string; title: string; clientName: string; type: string; status: string;
+  monthlyValue: number; totalValue: number; currency: string;
+  startDate: string | null; endDate: string | null; versionNumber: number;
+  eSigned: boolean; pendingRenewalAlerts: number; createdAt: string;
+}
+export interface PaginatedContracts { items: ContractRow[]; total: number; page: number; limit: number; totalPages: number; }
+
+export interface LeadRow {
+  id: string; companyName: string; contactName: string; email: string | null; phone: string | null;
+  assigneeId: string | null; assigneeName: string; pipelineStage: string;
+  source: string | null; businessType: string | null;
+  contactAttemptCount: number; lastContactAt: string | null; createdAt: string;
+}
+export interface PaginatedLeads { items: LeadRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface LeadStats { byStage: { stage: string; count: number }[]; bySource: { source: string; count: number }[]; conversionRate: number; }
+
+export interface RequestRow {
+  id: string; clientName: string; assigneeId: string | null; assigneeName: string;
+  status: string; servicesCount: number; ageDays: number; createdAt: string;
+}
+export interface PaginatedRequests { items: RequestRow[]; total: number; page: number; limit: number; totalPages: number; }
+
+export interface CampaignRow {
+  id: string; name: string; clientName: string; managedById: string | null; managedByName: string;
+  platform: string | null; status: string; budgetTotal: number; budgetSpent: number;
+  isOverspent: boolean; startDate: string | null; endDate: string | null; createdAt: string;
+}
+export interface PaginatedCampaigns { items: CampaignRow[]; total: number; page: number; limit: number; totalPages: number; }
+
+export interface ConversationRow {
+  id: string; participants: { id: string; name: string }[];
+  lastMessageAt: string | null; lastMessageContent: string | null;
+  messageCount: number; isActive: boolean; isStale: boolean; createdAt: string;
+}
+export interface PaginatedConversations { items: ConversationRow[]; total: number; page: number; limit: number; totalPages: number; }
+
+export interface PortalClientRow {
+  id: string; companyName: string; contactName: string; status: string;
+  hasPortalAccess: boolean; lastLoginAt: string | null;
+  intakeCompleted: boolean; pendingApprovalsCount: number; createdAt: string;
+}
+export interface PaginatedPortalClients { items: PortalClientRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface PortalOverview {
+  totalClients: number; activeClients: number; idleClients: number;
+  pendingApprovals: number; pendingRevisions: number;
+  unsubmittedIntakeForms: number; snoozedItemsCount: number; activeTokens: number;
+}
+
 // ── API slice ─────────────────────────────────────────────────────────────────
 
 export const adminApi = createApi({
@@ -446,6 +511,127 @@ export const adminApi = createApi({
       providesTags: ["AdminStats"],
     }),
 
+    // ── Projects ───────────────────────────────────────────────────────────
+
+    getAdminProjects: builder.query<PaginatedProjects, Record<string, any>>({
+      query: (params) => ({ url: "/admin/projects", params }),
+      providesTags: ["AdminStats"],
+    }),
+    getAdminProject: builder.query<any, string>({
+      query: (id) => `/admin/projects/${id}`,
+    }),
+    reassignProjectPm: builder.mutation<void, { id: string; pmUserId: string }>({
+      query: ({ id, pmUserId }) => ({ url: `/admin/projects/${id}/reassign-pm`, method: "POST", body: { pmUserId } }),
+      invalidatesTags: ["AdminStats"],
+    }),
+    archiveProject: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/projects/${id}/archive`, method: "POST" }),
+      invalidatesTags: ["AdminStats"],
+    }),
+    forceProjectStatus: builder.mutation<void, { id: string; status: string; reason: string }>({
+      query: ({ id, status, reason }) => ({ url: `/admin/projects/${id}/force-status`, method: "POST", body: { status, reason } }),
+      invalidatesTags: ["AdminStats"],
+    }),
+
+    // ── Tasks ──────────────────────────────────────────────────────────────
+
+    getAdminTasks: builder.query<PaginatedTasks, Record<string, any>>({
+      query: (params) => ({ url: "/admin/tasks", params }),
+    }),
+    getAdminTask: builder.query<any, string>({
+      query: (id) => `/admin/tasks/${id}`,
+    }),
+    reassignTask: builder.mutation<void, { id: string; assigneeId: string }>({
+      query: ({ id, assigneeId }) => ({ url: `/admin/tasks/${id}/reassign`, method: "POST", body: { assigneeId } }),
+    }),
+    forceTaskTransition: builder.mutation<void, { id: string; status: string; reason: string }>({
+      query: ({ id, status, reason }) => ({ url: `/admin/tasks/${id}/force-transition`, method: "POST", body: { status, reason } }),
+    }),
+
+    // ── Contracts ──────────────────────────────────────────────────────────
+
+    getAdminContracts: builder.query<PaginatedContracts, Record<string, any>>({
+      query: (params) => ({ url: "/admin/contracts", params }),
+    }),
+    getAdminContract: builder.query<any, string>({
+      query: (id) => `/admin/contracts/${id}`,
+    }),
+    cancelContract: builder.mutation<void, { id: string; reason: string }>({
+      query: ({ id, reason }) => ({ url: `/admin/contracts/${id}/cancel`, method: "POST", body: { reason } }),
+    }),
+    triggerRenewalAlert: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/contracts/${id}/trigger-renewal-alert`, method: "POST" }),
+    }),
+
+    // ── Leads ──────────────────────────────────────────────────────────────
+
+    getAdminLeads: builder.query<PaginatedLeads, Record<string, any>>({
+      query: (params) => ({ url: "/admin/leads", params }),
+    }),
+    getAdminLead: builder.query<any, string>({
+      query: (id) => `/admin/leads/${id}`,
+    }),
+    getAdminLeadStats: builder.query<LeadStats, void>({
+      query: () => "/admin/leads/stats",
+    }),
+    reassignLead: builder.mutation<void, { id: string; assigneeId: string }>({
+      query: ({ id, assigneeId }) => ({ url: `/admin/leads/${id}/reassign`, method: "POST", body: { assigneeId } }),
+    }),
+
+    // ── Requests ───────────────────────────────────────────────────────────
+
+    getAdminRequests: builder.query<PaginatedRequests, Record<string, any>>({
+      query: (params) => ({ url: "/admin/requests", params }),
+    }),
+    getAdminRequest: builder.query<any, string>({
+      query: (id) => `/admin/requests/${id}`,
+    }),
+    reassignRequest: builder.mutation<void, { id: string; assigneeId: string }>({
+      query: ({ id, assigneeId }) => ({ url: `/admin/requests/${id}/reassign`, method: "POST", body: { assigneeId } }),
+    }),
+    forceRequestStatus: builder.mutation<void, { id: string; status: string; reason: string }>({
+      query: ({ id, status, reason }) => ({ url: `/admin/requests/${id}/force-status`, method: "POST", body: { status, reason } }),
+    }),
+
+    // ── Campaigns ──────────────────────────────────────────────────────────
+
+    getAdminCampaigns: builder.query<PaginatedCampaigns, Record<string, any>>({
+      query: (params) => ({ url: "/admin/campaigns", params }),
+    }),
+    getAdminCampaign: builder.query<any, string>({
+      query: (id) => `/admin/campaigns/${id}`,
+    }),
+    pauseCampaign: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/campaigns/${id}/pause`, method: "POST" }),
+    }),
+    endCampaign: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/campaigns/${id}/end`, method: "POST" }),
+    }),
+
+    // ── Chat ───────────────────────────────────────────────────────────────
+
+    getAdminConversations: builder.query<PaginatedConversations, Record<string, any>>({
+      query: (params) => ({ url: "/admin/conversations", params }),
+    }),
+    getAdminConversationMessages: builder.query<any, { id: string; page?: number; limit?: number }>({
+      query: ({ id, page, limit }) => ({ url: `/admin/conversations/${id}/messages`, params: { page, limit } }),
+    }),
+    hideConversation: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/conversations/${id}/hide`, method: "POST" }),
+    }),
+
+    // ── Portal ─────────────────────────────────────────────────────────────
+
+    getPortalOverview: builder.query<PortalOverview, void>({
+      query: () => "/admin/portal/overview",
+    }),
+    getPortalClients: builder.query<PaginatedPortalClients, Record<string, any>>({
+      query: (params) => ({ url: "/admin/portal/clients", params }),
+    }),
+    regeneratePortalToken: builder.mutation<{ token: string; expiresAt: string }, string>({
+      query: (id) => ({ url: `/admin/portal/clients/${id}/regenerate-token`, method: "POST" }),
+    }),
+
   }),
 });
 
@@ -476,4 +662,43 @@ export const {
   useGetTrendDataQuery,
   useGetFunnelDataQuery,
   useGetAlertsDataQuery,
+  // Projects
+  useGetAdminProjectsQuery,
+  useGetAdminProjectQuery,
+  useReassignProjectPmMutation,
+  useArchiveProjectMutation,
+  useForceProjectStatusMutation,
+  // Tasks
+  useGetAdminTasksQuery,
+  useGetAdminTaskQuery,
+  useReassignTaskMutation,
+  useForceTaskTransitionMutation,
+  // Contracts
+  useGetAdminContractsQuery,
+  useGetAdminContractQuery,
+  useCancelContractMutation,
+  useTriggerRenewalAlertMutation,
+  // Leads
+  useGetAdminLeadsQuery,
+  useGetAdminLeadQuery,
+  useGetAdminLeadStatsQuery,
+  useReassignLeadMutation,
+  // Requests
+  useGetAdminRequestsQuery,
+  useGetAdminRequestQuery,
+  useReassignRequestMutation,
+  useForceRequestStatusMutation,
+  // Campaigns
+  useGetAdminCampaignsQuery,
+  useGetAdminCampaignQuery,
+  usePauseCampaignMutation,
+  useEndCampaignMutation,
+  // Chat
+  useGetAdminConversationsQuery,
+  useGetAdminConversationMessagesQuery,
+  useHideConversationMutation,
+  // Portal
+  useGetPortalOverviewQuery,
+  useGetPortalClientsQuery,
+  useRegeneratePortalTokenMutation,
 } = adminApi;
