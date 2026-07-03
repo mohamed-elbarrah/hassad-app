@@ -3,6 +3,9 @@
 import { use } from "react";
 import { useGetInvoiceByIdQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
+import { FinanceDetailBreadcrumb } from "@/components/dashboard/finance/shared/FinanceDetailBreadcrumb";
+import { FinanceDetailSkeleton } from "@/components/dashboard/finance/shared/FinanceDetailSkeleton";
+import { FinanceDetailError } from "@/components/dashboard/finance/shared/FinanceDetailError";
 import {
   TimelineComponent,
   TimelineItem,
@@ -13,7 +16,6 @@ import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { DataTable } from "@/components/design-system/DataTable";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import {
-  ChevronRight,
   Download,
   Printer,
   Send,
@@ -21,7 +23,6 @@ import {
   CreditCard,
   History,
   AlertCircle,
-  Loader2,
   Copy,
   Building2,
   CalendarClock,
@@ -41,29 +42,17 @@ export default function InvoiceDetailPage({
   const { data: invoice, isLoading, error } = useGetInvoiceByIdQuery(id);
 
   if (isLoading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-      </div>
-    );
+    return <FinanceDetailSkeleton />;
   }
 
   if (error || !invoice) {
     return (
-      <div className="h-[60vh] flex flex-col items-center justify-center gap-4 text-center">
-        <AlertCircle className="w-12 h-12 text-danger-500" />
-        <div>
-          <h2 className="text-2xl font-bold">
-            عذراً، لم يتم العثور على الفاتورة
-          </h2>
-          <p className="text-neutral-300">
-            قد يكون الرابط غير صحيح أو تم نقل الفاتورة.
-          </p>
-        </div>
-        <Link href="/dashboard/finance/invoices">
-          <ActionButton variant="outline">العودة لقائمة الفواتير</ActionButton>
-        </Link>
-      </div>
+      <FinanceDetailError
+        title="عذراً، لم يتم العثور على الفاتورة"
+        hint="قد يكون الرابط غير صحيح أو تم نقل الفاتورة."
+        backHref="/dashboard/finance/invoices"
+        backLabel="العودة لقائمة الفواتير"
+      />
     );
   }
 
@@ -91,20 +80,13 @@ export default function InvoiceDetailPage({
     <div className="space-y-5 animate-in fade-in duration-500">
       {/* Breadcrumb + Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm text-neutral-400">
-          <Link href="/dashboard/finance" className="hover:text-secondary-500">
-            المالية
-          </Link>
-          <ChevronRight className="w-4 h-4 rotate-180" />
-          <Link
-            href="/dashboard/finance/invoices"
-            className="hover:text-secondary-500"
-          >
-            الفواتير
-          </Link>
-          <ChevronRight className="w-4 h-4 rotate-180" />
-          <span className="text-natural-100 font-medium">{invoice.invoiceNumber}</span>
-        </div>
+        <FinanceDetailBreadcrumb
+          items={[
+            { label: "المالية", href: "/dashboard/finance" },
+            { label: "الفواتير", href: "/dashboard/finance/invoices" },
+            { label: invoice.invoiceNumber },
+          ]}
+        />
         <div className="flex gap-2">
           <ActionButton
             variant="outline"
@@ -140,7 +122,7 @@ export default function InvoiceDetailPage({
             <div className="px-6 py-5 border-b border-portal-divider flex flex-row items-start justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-neutral-400" />
+                  <Hash className="w-4 h-4 text-portal-note-text" />
                   <h2 className="text-2xl font-mono font-bold">
                     {invoice.invoiceNumber}
                   </h2>
@@ -151,10 +133,10 @@ export default function InvoiceDetailPage({
                     onClick={handleCopyNumber}
                     title="نسخ الرقم"
                   >
-                    <Copy className="w-3.5 h-3.5 text-neutral-400" />
+                    <Copy className="w-3.5 h-3.5 text-portal-note-text" />
                   </ActionButton>
                 </div>
-                <p className="text-sm text-neutral-400">
+                <p className="text-sm text-portal-note-text">
                   أُنشئت بتاريخ:{" "}
                   {new Date(invoice.createdAt).toLocaleDateString("ar-SA-u-nu-latn")}
                 </p>
@@ -165,47 +147,21 @@ export default function InvoiceDetailPage({
               />
             </div>
 
-            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-secondary-50">
-                  <Building2 className="w-4 h-4 text-secondary-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-400 mb-0.5">العميل</p>
-                  <p className="text-sm font-bold">
-                    {invoice.client?.companyName || "N/A"}
-                  </p>
-                  <p className="text-xs text-neutral-400 mt-0.5">
-                    العقد:{" "}
-                    <span className="font-medium">
-                      {invoice.contract?.title || "N/A"}
-                    </span>
-                  </p>
-                </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+                <p className="text-sm text-portal-note-text mb-1">العميل</p>
+                <p className="text-base font-bold text-natural-100">{invoice.client?.companyName || "N/A"}</p>
+                {invoice.contract?.title && (
+                  <p className="text-xs text-portal-note-text mt-0.5">العقد: {invoice.contract.title}</p>
+                )}
               </div>
-
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-danger-50">
-                  <CalendarClock className="w-4 h-4 text-danger-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-400 mb-0.5">تاريخ الاستحقاق</p>
-                  <p className="text-sm font-bold text-danger-600">
-                    {new Date(invoice.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}
-                  </p>
-                </div>
+              <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+                <p className="text-sm text-portal-note-text mb-1">تاريخ الاستحقاق</p>
+                <p className="text-base font-bold text-danger-600">{new Date(invoice.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}</p>
               </div>
-
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-success-50">
-                  <FileText className="w-4 h-4 text-success-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-400 mb-0.5">القيمة الإجمالية</p>
-                  <p className="text-sm font-bold">
-                    <CurrencyDisplay amount={invoice.amount} />
-                  </p>
-                </div>
+              <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+                <p className="text-sm text-portal-note-text mb-1">القيمة الإجمالية</p>
+                <p className="text-base font-bold text-natural-100"><CurrencyDisplay amount={invoice.amount} /></p>
               </div>
             </div>
           </SurfaceCard>
@@ -219,26 +175,26 @@ export default function InvoiceDetailPage({
             <div className="space-y-5">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-400">نسبة التحصيل</span>
+                  <span className="text-portal-note-text">نسبة التحصيل</span>
                   <span className="font-bold">{collectionRate}%</span>
                 </div>
                 <ProgressBar value={collectionRate} size="md" />
               </div>
 
               <div className="grid grid-cols-3 gap-4 pt-2">
-                <div className="text-center p-4 rounded-2xl bg-neutral-50/50">
-                  <p className="text-xs text-neutral-400 mb-1">الإجمالي</p>
+                <div className="text-center p-4 rounded-2xl bg-badge-gray-bg">
+                  <p className="text-xs text-portal-note-text mb-1">الإجمالي</p>
                   <p className="text-xl font-bold">
                     <CurrencyDisplay amount={invoice.amount} />
                   </p>
                 </div>
-                <div className="text-center p-4 rounded-2xl bg-success-50/50">
+                <div className="text-center p-4 rounded-2xl bg-success-100/50">
                   <p className="text-xs text-success-600 mb-1">المدفوع</p>
                   <p className="text-xl font-bold text-success-600">
                     <CurrencyDisplay amount={paidAmount} />
                   </p>
                 </div>
-                <div className="text-center p-4 rounded-2xl bg-danger-50/50">
+                <div className="text-center p-4 rounded-2xl bg-danger-100/50">
                   <p className="text-xs text-danger-600 mb-1">المتبقي</p>
                   <p className="text-xl font-bold text-danger-600">
                     <CurrencyDisplay amount={remainingAmount} />
@@ -293,7 +249,7 @@ export default function InvoiceDetailPage({
                   <td className="px-5 py-4">
                     <FinanceStatusBadge status={p.status} />
                   </td>
-                  <td className="px-5 py-4 text-left text-xs text-neutral-400">
+                  <td className="px-5 py-4 text-left text-xs text-portal-note-text">
                     {new Date(p.date).toLocaleDateString("ar-SA-u-nu-latn")}
                   </td>
                 </tr>
@@ -345,10 +301,10 @@ export default function InvoiceDetailPage({
             title="ملاحظات التدقيق"
             icon={AlertCircle}
             className="border-none shadow-sm"
-            contentClassName="bg-alert-50/30 dark:bg-alert-500/5"
+            contentClassName="bg-alert-50/30"
           >
             <div className="space-y-3">
-              <p className="text-sm text-alert-800 dark:text-alert-300">
+              <p className="text-sm text-alert-800">
                 هذه الفاتورة جزء من عقد توريد مستمر. يرجى التأكد من مطابقة
                 الدفعات مع تسليمات المشروع.
               </p>

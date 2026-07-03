@@ -27,7 +27,7 @@ export function TopClientsTable({ clients, isLoading }: Props) {
       <SurfaceCard className="border-none shadow-md h-full" title="أفضل العملاء">
         <div className="space-y-3 animate-pulse">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-12 bg-neutral-100 rounded-xl" />
+            <div key={i} className="h-12 bg-badge-gray-bg rounded-xl" />
           ))}
         </div>
       </SurfaceCard>
@@ -59,13 +59,13 @@ export function TopClientsTable({ clients, isLoading }: Props) {
                   <span className="text-sm font-medium text-natural-100 truncate">{client.companyName}</span>
                   <span className="text-sm font-bold text-natural-100"><CurrencyDisplay amount={client.revenue} size="sm" /></span>
                 </div>
-                <div className="h-1.5 rounded-full bg-neutral-100 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-badge-gray-bg overflow-hidden">
                   <div
                     className="h-full rounded-full bg-secondary-500 transition-all"
                     style={{ width: `${barWidth}%` }}
                   />
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-neutral-400">
+                <div className="flex items-center justify-between text-[10px] text-portal-note-text">
                   <span>{client.invoiceCount} فاتورة · {client.paymentCount} دفعة</span>
                   <div className="flex items-center gap-1">
                     <span>نسبة التحصيل</span>
@@ -79,13 +79,13 @@ export function TopClientsTable({ clients, isLoading }: Props) {
                 </div>
               </div>
               <Link href={`/dashboard/finance/clients/${client.clientId}`}>
-                <ChevronLeft className="w-4 h-4 text-neutral-300 group-hover:text-secondary-500 transition-colors shrink-0" />
+                <ChevronLeft className="w-4 h-4 text-portal-note-text group-hover:text-secondary-500 transition-colors shrink-0" />
               </Link>
             </div>
           );
         })}
         {clients.length === 0 && (
-          <div className="text-center py-8 text-neutral-400 text-sm">لا توجد بيانات عملاء</div>
+          <div className="text-center py-8 text-portal-note-text text-sm">لا توجد بيانات عملاء</div>
         )}
       </div>
     </SurfaceCard>

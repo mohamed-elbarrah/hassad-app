@@ -49,7 +49,7 @@ export function InvoiceToolbar({
     >
       {/* Search */}
       <div className="relative flex-1 max-w-lg">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-portal-note-text pointer-events-none" />
         <FormInputControl
           placeholder="البحث برقم الفاتورة أو اسم العميل..."
           value={search}
@@ -59,7 +59,7 @@ export function InvoiceToolbar({
         {search && (
           <button
             onClick={() => onSearchChange("")}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-natural-100"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-portal-note-text hover:text-natural-100"
           >
             <X className="w-4 h-4" />
           </button>
@@ -83,7 +83,7 @@ export function InvoiceToolbar({
             <span>{STATUS_OPTIONS.find((o) => o.value === status)?.label}</span>
             <ChevronDown
               className={cn(
-                "w-3.5 h-3.5 text-neutral-400 transition-transform",
+                "w-3.5 h-3.5 text-portal-note-text transition-transform",
                 filterOpen && "rotate-180",
               )}
             />
@@ -107,7 +107,7 @@ export function InvoiceToolbar({
                       setFilterOpen(false);
                     }}
                     className={cn(
-                      "w-full text-right px-4 py-2.5 text-sm transition-colors hover:bg-neutral-50",
+                      "w-full text-right px-4 py-2.5 text-sm transition-colors hover:bg-badge-gray-bg",
                       status === opt.value &&
                         "bg-secondary-50 text-secondary-600 font-semibold",
                     )}

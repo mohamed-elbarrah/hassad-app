@@ -17,17 +17,17 @@ import {
   type RangeValue,
   type DateRange,
 } from "@/components/dashboard/finance/FinanceDateRangePicker";
-import { FinanceKPICard } from "@/components/dashboard/finance/FinanceKPICard";
 import { RevenueTrendChart } from "@/components/dashboard/finance/RevenueTrendChart";
 import { PaymentMethodChart } from "@/components/dashboard/finance/PaymentMethodChart";
 import { AgingChart } from "@/components/dashboard/finance/AgingChart";
 import { ActionQueue } from "@/components/dashboard/finance/ActionQueue";
 import { TopClientsTable } from "@/components/dashboard/finance/TopClientsTable";
 import { ModuleQuickCard } from "@/components/dashboard/finance/ModuleQuickCard";
+import { FinancePageHeader } from "@/components/dashboard/finance/shared/FinancePageHeader";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { StatCard } from "@/components/design-system/StatCard";
 import { DataTable } from "@/components/design-system/DataTable";
+import { ActionButton } from "@/components/design-system/ActionButton";
 import {
   DollarSign,
   Clock,
@@ -40,13 +40,9 @@ import {
   Calendar,
   ShieldCheck,
   CreditCard,
-  ArrowUpLeft,
 } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
-import { cn } from "@/lib/utils";
-
-
 
 export default function FinanceDashboardPage() {
   const [range, setRange] = useState<RangeValue>("year");
@@ -111,89 +107,78 @@ export default function FinanceDashboardPage() {
     ledgerLoading;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-natural-100">
-            لوحة التحكم المالية
-          </h1>
-          <p className="text-sm text-neutral-400 mt-1">
-            نظرة شاملة على الأداء المالي للفترة المختارة
-          </p>
-        </div>
-        <FinanceDateRangePicker value={range} onChange={handleRangeChange} />
-      </div>
+    <div className="space-y-5 animate-in fade-in duration-500">
+      <FinancePageHeader
+        title="لوحة التحكم المالية"
+        description="نظرة شاملة على الأداء المالي للفترة المختارة"
+        icon={DollarSign}
+        actions={<FinanceDateRangePicker value={range} onChange={handleRangeChange} />}
+      />
 
       {/* ── KPI Row 1 ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <FinanceKPICard
+        <StatCard
           title="الإيرادات"
-          value={metrics?.revenue ?? 0}
-          format="currency"
+          value={<CurrencyDisplay amount={metrics?.revenue ?? 0} />}
           icon={DollarSign}
-          change={metrics?.revenueChange}
-          description="إجمالي المدفوعات الناجحة"
+          variant="default"
+          trend={metrics?.revenueChange && metrics.revenueChange >= 0 ? "up" : "down"}
+          trendValue={`${Math.abs(metrics?.revenueChange ?? 0).toFixed(2)}%`}
         />
-        <FinanceKPICard
+        <StatCard
           title="المبالغ المستحقة"
-          value={metrics?.pending ?? 0}
-          format="currency"
+          value={<CurrencyDisplay amount={metrics?.pending ?? 0} />}
           icon={Clock}
-          description={`${metrics?.pendingLateCount ?? 0} فاتورة متأخرة`}
+          variant="warning"
         />
-        <FinanceKPICard
+        <StatCard
           title="نسبة التحصيل"
-          value={metrics?.collectionRate ?? 0}
-          format="percent"
+          value={`${(metrics?.collectionRate ?? 0).toFixed(1)}%`}
           icon={TrendingUp}
-          description="نسبة الفواتير المحصلة من الإجمالي"
+          variant="default"
         />
-        <FinanceKPICard
+        <StatCard
           title="صافي الربح"
-          value={metrics?.netProfit ?? 0}
-          format="currency"
+          value={<CurrencyDisplay amount={metrics?.netProfit ?? 0} />}
           icon={Wallet}
-          change={metrics?.netProfitChange}
-          description="الإيرادات ناقص المصروفات"
+          variant="default"
+          trend={metrics?.netProfitChange && metrics.netProfitChange >= 0 ? "up" : "down"}
+          trendValue={`${Math.abs(metrics?.netProfitChange ?? 0).toFixed(2)}%`}
         />
       </div>
 
       {/* ── KPI Row 2 ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <FinanceKPICard
+        <StatCard
           title="المدفوعات الفاشلة"
-          value={metrics?.failedPaymentsValue ?? 0}
-          format="currency"
+          value={<CurrencyDisplay amount={metrics?.failedPaymentsValue ?? 0} />}
           icon={AlertTriangle}
-          description={`${metrics?.failedPaymentsCount ?? 0} عملية فاشلة`}
+          variant={(metrics?.failedPaymentsCount ?? 0) > 0 ? "danger" : "default"}
         />
-        <FinanceKPICard
+        <StatCard
           title="متوسط قيمة الفاتورة"
-          value={metrics?.averageInvoice ?? 0}
-          format="currency"
+          value={<CurrencyDisplay amount={metrics?.averageInvoice ?? 0} />}
           icon={Receipt}
-          description="متوسط قيمة الفواتير المصدرة"
+          variant="default"
         />
-        <FinanceKPICard
+        <StatCard
           title="العملاء النشطون"
           value={metrics?.activeClients ?? 0}
-          format="number"
           icon={Users}
-          description="عدد العملاء ذوي الفواتير"
+          variant="default"
         />
-        <FinanceKPICard
+        <StatCard
           title="إجمالي الرواتب"
-          value={metrics?.salariesTotal ?? 0}
-          format="currency"
+          value={<CurrencyDisplay amount={metrics?.salariesTotal ?? 0} />}
           icon={CreditCard}
-          change={metrics?.salariesChange}
-          description="الرواتب المصروفة في الفترة"
+          variant="default"
+          trend={metrics?.salariesChange && metrics.salariesChange >= 0 ? "up" : "down"}
+          trendValue={`${Math.abs(metrics?.salariesChange ?? 0).toFixed(2)}%`}
         />
       </div>
 
       {/* ── Charts Row ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <RevenueTrendChart data={trend || []} isLoading={trendLoading} />
         </div>
@@ -203,14 +188,14 @@ export default function FinanceDashboardPage() {
       </div>
 
       {/* ── Intelligence Row ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <AgingChart data={aging || []} isLoading={agingLoading} />
         <ActionQueue actions={actions || []} isLoading={actionsLoading} />
         <TopClientsTable clients={topClients || []} isLoading={clientsLoading} />
       </div>
 
       {/* ── Bottom Row: Activity + Quick Links ───────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Recent Ledger Activity */}
         <SurfaceCard
           className="lg:col-span-2 border-none shadow-md"
@@ -249,14 +234,14 @@ export default function FinanceDashboardPage() {
                   </div>
                 </td>
                 <td className="px-5 py-4">
-                  <span className="font-mono text-[10px] uppercase bg-neutral-100 px-2 py-0.5 rounded">
+                  <span className="font-mono text-[10px] uppercase bg-badge-gray-bg px-2 py-0.5 rounded">
                     {log.entity}
                   </span>
                 </td>
-                <td className="px-5 py-4 text-sm text-neutral-500">
+                <td className="px-5 py-4 text-sm text-portal-note-text">
                   {log.userId || "System"}
                 </td>
-                <td className="px-5 py-4 text-left text-xs text-neutral-400 font-mono">
+                <td className="px-5 py-4 text-left text-xs text-portal-note-text font-mono">
                   {formatDate(log.createdAt)}
                 </td>
               </tr>
@@ -320,9 +305,9 @@ export default function FinanceDashboardPage() {
                 value: `${Math.round(metrics?.collectionRate ?? 0)}%`,
                 label: "نسبة التحصيل",
                 accent:
-                  metrics?.collectionRate >= 80
+                  (metrics?.collectionRate ?? 0) >= 80
                     ? "success"
-                    : metrics?.collectionRate >= 50
+                    : (metrics?.collectionRate ?? 0) >= 50
                       ? "alert"
                       : "danger",
               },

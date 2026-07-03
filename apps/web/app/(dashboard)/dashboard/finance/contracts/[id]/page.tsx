@@ -3,8 +3,6 @@
 import { use } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
-  Loader2,
   DollarSign,
   TrendingUp,
   PieChart,
@@ -15,12 +13,14 @@ import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
 import { ContractServicesTable } from "@/components/shared/ContractServicesTable";
 import { ContractInvoicesList } from "@/components/shared/ContractInvoicesList";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
+import { FinanceDetailBreadcrumb } from "@/components/dashboard/finance/shared/FinanceDetailBreadcrumb";
+import { FinanceDetailSkeleton } from "@/components/dashboard/finance/shared/FinanceDetailSkeleton";
+import { FinanceDetailError } from "@/components/dashboard/finance/shared/FinanceDetailError";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { DataTable } from "@/components/design-system/DataTable";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
-
 import { buildPortalFileUrl } from "@/lib/portal-files";
 
 interface PageProps {
@@ -38,28 +38,16 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
   const { data, isLoading, isError } = useGetContractByIdQuery(id);
 
   if (isLoading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-      </div>
-    );
+    return <FinanceDetailSkeleton />;
   }
 
   if (isError || !data) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Link href="/dashboard/finance/contracts">
-          <ActionButton variant="ghost" size="sm" className="gap-2">
-            <ArrowRight className="h-4 w-4" />
-            العقود المالية
-          </ActionButton>
-        </Link>
-        <SurfaceCard className="shadow-sm">
-          <div className="pt-6 text-center text-danger-500 text-sm">
-            العقد غير موجود.
-          </div>
-        </SurfaceCard>
-      </div>
+      <FinanceDetailError
+        title="العقد غير موجود"
+        backHref="/dashboard/finance/contracts"
+        backLabel="العقود المالية"
+      />
     );
   }
 
@@ -76,97 +64,58 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
   const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500" dir="rtl">
-      <div className="flex items-center gap-2">
-        <Link href="/dashboard/finance/contracts">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-neutral-300 hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العقود المالية
-          </ActionButton>
-        </Link>
-        <span className="text-neutral-300">/</span>
-        <span className="text-sm font-medium truncate max-w-xs">
-          {data.title}
-        </span>
-      </div>
+    <div className="space-y-5 animate-in fade-in duration-500">
+      <FinanceDetailBreadcrumb
+        items={[
+          { label: "المالية", href: "/dashboard/finance" },
+          { label: "العقود المالية", href: "/dashboard/finance/contracts" },
+          { label: data.title },
+        ]}
+      />
 
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{data.title}</h1>
+          <h1 className="text-2xl font-bold">{data.title}</h1>
           <div className="flex items-center gap-2 mt-1">
             <FinanceStatusBadge status={data.status} />
-            <span className="text-xs text-neutral-300">
+            <span className="text-xs text-portal-note-text">
               {TYPE_LABELS[data.type] ?? data.type}
             </span>
           </div>
         </div>
-        <p className="text-sm text-neutral-300">
+        <p className="text-sm text-portal-note-text">
           {data.client?.companyName}
           {data.client?.user?.name ? ` — ${data.client.user.name}` : ""}
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
-          <div>
-            <p className="text-portal-note-text text-sm">القيمة الإجمالية</p>
-            <h3 className="text-2xl font-bold mt-1">
-              <CurrencyDisplay amount={totalValue} />
-            </h3>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <DollarSign className="w-3 h-3 ml-1" />
-            <span>{invoiceCount} فاتورة</span>
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
-          <div>
-            <p className="text-portal-note-text text-sm">المحصل</p>
-            <h3 className="text-2xl font-bold text-success-600 mt-1">
-              <CurrencyDisplay amount={totalPaid} />
-            </h3>
-          </div>
-          <div className="mt-3 space-y-1">
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+          <p className="text-sm text-portal-note-text mb-1">القيمة الإجمالية</p>
+          <p className="text-xl font-bold text-natural-100"><CurrencyDisplay amount={totalValue} /></p>
+          <p className="text-xs text-portal-note-text mt-1">{invoiceCount} فاتورة</p>
+        </div>
+        <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+          <p className="text-sm text-portal-note-text mb-1">المحصل</p>
+          <p className="text-xl font-bold text-success-600"><CurrencyDisplay amount={totalPaid} /></p>
+          <div className="mt-2 space-y-1">
             <ProgressBar value={collectionRate} size="sm" />
-            <p className="text-[10px] text-neutral-300">
-              {collectionRate.toFixed(1)}% من الإجمالي
-            </p>
+            <p className="text-[10px] text-portal-note-text">{collectionRate.toFixed(1)}% من الإجمالي</p>
           </div>
-        </SurfaceCard>
-
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
-          <div>
-            <p className="text-portal-note-text text-sm">المتبقي</p>
-            <h3 className="text-2xl font-bold text-danger-600 mt-1">
-              <CurrencyDisplay amount={remaining} />
-            </h3>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <TrendingUp className="w-3 h-3 ml-1" />
-            <span>بعد خصم الدفعات</span>
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
-          <div>
-            <p className="text-portal-note-text text-sm">نسبة التحصيل</p>
-            <h3 className="text-2xl font-bold mt-1">
-              {collectionRate.toFixed(1)}%
-            </h3>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <PieChart className="w-3 h-3 ml-1 text-action-blue" />
-            <span>معدل الدفع</span>
-          </div>
-        </SurfaceCard>
+        </div>
+        <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+          <p className="text-sm text-portal-note-text mb-1">المتبقي</p>
+          <p className="text-xl font-bold text-danger-600"><CurrencyDisplay amount={remaining} /></p>
+          <p className="text-xs text-portal-note-text mt-1">بعد خصم الدفعات</p>
+        </div>
+        <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
+          <p className="text-sm text-portal-note-text mb-1">نسبة التحصيل</p>
+          <p className="text-xl font-bold text-natural-100">{collectionRate.toFixed(1)}%</p>
+          <p className="text-xs text-portal-note-text mt-1">معدل الدفع</p>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <ContractServicesTable
           services={data.servicesList ?? []}
           totalValue={totalValue}
@@ -176,11 +125,11 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
 
       {fileUrl && (
         <SurfaceCard className="border-none shadow-sm" contentClassName="pt-6">
-          <div className="flex items-center gap-3 rounded-xl border bg-neutral-50/30 p-4">
+          <div className="flex items-center gap-3 rounded-xl border border-portal-card-border bg-badge-gray-bg p-4">
             <FileText className="w-8 h-8 text-action-blue shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">ملف العقد</p>
-              <p className="text-xs text-neutral-300">
+              <p className="text-xs text-portal-note-text">
                 تحميل ملف العقد بصيغة PDF
               </p>
             </div>
@@ -242,7 +191,7 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
                 <td className="px-5 py-4 font-medium text-success-600">
                   <CurrencyDisplay amount={payment.amount} />
                 </td>
-                <td className="px-5 py-4 text-neutral-400 text-xs">
+                <td className="px-5 py-4 text-portal-note-text text-xs">
                   BANK_TRANSFER
                 </td>
                 <td className="px-5 py-4">

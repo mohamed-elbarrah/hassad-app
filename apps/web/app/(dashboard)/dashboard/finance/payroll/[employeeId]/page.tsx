@@ -4,20 +4,20 @@ import { use, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useGetEmployeeByIdQuery, usePaySalaryMutation, useUpdateSalaryMutation } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
+import { FinanceDetailBreadcrumb } from "@/components/dashboard/finance/shared/FinanceDetailBreadcrumb";
+import { FinanceDetailSkeleton } from "@/components/dashboard/finance/shared/FinanceDetailSkeleton";
+import { FinanceDetailError } from "@/components/dashboard/finance/shared/FinanceDetailError";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { DataTable } from "@/components/design-system/DataTable";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import {
-  ChevronRight,
   Wallet,
   History,
-  Plus,
   ArrowUp,
   ArrowDown,
   DollarSign,
-  Loader2,
   Calendar,
   Hash,
   Pencil,
@@ -51,21 +51,21 @@ export default function SalaryDetailPage({
     urlMonth && urlYear ? urlYear : now.getFullYear(),
   );
 
-  const { data: employee, isLoading } = useGetEmployeeByIdQuery(employeeId);
+  const { data: employee, isLoading, isError } = useGetEmployeeByIdQuery(employeeId);
   const [paySalary, { isLoading: isPaying }] = usePaySalaryMutation();
   const [updateSalary, { isLoading: isUpdating }] = useUpdateSalaryMutation();
 
   if (isLoading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-      </div>
-    );
+    return <FinanceDetailSkeleton />;
   }
 
-  if (!employee) {
+  if (isError || !employee) {
     return (
-      <div className="p-8 text-center text-neutral-400">الموظف غير موجود</div>
+      <FinanceDetailError
+        title="الموظف غير موجود"
+        backHref="/dashboard/finance/payroll"
+        backLabel="الرواتب"
+      />
     );
   }
 
@@ -99,22 +99,14 @@ export default function SalaryDetailPage({
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
-      {/* Breadcrumb */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm text-neutral-400">
-          <Link href="/dashboard/finance" className="hover:text-secondary-500">
-            المالية
-          </Link>
-          <ChevronRight className="w-4 h-4 rotate-180" />
-          <Link
-            href="/dashboard/finance/payroll"
-            className="hover:text-secondary-500"
-          >
-            الرواتب
-          </Link>
-          <ChevronRight className="w-4 h-4 rotate-180" />
-          <span className="text-natural-100 font-medium">{employee.name}</span>
-        </div>
+        <FinanceDetailBreadcrumb
+          items={[
+            { label: "المالية", href: "/dashboard/finance" },
+            { label: "الرواتب", href: "/dashboard/finance/payroll" },
+            { label: employee.name },
+          ]}
+        />
 
         <div className="flex items-center gap-2">
           <ActionButton variant="outline" size="sm" icon={<FileText className="w-4 h-4" />}>
@@ -153,12 +145,12 @@ export default function SalaryDetailPage({
                   <h2 className="text-2xl font-bold">{employee.name}</h2>
                   <FinanceStatusBadge status={employee.isActive ? "ACTIVE" : "CANCELLED"} />
                 </div>
-                <p className="text-neutral-400">{employee.role}</p>
+                <p className="text-portal-note-text">{employee.role}</p>
                 <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-3">
-                  <span className="bg-neutral-50 px-3 py-1 rounded-lg text-xs font-mono">
+                  <span className="bg-badge-gray-bg px-3 py-1 rounded-lg text-xs font-mono">
                     <Hash className="w-3 h-3 inline ml-1" />{employee.id}
                   </span>
-                  <span className="bg-neutral-50 px-3 py-1 rounded-lg text-xs">
+                  <span className="bg-badge-gray-bg px-3 py-1 rounded-lg text-xs">
                     الراتب الأساسي: <CurrencyDisplay amount={employee.baseSalary} />
                   </span>
                 </div>
@@ -196,14 +188,12 @@ export default function SalaryDetailPage({
           >
             {!salary ? (
               <div className="text-center py-8">
-                <p className="text-neutral-400">لم يتم توليد راتب لهذا الشهر</p>
+                <p className="text-portal-note-text">لم يتم توليد راتب لهذا الشهر</p>
                 <ActionButton
                   variant="outline"
                   size="sm"
                   className="mt-3"
-                  onClick={() => {
-                    window.location.href = "/dashboard/finance/payroll";
-                  }}
+                  href="/dashboard/finance/payroll"
                 >
                   الذهاب لتوليد الراتب
                 </ActionButton>
@@ -211,23 +201,23 @@ export default function SalaryDetailPage({
             ) : (
               <div className="space-y-5">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 rounded-2xl bg-neutral-50/50">
-                    <p className="text-xs text-neutral-400 mb-1">الأساسي</p>
-                    <p className="text-lg font-bold"><CurrencyDisplay amount={salary.baseSalary} /></p>
+                  <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4 text-center">
+                    <p className="text-xs text-portal-note-text mb-1">الأساسي</p>
+                    <p className="text-lg font-bold text-natural-100"><CurrencyDisplay amount={salary.baseSalary} /></p>
                   </div>
-                  <div className="text-center p-4 rounded-2xl bg-success-50/50">
+                  <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4 text-center">
                     <p className="text-xs text-success-600 mb-1 flex items-center justify-center gap-1">
                       <ArrowUp className="w-3 h-3" />البدلات
                     </p>
                     <p className="text-lg font-bold text-success-600"><CurrencyDisplay amount={salary.bonuses || 0} /></p>
                   </div>
-                  <div className="text-center p-4 rounded-2xl bg-danger-50/50">
+                  <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4 text-center">
                     <p className="text-xs text-danger-600 mb-1 flex items-center justify-center gap-1">
                       <ArrowDown className="w-3 h-3" />الاستقطاعات
                     </p>
                     <p className="text-lg font-bold text-danger-600"><CurrencyDisplay amount={salary.deductions || 0} /></p>
                   </div>
-                  <div className="text-center p-4 rounded-2xl bg-secondary-50/50">
+                  <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4 text-center">
                     <p className="text-xs text-secondary-600 mb-1">الصافي</p>
                     <p className="text-lg font-bold text-secondary-600"><CurrencyDisplay amount={salary.amount} /></p>
                   </div>
@@ -237,7 +227,7 @@ export default function SalaryDetailPage({
                   <div className="flex items-center gap-3">
                     <FinanceStatusBadge status={salary.status} className="text-base px-3 py-1" />
                     {salary.paymentDate && (
-                      <span className="text-sm text-neutral-400">
+                      <span className="text-sm text-portal-note-text">
                         تاريخ الصرف:{" "}
                         {new Date(salary.paymentDate).toLocaleDateString("ar-SA-u-nu-latn")}
                       </span>
@@ -309,7 +299,7 @@ export default function SalaryDetailPage({
                   <td className="px-5 py-4">
                     <FinanceStatusBadge status={s.status} />
                   </td>
-                  <td className="px-5 py-4 text-left text-xs text-neutral-400">
+                  <td className="px-5 py-4 text-left text-xs text-portal-note-text">
                     {s.paymentDate
                       ? new Date(s.paymentDate).toLocaleDateString("ar-SA-u-nu-latn")
                       : "—"}
@@ -330,7 +320,7 @@ export default function SalaryDetailPage({
           >
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-neutral-400">نوع الراتب</span>
+                <span className="text-sm text-portal-note-text">نوع الراتب</span>
                 <span className="text-sm font-bold">
                   {employee.payType === "HYBRID"
                     ? "ثابت + عمولة"
@@ -342,18 +332,18 @@ export default function SalaryDetailPage({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-neutral-400">الراتب الأساسي</span>
+                <span className="text-sm text-portal-note-text">الراتب الأساسي</span>
                 <span className="text-sm font-bold"><CurrencyDisplay amount={employee.baseSalary} /></span>
               </div>
               {employee.commissionRate && employee.commissionRate > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-400">نسبة العمولة</span>
+                  <span className="text-sm text-portal-note-text">نسبة العمولة</span>
                   <span className="text-sm font-bold text-secondary-600">{Math.round(employee.commissionRate * 100)}%</span>
                 </div>
               )}
               {employee.hourlyRate && employee.hourlyRate > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-400">الأجر بالساعة</span>
+                  <span className="text-sm text-portal-note-text">الأجر بالساعة</span>
                   <span className="text-sm font-bold"><CurrencyDisplay amount={employee.hourlyRate} /></span>
                 </div>
               )}
@@ -388,7 +378,7 @@ export default function SalaryDetailPage({
                 <div className="text-center py-3">
                   <CheckCircle2 className="w-10 h-10 text-success-500 mx-auto mb-2" />
                   <p className="text-success-600 font-bold">تم الصرف</p>
-                  <p className="text-xs text-neutral-400 mt-1">
+                  <p className="text-xs text-portal-note-text mt-1">
                     {salary.paymentDate
                       ? new Date(salary.paymentDate).toLocaleDateString("ar-SA-u-nu-latn")
                       : ""}
@@ -430,7 +420,7 @@ export default function SalaryDetailPage({
           {salary?.notes && (
             <SurfaceCard className="border-none shadow-sm">
               <div className="p-4">
-                <p className="text-sm text-neutral-500">{salary.notes}</p>
+                <p className="text-sm text-portal-note-text">{salary.notes}</p>
               </div>
             </SurfaceCard>
           )}

@@ -26,7 +26,7 @@ export function AgingChart({ data, isLoading }: Props) {
       <SurfaceCard className="border-none shadow-md h-full" title="تقسيم المبالغ المستحقة">
         <div className="space-y-4 animate-pulse">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-8 bg-neutral-100 rounded-lg" />
+            <div key={i} className="h-8 bg-badge-gray-bg rounded-lg" />
           ))}
         </div>
       </SurfaceCard>
@@ -51,22 +51,22 @@ export function AgingChart({ data, isLoading }: Props) {
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium text-natural-100">{bucket.label}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-neutral-400 text-xs">{bucket.count} فاتورة</span>
+                  <span className="text-portal-note-text text-xs">{bucket.count} فاتورة</span>
                   <span className="font-bold text-natural-100"><CurrencyDisplay amount={bucket.amount} size="sm" /></span>
                 </div>
               </div>
-              <div className="h-2.5 rounded-full bg-neutral-100 overflow-hidden">
+              <div className="h-2.5 rounded-full bg-badge-gray-bg overflow-hidden">
                 <div
                   className={cn("h-full rounded-full transition-all duration-700", colors[idx])}
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-neutral-400 text-left">{pctOfTotal.toFixed(1)}% من الإجمالي</p>
+              <p className="text-[10px] text-portal-note-text text-left">{pctOfTotal.toFixed(1)}% من الإجمالي</p>
             </div>
           );
         })}
         {data.length === 0 && (
-          <div className="text-center py-8 text-neutral-400 text-sm">لا توجد فواتير مستحقة</div>
+          <div className="text-center py-8 text-portal-note-text text-sm">لا توجد فواتير مستحقة</div>
         )}
       </div>
     </SurfaceCard>

@@ -98,7 +98,7 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
                 {isEdit ? "تعديل بيانات الموظف" : "إضافة موظف جديد"}
               </h2>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-neutral-100">
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-badge-gray-bg">
               <X className="w-5 h-5" />
             </button>
           </div>

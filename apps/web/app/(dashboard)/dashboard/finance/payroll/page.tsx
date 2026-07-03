@@ -9,10 +9,11 @@ import {
   useDeleteEmployeeMutation,
 } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
+import { FinancePageHeader } from "@/components/dashboard/finance/shared/FinancePageHeader";
 import { PayrollPreviewModal } from "@/components/dashboard/finance/PayrollPreviewModal";
 import { EmployeeModal } from "@/components/dashboard/finance/EmployeeModal";
 import { DataTable } from "@/components/design-system/DataTable";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatCard } from "@/components/design-system/StatCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
@@ -34,7 +35,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
 const MONTHS = [
@@ -158,81 +158,59 @@ export default function PayrollPage() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">الرواتب والأجور</h1>
-          <p className="text-neutral-400 mt-1">
-            إدارة مستحقات الموظفين والبدلات والاستقطاعات.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <ActionButton variant="outline" onClick={handleAdd} icon={<Plus className="w-4 h-4" />}>
-            إضافة موظف
-          </ActionButton>
-          <ActionButton
-            variant="primary"
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            icon={
-              isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )
-            }
-          >
-            توليد الرواتب
-          </ActionButton>
-        </div>
-      </div>
+      <FinancePageHeader
+        title="الرواتب والأجور"
+        description="إدارة مستحقات الموظفين والبدلات والاستقطاعات."
+        icon={Wallet}
+        actions={
+          <div className="flex gap-2">
+            <ActionButton variant="outline" onClick={handleAdd} icon={<Plus className="w-4 h-4" />}>
+              إضافة موظف
+            </ActionButton>
+            <ActionButton
+              variant="primary"
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              icon={
+                isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )
+              }
+            >
+              توليد الرواتب
+            </ActionButton>
+          </div>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SurfaceCard className="border-none shadow-sm" contentClassName="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary-50">
-              <Users className="w-4 h-4 text-secondary-600" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-400">الموظفين</p>
-              <p className="text-xl font-bold">{stats.total}</p>
-            </div>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-warning-50">
-              <Clock className="w-4 h-4 text-warning-600" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-400">معلقة للصرف</p>
-              <p className="text-xl font-bold text-warning-600">{stats.pending}</p>
-            </div>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success-50">
-              <CheckCircle2 className="w-4 h-4 text-success-600" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-400">تم الصرف</p>
-              <p className="text-xl font-bold text-success-600">{stats.paid}</p>
-            </div>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary-50">
-              <DollarSign className="w-4 h-4 text-secondary-600" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-400">إجمالي التكلفة</p>
-              <p className="text-xl font-bold"><CurrencyDisplay amount={stats.totalCost} /></p>
-            </div>
-          </div>
-        </SurfaceCard>
+        <StatCard
+          title="الموظفين"
+          value={stats.total}
+          icon={Users}
+          variant="default"
+        />
+        <StatCard
+          title="معلقة للصرف"
+          value={stats.pending}
+          icon={Clock}
+          variant={stats.pending > 0 ? "warning" : "default"}
+        />
+        <StatCard
+          title="تم الصرف"
+          value={stats.paid}
+          icon={CheckCircle2}
+          variant="success"
+        />
+        <StatCard
+          title="إجمالي التكلفة"
+          value={<CurrencyDisplay amount={stats.totalCost} />}
+          icon={DollarSign}
+          variant="default"
+        />
       </div>
 
       {/* Toolbar */}
@@ -253,11 +231,11 @@ export default function PayrollPage() {
               </option>
             ))}
           </select>
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-portal-note-text pointer-events-none" />
         </div>
 
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-portal-note-text pointer-events-none" />
           <FormInputControl
             placeholder="بحث عن موظف..."
             value={search}
@@ -267,7 +245,7 @@ export default function PayrollPage() {
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-natural-100"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-portal-note-text hover:text-natural-100"
             >
               <X className="w-4 h-4" />
             </button>
@@ -320,15 +298,15 @@ export default function PayrollPage() {
                   />
                   <div>
                     <p className="font-bold text-sm">{employee.name}</p>
-                    <p className="text-xs text-neutral-400">{employee.role}</p>
+                    <p className="text-xs text-portal-note-text">{employee.role}</p>
                   </div>
                 </div>
               </td>
-              <td className="px-5 py-4 text-sm text-neutral-500">
+              <td className="px-5 py-4 text-sm text-portal-note-text">
                 {employee.role}
               </td>
               <td className="px-5 py-4">
-                <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium bg-neutral-100 text-neutral-600">
+                <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium bg-badge-gray-bg text-natural-100">
                   {employee.payType === "HYBRID"
                     ? "ثابت + عمولة"
                     : employee.payType === "COMMISSION"
@@ -350,14 +328,14 @@ export default function PayrollPage() {
                 {salary ? (
                   <span><CurrencyDisplay amount={salary.amount} /></span>
                 ) : (
-                  <span className="text-neutral-400 text-sm">—</span>
+                  <span className="text-portal-note-text text-sm">—</span>
                 )}
               </td>
               <td className="px-5 py-4">
                 {salary ? (
                   <FinanceStatusBadge status={salary.status} />
                 ) : (
-                  <span className="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium bg-neutral-100 text-neutral-500">
+                  <span className="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium bg-badge-gray-bg text-portal-note-text">
                     لم يتم التوليد
                   </span>
                 )}

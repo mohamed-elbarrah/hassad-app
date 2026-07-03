@@ -2,7 +2,7 @@
 
 import { FinancePageError } from "@/components/dashboard/finance/shared/FinancePageError";
 
-export default function FinanceError({
+export default function RouteError({
   error,
   reset,
 }: {
@@ -13,8 +13,8 @@ export default function FinanceError({
     <FinancePageError
       error={error}
       reset={reset}
-      message="حدث خطأ في لوحة التحكم المالية"
-      hint="يرجى المحاولة مرة أخرى أو العودة لاحقاً."
+      message="حدث خطأ غير متوقع"
+      hint="يرجى المحاولة مرة أخرى."
     />
   );
 }

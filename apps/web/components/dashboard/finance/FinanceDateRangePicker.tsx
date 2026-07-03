@@ -74,10 +74,10 @@ export function FinanceDateRangePicker({ value, onChange, className }: Props) {
           open && "border-secondary-500 ring-2 ring-secondary-500/10",
         )}
       >
-        <Calendar className="w-4 h-4 text-neutral-300" />
+        <Calendar className="w-4 h-4 text-portal-note-text" />
         <span>{activeLabel}</span>
         <ChevronDown
-          className={cn("w-3.5 h-3.5 text-neutral-300 transition-transform", open && "rotate-180")}
+          className={cn("w-3.5 h-3.5 text-portal-note-text transition-transform", open && "rotate-180")}
         />
       </button>
 
@@ -90,7 +90,7 @@ export function FinanceDateRangePicker({ value, onChange, className }: Props) {
                 key={opt.value}
                 onClick={() => handleSelect(opt.value)}
                 className={cn(
-                  "w-full text-right px-4 py-2.5 text-sm transition-colors hover:bg-neutral-50",
+                  "w-full text-right px-4 py-2.5 text-sm transition-colors hover:bg-badge-gray-bg",
                   value === opt.value && "bg-secondary-50 text-secondary-600 font-semibold",
                 )}
               >

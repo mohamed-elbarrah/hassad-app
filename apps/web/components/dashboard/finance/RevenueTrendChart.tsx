@@ -33,21 +33,21 @@ function CustomTooltip({ active, payload, label }: any) {
 
   return (
     <div className="rounded-lg border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[160px]">
-      <p className="text-[11px] text-neutral-400 text-center mb-1.5 border-b border-portal-divider pb-1">
+      <p className="text-[11px] text-portal-note-text text-center mb-1.5 border-b border-portal-divider pb-1">
         {label}
       </p>
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-[hsl(var(--primary))]" />
-            <span className="text-xs text-neutral-500">المدفوعات</span>
+            <span className="text-xs text-portal-note-text">المدفوعات</span>
           </div>
           <span className="text-xs font-bold text-natural-100"><CurrencyDisplay amount={income} size="sm" /></span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-[#f43f5e]" />
-            <span className="text-xs text-neutral-500">الفواتير</span>
+            <span className="text-xs text-portal-note-text">الفواتير</span>
           </div>
           <span className="text-xs font-bold text-natural-100"><CurrencyDisplay amount={invoiced} size="sm" /></span>
         </div>
@@ -70,7 +70,7 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
   if (isLoading) {
     return (
       <SurfaceCard className="border-none shadow-md" title="الإيرادات مقابل الفواتير">
-        <div className="h-[340px] animate-pulse bg-neutral-100 rounded-xl" />
+        <div className="h-[340px] animate-pulse bg-badge-gray-bg rounded-xl" />
       </SurfaceCard>
     );
   }
@@ -87,7 +87,7 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
       <div className="flex items-center gap-5 mb-4 px-1">
         <div className="flex items-center gap-2">
           <div className="w-3 h-[2px] bg-[hsl(var(--primary))] rounded-full" />
-          <span className="text-xs text-neutral-500">المدفوعات</span>
+          <span className="text-xs text-portal-note-text">المدفوعات</span>
         </div>
         <div className="flex items-center gap-2">
           <div
@@ -97,7 +97,7 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
                 "repeating-linear-gradient(90deg, #f43f5e, #f43f5e 4px, transparent 4px, transparent 7px)",
             }}
           />
-          <span className="text-xs text-neutral-500">الفواتير المصدرة</span>
+          <span className="text-xs text-portal-note-text">الفواتير المصدرة</span>
         </div>
       </div>
 
@@ -170,8 +170,8 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-neutral-400">
-            <TrendingUp className="w-8 h-8 mb-2 text-neutral-300" />
+          <div className="h-full flex flex-col items-center justify-center text-portal-note-text">
+            <TrendingUp className="w-8 h-8 mb-2 text-portal-note-text" />
             <p className="text-sm">لا توجد بيانات لهذه الفترة</p>
           </div>
         )}

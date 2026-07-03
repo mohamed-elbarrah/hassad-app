@@ -36,15 +36,15 @@ export function FinanceKPICard({
       onClick={onClick}
       className={cn(
         "rounded-2xl border border-portal-card-border bg-natural-0 shadow-sm",
-        "p-5 transition-all hover:shadow-md hover:border-neutral-200",
+        "p-5 transition-all hover:shadow-md hover:border-portal-card-border",
         onClick && "cursor-pointer",
         className,
       )}
     >
       {/* Top: icon + label */}
       <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-neutral-400" />
-        <span className="text-xs font-medium text-neutral-400">{title}</span>
+        <Icon className="w-4 h-4 text-portal-note-text" />
+        <span className="text-xs font-medium text-portal-note-text">{title}</span>
       </div>
 
       {/* Middle: value + inline trend badge */}
@@ -79,7 +79,7 @@ export function FinanceKPICard({
       </div>
 
       {/* Bottom: description */}
-      <p className="text-[11px] text-neutral-400 mt-1">
+      <p className="text-[11px] text-portal-note-text mt-1">
         {description || changeLabel || "\u00A0"}
       </p>
     </div>
