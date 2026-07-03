@@ -27,14 +27,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { EmptyState } from "@/components/common/EmptyState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
 import { ClientBriefCompact } from "@/components/client-brief";
+import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
+import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
+import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
+import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
+import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import { downloadTaskFile } from "@/lib/downloadFile";
 import { toast } from "sonner";
 import {
@@ -69,7 +72,6 @@ import {
 import type { TaskFile } from "@hassad/shared";
 import {
   TASK_STATUS_LABELS,
-  TASK_STATUS_COLOR,
   TASK_PRIORITY_LABELS,
 } from "@/lib/utils/task-status";
 
@@ -143,18 +145,18 @@ const FILE_PURPOSE_LABELS: Record<FilePurpose, string> = {
 };
 
 const FILE_PURPOSE_COLORS: Record<FilePurpose, string> = {
-  [FilePurpose.DELIVERABLE]: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  [FilePurpose.REFERENCE]: "bg-blue-50 text-blue-700 border-blue-200",
-  [FilePurpose.INTERNAL_DRAFT]: "bg-amber-50 text-amber-700 border-amber-200",
+  [FilePurpose.DELIVERABLE]: "bg-success-100/50 text-success-600 border-success-200",
+  [FilePurpose.REFERENCE]: "bg-action-blue-soft text-action-blue border-action-blue/30",
+  [FilePurpose.INTERNAL_DRAFT]: "bg-alert-100/50 text-alert-600 border-alert-200",
 };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function FileIcon({ mimeType }: { mimeType: string }) {
-  if (mimeType.startsWith("image/")) return <FileImage className="size-5 text-blue-500" />;
+  if (mimeType.startsWith("image/")) return <FileImage className="size-5 text-action-blue" />;
   if (mimeType.startsWith("text/") || mimeType.includes("pdf"))
-    return <FileText className="size-5 text-amber-500" />;
-  return <File className="size-5 text-neutral-400" />;
+    return <FileText className="size-5 text-alert-600" />;
+  return <File className="size-5 text-portal-note-text" />;
 }
 
 function CommentCard({ comment }: { comment: TaskComment }) {
@@ -169,11 +171,11 @@ function CommentCard({ comment }: { comment: TaskComment }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-natural-100">{authorName}</span>
-          <span className="text-[11px] text-neutral-400">
+          <span className="text-[11px] text-portal-note-text">
             {formatRelativeTime(comment.createdAt as string)}
           </span>
         </div>
-        <p className="text-sm text-neutral-600 mt-1 whitespace-pre-wrap">
+        <p className="text-sm text-portal-note-text mt-1 whitespace-pre-wrap">
           {comment.content}
         </p>
       </div>
@@ -189,7 +191,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const [activeTab, setActiveTab] = useState("overview");
 
   // Queries
-  const { data: task, isLoading, isError } = useGetTaskByIdQuery(id);
+  const { data: task, isLoading, isError, refetch } = useGetTaskByIdQuery(id);
   const { data: files, isLoading: filesLoading } = useGetTaskFilesQuery(id);
   const { data: comments, isLoading: commentsLoading } = useGetTaskCommentsQuery(id);
 
@@ -219,29 +221,17 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
 
   // Loading skeleton
   if (isLoading) {
-    return (
-      <div className="flex flex-col gap-6">
-        <DSSkeleton className="h-8 w-48" />
-        <DSSkeleton className="h-24 rounded-2xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <DSSkeleton className="h-64 rounded-2xl" />
-            <DSSkeleton className="h-48 rounded-2xl" />
-          </div>
-          <DSSkeleton className="h-96 rounded-2xl" />
-        </div>
-      </div>
-    );
+    return <PmDetailSkeleton variant="task" />;
   }
 
   // Error / not found
   if (isError || !task) {
     return (
-      <EmptyState
+      <PmDetailError
         title="المهمة غير موجودة"
-        description="لا يمكن الوصول إلى هذه المهمة. ربما تم حذفها أو ليس لديك صلاحية."
-        actionLabel="العودة للمهام"
-        actionHref="/dashboard/pm/projects"
+        onRetry={refetch}
+        backHref="/dashboard/pm/tasks"
+        backLabel="المهام"
       />
     );
   }
@@ -306,57 +296,26 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const totalFiles = files?.length ?? 0;
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* ── Sticky Breadcrumb Header ───────────────────────────────────── */}
-      <div className="bg-white py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href={backHref}
-              className="p-2 -ms-2 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors"
-            >
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <div className="flex flex-col">
-              <nav className="flex items-center gap-1.5 text-xs text-neutral-400">
-                <Link href="/dashboard/pm/projects" className="hover:text-secondary-500 transition-colors">
-                  المشاريع
-                </Link>
-                <span>/</span>
-                {t.project && (
-                  <>
-                    <Link href={`/dashboard/pm/projects/${t.project.id}`} className="hover:text-secondary-500 transition-colors">
-                      {t.project.name}
-                    </Link>
-                    <span>/</span>
-                  </>
-                )}
-                <span className="text-natural-100">{task.title}</span>
-              </nav>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <h1 className="text-xl font-bold text-natural-100">{task.title}</h1>
-                <StatusBadge
-                  status={
-                    task.status === TaskStatus.DONE
-                      ? "COMPLETED"
-                      : task.status === TaskStatus.IN_REVIEW
-                      ? "PENDING"
-                      : task.status === TaskStatus.REVISION
-                      ? "REJECTED"
-                      : task.status === TaskStatus.IN_PROGRESS
-                      ? "ACTIVE"
-                      : "PENDING"
-                  }
-                  label={TASK_STATUS_LABELS[task.status as TaskStatus]}
-                />
-                {typeof task.revisionCount === "number" && task.revisionCount > 0 && (
-                  <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">
-                    تعديل {task.revisionCount}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+    <div className="flex flex-col gap-5 max-w-5xl" dir="rtl">
+      {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
+      <PmDetailBreadcrumb
+        backHref={backHref}
+        backLabel={t.project ? t.project.name : "المشاريع"}
+        title={task.title}
+        parentHref="/dashboard/pm/tasks"
+        parentLabel="المهام"
+      />
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-xl font-bold text-natural-100">{task.title}</h1>
+          <PmStatusBadge domain="task" status={task.status} />
+          {typeof task.revisionCount === "number" && task.revisionCount > 0 && (
+            <span className="text-xs bg-alert-100/50 text-alert-600 px-2 py-0.5 rounded-full border border-alert-200">
+              تعديل {task.revisionCount}
+            </span>
+          )}
         </div>
       </div>
 
@@ -381,8 +340,8 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
               className={cn(
                 "rounded-xl px-6",
                 action.action === "approve"
-                  ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500"
-                  : "bg-white border-rose-200 text-rose-700 hover:bg-rose-50"
+                  ? "bg-success-600 hover:bg-success-700 text-white border-success-600"
+                  : "bg-white border-danger-200 text-danger-600 hover:bg-danger-50"
               )}
             >
               {action.label}
@@ -411,9 +370,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
       )}
 
       {/* ── Main Content Grid ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* ── Left Column (2/3) ────────────────────────────────────────── */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-5">
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
             <TabsList className="w-full sm:w-auto">
@@ -425,14 +384,14 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                 <MessageSquare className="w-4 h-4" />
                 التعليقات
                 {totalComments > 0 && (
-                  <span className="mr-1 text-xs bg-neutral-100 px-1.5 py-0.5 rounded-full">{totalComments}</span>
+                  <span className="mr-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">{totalComments}</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="files" className="gap-2">
                 <Paperclip className="w-4 h-4" />
                 الملفات
                 {totalFiles > 0 && (
-                  <span className="mr-1 text-xs bg-neutral-100 px-1.5 py-0.5 rounded-full">{totalFiles}</span>
+                  <span className="mr-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">{totalFiles}</span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="client" className="gap-2">
@@ -442,15 +401,15 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             </TabsList>
 
             {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6">
+            <TabsContent value="overview" className="space-y-5">
               {/* Description */}
               <SurfaceCard title="الوصف" icon={FileText}>
                 {task.description ? (
-                  <p className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm text-portal-note-text whitespace-pre-wrap leading-relaxed">
                     {task.description}
                   </p>
                 ) : (
-                  <EmptyState
+                  <PmEmptyState
                     icon={FileText}
                     title="لا يوجد وصف"
                     description="لم يتم إضافة وصف لهذه المهمة"
@@ -479,7 +438,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                     ))}
                   </div>
                 ) : !files || files.length === 0 ? (
-                  <EmptyState
+                  <PmEmptyState
                     icon={Paperclip}
                     title="لا توجد ملفات"
                     description="لا توجد ملفات مرفقة بهذه المهمة"
@@ -493,9 +452,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                       >
                         <FileIcon mimeType={file.mimeType} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{file.fileName}</p>
+                          <p className="text-sm font-medium text-natural-100 truncate">{file.fileName}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-neutral-400">{formatFileSize(file.fileSize)}</span>
+                            <span className="text-xs text-portal-note-text">{formatFileSize(file.fileSize)}</span>
                             {file.purpose && (
                               <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${FILE_PURPOSE_COLORS[file.purpose as FilePurpose]}`}>
                                 {FILE_PURPOSE_LABELS[file.purpose as FilePurpose]}
@@ -530,7 +489,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                     ))}
                   </div>
                 ) : !comments || comments.length === 0 ? (
-                  <EmptyState
+                  <PmEmptyState
                     icon={MessageSquare}
                     title="لا توجد تعليقات"
                     description="ابدأ النقاش بإضافة أول تعليق"
@@ -549,7 +508,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             </TabsContent>
 
             {/* Comments Tab */}
-            <TabsContent value="comments" className="space-y-6">
+            <TabsContent value="comments" className="space-y-5">
               <SurfaceCard title="التعليقات" icon={MessageSquare}>
                 <div className="space-y-4">
                   {commentsLoading ? (
@@ -559,7 +518,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                       ))}
                     </div>
                   ) : !comments || comments.length === 0 ? (
-                    <EmptyState
+                    <PmEmptyState
                       icon={MessageSquare}
                       title="لا توجد تعليقات بعد"
                       description="كن أول من يبدأ النقاش"
@@ -582,7 +541,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                       </div>
                       <div className="flex-1">
                         <textarea
-                          className="w-full rounded-xl border border-portal-card-border bg-white px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-secondary-500/20 transition-all"
+                          className="w-full rounded-xl border border-portal-card-border bg-white px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-secondary-500/20 transition-all text-natural-100 placeholder:text-portal-note-text"
                           rows={3}
                           placeholder="اكتب تعليقك هنا..."
                           value={commentText}
@@ -607,14 +566,14 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             </TabsContent>
 
             {/* Files Tab */}
-            <TabsContent value="files" className="space-y-6">
+            <TabsContent value="files" className="space-y-5">
               <SurfaceCard
                 title="الملفات"
                 icon={Paperclip}
                 action={
                   <div className="flex items-center gap-2">
                     <select
-                      className="h-8 rounded-lg border border-portal-card-border bg-white px-2 text-xs"
+                      className="h-8 rounded-lg border border-portal-card-border bg-white px-2 text-xs text-natural-100"
                       value={filePurpose}
                       onChange={(e) => setFilePurpose(e.target.value as FilePurpose)}
                     >
@@ -649,7 +608,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                     ))}
                   </div>
                 ) : !files || files.length === 0 ? (
-                  <EmptyState
+                  <PmEmptyState
                     icon={Paperclip}
                     title="لا توجد ملفات"
                     description="ارفع ملفات لهذه المهمة"
@@ -665,11 +624,11 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                       >
                         <FileIcon mimeType={file.mimeType} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{file.fileName}</p>
+                          <p className="text-sm font-medium text-natural-100 truncate">{file.fileName}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-neutral-400">{formatFileSize(file.fileSize)}</span>
-                            <span className="text-xs text-neutral-300">•</span>
-                            <span className="text-xs text-neutral-400">{formatShortDate(file.createdAt)}</span>
+                            <span className="text-xs text-portal-note-text">{formatFileSize(file.fileSize)}</span>
+                            <span className="text-xs text-portal-note-text">•</span>
+                            <span className="text-xs text-portal-note-text">{formatShortDate(file.createdAt)}</span>
                             {file.purpose && (
                               <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${FILE_PURPOSE_COLORS[file.purpose as FilePurpose]}`}>
                                 {FILE_PURPOSE_LABELS[file.purpose as FilePurpose]}
@@ -691,13 +650,13 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                             }}
                             icon={<Download className="w-4 h-4" />}
                           >
-                            {""}
+                            {''}
                           </ActionButton>
                           {(user.role === UserRole.ADMIN || user.role === UserRole.PM || user.id === (file as any).uploadedBy) && (
                             <ActionButton
                               variant="ghost"
                               size="sm"
-                              className="size-8 text-danger-500 hover:text-danger-600"
+                              className="size-8 text-danger-600 hover:text-danger-700"
                               onClick={async () => {
                                 try {
                                   await deleteFile({ taskId: id, fileId: file.id }).unwrap();
@@ -708,7 +667,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                               }}
                               icon={<Trash2 className="w-4 h-4" />}
                             >
-                              {""}
+                              {''}
                             </ActionButton>
                           )}
                         </div>
@@ -720,7 +679,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             </TabsContent>
 
             {/* Client Tab */}
-            <TabsContent value="client" className="space-y-6">
+            <TabsContent value="client" className="space-y-5">
               {teamView ? (
                 <ClientBriefCompact
                   client={teamView.client}
@@ -735,64 +694,51 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
         </div>
 
         {/* ── Right Sidebar (1/3) ────────────────────────────────────── */}
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Quick Info Card */}
           <SurfaceCard title="معلومات المهمة" icon={Clock}>
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-400">الحالة</span>
-                <StatusBadge
-                  status={
-                    task.status === TaskStatus.DONE
-                      ? "COMPLETED"
-                      : task.status === TaskStatus.IN_REVIEW
-                      ? "PENDING"
-                      : task.status === TaskStatus.REVISION
-                      ? "REJECTED"
-                      : task.status === TaskStatus.IN_PROGRESS
-                      ? "ACTIVE"
-                      : "PENDING"
-                  }
-                  label={TASK_STATUS_LABELS[task.status as TaskStatus]}
-                />
+                <span className="text-portal-note-text">الحالة</span>
+                <PmStatusBadge domain="task" status={task.status} />
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-400">الأولوية</span>
+                <span className="text-portal-note-text">الأولوية</span>
                 <span className={`text-sm font-medium ${
-                  task.priority === TaskPriority.URGENT ? "text-rose-600" :
-                  task.priority === TaskPriority.HIGH ? "text-amber-600" :
-                  "text-neutral-600"
+                  task.priority === TaskPriority.URGENT ? "text-danger-600" :
+                  task.priority === TaskPriority.HIGH ? "text-alert-600" :
+                  "text-natural-100"
                 }`}>
                   {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-400">القسم</span>
+                <span className="text-portal-note-text">القسم</span>
                 <span className="text-sm font-medium text-natural-100">
                   {DEPARTMENT_LABELS[task.department?.name as TaskDepartment] ?? task.department?.name}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-400">الاستحقاق</span>
+                <span className="text-portal-note-text">الاستحقاق</span>
                 <span className="text-sm font-medium text-natural-100">{formatShortDate(task.dueDate)}</span>
               </div>
               {t.assignee && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-400">المسند إليه</span>
+                  <span className="text-portal-note-text">المسند إليه</span>
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-secondary-100 text-secondary-600 flex items-center justify-center text-xs font-semibold">
                       {t.assignee.name.charAt(0)}
                     </div>
-                    <span className="text-sm font-medium">{t.assignee.name}</span>
+                    <span className="text-sm font-medium text-natural-100">{t.assignee.name}</span>
                   </div>
                 </div>
               )}
               {t.project && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-400">المشروع</span>
+                  <span className="text-portal-note-text">المشروع</span>
                   <Link
                     href={`/dashboard/pm/projects/${t.project.id}`}
-                    className="text-sm font-medium text-secondary-600 hover:underline"
+                    className="text-sm font-medium text-secondary-500 hover:underline"
                   >
                     {t.project.name}
                   </Link>
@@ -804,7 +750,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
           {/* Workflow History */}
           <SurfaceCard title="سجل الحالة" icon={CheckCircle2}>
             {!t.statusHistory || t.statusHistory.length === 0 ? (
-              <p className="text-sm text-neutral-400 text-center py-4">لا توجد انتقالات بعد</p>
+              <p className="text-sm text-portal-note-text text-center py-4">لا توجد انتقالات بعد</p>
             ) : (
               <div className="space-y-3">
                 {[...t.statusHistory]
@@ -812,18 +758,18 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                   .map((entry, index) => (
                     <div key={entry.id} className="flex gap-3 relative">
                       {index < t.statusHistory!.length - 1 && (
-                        <div className="absolute start-[15px] top-6 bottom-[-12px] w-px bg-neutral-200" />
+                        <div className="absolute start-[15px] top-6 bottom-[-12px] w-px bg-portal-divider" />
                       )}
-                      <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
-                        <ArrowLeft className="w-3.5 h-3.5 text-neutral-400 rotate-180" />
+                      <div className="w-8 h-8 rounded-full bg-badge-gray-bg flex items-center justify-center shrink-0">
+                        <ArrowLeft className="w-3.5 h-3.5 text-portal-note-text rotate-180" />
                       </div>
                       <div className="flex-1">
                         <p className="text-sm">
-                          <span className="text-neutral-400">{TASK_STATUS_LABELS[entry.fromStatus]}</span>
-                          <span className="text-neutral-300 mx-1">→</span>
+                          <span className="text-portal-note-text">{TASK_STATUS_LABELS[entry.fromStatus]}</span>
+                          <span className="text-portal-note-text mx-1">→</span>
                           <span className="font-medium text-natural-100">{TASK_STATUS_LABELS[entry.toStatus]}</span>
                         </p>
-                        <p className="text-[11px] text-neutral-400 mt-0.5">
+                        <p className="text-[11px] text-portal-note-text mt-0.5">
                           {formatRelativeTime(entry.changedAt as string)}
                         </p>
                       </div>

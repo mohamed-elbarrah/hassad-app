@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle,
-  Inbox,
 } from "lucide-react";
 import { useGetPmDisputesQuery } from "@/features/disputes/pmDisputesApi";
 import type { DisputeStatus } from "@hassad/shared";
@@ -29,6 +28,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/design-system/Tabs";
+import { PmListToolbar } from "@/components/dashboard/pm/shared/PmListToolbar";
 
 const STATUS_GROUPS: FilterGroup[] = [
   {
@@ -124,8 +124,8 @@ export default function PmDisputesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SurfaceCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-              <Clock className="h-5 w-5 text-blue-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-action-blue-soft">
+              <Clock className="h-5 w-5 text-action-blue" />
             </div>
             <div>
               <p className="text-2xl font-bold text-natural-100">
@@ -137,8 +137,8 @@ export default function PmDisputesPage() {
         </SurfaceCard>
         <SurfaceCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger-100">
+              <AlertTriangle className="h-5 w-5 text-danger-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-natural-100">
@@ -150,8 +150,8 @@ export default function PmDisputesPage() {
         </SurfaceCard>
         <SurfaceCard className="p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-100">
+              <CheckCircle className="h-5 w-5 text-success-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-natural-100">
@@ -180,7 +180,7 @@ export default function PmDisputesPage() {
                 <Icon className="h-4 w-4" />
                 {tab.label}
                 {count > 0 && (
-                  <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs">
+                  <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs text-secondary-600">
                     {count}
                   </span>
                 )}
@@ -191,21 +191,15 @@ export default function PmDisputesPage() {
 
         <TabsContent value={activeTab} className="mt-4">
           {/* ── Toolbar ────────────────────────────────────────────────────── */}
-          <div className="flex flex-col sm:flex-row gap-3 items-start mb-4">
-            <div className="relative flex-1 w-full sm:w-auto">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
-              <Input
-                placeholder="ابحث في التذاكر..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pr-9"
-              />
-            </div>
-            <FilterBar
-              groups={STATUS_GROUPS}
+          <div className="mb-4">
+            <PmListToolbar
+              search={search}
+              onSearchChange={(v) => {
+                setSearch(v);
+                setPage(1);
+              }}
+              searchPlaceholder="ابحث في التذاكر..."
+              filterGroups={STATUS_GROUPS}
               activeFilters={activeFilters}
               onFilterChange={handleFilterChange}
             />

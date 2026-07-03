@@ -12,32 +12,16 @@ import {
   type DataTableColumn,
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
-import { TableRow, TableCell } from "@/components/ui/table";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
 import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import { ClipboardList } from "lucide-react";
 import { TaskStatus, TaskPriority } from "@hassad/shared";
 import { formatShortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 // ── Labels ──────────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<string, string> = {
-  [TaskStatus.TODO]: "للتنفيذ",
-  [TaskStatus.IN_PROGRESS]: "جارية",
-  [TaskStatus.IN_REVIEW]: "قيد المراجعة",
-  [TaskStatus.REVISION]: "تعديل",
-  [TaskStatus.DONE]: "منجزة",
-};
-
-const STATUS_BADGE_MAP: Record<string, string> = {
-  [TaskStatus.TODO]: "PENDING",
-  [TaskStatus.IN_PROGRESS]: "ACTIVE",
-  [TaskStatus.IN_REVIEW]: "WARNING",
-  [TaskStatus.REVISION]: "DANGER",
-  [TaskStatus.DONE]: "COMPLETED",
-};
 
 const PRIORITY_PILL_TONE: Record<string, import("@/components/design-system/Pill").PillTone> = {
   [TaskPriority.LOW]: "neutral",
@@ -164,13 +148,12 @@ export default function PMTasksPage() {
   }, [tasks, activeFilters]);
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      <div>
-        <h1 className="text-2xl font-semibold">مهام المشاريع</h1>
-        <p className="text-sm text-neutral-300 mt-1">
-          جميع المهام في مشاريعك، تابع تقدم الفريق ووافق على المراجعات.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5" dir="rtl">
+      <PageIntro
+        title="مهام المشاريع"
+        description="جميع المهام في مشاريعك، تابع تقدم الفريق ووافق على المراجعات."
+        icon={ClipboardList}
+      />
 
       {/* ── Stat Cards ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -193,7 +176,7 @@ export default function PMTasksPage() {
                 tone.border,
               )}
             >
-              <p className="text-sm text-neutral-300">{tone.label}</p>
+              <p className="text-sm text-portal-note-text">{tone.label}</p>
               <p className={cn("text-2xl font-semibold mt-2", tone.text)}>
                 {statsLoading ? "—" : value}
               </p>
@@ -215,39 +198,36 @@ export default function PMTasksPage() {
           errorMessage="حدث خطأ أثناء تحميل المهام."
           emptyState={EMPTY_STATE}
           renderRow={(task) => (
-            <TableRow key={task.id}>
-              <TableCell className="text-right">
+            <tr key={task.id} className="border-b border-portal-divider last:border-0">
+              <td className="py-3 px-2 text-right">
                 <Link
                   href={`/dashboard/pm/tasks/${task.id}`}
-                  className="hover:underline text-secondary-500 font-medium"
+                  className="hover:underline text-secondary-500 font-medium text-sm"
                 >
                   {task.title}
                 </Link>
-              </TableCell>
-              <TableCell className="text-right text-neutral-300">
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
                 {task.project?.name ?? "—"}
-              </TableCell>
-              <TableCell className="text-right text-neutral-300">
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
                 {task.assignee?.name ?? "—"}
-              </TableCell>
-              <TableCell className="text-right">
-                <StatusBadge
-                  status={STATUS_BADGE_MAP[task.status] ?? "PENDING"}
-                  label={STATUS_LABELS[task.status] ?? task.status}
-                />
-              </TableCell>
-              <TableCell className="text-right">
+              </td>
+              <td className="py-3 px-2 text-right">
+                <PmStatusBadge domain="task" status={task.status} />
+              </td>
+              <td className="py-3 px-2 text-right">
                 <Pill
                   tone={PRIORITY_PILL_TONE[task.priority] ?? "neutral"}
                   className="text-xs h-6 px-2"
                 >
                   {PRIORITY_LABELS[task.priority] ?? task.priority}
                 </Pill>
-              </TableCell>
-              <TableCell className="text-right" dir="ltr">
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text" dir="ltr">
                 {formatShortDate(task.dueDate)}
-              </TableCell>
-            </TableRow>
+              </td>
+            </tr>
           )}
         />
       </SurfaceCard>

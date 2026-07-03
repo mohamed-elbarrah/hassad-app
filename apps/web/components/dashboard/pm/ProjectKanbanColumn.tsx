@@ -46,7 +46,7 @@ export function ProjectKanbanColumn({
           className="w-2.5 h-2.5 rounded-full shrink-0"
           style={{ backgroundColor: color }}
         />
-        <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+        <span className="text-xs font-semibold text-natural-100 uppercase tracking-wide">
           {PROJECT_STATUS_LABELS[status]}
         </span>
         <span
@@ -69,7 +69,7 @@ export function ProjectKanbanColumn({
 
         {projects.length === 0 && (
           <div className="flex items-center justify-center py-8">
-            <p className="text-xs text-neutral-400 text-center">
+            <p className="text-xs text-portal-note-text text-center">
               لا يوجد مشاريع
             </p>
           </div>

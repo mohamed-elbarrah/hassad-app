@@ -6,9 +6,8 @@ import { formatDate } from "@/lib/format";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
+import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import {
-  PROJECT_STATUS_BADGE_KEY,
-  PROJECT_STATUS_LABELS,
   type ProjectWithMeta,
 } from "@/lib/utils/project-status";
 
@@ -35,21 +34,21 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <h3 className="text-base font-semibold line-clamp-2">
             {project.name}
           </h3>
-          <StatusBadge
-            status={PROJECT_STATUS_BADGE_KEY[project.status]}
-            label={PROJECT_STATUS_LABELS[project.status]}
+          <PmStatusBadge
+            domain="project"
+            status={project.status}
             className="shrink-0 text-xs"
           />
         </div>
         {project.client && (
-          <p className="text-xs text-neutral-300 mb-3">
+          <p className="text-xs text-portal-note-text mb-3">
             {project.client.companyName}
           </p>
         )}
         <div className="space-y-3">
           {/* Progress bar */}
           <div>
-            <div className="flex items-center justify-between text-xs text-neutral-300 mb-1">
+            <div className="flex items-center justify-between text-xs text-portal-note-text mb-1">
               <span>التقدم</span>
               <span>{progressValue}%</span>
             </div>
@@ -57,7 +56,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           </div>
 
           {/* Meta info */}
-          <div className="flex flex-col gap-1.5 text-xs text-neutral-300">
+          <div className="flex flex-col gap-1.5 text-xs text-portal-note-text">
             <div className="flex items-center gap-1.5">
               <Calendar className="size-3.5 shrink-0" />
               <span>

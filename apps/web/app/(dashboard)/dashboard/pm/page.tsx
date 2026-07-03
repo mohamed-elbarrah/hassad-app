@@ -12,15 +12,14 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatCard } from "@/components/design-system/StatCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { EmptyState } from "@/components/common/EmptyState";
+import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
+import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import { formatShortDate, formatRelativeTime } from "@/lib/format";
 import { ProjectStatus, TaskStatus, TaskPriority, TASK_PRIORITY_AR } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
 import type { Notification } from "@hassad/shared";
 import {
   PROJECT_STATUS_LABELS,
-  PROJECT_STATUS_BADGE_KEY,
 } from "@/lib/utils/project-status";
 import {
   FolderKanban,
@@ -53,21 +52,6 @@ const TASK_STATUS_AR: Record<TaskStatus, string> = {
 };
 
 const TASK_PRIORITY_LABELS = TASK_PRIORITY_AR;
-
-const PRIORITY_STATUS_MAP: Record<TaskPriority, string> = {
-  [TaskPriority.LOW]: "PENDING",
-  [TaskPriority.NORMAL]: "PENDING",
-  [TaskPriority.HIGH]: "WARNING",
-  [TaskPriority.URGENT]: "DANGER",
-};
-
-const TASK_STATUS_MAP: Record<TaskStatus, string> = {
-  [TaskStatus.TODO]: "PENDING",
-  [TaskStatus.IN_PROGRESS]: "ACTIVE",
-  [TaskStatus.IN_REVIEW]: "WARNING",
-  [TaskStatus.REVISION]: "DANGER",
-  [TaskStatus.DONE]: "COMPLETED",
-};
 
 const NOTIFICATION_ICON_MAP: Record<string, React.ElementType> = {
   TASK_ASSIGNED: ClipboardList,
@@ -150,14 +134,12 @@ export default function PMWorkspacePage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-10" dir="rtl">
+    <div className="flex flex-col gap-5 pb-10" dir="rtl">
       {/* ── Header Section ─────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            لوحة تحكم مدير المشاريع
-          </h1>
-          <p className="text-neutral-300 mt-2">
+          <h1 className="text-2xl font-bold text-natural-100">لوحة تحكم مدير المشاريع</h1>
+          <p className="text-portal-note-text mt-1">
             مرحباً {user?.name}، إليك نظرة شاملة على مشاريعك ومهام فريقك.
           </p>
         </div>
@@ -212,9 +194,9 @@ export default function PMWorkspacePage() {
       </div>
 
       {/* ── Main Content Grid ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left Column - Projects & Tasks (2/3) */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-5">
           {/* Projects Section */}
           <SurfaceCard
             title="حالة المشاريع"
@@ -238,12 +220,12 @@ export default function PMWorkspacePage() {
                 return (
                   <div
                     key={status}
-                    className="text-center p-3 rounded-xl bg-neutral-50/50"
+                    className="text-center p-3 rounded-xl bg-badge-gray-bg"
                   >
                     <p className="text-2xl font-semibold text-natural-100">
                       {count}
                     </p>
-                    <p className="text-xs text-neutral-300 mt-1">{label}</p>
+                    <p className="text-xs text-portal-note-text mt-1">{label}</p>
                   </div>
                 );
               })}
@@ -251,11 +233,11 @@ export default function PMWorkspacePage() {
 
             {/* Recent Projects */}
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-neutral-300 mb-3">
+              <h3 className="text-sm font-medium text-portal-note-text mb-3">
                 المشاريع الحديثة
               </h3>
               {projects.length === 0 ? (
-                <EmptyState
+                <PmEmptyState
                   icon={FolderKanban}
                   title="لا توجد مشاريع"
                   description="لم يتم تعيين أي مشروع لك بعد."
@@ -299,7 +281,7 @@ export default function PMWorkspacePage() {
             }
           >
             {urgentTasks.length === 0 && overdueTasks.length === 0 ? (
-              <EmptyState
+              <PmEmptyState
                 icon={CheckCircle2}
                 title="لا توجد مهام عاجلة"
                 description="جميع مهام مشاريعك تحت السيطرة."
@@ -325,16 +307,16 @@ export default function PMWorkspacePage() {
                               ? "bg-danger-100 text-danger-600"
                               : task.priority === TaskPriority.HIGH
                                 ? "bg-alert-100 text-alert-600"
-                                : "bg-neutral-100 text-neutral-500"
+                                : "bg-badge-gray-bg text-portal-note-text"
                           }`}
                         >
                           <ClipboardList className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="font-medium group-hover:text-secondary-500 transition-colors">
+                          <h4 className="font-medium text-natural-100 group-hover:text-secondary-500 transition-colors">
                             {task.title}
                           </h4>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-neutral-300">
+                          <div className="flex items-center gap-2 mt-1 text-xs text-portal-note-text">
                             <span>{task.project?.name}</span>
                             {task.assignee?.name && (
                               <>
@@ -354,20 +336,16 @@ export default function PMWorkspacePage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <StatusBadge
-                          status={TASK_STATUS_MAP[task.status as TaskStatus]}
-                          label={TASK_STATUS_AR[task.status as TaskStatus]}
-                          className="text-xs"
-                        />
+                        <PmStatusBadge domain="task" status={task.status} className="text-xs" />
                         {task.priority !== TaskPriority.LOW &&
                           task.priority !== TaskPriority.NORMAL && (
-                            <StatusBadge
-                              status={
-                                PRIORITY_STATUS_MAP[task.priority as TaskPriority]
-                              }
-                              label={TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
-                              className="text-xs"
-                            />
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              task.priority === TaskPriority.URGENT
+                                ? "bg-danger-100 text-danger-600"
+                                : "bg-alert-100 text-alert-600"
+                            }`}>
+                              {TASK_PRIORITY_LABELS[task.priority]}
+                            </span>
                           )}
                       </div>
                     </Link>
@@ -378,7 +356,7 @@ export default function PMWorkspacePage() {
         </div>
 
         {/* Right Column - Alerts, Stats & Activity (1/3) */}
-        <div className="space-y-8">
+        <div className="space-y-5">
           {/* Priority Alerts */}
           {overdueTasks.length > 0 && (
             <SurfaceCard
@@ -398,10 +376,10 @@ export default function PMWorkspacePage() {
                       <AlertTriangle className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm group-hover:text-secondary-500 transition-colors">
+                      <h4 className="font-medium text-sm text-natural-100 group-hover:text-secondary-500 transition-colors">
                         {task.title}
                       </h4>
-                      <p className="text-xs text-neutral-300 mt-1">
+                      <p className="text-xs text-portal-note-text mt-1">
                         {task.project?.name}
                         {task.assignee?.name ? ` • ${task.assignee.name}` : ""}
                         {" • متأخرة بـ "}
@@ -440,7 +418,7 @@ export default function PMWorkspacePage() {
               <TaskStatRow
                 label="للتنفيذ"
                 value={pmStats?.todo ?? 0}
-                color="bg-neutral-300"
+                color="bg-portal-note-text"
                 max={pmStats?.total ?? 0}
               />
               <TaskStatRow
@@ -452,7 +430,7 @@ export default function PMWorkspacePage() {
               <TaskStatRow
                 label="قيد المراجعة"
                 value={pmStats?.inReview ?? 0}
-                color="bg-primary-500"
+                color="bg-secondary-500"
                 max={pmStats?.total ?? 0}
               />
               <TaskStatRow
@@ -479,8 +457,8 @@ export default function PMWorkspacePage() {
           >
             {notifications.length === 0 ? (
               <div className="py-8 text-center">
-                <Bell className="w-8 h-8 text-neutral-300 mx-auto mb-3" />
-                <p className="text-sm text-neutral-300">
+                <Bell className="w-8 h-8 text-portal-note-text mx-auto mb-3" />
+                <p className="text-sm text-portal-note-text">
                   لا توجد نشاطات حديثة
                 </p>
               </div>
@@ -501,13 +479,13 @@ export default function PMWorkspacePage() {
                         <NotifIcon className="w-4 h-4 text-secondary-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate">
+                        <p className="text-sm truncate text-natural-100">
                           <span className="font-medium">{notif.title}</span>
                         </p>
-                        <p className="text-xs text-neutral-300 mt-0.5 line-clamp-2">
+                        <p className="text-xs text-portal-note-text mt-0.5 line-clamp-2">
                           {notif.body}
                         </p>
-                        <p className="text-[11px] text-neutral-300 mt-1">
+                        <p className="text-[11px] text-portal-note-text mt-1">
                           {formatRelativeTime(notif.createdAt as string)}
                         </p>
                       </div>
@@ -527,7 +505,7 @@ export default function PMWorkspacePage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-8 pb-10" dir="rtl">
+    <div className="flex flex-col gap-5 pb-10" dir="rtl">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <Skeleton className="h-9 w-64" />
@@ -542,7 +520,7 @@ function DashboardSkeleton() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Skeleton className="lg:col-span-2 h-96 rounded-[30px]" />
         <Skeleton className="h-96 rounded-[30px]" />
       </div>
@@ -566,11 +544,11 @@ function TaskStatRow({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-neutral-300">{label}</span>
-        <span className="font-medium">{value}</span>
+        <span className="text-portal-note-text">{label}</span>
+        <span className="font-medium text-natural-100">{value}</span>
       </div>
       {max !== undefined && (
-        <div className="h-2 rounded-full bg-neutral-50 overflow-hidden">
+        <div className="h-2 rounded-full bg-badge-gray-bg overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${color}`}
             style={{ width: `${percentage}%` }}

@@ -23,14 +23,13 @@ import {
   Layers,
 } from "lucide-react";
 import { buildPortalFileUrl } from "@/lib/portal-files";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { AlertCard } from "@/components/design-system/AlertCard";
 import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow";
-import { EmptyState } from "@/components/common/EmptyState";
+import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
@@ -38,6 +37,11 @@ import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
 import { ProjectActivityFeed } from "@/components/dashboard/pm/ProjectActivityFeed";
 import { ClientBrief } from "@/components/client-brief";
 import { PMPeriodsManagement } from "@/components/dashboard/pm/PMPeriodsManagement";
+import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
+import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
+import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
+import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
+import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import {
   useGetProjectByIdQuery,
   useGetProjectFilesQuery,
@@ -54,7 +58,6 @@ import { ProjectStatus, TaskStatus } from "@hassad/shared";
 import { formatDate, formatShortDate, daysUntil } from "@/lib/format";
 import {
   PROJECT_STATUS_LABELS,
-  PROJECT_STATUS_BADGE_KEY,
   type ProjectWithMeta,
 } from "@/lib/utils/project-status";
 
@@ -62,87 +65,6 @@ import {
 
 interface ProjectDetailPageProps {
   params: Promise<{ id: string }>;
-}
-
-// ── Quick Stat Card Component ─────────────────────────────────────────────────
-
-interface QuickStatCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  subtext?: string;
-  tone?: "neutral" | "success" | "warning" | "danger" | "info";
-}
-
-function QuickStatCard({ icon, label, value, subtext, tone = "neutral" }: QuickStatCardProps) {
-  const toneConfig = {
-    neutral: {
-      bg: "bg-slate-50",
-      border: "border-slate-200",
-      iconBg: "bg-white",
-      iconColor: "text-slate-600",
-      valueColor: "text-slate-900",
-      labelColor: "text-slate-500",
-    },
-    success: {
-      bg: "bg-emerald-50",
-      border: "border-emerald-200",
-      iconBg: "bg-white",
-      iconColor: "text-emerald-600",
-      valueColor: "text-emerald-900",
-      labelColor: "text-emerald-700",
-    },
-    warning: {
-      bg: "bg-amber-50",
-      border: "border-amber-200",
-      iconBg: "bg-white",
-      iconColor: "text-amber-600",
-      valueColor: "text-amber-900",
-      labelColor: "text-amber-700",
-    },
-    danger: {
-      bg: "bg-rose-50",
-      border: "border-rose-200",
-      iconBg: "bg-white",
-      iconColor: "text-rose-600",
-      valueColor: "text-rose-900",
-      labelColor: "text-rose-700",
-    },
-    info: {
-      bg: "bg-blue-50",
-      border: "border-blue-200",
-      iconBg: "bg-white",
-      iconColor: "text-blue-600",
-      valueColor: "text-blue-900",
-      labelColor: "text-blue-700",
-    },
-  };
-
-  const config = toneConfig[tone];
-
-  return (
-    <div className={`flex items-center gap-4 rounded-2xl border p-4 transition-all duration-200 hover:shadow-md ${config.bg} ${config.border}`}>
-      {/* Icon */}
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${config.iconBg} shadow-sm`}>
-        <div className={config.iconColor}>{icon}</div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className={`text-xs font-medium mb-0.5 ${config.labelColor}`}>
-          {label}
-        </div>
-        <div className={`text-xl font-bold tracking-tight ${config.valueColor}`}>
-          {value}
-        </div>
-        {subtext && (
-          <div className="text-[11px] text-neutral-500 mt-0.5">
-            {subtext}
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 // ── Upcoming Deadlines Component ─────────────────────────────────────────────
@@ -185,7 +107,7 @@ function UpcomingDeadlines({ tasks = [], projectEndDate }: UpcomingDeadlinesProp
 
   if (sortedDeadlines.length === 0) {
     return (
-      <EmptyState
+      <PmEmptyState
         icon={Clock}
         title="لا توجد مواعيد قريبة"
         description="جميع المهام محدثة ولا توجد مواعيد استحقاق قريبة."
@@ -212,7 +134,7 @@ function UpcomingDeadlines({ tasks = [], projectEndDate }: UpcomingDeadlinesProp
           >
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                item.type === "milestone" ? "bg-secondary-100 text-secondary-600" : "bg-neutral-100 text-neutral-500"
+                item.type === "milestone" ? "bg-secondary-100 text-secondary-600" : "bg-badge-gray-bg text-portal-note-text"
               }`}
             >
               {item.type === "milestone" ? <Clock className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
@@ -220,14 +142,14 @@ function UpcomingDeadlines({ tasks = [], projectEndDate }: UpcomingDeadlinesProp
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-natural-100 truncate">{item.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-neutral-400">{formatShortDate(item.date)}</span>
+                <span className="text-xs text-portal-note-text">{formatShortDate(item.date)}</span>
                 <span
                   className={`text-xs px-1.5 py-0.5 rounded-full ${
                     tone === "danger"
                       ? "bg-danger-100 text-danger-600"
                       : tone === "warning"
-                      ? "bg-warning-100 text-warning-600"
-                      : "bg-neutral-100 text-neutral-500"
+                      ? "bg-alert-100 text-alert-600"
+                      : "bg-badge-gray-bg text-portal-note-text"
                   }`}
                 >
                   {text}
@@ -250,7 +172,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [taskFormOpen, setTaskFormOpen] = useState(false);
 
-  const { data: project, isLoading: projectLoading, isError: projectError } = useGetProjectByIdQuery(id);
+  const { data: project, isLoading, isError, refetch } = useGetProjectByIdQuery(id);
   const { data: files, isLoading: filesLoading } = useGetProjectFilesQuery(id);
   const { data: tasks, isLoading: tasksLoading } = useGetTasksByProjectQuery(id);
 
@@ -280,28 +202,18 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   if (!user) return null;
 
   // Loading state
-  if (projectLoading) {
-    return (
-      <div className="flex flex-col gap-6">
-        <DSSkeleton className="h-8 w-64" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <DSSkeleton key={i} className="h-24 rounded-xl" />
-          ))}
-        </div>
-        <DSSkeleton className="h-96 rounded-xl" />
-      </div>
-    );
+  if (isLoading) {
+    return <PmDetailSkeleton variant="project" />;
   }
 
   // Error state
-  if (projectError || !project) {
+  if (isError || !project) {
     return (
-      <EmptyState
+      <PmDetailError
         title="المشروع غير موجود"
-        description="لا يمكن الوصول إلى هذا المشروع. ربما تم حذفه أو ليس لديك صلاحية."
-        actionLabel="العودة للمشاريع"
-        actionHref="/dashboard/pm/projects"
+        onRetry={refetch}
+        backHref="/dashboard/pm/projects"
+        backLabel="المشاريع"
       />
     );
   }
@@ -330,36 +242,30 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const HealthIcon = health.icon;
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      {/* Header */}
-      <div className="bg-white py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-5 max-w-5xl" dir="rtl">
+      {/* ── Breadcrumb ─────────────────────────────────────────────────────── */}
+      <PmDetailBreadcrumb
+        backHref="/dashboard/pm/projects"
+        backLabel="المشاريع"
+        title={project.name}
+      />
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-xl font-bold text-natural-100">{project.name}</h1>
+          <PmStatusBadge domain="project" status={project.status} />
+          {p.client && (
             <Link
-              href="/dashboard/pm/projects"
-              className="p-2 -ms-2 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors"
+              href={`/dashboard/sales/clients/${p.client.id}`}
+              className="text-sm text-secondary-500 hover:underline transition-colors flex items-center gap-1"
             >
-              <ArrowRight className="w-5 h-5" />
+              <Building2 className="w-4 h-4" />
+              {p.client.companyName}
             </Link>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-bold text-natural-100">{project.name}</h1>
-              <StatusBadge
-                status={PROJECT_STATUS_BADGE_KEY[project.status as ProjectStatus]}
-                label={PROJECT_STATUS_LABELS[project.status as ProjectStatus]}
-              />
-              {p.client && (
-                <Link
-                  href={`/dashboard/sales/clients/${p.client.id}`}
-                  className="text-sm text-secondary-600 hover:text-secondary-700 hover:underline transition-colors flex items-center gap-1"
-                >
-                  <Building2 className="w-4 h-4" />
-                  {p.client.companyName}
-                </Link>
-              )}
-            </div>
-          </div>
-          <ProjectForm project={project} currentUserId={user.id} />
+          )}
         </div>
+        <ProjectForm project={project} currentUserId={user.id} />
       </div>
 
       {/* Status Banners */}
@@ -431,7 +337,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             <FolderKanban className="w-4 h-4" />
             المهام
             {totalTasks > 0 && (
-              <span className="ms-1 text-xs bg-neutral-100 px-1.5 py-0.5 rounded-full">
+              <span className="ms-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">
                 {completedTasks}/{totalTasks}
               </span>
             )}
@@ -440,7 +346,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             <FileText className="w-4 h-4" />
             الملفات
             {files && files.length > 0 && (
-              <span className="ms-1 text-xs bg-neutral-100 px-1.5 py-0.5 rounded-full">
+              <span className="ms-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">
                 {files.length}
               </span>
             )}
@@ -456,58 +362,66 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         </TabsList>
 
         {/* ── Overview Tab ───────────────────────────────────────────────── */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Quick Stats Grid */}
+        <TabsContent value="overview" className="space-y-5">
+          {/* Quick Stats Grid using InfoPanel */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <QuickStatCard
-              icon={<HealthIcon className="w-5 h-5" />}
-              label="حالة المشروع"
-              value={health.label}
-              tone={health.tone}
-            />
-            <QuickStatCard
-              icon={<CheckCircle2 className="w-5 h-5" />}
-              label="المهام المنجزة"
-              value={`${completedTasks}/${totalTasks}`}
-              subtext={totalTasks > 0 ? `${Math.round((completedTasks / totalTasks) * 100)}% اكتمال` : undefined}
-              tone="success"
-            />
-            <QuickStatCard
-              icon={<Clock className="w-5 h-5" />}
-              label="الوقت المتبقي"
-              value={daysUntil(project.endDate) ?? "—"}
-              subtext={formatShortDate(project.endDate)}
-              tone="warning"
-            />
-            <QuickStatCard
-              icon={<TrendingUp className="w-5 h-5" />}
-              label="التقدم العام"
-              value={`${progressValue}%`}
-              tone="info"
-            />
+            <InfoPanel variant="default" title="حالة المشروع">
+              <div className="flex items-center gap-2">
+                <HealthIcon className={`w-5 h-5 ${
+                  health.tone === "danger" ? "text-danger-600" :
+                  health.tone === "success" ? "text-success-600" :
+                  health.tone === "info" ? "text-action-blue" :
+                  "text-portal-note-text"
+                }`} />
+                <span className="text-sm font-semibold text-natural-100">{health.label}</span>
+              </div>
+            </InfoPanel>
+            <InfoPanel variant="default" title="المهام المنجزة">
+              <p className="text-sm font-semibold text-natural-100">
+                {completedTasks}/{totalTasks}
+              </p>
+              {totalTasks > 0 && (
+                <p className="text-xs text-portal-note-text">
+                  {Math.round((completedTasks / totalTasks) * 100)}% اكتمال
+                </p>
+              )}
+            </InfoPanel>
+            <InfoPanel variant="default" title="الوقت المتبقي">
+              <p className="text-sm font-semibold text-natural-100">
+                {daysUntil(project.endDate) ?? "—"}
+              </p>
+              <p className="text-xs text-portal-note-text">
+                {formatShortDate(project.endDate)}
+              </p>
+            </InfoPanel>
+            <InfoPanel variant="default" title="التقدم العام">
+              <p className="text-sm font-semibold text-natural-100">
+                {progressValue}%
+              </p>
+            </InfoPanel>
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Left Column - Activity & Deadlines */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-5">
               {/* Timeline Summary */}
               <SurfaceCard
                 title="الجدول الزمني"
                 icon={Calendar}
                 action={
-                  <span className="text-sm text-neutral-500 font-medium">
+                  <span className="text-sm text-portal-note-text font-medium">
                     من {formatShortDate(project.startDate)} إلى {formatShortDate(project.endDate)}
                   </span>
                 }
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-400">التقدم</span>
-                    <span className="font-medium">{progressValue}%</span>
+                    <span className="text-portal-note-text">التقدم</span>
+                    <span className="font-medium text-natural-100">{progressValue}%</span>
                   </div>
                   <ProgressBar value={progressValue} variant="default" size="md" />
-                  <div className="flex items-center justify-between text-xs text-neutral-400">
+                  <div className="flex items-center justify-between text-xs text-portal-note-text">
                     <span>{formatShortDate(project.startDate)}</span>
                     <span>{formatShortDate(project.endDate)}</span>
                   </div>
@@ -516,17 +430,17 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-portal-divider">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-natural-100">{inProgressTasks}</p>
-                    <p className="text-xs text-neutral-400 mt-1">قيد التنفيذ</p>
+                    <p className="text-xs text-portal-note-text mt-1">قيد التنفيذ</p>
                   </div>
                   <div className="text-center border-e border-portal-divider">
-                    <p className={`text-2xl font-bold ${overdueTasks > 0 ? "text-danger-500" : "text-natural-100"}`}>
+                    <p className={`text-2xl font-bold ${overdueTasks > 0 ? "text-danger-600" : "text-natural-100"}`}>
                       {overdueTasks}
                     </p>
-                    <p className="text-xs text-neutral-400 mt-1">متأخرة</p>
+                    <p className="text-xs text-portal-note-text mt-1">متأخرة</p>
                   </div>
                   <div className="text-center border-e border-portal-divider">
                     <p className="text-2xl font-bold text-natural-100">{files?.length ?? 0}</p>
-                    <p className="text-xs text-neutral-400 mt-1">ملفات</p>
+                    <p className="text-xs text-portal-note-text mt-1">ملفات</p>
                   </div>
                 </div>
               </SurfaceCard>
@@ -543,7 +457,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             </div>
 
             {/* Right Column - Deadlines & Team */}
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Upcoming Deadlines */}
               <SurfaceCard
                 title="المواعيد القادمة"
@@ -616,8 +530,8 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
 
                     if (assignees.length === 0) {
                       return (
-                        <div className="text-center py-6 border border-dashed border-neutral-200 rounded-xl">
-                          <p className="text-sm text-neutral-400">لا يوجد أعضاء فريق مسندة لهم مهام</p>
+                        <div className="text-center py-6 border border-dashed border-portal-card-border rounded-xl">
+                          <p className="text-sm text-portal-note-text">لا يوجد أعضاء فريق مسندة لهم مهام</p>
                         </div>
                       );
                     }
@@ -629,15 +543,15 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                             key={member.id}
                             className="flex items-center gap-3 p-3 rounded-xl bg-white border border-portal-card-border hover:shadow-sm transition-all"
                           >
-                            <div className="w-10 h-10 rounded-full bg-neutral-100 text-neutral-600 flex items-center justify-center font-semibold text-sm">
+                            <div className="w-10 h-10 rounded-full bg-badge-gray-bg text-portal-note-text flex items-center justify-center font-semibold text-sm">
                               {member.name.charAt(0)}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-natural-100 truncate">{member.name}</p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-neutral-400">{member.taskCount} مهمة</span>
+                                <span className="text-xs text-portal-note-text">{member.taskCount} مهمة</span>
                                 {member.statusCounts[TaskStatus.DONE] > 0 && (
-                                  <span className="text-xs text-emerald-600">
+                                  <span className="text-xs text-success-600">
                                     ({member.statusCounts[TaskStatus.DONE]} منجزة)
                                   </span>
                                 )}
@@ -667,7 +581,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 <DSSkeleton className="h-full w-full" />
               </div>
             ) : totalTasks === 0 ? (
-              <EmptyState
+              <PmEmptyState
                 icon={FolderKanban}
                 title="لا توجد مهام"
                 description="ابدأ بإنشاء أول مهمة لهذا المشروع"
@@ -705,7 +619,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 ))}
               </div>
             ) : !files || files.length === 0 ? (
-              <EmptyState
+              <PmEmptyState
                 icon={FileText}
                 title="لا توجد ملفات"
                 description="ارفع ملفات المشروع لتتمكن من مشاركتها مع الفريق والعميل"
@@ -737,7 +651,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                         <ActionButton
                           variant="ghost"
                           size="sm"
-                          className="text-danger-500 hover:text-danger-600"
+                          className="text-danger-600 hover:text-danger-700"
                           onClick={async () => {
                             try {
                               await deleteFile({ projectId: id, fileId: file.id }).unwrap();
@@ -757,7 +671,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         </TabsContent>
 
         {/* ── Client Tab ─────────────────────────────────────────────────── */}
-        <TabsContent value="client" className="space-y-6">
+        <TabsContent value="client" className="space-y-5">
           {teamView ? (
             <ClientBrief
               client={teamView.client}

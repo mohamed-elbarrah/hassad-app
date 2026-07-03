@@ -11,10 +11,13 @@ import {
   useResolveDisputeMutation,
 } from "@/features/disputes/pmDisputesApi";
 import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR, type DisputeStatus } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
+import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
+import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
+import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import {
   DisputeStatusBadge,
   DisputeCategoryIcon,
@@ -35,6 +38,7 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
   const {
     data: dispute,
     isLoading,
+    isError,
     refetch,
   } = useGetPmDisputeDetailQuery(id, {
     pollingInterval: 30_000,
@@ -85,22 +89,17 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
   };
 
   if (isLoading) {
-    return <DisputeDetailSkeleton />;
+    return <PmDetailSkeleton variant="dispute" />;
   }
 
-  if (!dispute) {
+  if (isError || !dispute) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16" dir="rtl">
-        <div className="text-6xl">🔍</div>
-        <h1 className="text-xl font-semibold text-natural-100">التذكرة غير موجودة</h1>
-        <p className="text-portal-note-text">لا يمكنك الوصول إلى هذه التذكرة</p>
-        <Link href="/dashboard/pm/disputes">
-          <Button variant="outline" className="mt-4 rounded-xl">
-            <ArrowRight className="ml-2 h-4 w-4" />
-            العودة للقائمة
-          </Button>
-        </Link>
-      </div>
+      <PmDetailError
+        title="التذكرة غير موجودة"
+        onRetry={refetch}
+        backHref="/dashboard/pm/disputes"
+        backLabel="النزاعات"
+      />
     );
   }
 
@@ -110,29 +109,28 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
   const showTimer = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(dispute.status);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
+      {/* ── Breadcrumb ─────────────────────────────────────────────────────── */}
+      <PmDetailBreadcrumb
+        backHref="/dashboard/pm/disputes"
+        backLabel="النزاعات"
+        title={`#${dispute.ticketNumber.toString().padStart(3, "0")} - ${dispute.title}`}
+      />
+
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4">
-        <Link
-          href="/dashboard/pm/disputes"
-          className="flex items-center gap-1 text-sm text-portal-note-text hover:text-secondary-500 transition-colors w-fit"
-        >
-          <ArrowRight className="h-4 w-4" />
-          العودة للنزاعات
-        </Link>
-
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-medium text-secondary-500">
                 #{dispute.ticketNumber.toString().padStart(3, "0")}
               </span>
-              <DisputeStatusBadge status={dispute.status} />
+              <PmStatusBadge domain="dispute" status={dispute.status} />
               <span className="text-xs text-portal-note-text">
                 الأولوية: {DISPUTE_PRIORITY_AR[dispute.priority]}
               </span>
             </div>
-            <h1 className="text-2xl font-semibold text-natural-100">{dispute.title}</h1>
+            <h1 className="text-xl font-semibold text-natural-100">{dispute.title}</h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-portal-note-text">
               <span className="flex items-center gap-1">
                 <User className="h-4 w-4" />
@@ -172,11 +170,11 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
 
         {/* ── Action Area ──────────────────────────────────────────────────── */}
         {canAcknowledge && (
-          <SurfaceCard className="p-4 bg-blue-50/50 border-blue-200">
+          <SurfaceCard className="p-4 bg-action-blue-soft border-action-blue/30">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                  <Play className="h-5 w-5 text-blue-600" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-action-blue-soft">
+                  <Play className="h-5 w-5 text-action-blue" />
                 </div>
                 <div>
                   <p className="font-medium text-natural-100">تذكرة جديدة</p>
@@ -185,23 +183,23 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
                   </p>
                 </div>
               </div>
-              <Button
+              <ActionButton
                 onClick={handleAcknowledge}
                 disabled={isAcknowledgeLoading}
-                className="rounded-xl bg-blue-600 hover:bg-blue-700"
+                className="rounded-xl"
               >
                 {isAcknowledgeLoading ? "جارٍ..." : "بدء المعالجة"}
-              </Button>
+              </ActionButton>
             </div>
           </SurfaceCard>
         )}
 
         {canResolve && (
-          <SurfaceCard className="p-4 bg-green-50/50 border-green-200">
+          <SurfaceCard className="p-4 bg-success-100/50 border-success-200">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-100">
+                  <CheckCircle className="h-5 w-5 text-success-600" />
                 </div>
                 <div>
                   <p className="font-medium text-natural-100">هل تم حل المشكلة؟</p>
@@ -210,41 +208,41 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
                   </p>
                 </div>
               </div>
-              <Button
+              <ActionButton
                 onClick={() => setIsResolveDialogOpen(true)}
-                className="rounded-xl bg-green-600 hover:bg-green-700"
+                className="rounded-xl bg-success-600 hover:bg-success-700 text-white"
               >
                 تأكيد الحل
-              </Button>
+              </ActionButton>
             </div>
           </SurfaceCard>
         )}
 
         {/* ── Escalated/Resolved Banner ─────────────────────────────────────── */}
         {dispute.status === "ESCALATED" && (
-          <SurfaceCard className="p-4 bg-red-50/50 border-red-200">
-            <p className="text-sm font-medium text-red-800 mb-2">
+          <SurfaceCard className="p-4 bg-danger-100/50 border-danger-200">
+            <p className="text-sm font-medium text-danger-600 mb-2">
               ⚠️ تم تصعيد هذه التذكرة للإدارة
             </p>
-            <p className="text-sm text-red-700">
+            <p className="text-sm text-danger-600">
               لا يمكنك إجراء أي تعديلات. الإدارة تتولى الأمر الآن.
             </p>
           </SurfaceCard>
         )}
 
         {dispute.status === "PENDING_CLIENT" && (
-          <SurfaceCard className="p-4 bg-cyan-50/50 border-cyan-200">
-            <p className="text-sm font-medium text-cyan-800 mb-2">
+          <SurfaceCard className="p-4 bg-action-blue-soft border-action-blue/30">
+            <p className="text-sm font-medium text-action-blue mb-2">
               ⏳ بانتظار تأكيد العميل
             </p>
-            <p className="text-sm text-cyan-700">
+            <p className="text-sm text-portal-note-text">
               تم إرسال طلب التأكيد للعميل. سيتم إغلاق التذكرة تلقائياً بعد تأكيد العميل.
             </p>
           </SurfaceCard>
         )}
 
         {dispute.status === "RESOLVED" && dispute.resolution && (
-          <SurfaceCard className="p-4 bg-green-50 border-green-200">
+          <SurfaceCard className="p-4 bg-success-100/50 border-success-200">
             <p className="text-sm font-medium text-natural-100 mb-2">ملاحظات الحل:</p>
             <p className="text-sm text-portal-note-text">{dispute.resolution}</p>
           </SurfaceCard>
@@ -294,11 +292,11 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
                     <span className="text-xs text-portal-note-text">الحالة:</span>
                     {event.fromStatus && (
                       <>
-                        <DisputeStatusBadge status={event.fromStatus} className="text-xs" />
-                        <span className="text-xs">→</span>
+                        <PmStatusBadge domain="dispute" status={event.fromStatus} className="text-xs" />
+                        <span className="text-xs text-portal-note-text">→</span>
                       </>
                     )}
-                    <DisputeStatusBadge status={event.toStatus} className="text-xs" />
+                    <PmStatusBadge domain="dispute" status={event.toStatus} className="text-xs" />
                   </div>
                   {event.note && (
                     <p className="mt-1 text-sm text-portal-note-text">{event.note}</p>
@@ -316,20 +314,6 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
         onOpenChange={setIsResolveDialogOpen}
         onResolve={handleResolve}
       />
-    </div>
-  );
-}
-
-function DisputeDetailSkeleton() {
-  return (
-    <div className="flex flex-col gap-5" dir="rtl">
-      <Skeleton className="h-8 w-24 rounded-lg" />
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-48 rounded-lg" />
-        <Skeleton className="h-10 w-full max-w-md rounded-lg" />
-      </div>
-      <Skeleton className="h-32 rounded-[24px]" />
-      <Skeleton className="h-64 rounded-[24px]" />
     </div>
   );
 }

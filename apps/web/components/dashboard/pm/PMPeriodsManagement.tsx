@@ -560,7 +560,7 @@ export function PMPeriodsManagement({ projectId, contractType }: PMPeriodsManage
     return (
       <SurfaceCard>
         <div className="flex flex-col items-center gap-4 py-12 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-badge-gray-bg text-portal-note-text">
             <Calendar className="size-7" />
           </div>
           <div>
