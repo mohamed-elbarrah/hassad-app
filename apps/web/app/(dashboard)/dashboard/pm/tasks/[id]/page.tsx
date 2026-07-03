@@ -30,7 +30,12 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
 import { ClientBriefCompact } from "@/components/client-brief";
 import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
@@ -52,9 +57,7 @@ import {
   useGetTaskCommentsQuery,
   useAddTaskCommentMutation,
 } from "@/features/tasks/tasksApi";
-import {
-  useGetClientTeamViewQuery,
-} from "@/features/clients/clientsApi";
+import { useGetClientTeamViewQuery } from "@/features/clients/clientsApi";
 import { useAppSelector } from "@/lib/hooks";
 import {
   formatFileSize,
@@ -119,11 +122,18 @@ const STATUS_TRANSITIONS: Record<
   },
 };
 
-const PM_ACTIONS: Record<TaskStatus, { label: string; icon: React.ReactNode; action: "approve" | "reject" }[]> = {
+const PM_ACTIONS: Record<
+  TaskStatus,
+  { label: string; icon: React.ReactNode; action: "approve" | "reject" }[]
+> = {
   [TaskStatus.TODO]: [],
   [TaskStatus.IN_PROGRESS]: [],
   [TaskStatus.IN_REVIEW]: [
-    { label: "اعتماد وإنجاز", icon: <Check className="w-4 h-4" />, action: "approve" },
+    {
+      label: "اعتماد وإنجاز",
+      icon: <Check className="w-4 h-4" />,
+      action: "approve",
+    },
     { label: "طلب تعديل", icon: <X className="w-4 h-4" />, action: "reject" },
   ],
   [TaskStatus.REVISION]: [],
@@ -145,15 +155,19 @@ const FILE_PURPOSE_LABELS: Record<FilePurpose, string> = {
 };
 
 const FILE_PURPOSE_COLORS: Record<FilePurpose, string> = {
-  [FilePurpose.DELIVERABLE]: "bg-success-100/50 text-success-600 border-success-200",
-  [FilePurpose.REFERENCE]: "bg-action-blue-soft text-action-blue border-action-blue/30",
-  [FilePurpose.INTERNAL_DRAFT]: "bg-alert-100/50 text-alert-600 border-alert-200",
+  [FilePurpose.DELIVERABLE]:
+    "bg-success-100/50 text-success-600 border-success-200",
+  [FilePurpose.REFERENCE]:
+    "bg-action-blue-soft text-action-blue border-action-blue/30",
+  [FilePurpose.INTERNAL_DRAFT]:
+    "bg-alert-100/50 text-alert-600 border-alert-200",
 };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function FileIcon({ mimeType }: { mimeType: string }) {
-  if (mimeType.startsWith("image/")) return <FileImage className="size-5 text-action-blue" />;
+  if (mimeType.startsWith("image/"))
+    return <FileImage className="size-5 text-action-blue" />;
   if (mimeType.startsWith("text/") || mimeType.includes("pdf"))
     return <FileText className="size-5 text-alert-600" />;
   return <File className="size-5 text-portal-note-text" />;
@@ -170,7 +184,9 @@ function CommentCard({ comment }: { comment: TaskComment }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-natural-100">{authorName}</span>
+          <span className="text-sm font-medium text-natural-100">
+            {authorName}
+          </span>
           <span className="text-[11px] text-portal-note-text">
             {formatRelativeTime(comment.createdAt as string)}
           </span>
@@ -193,10 +209,13 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   // Queries
   const { data: task, isLoading, isError, refetch } = useGetTaskByIdQuery(id);
   const { data: files, isLoading: filesLoading } = useGetTaskFilesQuery(id);
-  const { data: comments, isLoading: commentsLoading } = useGetTaskCommentsQuery(id);
+  const { data: comments, isLoading: commentsLoading } =
+    useGetTaskCommentsQuery(id);
 
   const clientId =
-    (task as any)?.project?.client?.id ?? (task as any)?.project?.clientId ?? "";
+    (task as any)?.project?.client?.id ??
+    (task as any)?.project?.clientId ??
+    "";
   const { data: teamView } = useGetClientTeamViewQuery(clientId, {
     skip: !clientId,
   });
@@ -206,16 +225,20 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const [submitTask, { isLoading: isSubmitting }] = useSubmitTaskMutation();
   const [approveTask, { isLoading: isApproving }] = useApproveTaskMutation();
   const [rejectTask, { isLoading: isRejecting }] = useRejectTaskMutation();
-  const isUpdatingStatus = isStarting || isSubmitting || isApproving || isRejecting;
+  const isUpdatingStatus =
+    isStarting || isSubmitting || isApproving || isRejecting;
 
   const [uploadFile, { isLoading: isUploading }] = useUploadTaskFileMutation();
   const [deleteFile] = useDeleteTaskFileMutation();
-  const [addComment, { isLoading: isAddingComment }] = useAddTaskCommentMutation();
+  const [addComment, { isLoading: isAddingComment }] =
+    useAddTaskCommentMutation();
 
   // Local state
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [commentText, setCommentText] = useState("");
-  const [filePurpose, setFilePurpose] = useState<FilePurpose>(FilePurpose.REFERENCE);
+  const [filePurpose, setFilePurpose] = useState<FilePurpose>(
+    FilePurpose.REFERENCE,
+  );
 
   if (!user) return null;
 
@@ -255,7 +278,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const isPm = user.role === UserRole.PM || user.role === UserRole.ADMIN;
   const pmActions = PM_ACTIONS[task.status];
 
-  async function handleStatusUpdate(action: "start" | "submit" | "approve" | "reject") {
+  async function handleStatusUpdate(
+    action: "start" | "submit" | "approve" | "reject",
+  ) {
     try {
       if (action === "start") await startTask(id).unwrap();
       else if (action === "submit") await submitTask(id).unwrap();
@@ -296,7 +321,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const totalFiles = files?.length ?? 0;
 
   return (
-    <div className="flex flex-col gap-5 max-w-5xl" dir="rtl">
+    <div className="flex flex-col gap-5  " dir="rtl">
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
       <PmDetailBreadcrumb
         backHref={backHref}
@@ -341,7 +366,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                 "rounded-xl px-6",
                 action.action === "approve"
                   ? "bg-success-600 hover:bg-success-700 text-white border-success-600"
-                  : "bg-white border-danger-200 text-danger-600 hover:bg-danger-50"
+                  : "bg-white border-danger-200 text-danger-600 hover:bg-danger-50",
               )}
             >
               {action.label}
@@ -357,8 +382,10 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             size="lg"
             onClick={() => {
               const transition = STATUS_TRANSITIONS[task.status as TaskStatus];
-              if (transition.next === TaskStatus.IN_PROGRESS) handleStatusUpdate("start");
-              else if (transition.next === TaskStatus.IN_REVIEW) handleStatusUpdate("submit");
+              if (transition.next === TaskStatus.IN_PROGRESS)
+                handleStatusUpdate("start");
+              else if (transition.next === TaskStatus.IN_REVIEW)
+                handleStatusUpdate("submit");
             }}
             disabled={isUpdatingStatus}
             icon={STATUS_TRANSITIONS[task.status as TaskStatus].icon}
@@ -384,14 +411,18 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                 <MessageSquare className="w-4 h-4" />
                 التعليقات
                 {totalComments > 0 && (
-                  <span className="mr-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">{totalComments}</span>
+                  <span className="mr-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">
+                    {totalComments}
+                  </span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="files" className="gap-2">
                 <Paperclip className="w-4 h-4" />
                 الملفات
                 {totalFiles > 0 && (
-                  <span className="mr-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">{totalFiles}</span>
+                  <span className="mr-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">
+                    {totalFiles}
+                  </span>
                 )}
               </TabsTrigger>
               <TabsTrigger value="client" className="gap-2">
@@ -452,12 +483,22 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                       >
                         <FileIcon mimeType={file.mimeType} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-natural-100 truncate">{file.fileName}</p>
+                          <p className="text-sm font-medium text-natural-100 truncate">
+                            {file.fileName}
+                          </p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-portal-note-text">{formatFileSize(file.fileSize)}</span>
+                            <span className="text-xs text-portal-note-text">
+                              {formatFileSize(file.fileSize)}
+                            </span>
                             {file.purpose && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${FILE_PURPOSE_COLORS[file.purpose as FilePurpose]}`}>
-                                {FILE_PURPOSE_LABELS[file.purpose as FilePurpose]}
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded-full border ${FILE_PURPOSE_COLORS[file.purpose as FilePurpose]}`}
+                              >
+                                {
+                                  FILE_PURPOSE_LABELS[
+                                    file.purpose as FilePurpose
+                                  ]
+                                }
                               </span>
                             )}
                           </div>
@@ -497,7 +538,11 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                 ) : (
                   <div className="space-y-3">
                     {[...comments]
-                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .sort(
+                        (a, b) =>
+                          new Date(b.createdAt).getTime() -
+                          new Date(a.createdAt).getTime(),
+                      )
                       .slice(0, 3)
                       .map((comment: TaskComment) => (
                         <CommentCard key={comment.id} comment={comment} />
@@ -526,7 +571,11 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                   ) : (
                     <div className="space-y-3">
                       {[...comments]
-                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .sort(
+                          (a, b) =>
+                            new Date(b.createdAt).getTime() -
+                            new Date(a.createdAt).getTime(),
+                        )
                         .map((comment: TaskComment) => (
                           <CommentCard key={comment.id} comment={comment} />
                         ))}
@@ -575,7 +624,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                     <select
                       className="h-8 rounded-lg border border-portal-card-border bg-white px-2 text-xs text-natural-100"
                       value={filePurpose}
-                      onChange={(e) => setFilePurpose(e.target.value as FilePurpose)}
+                      onChange={(e) =>
+                        setFilePurpose(e.target.value as FilePurpose)
+                      }
                     >
                       {Object.values(FilePurpose).map((purpose) => (
                         <option key={purpose} value={purpose}>
@@ -624,14 +675,28 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                       >
                         <FileIcon mimeType={file.mimeType} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-natural-100 truncate">{file.fileName}</p>
+                          <p className="text-sm font-medium text-natural-100 truncate">
+                            {file.fileName}
+                          </p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-portal-note-text">{formatFileSize(file.fileSize)}</span>
-                            <span className="text-xs text-portal-note-text">•</span>
-                            <span className="text-xs text-portal-note-text">{formatShortDate(file.createdAt)}</span>
+                            <span className="text-xs text-portal-note-text">
+                              {formatFileSize(file.fileSize)}
+                            </span>
+                            <span className="text-xs text-portal-note-text">
+                              •
+                            </span>
+                            <span className="text-xs text-portal-note-text">
+                              {formatShortDate(file.createdAt)}
+                            </span>
                             {file.purpose && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${FILE_PURPOSE_COLORS[file.purpose as FilePurpose]}`}>
-                                {FILE_PURPOSE_LABELS[file.purpose as FilePurpose]}
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded-full border ${FILE_PURPOSE_COLORS[file.purpose as FilePurpose]}`}
+                              >
+                                {
+                                  FILE_PURPOSE_LABELS[
+                                    file.purpose as FilePurpose
+                                  ]
+                                }
                               </span>
                             )}
                           </div>
@@ -643,23 +708,32 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                             className="size-8"
                             onClick={async () => {
                               try {
-                                await downloadTaskFile(id, file.id, file.fileName);
+                                await downloadTaskFile(
+                                  id,
+                                  file.id,
+                                  file.fileName,
+                                );
                               } catch {
                                 toast.error("فشل تحميل الملف");
                               }
                             }}
                             icon={<Download className="w-4 h-4" />}
                           >
-                            {''}
+                            {""}
                           </ActionButton>
-                          {(user.role === UserRole.ADMIN || user.role === UserRole.PM || user.id === (file as any).uploadedBy) && (
+                          {(user.role === UserRole.ADMIN ||
+                            user.role === UserRole.PM ||
+                            user.id === (file as any).uploadedBy) && (
                             <ActionButton
                               variant="ghost"
                               size="sm"
                               className="size-8 text-danger-600 hover:text-danger-700"
                               onClick={async () => {
                                 try {
-                                  await deleteFile({ taskId: id, fileId: file.id }).unwrap();
+                                  await deleteFile({
+                                    taskId: id,
+                                    fileId: file.id,
+                                  }).unwrap();
                                   toast.success("تم حذف الملف");
                                 } catch {
                                   toast.error("فشل حذف الملف");
@@ -667,7 +741,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                               }}
                               icon={<Trash2 className="w-4 h-4" />}
                             >
-                              {''}
+                              {""}
                             </ActionButton>
                           )}
                         </div>
@@ -704,23 +778,30 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-portal-note-text">الأولوية</span>
-                <span className={`text-sm font-medium ${
-                  task.priority === TaskPriority.URGENT ? "text-danger-600" :
-                  task.priority === TaskPriority.HIGH ? "text-alert-600" :
-                  "text-natural-100"
-                }`}>
+                <span
+                  className={`text-sm font-medium ${
+                    task.priority === TaskPriority.URGENT
+                      ? "text-danger-600"
+                      : task.priority === TaskPriority.HIGH
+                        ? "text-alert-600"
+                        : "text-natural-100"
+                  }`}
+                >
                   {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-portal-note-text">القسم</span>
                 <span className="text-sm font-medium text-natural-100">
-                  {DEPARTMENT_LABELS[task.department?.name as TaskDepartment] ?? task.department?.name}
+                  {DEPARTMENT_LABELS[task.department?.name as TaskDepartment] ??
+                    task.department?.name}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-portal-note-text">الاستحقاق</span>
-                <span className="text-sm font-medium text-natural-100">{formatShortDate(task.dueDate)}</span>
+                <span className="text-sm font-medium text-natural-100">
+                  {formatShortDate(task.dueDate)}
+                </span>
               </div>
               {t.assignee && (
                 <div className="flex items-center justify-between text-sm">
@@ -729,7 +810,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                     <div className="w-6 h-6 rounded-full bg-secondary-100 text-secondary-600 flex items-center justify-center text-xs font-semibold">
                       {t.assignee.name.charAt(0)}
                     </div>
-                    <span className="text-sm font-medium text-natural-100">{t.assignee.name}</span>
+                    <span className="text-sm font-medium text-natural-100">
+                      {t.assignee.name}
+                    </span>
                   </div>
                 </div>
               )}
@@ -750,11 +833,17 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
           {/* Workflow History */}
           <SurfaceCard title="سجل الحالة" icon={CheckCircle2}>
             {!t.statusHistory || t.statusHistory.length === 0 ? (
-              <p className="text-sm text-portal-note-text text-center py-4">لا توجد انتقالات بعد</p>
+              <p className="text-sm text-portal-note-text text-center py-4">
+                لا توجد انتقالات بعد
+              </p>
             ) : (
               <div className="space-y-3">
                 {[...t.statusHistory]
-                  .sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
+                  .sort(
+                    (a, b) =>
+                      new Date(b.changedAt).getTime() -
+                      new Date(a.changedAt).getTime(),
+                  )
                   .map((entry, index) => (
                     <div key={entry.id} className="flex gap-3 relative">
                       {index < t.statusHistory!.length - 1 && (
@@ -765,9 +854,13 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm">
-                          <span className="text-portal-note-text">{TASK_STATUS_LABELS[entry.fromStatus]}</span>
+                          <span className="text-portal-note-text">
+                            {TASK_STATUS_LABELS[entry.fromStatus]}
+                          </span>
                           <span className="text-portal-note-text mx-1">→</span>
-                          <span className="font-medium text-natural-100">{TASK_STATUS_LABELS[entry.toStatus]}</span>
+                          <span className="font-medium text-natural-100">
+                            {TASK_STATUS_LABELS[entry.toStatus]}
+                          </span>
                         </p>
                         <p className="text-[11px] text-portal-note-text mt-0.5">
                           {formatRelativeTime(entry.changedAt as string)}
