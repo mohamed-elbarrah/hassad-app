@@ -23,9 +23,16 @@ import {
   Pencil,
   FileText,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const MONTHS = [
   "يناير","فبراير","مارس","أبريل","مايو","يونيو",
@@ -50,6 +57,9 @@ export default function SalaryDetailPage({
   const [year, setYear] = useState(
     urlMonth && urlYear ? urlYear : now.getFullYear(),
   );
+
+  const [showAllowancesModal, setShowAllowancesModal] = useState(false);
+  const [showPayConfirm, setShowPayConfirm] = useState(false);
 
   const { data: employee, isLoading, isError } = useGetEmployeeByIdQuery(employeeId);
   const [paySalary, { isLoading: isPaying }] = usePaySalaryMutation();
@@ -78,22 +88,9 @@ export default function SalaryDetailPage({
     try {
       await paySalary({ id: salary.id }).unwrap();
       toast.success(`تم صرف راتب ${employee.name} بنجاح`);
+      setShowPayConfirm(false);
     } catch {
       toast.error("فشل في صرف الراتب");
-    }
-  };
-
-  const handleUpdateAllowances = async () => {
-    if (!salary) return;
-    const bonuses = Number(prompt("البدلات والحوافز (ر.س):", String(salary.bonuses || 0)));
-    if (isNaN(bonuses)) return;
-    const deductions = Number(prompt("الاستقطاعات (ر.س):", String(salary.deductions || 0)));
-    if (isNaN(deductions)) return;
-    try {
-      await updateSalary({ id: salary.id, bonuses, deductions }).unwrap();
-      toast.success("تم تحديث البدلات والاستقطاعات");
-    } catch {
-      toast.error("فشل في التحديث");
     }
   };
 
@@ -117,7 +114,7 @@ export default function SalaryDetailPage({
               variant="primary"
               size="sm"
               icon={<Wallet className="w-4 h-4" />}
-              onClick={handlePay}
+              onClick={() => setShowPayConfirm(true)}
               disabled={isPaying}
             >
               {isPaying ? "جاري الصرف..." : "صرف المستحقات"}
@@ -148,7 +145,7 @@ export default function SalaryDetailPage({
                 <p className="text-portal-note-text">{employee.role}</p>
                 <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-3">
                   <span className="bg-badge-gray-bg px-3 py-1 rounded-lg text-xs font-mono">
-                    <Hash className="w-3 h-3 inline ml-1" />{employee.id}
+                    <Hash className="w-3 h-3 inline ml-1" />{employee.id.substring(0, 8)}...
                   </span>
                   <span className="bg-badge-gray-bg px-3 py-1 rounded-lg text-xs">
                     الراتب الأساسي: <CurrencyDisplay amount={employee.baseSalary} />
@@ -164,37 +161,30 @@ export default function SalaryDetailPage({
             icon={Calendar}
             className="border-none shadow-sm"
             action={
-              <div className="flex items-center gap-2">
-                <select
-                  value={`${month}-${year}`}
-                  onChange={(e) => {
-                    const [m, y] = e.target.value.split("-").map(Number);
-                    setMonth(m);
-                    setYear(y);
-                  }}
-                  className="h-9 px-3 rounded-lg border border-portal-card-border bg-natural-0 text-sm appearance-none"
-                >
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                    return (
-                      <option key={i} value={`${d.getMonth() + 1}-${d.getFullYear()}`}>
-                        {MONTHS[d.getMonth()]} {d.getFullYear()}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+              <select
+                value={`${month}-${year}`}
+                onChange={(e) => {
+                  const [m, y] = e.target.value.split("-").map(Number);
+                  setMonth(m);
+                  setYear(y);
+                }}
+                className="h-9 px-3 rounded-lg border border-portal-card-border bg-natural-0 text-sm appearance-none"
+              >
+                {Array.from({ length: 12 }, (_, i) => {
+                  const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                  return (
+                    <option key={i} value={`${d.getMonth() + 1}-${d.getFullYear()}`}>
+                      {MONTHS[d.getMonth()]} {d.getFullYear()}
+                    </option>
+                  );
+                })}
+              </select>
             }
           >
             {!salary ? (
               <div className="text-center py-8">
                 <p className="text-portal-note-text">لم يتم توليد راتب لهذا الشهر</p>
-                <ActionButton
-                  variant="outline"
-                  size="sm"
-                  className="mt-3"
-                  href="/dashboard/finance/payroll"
-                >
+                <ActionButton variant="outline" size="sm" className="mt-3" href="/dashboard/finance/payroll">
                   الذهاب لتوليد الراتب
                 </ActionButton>
               </div>
@@ -240,7 +230,7 @@ export default function SalaryDetailPage({
                           variant="outline"
                           size="sm"
                           icon={<Pencil className="w-4 h-4" />}
-                          onClick={handleUpdateAllowances}
+                          onClick={() => setShowAllowancesModal(true)}
                           disabled={isUpdating}
                         >
                           تعديل البدلات
@@ -249,7 +239,7 @@ export default function SalaryDetailPage({
                           variant="primary"
                           size="sm"
                           icon={<Wallet className="w-4 h-4" />}
-                          onClick={handlePay}
+                          onClick={() => setShowPayConfirm(true)}
                           disabled={isPaying}
                         >
                           {isPaying ? "جاري..." : "صرف"}
@@ -296,9 +286,7 @@ export default function SalaryDetailPage({
                   <td className="px-5 py-4 text-success-600">+<CurrencyDisplay amount={s.bonuses || 0} /></td>
                   <td className="px-5 py-4 text-danger-600">-<CurrencyDisplay amount={s.deductions || 0} /></td>
                   <td className="px-5 py-4 font-bold"><CurrencyDisplay amount={s.amount} /></td>
-                  <td className="px-5 py-4">
-                    <FinanceStatusBadge status={s.status} />
-                  </td>
+                  <td className="px-5 py-4"><FinanceStatusBadge status={s.status} /></td>
                   <td className="px-5 py-4 text-left text-xs text-portal-note-text">
                     {s.paymentDate
                       ? new Date(s.paymentDate).toLocaleDateString("ar-SA-u-nu-latn")
@@ -313,11 +301,7 @@ export default function SalaryDetailPage({
         {/* ─── Sidebar (1/3) ─── */}
         <div className="space-y-5">
           {/* Pay Configuration */}
-          <SurfaceCard
-            title="إعدادات الراتب"
-            icon={DollarSign}
-            className="border-none shadow-sm"
-          >
+          <SurfaceCard title="إعدادات الراتب" icon={DollarSign} className="border-none shadow-sm">
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-portal-note-text">نوع الراتب</span>
@@ -347,17 +331,6 @@ export default function SalaryDetailPage({
                   <span className="text-sm font-bold"><CurrencyDisplay amount={employee.hourlyRate} /></span>
                 </div>
               )}
-              <div className="pt-2 border-t border-portal-divider">
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-center text-xs"
-                  icon={<Pencil className="w-3.5 h-3.5" />}
-                  onClick={() => alert("سيتم فتح نموذج تعديل الإعدادات")}
-                >
-                  تعديل الإعدادات
-                </ActionButton>
-              </div>
             </div>
           </SurfaceCard>
 
@@ -369,7 +342,7 @@ export default function SalaryDetailPage({
                   variant="primary"
                   className="w-full justify-center"
                   icon={<Wallet className="w-4 h-4" />}
-                  onClick={handlePay}
+                  onClick={() => setShowPayConfirm(true)}
                   disabled={isPaying}
                 >
                   {isPaying ? "جاري الصرف..." : "صرف الراتب الحالي"}
@@ -385,11 +358,7 @@ export default function SalaryDetailPage({
                   </p>
                 </div>
               ) : (
-                <ActionButton
-                  variant="outline"
-                  className="w-full justify-center"
-                  disabled
-                >
+                <ActionButton variant="outline" className="w-full justify-center" disabled>
                   لا يوجد راتب لهذا الشهر
                 </ActionButton>
               )}
@@ -399,24 +368,19 @@ export default function SalaryDetailPage({
                   variant="outline"
                   className="w-full justify-center"
                   icon={<Pencil className="w-4 h-4" />}
-                  onClick={handleUpdateAllowances}
+                  onClick={() => setShowAllowancesModal(true)}
                   disabled={salary.status === "PAID" || isUpdating}
                 >
                   تعديل البدلات والاستقطاعات
                 </ActionButton>
               )}
 
-              <ActionButton
-                variant="ghost"
-                className="w-full justify-center"
-                icon={<FileText className="w-4 h-4" />}
-              >
+              <ActionButton variant="ghost" className="w-full justify-center" icon={<FileText className="w-4 h-4" />}>
                 تحميل قسيمة الراتب
               </ActionButton>
             </div>
           </SurfaceCard>
 
-          {/* Notes */}
           {salary?.notes && (
             <SurfaceCard className="border-none shadow-sm">
               <div className="p-4">
@@ -426,6 +390,150 @@ export default function SalaryDetailPage({
           )}
         </div>
       </div>
+
+      {/* Pay Confirmation Dialog */}
+      <Dialog open={showPayConfirm} onOpenChange={setShowPayConfirm}>
+        <DialogContent className="sm:max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تأكيد صرف الراتب</DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من صرف راتب <strong>{employee.name}</strong>؟
+              {salary && (
+                <div className="mt-2 p-3 rounded-lg bg-badge-gray-bg space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>المبلغ:</span>
+                    <span className="font-bold"><CurrencyDisplay amount={salary.amount} /></span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>الشهر:</span>
+                    <span>{MONTHS[salary.month - 1]} {salary.year}</span>
+                  </div>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-2">
+            <ActionButton variant="outline" onClick={() => setShowPayConfirm(false)}>
+              إلغاء
+            </ActionButton>
+            <ActionButton variant="primary" onClick={handlePay} loading={isPaying}>
+              تأكيد الصرف
+            </ActionButton>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Allowances Modal */}
+      <AllowancesModal
+        open={showAllowancesModal}
+        onOpenChange={setShowAllowancesModal}
+        salary={salary}
+        employeeName={employee.name}
+        onUpdate={updateSalary}
+        isUpdating={isUpdating}
+      />
     </div>
+  );
+}
+
+// ── Allowances Modal Component ──────────────────────────────────────────────
+
+function AllowancesModal({
+  open,
+  onOpenChange,
+  salary,
+  employeeName,
+  onUpdate,
+  isUpdating,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  salary: any;
+  employeeName: string;
+  onUpdate: any;
+  isUpdating: boolean;
+}) {
+  const [bonuses, setBonuses] = useState(String(salary?.bonuses || 0));
+  const [deductions, setDeductions] = useState(String(salary?.deductions || 0));
+
+  const handleSave = async () => {
+    const b = Number(bonuses);
+    const d = Number(deductions);
+    if (isNaN(b) || isNaN(d)) {
+      toast.error("يرجى إدخال أرقام صحيحة");
+      return;
+    }
+    try {
+      await onUpdate({ id: salary.id, bonuses: b, deductions: d }).unwrap();
+      toast.success(`تم تحديث البدلات والاستقطاعات لـ ${employeeName}`);
+      onOpenChange(false);
+    } catch {
+      toast.error("فشل في التحديث");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm" dir="rtl">
+        <DialogHeader>
+          <DialogTitle>تعديل البدلات والاستقطاعات</DialogTitle>
+          <DialogDescription>
+            تعديل بدلات وحوافز واستقطاعات {employeeName}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div>
+            <label className="text-sm font-medium mb-1 block text-success-600">البدلات والحوافز</label>
+            <input
+              type="number"
+              value={bonuses}
+              onChange={(e) => setBonuses(e.target.value)}
+              className="w-full rounded-xl border border-portal-card-border bg-natural-0 px-4 py-2.5 text-sm text-natural-100 focus:outline-none focus:ring-2 focus:ring-secondary-500/30"
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block text-danger-600">الاستقطاعات</label>
+            <input
+              type="number"
+              value={deductions}
+              onChange={(e) => setDeductions(e.target.value)}
+              className="w-full rounded-xl border border-portal-card-border bg-natural-0 px-4 py-2.5 text-sm text-natural-100 focus:outline-none focus:ring-2 focus:ring-secondary-500/30"
+              placeholder="0"
+            />
+          </div>
+          {salary && (
+            <div className="p-3 rounded-lg bg-badge-gray-bg text-sm space-y-1">
+              <div className="flex justify-between">
+                <span>الأساسي</span>
+                <span><CurrencyDisplay amount={salary.baseSalary} /></span>
+              </div>
+              <div className="flex justify-between text-success-600">
+                <span>+ البدلات</span>
+                <span>+<CurrencyDisplay amount={Number(bonuses) || 0} /></span>
+              </div>
+              <div className="flex justify-between text-danger-600">
+                <span>- الاستقطاعات</span>
+                <span>-<CurrencyDisplay amount={Number(deductions) || 0} /></span>
+              </div>
+              <div className="flex justify-between font-bold pt-1 border-t border-portal-divider">
+                <span>الصافي المتوقع</span>
+                <span><CurrencyDisplay amount={salary.baseSalary + (Number(bonuses) || 0) - (Number(deductions) || 0)} /></span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 justify-end pt-2">
+          <ActionButton variant="outline" onClick={() => onOpenChange(false)}>
+            إلغاء
+          </ActionButton>
+          <ActionButton variant="primary" onClick={handleSave} loading={isUpdating}>
+            حفظ التعديلات
+          </ActionButton>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
