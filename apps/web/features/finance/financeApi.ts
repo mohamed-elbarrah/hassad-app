@@ -234,6 +234,27 @@ export const financeApi = createApi({
         { type: "Invoice", id: "LIST" },
       ],
     }),
+    updateInvoice: builder.mutation<
+      Invoice,
+      { id: string; notes?: string; status?: InvoiceStatus }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/invoices/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Invoice", id },
+        { type: "Invoice", id: "LIST" },
+      ],
+    }),
+    sendInvoiceReminder: builder.mutation<
+      { sent: boolean; reminderCount: number },
+      string
+    >({
+      query: (id) => ({ url: `/invoices/${id}/remind`, method: "POST" }),
+      invalidatesTags: (_r, _e, id) => [{ type: "Invoice", id }],
+    }),
     getInvoicesByClient: builder.query<Invoice[], string>({
       query: (clientId) => `/invoices/client/${clientId}`,
       providesTags: ["Invoice"],
@@ -533,6 +554,8 @@ export const {
   useGetInvoiceByIdQuery,
   useCreateInvoiceMutation,
   useSendInvoiceMutation,
+  useUpdateInvoiceMutation,
+  useSendInvoiceReminderMutation,
   useGetPaymentsQuery,
   useRegisterPaymentMutation,
   usePayInvoiceMutation,

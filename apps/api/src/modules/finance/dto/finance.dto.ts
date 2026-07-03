@@ -10,7 +10,7 @@ import {
   IsBoolean,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { PaymentMethod } from "@hassad/shared";
+import { PaymentMethod, InvoiceStatus } from "@hassad/shared";
 
 export class DateRangeDto {
   @IsOptional()
@@ -93,6 +93,16 @@ export class CreateInvoiceDto {
   @ValidateNested({ each: true })
   @Type(() => InvoiceItemDto)
   items?: InvoiceItemDto[];
+}
+
+export class UpdateInvoiceDto {
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsEnum(InvoiceStatus)
+  status?: InvoiceStatus;
 }
 
 export class RegisterPaymentDto {

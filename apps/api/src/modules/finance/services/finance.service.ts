@@ -319,11 +319,35 @@ export class FinanceService {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {
-        client: true,
-        contract: true,
+        client: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneWhatsapp: true,
+                avatarUrl: true,
+              },
+            },
+            manager: { select: { id: true, name: true } },
+          },
+        },
+        contract: {
+          include: {
+            invoices: {
+              select: {
+                amount: true,
+                status: true,
+                payments: { select: { amount: true } },
+              },
+            },
+          },
+        },
         tickets: true,
-        payments: true,
-        items: { include: { project: true, task: true } },
+        payments: { orderBy: { date: "desc" } },
+        items: { include: { project: { select: { id: true, name: true } }, task: { select: { id: true, title: true } } } },
+        creator: { select: { id: true, name: true } },
       },
     });
 
@@ -333,6 +357,7 @@ export class FinanceService {
 
     const history = await this.prisma.ledger.findMany({
       where: { entityId: id },
+      include: { user: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     });
 
@@ -1440,6 +1465,65 @@ export class FinanceService {
     }
 
     return updated;
+  }
+
+  async updateInvoice(id: string, dto: { notes?: string; status?: InvoiceStatus; userId: string }) {
+    const invoice = await this.findInvoice(id);
+
+    const updateData: any = {};
+    if (dto.notes !== undefined) updateData.notes = dto.notes;
+    if (dto.status !== undefined) updateData.status = dto.status;
+
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: updateData,
+    });
+
+    await this.logToLedger({
+      action: "UPDATE_INVOICE",
+      entity: "INVOICE",
+      entityId: id,
+      userId: dto.userId,
+      before: { status: invoice.status, notes: invoice.notes },
+      after: { status: updated.status, notes: updated.notes },
+    });
+
+    return updated;
+  }
+
+  async sendReminder(id: string) {
+    const invoice = await this.findInvoice(id);
+
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: invoice.clientId },
+      select: { userId: true },
+    });
+
+    if (clientUser?.userId) {
+      await this.notificationsService.createNotification({
+        entityId: invoice.id,
+        entityType: "invoice",
+        eventType: "INVOICE_REMINDER",
+        userId: clientUser.userId,
+        title: "تذكير بدفع الفاتورة",
+        body: `تذكير: الفاتورة "${invoice.invoiceNumber}" بمبلغ ${invoice.amount} ر.س مستحقة الدفع`,
+      });
+    }
+
+    // Increment reminder flags
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: { reminderFlags: { increment: 1 } },
+    });
+
+    await this.logToLedger({
+      action: "SEND_REMINDER",
+      entity: "INVOICE",
+      entityId: id,
+      after: { reminderCount: updated.reminderFlags },
+    });
+
+    return { sent: true, reminderCount: updated.reminderFlags };
   }
 
   async findAllTickets(filters: {
