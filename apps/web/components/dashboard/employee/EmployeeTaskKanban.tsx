@@ -1,24 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  useDroppable,
-  useDraggable,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Lock } from "lucide-react";
-import { Pill } from "@/components/design-system/Pill";
-import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { TaskStatus, TaskPriority, UserRole } from "@hassad/shared";
+import { TaskStatus, UserRole } from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
 import {
   useStartTaskMutation,
@@ -27,15 +11,12 @@ import {
   useRejectTaskMutation,
 } from "@/features/tasks/tasksApi";
 import { useAppSelector } from "@/lib/hooks";
-import { cn } from "@/lib/utils";
-import {
-  TASK_STATUS_COLOR,
-  TASK_STATUS_LABELS,
-  TASK_KANBAN_ORDER,
-  TASK_PRIORITY_LABELS,
-} from "@/lib/utils/task-status";
+import { KanbanBoard } from "@/components/dashboard/kanban";
+import { TASK_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/task-status";
+import { EmployeeTaskKanbanCardContent } from "@/components/dashboard/kanban/cards/EmployeeTaskKanbanCardContent";
 
-// Allowed status transitions per role (mirrors API workflow)
+// ─── Allowed status transitions per role ──────────────────────────────────────
+
 const TASK_STATUS_TRANSITIONS: Partial<
   Record<TaskStatus, Partial<Record<string, TaskStatus[]>>>
 > = {
@@ -45,19 +26,7 @@ const TASK_STATUS_TRANSITIONS: Partial<
   [TaskStatus.REVISION]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
 };
 
-// ── Priority config ───────────────────────────────────────────────────────────
-
-const PRIORITY_TONE: Record<
-  TaskPriority,
-  "neutral" | "success" | "warning" | "danger" | "blue"
-> = {
-  [TaskPriority.LOW]: "neutral",
-  [TaskPriority.NORMAL]: "neutral",
-  [TaskPriority.HIGH]: "blue",
-  [TaskPriority.URGENT]: "danger",
-};
-
-// ── Props ─────────────────────────────────────────────────────────────────────
+// ─── Props ─────────────────────────────────────────────────────────────────────
 
 interface EmployeeTaskKanbanProps {
   tasks: TaskWithProject[];
@@ -65,194 +34,7 @@ interface EmployeeTaskKanbanProps {
   onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
 }
 
-// ── Draggable card ────────────────────────────────────────────────────────────
-
-interface DraggableCardProps {
-  task: TaskWithProject;
-  overlay?: boolean;
-  canDrag?: boolean;
-}
-
-function DraggableCard({
-  task,
-  overlay = false,
-  canDrag = true,
-}: DraggableCardProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: task.id,
-      data: { status: task.status },
-      disabled: !canDrag,
-    });
-
-  const isOverdue =
-    task.dueDate != null &&
-    task.status !== TaskStatus.DONE &&
-    new Date(task.dueDate) < new Date();
-
-  const dueDateFormatted = task.dueDate
-    ? new Intl.DateTimeFormat("ar-SA-u-nu-latn", {
-        day: "numeric",
-        month: "short",
-      }).format(new Date(task.dueDate))
-    : null;
-
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    opacity: isDragging && !overlay ? 0.4 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`bg-white rounded-lg border p-3 shadow-sm space-y-2 ${
-        overlay ? "shadow-lg rotate-1 cursor-grabbing" : "cursor-grab"
-      }`}
-    >
-      <div className="flex items-start gap-2">
-        <span
-          {...(canDrag ? attributes : {})}
-          {...(canDrag ? listeners : {})}
-          className={`mt-0.5 text-neutral-300 shrink-0 ${
-            canDrag ? "" : "cursor-not-allowed opacity-60"
-          }`}
-          aria-label={canDrag ? "اسحب للتحريك" : "غير مسموح بالتحريك"}
-        >
-          {canDrag ? (
-            <GripVertical className="h-4 w-4" />
-          ) : (
-            <Lock className="h-4 w-4" />
-          )}
-        </span>
-        <div className="flex-1 min-w-0">
-          <Link
-            href={`/dashboard/employee/tasks/${task.id}`}
-            className="text-sm font-medium hover:underline line-clamp-2 block"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {task.title}
-          </Link>
-          {task.project && (
-            <p className="text-xs text-neutral-300 mt-0.5 line-clamp-1">
-              {task.project.name}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-1 flex-wrap">
-        <Pill tone={PRIORITY_TONE[task.priority]} className="text-xs">
-          {TASK_PRIORITY_LABELS[task.priority]}
-        </Pill>
-        {dueDateFormatted && (
-          <span
-            className={`text-xs ${
-              isOverdue
-                ? "text-danger-500 font-medium"
-                : "text-neutral-300"
-            }`}
-          >
-            {dueDateFormatted}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Droppable column ──────────────────────────────────────────────────────────
-
-interface DroppableColumnProps {
-  status: TaskStatus;
-  tasks: TaskWithProject[];
-  pmOnly?: boolean;
-  currentUser?: { id: string; role: UserRole } | null;
-}
-
-function DroppableColumn({
-  status,
-  tasks,
-  pmOnly,
-  currentUser,
-}: DroppableColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
-
-  const color = TASK_STATUS_COLOR[status];
-  const tintColor = `${color}0D`; // ~5% opacity
-  const borderColor = `${color}33`; // 20% opacity
-  const headerBorder = `${color}26`; // 15% opacity
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "w-72 shrink-0 flex flex-col rounded-xl border transition-all duration-150",
-        isOver && "ring-2 ring-offset-2",
-        isOver && "ring-[var(--status-color)]",
-      )}
-      style={{
-        "--status-color": color,
-        backgroundColor: tintColor,
-        borderColor: borderColor,
-      } as React.CSSProperties}
-    >
-      {/* Column Header */}
-      <div
-        className="flex items-center gap-2 px-3 py-3 border-b"
-        style={{ borderColor: headerBorder }}
-      >
-        <span
-          className="w-2.5 h-2.5 rounded-full shrink-0"
-          style={{ backgroundColor: color }}
-        />
-        <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
-          {TASK_STATUS_LABELS[status]}
-        </span>
-        {pmOnly && (
-          <Lock
-            className="size-3 text-neutral-300"
-            aria-label="يحتاج موافقة المدير"
-          />
-        )}
-        <span
-          className="ml-auto text-xs font-medium px-2 py-0.5 rounded-full"
-          style={{
-            color: color,
-            backgroundColor: `${color}1A`, // 10% opacity
-            border: `1px solid ${color}33`,
-          }}
-        >
-          {tasks.length}
-        </span>
-      </div>
-
-      {/* Cards Container */}
-      <div className="flex flex-col gap-2 p-3 min-h-95">
-        {tasks.map((task) => {
-          const canDrag =
-            !!currentUser &&
-            (currentUser.role === UserRole.ADMIN ||
-              currentUser.role === UserRole.PM ||
-              task.assignedTo === currentUser.id);
-          return (
-            <DraggableCard key={task.id} task={task} canDrag={canDrag} />
-          );
-        })}
-
-        {tasks.length === 0 && (
-          <div className="flex items-center justify-center py-8">
-            <p className="text-xs text-neutral-400 text-center">
-              لا توجد مهام
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 export function EmployeeTaskKanban({
   tasks,
@@ -264,171 +46,128 @@ export function EmployeeTaskKanban({
   const [submitTask] = useSubmitTaskMutation();
   const [approveTask] = useApproveTaskMutation();
   const [rejectTask] = useRejectTaskMutation();
-  const [activeTask, setActiveTask] = useState<TaskWithProject | null>(null);
   const [localTasks, setLocalTasks] = useState<TaskWithProject[]>(tasks);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
 
   useEffect(() => {
     setLocalTasks(tasks);
   }, [tasks]);
 
-  if (isLoading) {
-    return (
-      <div
-        className="flex gap-4 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-transparent"
-        dir="rtl"
-      >
-        {TASK_KANBAN_ORDER.map((s) => (
-          <div
-            key={s}
-            className="w-72 shrink-0 rounded-xl border border-neutral-200 animate-pulse"
-          >
-            <div className="flex items-center gap-2 px-3 py-3 border-b border-neutral-200">
-              <div className="w-2.5 h-2.5 rounded-full bg-neutral-300" />
-              <div className="h-4 w-16 bg-neutral-200 rounded" />
-              <div className="ml-auto h-5 w-8 bg-neutral-200 rounded-full" />
-            </div>
-            <div className="p-3 space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-28 bg-white rounded-lg border border-neutral-200"
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  const tasksByStatus = TASK_KANBAN_ORDER.reduce<
-    Record<TaskStatus, TaskWithProject[]>
-  >(
-    (acc, status) => {
-      acc[status] = localTasks.filter((t) => t.status === status);
-      return acc;
+  // ── Permission check for dragging ────────────────────────────────────
+  const canDragItem = useCallback(
+    (task: TaskWithProject) => {
+      if (!user) return false;
+      if (user.role === UserRole.ADMIN || user.role === UserRole.PM) return true;
+      return task.assignedTo === user.id;
     },
-    {} as Record<TaskStatus, TaskWithProject[]>,
+    [user],
   );
 
-  function handleDragStart(event: DragStartEvent) {
-    const task = localTasks.find((t) => t.id === String(event.active.id));
-    setActiveTask(task ?? null);
-  }
+  // ── Drag end handler with optimistic updates ─────────────────────────
+  const handleDragEnd = useCallback(
+    async (itemId: string, fromStage: string, toStage: string) => {
+      if (!user) return;
 
-  async function handleDragEnd(event: DragEndEvent) {
-    setActiveTask(null);
+      const currentStatus = fromStage as TaskStatus;
+      const newStatus = toStage as TaskStatus;
 
-    const { active, over } = event;
-    if (!over || !user) return;
+      if (newStatus === currentStatus) return;
 
-    const taskId = String(active.id);
-    const newStatus = over.id as TaskStatus;
-    const task = localTasks.find((t) => t.id === taskId);
+      // Permission check
+      if (user.role !== UserRole.ADMIN) {
+        const roleKey = user.role;
+        const allowed = TASK_STATUS_TRANSITIONS[currentStatus]?.[roleKey] ?? [];
+        if (!allowed.includes(newStatus)) {
+          if (
+            currentStatus === TaskStatus.IN_REVIEW &&
+            newStatus === TaskStatus.DONE
+          ) {
+            toast.error(
+              "يجب على مدير المشروع مراجعة المهمة والموافقة عليها قبل إتمامها",
+            );
+          } else {
+            toast.error("لا يمكنك نقل المهمة إلى هذه الحالة");
+          }
+          return;
+        }
+      }
 
-    if (!task || task.status === newStatus) return;
+      // Optimistic update
+      const prevTasks = localTasks;
+      const updatedTasks = localTasks.map((t) =>
+        t.id === itemId ? { ...t, status: newStatus } : t,
+      );
+      setLocalTasks(updatedTasks);
 
-    if (user.role !== UserRole.ADMIN) {
-      const roleKey = user.role;
-      const allowed = TASK_STATUS_TRANSITIONS[task.status]?.[roleKey] ?? [];
-
-      if (!allowed.includes(newStatus)) {
+      try {
         if (
-          task.status === TaskStatus.IN_REVIEW &&
+          (currentStatus === TaskStatus.TODO ||
+            currentStatus === TaskStatus.REVISION) &&
+          newStatus === TaskStatus.IN_PROGRESS
+        ) {
+          await startTask(itemId).unwrap();
+        } else if (
+          currentStatus === TaskStatus.IN_PROGRESS &&
+          newStatus === TaskStatus.IN_REVIEW
+        ) {
+          await submitTask(itemId).unwrap();
+        } else if (
+          currentStatus === TaskStatus.IN_REVIEW &&
           newStatus === TaskStatus.DONE
         ) {
-          toast.error(
-            "يجب على مدير المشروع مراجعة المهمة والموافقة عليها قبل إتمامها",
-          );
+          await approveTask(itemId).unwrap();
+        } else if (
+          currentStatus === TaskStatus.IN_REVIEW &&
+          newStatus === TaskStatus.REVISION
+        ) {
+          await rejectTask(itemId).unwrap();
+        } else if (
+          currentStatus === TaskStatus.REVISION &&
+          newStatus === TaskStatus.IN_PROGRESS
+        ) {
+          await startTask(itemId).unwrap();
         } else {
+          setLocalTasks(prevTasks);
           toast.error("لا يمكنك نقل المهمة إلى هذه الحالة");
+          return;
         }
-        return;
-      }
-    }
-
-    const prevTasks = localTasks;
-    const updatedTasks = localTasks.map((t) =>
-      t.id === taskId ? { ...t, status: newStatus } : t,
-    );
-
-    setLocalTasks(updatedTasks);
-
-    try {
-      if (
-        task.status === TaskStatus.TODO &&
-        newStatus === TaskStatus.IN_PROGRESS
-      ) {
-        await startTask(taskId).unwrap();
-      } else if (
-        task.status === TaskStatus.IN_PROGRESS &&
-        newStatus === TaskStatus.IN_REVIEW
-      ) {
-        await submitTask(taskId).unwrap();
-      } else if (
-        task.status === TaskStatus.IN_REVIEW &&
-        newStatus === TaskStatus.DONE
-      ) {
-        await approveTask(taskId).unwrap();
-      } else if (
-        task.status === TaskStatus.IN_REVIEW &&
-        newStatus === TaskStatus.REVISION
-      ) {
-        await rejectTask(taskId).unwrap();
-      } else if (
-        task.status === TaskStatus.REVISION &&
-        newStatus === TaskStatus.IN_PROGRESS
-      ) {
-        await startTask(taskId).unwrap();
-      } else {
+        onStatusChange?.(itemId, newStatus);
+      } catch (err: unknown) {
+        // Rollback on failure
         setLocalTasks(prevTasks);
-        toast.error("لا يمكنك نقل المهمة إلى هذه الحالة");
-        return;
+        const msg =
+          (err as { data?: { message?: string }; error?: string })?.data
+            ?.message ??
+          (err as { error?: string })?.error ??
+          "فشل تحديث الحالة";
+        toast.error(msg);
       }
-      onStatusChange?.(taskId, newStatus);
-    } catch (err: unknown) {
-      setLocalTasks(prevTasks);
-      const msg =
-        (err as { data?: { message?: string }; error?: string })?.data
-          ?.message ??
-        (err as { error?: string })?.error ??
-        "فشل تحديث الحالة";
-      toast.error(msg);
-    }
-  }
+    },
+    [user, localTasks, startTask, submitTask, approveTask, rejectTask, onStatusChange],
+  );
+
+  // ── Render card ──────────────────────────────────────────────────────
+  const renderCard = useCallback(
+    (task: TaskWithProject, _options: { isOverlay: boolean }) => (
+      <EmployeeTaskKanbanCardContent
+        task={task}
+        canDrag={canDragItem(task)}
+      />
+    ),
+    [canDragItem],
+  );
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
+    <KanbanBoard
+      config={TASK_STATUS_CONFIG}
+      items={localTasks}
+      getItemStage={(t) => t.status}
+      renderCard={renderCard}
       onDragEnd={handleDragEnd}
-    >
-      <div
-        className="flex gap-4 overflow-x-auto pb-4 px-2 scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-transparent"
-        dir="rtl"
-      >
-        {TASK_KANBAN_ORDER.map((s) => (
-          <DroppableColumn
-            key={s}
-            status={s}
-            tasks={tasksByStatus[s] ?? []}
-            pmOnly={
-              s === TaskStatus.DONE &&
-              user?.role !== UserRole.ADMIN &&
-              user?.role !== UserRole.PM
-            }
-            currentUser={user}
-          />
-        ))}
-      </div>
-
-      <DragOverlay>
-        {activeTask ? <DraggableCard task={activeTask} overlay /> : null}
-      </DragOverlay>
-    </DndContext>
+      isLoading={isLoading}
+      canDragItem={canDragItem}
+      emptyMessage={
+        "لم يتم إسناد أي مهمة إليك بعد. سيتم عرض المهام هنا عند إسنادها."
+      }
+    />
   );
 }
