@@ -632,6 +632,81 @@ export const adminApi = createApi({
       query: (id) => ({ url: `/admin/portal/clients/${id}/regenerate-token`, method: "POST" }),
     }),
 
+    // ── Proposals ──────────────────────────────────────────────────────────
+    getAdminProposals: builder.query<any, any>({
+      query: (filters) => ({ url: "/admin/proposals", params: filters }),
+    }),
+    getAdminProposalStats: builder.query<any, void>({
+      query: () => "/admin/proposals/stats",
+    }),
+    getAdminProposal: builder.query<any, string>({
+      query: (id) => `/admin/proposals/${id}`,
+    }),
+
+    // ── Clients ────────────────────────────────────────────────────────────
+    getAdminClients: builder.query<any, any>({
+      query: (filters) => ({ url: "/admin/clients", params: filters }),
+    }),
+    getAdminClient: builder.query<any, string>({
+      query: (id) => `/admin/clients/${id}`,
+    }),
+
+    // ── Finance ────────────────────────────────────────────────────────────
+    getAdminFinanceOverview: builder.query<any, void>({
+      query: () => "/admin/finance/overview",
+      providesTags: ["AdminStats"],
+    }),
+    forceAdminInvoiceStatus: builder.mutation<any, { id: string; status: string; reason: string }>({
+      query: ({ id, ...body }) => ({ url: `/admin/finance/invoices/${id}/force-status`, method: "POST", body }),
+      invalidatesTags: ["AdminStats"],
+    }),
+    writeOffAdminInvoice: builder.mutation<any, { id: string; reason: string }>({
+      query: ({ id, ...body }) => ({ url: `/admin/finance/invoices/${id}/write-off`, method: "POST", body }),
+      invalidatesTags: ["AdminStats"],
+    }),
+    triggerAdminRefund: builder.mutation<any, { id: string; amount: number; reason: string }>({
+      query: ({ id, ...body }) => ({ url: `/admin/finance/invoices/${id}/refund`, method: "POST", body }),
+      invalidatesTags: ["AdminStats"],
+    }),
+    getAdminPaymentEvents: builder.query<any, string | void>({
+      query: (paymentId) => ({ url: "/admin/finance/payment-events", params: paymentId ? { paymentId } : {} }),
+    }),
+    getAdminWebhookLogs: builder.query<any, any>({
+      query: (filters) => ({ url: "/admin/finance/webhook-logs", params: filters }),
+    }),
+    retryAdminWebhook: builder.mutation<any, string>({
+      query: (id) => ({ url: `/admin/finance/webhook-logs/${id}/retry`, method: "POST" }),
+    }),
+    getAdminGatewaysHealth: builder.query<any, void>({
+      query: () => "/admin/finance/gateways-health",
+    }),
+
+    // ── System Administration ──────────────────────────────────────────────
+    getAdminEnvironment: builder.query<any, void>({
+      query: () => "/admin/environment",
+    }),
+    getAdminFeatureFlags: builder.query<any, void>({
+      query: () => "/admin/feature-flags",
+    }),
+    updateAdminFeatureFlag: builder.mutation<any, { key: string; enabled: boolean }>({
+      query: ({ key, ...body }) => ({ url: `/admin/feature-flags/${key}`, method: "POST", body }),
+    }),
+    getAdminAutomationRules: builder.query<any, void>({
+      query: () => "/admin/automation/rules",
+    }),
+    getAdminAutomationLogs: builder.query<any, string | void>({
+      query: (ruleId) => ({ url: "/admin/automation/logs", params: ruleId ? { ruleId } : {} }),
+    }),
+    createAdminAutomationRule: builder.mutation<any, any>({
+      query: (body) => ({ url: "/admin/automation/rules", method: "POST", body }),
+    }),
+    updateAdminAutomationRule: builder.mutation<any, { id: string; body: any }>({
+      query: ({ id, body }) => ({ url: `/admin/automation/rules/${id}`, method: "PATCH", body }),
+    }),
+    deleteAdminAutomationRule: builder.mutation<any, string>({
+      query: (id) => ({ url: `/admin/automation/rules/${id}`, method: "DELETE" }),
+    }),
+
   }),
 });
 
@@ -701,4 +776,29 @@ export const {
   useGetPortalOverviewQuery,
   useGetPortalClientsQuery,
   useRegeneratePortalTokenMutation,
+  // Proposals
+  useGetAdminProposalsQuery,
+  useGetAdminProposalStatsQuery,
+  useGetAdminProposalQuery,
+  // Clients
+  useGetAdminClientsQuery,
+  useGetAdminClientQuery,
+  // Finance
+  useGetAdminFinanceOverviewQuery,
+  useForceAdminInvoiceStatusMutation,
+  useWriteOffAdminInvoiceMutation,
+  useTriggerAdminRefundMutation,
+  useGetAdminPaymentEventsQuery,
+  useGetAdminWebhookLogsQuery,
+  useRetryAdminWebhookMutation,
+  useGetAdminGatewaysHealthQuery,
+  // System Administration
+  useGetAdminEnvironmentQuery,
+  useGetAdminFeatureFlagsQuery,
+  useUpdateAdminFeatureFlagMutation,
+  useGetAdminAutomationRulesQuery,
+  useGetAdminAutomationLogsQuery,
+  useCreateAdminAutomationRuleMutation,
+  useUpdateAdminAutomationRuleMutation,
+  useDeleteAdminAutomationRuleMutation,
 } = adminApi;

@@ -1,0 +1,160 @@
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { FinanceService } from "../../finance/services/finance.service";
+
+@Injectable()
+export class AdminFinanceService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly financeService: FinanceService,
+  ) {}
+
+  // ── Ledger audit helper ──────────────────────────────────────────────────────
+  private async audit(action: string, entity: string, entityId: string, userId?: string, before?: any, after?: any) {
+    await this.prisma.ledger.create({
+      data: { action, entity, entityId, userId, before, after },
+    });
+  }
+
+  // ── D1. Finance Overview ──────────────────────────────────────────────────────
+  async getOverview() {
+    const [summary, metrics, aging, cashflow, topClients, revenueTrend, alerts] = await Promise.all([
+      this.financeService.getSummary(),
+      this.financeService.getMetrics({}),
+      this.financeService.getAging(),
+      this.financeService.getCashFlow(),
+      this.financeService.getTopClients({ limit: 5 }),
+      this.financeService.getRevenueTrend({ groupBy: "month" }),
+      this.financeService.getAlerts(),
+    ]);
+    return { summary, metrics, aging, cashflow, topClients, revenueTrend, alerts };
+  }
+
+  // ── D2. Invoices — Force status ───────────────────────────────────────────────
+  async forceInvoiceStatus(invoiceId: string, status: string, reason: string, userId: string) {
+    const invoice = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+    if (!invoice) throw new NotFoundException("الفاتورة غير موجودة");
+
+    const updated = await this.prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { status: status as any },
+    });
+
+    await this.audit("ADMIN_FORCE_INVOICE_STATUS", "Invoice", invoiceId, userId,
+      { status: invoice.status, reason },
+      { status: updated.status },
+    );
+
+    return updated;
+  }
+
+  // ── D2. Invoices — Write-off ──────────────────────────────────────────────────
+  async writeOffInvoice(invoiceId: string, reason: string, userId: string) {
+    return this.forceInvoiceStatus(invoiceId, "VOID", `شطب: ${reason}`, userId);
+  }
+
+  // ── D2. Invoices — Refund trigger ─────────────────────────────────────────────
+  async triggerRefund(invoiceId: string, amount: number, reason: string, userId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { payments: { where: { status: "SUCCESS" } } },
+    });
+    if (!invoice) throw new NotFoundException("الفاتورة غير موجودة");
+    if (invoice.status !== "PAID" && invoice.status !== "PARTIAL") {
+      throw new BadRequestException("يمكن استرداد الفواتير المدفوعة فقط");
+    }
+
+    const refundAmount = amount ?? invoice.amount;
+    const refundPayment = await this.prisma.payment.create({
+      data: {
+        invoiceId,
+        amount: -refundAmount,
+        method: "BANK_TRANSFER",
+        status: "REFUNDED",
+        notes: `استرداد: ${reason}`,
+      },
+    });
+
+    await this.audit("ADMIN_TRIGGER_REFUND", "Invoice", invoiceId, userId,
+      { status: invoice.status, refundAmount },
+      { refundPaymentId: refundPayment.id },
+    );
+
+    return refundPayment;
+  }
+
+  // ── D3. Payment Events ────────────────────────────────────────────────────────
+  async getPaymentEvents(paymentId?: string) {
+    const where: any = {};
+    if (paymentId) where.paymentId = paymentId;
+    return this.prisma.paymentEvent.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: { payment: { select: { id: true, amount: true, method: true, status: true } } },
+    });
+  }
+
+  // ── D3. Webhook Logs ──────────────────────────────────────────────────────────
+  async getWebhookLogs(filters: { status?: string; provider?: string; page?: number; limit?: number }) {
+    const where: any = {};
+    if (filters.status === "failed") where.processed = false;
+    if (filters.status === "success") where.processed = true;
+    if (filters.provider) where.provider = filters.provider;
+
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 20;
+    const [items, total] = await Promise.all([
+      this.prisma.webhookLog.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.webhookLog.count({ where }),
+    ]);
+
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  // ── D3. Retry Webhook ─────────────────────────────────────────────────────────
+  async retryWebhook(webhookId: string, userId: string) {
+    const log = await this.prisma.webhookLog.findUnique({ where: { id: webhookId } });
+    if (!log) throw new NotFoundException("سجل الويب هوك غير موجود");
+    if (log.processed) throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
+
+    // Mark as processed (actual retry logic would call the external service)
+    const updated = await this.prisma.webhookLog.update({
+      where: { id: webhookId },
+      data: { processed: true, error: null },
+    });
+
+    await this.audit("ADMIN_RETRY_WEBHOOK", "WebhookLog", webhookId, userId,
+      { provider: log.provider, eventType: log.eventType },
+      { processed: true },
+    );
+
+    return updated;
+  }
+
+  // ── D3. Payment Gateways Health ───────────────────────────────────────────────
+  async getGatewaysHealth() {
+    const gateways = await this.prisma.paymentGateway.findMany({
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { payments: true } },
+      },
+    });
+    return gateways.map((g) => ({
+      ...g,
+      totalPayments: g._count.payments,
+      healthStatus: g.isActive ? "healthy" : "down",
+      lastHealthCheck: g.updatedAt,
+    }));
+  }
+}

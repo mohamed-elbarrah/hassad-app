@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { PrismaModule } from "../../prisma/prisma.module";
+import { FinanceModule } from "../finance/finance.module";
 import { TerminusModule } from "@nestjs/terminus";
 
 import { AdminController } from "./controllers/admin.controller";
@@ -18,6 +19,14 @@ import { AdminRequestsController } from "./controllers/admin-requests.controller
 import { AdminCampaignsController } from "./controllers/admin-campaigns.controller";
 import { AdminChatController } from "./controllers/admin-chat.controller";
 import { AdminPortalController } from "./controllers/admin-portal.controller";
+import { AdminFinanceController } from "./controllers/admin-finance.controller";
+import { AdminProposalsController } from "./controllers/admin-proposals.controller";
+import { AdminClientsController } from "./controllers/admin-clients.controller";
+import { AdminIntegrationsController } from "./controllers/admin-integrations.controller";
+import { AdminAutomationController } from "./controllers/admin-automation.controller";
+import { AdminFeatureFlagsController } from "./controllers/admin-feature-flags.controller";
+import { AdminEnvironmentController } from "./controllers/admin-environment.controller";
+import { AdminBackupsController } from "./controllers/admin-backups.controller";
 
 import { AdminService } from "./services/admin.service";
 import { AdminAuditService } from "./services/admin-audit.service";
@@ -33,6 +42,14 @@ import { AdminRequestsService } from "./services/admin-requests.service";
 import { AdminCampaignsService } from "./services/admin-campaigns.service";
 import { AdminChatService } from "./services/admin-chat.service";
 import { AdminPortalService } from "./services/admin-portal.service";
+import { AdminFinanceService } from "./services/admin-finance.service";
+import { AdminProposalsService } from "./services/admin-proposals.service";
+import { AdminClientsService } from "./services/admin-clients.service";
+import { AdminIntegrationsService } from "./services/admin-integrations.service";
+import { AdminAutomationService } from "./services/admin-automation.service";
+import { AdminFeatureFlagsService } from "./services/admin-feature-flags.service";
+import { AdminEnvironmentService } from "./services/admin-environment.service";
+import { AdminBackupsService } from "./services/admin-backups.service";
 
 import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
@@ -41,6 +58,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
 @Module({
   imports: [
     PrismaModule,
+    FinanceModule,
     TerminusModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -68,6 +86,14 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminCampaignsController,
     AdminChatController,
     AdminPortalController,
+    AdminFinanceController,
+    AdminProposalsController,
+    AdminClientsController,
+    AdminIntegrationsController,
+    AdminAutomationController,
+    AdminFeatureFlagsController,
+    AdminEnvironmentController,
+    AdminBackupsController,
   ],
   providers: [
     AdminService,
@@ -84,6 +110,14 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminCampaignsService,
     AdminChatService,
     AdminPortalService,
+    AdminFinanceService,
+    AdminProposalsService,
+    AdminClientsService,
+    AdminIntegrationsService,
+    AdminAutomationService,
+    AdminFeatureFlagsService,
+    AdminEnvironmentService,
+    AdminBackupsService,
     PrismaHealthIndicator,
     HealthPersistenceService,
     RobustErrorLoggerService,
