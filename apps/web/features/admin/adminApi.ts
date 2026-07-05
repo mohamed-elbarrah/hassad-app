@@ -243,10 +243,14 @@ export interface FunnelData {
   };
 }
 
-export interface AlertItem {
+export interface AlertItemBase {
   count: number;
   label: string;
   link: string;
+}
+
+export interface AlertItem extends AlertItemBase {
+  items?: any[];
 }
 
 export interface AlertsData {
@@ -442,6 +446,15 @@ export interface PortalOverview {
   unsubmittedIntakeForms: number;
   snoozedItemsCount: number;
   activeTokens: number;
+}
+
+export interface RecentActivityEntry {
+  id: string;
+  entityType: string;
+  eventType: string;
+  description: string;
+  occurredAt: string;
+  actorName: string | null;
 }
 
 // ── API slice ─────────────────────────────────────────────────────────────────
@@ -640,6 +653,10 @@ export const adminApi = createApi({
     getAlertsData: builder.query<AlertsData, void>({
       query: () => "/admin/alerts",
       providesTags: ["AdminStats"],
+    }),
+
+    getRecentActivity: builder.query<RecentActivityEntry[], void>({
+      query: () => "/admin/recent-activity",
     }),
 
     // ── Projects ───────────────────────────────────────────────────────────
@@ -988,6 +1005,7 @@ export const {
   useGetTrendDataQuery,
   useGetFunnelDataQuery,
   useGetAlertsDataQuery,
+  useGetRecentActivityQuery,
   // Projects
   useGetAdminProjectsQuery,
   useGetAdminProjectQuery,

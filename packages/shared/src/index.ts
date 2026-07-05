@@ -28,6 +28,7 @@ import type { ServiceItem } from "./schemas/proposal.schema";
 import { UserRole } from "./enums/roles";
 import {
   ClientStatus,
+  CLIENT_STATUS_AR,
   BusinessType,
   ClientSource,
   ProposalStatus,

@@ -23,7 +23,10 @@ import {
   useGetFunnelDataQuery,
   useGetAlertsDataQuery,
   useGetHealthQuery,
+  useGetRecentActivityQuery,
 } from "@/features/admin/adminApi";
+import { NeedsAttentionCard } from "@/components/dashboard/admin/NeedsAttentionCard";
+import { RecentActivityFeed } from "@/components/dashboard/admin/RecentActivityFeed";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DashboardCard } from "@/components/design-system/DashboardCard";
@@ -56,34 +59,6 @@ import {
   Minus,
   ChevronLeft,
 } from "lucide-react";
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-type AlertKey =
-  | "overdueTasks"
-  | "escalatedDisputes"
-  | "agedInvoices"
-  | "failedWebhooks"
-  | "expiringContracts"
-  | "pendingRequests";
-
-const ALERT_ORDER: AlertKey[] = [
-  "overdueTasks",
-  "escalatedDisputes",
-  "agedInvoices",
-  "failedWebhooks",
-  "expiringContracts",
-  "pendingRequests",
-];
-
-const ALERT_DOT: Record<AlertKey, string> = {
-  overdueTasks: "bg-danger-500",
-  escalatedDisputes: "bg-danger-500",
-  agedInvoices: "bg-alert-500",
-  failedWebhooks: "bg-alert-500",
-  expiringContracts: "bg-action-blue",
-  pendingRequests: "bg-action-blue",
-};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -179,10 +154,22 @@ function RevenueChart({
 }) {
   if (isLoading) {
     return (
-      <SurfaceCard
-        className="lg:col-span-2 h-[360px] flex flex-col"
-        contentClassName="flex-1 min-h-0"
-      >
+    <SurfaceCard
+      className="h-[360px] flex flex-col"
+      contentClassName="flex-1 min-h-0"
+    >
+      <Skeleton className="h-full w-full rounded-2xl" />
+    </SurfaceCard>
+  );
+
+  return (
+    <SurfaceCard
+      className="h-[360px] flex flex-col"
+      contentClassName="flex-1 min-h-0"
+      title="الإيرادات الشهرية"
+      description="آخر 30 يوم"
+      icon={TrendingUp}
+    >
         <Skeleton className="h-full w-full rounded-2xl" />
       </SurfaceCard>
     );
@@ -638,52 +625,6 @@ function HealthCards({
   );
 }
 
-// ── Alerts ribbon ────────────────────────────────────────────────────────────
-
-function AlertsRibbon({
-  alerts,
-  isLoading,
-}: {
-  alerts?: any;
-  isLoading: boolean;
-}) {
-  if (isLoading || !alerts) return null;
-
-  const items = ALERT_ORDER.filter(
-    (key) => (alerts as any)[key]?.count > 0,
-  ).map((key) => ({
-    key,
-    count: (alerts as any)[key].count,
-    label: (alerts as any)[key].label,
-    link: (alerts as any)[key].link,
-    dot: ALERT_DOT[key],
-  }));
-
-  if (items.length === 0) return null;
-
-  return (
-    <div className="flex items-start gap-3 overflow-x-auto pb-1">
-      {items.map((item) => (
-        <Link key={item.key} href={item.link} className="group shrink-0">
-          <div
-            className="flex items-center gap-3 rounded-2xl bg-natural-0 border border-portal-card-border px-4 py-3 hover:border-secondary-300 hover:shadow-md transition-all"
-            style={{ minWidth: 180 }}
-          >
-            <div className={cn("w-2 h-2 rounded-full shrink-0", item.dot)} />
-            <div className="min-w-0">
-              <p className="text-[11px] text-portal-note-text truncate">
-                {item.label}
-              </p>
-              <p className="text-lg font-bold text-natural-100">{item.count}</p>
-            </div>
-            <ArrowUpRight className="w-4 h-4 text-portal-note-text group-hover:text-secondary-500 shrink-0 mr-auto" />
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 // ── Quick actions ────────────────────────────────────────────────────────────
 
 function QuickAction({
@@ -766,13 +707,15 @@ export default function AdminDashboardPage() {
   const { data: funnel, isLoading: funnelLoading } = useGetFunnelDataQuery();
   const { data: alerts, isLoading: alertsLoading } = useGetAlertsDataQuery();
   const { data: health, isLoading: healthLoading } = useGetHealthQuery();
+  const { data: recentActivity, isLoading: activityLoading } = useGetRecentActivityQuery();
 
   const isLoading =
     statsLoading ||
     trendsLoading ||
     funnelLoading ||
     alertsLoading ||
-    healthLoading;
+    healthLoading ||
+    activityLoading;
 
   const revenueData = useMemo(() => {
     if (!trends?.revenue || !trends?.labels) return [];
@@ -847,19 +790,24 @@ export default function AdminDashboardPage() {
         }
       />
 
-      <AlertsRibbon alerts={alerts} isLoading={alertsLoading} />
-
       <HealthCards health={health} isLoading={healthLoading} />
 
       <HeroKpis stats={stats} isLoading={statsLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <RevenueChart data={revenueData} isLoading={trendsLoading} />
-        <UsersBarChart data={usersBarData} isLoading={trendsLoading} />
+        <div className="lg:col-span-2">
+          <RevenueChart data={revenueData} isLoading={trendsLoading} />
+        </div>
+        <NeedsAttentionCard alerts={alerts} isLoading={alertsLoading} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <UsersBarChart data={usersBarData} isLoading={trendsLoading} />
         <FunnelCard funnel={funnel} isLoading={funnelLoading} />
+        <RecentActivityFeed activities={recentActivity} isLoading={activityLoading} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <RoleDistribution
           data={roleData}
           total={stats?.totalUsers ?? roleData.reduce((s, r) => s + r.value, 0)}

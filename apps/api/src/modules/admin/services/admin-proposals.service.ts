@@ -46,6 +46,16 @@ export class AdminProposalsService {
       include: {
         lead: { select: { id: true, companyName: true, contactName: true } },
         client: { select: { id: true, companyName: true } },
+        creator: { select: { id: true, name: true, email: true } },
+        request: {
+          select: {
+            id: true,
+            companyName: true,
+            contactName: true,
+            status: true,
+            services: { include: { service: true } },
+          },
+        },
       },
     });
     if (!proposal) throw new Error("العرض غير موجود");

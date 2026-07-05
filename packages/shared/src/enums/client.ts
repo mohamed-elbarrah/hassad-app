@@ -94,6 +94,12 @@ export enum ClientStatus {
   STOPPED = "STOPPED",
 }
 
+export const CLIENT_STATUS_AR: Record<ClientStatus, string> = {
+  [ClientStatus.LEAD]: "عميل محتمل",
+  [ClientStatus.ACTIVE]: "نشط",
+  [ClientStatus.STOPPED]: "متوقف",
+};
+
 export enum DurationUnit {
   DAYS = "DAYS",
   WEEKS = "WEEKS",

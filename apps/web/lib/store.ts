@@ -30,6 +30,7 @@ import { healthApi } from "@/features/health/healthApi";
 import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
 import { adminDisputesApi } from "@/features/disputes/adminDisputesApi";
+import { notificationTemplatesApi } from "@/features/notification-templates/notificationTemplatesApi";
 
 export const store = configureStore({
   reducer: {
@@ -63,12 +64,10 @@ export const store = configureStore({
     [periodsApi.reducerPath]: periodsApi.reducer,
     [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
     [adminDisputesApi.reducerPath]: adminDisputesApi.reducer,
+    [notificationTemplatesApi.reducerPath]: notificationTemplatesApi.reducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false,
-      immutableCheck: false,
-    }).concat(
+  middleware: (getDefaultMiddleware) => {
+    const middleware = [
       authApi.middleware,
       clientsApi.middleware,
       leadsApi.middleware,
@@ -97,7 +96,13 @@ export const store = configureStore({
       periodsApi.middleware,
       pmDisputesApi.middleware,
       adminDisputesApi.middleware,
-    ),
+      notificationTemplatesApi.middleware,
+    ];
+    return getDefaultMiddleware({
+      serializableCheck: false,
+      immutableCheck: false,
+    }).concat(middleware);
+  },
 });
 
 setupListeners(store.dispatch);

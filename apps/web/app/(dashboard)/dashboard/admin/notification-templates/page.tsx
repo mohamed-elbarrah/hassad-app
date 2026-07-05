@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Search, Pencil } from "lucide-react";
+import { Bell, Search, Pencil, Loader2 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -9,54 +9,38 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { Dialog } from "@/components/design-system/Dialog";
 import { toast } from "sonner";
-
-const MOCK_TEMPLATES = [
-  {
-    id: "1",
-    eventType: "TASK_ASSIGNED",
-    title: "مهمة جديدة",
-    titleAr: "تم تعيين مهمة جديدة",
-    bodyAr: "مرحباً، تم تعيين مهمة '{task_title}' لك في مشروع '{project_name}'",
-  },
-  {
-    id: "2",
-    eventType: "INVOICE_CREATED",
-    title: "فاتورة جديدة",
-    titleAr: "تم إنشاء فاتورة جديدة",
-    bodyAr: "تم إنشاء فاتورة رقم '{invoice_number}' بمبلغ {amount}",
-  },
-  {
-    id: "3",
-    eventType: "PAYMENT_RECEIVED",
-    title: "تم استلام الدفع",
-    titleAr: "تم استلام الدفع",
-    bodyAr: "تم استلام دفعة بمبلغ {amount} للفاتورة رقم '{invoice_number}'",
-  },
-  {
-    id: "4",
-    eventType: "PROJECT_COMPLETED",
-    title: "اكتمال المشروع",
-    titleAr: "تم اكتمال المشروع",
-    bodyAr: "تم اكتمال مشروع '{project_name}' بنجاح",
-  },
-  {
-    id: "5",
-    eventType: "LEAD_ASSIGNED",
-    title: "عميل محتمل جديد",
-    titleAr: "تم تعيين عميل محتمل",
-    bodyAr: "تم تعيين العميل المحتمل '{lead_name}' لك",
-  },
-];
+import {
+  useGetNotificationTemplatesQuery,
+  useUpdateNotificationTemplateMutation,
+} from "@/features/notification-templates/notificationTemplatesApi";
 
 export default function AdminNotificationTemplatesPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any>(null);
   const [showEdit, setShowEdit] = useState(false);
-  const [editForm, setEditForm] = useState({ titleAr: "", bodyAr: "" });
+  const [editForm, setEditForm] = useState({ title: "", body: "" });
 
-  const filtered = MOCK_TEMPLATES.filter(
-    (t) => t.eventType.includes(search) || t.titleAr.includes(search),
+  const { data: templates, isLoading, isError } = useGetNotificationTemplatesQuery();
+  const [updateTemplate, { isLoading: updating }] = useUpdateNotificationTemplateMutation();
+
+  const filtered = (templates ?? []).filter(
+    (t) => t.eventType.includes(search) || t.title.includes(search),
   );
+
+  const handleSave = async () => {
+    if (!selected) return;
+    try {
+      await updateTemplate({
+        id: selected.id,
+        title: editForm.title,
+        body: editForm.body,
+      }).unwrap();
+      toast.success("تم حفظ القالب");
+      setShowEdit(false);
+    } catch {
+      toast.error("حدث خطأ أثناء حفظ القالب");
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -82,11 +66,12 @@ export default function AdminNotificationTemplatesPage() {
             { id: "event", label: "الحدث" },
             { id: "title", label: "العنوان" },
             { id: "body", label: "المحتوى" },
+            { id: "active", label: "مفعل" },
             { id: "actions", label: "", align: "left" },
           ]}
           data={filtered}
-          isLoading={false}
-          isError={false}
+          isLoading={isLoading}
+          isError={isError}
           emptyState={{
             icon: Bell,
             message: "لا توجد قوالب",
@@ -95,9 +80,16 @@ export default function AdminNotificationTemplatesPage() {
           renderRow={(t: any) => (
             <tr key={t.id} className="border-b border-portal-divider">
               <td className="px-5 py-3 text-sm font-medium">{t.eventType}</td>
-              <td className="px-5 py-3 text-sm">{t.titleAr}</td>
+              <td className="px-5 py-3 text-sm">{t.title}</td>
               <td className="px-5 py-3 text-sm text-portal-note-text max-w-md truncate">
-                {t.bodyAr}
+                {t.body}
+              </td>
+              <td className="px-5 py-3 text-sm">
+                {t.isActive ? (
+                  <span className="text-success-600">نشط</span>
+                ) : (
+                  <span className="text-portal-note-text">غير نشط</span>
+                )}
               </td>
               <td className="px-5 py-3 text-left">
                 <ActionButton
@@ -105,7 +97,7 @@ export default function AdminNotificationTemplatesPage() {
                   size="sm"
                   onClick={() => {
                     setSelected(t);
-                    setEditForm({ titleAr: t.titleAr, bodyAr: t.bodyAr });
+                    setEditForm({ title: t.title, body: t.body });
                     setShowEdit(true);
                   }}
                 >
@@ -126,12 +118,8 @@ export default function AdminNotificationTemplatesPage() {
             <ActionButton variant="outline" onClick={() => setShowEdit(false)}>
               إلغاء
             </ActionButton>
-            <ActionButton
-              onClick={() => {
-                toast.success("تم حفظ القالب");
-                setShowEdit(false);
-              }}
-            >
+            <ActionButton onClick={handleSave} disabled={updating}>
+              {updating ? <Loader2 className="size-4 animate-spin" /> : null}
               حفظ
             </ActionButton>
           </div>
@@ -143,23 +131,23 @@ export default function AdminNotificationTemplatesPage() {
           </p>
           <div>
             <label className="block text-sm text-portal-note-text mb-1">
-              العنوان (عربي)
+              العنوان
             </label>
             <FormInputControl
-              value={editForm.titleAr}
+              value={editForm.title}
               onChange={(e) =>
-                setEditForm({ ...editForm, titleAr: e.target.value })
+                setEditForm({ ...editForm, title: e.target.value })
               }
             />
           </div>
           <div>
             <label className="block text-sm text-portal-note-text mb-1">
-              المحتوى (عربي)
+              المحتوى
             </label>
             <textarea
-              value={editForm.bodyAr}
+              value={editForm.body}
               onChange={(e) =>
-                setEditForm({ ...editForm, bodyAr: e.target.value })
+                setEditForm({ ...editForm, body: e.target.value })
               }
               className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm min-h-[120px]"
             />

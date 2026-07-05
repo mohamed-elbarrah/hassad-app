@@ -316,6 +316,11 @@ export class AdminService {
       failedWebhooks,
       expiringContracts,
       pendingRequests,
+      overdueTaskItems,
+      agedInvoiceItems,
+      escalatedDisputeItems,
+      pendingRequestItems,
+      expiringContractItems,
     ] = await Promise.all([
       this.prisma.task.count({
         where: {
@@ -344,6 +349,57 @@ export class AdminService {
       this.prisma.request.count({
         where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
       }),
+      this.prisma.task.findMany({
+        where: {
+          dueDate: { lt: now },
+          status: { notIn: ["DONE", "REVISION"] },
+        },
+        take: 5,
+        orderBy: { dueDate: "asc" },
+        select: {
+          id: true,
+          title: true,
+          dueDate: true,
+          assignedTo: true,
+          assignee: { select: { name: true } },
+        },
+      }),
+      this.prisma.invoice.findMany({
+        where: {
+          status: { in: ["DUE", "SENT", "LATE", "PARTIAL"] },
+          dueDate: { lt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000) },
+        },
+        take: 5,
+        orderBy: { dueDate: "asc" },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          amount: true,
+          dueDate: true,
+          client: { select: { companyName: true } },
+        },
+      }),
+      this.prisma.disputeTicket.findMany({
+        where: { status: "ESCALATED" },
+        take: 5,
+        orderBy: { escalatedAt: "desc" },
+        select: { id: true, ticketNumber: true, title: true, priority: true, escalatedAt: true },
+      }),
+      this.prisma.request.findMany({
+        where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: { id: true, companyName: true, createdAt: true, contactName: true },
+      }),
+      this.prisma.contract.findMany({
+        where: {
+          status: "ACTIVE",
+          endDate: { gte: now, lte: thirtyDaysFromNow },
+        },
+        take: 5,
+        orderBy: { endDate: "asc" },
+        select: { id: true, title: true, endDate: true, client: { select: { companyName: true } } },
+      }),
     ]);
 
     return {
@@ -351,33 +407,175 @@ export class AdminService {
         count: overdueTasks,
         label: "مهام متأخرة",
         link: "/dashboard/admin/tasks?status=OVERDUE",
+        items: overdueTaskItems.map((t) => ({
+          id: t.id,
+          title: t.title,
+          dueDate: t.dueDate?.toISOString() ?? null,
+          assignee: t.assignee?.name ?? null,
+        })),
       },
       agedInvoices: {
         count: agedInvoices,
         label: "فواتير غير مسددة (+60 يوم)",
-        link: "/dashboard/admin/invoices?aging=60",
+        link: "/dashboard/admin/finance/invoices?aging=60",
+        items: agedInvoiceItems.map((inv) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          amount: inv.amount,
+          dueDate: inv.dueDate?.toISOString() ?? null,
+          clientName: inv.client?.companyName ?? null,
+        })),
       },
       escalatedDisputes: {
         count: escalatedDisputes,
         label: "نزاعات تم تصعيدها",
         link: "/dashboard/admin/disputes?status=ESCALATED",
+        items: escalatedDisputeItems.map((d) => ({
+          id: d.id,
+          ticketNumber: d.ticketNumber,
+          title: d.title,
+          priority: d.priority,
+        })),
       },
       failedWebhooks: {
         count: failedWebhooks,
         label: "Webhooks فاشلة",
         link: "/dashboard/admin/integrations?status=failed",
+        items: [],
       },
       expiringContracts: {
         count: expiringContracts,
         label: "عقود تنتهي قريباً",
         link: "/dashboard/admin/contracts?expiring=30",
+        items: expiringContractItems.map((c) => ({
+          id: c.id,
+          title: c.title,
+          endDate: c.endDate?.toISOString() ?? null,
+          clientName: c.client?.companyName ?? null,
+        })),
       },
       pendingRequests: {
         count: pendingRequests,
         label: "طلبات معلقة",
         link: "/dashboard/admin/requests?status=PENDING",
+        items: pendingRequestItems.map((r) => ({
+          id: r.id,
+          companyName: r.companyName,
+          contactName: r.contactName,
+          createdAt: r.createdAt.toISOString(),
+        })),
       },
     };
+  }
+
+  // ── Recent Activity ──────────────────────────────────────────────────────────
+
+  async getRecentActivity() {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [clientHistory, taskHistory, contractHistory, disputeHistory, requestHistory] =
+      await Promise.all([
+        this.prisma.clientHistoryLog.findMany({
+          where: { occurredAt: { gte: sevenDaysAgo } },
+          take: 10,
+          orderBy: { occurredAt: "desc" },
+          include: { user: { select: { name: true } } },
+        }),
+        this.prisma.taskStatusHistory.findMany({
+          where: { changedAt: { gte: sevenDaysAgo } },
+          take: 10,
+          orderBy: { changedAt: "desc" },
+          include: { changer: { select: { name: true } } },
+        }),
+        this.prisma.contractStatusHistory.findMany({
+          where: { changedAt: { gte: sevenDaysAgo } },
+          take: 10,
+          orderBy: { changedAt: "desc" },
+          include: { changedByUser: { select: { name: true } } },
+        }),
+        this.prisma.disputeHistory.findMany({
+          where: { changedAt: { gte: sevenDaysAgo } },
+          take: 10,
+          orderBy: { changedAt: "desc" },
+          include: { changer: { select: { name: true } } },
+        }),
+        this.prisma.requestStatusHistory.findMany({
+          where: { changedAt: { gte: sevenDaysAgo } },
+          take: 10,
+          orderBy: { changedAt: "desc" },
+          include: { changer: { select: { name: true } } },
+        }),
+      ]);
+
+    const entries: Array<{
+      id: string;
+      entityType: string;
+      eventType: string;
+      description: string;
+      occurredAt: string;
+      actorName: string | null;
+    }> = [];
+
+    for (const h of clientHistory) {
+      entries.push({
+        id: h.id,
+        entityType: "client",
+        eventType: h.eventType,
+        description: h.description,
+        occurredAt: h.occurredAt.toISOString(),
+        actorName: h.user?.name ?? null,
+      });
+    }
+    for (const h of taskHistory) {
+      entries.push({
+        id: h.id,
+        entityType: "task",
+        eventType: `TASK_${h.toStatus}`,
+        description: `تغيير حالة المهمة من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`,
+        occurredAt: h.changedAt.toISOString(),
+        actorName: h.changer?.name ?? null,
+      });
+    }
+    for (const h of contractHistory) {
+      entries.push({
+        id: h.id,
+        entityType: "contract",
+        eventType: `CONTRACT_${h.toStatus}`,
+        description: h.reason
+          ? `تغيير حالة العقد: ${h.reason}`
+          : `تغيير حالة العقد من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`,
+        occurredAt: h.changedAt.toISOString(),
+        actorName: h.changedByUser?.name ?? null,
+      });
+    }
+    for (const h of disputeHistory) {
+      entries.push({
+        id: h.id,
+        entityType: "dispute",
+        eventType: `DISPUTE_${h.toStatus}`,
+        description: h.note ?? `تغيير حالة النزاع إلى ${h.toStatus}`,
+        occurredAt: h.changedAt.toISOString(),
+        actorName: h.changer?.name ?? null,
+      });
+    }
+    for (const h of requestHistory) {
+      entries.push({
+        id: h.id,
+        entityType: "request",
+        eventType: `REQUEST_${h.toStatus}`,
+        description: h.note ?? `تغيير حالة الطلب إلى ${h.toStatus}`,
+        occurredAt: h.changedAt.toISOString(),
+        actorName: h.changer?.name ?? null,
+      });
+    }
+
+    entries.sort(
+      (a, b) =>
+        new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
+    );
+
+    return entries.slice(0, 15);
   }
 
   async getHealth() {

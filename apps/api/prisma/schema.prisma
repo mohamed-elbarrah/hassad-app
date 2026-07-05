@@ -1642,6 +1642,18 @@ model MessageAttachment {
   @@map("message_attachments")
 }
 
+model NotificationTemplate {
+  id        String   @id @default(uuid())
+  eventType String   @unique @map("event_type")
+  title     String
+  body      String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
 model NotificationEvent {
   id            String         @id @default(uuid())
   entityId      String         @map("entity_id")

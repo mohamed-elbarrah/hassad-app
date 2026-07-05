@@ -44,6 +44,12 @@ export class AdminController {
     return this.adminService.getAlerts();
   }
 
+  @Get("recent-activity")
+  @RequirePermissions("admin.stats")
+  getRecentActivity() {
+    return this.adminService.getRecentActivity();
+  }
+
   @Get("health")
   @RequirePermissions("admin.stats")
   async getHealth() {
