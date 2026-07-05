@@ -26,12 +26,36 @@ export class AdminFeatureFlagsService {
 
   async getDefaults() {
     return {
-      "admin_dashboard_v2": { label: "لوحة الإدارة الجديدة", default: true, description: "تفعيل لوحة الإدارة المحدثة" },
-      "ai_module": { label: "الذكاء الاصطناعي", default: true, description: "تفعيل وحدة الذكاء الاصطناعي" },
-      "client_portal": { label: "بوابة العميل", default: true, description: "تفعيل بوابة العملاء" },
-      "automation_rules": { label: "قواعد الأتمتة", default: true, description: "تفعيل قواعد أتمتة العملاء المحتملين" },
-      "notifications": { label: "الإشعارات", default: true, description: "تفعيل نظام الإشعارات" },
-      "public_registration": { label: "التسجيل العام", default: false, description: "السماح بتسجيل حسابات جديدة للعملاء" },
+      admin_dashboard_v2: {
+        label: "لوحة الإدارة الجديدة",
+        default: true,
+        description: "تفعيل لوحة الإدارة المحدثة",
+      },
+      ai_module: {
+        label: "الذكاء الاصطناعي",
+        default: true,
+        description: "تفعيل وحدة الذكاء الاصطناعي",
+      },
+      client_portal: {
+        label: "بوابة العميل",
+        default: true,
+        description: "تفعيل بوابة العملاء",
+      },
+      automation_rules: {
+        label: "قواعد الأتمتة",
+        default: true,
+        description: "تفعيل قواعد أتمتة العملاء المحتملين",
+      },
+      notifications: {
+        label: "الإشعارات",
+        default: true,
+        description: "تفعيل نظام الإشعارات",
+      },
+      public_registration: {
+        label: "التسجيل العام",
+        default: false,
+        description: "السماح بتسجيل حسابات جديدة للعملاء",
+      },
     };
   }
 }

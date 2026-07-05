@@ -29,13 +29,15 @@ export function ProjectKanbanColumn({
       className={cn(
         "w-72 shrink-0 flex flex-col rounded-xl border transition-all duration-150",
         isOver && "ring-2 ring-offset-2",
-        isOver && "ring-[var(--status-color)]"
+        isOver && "ring-[var(--status-color)]",
       )}
-      style={{
-        "--status-color": color,
-        backgroundColor: tintColor,
-        borderColor: `${color}33`, // 20% opacity border
-      } as React.CSSProperties}
+      style={
+        {
+          "--status-color": color,
+          backgroundColor: tintColor,
+          borderColor: `${color}33`, // 20% opacity border
+        } as React.CSSProperties
+      }
     >
       {/* Column Header */}
       <div

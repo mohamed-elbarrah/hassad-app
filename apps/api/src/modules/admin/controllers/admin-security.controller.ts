@@ -8,9 +8,7 @@ import { QuerySecurityEventsDto } from "../dto/admin-security.dto";
 @Controller("admin/security")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminSecurityController {
-  constructor(
-    private readonly adminSecurityService: AdminSecurityService,
-  ) {}
+  constructor(private readonly adminSecurityService: AdminSecurityService) {}
 
   @Get("events")
   @RequirePermissions("admin.security.read")

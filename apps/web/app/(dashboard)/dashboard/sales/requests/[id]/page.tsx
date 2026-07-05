@@ -209,7 +209,10 @@ function RelatedRecords({ request }: { request: RequestDetail }) {
                 {formatShortDate(request.project.createdAt)}
               </p>
             </div>
-            <SalesStatusBadge domain="project" status={request.project.status} />
+            <SalesStatusBadge
+              domain="project"
+              status={request.project.status}
+            />
             <ArrowLeft className="w-4 h-4 text-portal-note-text shrink-0 group-hover:-translate-x-1 transition-transform" />
           </Link>
         )}
@@ -433,8 +436,7 @@ export default function RequestDetailPage({
                     new Date(b.changedAt).getTime(),
                 )
                 .map((entry, idx) => {
-                  const isLast =
-                    idx === request.statusHistory.length - 1;
+                  const isLast = idx === request.statusHistory.length - 1;
                   return (
                     <div key={entry.id} className="flex gap-3">
                       <div className="flex flex-col items-center">
@@ -443,9 +445,7 @@ export default function RequestDetailPage({
                           <div className="w-0.5 flex-1 bg-portal-divider min-h-[24px]" />
                         )}
                       </div>
-                      <div
-                        className={`${isLast ? "" : "pb-6"} flex-1 min-w-0`}
-                      >
+                      <div className={`${isLast ? "" : "pb-6"} flex-1 min-w-0`}>
                         <div className="flex flex-wrap items-center gap-2 mb-1">
                           {entry.fromStatus && (
                             <>

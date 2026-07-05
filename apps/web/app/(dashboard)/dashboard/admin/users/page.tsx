@@ -14,7 +14,10 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pill } from "@/components/design-system/Pill";
 import { PageIntro } from "@/components/design-system/PageIntro";
@@ -30,7 +33,10 @@ import {
   type AdminUserDetail,
   type AdminUserFilters,
 } from "@/features/admin/adminApi";
-import { BulkActionBar, type BulkAction } from "@/components/dashboard/admin/BulkActionBar";
+import {
+  BulkActionBar,
+  type BulkAction,
+} from "@/components/dashboard/admin/BulkActionBar";
 import { ImpersonateDialog } from "@/components/dashboard/admin/ImpersonateDialog";
 import { ResetPasswordDialog } from "@/components/dashboard/admin/ResetPasswordDialog";
 
@@ -44,7 +50,10 @@ const ROLE_LABELS: Record<string, string> = {
   CLIENT: "عميل",
 };
 
-const ROLE_PILL_TONE: Record<string, "danger" | "neutral" | "warning" | "success" | "blue"> = {
+const ROLE_PILL_TONE: Record<
+  string,
+  "danger" | "neutral" | "warning" | "success" | "blue"
+> = {
   ADMIN: "danger",
   PM: "neutral",
   SALES: "warning",
@@ -54,7 +63,14 @@ const ROLE_PILL_TONE: Record<string, "danger" | "neutral" | "warning" | "success
   CLIENT: "neutral",
 };
 
-const STAFF_ROLES = ["SALES", "PM", "EMPLOYEE", "MARKETING", "ACCOUNTANT", "ADMIN"];
+const STAFF_ROLES = [
+  "SALES",
+  "PM",
+  "EMPLOYEE",
+  "MARKETING",
+  "ACCOUNTANT",
+  "ADMIN",
+];
 
 function useDebounce<T>(value: T, delay = 400): T {
   const [debounced, setDebounced] = useState(value);
@@ -68,12 +84,15 @@ function useDebounce<T>(value: T, delay = 400): T {
 export default function AdminUsersPage() {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
 
   // Dialogs
-  const [impersonateUser, setImpersonateUser] = useState<AdminUserDetail | null>(null);
+  const [impersonateUser, setImpersonateUser] =
+    useState<AdminUserDetail | null>(null);
   const [resetPwUser, setResetPwUser] = useState<AdminUserDetail | null>(null);
 
   const debouncedSearch = useDebounce(searchInput, 400);
@@ -104,11 +123,14 @@ export default function AdminUsersPage() {
     }
   }, [selectAll, users]);
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    setSelectedIds([]);
-    setSelectAll(false);
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setSelectedIds([]);
+      setSelectAll(false);
+    },
+    [],
+  );
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>
@@ -123,7 +145,10 @@ export default function AdminUsersPage() {
       label: "الدور",
       options: [
         { label: "الكل", value: "" },
-        ...STAFF_ROLES.map((role) => ({ label: ROLE_LABELS[role], value: role })),
+        ...STAFF_ROLES.map((role) => ({
+          label: ROLE_LABELS[role],
+          value: role,
+        })),
         { label: "عميل", value: "CLIENT" },
       ],
     },
@@ -143,19 +168,25 @@ export default function AdminUsersPage() {
       label: "تفعيل",
       icon: Power,
       onExecute: async (ids) => {
-        const res = await bulkAction({ userIds: ids, action: "activate" }).unwrap();
+        const res = await bulkAction({
+          userIds: ids,
+          action: "activate",
+        }).unwrap();
         return res;
       },
     },
     {
       label: "تعطيل",
       icon: PowerOff,
-      variant: "danger",
+      variant: "primary",
       requiresConfirmation: true,
       confirmationTitle: "تعطيل المستخدمين",
       confirmationMessage: "سيتم تعطيل الحسابات المحددة. هل أنت متأكد؟",
       onExecute: async (ids) => {
-        const res = await bulkAction({ userIds: ids, action: "deactivate" }).unwrap();
+        const res = await bulkAction({
+          userIds: ids,
+          action: "deactivate",
+        }).unwrap();
         return res;
       },
     },
@@ -165,7 +196,13 @@ export default function AdminUsersPage() {
       onExecute: async (ids) => {
         // Client-side CSV export
         const selectedUsers = users.filter((u) => ids.includes(u.id));
-        const headers = ["الاسم", "البريد الإلكتروني", "الدور", "الحالة", "آخر تسجيل دخول"];
+        const headers = [
+          "الاسم",
+          "البريد الإلكتروني",
+          "الدور",
+          "الحالة",
+          "آخر تسجيل دخول",
+        ];
         const rows = selectedUsers.map((u) => [
           u.name,
           u.email,
@@ -173,8 +210,12 @@ export default function AdminUsersPage() {
           u.isActive ? "نشط" : "غير نشط",
           u.lastLoginAt ?? "",
         ]);
-        const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+        const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join(
+          "\n",
+        );
+        const blob = new Blob(["\uFEFF" + csv], {
+          type: "text/csv;charset=utf-8",
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -193,7 +234,9 @@ export default function AdminUsersPage() {
         description={`إجمالي ${data?.total ?? 0} مستخدم`}
         icon={Users}
         actions={
-          <ActionButton onClick={() => router.push("/dashboard/admin/users/new")}>
+          <ActionButton
+            onClick={() => router.push("/dashboard/admin/users/new")}
+          >
             <Plus className="size-4 mr-1" />
             مستخدم جديد
           </ActionButton>
@@ -211,13 +254,19 @@ export default function AdminUsersPage() {
             className="pr-9"
           />
         </div>
-        <FilterBar groups={filterGroups} activeFilters={activeFilters} onFilterChange={handleFilterChange} />
+        <FilterBar
+          groups={filterGroups}
+          activeFilters={activeFilters}
+          onFilterChange={handleFilterChange}
+        />
       </div>
 
       {/* Active filter pills */}
       {(roleFilter || statusFilter) && (
         <div className="flex flex-wrap gap-2">
-          {roleFilter && <Pill tone="blue">{ROLE_LABELS[roleFilter] ?? roleFilter}</Pill>}
+          {roleFilter && (
+            <Pill tone="blue">{ROLE_LABELS[roleFilter] ?? roleFilter}</Pill>
+          )}
           {statusFilter === "active" && <Pill tone="success">نشط</Pill>}
           {statusFilter === "inactive" && <Pill tone="danger">غير نشط</Pill>}
         </div>
@@ -226,7 +275,10 @@ export default function AdminUsersPage() {
       {/* Bulk action bar */}
       <BulkActionBar
         selectedIds={selectedIds}
-        onClear={() => { setSelectedIds([]); setSelectAll(false); }}
+        onClear={() => {
+          setSelectedIds([]);
+          setSelectAll(false);
+        }}
         actions={bulkActions}
       />
 
@@ -341,7 +393,9 @@ export default function AdminUsersPage() {
       {impersonateUser && (
         <ImpersonateDialog
           open={!!impersonateUser}
-          onOpenChange={(open) => { if (!open) setImpersonateUser(null); }}
+          onOpenChange={(open) => {
+            if (!open) setImpersonateUser(null);
+          }}
           userName={impersonateUser.name}
           onConfirm={async (reason) => {
             const res = await impersonate({
@@ -357,7 +411,9 @@ export default function AdminUsersPage() {
       {resetPwUser && (
         <ResetPasswordDialog
           open={!!resetPwUser}
-          onOpenChange={(open) => { if (!open) setResetPwUser(null); }}
+          onOpenChange={(open) => {
+            if (!open) setResetPwUser(null);
+          }}
           userName={resetPwUser.name}
           onConfirm={async () => {
             const res = await resetPassword(resetPwUser.id).unwrap();

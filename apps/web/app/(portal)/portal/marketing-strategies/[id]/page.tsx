@@ -9,7 +9,10 @@ import {
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
 } from "@/features/portal/portalApi";
-import { MARKETING_STRATEGY_STATUS_AR, MarketingStrategyStatus } from "@hassad/shared";
+import {
+  MARKETING_STRATEGY_STATUS_AR,
+  MarketingStrategyStatus,
+} from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -35,7 +38,10 @@ const STATUS_ICON: Record<string, LucideIcon> = {
   REJECTED: XCircle,
 };
 
-const STATUS_COLOR: Record<string, "blue" | "amber" | "green" | "red" | "gray"> = {
+const STATUS_COLOR: Record<
+  string,
+  "blue" | "amber" | "green" | "red" | "gray"
+> = {
   DRAFT: "gray",
   SENT: "amber",
   APPROVED: "green",
@@ -49,8 +55,10 @@ export default function MarketingStrategyDetailPage() {
   const id = params.id as string;
 
   const { data: strategy, isLoading } = useGetClientStrategyQuery(id);
-  const [approveStrategy, { isLoading: isApproving }] = useApproveStrategyMutation();
-  const [requestRevision, { isLoading: isRequestingRevision }] = useRequestStrategyRevisionMutation();
+  const [approveStrategy, { isLoading: isApproving }] =
+    useApproveStrategyMutation();
+  const [requestRevision, { isLoading: isRequestingRevision }] =
+    useRequestStrategyRevisionMutation();
 
   const [revisionComment, setRevisionComment] = useState("");
   const [showRevisionForm, setShowRevisionForm] = useState(false);
@@ -80,7 +88,10 @@ export default function MarketingStrategyDetailPage() {
   };
 
   const handleDownload = () => {
-    window.open(`${process.env.NEXT_PUBLIC_API_URL || "/v1"}/portal/marketing-strategies/${id}/download`, "_blank");
+    window.open(
+      `${process.env.NEXT_PUBLIC_API_URL || "/v1"}/portal/marketing-strategies/${id}/download`,
+      "_blank",
+    );
   };
 
   if (isLoading) {
@@ -101,8 +112,9 @@ export default function MarketingStrategyDetailPage() {
   }
 
   const statusLabel =
-    MARKETING_STRATEGY_STATUS_AR[strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR] ??
-    strategy.status;
+    MARKETING_STRATEGY_STATUS_AR[
+      strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR
+    ] ?? strategy.status;
   const color = STATUS_COLOR[strategy.status] ?? "gray";
 
   return (
@@ -121,17 +133,19 @@ export default function MarketingStrategyDetailPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <IconCircle
-                icon={STATUS_ICON[strategy.status] ?? FileText}
-              />
+              <IconCircle icon={STATUS_ICON[strategy.status] ?? FileText} />
               <div>
                 <h1 className="text-xl font-semibold">الدراسة التسويقية</h1>
                 <p className="text-sm text-muted-foreground">
-                  {strategy.task?.project?.name ?? ""} — {strategy.task?.title ?? ""}
+                  {strategy.task?.project?.name ?? ""} —{" "}
+                  {strategy.task?.title ?? ""}
                 </p>
               </div>
             </div>
-            <StatusBadge status={strategy.status ?? MarketingStrategyStatus.DRAFT} label={statusLabel} />
+            <StatusBadge
+              status={strategy.status ?? MarketingStrategyStatus.DRAFT}
+              label={statusLabel}
+            />
           </div>
 
           {/* File info */}
@@ -141,7 +155,9 @@ export default function MarketingStrategyDetailPage() {
               <p className="font-medium truncate">{strategy.fileName}</p>
               <p className="text-sm text-muted-foreground">
                 {(strategy.fileSize / 1024).toFixed(1)} KB ·{" "}
-                {new Date(strategy.createdAt).toLocaleDateString(DEFAULT_LOCALE)}
+                {new Date(strategy.createdAt).toLocaleDateString(
+                  DEFAULT_LOCALE,
+                )}
               </p>
             </div>
             <ActionButton
@@ -219,16 +235,15 @@ export default function MarketingStrategyDetailPage() {
           {strategy.status === MarketingStrategyStatus.APPROVED && (
             <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
               <p className="text-sm text-green-800">
-                ✅ تمت الموافقة على هذه الدراسة التسويقية — يمكن الآن بدء الحملات الإعلانية.
+                ✅ تمت الموافقة على هذه الدراسة التسويقية — يمكن الآن بدء
+                الحملات الإعلانية.
               </p>
             </div>
           )}
 
           {strategy.status === "REVISION_REQUESTED" && (
             <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
-              <p className="text-sm font-medium text-red-800 mb-1">
-                طلب تعديل
-              </p>
+              <p className="text-sm font-medium text-red-800 mb-1">طلب تعديل</p>
               <p className="text-sm text-red-700">
                 {strategy.revisionNote || "تم طلب تعديل على الدراسة"}
               </p>

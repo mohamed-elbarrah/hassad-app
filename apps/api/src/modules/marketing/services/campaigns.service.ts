@@ -164,18 +164,14 @@ export class CampaignsService {
       campaign.status === CampaignStatus.STOPPED ||
       campaign.status === CampaignStatus.COMPLETED
     ) {
-      throw new BadRequestException(
-        "لا يمكن تعديل حملة منتهية أو مكتملة",
-      );
+      throw new BadRequestException("لا يمكن تعديل حملة منتهية أو مكتملة");
     }
 
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.platform !== undefined) {
       if (campaign.status !== CampaignStatus.PLANNING) {
-        throw new BadRequestException(
-          "لا يمكن تغيير منصة الحملة بعد تفعيلها",
-        );
+        throw new BadRequestException("لا يمكن تغيير منصة الحملة بعد تفعيلها");
       }
       data.platform = dto.platform;
     }
@@ -226,7 +222,7 @@ export class CampaignsService {
     // Marketers see only their assigned campaigns
     const where: any = { isArchived: false };
 
-    if (userRole === 'ADMIN' || userRole === 'PM') {
+    if (userRole === "ADMIN" || userRole === "PM") {
       where.task = {
         createdBy: userId,
       };
@@ -285,9 +281,7 @@ export class CampaignsService {
     }
 
     if (campaign.isArchived) {
-      throw new BadRequestException(
-        "لا يمكن تحديث بيانات حملة مؤرشفة",
-      );
+      throw new BadRequestException("لا يمكن تحديث بيانات حملة مؤرشفة");
     }
 
     const latest: any = campaign.kpiSnapshots[0] ?? {};

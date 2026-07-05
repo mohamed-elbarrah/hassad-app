@@ -66,7 +66,11 @@ export class DirectConversationService {
     for (const conv of conversations) {
       const ids = conv.participants.map((p) => p.userId).sort();
       const expected = [userAId, userBId].sort();
-      if (ids.length === 2 && ids[0] === expected[0] && ids[1] === expected[1]) {
+      if (
+        ids.length === 2 &&
+        ids[0] === expected[0] &&
+        ids[1] === expected[1]
+      ) {
         return (db ?? this.prisma).conversation.findUnique({
           where: { id: conv.id },
           include: {

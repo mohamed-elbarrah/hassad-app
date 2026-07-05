@@ -4,7 +4,10 @@ import { Ticket, Plus, CheckCircle2 } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
-import { useCreatePaymentTicketMutation, useResolvePaymentTicketMutation } from "@/features/finance/financeApi";
+import {
+  useCreatePaymentTicketMutation,
+  useResolvePaymentTicketMutation,
+} from "@/features/finance/financeApi";
 import { toast } from "sonner";
 import { formatDateTz } from "@/lib/format";
 
@@ -63,9 +66,7 @@ export function InvoicePaymentTickets({
         className="border-none shadow-sm"
       >
         <div className="text-center py-4 space-y-3">
-          <p className="text-sm text-portal-note-text">
-            لا توجد تذاكر تحصيل
-          </p>
+          <p className="text-sm text-portal-note-text">لا توجد تذاكر تحصيل</p>
           <ActionButton
             variant="outline"
             size="sm"

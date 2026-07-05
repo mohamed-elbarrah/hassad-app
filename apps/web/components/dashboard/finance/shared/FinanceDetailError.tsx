@@ -19,11 +19,20 @@ export function FinanceDetailError({
 }: FinanceDetailErrorProps) {
   return (
     <div className="flex flex-col gap-4" dir="rtl">
-      <ActionButton variant="ghost" size="sm" className="gap-2 w-fit" href={backHref}>
+      <ActionButton
+        variant="ghost"
+        size="sm"
+        className="gap-2 w-fit"
+        href={backHref}
+      >
         <ArrowRight className="h-4 w-4" />
         {backLabel}
       </ActionButton>
-      <DetailErrorState title={title} backHref={backHref} backLabel={backLabel} />
+      <DetailErrorState
+        title={title}
+        backHref={backHref}
+        backLabel={backLabel}
+      />
     </div>
   );
 }

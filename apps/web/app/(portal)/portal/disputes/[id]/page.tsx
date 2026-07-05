@@ -11,7 +11,11 @@ import {
   useAddDisputeMessageMutation,
   useConfirmDisputeResolutionMutation,
 } from "@/features/portal/portalApi";
-import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR, DisputeStatus } from "@hassad/shared";
+import {
+  DISPUTE_STATUS_AR,
+  DISPUTE_PRIORITY_AR,
+  DisputeStatus,
+} from "@hassad/shared";
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -41,15 +45,18 @@ export default function PortalDisputeDetailPage({
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
 
-  const [addMessage, { isLoading: isSendingMessage }] = useAddDisputeMessageMutation();
-  const [confirmResolution, { isLoading: isConfirming }] = useConfirmDisputeResolutionMutation();
+  const [addMessage, { isLoading: isSendingMessage }] =
+    useAddDisputeMessageMutation();
+  const [confirmResolution, { isLoading: isConfirming }] =
+    useConfirmDisputeResolutionMutation();
 
   const handleSendMessage = async (content: string, files?: File[]) => {
     try {
       await addMessage({ disputeId: id, content, files }).unwrap();
       refetch();
     } catch (error) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
       toast.error(message);
     }
   };
@@ -103,9 +110,12 @@ export default function PortalDisputeDetailPage({
   }
 
   const showConfirmButton = dispute.status === DisputeStatus.PENDING_CLIENT;
-  const canSendMessage = [DisputeStatus.APPROVED, DisputeStatus.IN_PROGRESS, DisputeStatus.ESCALATED, DisputeStatus.PENDING_CLIENT].includes(
-    dispute.status as DisputeStatus
-  );
+  const canSendMessage = [
+    DisputeStatus.APPROVED,
+    DisputeStatus.IN_PROGRESS,
+    DisputeStatus.ESCALATED,
+    DisputeStatus.PENDING_CLIENT,
+  ].includes(dispute.status as DisputeStatus);
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
@@ -129,24 +139,36 @@ export default function PortalDisputeDetailPage({
               <span className="text-xs text-portal-note-text">
                 الأولوية: {DISPUTE_PRIORITY_AR[dispute.priority]}
               </span>
-            </div>            <h1 className="text-2xl font-semibold text-natural-100">{dispute.title}</h1>
+            </div>{" "}
+            <h1 className="text-2xl font-semibold text-natural-100">
+              {dispute.title}
+            </h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-portal-note-text">
               <span>المشروع: {dispute.project.name}</span>
               <span>•</span>
               <span>مدير المشروع: {dispute.pm.name}</span>
               <span>•</span>
-              <span>تاريخ الفتح: {new Date(dispute.openedAt).toLocaleDateString(DEFAULT_LOCALE)}</span>
+              <span>
+                تاريخ الفتح:{" "}
+                {new Date(dispute.openedAt).toLocaleDateString(DEFAULT_LOCALE)}
+              </span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <DisputeCategoryIcon category={dispute.category} showLabel size="md" />
+            <DisputeCategoryIcon
+              category={dispute.category}
+              showLabel
+              size="md"
+            />
           </div>
         </div>
 
         {/* ── Description Card ─────────────────────────────────────────────── */}
         <SurfaceCard className="p-4">
-          <p className="text-sm font-medium text-natural-100 mb-2">وصف المشكلة:</p>
+          <p className="text-sm font-medium text-natural-100 mb-2">
+            وصف المشكلة:
+          </p>
           <p className="text-sm text-portal-note-text leading-relaxed whitespace-pre-wrap">
             {dispute.description}
           </p>
@@ -161,7 +183,9 @@ export default function PortalDisputeDetailPage({
                   <MessageSquare className="h-5 w-5 text-action-blue" />
                 </div>
                 <div>
-                  <p className="font-medium text-natural-100">هل تم حل المشكلة؟</p>
+                  <p className="font-medium text-natural-100">
+                    هل تم حل المشكلة؟
+                  </p>
                   <p className="text-sm text-portal-note-text">
                     {dispute.pm.name} أشار إلى أن المشكلة قد تم حلها
                   </p>
@@ -178,17 +202,26 @@ export default function PortalDisputeDetailPage({
         )}
 
         {/* ── Rejected/Resolved Banner ─────────────────────────────────────── */}
-        {dispute.status === DisputeStatus.REJECTED && dispute.rejectionReason && (
-          <SurfaceCard className="p-4 bg-gray-50 border-gray-200">
-            <p className="text-sm font-medium text-natural-100 mb-2">سبب الرفض:</p>
-            <p className="text-sm text-portal-note-text">{dispute.rejectionReason}</p>
-          </SurfaceCard>
-        )}
+        {dispute.status === DisputeStatus.REJECTED &&
+          dispute.rejectionReason && (
+            <SurfaceCard className="p-4 bg-gray-50 border-gray-200">
+              <p className="text-sm font-medium text-natural-100 mb-2">
+                سبب الرفض:
+              </p>
+              <p className="text-sm text-portal-note-text">
+                {dispute.rejectionReason}
+              </p>
+            </SurfaceCard>
+          )}
 
         {dispute.status === DisputeStatus.RESOLVED && dispute.resolution && (
           <SurfaceCard className="p-4 bg-green-50 border-green-200">
-            <p className="text-sm font-medium text-natural-100 mb-2">ملاحظات الحل:</p>
-            <p className="text-sm text-portal-note-text">{dispute.resolution}</p>
+            <p className="text-sm font-medium text-natural-100 mb-2">
+              ملاحظات الحل:
+            </p>
+            <p className="text-sm text-portal-note-text">
+              {dispute.resolution}
+            </p>
           </SurfaceCard>
         )}
       </div>
@@ -212,7 +245,9 @@ export default function PortalDisputeDetailPage({
         <SurfaceCard className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <History className="h-5 w-5 text-secondary-500" />
-            <h2 className="text-lg font-semibold text-natural-100">سجل التحديثات</h2>
+            <h2 className="text-lg font-semibold text-natural-100">
+              سجل التحديثات
+            </h2>
           </div>
           <div className="space-y-3">
             {dispute.history.map((event) => (
@@ -226,14 +261,19 @@ export default function PortalDisputeDetailPage({
                       {event.changer.name}
                     </span>
                     <span className="text-xs text-portal-note-text">
-                      {new Date(event.changedAt).toLocaleString(DEFAULT_LOCALE, {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
+                      {new Date(event.changedAt).toLocaleString(
+                        DEFAULT_LOCALE,
+                        {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        },
+                      )}
                     </span>
                   </div>
                   {event.note && (
-                    <p className="mt-1 text-sm text-portal-note-text">{event.note}</p>
+                    <p className="mt-1 text-sm text-portal-note-text">
+                      {event.note}
+                    </p>
                   )}
                 </div>
               </div>
@@ -254,5 +294,3 @@ export default function PortalDisputeDetailPage({
     </div>
   );
 }
-
-

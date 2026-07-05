@@ -147,27 +147,29 @@ export const chatApi = createApi({
       ],
     }),
 
-    createDirectConversation: builder.mutation<Conversation, CreateDirectConversationInput>(
-      {
-        query: (body) => ({
-          url: "/conversations",
-          method: "POST",
-          body: { type: "DIRECT", participantIds: [body.userId] },
-        }),
-        invalidatesTags: [{ type: "Conversation", id: "LIST" }],
-      },
-    ),
+    createDirectConversation: builder.mutation<
+      Conversation,
+      CreateDirectConversationInput
+    >({
+      query: (body) => ({
+        url: "/conversations",
+        method: "POST",
+        body: { type: "DIRECT", participantIds: [body.userId] },
+      }),
+      invalidatesTags: [{ type: "Conversation", id: "LIST" }],
+    }),
 
-    createGroupConversation: builder.mutation<Conversation, CreateGroupConversationInput>(
-      {
-        query: (body) => ({
-          url: "/conversations",
-          method: "POST",
-          body: { type: "GROUP", ...body },
-        }),
-        invalidatesTags: [{ type: "Conversation", id: "LIST" }],
-      },
-    ),
+    createGroupConversation: builder.mutation<
+      Conversation,
+      CreateGroupConversationInput
+    >({
+      query: (body) => ({
+        url: "/conversations",
+        method: "POST",
+        body: { type: "GROUP", ...body },
+      }),
+      invalidatesTags: [{ type: "Conversation", id: "LIST" }],
+    }),
 
     addParticipant: builder.mutation<Conversation, AddParticipantInput>({
       query: ({ conversationId, userId }) => ({

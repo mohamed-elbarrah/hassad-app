@@ -9,7 +9,17 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 export class AdminPortalController {
   constructor(private readonly service: AdminPortalService) {}
 
-  @Get("overview") @RequirePermissions("admin.portal.read") getOverview() { return this.service.getOverview(); }
-  @Get("clients") @RequirePermissions("admin.portal.read") findClients(@Query() q: any) { return this.service.findClients(q); }
-  @Post("clients/:id/regenerate-token") @RequirePermissions("admin.portal.manage") regenerateToken(@Param("id") id: string) { return this.service.regeneratePortalToken(id); }
+  @Get("overview") @RequirePermissions("admin.portal.read") getOverview() {
+    return this.service.getOverview();
+  }
+  @Get("clients") @RequirePermissions("admin.portal.read") findClients(
+    @Query() q: any,
+  ) {
+    return this.service.findClients(q);
+  }
+  @Post("clients/:id/regenerate-token")
+  @RequirePermissions("admin.portal.manage")
+  regenerateToken(@Param("id") id: string) {
+    return this.service.regeneratePortalToken(id);
+  }
 }

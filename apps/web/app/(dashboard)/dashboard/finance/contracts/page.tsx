@@ -9,12 +9,7 @@ import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { StatCard } from "@/components/design-system/StatCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
-import {
-  TrendingUp,
-  DollarSign,
-  PieChart,
-  FileText,
-} from "lucide-react";
+import { TrendingUp, DollarSign, PieChart, FileText } from "lucide-react";
 import Link from "next/link";
 
 export default function ContractsFinancePage() {

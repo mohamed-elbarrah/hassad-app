@@ -28,7 +28,8 @@ type FormData = {
 };
 
 export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
-  const [upsertProfile, { isLoading: isSaving }] = useUpsertClientProfileV2Mutation();
+  const [upsertProfile, { isLoading: isSaving }] =
+    useUpsertClientProfileV2Mutation();
 
   const [formData, setFormData] = useState<FormData>({});
   const [isDirty, setIsDirty] = useState(false);
@@ -77,15 +78,13 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-natural-100">تعديل الملف التعريفي</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            قم بتحديث معلومات العميل
-          </p>
+          <h2 className="text-lg font-bold text-natural-100">
+            تعديل الملف التعريفي
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">قم بتحديث معلومات العميل</p>
         </div>
         {isDirty && (
-          <span className="text-xs text-red-500">
-            لديك تغييرات غير محفوظة
-          </span>
+          <span className="text-xs text-red-500">لديك تغييرات غير محفوظة</span>
         )}
       </div>
 
@@ -110,7 +109,9 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
         mode="edit"
         initialData={{
           customerAnalysis: formData.audienceInfo?.customerAnalysis,
-          faq: formData.audienceInfo?.faq as { question?: string; answer?: string }[] | undefined,
+          faq: formData.audienceInfo?.faq as
+            | { question?: string; answer?: string }[]
+            | undefined,
           toneOfVoice: formData.brandVoice?.toneOfVoice,
           boundaries: formData.brandVoice?.boundaries,
           verbalSlogan: formData.brandVoice?.verbalSlogan,
@@ -160,7 +161,9 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
       <VisualSection
         mode="edit"
         initialData={formData.visualIdentityInfo as any}
-        onDataChange={(data) => updateSection("visualIdentityInfo", data as any)}
+        onDataChange={(data) =>
+          updateSection("visualIdentityInfo", data as any)
+        }
         hideNavigation
       />
 

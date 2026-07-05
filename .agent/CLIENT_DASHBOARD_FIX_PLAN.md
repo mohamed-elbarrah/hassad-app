@@ -13,6 +13,7 @@ This plan addresses critical performance, security, and data freshness issues in
 **Location:** `apps/api/src/auth/auth.controller.ts`
 
 **Changes Required:**
+
 - Add `@nestjs/throttler` to `apps/api`
 - Import `ThrottlerModule` in `AppModule`
 - Apply `@Throttle()` decorator to sensitive endpoints:
@@ -23,15 +24,17 @@ This plan addresses critical performance, security, and data freshness issues in
 - Set default limits for other endpoints: 100 requests/minute
 
 **Impact Analysis:**
+
 - **Breaking:** No. This only adds security layer, existing functionality preserved
 - **Dependencies:** None
 - **Rollback:** Simple - remove ThrottlerModule import and decorators
 - **Performance:** Slight CPU overhead for rate limiting storage (in-memory default)
-- **Related Components:** 
+- **Related Components:**
   - `apps/web/lib/baseQuery.ts` - No changes needed, rate limiting is server-side only
   - `apps/web/proxy.ts` - No changes needed, Edge authentication unchanged
 
 **Implementation Steps:**
+
 1. Add `@nestjs/throttler` dependency
 2. Update `AppModule` imports
 3. Add `ThrottlerGuard` globally with fallback to `AppGuard`
@@ -44,6 +47,7 @@ This plan addresses critical performance, security, and data freshness issues in
 **Location:** `apps/api/src/modules/portal/portal.module.ts`
 
 **Changes Required:**
+
 ```typescript
 MulterModule.register({
   storage: memoryStorage(),
@@ -55,6 +59,7 @@ MulterModule.register({
 ```
 
 **Impact Analysis:**
+
 - **Breaking:** **YES** - Clients currently uploading >10MB files will get 400 errors
 - **Scope:** Affects:
   - `POST /deliverables` - deliverable files
@@ -76,13 +81,16 @@ MulterModule.register({
 **Location:** `apps/api/src/modules/portal/controllers/portal.controller.ts`
 
 **Changes Required:**
+
 - Add helper function in `PortalController`:
+
 ```typescript
 private parseLimit(query: string, defaultLimit: number, maxLimit: number = 100): number {
   const limit = Number(query) || defaultLimit;
   return Math.min(Math.max(1, limit), maxLimit);
 }
 ```
+
 - Update all paginated endpoints to use `parseLimit()`:
   - `getContracts()` → `limit: this.parseLimit(limit, 20)`
   - `getInvoices()` → `limit: this.parseLimit(limit, 20)`
@@ -92,6 +100,7 @@ private parseLimit(query: string, defaultLimit: number, maxLimit: number = 100):
   - All other paginated endpoints
 
 **Impact Analysis:**
+
 - **Breaking:** **MINIMAL** - Clients using reasonable limits (<100) are unaffected
 - **Scope:** All portal pagination endpoints (15+ endpoints)
 - **Rollback:** Simple - revert limit parsing to raw `Number(limit) || X`
@@ -105,7 +114,9 @@ private parseLimit(query: string, defaultLimit: number, maxLimit: number = 100):
 **Location:** `apps/api/src/auth/auth.service.ts` + `apps/api/src/common/guards/permissions.guard.ts`
 
 **Changes Required:**
+
 1. **On Login:** Add permissions array to JWT payload:
+
    ```typescript
    // In AuthService.login()
    const user = await this.prisma.user.findUnique({
@@ -116,38 +127,40 @@ private parseLimit(query: string, defaultLimit: number, maxLimit: number = 100):
      },
    });
    const permissions = [
-     ...user.role.permissions.map(p => p.permission.name),
-     ...user.permissions.map(p => p.permission.name),
+     ...user.role.permissions.map((p) => p.permission.name),
+     ...user.permissions.map((p) => p.permission.name),
    ];
-   const accessToken = this.jwtService.sign({ 
-     id: user.id, 
+   const accessToken = this.jwtService.sign({
+     id: user.id,
      role: user.role.name,
      permissions, // NEW: add permissions array
    });
    ```
 
 2. **Update PermissionsGuard:** Read from JWT instead of DB:
+
    ```typescript
    // In permissions.guard.ts
    const { user } = context.switchToHttp().getRequest();
    if (user.role === "ADMIN") return true;
-   
+
    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
      PERMISSIONS_KEY,
      [context.getHandler(), context.getClass()],
    );
-   
+
    if (!requiredPermissions) return true;
-   
+
    // NEW: Use cached permissions from JWT
-   const hasPermission = requiredPermissions.every(p => 
-     user.permissions?.includes(p)
+   const hasPermission = requiredPermissions.every((p) =>
+     user.permissions?.includes(p),
    );
    ```
 
 **Impact Analysis:**
+
 - **Breaking:** **YES** - JWT payload structure changes
-- **Scope:** 
+- **Scope:**
   - **All authenticated API requests** (30+ endpoints per page × 31 pages × N clients)
   - **Authentication flow** - login/refresh endpoints
   - **Permission validation** - every request with @RequirePermissions
@@ -155,7 +168,7 @@ private parseLimit(query: string, defaultLimit: number, maxLimit: number = 100):
   - Add migration flag in config
   - Check for both JWT permissions and DB lookup during transition
   - Gradual rollout with canary deployment
-- **Performance Impact:** 
+- **Performance Impact:**
   - **+1 query per request** removed
   - **~50-100ms saved per request** (DB roundtrip eliminated)
   - **+50 bytes per JWT token** (small overhead)
@@ -193,27 +206,27 @@ Update mutation methods to broadcast invalidations:
 ```typescript
 // In approveProject()
 await this.broadcastPortalInvalidations(clientId, [
-  'ReviewProjects',
-  'ProjectProgress',
-  'PortalProjects',
-  'ActionItems',  // NEW
-  'ActivityFeed', // NEW
+  "ReviewProjects",
+  "ProjectProgress",
+  "PortalProjects",
+  "ActionItems", // NEW
+  "ActivityFeed", // NEW
 ]);
 
 // In requestProjectRevision()
 await this.broadcastPortalInvalidations(clientId, [
-  'ReviewProjects',
-  'ProjectProgress',
-  'PortalProjects',
-  'ActionItems',  // NEW
-  'ActivityFeed', // NEW
+  "ReviewProjects",
+  "ProjectProgress",
+  "PortalProjects",
+  "ActionItems", // NEW
+  "ActivityFeed", // NEW
 ]);
 
 // In createDeliverable()
 await this.broadcastPortalInvalidations(clientId, [
-  'ActionItems',      // NEW
-  'ActivityFeed',     // NEW
-  'ProjectProgress',  // NEW
+  "ActionItems", // NEW
+  "ActivityFeed", // NEW
+  "ProjectProgress", // NEW
 ]);
 ```
 
@@ -222,6 +235,7 @@ await this.broadcastPortalInvalidations(clientId, [
 **File:** All 31 polling pages (30s → 120s)
 
 **Pages to update:**
+
 - `apps/web/app/(portal)/portal/page.tsx` - 7 queries @ 120s
 - `apps/web/app/(portal)/portal/finance/page.tsx` - 2 queries @ 120s
 - `apps/web/app/(portal)/portal/deliverables/page.tsx` - 3 queries @ 120s
@@ -232,8 +246,9 @@ await this.broadcastPortalInvalidations(clientId, [
 - Notification bell components (3 instances) - 1 query @ 120s
 
 **Impact Analysis:**
+
 - **Breaking:** **NO** - WebSocket invalidations will handle real-time updates
-- **Dependencies:** 
+- **Dependencies:**
   - Backend WebSocket events must be implemented first
   - RTK Query tag invalidation must be properly configured
 - **Performance Impact:**
@@ -249,6 +264,7 @@ await this.broadcastPortalInvalidations(clientId, [
 **Issue:** Some backend mutations lack frontend RTK implementations
 
 **Missing Mutations (add to `portalApi`):**
+
 ```typescript
 // In portalApi endpoints
 approveDeliverable: builder.mutation<any, string>({
@@ -282,6 +298,7 @@ useSignContractMutation,
 **Location:** `apps/web/lib/baseQuery.ts`
 
 **Changes Required:**
+
 ```typescript
 import { retry } from "@reduxjs/toolkit/query";
 
@@ -305,9 +322,10 @@ export const baseQuery: BaseQueryFn<...> = async (args, api, extraOptions) => {
 ```
 
 **Impact Analysis:**
+
 - **Breaking:** **NO**
 - **Dependencies:** None
-- **User Impact:** 
+- **User Impact:**
   - **No more silent failures** on network blips
   - **Automatic recovery** in 1-3 seconds
 - **Performance:** Minimal overhead (only when errors occur)
@@ -317,6 +335,7 @@ export const baseQuery: BaseQueryFn<...> = async (args, api, extraOptions) => {
 **Files to Update:**
 
 1. **`apps/web/app/(portal)/portal/page.tsx`** - Dashboard page:
+
 ```typescript
 const handleSnooze = async (item: { id: string; type: string }) => {
   const itemId = item.id.replace(/^(del|inv|prop|con)-/, "");
@@ -329,6 +348,7 @@ const handleSnooze = async (item: { id: string; type: string }) => {
 ```
 
 2. **`apps/web/app/(portal)/portal/chat/page.tsx`** - Chat page:
+
 ```typescript
 const handleSend = useCallback(
   async (content: string) => {
@@ -347,6 +367,7 @@ const handleSend = useCallback(
 ```
 
 3. **`apps/web/app/(portal)/portal/notifications/page.tsx`** - Notifications:
+
 ```typescript
 const handleMarkRead = useCallback(
   async (id: string) => {
@@ -361,9 +382,10 @@ const handleMarkRead = useCallback(
 ```
 
 **Impact Analysis:**
+
 - **Breaking:** **NO** - Only adds error feedback
 - **Dependencies:** None (requires `sonner` toast already imported)
-- **User Impact:** 
+- **User Impact:**
   - **Critical** - Users will now know when actions fail
   - **Reduces support tickets** by providing clear error messages
 
@@ -376,6 +398,7 @@ const handleMarkRead = useCallback(
 **Location:** `apps/web/lib/store.ts`
 
 **Analysis:** 25 RTK slices loaded but client users only use ~5:
+
 - **Used by clients:** `portalApi`, `portalNotificationsApi`, `authApi`, `chatApi`
 - **Unused by clients:** `adminApi`, `salesApi`, `financeApi`, `healthApi`, `adminApi`, etc.
 
@@ -386,16 +409,19 @@ const handleMarkRead = useCallback(
 ## Implementation Order & Timeline
 
 ### **Week 1: Security & Basic Performance**
+
 1. **Day 1-2:** Add rate limiting (P0 - critical)
 2. **Day 3:** Add file upload size limits (P0 - critical)
 3. **Day 4-5:** Server-side page size caps (P1)
 
 ### **Week 2: Real-time & WebSocket**
+
 1. **Day 1-2:** Backend WebSocket invalidation events (P1)
 2. **Day 3:** Frontend polling reduction (P1)
 3. **Day 4-5:** Add missing RTK mutations (P1)
 
 ### **Week 3: Error Handling & Polish**
+
 1. **Day 1:** Fix silent error handling (P1)
 2. **Day 2:** Add RTK retry logic (P1)
 3. **Day 3-5:** Testing, documentation, deployment
@@ -436,6 +462,7 @@ const handleMarkRead = useCallback(
 ## Rollback Plan
 
 ### Immediate Rollback (30 minutes)
+
 - Remove ThrottlerModule from `AppModule`
 - Remove `limits` config from MulterModule
 - Revert `parseLimit()` calls to raw `Number(limit)`
@@ -443,6 +470,7 @@ const handleMarkRead = useCallback(
 - Revert polling intervals to 30s
 
 ### Gradual Rollback (2 hours)
+
 - Revert JWT permissions to DB lookup
 - Revert error handling to silent catches
 - Disable RTK retry logic
@@ -470,7 +498,7 @@ const handleMarkRead = useCallback(
 
 ## Known Limitations & Future Work
 
-1. **JWT Permissions:** 
+1. **JWT Permissions:**
    - Changes require token refresh (not real-time)
    - Future: Redis cache with TTL for real-time permission updates
 

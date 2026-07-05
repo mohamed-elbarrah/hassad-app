@@ -27,7 +27,10 @@ const ACTION_LABELS: Record<string, string> = {
   GENERATE_SCHEDULED_INVOICE: "إنشاء مجدول",
 };
 
-const ACTION_STATUS: Record<string, "success" | "pending" | "error" | "default"> = {
+const ACTION_STATUS: Record<
+  string,
+  "success" | "pending" | "error" | "default"
+> = {
   CREATE_INVOICE: "default",
   SEND_INVOICE: "pending",
   REGISTER_PAYMENT: "success",

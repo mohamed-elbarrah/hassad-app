@@ -21,20 +21,43 @@ export class AdminAutomationService {
     return rule;
   }
 
-  async create(data: { name: string; triggerType: string; conditionJson: any; actionJson: any }) {
+  async create(data: {
+    name: string;
+    triggerType: string;
+    conditionJson: any;
+    actionJson: any;
+  }) {
     return this.prisma.leadAutomationRule.create({
-      data: { name: data.name, triggerType: data.triggerType, conditionJson: data.conditionJson, actionJson: data.actionJson },
+      data: {
+        name: data.name,
+        triggerType: data.triggerType,
+        conditionJson: data.conditionJson,
+        actionJson: data.actionJson,
+      },
     });
   }
 
-  async update(id: string, data: { name?: string; triggerType?: string; conditionJson?: any; actionJson?: any; isActive?: boolean }) {
-    const rule = await this.prisma.leadAutomationRule.findUnique({ where: { id } });
+  async update(
+    id: string,
+    data: {
+      name?: string;
+      triggerType?: string;
+      conditionJson?: any;
+      actionJson?: any;
+      isActive?: boolean;
+    },
+  ) {
+    const rule = await this.prisma.leadAutomationRule.findUnique({
+      where: { id },
+    });
     if (!rule) throw new NotFoundException("القاعدة غير موجودة");
     return this.prisma.leadAutomationRule.update({ where: { id }, data });
   }
 
   async remove(id: string) {
-    const rule = await this.prisma.leadAutomationRule.findUnique({ where: { id } });
+    const rule = await this.prisma.leadAutomationRule.findUnique({
+      where: { id },
+    });
     if (!rule) throw new NotFoundException("القاعدة غير موجودة");
     return this.prisma.leadAutomationRule.delete({ where: { id } });
   }
@@ -46,7 +69,10 @@ export class AdminAutomationService {
       where,
       orderBy: { executedAt: "desc" },
       take: 50,
-      include: { lead: { select: { id: true, companyName: true } }, rule: { select: { id: true, name: true } } },
+      include: {
+        lead: { select: { id: true, companyName: true } },
+        rule: { select: { id: true, name: true } },
+      },
     });
   }
 }

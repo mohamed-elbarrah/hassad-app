@@ -11,10 +11,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
-import {
-  PaymentPlanTriggerType,
-  PaymentAmountType,
-} from "@hassad/shared";
+import { PaymentPlanTriggerType, PaymentAmountType } from "@hassad/shared";
 
 /** A single planned payment row on a contract's payment plan. */
 export class PaymentPlanRowDto {

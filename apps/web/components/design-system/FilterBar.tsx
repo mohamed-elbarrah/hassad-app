@@ -105,17 +105,15 @@ export function FilterBar({
                 </p>
                 <div className="space-y-1">
                   {group.options.map((option) => {
-                    const isActive = (
-                      activeFilters[group.key] ?? []
-                    ).includes(option.value);
+                    const isActive = (activeFilters[group.key] ?? []).includes(
+                      option.value,
+                    );
 
                     return (
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() =>
-                          handleToggle(group.key, option.value)
-                        }
+                        onClick={() => handleToggle(group.key, option.value)}
                         className={cn(
                           "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer",
                           isActive

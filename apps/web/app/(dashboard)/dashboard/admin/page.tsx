@@ -59,7 +59,13 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type AlertKey = "overdueTasks" | "escalatedDisputes" | "agedInvoices" | "failedWebhooks" | "expiringContracts" | "pendingRequests";
+type AlertKey =
+  | "overdueTasks"
+  | "escalatedDisputes"
+  | "agedInvoices"
+  | "failedWebhooks"
+  | "expiringContracts"
+  | "pendingRequests";
 
 const ALERT_ORDER: AlertKey[] = [
   "overdueTasks",
@@ -82,8 +88,10 @@ const ALERT_DOT: Record<AlertKey, string> = {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function TrendArrow({ value }: { value?: number }) {
-  if (value == null || value === 0) return <Minus className="w-3.5 h-3.5 text-neutral-300" />;
-  if (value > 0) return <ArrowUpRight className="w-3.5 h-3.5 text-success-600" />;
+  if (value == null || value === 0)
+    return <Minus className="w-3.5 h-3.5 text-neutral-300" />;
+  if (value > 0)
+    return <ArrowUpRight className="w-3.5 h-3.5 text-success-600" />;
   return <ArrowDownRight className="w-3.5 h-3.5 text-danger-500" />;
 }
 
@@ -109,35 +117,52 @@ function HeroKpis({ stats, isLoading }: { stats?: any; isLoading: boolean }) {
           <span>الإيرادات الشهرية</span>
         </div>
         <div className="mt-1 flex items-baseline gap-2">
-          <KpiCurrency amount={stats?.monthlyRevenue} className="text-primary-800" />
+          <KpiCurrency
+            amount={stats?.monthlyRevenue}
+            className="text-primary-800"
+          />
           <TrendArrow value={stats?.revenueChange} />
         </div>
         {stats?.revenueChange != null && (
-          <p className="text-[11px] text-primary-700/70 mt-1">{Math.abs(stats.revenueChange)}% عن الشهر الماضي</p>
+          <p className="text-[11px] text-primary-700/70 mt-1">
+            {Math.abs(stats.revenueChange)}% عن الشهر الماضي
+          </p>
         )}
       </div>
 
       <KpiPill
         label="المستخدمين"
-        value={<div className="flex items-baseline gap-2">
-          <span className="text-[28px] font-bold text-natural-100">{stats?.totalUsers?.toLocaleString() ?? "—"}</span>
-          <TrendArrow value={stats?.recentUsers} />
-        </div>}
+        value={
+          <div className="flex items-baseline gap-2">
+            <span className="text-[28px] font-bold text-natural-100">
+              {stats?.totalUsers?.toLocaleString() ?? "—"}
+            </span>
+            <TrendArrow value={stats?.recentUsers} />
+          </div>
+        }
       />
 
       <KpiPill
         label="العملاء النشطين"
-        value={<div className="flex items-baseline gap-2">
-          <span className="text-[28px] font-bold text-natural-100">{stats?.activeClients?.toLocaleString() ?? "—"}</span>
-          <TrendArrow value={stats?.newClientsThisMonth} />
-        </div>}
+        value={
+          <div className="flex items-baseline gap-2">
+            <span className="text-[28px] font-bold text-natural-100">
+              {stats?.activeClients?.toLocaleString() ?? "—"}
+            </span>
+            <TrendArrow value={stats?.newClientsThisMonth} />
+          </div>
+        }
       />
 
       <KpiPill
         label="المشاريع الجارية"
-        value={<div className="flex items-baseline gap-2">
-          <span className="text-[28px] font-bold text-natural-100">{stats?.activeProjects?.toLocaleString() ?? "—"}</span>
-        </div>}
+        value={
+          <div className="flex items-baseline gap-2">
+            <span className="text-[28px] font-bold text-natural-100">
+              {stats?.activeProjects?.toLocaleString() ?? "—"}
+            </span>
+          </div>
+        }
       />
     </div>
   );
@@ -145,10 +170,19 @@ function HeroKpis({ stats, isLoading }: { stats?: any; isLoading: boolean }) {
 
 // ── Revenue chart ────────────────────────────────────────────────────────────
 
-function RevenueChart({ data, isLoading }: { data: { label: string; value: number }[]; isLoading: boolean }) {
+function RevenueChart({
+  data,
+  isLoading,
+}: {
+  data: { label: string; value: number }[];
+  isLoading: boolean;
+}) {
   if (isLoading) {
     return (
-      <SurfaceCard className="lg:col-span-2 h-[360px] flex flex-col" contentClassName="flex-1 min-h-0">
+      <SurfaceCard
+        className="lg:col-span-2 h-[360px] flex flex-col"
+        contentClassName="flex-1 min-h-0"
+      >
         <Skeleton className="h-full w-full rounded-2xl" />
       </SurfaceCard>
     );
@@ -165,29 +199,50 @@ function RevenueChart({ data, isLoading }: { data: { label: string; value: numbe
       <div className="h-full" dir="ltr">
         {data.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 8 }}>
+            <AreaChart
+              data={data}
+              margin={{ top: 10, right: 12, left: 0, bottom: 8 }}
+            >
               <defs>
                 <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#e7be52" stopOpacity={0.25} />
                   <stop offset="100%" stopColor="#e7be52" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#ECEEF2" />
-              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#6f7485", fontSize: 11 }} dy={8} minTickGap={24} />
+              <CartesianGrid
+                strokeDasharray="4 4"
+                vertical={false}
+                stroke="#ECEEF2"
+              />
+              <XAxis
+                dataKey="label"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#6f7485", fontSize: 11 }}
+                dy={8}
+                minTickGap={24}
+              />
               <YAxis
                 orientation="right"
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#6f7485", fontSize: 11 }}
-                tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`)}
+                tickFormatter={(v: number) =>
+                  v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`
+                }
                 width={44}
               />
               <Tooltip
                 content={({ active, payload, label }: any) => {
                   if (!active || !payload?.length) return null;
                   return (
-                    <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[140px]" dir="rtl">
-                      <p className="text-[11px] text-portal-note-text mb-1">{label}</p>
+                    <div
+                      className="rounded-xl border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[140px]"
+                      dir="rtl"
+                    >
+                      <p className="text-[11px] text-portal-note-text mb-1">
+                        {label}
+                      </p>
                       <CurrencyDisplay amount={payload[0].value} size="sm" />
                     </div>
                   );
@@ -205,7 +260,9 @@ function RevenueChart({ data, isLoading }: { data: { label: string; value: numbe
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full flex items-center justify-center text-portal-note-text">لا توجد بيانات</div>
+          <div className="h-full flex items-center justify-center text-portal-note-text">
+            لا توجد بيانات
+          </div>
         )}
       </div>
     </SurfaceCard>
@@ -214,10 +271,19 @@ function RevenueChart({ data, isLoading }: { data: { label: string; value: numbe
 
 // ── Users bar chart ──────────────────────────────────────────────────────────
 
-function UsersBarChart({ data, isLoading }: { data: { label: string; users: number; clients: number }[]; isLoading: boolean }) {
+function UsersBarChart({
+  data,
+  isLoading,
+}: {
+  data: { label: string; users: number; clients: number }[];
+  isLoading: boolean;
+}) {
   if (isLoading) {
     return (
-      <SurfaceCard className="h-[360px] flex flex-col" contentClassName="flex-1 min-h-0">
+      <SurfaceCard
+        className="h-[360px] flex flex-col"
+        contentClassName="flex-1 min-h-0"
+      >
         <Skeleton className="h-full w-full rounded-2xl" />
       </SurfaceCard>
     );
@@ -234,9 +300,22 @@ function UsersBarChart({ data, isLoading }: { data: { label: string; users: numb
       <div className="h-full" dir="ltr">
         {data.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#ECEEF2" />
-              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#6f7485", fontSize: 11 }} dy={8} />
+            <BarChart
+              data={data}
+              margin={{ top: 10, right: 12, left: 0, bottom: 8 }}
+            >
+              <CartesianGrid
+                strokeDasharray="4 4"
+                vertical={false}
+                stroke="#ECEEF2"
+              />
+              <XAxis
+                dataKey="label"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#6f7485", fontSize: 11 }}
+                dy={8}
+              />
               <YAxis
                 orientation="right"
                 axisLine={false}
@@ -248,15 +327,30 @@ function UsersBarChart({ data, isLoading }: { data: { label: string; users: numb
                 content={({ active, payload, label }: any) => {
                   if (!active || !payload?.length) return null;
                   return (
-                    <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[140px]" dir="rtl">
-                      <p className="text-[11px] text-portal-note-text mb-1">{label}</p>
+                    <div
+                      className="rounded-xl border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[140px]"
+                      dir="rtl"
+                    >
+                      <p className="text-[11px] text-portal-note-text mb-1">
+                        {label}
+                      </p>
                       {payload.map((p: any) => (
-                        <div key={p.dataKey} className="flex items-center justify-between gap-3 text-xs">
+                        <div
+                          key={p.dataKey}
+                          className="flex items-center justify-between gap-3 text-xs"
+                        >
                           <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
-                            <span className="text-portal-note-text">{p.dataKey === "users" ? "مستخدمون" : "عملاء"}</span>
+                            <span
+                              className="w-2 h-2 rounded-full"
+                              style={{ background: p.color }}
+                            />
+                            <span className="text-portal-note-text">
+                              {p.dataKey === "users" ? "مستخدمون" : "عملاء"}
+                            </span>
                           </span>
-                          <span className="font-bold text-natural-100">{p.value.toLocaleString()}</span>
+                          <span className="font-bold text-natural-100">
+                            {p.value.toLocaleString()}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -264,12 +358,26 @@ function UsersBarChart({ data, isLoading }: { data: { label: string; users: numb
                 }}
                 cursor={{ fill: "rgba(18, 25, 54, 0.03)" }}
               />
-              <Bar dataKey="users" fill="#121936" radius={[6, 6, 0, 0]} barSize={16} animationDuration={700} />
-              <Bar dataKey="clients" fill="#0ed589" radius={[6, 6, 0, 0]} barSize={16} animationDuration={900} />
+              <Bar
+                dataKey="users"
+                fill="#121936"
+                radius={[6, 6, 0, 0]}
+                barSize={16}
+                animationDuration={700}
+              />
+              <Bar
+                dataKey="clients"
+                fill="#0ed589"
+                radius={[6, 6, 0, 0]}
+                barSize={16}
+                animationDuration={900}
+              />
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full flex items-center justify-center text-portal-note-text">لا توجد بيانات</div>
+          <div className="h-full flex items-center justify-center text-portal-note-text">
+            لا توجد بيانات
+          </div>
         )}
       </div>
     </SurfaceCard>
@@ -278,7 +386,13 @@ function UsersBarChart({ data, isLoading }: { data: { label: string; users: numb
 
 // ── Funnel card ─────────────────────────────────────────────────────────────
 
-function FunnelCard({ funnel, isLoading }: { funnel?: any; isLoading: boolean }) {
+function FunnelCard({
+  funnel,
+  isLoading,
+}: {
+  funnel?: any;
+  isLoading: boolean;
+}) {
   if (isLoading || !funnel) {
     return (
       <DashboardCard title="مسار التحويل" icon={Activity} showAll={false}>
@@ -312,18 +426,33 @@ function FunnelCard({ funnel, isLoading }: { funnel?: any; isLoading: boolean })
           return (
             <div key={stage.label} className="group">
               <div className="flex items-center justify-between text-sm mb-1">
-                <span className="text-natural-100 font-medium">{stage.label}</span>
+                <span className="text-natural-100 font-medium">
+                  {stage.label}
+                </span>
                 <div className="flex items-center gap-2">
-                  {idx > 0 && <span className="text-[11px] text-portal-note-text">{rate}% تحويل</span>}
-                  <span className="font-bold text-natural-100">{stage.value.toLocaleString()}</span>
+                  {idx > 0 && (
+                    <span className="text-[11px] text-portal-note-text">
+                      {rate}% تحويل
+                    </span>
+                  )}
+                  <span className="font-bold text-natural-100">
+                    {stage.value.toLocaleString()}
+                  </span>
                 </div>
               </div>
               <div className="h-8 rounded-2xl bg-badge-gray-bg overflow-hidden">
                 <div
-                  className={cn("h-full rounded-2xl flex items-center px-3 transition-all duration-700", stage.color)}
+                  className={cn(
+                    "h-full rounded-2xl flex items-center px-3 transition-all duration-700",
+                    stage.color,
+                  )}
                   style={{ width: `${Math.max(width, 4)}%` }}
                 >
-                  {width > 12 && <span className="text-[11px] font-bold text-white/90 drop-shadow">{width.toFixed(0)}%</span>}
+                  {width > 12 && (
+                    <span className="text-[11px] font-bold text-white/90 drop-shadow">
+                      {width.toFixed(0)}%
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -336,7 +465,15 @@ function FunnelCard({ funnel, isLoading }: { funnel?: any; isLoading: boolean })
 
 // ── Role distribution ──────────────────────────────────────────────────────
 
-function RoleDistribution({ data, total, isLoading }: { data: { name: string; value: number }[]; total: number; isLoading: boolean }) {
+function RoleDistribution({
+  data,
+  total,
+  isLoading,
+}: {
+  data: { name: string; value: number }[];
+  total: number;
+  isLoading: boolean;
+}) {
   if (isLoading) {
     return (
       <DashboardCard title="توزيع المستخدمين" icon={Users} showAll={false}>
@@ -345,7 +482,14 @@ function RoleDistribution({ data, total, isLoading }: { data: { name: string; va
     );
   }
 
-  const colors = ["#121936", "#0ed589", "#7a13e8", "#2684fc", "#f8af01", "#00aeff"];
+  const colors = [
+    "#121936",
+    "#0ed589",
+    "#7a13e8",
+    "#2684fc",
+    "#f8af01",
+    "#00aeff",
+  ];
 
   return (
     <DashboardCard title="توزيع المستخدمين" icon={Users} showAll={false}>
@@ -373,9 +517,16 @@ function RoleDistribution({ data, total, isLoading }: { data: { name: string; va
                     if (!active || !payload?.length) return null;
                     const item = payload[0].payload;
                     return (
-                      <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[120px]" dir="rtl">
-                        <p className="text-[11px] text-portal-note-text">{item.name}</p>
-                        <p className="text-sm font-bold text-natural-100">{item.value.toLocaleString()}</p>
+                      <div
+                        className="rounded-xl border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[120px]"
+                        dir="rtl"
+                      >
+                        <p className="text-[11px] text-portal-note-text">
+                          {item.name}
+                        </p>
+                        <p className="text-sm font-bold text-natural-100">
+                          {item.value.toLocaleString()}
+                        </p>
                       </div>
                     );
                   }}
@@ -383,22 +534,33 @@ function RoleDistribution({ data, total, isLoading }: { data: { name: string; va
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-bold text-natural-100">{total.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-natural-100">
+                {total.toLocaleString()}
+              </span>
               <span className="text-[11px] text-portal-note-text">مستخدم</span>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
             {data.map((item, idx) => (
               <div key={item.name} className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colors[idx % colors.length] }} />
-                <span className="text-xs text-portal-note-text truncate">{item.name}</span>
-                <span className="text-xs font-bold text-natural-100 mr-auto">{((item.value / total) * 100).toFixed(0)}%</span>
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: colors[idx % colors.length] }}
+                />
+                <span className="text-xs text-portal-note-text truncate">
+                  {item.name}
+                </span>
+                <span className="text-xs font-bold text-natural-100 mr-auto">
+                  {((item.value / total) * 100).toFixed(0)}%
+                </span>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div className="h-48 flex items-center justify-center text-portal-note-text">لا توجد بيانات</div>
+        <div className="h-48 flex items-center justify-center text-portal-note-text">
+          لا توجد بيانات
+        </div>
       )}
     </DashboardCard>
   );
@@ -406,7 +568,13 @@ function RoleDistribution({ data, total, isLoading }: { data: { name: string; va
 
 // ── Health mini cards ───────────────────────────────────────────────────────
 
-function HealthCards({ health, isLoading }: { health?: any; isLoading: boolean }) {
+function HealthCards({
+  health,
+  isLoading,
+}: {
+  health?: any;
+  isLoading: boolean;
+}) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -422,23 +590,47 @@ function HealthCards({ health, isLoading }: { health?: any; isLoading: boolean }
   const uptime = health?.uptime ? (health.uptime / 3600).toFixed(1) : "—";
 
   const items = [
-    { icon: Server, label: "حالة النظام", value: status ? "صحي" : "يتطلب مراجعة", color: status ? "text-success-600" : "text-alert-600" },
-    { icon: Database, label: "قاعدة البيانات", value: db ? "متصلة" : "غير متصلة", color: db ? "text-success-600" : "text-danger-600" },
-    { icon: Zap, label: "نشطون الآن", value: (health?.activeUsersLastHour ?? 0).toLocaleString(), color: "text-action-blue" },
-    { icon: Clock, label: "مدة التشغيل", value: `${uptime} س`, color: "text-action-purple" },
+    {
+      icon: Server,
+      label: "حالة النظام",
+      value: status ? "صحي" : "يتطلب مراجعة",
+      color: status ? "text-success-600" : "text-alert-600",
+    },
+    {
+      icon: Database,
+      label: "قاعدة البيانات",
+      value: db ? "متصلة" : "غير متصلة",
+      color: db ? "text-success-600" : "text-danger-600",
+    },
+    {
+      icon: Zap,
+      label: "نشطون الآن",
+      value: (health?.activeUsersLastHour ?? 0).toLocaleString(),
+      color: "text-action-blue",
+    },
+    {
+      icon: Clock,
+      label: "مدة التشغيل",
+      value: `${uptime} س`,
+      color: "text-action-purple",
+    },
   ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {items.map((item) => (
-        <div key={item.label} className="rounded-2xl border border-portal-card-border bg-natural-0 p-4 flex items-center gap-3"
+        <div
+          key={item.label}
+          className="rounded-2xl border border-portal-card-border bg-natural-0 p-4 flex items-center gap-3"
         >
           <div className="w-10 h-10 rounded-xl bg-badge-gray-bg flex items-center justify-center shrink-0">
             <item.icon className={cn("w-5 h-5", item.color)} />
           </div>
           <div className="min-w-0">
             <p className="text-[11px] text-portal-note-text">{item.label}</p>
-            <p className="text-sm font-bold text-natural-100 truncate">{item.value}</p>
+            <p className="text-sm font-bold text-natural-100 truncate">
+              {item.value}
+            </p>
           </div>
         </div>
       ))}
@@ -448,10 +640,18 @@ function HealthCards({ health, isLoading }: { health?: any; isLoading: boolean }
 
 // ── Alerts ribbon ────────────────────────────────────────────────────────────
 
-function AlertsRibbon({ alerts, isLoading }: { alerts?: any; isLoading: boolean }) {
+function AlertsRibbon({
+  alerts,
+  isLoading,
+}: {
+  alerts?: any;
+  isLoading: boolean;
+}) {
   if (isLoading || !alerts) return null;
 
-  const items = ALERT_ORDER.filter((key) => (alerts as any)[key]?.count > 0).map((key) => ({
+  const items = ALERT_ORDER.filter(
+    (key) => (alerts as any)[key]?.count > 0,
+  ).map((key) => ({
     key,
     count: (alerts as any)[key].count,
     label: (alerts as any)[key].label,
@@ -465,12 +665,15 @@ function AlertsRibbon({ alerts, isLoading }: { alerts?: any; isLoading: boolean 
     <div className="flex items-start gap-3 overflow-x-auto pb-1">
       {items.map((item) => (
         <Link key={item.key} href={item.link} className="group shrink-0">
-          <div className="flex items-center gap-3 rounded-2xl bg-natural-0 border border-portal-card-border px-4 py-3 hover:border-secondary-300 hover:shadow-md transition-all"
+          <div
+            className="flex items-center gap-3 rounded-2xl bg-natural-0 border border-portal-card-border px-4 py-3 hover:border-secondary-300 hover:shadow-md transition-all"
             style={{ minWidth: 180 }}
           >
             <div className={cn("w-2 h-2 rounded-full shrink-0", item.dot)} />
             <div className="min-w-0">
-              <p className="text-[11px] text-portal-note-text truncate">{item.label}</p>
+              <p className="text-[11px] text-portal-note-text truncate">
+                {item.label}
+              </p>
               <p className="text-lg font-bold text-natural-100">{item.count}</p>
             </div>
             <ArrowUpRight className="w-4 h-4 text-portal-note-text group-hover:text-secondary-500 shrink-0 mr-auto" />
@@ -483,17 +686,33 @@ function AlertsRibbon({ alerts, isLoading }: { alerts?: any; isLoading: boolean 
 
 // ── Quick actions ────────────────────────────────────────────────────────────
 
-function QuickAction({ href, icon: Icon, title, description, color }: { href: string; icon: React.ElementType; title: string; description: string; color: string }) {
+function QuickAction({
+  href,
+  icon: Icon,
+  title,
+  description,
+  color,
+}: {
+  href: string;
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  color: string;
+}) {
   return (
     <Link href={href} className="group">
-      <div className="h-full rounded-2xl border border-portal-card-border bg-natural-0 p-4 flex items-center gap-3 hover:border-secondary-300 hover:shadow-lg hover:-translate-y-0.5 transition-all"
-      >
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
+      <div className="h-full rounded-2xl border border-portal-card-border bg-natural-0 p-4 flex items-center gap-3 hover:border-secondary-300 hover:shadow-lg hover:-translate-y-0.5 transition-all">
+        <div
+          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${color}15` }}
+        >
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-bold text-natural-100">{title}</p>
-          <p className="text-[11px] text-portal-note-text truncate">{description}</p>
+          <p className="text-[11px] text-portal-note-text truncate">
+            {description}
+          </p>
         </div>
         <ChevronLeft className="w-4 h-4 text-portal-note-text group-hover:text-secondary-500 mr-auto shrink-0" />
       </div>
@@ -541,30 +760,44 @@ export default function AdminDashboardPage() {
   const { fmtNumber } = useCurrency();
 
   const { data: stats, isLoading: statsLoading } = useGetAdminStatsQuery();
-  const { data: trends, isLoading: trendsLoading } = useGetTrendDataQuery({ days: 30 });
+  const { data: trends, isLoading: trendsLoading } = useGetTrendDataQuery({
+    days: 30,
+  });
   const { data: funnel, isLoading: funnelLoading } = useGetFunnelDataQuery();
   const { data: alerts, isLoading: alertsLoading } = useGetAlertsDataQuery();
   const { data: health, isLoading: healthLoading } = useGetHealthQuery();
 
-  const isLoading = statsLoading || trendsLoading || funnelLoading || alertsLoading || healthLoading;
+  const isLoading =
+    statsLoading ||
+    trendsLoading ||
+    funnelLoading ||
+    alertsLoading ||
+    healthLoading;
 
   const revenueData = useMemo(() => {
     if (!trends?.revenue || !trends?.labels) return [];
-    return trends.revenue.map((v, i) => ({ value: v, label: trends.labels[i] })).reverse();
+    return trends.revenue
+      .map((v, i) => ({ value: v, label: trends.labels[i] }))
+      .reverse();
   }, [trends]);
 
   const usersBarData = useMemo(() => {
     if (!trends?.newUsers || !trends?.newClients || !trends?.labels) return [];
-    return trends.newUsers.map((v, i) => ({
-      label: trends.labels[i],
-      users: v,
-      clients: trends.newClients[i] ?? 0,
-    })).reverse();
+    return trends.newUsers
+      .map((v, i) => ({
+        label: trends.labels[i],
+        users: v,
+        clients: trends.newClients[i] ?? 0,
+      }))
+      .reverse();
   }, [trends]);
 
   const roleData = useMemo(() => {
     if (!stats?.usersByRole) return [];
-    return stats.usersByRole.map((item) => ({ name: item.role, value: item.count }));
+    return stats.usersByRole.map((item) => ({
+      name: item.role,
+      value: item.count,
+    }));
   }, [stats]);
 
   if (!user) return null;
@@ -578,16 +811,36 @@ export default function AdminDashboardPage() {
         icon={LayoutDashboard}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <ActionButton href="/dashboard/admin/users" variant="primary" size="md" icon={<Users className="w-4 h-4" />}>
+            <ActionButton
+              href="/dashboard/admin/users"
+              variant="primary"
+              size="md"
+              icon={<Users className="w-4 h-4" />}
+            >
               المستخدمين
             </ActionButton>
-            <ActionButton href="/dashboard/admin/roles" variant="outline" size="md" icon={<UserCheck className="w-4 h-4" />}>
+            <ActionButton
+              href="/dashboard/admin/roles"
+              variant="outline"
+              size="md"
+              icon={<UserCheck className="w-4 h-4" />}
+            >
               الأدوار
             </ActionButton>
-            <ActionButton href="/dashboard/admin/settings" variant="outline" size="md" icon={<Settings className="w-4 h-4" />}>
+            <ActionButton
+              href="/dashboard/admin/settings"
+              variant="outline"
+              size="md"
+              icon={<Settings className="w-4 h-4" />}
+            >
               الإعدادات
             </ActionButton>
-            <ActionButton href="/dashboard/admin/audit-log" variant="ghost" size="md" icon={<FileText className="w-4 h-4" />}>
+            <ActionButton
+              href="/dashboard/admin/audit-log"
+              variant="ghost"
+              size="md"
+              icon={<FileText className="w-4 h-4" />}
+            >
               السجل
             </ActionButton>
           </div>
@@ -614,10 +867,34 @@ export default function AdminDashboardPage() {
         />
         <DashboardCard title="إجراءات سريعة" icon={Activity} showAll={false}>
           <div className="grid grid-cols-1 gap-3">
-            <QuickAction href="/dashboard/admin/users" icon={Users} title="المستخدمون" description="إدارة الحسابات والصلاحيات" color={ACCENTS.navy} />
-            <QuickAction href="/dashboard/admin/roles" icon={UserCheck} title="الأدوار" description="إدارة الصلاحيات والأدوار" color={ACCENTS.purple} />
-            <QuickAction href="/dashboard/admin/disputes" icon={Ticket} title="النزاعات" description="إدارة وحل النزاعات" color={ACCENTS.red} />
-            <QuickAction href="/dashboard/admin/settings" icon={Settings} title="الإعدادات" description="تكوين المنصة والتفضيلات" color={ACCENTS.orange} />
+            <QuickAction
+              href="/dashboard/admin/users"
+              icon={Users}
+              title="المستخدمون"
+              description="إدارة الحسابات والصلاحيات"
+              color={ACCENTS.navy}
+            />
+            <QuickAction
+              href="/dashboard/admin/roles"
+              icon={UserCheck}
+              title="الأدوار"
+              description="إدارة الصلاحيات والأدوار"
+              color={ACCENTS.purple}
+            />
+            <QuickAction
+              href="/dashboard/admin/disputes"
+              icon={Ticket}
+              title="النزاعات"
+              description="إدارة وحل النزاعات"
+              color={ACCENTS.red}
+            />
+            <QuickAction
+              href="/dashboard/admin/settings"
+              icon={Settings}
+              title="الإعدادات"
+              description="تكوين المنصة والتفضيلات"
+              color={ACCENTS.orange}
+            />
           </div>
         </DashboardCard>
       </div>

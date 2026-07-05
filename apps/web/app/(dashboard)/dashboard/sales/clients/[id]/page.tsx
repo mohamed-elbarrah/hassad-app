@@ -44,7 +44,9 @@ export default function ClientProfilePage({ params }: PageProps) {
   const { data: profile } = useGetClientProfileQuery(id);
   const { user } = useAppSelector((state) => state.auth);
 
-  const visibleTabs = user ? getVisibleTabs(user.role) : getVisibleTabs("ADMIN" as any);
+  const visibleTabs = user
+    ? getVisibleTabs(user.role)
+    : getVisibleTabs("ADMIN" as any);
   const defaultTab = visibleTabs[0]?.value ?? "overview";
 
   if (isLoading) {

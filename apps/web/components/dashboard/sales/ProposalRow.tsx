@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-  Pencil,
-  FileText,
-  Send,
-  Link2,
-  AlertCircle,
-} from "lucide-react";
+import { Pencil, FileText, Send, Link2, AlertCircle } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProposalStatus } from "@hassad/shared";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";

@@ -21,9 +21,7 @@ export function ProjectsTab({ clientId }: ProjectsTabProps) {
     return (
       <div className="text-center py-12">
         <FolderKanban className="h-12 w-12 text-portal-note-text mx-auto mb-3" />
-        <p className="text-portal-note-text">
-          ليس لديك صلاحية لعرض المشاريع
-        </p>
+        <p className="text-portal-note-text">ليس لديك صلاحية لعرض المشاريع</p>
       </div>
     );
   }

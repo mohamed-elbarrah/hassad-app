@@ -34,8 +34,18 @@ const ENTITY_OPTIONS = [
 ];
 
 const MONTHS = [
-  "يناير","فبراير","مارس","أبريل","مايو","يونيو",
-  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
 function formatDateTime(d: string | Date) {
@@ -88,8 +98,12 @@ export default function LedgerPage() {
     const today = new Date().toDateString();
     return {
       total,
-      todayCount: ledger.filter((l) => new Date(l.createdAt).toDateString() === today).length,
-      sensitive: ledger.filter((l) => l.action.includes("PAY") || l.action.includes("SALARY")).length,
+      todayCount: ledger.filter(
+        (l) => new Date(l.createdAt).toDateString() === today,
+      ).length,
+      sensitive: ledger.filter(
+        (l) => l.action.includes("PAY") || l.action.includes("SALARY"),
+      ).length,
     };
   }, [ledger, total]);
 
@@ -181,11 +195,14 @@ export default function LedgerPage() {
               className={cn(
                 "flex items-center gap-2 h-11 px-3 rounded-xl border text-sm font-medium transition-all",
                 "bg-natural-0 border-portal-card-border hover:border-secondary-500/40",
-                entityFilter !== "all" && "border-secondary-400/60 bg-secondary-50/50",
+                entityFilter !== "all" &&
+                  "border-secondary-400/60 bg-secondary-50/50",
               )}
             >
               <Filter className="w-4 h-4" />
-              <span>{ENTITY_OPTIONS.find((o) => o.value === entityFilter)?.label}</span>
+              <span>
+                {ENTITY_OPTIONS.find((o) => o.value === entityFilter)?.label}
+              </span>
               <ChevronDown className="w-3.5 h-3.5 text-portal-note-text" />
             </button>
           }
@@ -199,7 +216,8 @@ export default function LedgerPage() {
                 onClick={() => setEntityFilter(opt.value)}
                 className={cn(
                   "w-full text-right px-3 py-2 text-sm rounded-lg transition-colors hover:bg-badge-gray-bg",
-                  entityFilter === opt.value && "bg-secondary-50 text-secondary-600 font-semibold",
+                  entityFilter === opt.value &&
+                    "bg-secondary-50 text-secondary-600 font-semibold",
                 )}
               >
                 {opt.label}
@@ -250,10 +268,14 @@ export default function LedgerPage() {
               <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-mono font-medium uppercase bg-badge-gray-bg text-natural-100">
                 {log.entity}
               </span>
-              <span className="block text-[10px] text-portal-note-text mt-0.5 font-mono">{log.entityId?.slice(0, 8)}...</span>
+              <span className="block text-[10px] text-portal-note-text mt-0.5 font-mono">
+                {log.entityId?.slice(0, 8)}...
+              </span>
             </td>
             <td className="px-5 py-4">
-              <span className="text-sm text-portal-note-text">{log.userId || "System"}</span>
+              <span className="text-sm text-portal-note-text">
+                {log.userId || "System"}
+              </span>
             </td>
             <td className="px-5 py-4 text-xs text-portal-note-text font-mono max-w-[120px] truncate">
               {formatJson(log.before)}

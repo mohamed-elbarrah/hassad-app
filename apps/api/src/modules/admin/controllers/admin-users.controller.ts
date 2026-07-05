@@ -13,7 +13,10 @@ import { AdminUsersService } from "../services/admin-users.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
-import { CurrentUser, JwtPayload } from "../../../common/decorators/current-user.decorator";
+import {
+  CurrentUser,
+  JwtPayload,
+} from "../../../common/decorators/current-user.decorator";
 import {
   QueryUsersDto,
   BulkUserActionDto,
@@ -92,10 +95,7 @@ export class AdminUsersController {
 
   @Post(":id/permissions")
   @RequirePermissions("admin.users.manage")
-  setPermissions(
-    @Param("id") id: string,
-    @Body() dto: AssignPermissionsDto,
-  ) {
+  setPermissions(@Param("id") id: string, @Body() dto: AssignPermissionsDto) {
     return this.adminUsersService.setPermissions(id, dto);
   }
 }

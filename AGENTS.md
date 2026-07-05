@@ -106,6 +106,31 @@ Both apps have `predev`/`prebuild` scripts that build shared automatically. When
 
 ---
 
+## Parallel execution workflow
+
+### Phase flow
+
+- Phases run sequentially (Phase 0 → Phase 1 → ...)
+- Within a phase, tasks are grouped by package, not by phase number
+- Tasks touching `packages/shared` execute first (api + web depend on it)
+- Remaining tasks dispatch in parallel — one subagent per package
+
+### Per-task build (each subagent)
+
+- `turbo build --filter=<package>` (cached, fast)
+- NOT `turbo build` (full rebuild — wasted)
+
+### Integration (after all subagents return)
+
+- One `turbo build` (full) to catch cross-package issues
+- If it fails: fix only the broken package, preserve other packages' work
+- If it passes: phase complete
+
+### Before execution
+
+- I infer each task's package from its description and present a grouped plan
+- You approve or adjust before I start
+
 ## Background process hygiene (CRITICAL)
 
 **Problem this solves:** leaked `nest start --watch` / `next dev` processes that pile up and freeze the dev machine.

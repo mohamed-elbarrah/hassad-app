@@ -18,7 +18,12 @@ async function main() {
           // Personal identity now lives on the linked `User` — include it.
           include: {
             user: {
-              select: { id: true, name: true, email: true, phoneWhatsapp: true },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneWhatsapp: true,
+              },
             },
           },
           select: {

@@ -12,13 +12,22 @@ import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { StatCard } from "@/components/design-system/StatCard";
-import { DataTable, type DataTableColumn, type DataTableEmptyState } from "@/components/design-system/DataTable";
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableEmptyState,
+} from "@/components/design-system/DataTable";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { TableCell } from "@/components/ui/table";
 import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import { formatShortDate, formatRelativeTime } from "@/lib/format";
-import { ProjectStatus, TaskStatus, TaskPriority, TASK_PRIORITY_AR } from "@hassad/shared";
+import {
+  ProjectStatus,
+  TaskStatus,
+  TaskPriority,
+  TASK_PRIORITY_AR,
+} from "@hassad/shared";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
 import {
   PROJECT_STATUS_LABELS,
@@ -71,22 +80,22 @@ const PROJECT_STATUS_BG: Record<string, string> = PROJECT_STATUS_COLOR;
 
 export default function PMWorkspacePage() {
   const { user } = useAppSelector((state) => state.auth);
-  const [taskFilter, setTaskFilter] = useState<"all" | "urgent" | "overdue">("all");
+  const [taskFilter, setTaskFilter] = useState<"all" | "urgent" | "overdue">(
+    "all",
+  );
 
   // ── Real data from backend ───────────────────────────────────────────
-  const {
-    data: projectsData,
-    isLoading: projectsLoading,
-  } = useGetProjectsQuery({
-    limit: 100,
-    projectManagerId: user?.role === "PM" ? user.id : undefined,
-  });
+  const { data: projectsData, isLoading: projectsLoading } =
+    useGetProjectsQuery({
+      limit: 100,
+      projectManagerId: user?.role === "PM" ? user.id : undefined,
+    });
 
-  const { data: pmTasks = [], isLoading: tasksLoading } =
-    useGetPmTasksQuery({});
+  const { data: pmTasks = [], isLoading: tasksLoading } = useGetPmTasksQuery(
+    {},
+  );
 
-  const { data: pmStats, isLoading: statsLoading } =
-    useGetPmTaskStatsQuery();
+  const { data: pmStats, isLoading: statsLoading } = useGetPmTaskStatsQuery();
 
   const { data: notificationsData, isLoading: notifsLoading } =
     useGetMyNotificationsQuery({ limit: 10 });
@@ -121,17 +130,17 @@ export default function PMWorkspacePage() {
     .slice(0, 5);
 
   // Combined unique tasks for the attention section
-  const allAttentionTasks = [...urgentTasks, ...overdueTasks]
-    .filter(
-      (task, index, self) =>
-        index === self.findIndex((t) => t.id === task.id),
-    );
+  const allAttentionTasks = [...urgentTasks, ...overdueTasks].filter(
+    (task, index, self) => index === self.findIndex((t) => t.id === task.id),
+  );
 
   // Filtered tasks based on active tab
   const filteredAttentionTasks = (() => {
     if (taskFilter === "urgent") {
-      return allAttentionTasks.filter((t) =>
-        t.priority === TaskPriority.URGENT || t.priority === TaskPriority.HIGH
+      return allAttentionTasks.filter(
+        (t) =>
+          t.priority === TaskPriority.URGENT ||
+          t.priority === TaskPriority.HIGH,
       );
     }
     if (taskFilter === "overdue") {
@@ -154,7 +163,8 @@ export default function PMWorkspacePage() {
 
   const totalProjects = projects.length;
 
-  const isLoading = projectsLoading || tasksLoading || statsLoading || notifsLoading;
+  const isLoading =
+    projectsLoading || tasksLoading || statsLoading || notifsLoading;
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -213,9 +223,7 @@ export default function PMWorkspacePage() {
           icon={AlertTriangle}
           variant={(pmStats?.overdue ?? 0) > 0 ? "danger" : "default"}
           trend={(pmStats?.overdue ?? 0) > 0 ? "down" : "neutral"}
-          trendValue={
-            (pmStats?.overdue ?? 0) > 0 ? "تحتاج متابعة" : "لا يوجد"
-          }
+          trendValue={(pmStats?.overdue ?? 0) > 0 ? "تحتاج متابعة" : "لا يوجد"}
         />
       </div>
 
@@ -331,7 +339,7 @@ export default function PMWorkspacePage() {
                     "px-3 py-1.5 text-sm rounded-lg transition-colors font-medium",
                     taskFilter === "all"
                       ? "bg-secondary-500 text-white shadow-sm"
-                      : "bg-badge-gray-bg text-portal-note-text hover:bg-badge-gray-bg/80"
+                      : "bg-badge-gray-bg text-portal-note-text hover:bg-badge-gray-bg/80",
                   )}
                 >
                   الكل ({allAttentionTasks.length})
@@ -342,7 +350,7 @@ export default function PMWorkspacePage() {
                     "px-3 py-1.5 text-sm rounded-lg transition-colors font-medium",
                     taskFilter === "urgent"
                       ? "bg-alert-500 text-white shadow-sm"
-                      : "bg-badge-gray-bg text-portal-note-text hover:bg-badge-gray-bg/80"
+                      : "bg-badge-gray-bg text-portal-note-text hover:bg-badge-gray-bg/80",
                   )}
                 >
                   عاجل ({urgentTasks.length})
@@ -353,7 +361,7 @@ export default function PMWorkspacePage() {
                     "px-3 py-1.5 text-sm rounded-lg transition-colors font-medium",
                     taskFilter === "overdue"
                       ? "bg-danger-500 text-white shadow-sm"
-                      : "bg-badge-gray-bg text-portal-note-text hover:bg-badge-gray-bg/80"
+                      : "bg-badge-gray-bg text-portal-note-text hover:bg-badge-gray-bg/80",
                   )}
                 >
                   متأخر ({overdueTasks.length})
@@ -383,7 +391,7 @@ export default function PMWorkspacePage() {
                             ? "bg-danger-100 text-danger-600"
                             : task.priority === TaskPriority.HIGH
                               ? "bg-alert-100 text-alert-600"
-                              : "bg-badge-gray-bg text-portal-note-text"
+                              : "bg-badge-gray-bg text-portal-note-text",
                         )}
                       >
                         <ClipboardList className="w-4 h-4" />
@@ -393,7 +401,9 @@ export default function PMWorkspacePage() {
                           {task.title}
                         </h4>
                         <div className="flex items-center gap-2 mt-1 text-xs text-portal-note-text flex-wrap">
-                          <span className="truncate max-w-[120px]">{task.project?.name}</span>
+                          <span className="truncate max-w-[120px]">
+                            {task.project?.name}
+                          </span>
                           {task.assignee?.name && (
                             <>
                               <span className="shrink-0">•</span>
@@ -412,15 +422,21 @@ export default function PMWorkspacePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 mr-3">
-                      <PmStatusBadge domain="task" status={task.status} className="text-xs" />
+                      <PmStatusBadge
+                        domain="task"
+                        status={task.status}
+                        className="text-xs"
+                      />
                       {task.priority !== TaskPriority.LOW &&
                         task.priority !== TaskPriority.NORMAL && (
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            task.priority === TaskPriority.URGENT
-                              ? "bg-danger-100 text-danger-600"
-                              : "bg-alert-100 text-alert-600"
-                          )}>
+                          <span
+                            className={cn(
+                              "text-xs px-2 py-0.5 rounded-full",
+                              task.priority === TaskPriority.URGENT
+                                ? "bg-danger-100 text-danger-600"
+                                : "bg-alert-100 text-alert-600",
+                            )}
+                          >
                             {TASK_PRIORITY_LABELS[task.priority]}
                           </span>
                         )}
@@ -438,7 +454,9 @@ export default function PMWorkspacePage() {
           <SurfaceCard title="إحصائيات المهام" icon={TrendingUp}>
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-portal-divider">
-                <span className="text-sm text-portal-note-text">إجمالي المهام</span>
+                <span className="text-sm text-portal-note-text">
+                  إجمالي المهام
+                </span>
                 <span className="text-2xl font-semibold text-natural-100">
                   {pmStats?.total ?? 0}
                 </span>
@@ -498,10 +516,7 @@ export default function PMWorkspacePage() {
                   const NotifIcon =
                     NOTIFICATION_ICON_MAP[(notif as any).eventType] ?? Bell;
                   return (
-                    <div
-                      key={notif.id || i}
-                      className="flex gap-3 relative"
-                    >
+                    <div key={notif.id || i} className="flex gap-3 relative">
                       {i < Math.min(notifications.length, 6) - 1 && (
                         <div className="absolute right-[17px] top-8 bottom-0 w-px bg-portal-divider" />
                       )}
@@ -660,11 +675,7 @@ function RecentProjectsTable({
           // ── Progress bar ──
           <TableCell key="progress" className="px-5 py-4">
             <div className="flex items-center gap-2">
-              <ProgressBar
-                value={progress}
-                size="sm"
-                className="flex-1"
-              />
+              <ProgressBar value={progress} size="sm" className="flex-1" />
               <span className="text-xs text-portal-note-text w-8 text-left shrink-0">
                 {progress}%
               </span>
@@ -673,7 +684,8 @@ function RecentProjectsTable({
           // ── Date range ──
           <TableCell key="duration" className="px-5 py-4 text-center">
             <span className="text-sm text-portal-note-text">
-              {formatShortDate(project.startDate)} — {formatShortDate(project.endDate)}
+              {formatShortDate(project.startDate)} —{" "}
+              {formatShortDate(project.endDate)}
             </span>
           </TableCell>,
           // ── Manager ──

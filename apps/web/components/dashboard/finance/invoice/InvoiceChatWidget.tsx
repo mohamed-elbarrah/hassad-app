@@ -29,7 +29,10 @@ interface InvoiceChatWidgetProps {
   clientUserId?: string | null;
 }
 
-export function InvoiceChatWidget({ clientId, clientUserId }: InvoiceChatWidgetProps) {
+export function InvoiceChatWidget({
+  clientId,
+  clientUserId,
+}: InvoiceChatWidgetProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [typingUser, setTypingUser] = useState<{
@@ -40,10 +43,7 @@ export function InvoiceChatWidget({ clientId, clientUserId }: InvoiceChatWidgetP
 
   // Find conversation for this client
   const { data: conversationsData, isLoading: convLoading } =
-    useGetConversationsQuery(
-      { clientId, limit: 1 },
-      { skip: !clientId },
-    );
+    useGetConversationsQuery({ clientId, limit: 1 }, { skip: !clientId });
 
   const conversation = conversationsData?.data?.[0];
   const conversationId = conversation?.id;
@@ -95,7 +95,9 @@ export function InvoiceChatWidget({ clientId, clientUserId }: InvoiceChatWidgetP
         // Create conversation first if we have the client's user ID
         if (clientUserId) {
           try {
-            const newConv = await createConversation({ userId: clientUserId }).unwrap();
+            const newConv = await createConversation({
+              userId: clientUserId,
+            }).unwrap();
             // After creation, send the message
             await sendMessage({ conversationId: newConv.id, content }).unwrap();
           } catch {
@@ -116,7 +118,9 @@ export function InvoiceChatWidget({ clientId, clientUserId }: InvoiceChatWidgetP
   const handleStartConversation = useCallback(async () => {
     if (clientUserId) {
       try {
-        const newConv = await createConversation({ userId: clientUserId }).unwrap();
+        const newConv = await createConversation({
+          userId: clientUserId,
+        }).unwrap();
         toast.success("تم إنشاء المحادثة");
         // Expand the widget to show the new conversation
         setIsExpanded(true);
@@ -124,7 +128,9 @@ export function InvoiceChatWidget({ clientId, clientUserId }: InvoiceChatWidgetP
         toast.error("فشل إنشاء المحادثة");
       }
     } else {
-      toast.error("لا يمكن إنشاء محادثة: لم يتم العثور على حساب المستخدم للعميل");
+      toast.error(
+        "لا يمكن إنشاء محادثة: لم يتم العثور على حساب المستخدم للعميل",
+      );
     }
   }, [clientUserId, createConversation]);
 
@@ -158,7 +164,7 @@ export function InvoiceChatWidget({ clientId, clientUserId }: InvoiceChatWidgetP
               <span
                 className={cn(
                   "w-2 h-2 rounded-full",
-                  isConnected ? "bg-success-500" : "bg-alert-500"
+                  isConnected ? "bg-success-500" : "bg-alert-500",
                 )}
               />
               <span className="text-[10px] text-portal-note-text">
@@ -167,8 +173,15 @@ export function InvoiceChatWidget({ clientId, clientUserId }: InvoiceChatWidgetP
             </div>
             <div className="flex items-center gap-1">
               {conversationId && (
-                <Link href={`/dashboard/messages?conversationId=${conversationId}`}>
-                  <ActionButton variant="ghost" size="sm" className="h-7 text-xs" icon={<ExternalLink className="w-3 h-3" />}>
+                <Link
+                  href={`/dashboard/messages?conversationId=${conversationId}`}
+                >
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    icon={<ExternalLink className="w-3 h-3" />}
+                  >
                     فتح
                   </ActionButton>
                 </Link>

@@ -78,7 +78,11 @@ interface PmStatusBadgeProps {
   className?: string;
 }
 
-export function PmStatusBadge({ domain, status, className }: PmStatusBadgeProps) {
+export function PmStatusBadge({
+  domain,
+  status,
+  className,
+}: PmStatusBadgeProps) {
   return (
     <StatusBadge
       status={resolveBadgeKey(domain, status)}

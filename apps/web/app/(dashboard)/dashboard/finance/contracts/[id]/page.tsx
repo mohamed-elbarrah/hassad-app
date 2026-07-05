@@ -92,25 +92,37 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
           <p className="text-sm text-portal-note-text mb-1">القيمة الإجمالية</p>
-          <p className="text-xl font-bold text-natural-100"><CurrencyDisplay amount={totalValue} /></p>
-          <p className="text-xs text-portal-note-text mt-1">{invoiceCount} فاتورة</p>
+          <p className="text-xl font-bold text-natural-100">
+            <CurrencyDisplay amount={totalValue} />
+          </p>
+          <p className="text-xs text-portal-note-text mt-1">
+            {invoiceCount} فاتورة
+          </p>
         </div>
         <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
           <p className="text-sm text-portal-note-text mb-1">المحصل</p>
-          <p className="text-xl font-bold text-success-600"><CurrencyDisplay amount={totalPaid} /></p>
+          <p className="text-xl font-bold text-success-600">
+            <CurrencyDisplay amount={totalPaid} />
+          </p>
           <div className="mt-2 space-y-1">
             <ProgressBar value={collectionRate} size="sm" />
-            <p className="text-[10px] text-portal-note-text">{collectionRate.toFixed(1)}% من الإجمالي</p>
+            <p className="text-[10px] text-portal-note-text">
+              {collectionRate.toFixed(1)}% من الإجمالي
+            </p>
           </div>
         </div>
         <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
           <p className="text-sm text-portal-note-text mb-1">المتبقي</p>
-          <p className="text-xl font-bold text-danger-600"><CurrencyDisplay amount={remaining} /></p>
+          <p className="text-xl font-bold text-danger-600">
+            <CurrencyDisplay amount={remaining} />
+          </p>
           <p className="text-xs text-portal-note-text mt-1">بعد خصم الدفعات</p>
         </div>
         <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
           <p className="text-sm text-portal-note-text mb-1">نسبة التحصيل</p>
-          <p className="text-xl font-bold text-natural-100">{collectionRate.toFixed(1)}%</p>
+          <p className="text-xl font-bold text-natural-100">
+            {collectionRate.toFixed(1)}%
+          </p>
           <p className="text-xs text-portal-note-text mt-1">معدل الدفع</p>
         </div>
       </div>
@@ -165,12 +177,14 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
               { id: "method", label: "طريقة الدفع" },
               { id: "status", label: "الحالة" },
             ]}
-            data={data.invoices?.flatMap((inv) =>
-              (inv.payments ?? []).map((payment) => ({
-                ...payment,
-                invoiceNumber: inv.invoiceNumber,
-              })),
-            ) || []}
+            data={
+              data.invoices?.flatMap((inv) =>
+                (inv.payments ?? []).map((payment) => ({
+                  ...payment,
+                  invoiceNumber: inv.invoiceNumber,
+                })),
+              ) || []
+            }
             isLoading={isLoading}
             isError={false}
             emptyState={{
@@ -180,7 +194,9 @@ export default function FinanceContractDetailPage({ params }: PageProps) {
             }}
             renderRow={(payment) => (
               <tr className="border-b-[1.5px] border-portal-divider">
-                <td className="px-5 py-4 font-mono text-xs">{payment.invoiceNumber}</td>
+                <td className="px-5 py-4 font-mono text-xs">
+                  {payment.invoiceNumber}
+                </td>
                 <td className="px-5 py-4">
                   {new Date(payment.date).toLocaleDateString("en-GB", {
                     day: "2-digit",

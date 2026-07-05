@@ -2,7 +2,10 @@
 
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { PLATFORM_ICON_BG, platformLabel } from "@/lib/utils/campaign-constants";
+import {
+  PLATFORM_ICON_BG,
+  platformLabel,
+} from "@/lib/utils/campaign-constants";
 import { Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PortalCampaign } from "@/features/portal/portalApi";
@@ -48,7 +51,10 @@ export function renderCampaignRowCells(
     <td key="status" className="px-5 py-3.5 align-middle">
       <DomainStatusPill domain="campaign" status={campaign.status} />
     </td>,
-    <td key="period" className="px-5 py-3.5 align-middle text-[12.5px] text-portal-note-text tabular-nums">
+    <td
+      key="period"
+      className="px-5 py-3.5 align-middle text-[12.5px] text-portal-note-text tabular-nums"
+    >
       {period}
     </td>,
     <td key="impressions" className="px-5 py-3.5 align-middle text-start">
@@ -66,13 +72,7 @@ export function renderCampaignRowCells(
     <td key="roas" className="px-5 py-3.5 align-middle text-start">
       <KpiCell
         value={a.roas ? `${a.roas.toFixed(2)}x` : "—"}
-        tone={
-          a.roas && a.roas >= 1
-            ? "success"
-            : a.roas
-              ? "danger"
-              : "muted"
-        }
+        tone={a.roas && a.roas >= 1 ? "success" : a.roas ? "danger" : "muted"}
       />
     </td>,
     <td key="budget" className="px-5 py-3.5 align-middle min-w-[160px]">
@@ -161,10 +161,7 @@ function formatNumber(n: number | undefined): string {
   }
 }
 
-function formatPeriod(
-  start?: string | null,
-  end?: string | null,
-): string {
+function formatPeriod(start?: string | null, end?: string | null): string {
   const s = formatShortDateLong(start);
   const e = formatShortDateLong(end);
   if (s === "—" && e === "—") return "—";

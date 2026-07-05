@@ -71,9 +71,15 @@ export class AdminUsersService {
         include: {
           role: true,
           departments: { include: { department: true } },
-          assignedRequests: { where: { status: { in: ["SUBMITTED", "QUALIFYING"] } } },
-          managedProjects: { where: { status: { in: ["ACTIVE", "PLANNING"] } } },
-          sessions: { where: { revokedAt: null, expiresAt: { gte: new Date() } } },
+          assignedRequests: {
+            where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
+          },
+          managedProjects: {
+            where: { status: { in: ["ACTIVE", "PLANNING"] } },
+          },
+          sessions: {
+            where: { revokedAt: null, expiresAt: { gte: new Date() } },
+          },
           _count: { select: { securityEvents: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -103,7 +109,9 @@ export class AdminUsersService {
         managedProjects: {
           where: { status: { in: ["ACTIVE", "PLANNING"] } },
         },
-        sessions: { where: { revokedAt: null, expiresAt: { gte: new Date() } } },
+        sessions: {
+          where: { revokedAt: null, expiresAt: { gte: new Date() } },
+        },
       },
     });
 
@@ -452,9 +460,7 @@ export class AdminUsersService {
 
   private toResponse(user: any): UserDetailResponse {
     const roleName =
-      user.role && typeof user.role === "object"
-        ? user.role.name
-        : user.roleId;
+      user.role && typeof user.role === "object" ? user.role.name : user.roleId;
 
     const deptEntry =
       user.departments && user.departments.length > 0

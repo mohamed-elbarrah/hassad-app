@@ -44,14 +44,14 @@ export const PROJECT_STATUS_BADGE_KEY: Record<ProjectStatus, string> = {
 // Each status has a unique color for clear visual differentiation.
 
 export const PROJECT_STATUS_COLOR: Record<ProjectStatus, string> = {
-  [ProjectStatus.PLANNING]: "#6B7280",      // Cool grey - not started
+  [ProjectStatus.PLANNING]: "#6B7280", // Cool grey - not started
   [ProjectStatus.PENDING_ACTIVATION]: "#94A3B8", // Slate - awaiting activation
-  [ProjectStatus.ACTIVE]: "#3B82F6",        // Blue - in progress
-  [ProjectStatus.ON_HOLD]: "#F59E0B",       // Amber - paused
+  [ProjectStatus.ACTIVE]: "#3B82F6", // Blue - in progress
+  [ProjectStatus.ON_HOLD]: "#F59E0B", // Amber - paused
   [ProjectStatus.AWAITING_REVIEW]: "#8B5CF6", // Purple - waiting external
   [ProjectStatus.NEEDS_REVISION]: "#F97316", // Orange - attention needed (not as severe as red)
-  [ProjectStatus.COMPLETED]: "#10B981",     // Emerald - success
-  [ProjectStatus.CANCELLED]: "#EF4444",     // Red - terminal/cancelled
+  [ProjectStatus.COMPLETED]: "#10B981", // Emerald - success
+  [ProjectStatus.CANCELLED]: "#EF4444", // Red - terminal/cancelled
 };
 
 // ── All statuses in kanban order (left to right flow) ───────────────────────
@@ -81,7 +81,19 @@ export const PROJECT_STATUS_DOT_COLOR = PROJECT_STATUS_COLOR;
 /** @deprecated Groups are no longer used. Use KANBAN_STATUS_ORDER instead. */
 export const PROJECT_KANBAN_GROUPS = [
   { id: "planning", label: "التخطيط", statuses: [ProjectStatus.PLANNING] },
-  { id: "execution", label: "التنفيذ", statuses: [ProjectStatus.ACTIVE, ProjectStatus.ON_HOLD] },
-  { id: "review", label: "المراجعة", statuses: [ProjectStatus.AWAITING_REVIEW, ProjectStatus.NEEDS_REVISION] },
-  { id: "closure", label: "الإغلاق", statuses: [ProjectStatus.COMPLETED, ProjectStatus.CANCELLED] },
+  {
+    id: "execution",
+    label: "التنفيذ",
+    statuses: [ProjectStatus.ACTIVE, ProjectStatus.ON_HOLD],
+  },
+  {
+    id: "review",
+    label: "المراجعة",
+    statuses: [ProjectStatus.AWAITING_REVIEW, ProjectStatus.NEEDS_REVISION],
+  },
+  {
+    id: "closure",
+    label: "الإغلاق",
+    statuses: [ProjectStatus.COMPLETED, ProjectStatus.CANCELLED],
+  },
 ] as const;

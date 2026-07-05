@@ -136,7 +136,7 @@ export class RequestsService {
           select: {
             id: true,
             companyName: true,
-            
+
             userId: true,
             totalProjects: true,
             activeProjects: true,
@@ -203,7 +203,12 @@ export class RequestsService {
             totalProjects: true,
             activeProjects: true,
             user: {
-              select: { id: true, name: true, email: true, phoneWhatsapp: true },
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneWhatsapp: true,
+              },
             },
           },
         },
@@ -394,7 +399,7 @@ export class RequestsService {
             select: {
               id: true,
               companyName: true,
-              
+
               userId: true,
             },
           },
@@ -434,10 +439,7 @@ export class RequestsService {
     return createdRequest;
   }
 
-  async createForClient(
-    dto: CreateRequestForClientDto,
-    userId: string,
-  ) {
+  async createForClient(dto: CreateRequestForClientDto, userId: string) {
     const client = await this.prisma.client.findUnique({
       where: { id: dto.clientId },
       include: { manager: true },
@@ -515,7 +517,7 @@ export class RequestsService {
             select: {
               id: true,
               companyName: true,
-              
+
               userId: true,
             },
           },
@@ -567,16 +569,16 @@ export class RequestsService {
         services: true,
         request: {
           include: {
-        client: {
-          select: {
-            id: true,
-            companyName: true,
-            
-            userId: true,
-            totalProjects: true,
-            activeProjects: true,
-          },
-        },
+            client: {
+              select: {
+                id: true,
+                companyName: true,
+
+                userId: true,
+                totalProjects: true,
+                activeProjects: true,
+              },
+            },
             lead: { select: { id: true, pipelineStage: true } },
           },
         },
@@ -660,7 +662,7 @@ export class RequestsService {
           select: {
             id: true,
             companyName: true,
-            
+
             userId: true,
           },
         },
@@ -688,7 +690,7 @@ export class RequestsService {
             select: {
               id: true,
               companyName: true,
-              
+
               userId: true,
             },
           },

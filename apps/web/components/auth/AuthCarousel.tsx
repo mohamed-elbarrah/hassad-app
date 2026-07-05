@@ -38,7 +38,6 @@ export function AuthCarousel({ className }: AuthCarouselProps) {
     <div
       className={`flex flex-col items-center justify-center max-w-md text-center space-y-8 ${className || ""}`}
     >
-
       {/* Slide Image or mockup */}
 
       {/* Slide Text */}

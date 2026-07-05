@@ -8,8 +8,8 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import * as cookieParser from "cookie-parser";
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
-  
+  const logger = new Logger("Bootstrap");
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new Logger(),
     rawBody: true,
@@ -32,7 +32,7 @@ async function bootstrap() {
 
   // Note: HttpExceptionFilter is registered via APP_FILTER in AppModule
   // This ensures proper DI and global error handling
-  
+
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   app.enableCors({
@@ -42,13 +42,15 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
-  
+
   logger.log(`🚀 API server running on http://localhost:${port}/v1`);
-  logger.log(`📊 Health dashboard available at http://localhost:${port}/v1/health`);
+  logger.log(
+    `📊 Health dashboard available at http://localhost:${port}/v1/health`,
+  );
 }
 
 // Handle bootstrap errors
 bootstrap().catch((error) => {
-  console.error('Failed to start application:', error);
+  console.error("Failed to start application:", error);
   process.exit(1);
 });

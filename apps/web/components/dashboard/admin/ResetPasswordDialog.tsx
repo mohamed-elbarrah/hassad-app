@@ -21,7 +21,9 @@ export function ResetPasswordDialog({
   onConfirm,
 }: ResetPasswordDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<{ temporaryPassword: string } | null>(null);
+  const [result, setResult] = useState<{ temporaryPassword: string } | null>(
+    null,
+  );
   const [copied, setCopied] = useState(false);
 
   const handleConfirm = async () => {
@@ -70,7 +72,11 @@ export function ResetPasswordDialog({
         result ? (
           <div className="flex gap-2 justify-end">
             <ActionButton variant="outline" onClick={handleCopy}>
-              {copied ? <Check className="size-4 ml-1" /> : <Copy className="size-4 ml-1" />}
+              {copied ? (
+                <Check className="size-4 ml-1" />
+              ) : (
+                <Copy className="size-4 ml-1" />
+              )}
               {copied ? "تم النسخ" : "نسخ كلمة المرور"}
             </ActionButton>
             <ActionButton onClick={() => handleOpenChange(false)}>
@@ -79,7 +85,10 @@ export function ResetPasswordDialog({
           </div>
         ) : (
           <div className="flex gap-2 justify-end">
-            <ActionButton variant="outline" onClick={() => handleOpenChange(false)}>
+            <ActionButton
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
               إلغاء
             </ActionButton>
             <ActionButton onClick={handleConfirm} disabled={isLoading}>

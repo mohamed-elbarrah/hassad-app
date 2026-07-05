@@ -12,10 +12,13 @@ import {
 } from "@/components/portal/proposals";
 
 export default function PortalProposalsPage() {
-  const { data: proposals, isLoading, isError } = useGetMyPortalProposalsQuery(
-    undefined,
-    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
-  );
+  const {
+    data: proposals,
+    isLoading,
+    isError,
+  } = useGetMyPortalProposalsQuery(undefined, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
 
   const [search, setSearch] = useState("");
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
@@ -38,12 +41,9 @@ export default function PortalProposalsPage() {
     });
   }, [proposals, search, statusFilter]);
 
-  const handleFilterChange = useCallback(
-    (key: string, values: string[]) => {
-      setActiveFilters((prev) => ({ ...prev, [key]: values }));
-    },
-    [],
-  );
+  const handleFilterChange = useCallback((key: string, values: string[]) => {
+    setActiveFilters((prev) => ({ ...prev, [key]: values }));
+  }, []);
 
   const hasActiveSearchOrFilter =
     search.trim().length > 0 ||
@@ -89,7 +89,9 @@ export default function PortalProposalsPage() {
             ? "جرّب كلمات بحث مختلفة أو امسح عوامل التصفية."
             : "ستظهر هنا العروض الفنية المقدّمة لك فور إعدادها من قبل فريق المبيعات.",
         }}
-        renderCells={(p, { onActivate }) => renderProposalRowCells(p, { onActivate })}
+        renderCells={(p, { onActivate }) =>
+          renderProposalRowCells(p, { onActivate })
+        }
       />
     </div>
   );

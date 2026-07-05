@@ -54,7 +54,12 @@ export class BulkUserActionDto {
   userIds: string[];
 
   @IsString()
-  action: "activate" | "deactivate" | "changeRole" | "reassignDepartment" | "export";
+  action:
+    | "activate"
+    | "deactivate"
+    | "changeRole"
+    | "reassignDepartment"
+    | "export";
 
   @IsOptional()
   @IsString()

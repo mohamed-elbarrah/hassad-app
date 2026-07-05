@@ -25,8 +25,7 @@ export function ProjectKanbanCardContent({
   const progressValue = Math.round(
     project.progress ?? project.completionPercentage ?? 0,
   );
-  const statusColor =
-    PROJECT_STATUS_COLOR[project.status as ProjectStatus];
+  const statusColor = PROJECT_STATUS_COLOR[project.status as ProjectStatus];
 
   function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -60,10 +59,7 @@ export function ProjectKanbanCardContent({
             className="w-3.5 h-3.5 shrink-0"
             style={{ color: "#A8ABB2" }}
           />
-          <span
-            className="text-xs truncate"
-            style={{ color: "#A8ABB2" }}
-          >
+          <span className="text-xs truncate" style={{ color: "#A8ABB2" }}>
             {project.client.companyName}
           </span>
         </Link>
@@ -77,7 +73,10 @@ export function ProjectKanbanCardContent({
             {progressValue}%
           </span>
         </div>
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "#F1F5F9" }}>
+        <div
+          className="h-1.5 rounded-full overflow-hidden"
+          style={{ backgroundColor: "#F1F5F9" }}
+        >
           <div
             className="h-full rounded-full transition-all"
             style={{
@@ -89,7 +88,10 @@ export function ProjectKanbanCardContent({
       </div>
 
       {/* ── Date Range ────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1 mt-3 text-xs" style={{ color: "#A8ABB2" }}>
+      <div
+        className="flex items-center gap-1 mt-3 text-xs"
+        style={{ color: "#A8ABB2" }}
+      >
         <Calendar className="w-3.5 h-3.5 shrink-0" />
         <span>
           {startDate} - {endDate}

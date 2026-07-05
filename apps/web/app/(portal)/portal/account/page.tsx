@@ -11,7 +11,12 @@ import {
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AccountForm } from "@/components/design-system/AccountForm";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ClientBriefV2 } from "@/components/client-brief/ClientBriefV2";
 import { ProfileEditV2 } from "@/components/portal/ProfileEditV2";
@@ -170,12 +175,16 @@ export default function PortalAccountPage() {
           <ClientBriefV2
             client={client}
             profile={profile ?? null}
-            user={user ? {
-              name: user.name,
-              email: user.email,
-              phoneWhatsapp: user.phoneWhatsapp,
-              avatarUrl: user.avatarUrl,
-            } : null}
+            user={
+              user
+                ? {
+                    name: user.name,
+                    email: user.email,
+                    phoneWhatsapp: user.phoneWhatsapp,
+                    avatarUrl: user.avatarUrl,
+                  }
+                : null
+            }
             role={user.role}
           />
         )}

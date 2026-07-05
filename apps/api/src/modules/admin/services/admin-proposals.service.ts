@@ -5,7 +5,12 @@ import { PrismaService } from "../../../prisma/prisma.service";
 export class AdminProposalsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(filters: { status?: string; search?: string; page?: number; limit?: number }) {
+  async findAll(filters: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const where: any = {};
     if (filters.status) where.status = filters.status;
     if (filters.search) {
@@ -48,13 +53,21 @@ export class AdminProposalsService {
   }
 
   async getStats() {
-    const [total, sent, approved, rejected, revisionRequested] = await Promise.all([
-      this.prisma.proposal.count(),
-      this.prisma.proposal.count({ where: { status: "SENT" } }),
-      this.prisma.proposal.count({ where: { status: "APPROVED" } }),
-      this.prisma.proposal.count({ where: { status: "REJECTED" } }),
-      this.prisma.proposal.count({ where: { status: "REVISION_REQUESTED" } }),
-    ]);
-    return { total, sent, approved, rejected, revisionRequested, conversionRate: total > 0 ? Math.round((approved / total) * 100) : 0 };
+    const [total, sent, approved, rejected, revisionRequested] =
+      await Promise.all([
+        this.prisma.proposal.count(),
+        this.prisma.proposal.count({ where: { status: "SENT" } }),
+        this.prisma.proposal.count({ where: { status: "APPROVED" } }),
+        this.prisma.proposal.count({ where: { status: "REJECTED" } }),
+        this.prisma.proposal.count({ where: { status: "REVISION_REQUESTED" } }),
+      ]);
+    return {
+      total,
+      sent,
+      approved,
+      rejected,
+      revisionRequested,
+      conversionRate: total > 0 ? Math.round((approved / total) * 100) : 0,
+    };
   }
 }

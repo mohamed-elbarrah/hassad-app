@@ -6,20 +6,20 @@ This document defines the **single, non-negotiable** deployment pattern for Hass
 
 ## 1. Core Rules
 
-| # | Rule | Why |
-|---|---|---|
-| **R1** | **Everything runs in Docker Compose** — PostgreSQL, API, Web, Nginx. One `docker-compose.prod.yml` file. | Single source of truth. `docker compose up -d --build` deploys everything. |
-| **R2** | **PostgreSQL in Docker with a named volume** — `postgres_data:/var/lib/postgresql/data`. Never bind-mount to host. | Data survives container recreation and can be backed up or restored independently of containers. |
-| **R3** | **`prisma migrate deploy` in production** — entrypoint runs migrations, never `db push`. | Migration history, rollback capability, no accidental schema drift. |
-| **R4** | **`prisma migrate dev` in development** — generate migration files locally, commit them to `apps/api/prisma/migrations/`. | Migrations are versioned, reviewable in PRs. |
-| **R5** | **Nginx is the ONLY publicly exposed service** — ports 80/443. API, Web, PostgreSQL are internal Docker network only. | Single attack surface. UFW blocks everything else. |
-| **R6** | **UFW firewall on VPS** — allow 22, 80, 443. Deny all others. | Defense in depth. Even if a port is accidentally exposed in compose, UFW blocks it. |
-| **R7** | **Log rotation on every service** — `max-size: 10m`, `max-file: 5`. | Prevent disk exhaustion from container logs. |
-| **R8** | **Let's Encrypt mounted directly** — `/etc/letsencrypt` on host → Nginx container via volume. | Cert renewal is automatic (certbot on host). Nginx always sees live certs. |
-| **R9** | **WebSocket via `map` directive** — `map $http_upgrade $connection_upgrade` in nginx.conf. | Standard, robust Socket.IO handling. |
-| **R10** | **Single `.env.production` file** — gitignored, `chmod 600`, referenced by compose `env_file`. | All secrets in one place. Never committed. |
-| **R11** | **Dockerfiles build from monorepo root context** — `context: .` in compose, Dockerfile in app folder. | Workspace packages (`@hassad/shared`) resolve correctly. No hacks. |
-| **R12** | **Healthchecks on API and Web** — Docker waits for healthy before routing traffic. | No traffic to half-started containers. |
+| #       | Rule                                                                                                                      | Why                                                                                              |
+| ------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **R1**  | **Everything runs in Docker Compose** — PostgreSQL, API, Web, Nginx. One `docker-compose.prod.yml` file.                  | Single source of truth. `docker compose up -d --build` deploys everything.                       |
+| **R2**  | **PostgreSQL in Docker with a named volume** — `postgres_data:/var/lib/postgresql/data`. Never bind-mount to host.        | Data survives container recreation and can be backed up or restored independently of containers. |
+| **R3**  | **`prisma migrate deploy` in production** — entrypoint runs migrations, never `db push`.                                  | Migration history, rollback capability, no accidental schema drift.                              |
+| **R4**  | **`prisma migrate dev` in development** — generate migration files locally, commit them to `apps/api/prisma/migrations/`. | Migrations are versioned, reviewable in PRs.                                                     |
+| **R5**  | **Nginx is the ONLY publicly exposed service** — ports 80/443. API, Web, PostgreSQL are internal Docker network only.     | Single attack surface. UFW blocks everything else.                                               |
+| **R6**  | **UFW firewall on VPS** — allow 22, 80, 443. Deny all others.                                                             | Defense in depth. Even if a port is accidentally exposed in compose, UFW blocks it.              |
+| **R7**  | **Log rotation on every service** — `max-size: 10m`, `max-file: 5`.                                                       | Prevent disk exhaustion from container logs.                                                     |
+| **R8**  | **Let's Encrypt mounted directly** — `/etc/letsencrypt` on host → Nginx container via volume.                             | Cert renewal is automatic (certbot on host). Nginx always sees live certs.                       |
+| **R9**  | **WebSocket via `map` directive** — `map $http_upgrade $connection_upgrade` in nginx.conf.                                | Standard, robust Socket.IO handling.                                                             |
+| **R10** | **Single `.env.production` file** — gitignored, `chmod 600`, referenced by compose `env_file`.                            | All secrets in one place. Never committed.                                                       |
+| **R11** | **Dockerfiles build from monorepo root context** — `context: .` in compose, Dockerfile in app folder.                     | Workspace packages (`@hassad/shared`) resolve correctly. No hacks.                               |
+| **R12** | **Healthchecks on API and Web** — Docker waits for healthy before routing traffic.                                        | No traffic to half-started containers.                                                           |
 
 ---
 
@@ -206,15 +206,15 @@ curl -s https://yourdomain.com/v1/health | jq
 
 ## 7. Quick Reference: What Goes Where
 
-| Concern | Where |
-|---|---|
-| Add a new env var | `.env.production.example` (template) + `.env.production` (real) + `docker-compose.prod.yml` (pass to service) |
-| Change DB schema | `schema.prisma` → `prisma migrate dev` → commit migration folder |
+| Concern              | Where                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Add a new env var    | `.env.production.example` (template) + `.env.production` (real) + `docker-compose.prod.yml` (pass to service)                    |
+| Change DB schema     | `schema.prisma` → `prisma migrate dev` → commit migration folder                                                                 |
 | Change Nginx routing | Edit `nginx/conf.d/hassad.conf.https.template` (or `.http.template`) → `docker compose restart nginx` (envsubst runs at startup) |
-| Add a new service | `docker-compose.prod.yml` + Dockerfile in its folder |
-| Renew TLS cert | Automatic (certbot systemd timer). Ensure `/etc/letsencrypt` is mounted in compose. |
-| Backup DB | `docker exec hassad-postgres pg_dump ...` (see section 6) |
-| View logs | `docker compose logs -f --tail=100 <service>` |
+| Add a new service    | `docker-compose.prod.yml` + Dockerfile in its folder                                                                             |
+| Renew TLS cert       | Automatic (certbot systemd timer). Ensure `/etc/letsencrypt` is mounted in compose.                                              |
+| Backup DB            | `docker exec hassad-postgres pg_dump ...` (see section 6)                                                                        |
+| View logs            | `docker compose logs -f --tail=100 <service>`                                                                                    |
 
 ---
 
@@ -229,6 +229,7 @@ curl -s https://yourdomain.com/v1/health | jq
 4. **Never bind-mount PostgreSQL data** — always use the named volume `postgres_data`.
 
 5. **Always include log rotation** — every new service gets the `logging:` block:
+
    ```yaml
    logging:
      driver: json-file
@@ -248,15 +249,18 @@ curl -s https://yourdomain.com/v1/health | jq
 10. **Never pass secrets as Docker build args** — only public URLs (like `NEXT_PUBLIC_API_URL`) go in build args. Secrets like `JWT_SECRET` are injected at runtime via `env_file`. Build args are embedded in the image layers and visible via `docker history`.
 
 11. **Use the `map` directive for WebSocket upgrades** — in `nginx/nginx.conf`:
-   ```nginx
-   map $http_upgrade $connection_upgrade {
-       default upgrade;
-       ''      close;
-   }
-   ```
-   Then in location blocks: `proxy_set_header Connection $connection_upgrade;`
+
+```nginx
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+```
+
+Then in location blocks: `proxy_set_header Connection $connection_upgrade;`
 
 12. **Mount Let's Encrypt live directory, never copy certs** — in compose:
+
     ```yaml
     volumes:
       - /etc/letsencrypt/live/${DOMAIN}/fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro
@@ -264,10 +268,11 @@ curl -s https://yourdomain.com/v1/health | jq
     ```
 
 13. **Single source of truth: `DOMAIN` (or `SERVER_IP`)** — `.env.production` has two variables:
-   - `DOMAIN=yourdomain.com` — set this for production with HTTPS
-   - `SERVER_IP=123.45.67.89` — always required, used as fallback when DOMAIN is empty
-   
-   All URLs auto-adapt: `https://${DOMAIN:-${SERVER_IP}}`. Change one variable, everything follows.
+
+- `DOMAIN=yourdomain.com` — set this for production with HTTPS
+- `SERVER_IP=123.45.67.89` — always required, used as fallback when DOMAIN is empty
+
+All URLs auto-adapt: `https://${DOMAIN:-${SERVER_IP}}`. Change one variable, everything follows.
 
 ---
 
@@ -275,10 +280,11 @@ curl -s https://yourdomain.com/v1/health | jq
 
 ### `.env.production` — all variables needed
 
-> **⚠️ Two modes:**  
-> - **With domain:** set `DOMAIN=yourdomain.com` → HTTPS + TLS certs  
+> **⚠️ Two modes:**
+>
+> - **With domain:** set `DOMAIN=yourdomain.com` → HTTPS + TLS certs
 > - **IP-only (fallback):** leave `DOMAIN` empty → HTTP only, access via `http://<SERVER_IP>`  
-> All URLs auto-adapt based on whether `DOMAIN` is set.
+>   All URLs auto-adapt based on whether `DOMAIN` is set.
 
 ```bash
 # ── Domain / IP (SET ONE OF THESE) ─────────────────
@@ -409,7 +415,8 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      test:
+        ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -827,11 +834,11 @@ rsync -avz /backups/hassad/ user@offsite-server:/backups/hassad/
 
 ## 16. Troubleshooting
 
-| Symptom | Check |
-|---|---|
-| 502 Bad Gateway | `docker compose ps` — are api/web healthy? |
-| DB connection refused | `docker compose logs postgres` — is it healthy? |
-| Nginx config error | `docker compose exec nginx nginx -t` |
-| Certs expired | `sudo certbot renew --dry-run` |
-| Disk full | `docker system prune -a` (cleans old images), check log sizes |
-| Migration stuck | `docker compose exec api npx prisma migrate status` |
+| Symptom               | Check                                                         |
+| --------------------- | ------------------------------------------------------------- |
+| 502 Bad Gateway       | `docker compose ps` — are api/web healthy?                    |
+| DB connection refused | `docker compose logs postgres` — is it healthy?               |
+| Nginx config error    | `docker compose exec nginx nginx -t`                          |
+| Certs expired         | `sudo certbot renew --dry-run`                                |
+| Disk full             | `docker system prune -a` (cleans old images), check log sizes |
+| Migration stuck       | `docker compose exec api npx prisma migrate status`           |

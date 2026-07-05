@@ -4,13 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { toast } from "sonner";
-import {
-  Send,
-  Paperclip,
-  X,
-  FileText,
-  Smile,
-} from "lucide-react";
+import { Send, Paperclip, X, FileText, Smile } from "lucide-react";
 
 interface MessageInputProps {
   onSend: (content: string, files?: File[]) => void;
@@ -20,7 +14,10 @@ interface MessageInputProps {
   placeholder?: string;
 }
 
-function getFilePreview(file: File): { type: "image" | "document"; url?: string } {
+function getFilePreview(file: File): {
+  type: "image" | "document";
+  url?: string;
+} {
   if (file.type.startsWith("image/")) {
     return { type: "image", url: URL.createObjectURL(file) };
   }

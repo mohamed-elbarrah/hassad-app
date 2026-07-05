@@ -7,9 +7,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
-import {
-  type ProjectWithMeta,
-} from "@/lib/utils/project-status";
+import { type ProjectWithMeta } from "@/lib/utils/project-status";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

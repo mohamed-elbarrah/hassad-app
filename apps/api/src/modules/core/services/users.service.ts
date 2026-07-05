@@ -6,7 +6,12 @@ import {
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
-import { UserRole, TaskDepartment, RequestStatus, ProjectStatus } from "@hassad/shared";
+import {
+  UserRole,
+  TaskDepartment,
+  RequestStatus,
+  ProjectStatus,
+} from "@hassad/shared";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -61,10 +66,8 @@ export class UsersService {
     const department = deptEntry?.department?.name ?? null;
 
     // workload counts (only present when included by findAll)
-    const activeRequestsCount =
-      user.assignedRequests?.length ?? 0;
-    const activeProjectsCount =
-      user.managedProjects?.length ?? 0;
+    const activeRequestsCount = user.assignedRequests?.length ?? 0;
+    const activeProjectsCount = user.managedProjects?.length ?? 0;
 
     return {
       id: user.id,
@@ -119,7 +122,14 @@ export class UsersService {
   }
 
   async findAll(filters: UserListFilters = {}) {
-    const { search, role, excludeRole, department, page = 1, limit = 20 } = filters;
+    const {
+      search,
+      role,
+      excludeRole,
+      department,
+      page = 1,
+      limit = 20,
+    } = filters;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -155,7 +165,9 @@ export class UsersService {
           departments: { include: { department: true } },
           assignedRequests: {
             where: {
-              status: { notIn: [RequestStatus.PROJECT_CREATED, RequestStatus.CANCELLED] },
+              status: {
+                notIn: [RequestStatus.PROJECT_CREATED, RequestStatus.CANCELLED],
+              },
             },
             select: { id: true },
           },

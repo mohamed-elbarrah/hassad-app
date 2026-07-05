@@ -7,7 +7,10 @@ import { cn } from "@/lib/utils";
 import type { PortalInvoiceSummary } from "@/features/portal/portalApi";
 import type { PayableInvoice } from "@/components/payments/PaymentSheet";
 import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
-import { formatShortDateLong, isInvoicePayable as isPayable } from "@/lib/format";
+import {
+  formatShortDateLong,
+  isInvoicePayable as isPayable,
+} from "@/lib/format";
 
 export interface InvoiceRowProps {
   invoice: PortalInvoiceSummary;
@@ -53,7 +56,10 @@ export function renderInvoiceRowCells(
         </div>
       </div>
     </td>,
-    <td key="date" className="px-5 py-3.5 align-middle text-[12.5px] text-portal-note-text tabular-nums">
+    <td
+      key="date"
+      className="px-5 py-3.5 align-middle text-[12.5px] text-portal-note-text tabular-nums"
+    >
       {formatShortDateLong(invoice.issueDate ?? invoice.dueDate)}
     </td>,
     <td key="amount" className="px-5 py-3.5 align-middle text-start">

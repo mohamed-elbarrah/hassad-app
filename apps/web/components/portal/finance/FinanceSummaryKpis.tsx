@@ -20,15 +20,15 @@ interface FinanceSummaryKpisProps {
  * due. The "remaining" card is the only one tinted gold, so the
  * eye lands on the number that actually requires action.
  */
-export function FinanceSummaryKpis({ data, isLoading }: FinanceSummaryKpisProps) {
+export function FinanceSummaryKpis({
+  data,
+  isLoading,
+}: FinanceSummaryKpisProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton
-            key={i}
-            className="h-[104px] rounded-2xl"
-          />
+          <Skeleton key={i} className="h-[104px] rounded-2xl" />
         ))}
       </div>
     );
@@ -87,10 +87,7 @@ function RemainingKpi({ amount }: { amount: number }) {
         <span className="font-medium">المستحقات عليك</span>
       </div>
       <div className="mt-1">
-        <KpiCurrency
-          amount={amount}
-          className="text-primary-800"
-        />
+        <KpiCurrency amount={amount} className="text-primary-800" />
       </div>
     </div>
   );
@@ -108,9 +105,7 @@ function NextDueDateDisplay({
       <span className="text-lg font-bold leading-7 text-secondary-500 tabular-nums">
         {date}
       </span>
-      {amount > 0 && (
-        <KpiCurrency amount={amount} className="opacity-80" />
-      )}
+      {amount > 0 && <KpiCurrency amount={amount} className="opacity-80" />}
     </div>
   );
 }

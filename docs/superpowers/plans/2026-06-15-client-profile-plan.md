@@ -73,6 +73,7 @@ apps/web/components/dashboard/crm/
 ### Task 1.1: Add ClientProfile model and Client counters to Prisma schema
 
 **Files:**
+
 - Modify: `apps/api/prisma/schema.prisma`
 
 - [ ] **Add DIRECT to ClientSource enum**
@@ -158,6 +159,7 @@ git commit -m "feat(db): add ClientProfile model and Client counters"
 ### Task 1.2: Create ClientProfile DTOs and shared types
 
 **Files:**
+
 - Create: `apps/api/src/modules/crm/dto/client-profile.dto.ts`
 - Modify: `packages/shared/src/index.ts`
 - Modify: `packages/shared/src/schemas/client.schema.ts`
@@ -166,7 +168,13 @@ git commit -m "feat(db): add ClientProfile model and Client counters"
 
 ```typescript
 // apps/api/src/modules/crm/dto/client-profile.dto.ts
-import { IsOptional, IsString, IsNumber, IsArray, IsObject } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  IsObject,
+} from "class-validator";
 
 export class UpsertClientProfileDto {
   @IsOptional()
@@ -211,7 +219,12 @@ export class UpsertClientProfileDto {
 
   @IsOptional()
   @IsObject()
-  brandAssets?: { logoUrl?: string; brandColors?: string[]; fonts?: string[]; guidelinesUrl?: string };
+  brandAssets?: {
+    logoUrl?: string;
+    brandColors?: string[];
+    fonts?: string[];
+    guidelinesUrl?: string;
+  };
 
   @IsOptional()
   @IsObject()
@@ -237,7 +250,12 @@ export interface ClientProfile {
   timezone?: string | null;
   preferredPlatforms?: string | null;
   competitors?: { name: string; url?: string; notes?: string }[] | null;
-  brandAssets?: { logoUrl?: string; brandColors?: string[]; fonts?: string[]; guidelinesUrl?: string } | null;
+  brandAssets?: {
+    logoUrl?: string;
+    brandColors?: string[];
+    fonts?: string[];
+    guidelinesUrl?: string;
+  } | null;
   customFields?: Record<string, unknown> | null;
 }
 ```
@@ -281,7 +299,7 @@ export interface Client {
 
 ```typescript
 // packages/shared/src/schemas/client.schema.ts — add import
-import { z } from 'zod';
+import { z } from "zod";
 
 export const UpsertClientProfileSchema = z.object({
   industry: z.string().optional(),
@@ -289,25 +307,35 @@ export const UpsertClientProfileSchema = z.object({
   targetAudience: z.string().optional(),
   budgetRangeMin: z.number().positive().optional(),
   budgetRangeMax: z.number().positive().optional(),
-  communicationPreference: z.enum(['email', 'whatsapp', 'phone', 'chat']).optional(),
+  communicationPreference: z
+    .enum(["email", "whatsapp", "phone", "chat"])
+    .optional(),
   preferredLanguage: z.string().optional(),
   timezone: z.string().optional(),
   preferredPlatforms: z.string().optional(),
-  competitors: z.array(z.object({
-    name: z.string(),
-    url: z.string().url().optional(),
-    notes: z.string().optional(),
-  })).optional(),
-  brandAssets: z.object({
-    logoUrl: z.string().url().optional(),
-    brandColors: z.array(z.string()).optional(),
-    fonts: z.array(z.string()).optional(),
-    guidelinesUrl: z.string().url().optional(),
-  }).optional(),
+  competitors: z
+    .array(
+      z.object({
+        name: z.string(),
+        url: z.string().url().optional(),
+        notes: z.string().optional(),
+      }),
+    )
+    .optional(),
+  brandAssets: z
+    .object({
+      logoUrl: z.string().url().optional(),
+      brandColors: z.array(z.string()).optional(),
+      fonts: z.array(z.string()).optional(),
+      guidelinesUrl: z.string().url().optional(),
+    })
+    .optional(),
   customFields: z.record(z.unknown()).optional(),
 });
 
-export type UpsertClientProfileInput = z.infer<typeof UpsertClientProfileSchema>;
+export type UpsertClientProfileInput = z.infer<
+  typeof UpsertClientProfileSchema
+>;
 ```
 
 - [ ] **Build shared package**
@@ -329,15 +357,16 @@ git commit -m "feat(shared): add ClientProfile types and DTO"
 ### Task 1.3: Create ClientProfileService (CRUD + upsert)
 
 **Files:**
+
 - Create: `apps/api/src/modules/crm/services/client-profile.service.ts`
 
 - [ ] **Create ClientProfileService with upsert, getByClientId, and update**
 
 ```typescript
 // apps/api/src/modules/crm/services/client-profile.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { UpsertClientProfileDto } from '../dto/client-profile.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { UpsertClientProfileDto } from "../dto/client-profile.dto";
 
 @Injectable()
 export class ClientProfileService {
@@ -348,7 +377,7 @@ export class ClientProfileService {
       where: { clientId },
     });
     if (!profile) {
-      throw new NotFoundException('Client profile not found');
+      throw new NotFoundException("Client profile not found");
     }
     return profile;
   }
@@ -373,9 +402,13 @@ export class ClientProfileService {
     await this.prisma.clientHistoryLog.create({
       data: {
         clientId,
-        userId: userId || 'system',
-        eventType: existing ? 'CLIENT_PROFILE_UPDATED' : 'CLIENT_PROFILE_CREATED',
-        description: existing ? 'Client profile updated' : 'Client profile created',
+        userId: userId || "system",
+        eventType: existing
+          ? "CLIENT_PROFILE_UPDATED"
+          : "CLIENT_PROFILE_CREATED",
+        description: existing
+          ? "Client profile updated"
+          : "Client profile created",
         metadata: { profileId: profile.id },
       },
     });
@@ -388,7 +421,7 @@ export class ClientProfileService {
       where: { clientId },
     });
     if (!existing) {
-      throw new NotFoundException('Client profile not found');
+      throw new NotFoundException("Client profile not found");
     }
     await this.prisma.clientProfile.delete({
       where: { clientId },
@@ -409,15 +442,16 @@ git commit -m "feat(api): add ClientProfileService with upsert"
 ### Task 1.4: Create ClientCounterService
 
 **Files:**
+
 - Create: `apps/api/src/modules/crm/services/client-counter.service.ts`
 
 - [ ] **Create ClientCounterService with recompute and event hooks**
 
 ```typescript
 // apps/api/src/modules/crm/services/client-counter.service.ts
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { ProjectStatus, InvoiceStatus, Prisma } from '@prisma/client';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { ProjectStatus, InvoiceStatus, Prisma } from "@prisma/client";
 
 @Injectable()
 export class ClientCounterService {
@@ -434,16 +468,16 @@ export class ClientCounterService {
       lastProject,
     ] = await Promise.all([
       this.prisma.project.groupBy({
-        by: ['status'],
+        by: ["status"],
         where: { clientId, isArchived: false },
         _count: true,
       }),
       this.prisma.contract.aggregate({
-        where: { clientId, status: { in: ['SIGNED', 'ACTIVE'] } },
+        where: { clientId, status: { in: ["SIGNED", "ACTIVE"] } },
         _sum: { totalValue: true },
       }),
       this.prisma.invoice.aggregate({
-        where: { clientId, status: { in: ['PAID', 'PARTIAL'] } },
+        where: { clientId, status: { in: ["PAID", "PARTIAL"] } },
         _sum: { amount: true },
       }),
       this.prisma.satisfactionRating.aggregate({
@@ -452,7 +486,7 @@ export class ClientCounterService {
       }),
       this.prisma.project.findFirst({
         where: { clientId },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
     ]);
@@ -461,9 +495,12 @@ export class ClientCounterService {
       where: { id: clientId },
       data: {
         totalProjects: projectStats.reduce((sum, g) => sum + g._count, 0),
-        activeProjects: projectStats.find(g => g.status === 'ACTIVE')?._count ?? 0,
-        completedProjects: projectStats.find(g => g.status === 'COMPLETED')?._count ?? 0,
-        cancelledProjects: projectStats.find(g => g.status === 'CANCELLED')?._count ?? 0,
+        activeProjects:
+          projectStats.find((g) => g.status === "ACTIVE")?._count ?? 0,
+        completedProjects:
+          projectStats.find((g) => g.status === "COMPLETED")?._count ?? 0,
+        cancelledProjects:
+          projectStats.find((g) => g.status === "CANCELLED")?._count ?? 0,
         totalContractValue: contractStats._sum.totalValue ?? 0,
         totalInvoiced: invoiceStats._sum.amount ?? 0,
         totalPaid: invoiceStats._sum.amount ?? 0,
@@ -475,9 +512,9 @@ export class ClientCounterService {
     await this.prisma.clientHistoryLog.create({
       data: {
         clientId,
-        userId: 'system',
-        eventType: 'CLIENT_COUNTERS_UPDATED',
-        description: 'Client counters recomputed',
+        userId: "system",
+        eventType: "CLIENT_COUNTERS_UPDATED",
+        description: "Client counters recomputed",
       },
     });
 
@@ -536,6 +573,7 @@ git commit -m "feat(api): add ClientCounterService for denormalized counters"
 ### Task 1.5: Create ClientProfile controller and register in CRM module
 
 **Files:**
+
 - Create: `apps/api/src/modules/crm/controllers/client-profile.controller.ts`
 - Modify: `apps/api/src/modules/crm/controllers/clients.controller.ts`
 - Modify: `apps/api/src/modules/crm/crm.module.ts`
@@ -545,39 +583,46 @@ git commit -m "feat(api): add ClientCounterService for denormalized counters"
 ```typescript
 // apps/api/src/modules/crm/controllers/client-profile.controller.ts
 import {
-  Controller, Get, Put, Patch, Delete, Param, Body,
-  UseGuards, Req,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
-import { ClientProfileService } from '../services/client-profile.service';
-import { UpsertClientProfileDto } from '../dto/client-profile.dto';
+  Controller,
+  Get,
+  Put,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Req,
+} from "@nestjs/common";
+import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { PermissionsGuard } from "../../../common/guards/permissions.guard";
+import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
+import { ClientProfileService } from "../services/client-profile.service";
+import { UpsertClientProfileDto } from "../dto/client-profile.dto";
 
-@Controller('clients')
+@Controller("clients")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ClientProfileController {
   constructor(private readonly profileService: ClientProfileService) {}
 
-  @Get(':id/profile')
-  @RequirePermissions('clients.read')
-  async getProfile(@Param('id') id: string) {
+  @Get(":id/profile")
+  @RequirePermissions("clients.read")
+  async getProfile(@Param("id") id: string) {
     return this.profileService.getByClientId(id);
   }
 
-  @Put(':id/profile')
-  @RequirePermissions('clients.update')
+  @Put(":id/profile")
+  @RequirePermissions("clients.update")
   async upsertProfile(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() dto: UpsertClientProfileDto,
     @Req() req: any,
   ) {
     return this.profileService.upsert(id, dto, req.user?.id);
   }
 
-  @Delete(':id/profile')
-  @RequirePermissions('clients.update')
-  async deleteProfile(@Param('id') id: string) {
+  @Delete(":id/profile")
+  @RequirePermissions("clients.update")
+  async deleteProfile(@Param("id") id: string) {
     return this.profileService.delete(id);
   }
 }
@@ -662,9 +707,9 @@ async findAll(filters: { status?: ClientStatus; search?: string; page?: number; 
 
 ```typescript
 // apps/api/src/modules/crm/crm.module.ts
-import { ClientProfileService } from './services/client-profile.service';
-import { ClientCounterService } from './services/client-counter.service';
-import { ClientProfileController } from './controllers/client-profile.controller';
+import { ClientProfileService } from "./services/client-profile.service";
+import { ClientCounterService } from "./services/client-counter.service";
+import { ClientProfileController } from "./controllers/client-profile.controller";
 
 @Module({
   imports: [NotificationsModule, RequestsModule],
@@ -672,20 +717,20 @@ import { ClientProfileController } from './controllers/client-profile.controller
     LeadsController,
     ClientsController,
     AutomationController,
-    ClientProfileController,    // ADDED
+    ClientProfileController, // ADDED
   ],
   providers: [
     LeadsService,
     ClientsService,
     AutomationService,
-    ClientProfileService,       // ADDED
-    ClientCounterService,       // ADDED
+    ClientProfileService, // ADDED
+    ClientCounterService, // ADDED
   ],
   exports: [
     LeadsService,
     ClientsService,
-    ClientProfileService,       // ADDED — so other modules can use it
-    ClientCounterService,       // ADDED
+    ClientProfileService, // ADDED — so other modules can use it
+    ClientCounterService, // ADDED
   ],
 })
 export class CrmModule {}
@@ -708,6 +753,7 @@ git commit -m "feat(api): add ClientProfile controller and register services"
 ### Task 1.6: Create /requests/for-client endpoint
 
 **Files:**
+
 - Create: `apps/api/src/modules/requests/dto/request-for-client.dto.ts`
 - Modify: `apps/api/src/modules/requests/requests.service.ts`
 - Modify: `apps/api/src/modules/requests/requests.controller.ts`
@@ -716,8 +762,15 @@ git commit -m "feat(api): add ClientProfile controller and register services"
 
 ```typescript
 // apps/api/src/modules/requests/dto/request-for-client.dto.ts
-import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class RequestServiceItemDto {
   @IsUUID()
@@ -880,6 +933,7 @@ git commit -m "feat(api): add POST /requests/for-client endpoint"
 ### Task 1.7: Wire counter hooks into business events
 
 **Files:**
+
 - Modify: `apps/api/src/modules/projects/projects.service.ts` (or wherever project status changes)
 - Modify: `apps/api/src/modules/finance/invoices.service.ts` (or wherever invoice payments happen)
 - Modify: `apps/api/src/modules/crm/services/satisfaction.service.ts` (or wherever satisfaction is rated)
@@ -892,7 +946,7 @@ Example for project status change:
 
 ```typescript
 // Where project status changes (e.g., projects.service.ts or wherever status transitions happen)
-import { ClientCounterService } from '../../crm/services/client-counter.service';
+import { ClientCounterService } from "../../crm/services/client-counter.service";
 
 @Injectable()
 export class ProjectsService {
@@ -901,12 +955,17 @@ export class ProjectsService {
     private readonly clientCounterService: ClientCounterService,
   ) {}
 
-  async changeStatus(projectId: string, newStatus: ProjectStatus, userId: string) {
+  async changeStatus(
+    projectId: string,
+    newStatus: ProjectStatus,
+    userId: string,
+  ) {
     // ... existing status change logic in transaction ...
 
     // After transaction: fire-and-forget counter update
-    this.clientCounterService.onProjectStatusChange(projectId)
-      .catch((err) => this.logger.error('Counter update failed', err));
+    this.clientCounterService
+      .onProjectStatusChange(projectId)
+      .catch((err) => this.logger.error("Counter update failed", err));
   }
 }
 ```
@@ -940,6 +999,7 @@ git commit -m "feat(api): wire ClientCounterService hooks into project and finan
 ### Task 1.8: Create backfill scripts
 
 **Files:**
+
 - Create: `apps/api/src/scripts/backfill-client-profiles.ts`
 - Create: `apps/api/src/scripts/backfill-client-counters.ts`
 
@@ -949,13 +1009,13 @@ git commit -m "feat(api): wire ClientCounterService hooks into project and finan
 // apps/api/src/scripts/backfill-client-profiles.ts
 // Run: npx ts-node --compiler-options '{"module":"CommonJS"}' apps/api/src/scripts/backfill-client-profiles.ts
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
   const clients = await prisma.client.findMany({
-    where: { status: 'ACTIVE' },
+    where: { status: "ACTIVE" },
     select: { id: true },
   });
 
@@ -991,7 +1051,7 @@ main()
 // apps/api/src/scripts/backfill-client-counters.ts
 // Run: npx ts-node --compiler-options '{"module":"CommonJS"}' apps/api/src/scripts/backfill-client-counters.ts
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -1001,39 +1061,47 @@ async function main() {
   });
 
   for (const client of clients) {
-    const [projectStats, contractStats, invoiceStats, satisfactionStats, lastProject] =
-      await Promise.all([
-        prisma.project.groupBy({
-          by: ['status'],
-          where: { clientId: client.id, isArchived: false },
-          _count: true,
-        }),
-        prisma.contract.aggregate({
-          where: { clientId: client.id, status: { in: ['SIGNED', 'ACTIVE'] } },
-          _sum: { totalValue: true },
-        }),
-        prisma.invoice.aggregate({
-          where: { clientId: client.id, status: 'PAID' },
-          _sum: { amount: true },
-        }),
-        prisma.satisfactionRating.aggregate({
-          where: { clientId: client.id },
-          _avg: { score: true },
-        }),
-        prisma.project.findFirst({
-          where: { clientId: client.id },
-          orderBy: { createdAt: 'desc' },
-          select: { createdAt: true },
-        }),
-      ]);
+    const [
+      projectStats,
+      contractStats,
+      invoiceStats,
+      satisfactionStats,
+      lastProject,
+    ] = await Promise.all([
+      prisma.project.groupBy({
+        by: ["status"],
+        where: { clientId: client.id, isArchived: false },
+        _count: true,
+      }),
+      prisma.contract.aggregate({
+        where: { clientId: client.id, status: { in: ["SIGNED", "ACTIVE"] } },
+        _sum: { totalValue: true },
+      }),
+      prisma.invoice.aggregate({
+        where: { clientId: client.id, status: "PAID" },
+        _sum: { amount: true },
+      }),
+      prisma.satisfactionRating.aggregate({
+        where: { clientId: client.id },
+        _avg: { score: true },
+      }),
+      prisma.project.findFirst({
+        where: { clientId: client.id },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+    ]);
 
     await prisma.client.update({
       where: { id: client.id },
       data: {
         totalProjects: projectStats.reduce((sum, g) => sum + g._count, 0),
-        activeProjects: projectStats.find((g) => g.status === 'ACTIVE')?._count ?? 0,
-        completedProjects: projectStats.find((g) => g.status === 'COMPLETED')?._count ?? 0,
-        cancelledProjects: projectStats.find((g) => g.status === 'CANCELLED')?._count ?? 0,
+        activeProjects:
+          projectStats.find((g) => g.status === "ACTIVE")?._count ?? 0,
+        completedProjects:
+          projectStats.find((g) => g.status === "COMPLETED")?._count ?? 0,
+        cancelledProjects:
+          projectStats.find((g) => g.status === "CANCELLED")?._count ?? 0,
         totalContractValue: contractStats._sum.totalValue ?? 0,
         totalInvoiced: invoiceStats._sum.amount ?? 0,
         totalPaid: invoiceStats._sum.amount ?? 0,
@@ -1045,7 +1113,7 @@ async function main() {
     console.log(`Updated counters for client ${client.id}`);
   }
 
-  console.log('Done. All counters backfilled.');
+  console.log("Done. All counters backfilled.");
 }
 
 main()
@@ -1067,6 +1135,7 @@ git commit -m "feat(scripts): add backfill scripts for client profiles and count
 ### Task 2.1: Add client profile and for-client endpoints to frontend API slices
 
 **Files:**
+
 - Modify: `apps/web/features/clients/clientsApi.ts`
 - Modify: `apps/web/features/requests/requestsApi.ts`
 
@@ -1113,8 +1182,8 @@ createRequestForClient: builder.mutation<RequestItem, CreateRequestForClientDto>
 ```typescript
 // clientsApi.ts — add 'ClientProfile' to tagTypes
 const clientsApi = createApi({
-  reducerPath: 'clientsApi',
-  tagTypes: ['Client', 'ClientProfile', 'Project'],
+  reducerPath: "clientsApi",
+  tagTypes: ["Client", "ClientProfile", "Project"],
   // ...
 });
 ```
@@ -1136,6 +1205,7 @@ git commit -m "feat(web): add client profile and for-client API endpoints"
 ### Task 2.2: Create sales client list page
 
 **Files:**
+
 - Create: `apps/web/app/(dashboard)/dashboard/sales/clients/page.tsx`
 - Create: `apps/web/app/(dashboard)/dashboard/sales/clients/layout.tsx` (if needed for nested layout)
 
@@ -1143,15 +1213,19 @@ git commit -m "feat(web): add client profile and for-client API endpoints"
 
 ```tsx
 // apps/web/app/(dashboard)/dashboard/sales/clients/page.tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { ClientsTable } from '@/components/dashboard/crm/ClientsTable';
-import { ClientFiltersBar } from '@/components/dashboard/crm/ClientFiltersBar';
-import { useGetClientsQuery } from '@/features/clients/clientsApi';
+import { useState } from "react";
+import { ClientsTable } from "@/components/dashboard/crm/ClientsTable";
+import { ClientFiltersBar } from "@/components/dashboard/crm/ClientFiltersBar";
+import { useGetClientsQuery } from "@/features/clients/clientsApi";
 
 export default function SalesClientsPage() {
-  const [filters, setFilters] = useState({ status: '', search: '', includeCounters: true });
+  const [filters, setFilters] = useState({
+    status: "",
+    search: "",
+    includeCounters: true,
+  });
   const { data, isLoading } = useGetClientsQuery(filters);
 
   return (
@@ -1203,6 +1277,7 @@ git commit -m "feat(web): add sales client list page with ClientsTable"
 ### Task 2.3: Build tabbed client profile page
 
 **Files:**
+
 - Create: `apps/web/app/(dashboard)/dashboard/sales/clients/[id]/page.tsx`
 - Create: `apps/web/app/(dashboard)/dashboard/sales/clients/[id]/overview-tab.tsx`
 - Create: `apps/web/app/(dashboard)/dashboard/sales/clients/[id]/projects-tab.tsx`
@@ -1214,24 +1289,28 @@ git commit -m "feat(web): add sales client list page with ClientsTable"
 
 ```tsx
 // apps/web/app/(dashboard)/dashboard/sales/clients/[id]/page.tsx
-'use client';
+"use client";
 
-import { use } from 'react';
-import { useState } from 'react';
-import { useGetClientByIdQuery } from '@/features/clients/clientsApi';
-import { useGetClientProfileQuery } from '@/features/clients/clientsApi';
-import { ClientInfoCard } from '@/components/dashboard/crm/ClientInfoCard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { OverviewTab } from './overview-tab';
-import { ProjectsTab } from './projects-tab';
-import { FinanceTab } from './finance-tab';
-import { ActivityTab } from './activity-tab';
-import { ProfileEditTab } from './profile-edit-tab';
-import { NewRequestForClientModal } from '@/components/dashboard/crm/NewRequestForClientModal';
-import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { use } from "react";
+import { useState } from "react";
+import { useGetClientByIdQuery } from "@/features/clients/clientsApi";
+import { useGetClientProfileQuery } from "@/features/clients/clientsApi";
+import { ClientInfoCard } from "@/components/dashboard/crm/ClientInfoCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { OverviewTab } from "./overview-tab";
+import { ProjectsTab } from "./projects-tab";
+import { FinanceTab } from "./finance-tab";
+import { ActivityTab } from "./activity-tab";
+import { ProfileEditTab } from "./profile-edit-tab";
+import { NewRequestForClientModal } from "@/components/dashboard/crm/NewRequestForClientModal";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
 
-export default function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
+export default function ClientProfilePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const { data: client, isLoading } = useGetClientByIdQuery(id);
   const { data: profile } = useGetClientProfileQuery(id);
@@ -1298,9 +1377,9 @@ export default function ClientProfilePage({ params }: { params: Promise<{ id: st
 
 ```tsx
 // apps/web/app/(dashboard)/dashboard/sales/clients/[id]/overview-tab.tsx
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface OverviewTabProps {
   client: any;
@@ -1309,13 +1388,36 @@ interface OverviewTabProps {
 
 export function OverviewTab({ client, profile }: OverviewTabProps) {
   const stats = [
-    { label: 'إجمالي المشاريع', value: client.totalProjects ?? 0 },
-    { label: 'نشط', value: client.activeProjects ?? 0, color: 'text-green-600' },
-    { label: 'مكتمل', value: client.completedProjects ?? 0, color: 'text-blue-600' },
-    { label: 'ملغي', value: client.cancelledProjects ?? 0, color: 'text-red-600' },
-    { label: 'إجمالي العقود', value: `SAR ${(client.totalContractValue ?? 0).toLocaleString()}` },
-    { label: 'المدفوع', value: `SAR ${(client.totalPaid ?? 0).toLocaleString()}` },
-    { label: 'تقييم الرضا', value: client.avgSatisfactionScore ? `${client.avgSatisfactionScore.toFixed(1)} / 5.0` : '—' },
+    { label: "إجمالي المشاريع", value: client.totalProjects ?? 0 },
+    {
+      label: "نشط",
+      value: client.activeProjects ?? 0,
+      color: "text-green-600",
+    },
+    {
+      label: "مكتمل",
+      value: client.completedProjects ?? 0,
+      color: "text-blue-600",
+    },
+    {
+      label: "ملغي",
+      value: client.cancelledProjects ?? 0,
+      color: "text-red-600",
+    },
+    {
+      label: "إجمالي العقود",
+      value: `SAR ${(client.totalContractValue ?? 0).toLocaleString()}`,
+    },
+    {
+      label: "المدفوع",
+      value: `SAR ${(client.totalPaid ?? 0).toLocaleString()}`,
+    },
+    {
+      label: "تقييم الرضا",
+      value: client.avgSatisfactionScore
+        ? `${client.avgSatisfactionScore.toFixed(1)} / 5.0`
+        : "—",
+    },
   ];
 
   return (
@@ -1329,7 +1431,9 @@ export function OverviewTab({ client, profile }: OverviewTabProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className={`text-2xl font-bold ${stat.color ?? ''}`}>{stat.value}</p>
+              <p className={`text-2xl font-bold ${stat.color ?? ""}`}>
+                {stat.value}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -1342,24 +1446,39 @@ export function OverviewTab({ client, profile }: OverviewTabProps) {
           </CardHeader>
           <CardContent className="space-y-2">
             {profile.industry && (
-              <p><span className="font-medium">المجال:</span> {profile.industry}</p>
+              <p>
+                <span className="font-medium">المجال:</span> {profile.industry}
+              </p>
             )}
             {profile.businessDescription && (
-              <p><span className="font-medium">وصف النشاط:</span> {profile.businessDescription}</p>
+              <p>
+                <span className="font-medium">وصف النشاط:</span>{" "}
+                {profile.businessDescription}
+              </p>
             )}
             {profile.targetAudience && (
-              <p><span className="font-medium">الجمهور المستهدف:</span> {profile.targetAudience}</p>
+              <p>
+                <span className="font-medium">الجمهور المستهدف:</span>{" "}
+                {profile.targetAudience}
+              </p>
             )}
             {(profile.budgetRangeMin || profile.budgetRangeMax) && (
               <p>
-                <span className="font-medium">الميزانية:</span>{' '}
-                {profile.budgetRangeMin ? `SAR ${profile.budgetRangeMin.toLocaleString()}` : ''}
-                {profile.budgetRangeMin && profile.budgetRangeMax ? ' — ' : ''}
-                {profile.budgetRangeMax ? `SAR ${profile.budgetRangeMax.toLocaleString()}` : ''}
+                <span className="font-medium">الميزانية:</span>{" "}
+                {profile.budgetRangeMin
+                  ? `SAR ${profile.budgetRangeMin.toLocaleString()}`
+                  : ""}
+                {profile.budgetRangeMin && profile.budgetRangeMax ? " — " : ""}
+                {profile.budgetRangeMax
+                  ? `SAR ${profile.budgetRangeMax.toLocaleString()}`
+                  : ""}
               </p>
             )}
             {profile.preferredPlatforms && (
-              <p><span className="font-medium">المنصات المفضلة:</span> {profile.preferredPlatforms}</p>
+              <p>
+                <span className="font-medium">المنصات المفضلة:</span>{" "}
+                {profile.preferredPlatforms}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -1371,7 +1490,10 @@ export function OverviewTab({ client, profile }: OverviewTabProps) {
             <CardTitle>آخر نشاط</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>آخر مشروع: {new Date(client.lastProjectAt).toLocaleDateString('ar-SA')}</p>
+            <p>
+              آخر مشروع:{" "}
+              {new Date(client.lastProjectAt).toLocaleDateString("ar-SA")}
+            </p>
           </CardContent>
         </Card>
       )}
@@ -1404,27 +1526,39 @@ git commit -m "feat(web): add tabbed client profile page"
 ### Task 2.4: Create NewRequestForClientModal
 
 **Files:**
+
 - Create: `apps/web/components/dashboard/crm/NewRequestForClientModal.tsx`
 
 - [ ] **Create modal component**
 
 ```tsx
 // apps/web/components/dashboard/crm/NewRequestForClientModal.tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useGetServicesQuery } from '@/features/services/servicesApi';
-import { useCreateRequestForClientMutation } from '@/features/requests/requestsApi';
+import { useState } from "react";
+import { useGetServicesQuery } from "@/features/services/servicesApi";
+import { useCreateRequestForClientMutation } from "@/features/requests/requestsApi";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 interface Props {
-  client: { id: string; companyName: string; contactName: string; phoneWhatsapp: string; businessName: string; businessType: string };
+  client: {
+    id: string;
+    companyName: string;
+    contactName: string;
+    phoneWhatsapp: string;
+    businessName: string;
+    businessType: string;
+  };
   open: boolean;
   onClose: () => void;
 }
@@ -1433,23 +1567,26 @@ export function NewRequestForClientModal({ client, open, onClose }: Props) {
   const { data: services } = useGetServicesQuery({ isActive: true });
   const [createRequest, { isLoading }] = useCreateRequestForClientMutation();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState("");
 
   const handleSubmit = async () => {
     if (selectedServices.length === 0) {
-      toast.error('يرجى اختيار خدمة واحدة على الأقل');
+      toast.error("يرجى اختيار خدمة واحدة على الأقل");
       return;
     }
     try {
       await createRequest({
         clientId: client.id,
-        services: selectedServices.map((id) => ({ serviceId: id, quantity: 1 })),
+        services: selectedServices.map((id) => ({
+          serviceId: id,
+          quantity: 1,
+        })),
         notes: notes || undefined,
       }).unwrap();
-      toast.success('تم إنشاء الطلب بنجاح');
+      toast.success("تم إنشاء الطلب بنجاح");
       onClose();
     } catch (err: any) {
-      toast.error(err?.data?.message || 'فشل إنشاء الطلب');
+      toast.error(err?.data?.message || "فشل إنشاء الطلب");
     }
   };
 
@@ -1466,10 +1603,21 @@ export function NewRequestForClientModal({ client, open, onClose }: Props) {
         <div className="space-y-4">
           {/* Read-only client info */}
           <div className="rounded-lg bg-muted p-4 space-y-1 text-sm">
-            <p><span className="font-medium">الشركة:</span> {client.companyName}</p>
-            <p><span className="font-medium">جهة الاتصال:</span> {client.contactName}</p>
-            <p><span className="font-medium">الهاتف:</span> {client.phoneWhatsapp}</p>
-            <p><span className="font-medium">نوع النشاط:</span> {client.businessType}</p>
+            <p>
+              <span className="font-medium">الشركة:</span> {client.companyName}
+            </p>
+            <p>
+              <span className="font-medium">جهة الاتصال:</span>{" "}
+              {client.contactName}
+            </p>
+            <p>
+              <span className="font-medium">الهاتف:</span>{" "}
+              {client.phoneWhatsapp}
+            </p>
+            <p>
+              <span className="font-medium">نوع النشاط:</span>{" "}
+              {client.businessType}
+            </p>
           </div>
 
           {/* Service selection */}
@@ -1487,14 +1635,18 @@ export function NewRequestForClientModal({ client, open, onClose }: Props) {
                       if (checked) {
                         setSelectedServices((prev) => [...prev, service.id]);
                       } else {
-                        setSelectedServices((prev) => prev.filter((id) => id !== service.id));
+                        setSelectedServices((prev) =>
+                          prev.filter((id) => id !== service.id),
+                        );
                       }
                     }}
                   />
                   <div>
                     <p className="font-medium">{service.nameAr}</p>
                     {service.descriptionAr && (
-                      <p className="text-xs text-muted-foreground">{service.descriptionAr}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {service.descriptionAr}
+                      </p>
                     )}
                   </div>
                 </label>
@@ -1514,9 +1666,11 @@ export function NewRequestForClientModal({ client, open, onClose }: Props) {
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={onClose}>إلغاء</Button>
+            <Button variant="outline" onClick={onClose}>
+              إلغاء
+            </Button>
             <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading ? 'جاري الإنشاء...' : 'إنشاء الطلب'}
+              {isLoading ? "جاري الإنشاء..." : "إنشاء الطلب"}
             </Button>
           </div>
         </div>
@@ -1538,6 +1692,7 @@ git commit -m "feat(web): add NewRequestForClientModal with read-only identity"
 ### Task 2.5: Enhance Kanban cards with returning-client indicator
 
 **Files:**
+
 - Modify: `apps/web/components/dashboard/crm/KanbanCard.tsx`
 
 - [ ] **Add returning-client indicator to KanbanCard**
@@ -1546,16 +1701,20 @@ git commit -m "feat(web): add NewRequestForClientModal with read-only identity"
 // apps/web/components/dashboard/crm/KanbanCard.tsx — modify the existing card component
 
 // Inside the card, after the companyName display:
-{/* Returning client indicator */}
-{request.client?.totalProjects > 0 && (
-  <Link
-    href={`/dashboard/sales/clients/${request.clientId}`}
-    className="text-xs text-primary hover:underline"
-    onClick={(e) => e.stopPropagation()}
-  >
-    ↳ {request.client.totalProjects} مشاريع سابقة
-  </Link>
-)}
+{
+  /* Returning client indicator */
+}
+{
+  request.client?.totalProjects > 0 && (
+    <Link
+      href={`/dashboard/sales/clients/${request.clientId}`}
+      className="text-xs text-primary hover:underline"
+      onClick={(e) => e.stopPropagation()}
+    >
+      ↳ {request.client.totalProjects} مشاريع سابقة
+    </Link>
+  );
+}
 ```
 
 The `GET /requests` endpoint already returns request data. We need to ensure it includes `client.totalProjects` in the response. This requires the backend to include the counter field when serializing requests.
@@ -1613,6 +1772,7 @@ git commit -m "feat: add returning-client indicator to Kanban cards"
 ### Task 3.1: Add client link to PM project cards
 
 **Files:**
+
 - Modify: `apps/web/app/(dashboard)/dashboard/pm/projects/[id]/page.tsx` (or the project card component)
 
 - [ ] **Find the project card/table component and add client name as clickable link**
@@ -1631,6 +1791,7 @@ git commit -m "feat(web): add clickable client name to PM project pages"
 ### Task 3.2: Replace admin client detail placeholders
 
 **Files:**
+
 - Modify: `apps/web/app/(dashboard)/dashboard/admin/clients/[id]/page.tsx`
 
 - [ ] **Reuse the sales profile page for admin**
@@ -1639,18 +1800,22 @@ Instead of maintaining two separate client detail pages, redirect or reuse the t
 
 ```tsx
 // apps/web/app/(dashboard)/dashboard/admin/clients/[id]/page.tsx
-'use client';
+"use client";
 
-import { use } from 'react';
-import dynamic from 'next/dynamic';
+import { use } from "react";
+import dynamic from "next/dynamic";
 
 // Reuse the sales client profile page
 const SalesClientProfile = dynamic(
-  () => import('@/app/(dashboard)/dashboard/sales/clients/[id]/page'),
+  () => import("@/app/(dashboard)/dashboard/sales/clients/[id]/page"),
   { ssr: false },
 );
 
-export default function AdminClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
+export default function AdminClientProfilePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   return <SalesClientProfile params={Promise.resolve({ id })} />;
 }
@@ -1660,8 +1825,8 @@ Alternatively, build a standalone admin page that reuses the same tab components
 
 ```tsx
 // Simplified: import the same tab components used in the sales profile
-import { OverviewTab } from '../../sales/clients/[id]/overview-tab';
-import { ProjectsTab } from '../../sales/clients/[id]/projects-tab';
+import { OverviewTab } from "../../sales/clients/[id]/overview-tab";
+import { ProjectsTab } from "../../sales/clients/[id]/projects-tab";
 // ... etc
 ```
 
@@ -1677,6 +1842,7 @@ git commit -m "feat(web): replace admin client page placeholders with real profi
 ### Task 3.3: Update portal new-order page for returning clients
 
 **Files:**
+
 - Modify: `apps/web/app/(portal)/portal/new-order/page.tsx`
 
 - [ ] **Modify the form to detect returning clients and show simplified view**
@@ -1689,6 +1855,7 @@ const isReturningClient = client?.intakeCompleted === true;
 ```
 
 When `isReturningClient` is true:
+
 - Render identity fields as read-only text instead of editable inputs
 - Keep service selection and description as interactive
 - Show a label: "أنت عميل سابق — فقط أخبرنا بما تحتاج"
@@ -1707,17 +1874,18 @@ git commit -m "feat(web): simplify portal new-order for returning clients"
 ### Task 3.4: Add read-only profile view to portal
 
 **Files:**
+
 - Create: `apps/web/app/(portal)/portal/profile/page.tsx`
 
 - [ ] **Create portal profile page**
 
 ```tsx
 // apps/web/app/(portal)/portal/profile/page.tsx
-'use client';
+"use client";
 
-import { useGetClientProfileQuery } from '@/features/clients/clientsApi';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useGetClientProfileQuery } from "@/features/clients/clientsApi";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PortalProfilePage() {
   // The user's clientId comes from auth state
@@ -1734,14 +1902,28 @@ export default function PortalProfilePage() {
             <CardTitle>معلومات النشاط التجاري</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {profile.industry && <DisplayField label="المجال" value={profile.industry} />}
-            {profile.businessDescription && <DisplayField label="وصف النشاط" value={profile.businessDescription} />}
-            {profile.targetAudience && <DisplayField label="الجمهور المستهدف" value={profile.targetAudience} />}
+            {profile.industry && (
+              <DisplayField label="المجال" value={profile.industry} />
+            )}
+            {profile.businessDescription && (
+              <DisplayField
+                label="وصف النشاط"
+                value={profile.businessDescription}
+              />
+            )}
+            {profile.targetAudience && (
+              <DisplayField
+                label="الجمهور المستهدف"
+                value={profile.targetAudience}
+              />
+            )}
             {/* ... other fields read-only */}
           </CardContent>
         </Card>
       ) : (
-        <p className="text-muted-foreground">لا توجد معلومات إضافية. يمكنك تحديث ملفك من خلال فريق المبيعات.</p>
+        <p className="text-muted-foreground">
+          لا توجد معلومات إضافية. يمكنك تحديث ملفك من خلال فريق المبيعات.
+        </p>
       )}
     </div>
   );
@@ -1775,6 +1957,7 @@ git commit -m "feat(web): add read-only profile view to client portal"
 ### Task 4.1: Stop writing deprecated identity fields to Request
 
 **Files:**
+
 - Modify: `apps/api/src/modules/requests/requests.service.ts`
 
 - [ ] **Update createPortalRequest to leave identity fields null**
@@ -1788,11 +1971,11 @@ const request = await tx.request.create({
     clientId: resolvedClient.id,
     submittedBy: clientUserId,
     assignedSalesId: salesAssignment?.id,
-    companyName: '',       // deprecated — read from client
-    contactName: '',       // deprecated
-    phoneWhatsapp: '',     // deprecated
-    businessName: '',      // deprecated
-    businessType: 'OTHER', // deprecated
+    companyName: "", // deprecated — read from client
+    contactName: "", // deprecated
+    phoneWhatsapp: "", // deprecated
+    businessName: "", // deprecated
+    businessType: "OTHER", // deprecated
     source: dto.source,
     notes: notes,
   },
@@ -1802,6 +1985,7 @@ const request = await tx.request.create({
 - [ ] **Update all frontend consumers to read identity from client relation**
 
 Check these files:
+
 - `KanbanCard.tsx` — reads `request.contactName`, `request.companyName` → change to `request.client.contactName`, `request.client.companyName`
 - Request detail page — reads identity from request → change to `request.client`
 - Portal requests list — reads identity from request → change to `request.client`

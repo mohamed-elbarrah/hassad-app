@@ -31,7 +31,9 @@ export function KanbanStandaloneColumn<T extends { id: string }>({
   const stageConfig = config.stages[stage];
 
   if (!stageConfig) {
-    console.warn(`[KanbanStandaloneColumn] Missing stage config for "${stage}"`);
+    console.warn(
+      `[KanbanStandaloneColumn] Missing stage config for "${stage}"`,
+    );
     return null;
   }
 

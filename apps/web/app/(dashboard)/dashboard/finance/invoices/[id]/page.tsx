@@ -18,7 +18,12 @@ import { InvoiceNotes } from "@/components/dashboard/finance/invoice/InvoiceNote
 import { RegisterPaymentModal } from "@/components/dashboard/finance/invoice/modals/RegisterPaymentModal";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FileText, History, MessageSquare } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/design-system/Tabs";
 
 export default function InvoiceDetailPage({
   params,
@@ -26,7 +31,12 @@ export default function InvoiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: invoice, isLoading, error, refetch } = useGetInvoiceByIdQuery(id);
+  const {
+    data: invoice,
+    isLoading,
+    error,
+    refetch,
+  } = useGetInvoiceByIdQuery(id);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const handleActionComplete = useCallback(() => {
@@ -103,7 +113,10 @@ export default function InvoiceDetailPage({
                       <FileText className="w-4 h-4 text-portal-icon" />
                       بنود الفاتورة
                     </h3>
-                    <InvoiceItemsTable items={items} totalAmount={invoice.amount} />
+                    <InvoiceItemsTable
+                      items={items}
+                      totalAmount={invoice.amount}
+                    />
                   </div>
                   <div className="border-t border-portal-divider" />
                 </>

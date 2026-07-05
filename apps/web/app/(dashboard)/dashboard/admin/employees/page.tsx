@@ -3,7 +3,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { Search, Plus, Pencil, PowerOff, Power, Users } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pill } from "@/components/design-system/Pill";
 import { PageIntro } from "@/components/design-system/PageIntro";
@@ -38,7 +41,10 @@ const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
   [TaskDepartment.PRODUCTION]: "مونتاج",
 };
 
-const ROLE_PILL_TONE: Record<UserRole, "danger" | "neutral" | "warning" | "success" | "blue"> = {
+const ROLE_PILL_TONE: Record<
+  UserRole,
+  "danger" | "neutral" | "warning" | "success" | "blue"
+> = {
   [UserRole.ADMIN]: "danger",
   [UserRole.PM]: "neutral",
   [UserRole.SALES]: "warning",
@@ -49,8 +55,12 @@ const ROLE_PILL_TONE: Record<UserRole, "danger" | "neutral" | "warning" | "succe
 };
 
 const STAFF_ROLES: UserRole[] = [
-  UserRole.SALES, UserRole.PM, UserRole.EMPLOYEE,
-  UserRole.MARKETING, UserRole.ACCOUNTANT, UserRole.ADMIN,
+  UserRole.SALES,
+  UserRole.PM,
+  UserRole.EMPLOYEE,
+  UserRole.MARKETING,
+  UserRole.ACCOUNTANT,
+  UserRole.ADMIN,
 ];
 
 function useDebounce<T>(value: T, delay = 400): T {
@@ -64,13 +74,17 @@ function useDebounce<T>(value: T, delay = 400): T {
 
 export default function EmployeesPage() {
   const [searchInput, setSearchInput] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState<UserDetail | null>(null);
 
   const debouncedSearch = useDebounce(searchInput, 400);
   const roleFilter = activeFilters["role"]?.[0] as UserRole | undefined;
-  const deptFilter = activeFilters["department"]?.[0] as TaskDepartment | undefined;
+  const deptFilter = activeFilters["department"]?.[0] as
+    | TaskDepartment
+    | undefined;
   const showDeptGroup = roleFilter === UserRole.EMPLOYEE;
 
   const filters: UserSearchFilters = {
@@ -82,8 +96,10 @@ export default function EmployeesPage() {
   };
 
   const { data, isLoading, isError } = useSearchUsersQuery(filters);
-  const [deactivateUser, { isLoading: isDeactivating }] = useDeactivateUserMutation();
-  const [reactivateUser, { isLoading: isReactivating }] = useReactivateUserMutation();
+  const [deactivateUser, { isLoading: isDeactivating }] =
+    useDeactivateUserMutation();
+  const [reactivateUser, { isLoading: isReactivating }] =
+    useReactivateUserMutation();
   const isToggling = isDeactivating || isReactivating;
 
   async function handleToggleActive(id: string, currentlyActive: boolean) {
@@ -100,31 +116,45 @@ export default function EmployeesPage() {
     }
   }
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    if (groupKey === "role") {
-      const newRole = values.length > 0 ? values[values.length - 1] : undefined;
-      setActiveFilters((prev) => {
-        const next: Record<string, string[]> = { ...prev, [groupKey]: values.length > 0 ? [newRole as string] : [] };
-        if (newRole !== UserRole.EMPLOYEE && next["department"]) delete next["department"];
-        return next;
-      });
-    } else {
-      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    }
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      if (groupKey === "role") {
+        const newRole =
+          values.length > 0 ? values[values.length - 1] : undefined;
+        setActiveFilters((prev) => {
+          const next: Record<string, string[]> = {
+            ...prev,
+            [groupKey]: values.length > 0 ? [newRole as string] : [],
+          };
+          if (newRole !== UserRole.EMPLOYEE && next["department"])
+            delete next["department"];
+          return next;
+        });
+      } else {
+        setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      }
+    },
+    [],
+  );
 
   const filterGroups: FilterGroup[] = [
     {
       key: "role",
       label: "الدور",
-      options: STAFF_ROLES.map((role) => ({ label: ROLE_LABELS[role], value: role })),
+      options: STAFF_ROLES.map((role) => ({
+        label: ROLE_LABELS[role],
+        value: role,
+      })),
     },
   ];
   if (showDeptGroup) {
     filterGroups.push({
       key: "department",
       label: "القسم",
-      options: Object.values(TaskDepartment).map((dept) => ({ label: DEPARTMENT_LABELS[dept], value: dept })),
+      options: Object.values(TaskDepartment).map((dept) => ({
+        label: DEPARTMENT_LABELS[dept],
+        value: dept,
+      })),
     });
   }
 
@@ -155,14 +185,20 @@ export default function EmployeesPage() {
             className="pr-9"
           />
         </div>
-        <FilterBar groups={filterGroups} activeFilters={activeFilters} onFilterChange={handleFilterChange} />
+        <FilterBar
+          groups={filterGroups}
+          activeFilters={activeFilters}
+          onFilterChange={handleFilterChange}
+        />
       </div>
 
       {/* Active filter pills */}
       {(roleFilter || deptFilter) && (
         <div className="flex flex-wrap gap-2">
           {roleFilter && <Pill tone="blue">{ROLE_LABELS[roleFilter]}</Pill>}
-          {deptFilter && <Pill tone="blue">{DEPARTMENT_LABELS[deptFilter]}</Pill>}
+          {deptFilter && (
+            <Pill tone="blue">{DEPARTMENT_LABELS[deptFilter]}</Pill>
+          )}
         </div>
       )}
 
@@ -188,10 +224,16 @@ export default function EmployeesPage() {
         }}
         renderRow={(emp) => (
           <tr key={emp.id} className="border-b-[1.5px] border-portal-divider">
-            <td className="px-5 py-4 text-base font-medium text-natural-100">{emp.name}</td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">{emp.email}</td>
+            <td className="px-5 py-4 text-base font-medium text-natural-100">
+              {emp.name}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text">
+              {emp.email}
+            </td>
             <td className="px-5 py-4">
-              <Pill tone={ROLE_PILL_TONE[emp.role]}>{ROLE_LABELS[emp.role]}</Pill>
+              <Pill tone={ROLE_PILL_TONE[emp.role]}>
+                {ROLE_LABELS[emp.role]}
+              </Pill>
             </td>
             <td className="px-5 py-4">
               {emp.department ? (
@@ -201,8 +243,17 @@ export default function EmployeesPage() {
               )}
             </td>
             <td className="px-5 py-4">
-              {typeof emp.activeRequestsCount === "number" && emp.activeRequestsCount > 0 ? (
-                <Pill tone={emp.activeRequestsCount >= 5 ? "danger" : emp.activeRequestsCount >= 3 ? "warning" : "success"}>
+              {typeof emp.activeRequestsCount === "number" &&
+              emp.activeRequestsCount > 0 ? (
+                <Pill
+                  tone={
+                    emp.activeRequestsCount >= 5
+                      ? "danger"
+                      : emp.activeRequestsCount >= 3
+                        ? "warning"
+                        : "success"
+                  }
+                >
                   {emp.activeRequestsCount}
                 </Pill>
               ) : (
@@ -210,8 +261,17 @@ export default function EmployeesPage() {
               )}
             </td>
             <td className="px-5 py-4">
-              {typeof emp.activeProjectsCount === "number" && emp.activeProjectsCount > 0 ? (
-                <Pill tone={emp.activeProjectsCount >= 5 ? "danger" : emp.activeProjectsCount >= 3 ? "warning" : "success"}>
+              {typeof emp.activeProjectsCount === "number" &&
+              emp.activeProjectsCount > 0 ? (
+                <Pill
+                  tone={
+                    emp.activeProjectsCount >= 5
+                      ? "danger"
+                      : emp.activeProjectsCount >= 3
+                        ? "warning"
+                        : "success"
+                  }
+                >
                   {emp.activeProjectsCount}
                 </Pill>
               ) : (
@@ -219,11 +279,20 @@ export default function EmployeesPage() {
               )}
             </td>
             <td className="px-5 py-4">
-              <StatusBadge status={emp.isActive ? "ACTIVE" : "STOPPED"} label={emp.isActive ? "نشط" : "غير نشط"} />
+              <StatusBadge
+                status={emp.isActive ? "ACTIVE" : "STOPPED"}
+                label={emp.isActive ? "نشط" : "غير نشط"}
+              />
             </td>
             <td className="px-5 py-4">
               <div className="flex items-center gap-1">
-                <ActionButton variant="ghost" size="sm" className="h-8 w-8" onClick={() => setEditEmployee(emp)} aria-label="تعديل">
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8"
+                  onClick={() => setEditEmployee(emp)}
+                  aria-label="تعديل"
+                >
                   <Pencil className="size-3.5" />
                 </ActionButton>
                 <ActionButton
@@ -234,7 +303,11 @@ export default function EmployeesPage() {
                   onClick={() => handleToggleActive(emp.id, emp.isActive)}
                   aria-label={emp.isActive ? "تعطيل" : "تفعيل"}
                 >
-                  {emp.isActive ? <PowerOff className="size-3.5" /> : <Power className="size-3.5" />}
+                  {emp.isActive ? (
+                    <PowerOff className="size-3.5" />
+                  ) : (
+                    <Power className="size-3.5" />
+                  )}
                 </ActionButton>
               </div>
             </td>
@@ -242,8 +315,16 @@ export default function EmployeesPage() {
         )}
       />
 
-      {createOpen && <EmployeeForm mode="create" onClose={() => setCreateOpen(false)} />}
-      {editEmployee && <EmployeeForm mode="edit" employee={editEmployee} onClose={() => setEditEmployee(null)} />}
+      {createOpen && (
+        <EmployeeForm mode="create" onClose={() => setCreateOpen(false)} />
+      )}
+      {editEmployee && (
+        <EmployeeForm
+          mode="edit"
+          employee={editEmployee}
+          onClose={() => setEditEmployee(null)}
+        />
+      )}
     </div>
   );
 }

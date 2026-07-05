@@ -19,7 +19,8 @@ function resolvePortalUrl(
   if (entityType === "deliverable") return `/portal/deliverables/${entityId}`;
   if (entityType === "project") return `/portal/projects`;
   if (entityType === "campaign") return `/portal/campaigns/${entityId}`;
-  if (entityType === "marketing_strategy") return `/portal/marketing-strategies/${entityId}`;
+  if (entityType === "marketing_strategy")
+    return `/portal/marketing-strategies/${entityId}`;
   if (entityType === "invoice" || entityType === "INVOICE")
     return `/portal/finance`;
   if (entityType === "conversation") return `/portal/projects`;
@@ -48,7 +49,19 @@ export function NotificationsDropdown() {
   const [markAllAsRead] = useMarkAllAsReadMutation();
 
   const notifications =
-    (data as unknown as { data?: { id: string; title: string; body: string; isRead: boolean; createdAt: string; entityType?: string | null; entityId?: string | null }[] })?.data ?? [];
+    (
+      data as unknown as {
+        data?: {
+          id: string;
+          title: string;
+          body: string;
+          isRead: boolean;
+          createdAt: string;
+          entityType?: string | null;
+          entityId?: string | null;
+        }[];
+      }
+    )?.data ?? [];
   const hasUnread = notifications.some((n) => !n.isRead);
 
   return (

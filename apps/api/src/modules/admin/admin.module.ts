@@ -66,7 +66,8 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>("JWT_SECRET") ?? "default_secret",
         signOptions: {
-          expiresIn: (configService.get<string>("JWT_EXPIRES_IN") || "1h") as unknown as number,
+          expiresIn: (configService.get<string>("JWT_EXPIRES_IN") ||
+            "1h") as unknown as number,
         },
       }),
     }),

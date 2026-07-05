@@ -20,7 +20,10 @@ interface InvoiceItemsTableProps {
   totalAmount: number;
 }
 
-export function InvoiceItemsTable({ items, totalAmount }: InvoiceItemsTableProps) {
+export function InvoiceItemsTable({
+  items,
+  totalAmount,
+}: InvoiceItemsTableProps) {
   if (!items || items.length === 0) {
     return (
       <div className="text-center py-4 text-portal-note-text text-sm">
@@ -98,7 +101,9 @@ export function InvoiceItemsTable({ items, totalAmount }: InvoiceItemsTableProps
 
       {/* Totals footer */}
       <div className="px-4 py-3 border-t border-portal-divider flex justify-between items-center">
-        <span className="text-sm font-medium text-portal-note-text">المجموع</span>
+        <span className="text-sm font-medium text-portal-note-text">
+          المجموع
+        </span>
         <span className="text-base font-bold text-natural-100 font-mono">
           <CurrencyDisplay amount={totalAmount} />
         </span>

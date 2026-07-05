@@ -23,7 +23,9 @@ export class AdminChatService {
         skip,
         take: limit,
         include: {
-          participants: { include: { user: { select: { id: true, name: true } } } },
+          participants: {
+            include: { user: { select: { id: true, name: true } } },
+          },
           messages: { orderBy: { createdAt: "desc" }, take: 1 },
           _count: { select: { messages: true } },
         },
@@ -37,11 +39,17 @@ export class AdminChatService {
       items: items.map((c) => {
         const lastMsg = c.messages[0];
         const daysSinceLastMsg = lastMsg
-          ? Math.floor((now.getTime() - new Date(lastMsg.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+          ? Math.floor(
+              (now.getTime() - new Date(lastMsg.createdAt).getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
           : null;
         return {
           id: c.id,
-          participants: c.participants.map((p) => ({ id: p.user.id, name: p.user.name })),
+          participants: c.participants.map((p) => ({
+            id: p.user.id,
+            name: p.user.name,
+          })),
           lastMessageAt: lastMsg?.createdAt.toISOString() ?? null,
           lastMessageContent: lastMsg?.content ?? null,
           messageCount: c._count.messages,
@@ -58,7 +66,9 @@ export class AdminChatService {
   }
 
   async getMessages(conversationId: string, query: any) {
-    const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
     if (!conversation) throw new NotFoundException("Conversation not found");
 
     const page = query.page ? parseInt(query.page, 10) : 1;
@@ -96,7 +106,9 @@ export class AdminChatService {
   }
 
   async hideConversation(conversationId: string) {
-    const conversation = await this.prisma.conversation.findUnique({ where: { id: conversationId } });
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
     if (!conversation) throw new NotFoundException("Conversation not found");
 
     await this.prisma.conversation.update({

@@ -158,21 +158,38 @@ export class ProjectsController {
 
   @Patch("periods/:periodId/summary")
   @RequirePermissions("projects.update")
-  savePeriodSummary(@Param("periodId") periodId: string, @Body() dto: SavePeriodSummaryDto) {
+  savePeriodSummary(
+    @Param("periodId") periodId: string,
+    @Body() dto: SavePeriodSummaryDto,
+  ) {
     return this.periodsService.saveSummary(periodId, dto.summary);
   }
 
   @Patch("periods/:periodId/completion")
   @RequirePermissions("projects.update")
-  setPeriodCompletion(@Param("periodId") periodId: string, @Body() dto: SetPeriodCompletionDto) {
-    return this.periodsService.setCompletion(periodId, dto.completionPercentage);
+  setPeriodCompletion(
+    @Param("periodId") periodId: string,
+    @Body() dto: SetPeriodCompletionDto,
+  ) {
+    return this.periodsService.setCompletion(
+      periodId,
+      dto.completionPercentage,
+    );
   }
 
   @Patch("periods/:periodId/goals")
   @RequirePermissions("projects.update")
   savePeriodGoals(
     @Param("periodId") periodId: string,
-    @Body() dto: { goals: Array<{ title: string; description?: string; progress: number; status: string }> },
+    @Body()
+    dto: {
+      goals: Array<{
+        title: string;
+        description?: string;
+        progress: number;
+        status: string;
+      }>;
+    },
   ) {
     return this.periodsService.saveGoals(periodId, dto.goals);
   }

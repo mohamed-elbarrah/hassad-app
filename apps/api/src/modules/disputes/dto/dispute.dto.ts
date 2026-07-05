@@ -11,11 +11,17 @@ import {
   Max,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
-import { DisputeStatus, DisputeCategory, DisputePriority } from "@hassad/shared";
+import {
+  DisputeStatus,
+  DisputeCategory,
+  DisputePriority,
+} from "@hassad/shared";
 
 /** Transform empty strings to undefined for optional enum fields */
 const EmptyToUndefined = () =>
-  Transform(({ value }) => (value === "" || value === null ? undefined : value));
+  Transform(({ value }) =>
+    value === "" || value === null ? undefined : value,
+  );
 
 export class UpdateDisputeDto {
   @IsOptional()

@@ -23,10 +23,7 @@ export function StepLayout({
   children,
 }: StepLayoutProps) {
   return (
-    <SurfaceCard
-      className="shadow-none"
-      contentClassName="p-6"
-    >
+    <SurfaceCard className="shadow-none" contentClassName="p-6">
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div>

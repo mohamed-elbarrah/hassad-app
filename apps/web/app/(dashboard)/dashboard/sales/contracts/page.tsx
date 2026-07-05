@@ -34,9 +34,9 @@ const STATUS_FILTERS: FilterGroup[] = [
 
 export default function ContractsPage() {
   const [search, setSearch] = useState("");
-  const [activeFilters, setActiveFilters] = useState<
-    Record<string, string[]>
-  >({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [page, setPage] = useState(1);
 
   const statusFilter = activeFilters["status"]?.[0] ?? "";

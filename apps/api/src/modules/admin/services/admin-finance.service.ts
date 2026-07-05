@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { FinanceService } from "../../finance/services/finance.service";
 
@@ -10,7 +14,14 @@ export class AdminFinanceService {
   ) {}
 
   // ── Ledger audit helper ──────────────────────────────────────────────────────
-  private async audit(action: string, entity: string, entityId: string, userId?: string, before?: any, after?: any) {
+  private async audit(
+    action: string,
+    entity: string,
+    entityId: string,
+    userId?: string,
+    before?: any,
+    after?: any,
+  ) {
     await this.prisma.ledger.create({
       data: { action, entity, entityId, userId, before, after },
     });
@@ -18,7 +29,15 @@ export class AdminFinanceService {
 
   // ── D1. Finance Overview ──────────────────────────────────────────────────────
   async getOverview() {
-    const [summary, metrics, aging, cashflow, topClients, revenueTrend, alerts] = await Promise.all([
+    const [
+      summary,
+      metrics,
+      aging,
+      cashflow,
+      topClients,
+      revenueTrend,
+      alerts,
+    ] = await Promise.all([
       this.financeService.getSummary(),
       this.financeService.getMetrics({}),
       this.financeService.getAging(),
@@ -27,12 +46,27 @@ export class AdminFinanceService {
       this.financeService.getRevenueTrend({ groupBy: "month" }),
       this.financeService.getAlerts(),
     ]);
-    return { summary, metrics, aging, cashflow, topClients, revenueTrend, alerts };
+    return {
+      summary,
+      metrics,
+      aging,
+      cashflow,
+      topClients,
+      revenueTrend,
+      alerts,
+    };
   }
 
   // ── D2. Invoices — Force status ───────────────────────────────────────────────
-  async forceInvoiceStatus(invoiceId: string, status: string, reason: string, userId: string) {
-    const invoice = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+  async forceInvoiceStatus(
+    invoiceId: string,
+    status: string,
+    reason: string,
+    userId: string,
+  ) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+    });
     if (!invoice) throw new NotFoundException("الفاتورة غير موجودة");
 
     const updated = await this.prisma.invoice.update({
@@ -40,7 +74,11 @@ export class AdminFinanceService {
       data: { status: status as any },
     });
 
-    await this.audit("ADMIN_FORCE_INVOICE_STATUS", "Invoice", invoiceId, userId,
+    await this.audit(
+      "ADMIN_FORCE_INVOICE_STATUS",
+      "Invoice",
+      invoiceId,
+      userId,
       { status: invoice.status, reason },
       { status: updated.status },
     );
@@ -54,7 +92,12 @@ export class AdminFinanceService {
   }
 
   // ── D2. Invoices — Refund trigger ─────────────────────────────────────────────
-  async triggerRefund(invoiceId: string, amount: number, reason: string, userId: string) {
+  async triggerRefund(
+    invoiceId: string,
+    amount: number,
+    reason: string,
+    userId: string,
+  ) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { payments: { where: { status: "SUCCESS" } } },
@@ -75,7 +118,11 @@ export class AdminFinanceService {
       },
     });
 
-    await this.audit("ADMIN_TRIGGER_REFUND", "Invoice", invoiceId, userId,
+    await this.audit(
+      "ADMIN_TRIGGER_REFUND",
+      "Invoice",
+      invoiceId,
+      userId,
       { status: invoice.status, refundAmount },
       { refundPaymentId: refundPayment.id },
     );
@@ -91,12 +138,21 @@ export class AdminFinanceService {
       where,
       orderBy: { createdAt: "desc" },
       take: 50,
-      include: { payment: { select: { id: true, amount: true, method: true, status: true } } },
+      include: {
+        payment: {
+          select: { id: true, amount: true, method: true, status: true },
+        },
+      },
     });
   }
 
   // ── D3. Webhook Logs ──────────────────────────────────────────────────────────
-  async getWebhookLogs(filters: { status?: string; provider?: string; page?: number; limit?: number }) {
+  async getWebhookLogs(filters: {
+    status?: string;
+    provider?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const where: any = {};
     if (filters.status === "failed") where.processed = false;
     if (filters.status === "success") where.processed = true;
@@ -119,9 +175,12 @@ export class AdminFinanceService {
 
   // ── D3. Retry Webhook ─────────────────────────────────────────────────────────
   async retryWebhook(webhookId: string, userId: string) {
-    const log = await this.prisma.webhookLog.findUnique({ where: { id: webhookId } });
+    const log = await this.prisma.webhookLog.findUnique({
+      where: { id: webhookId },
+    });
     if (!log) throw new NotFoundException("سجل الويب هوك غير موجود");
-    if (log.processed) throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
+    if (log.processed)
+      throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
 
     // Mark as processed (actual retry logic would call the external service)
     const updated = await this.prisma.webhookLog.update({
@@ -129,7 +188,11 @@ export class AdminFinanceService {
       data: { processed: true, error: null },
     });
 
-    await this.audit("ADMIN_RETRY_WEBHOOK", "WebhookLog", webhookId, userId,
+    await this.audit(
+      "ADMIN_RETRY_WEBHOOK",
+      "WebhookLog",
+      webhookId,
+      userId,
       { provider: log.provider, eventType: log.eventType },
       { processed: true },
     );

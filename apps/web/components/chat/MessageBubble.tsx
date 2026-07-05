@@ -5,13 +5,7 @@ import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { formatFileSize, formatRelativeTime } from "@/lib/format";
 import { useAppSelector } from "@/lib/hooks";
 import { useState } from "react";
-import {
-  FileIcon,
-  Download,
-  CheckCheck,
-  X,
-  Maximize2,
-} from "lucide-react";
+import { FileIcon, Download, CheckCheck, X, Maximize2 } from "lucide-react";
 import type { Message, MessageAttachment } from "@/features/chat/chatApi";
 
 function isImageType(mimeType: string): boolean {
@@ -106,8 +100,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ message }: MessageBubbleProps) {
   const user = useAppSelector((s) => s.auth.user);
   const isOwn = message.senderId === user?.id;
-  const hasAttachments =
-    message.attachments && message.attachments.length > 0;
+  const hasAttachments = message.attachments && message.attachments.length > 0;
 
   return (
     <div
@@ -163,11 +156,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             )}
           >
             {message.attachments!.map((att) => (
-              <AttachmentCard
-                key={att.id}
-                attachment={att}
-                isOwn={isOwn}
-              />
+              <AttachmentCard key={att.id} attachment={att} isOwn={isOwn} />
             ))}
           </div>
         )}

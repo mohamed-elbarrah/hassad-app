@@ -12,7 +12,11 @@ interface InvoiceNotesProps {
   onUpdate?: () => void;
 }
 
-export function InvoiceNotes({ notes, invoiceId, onUpdate }: InvoiceNotesProps) {
+export function InvoiceNotes({
+  notes,
+  invoiceId,
+  onUpdate,
+}: InvoiceNotesProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [newNote, setNewNote] = useState(notes || "");
   const [updateInvoice, { isLoading }] = useUpdateInvoiceMutation();
@@ -46,7 +50,12 @@ export function InvoiceNotes({ notes, invoiceId, onUpdate }: InvoiceNotesProps) 
             dir="rtl"
           />
           <div className="flex gap-2">
-            <ActionButton variant="primary" size="sm" onClick={handleSave} loading={isLoading}>
+            <ActionButton
+              variant="primary"
+              size="sm"
+              onClick={handleSave}
+              loading={isLoading}
+            >
               حفظ
             </ActionButton>
             <ActionButton variant="outline" size="sm" onClick={handleCancel}>

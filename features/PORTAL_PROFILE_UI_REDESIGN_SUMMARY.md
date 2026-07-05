@@ -6,16 +6,16 @@
 
 ## التحققات التي نجحت
 
-| التحقق | الأمر | النتيجة |
-|---|---|---|
-| TypeScript صارم | `cd apps/web && npx tsc --noEmit` | ✅ لا أخطاء |
-| بناء الويب | `npx turbo run build --filter=web` | ✅ ناجح |
-| بناء المونوريبو بالكامل | `npx turbo run build` | ✅ ناجح (3/3) |
-| بناء الويب بدون كاش | `npx turbo run build --filter=web --force` | ✅ ناجح |
-| Prettier | `npx prettier --check` | ✅ جميع الملفات مهيأة |
-| لا RTL زائد | `grep` | ✅ لا يوجد `dir="rtl"` / `flex-row-reverse` / `text-right` / `text-left` |
-| لا styles قديمة | `grep` | ✅ لا يوجد `rounded-[30px]` / `border-[1.5px]` |
-| لا تعديل خلفية | `git diff --name-only` | ✅ 0 ملفات في `apps/api/` و `packages/shared/` |
+| التحقق                  | الأمر                                      | النتيجة                                                                  |
+| ----------------------- | ------------------------------------------ | ------------------------------------------------------------------------ |
+| TypeScript صارم         | `cd apps/web && npx tsc --noEmit`          | ✅ لا أخطاء                                                              |
+| بناء الويب              | `npx turbo run build --filter=web`         | ✅ ناجح                                                                  |
+| بناء المونوريبو بالكامل | `npx turbo run build`                      | ✅ ناجح (3/3)                                                            |
+| بناء الويب بدون كاش     | `npx turbo run build --filter=web --force` | ✅ ناجح                                                                  |
+| Prettier                | `npx prettier --check`                     | ✅ جميع الملفات مهيأة                                                    |
+| لا RTL زائد             | `grep`                                     | ✅ لا يوجد `dir="rtl"` / `flex-row-reverse` / `text-right` / `text-left` |
+| لا styles قديمة         | `grep`                                     | ✅ لا يوجد `rounded-[30px]` / `border-[1.5px]`                           |
+| لا تعديل خلفية          | `git diff --name-only`                     | ✅ 0 ملفات في `apps/api/` و `packages/shared/`                           |
 
 ## الملفات الجديدة
 
@@ -37,16 +37,19 @@
 ## الملفات المعدّلة الرئيسية
 
 ### تخطيط الصفحة
+
 - `apps/web/app/(portal)/portal/profile/page.tsx`
   - أُزيلت جميع `dir="rtl"` الزائدة.
   - تحديث skeleton ليطابق التخطيط الجديد (sidebar 4/12، main 8/12).
 
 ### نظام البطاقات والحقول
+
 - `apps/web/components/client-brief/BriefCard.tsx` — أُعيد تنسيقه ولكن بقي نفس الواجهة.
 - `apps/web/components/client-brief/ClientBriefField.tsx` — `dir` افتراضي RTL على النص فقط، بدون تغيير الحاوية.
 - `apps/web/components/client-brief/ClientBriefStatCard.tsx` — أضيف `tone` للألوان المقننة مع الاحتفاظ بـ `colorClass` للاستخدامات القديمة.
 
 ### المكون الرئيسي
+
 - `apps/web/components/client-brief/ClientBriefV2.tsx`
   - أُعيد كتابته بالكامل ليعتمد على grid رئيسية:
     - sidebar على اليمين (`lg:col-span-4 xl:col-span-3`)
@@ -55,7 +58,9 @@
     - الأقسام في شبكة من عمودين (`xl:grid-cols-2`)
 
 ### أقسام الملف التعريفي
+
 جميعها تستخدم الآن `BriefCard` + `ClientBriefField`:
+
 - `CommunicationSection.tsx`
 - `ProductSection.tsx`
 - `AudienceSection.tsx`
@@ -65,6 +70,7 @@
 - `VisualSection.tsx`
 
 ### تخطيط مشترك
+
 - `apps/web/components/shared/ProfileSections/SectionLayout.tsx`
   - `mode="view"` يستخدم `BriefCard`.
   - `ViewField` أصبح غلافاً رفيعاً حول `ClientBriefField`.
@@ -72,6 +78,7 @@
   - أُزيل `SurfaceCard` و `rounded-[30px]` و `shadow-none`.
 
 ### وضع التعديل
+
 - `apps/web/components/portal/ProfileEditV2.tsx`
   - أُزيل `dir="rtl"` الزائد فقط؛ لم يُمسّى منطق التعديل.
 

@@ -5,7 +5,12 @@ import { PrismaService } from "../../../prisma/prisma.service";
 export class AdminClientsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(filters: { search?: string; status?: string; page?: number; limit?: number }) {
+  async findAll(filters: {
+    search?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const where: any = {};
     if (filters.status === "active") where.isActive = true;
     if (filters.status === "inactive") where.isActive = false;
@@ -27,9 +32,13 @@ export class AdminClientsService {
         include: {
           clientProfile: {
             select: {
-              id: true, companyName: true, businessName: true,
+              id: true,
+              companyName: true,
+              businessName: true,
               portalAccessToken: true,
-              _count: { select: { contracts: true, projects: true, invoices: true } },
+              _count: {
+                select: { contracts: true, projects: true, invoices: true },
+              },
             },
           },
         },
@@ -43,7 +52,8 @@ export class AdminClientsService {
       email: u.email,
       isActive: u.isActive,
       createdAt: u.createdAt,
-      companyName: u.clientProfile?.companyName ?? u.clientProfile?.businessName ?? "—",
+      companyName:
+        u.clientProfile?.companyName ?? u.clientProfile?.businessName ?? "—",
       portalAccess: !!u.clientProfile?.portalAccessToken,
       contractsCount: u.clientProfile?._count.contracts ?? 0,
       projectsCount: u.clientProfile?._count.projects ?? 0,
@@ -60,7 +70,9 @@ export class AdminClientsService {
       include: {
         clientProfile: {
           include: {
-            _count: { select: { contracts: true, projects: true, invoices: true } },
+            _count: {
+              select: { contracts: true, projects: true, invoices: true },
+            },
             contracts: { take: 5, orderBy: { createdAt: "desc" } },
             projects: { take: 5, orderBy: { createdAt: "desc" } },
             invoices: { take: 5, orderBy: { createdAt: "desc" } },
@@ -76,7 +88,10 @@ export class AdminClientsService {
       email: user.email,
       isActive: user.isActive,
       createdAt: user.createdAt,
-      companyName: user.clientProfile.companyName ?? user.clientProfile.businessName ?? "—",
+      companyName:
+        user.clientProfile.companyName ??
+        user.clientProfile.businessName ??
+        "—",
       portalAccess: !!user.clientProfile.portalAccessToken,
       contractsCount: user.clientProfile._count.contracts,
       projectsCount: user.clientProfile._count.projects,

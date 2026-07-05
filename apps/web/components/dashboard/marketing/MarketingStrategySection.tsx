@@ -9,7 +9,10 @@ import {
   useResubmitStrategyMutation,
   useGetStrategyDownloadUrlQuery,
 } from "@/features/marketing/marketingApi";
-import { MarketingStrategyStatus, MARKETING_STRATEGY_STATUS_AR } from "@hassad/shared";
+import {
+  MarketingStrategyStatus,
+  MARKETING_STRATEGY_STATUS_AR,
+} from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -51,10 +54,17 @@ export function MarketingStrategySection({
   strategyApproved,
   onStrategyStatusChange,
 }: MarketingStrategySectionProps) {
-  const { data: strategy, isLoading, refetch } = useGetTaskStrategyQuery(taskId);
-  const [uploadStrategy, { isLoading: isUploading }] = useUploadStrategyMutation();
-  const [sendToClient, { isLoading: isSending }] = useSendStrategyToClientMutation();
-  const [resubmitStrategy, { isLoading: isResubmitting }] = useResubmitStrategyMutation();
+  const {
+    data: strategy,
+    isLoading,
+    refetch,
+  } = useGetTaskStrategyQuery(taskId);
+  const [uploadStrategy, { isLoading: isUploading }] =
+    useUploadStrategyMutation();
+  const [sendToClient, { isLoading: isSending }] =
+    useSendStrategyToClientMutation();
+  const [resubmitStrategy, { isLoading: isResubmitting }] =
+    useResubmitStrategyMutation();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const revisionFileInputRef = useRef<HTMLInputElement>(null);
@@ -142,7 +152,7 @@ export function MarketingStrategySection({
   const status = strategy?.status as MarketingStrategyStatus | undefined;
   const statusConfig = status ? STATUS_CONFIG[status] : undefined;
   const statusLabel = status
-    ? MARKETING_STRATEGY_STATUS_AR[status] ?? status
+    ? (MARKETING_STRATEGY_STATUS_AR[status] ?? status)
     : undefined;
 
   // No strategy exists yet
@@ -188,9 +198,7 @@ export function MarketingStrategySection({
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <IconCircle
-              icon={statusConfig?.icon ?? FileText}
-            />
+            <IconCircle icon={statusConfig?.icon ?? FileText} />
             <h3 className="text-lg font-semibold">الدراسة التسويقية</h3>
           </div>
           {statusLabel && (
@@ -203,7 +211,9 @@ export function MarketingStrategySection({
           <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
             <FileText className="h-5 w-5 text-primary" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{strategy.fileName}</p>
+              <p className="text-sm font-medium truncate">
+                {strategy.fileName}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {(strategy.fileSize / 1024).toFixed(1)} KB ·{" "}
                 {new Date(strategy.createdAt).toLocaleDateString("ar-SA")}
@@ -220,14 +230,15 @@ export function MarketingStrategySection({
           </div>
 
           {/* Revision note from client */}
-          {strategy.revisionNote && status === MarketingStrategyStatus.REVISION_REQUESTED && (
-            <div className="p-3 border border-red-200 bg-red-50 rounded-lg">
-              <p className="text-sm font-medium text-red-800 mb-1">
-                ملاحظات العميل للتعديل:
-              </p>
-              <p className="text-sm text-red-700">{strategy.revisionNote}</p>
-            </div>
-          )}
+          {strategy.revisionNote &&
+            status === MarketingStrategyStatus.REVISION_REQUESTED && (
+              <div className="p-3 border border-red-200 bg-red-50 rounded-lg">
+                <p className="text-sm font-medium text-red-800 mb-1">
+                  ملاحظات العميل للتعديل:
+                </p>
+                <p className="text-sm text-red-700">{strategy.revisionNote}</p>
+              </div>
+            )}
 
           {/* Status messages */}
           {status === MarketingStrategyStatus.DRAFT && isMarketer && (
@@ -275,25 +286,26 @@ export function MarketingStrategySection({
               </ActionButton>
             )}
 
-            {status === MarketingStrategyStatus.REVISION_REQUESTED && isMarketer && (
-              <>
-                <ActionButton
-                  icon={<RefreshCw className="h-4 w-4" />}
-                  onClick={() => revisionFileInputRef.current?.click()}
-                  loading={isResubmitting}
-                  variant="primary"
-                >
-                  رفع دراسة معدّلة (PDF)
-                </ActionButton>
-                <input
-                  ref={revisionFileInputRef}
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={handleResubmit}
-                />
-              </>
-            )}
+            {status === MarketingStrategyStatus.REVISION_REQUESTED &&
+              isMarketer && (
+                <>
+                  <ActionButton
+                    icon={<RefreshCw className="h-4 w-4" />}
+                    onClick={() => revisionFileInputRef.current?.click()}
+                    loading={isResubmitting}
+                    variant="primary"
+                  >
+                    رفع دراسة معدّلة (PDF)
+                  </ActionButton>
+                  <input
+                    ref={revisionFileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={handleResubmit}
+                  />
+                </>
+              )}
 
             {!isMarketer && status !== MarketingStrategyStatus.APPROVED && (
               <p className="text-xs text-muted-foreground">

@@ -7,7 +7,16 @@ export class AdminAuditService {
   constructor(private prisma: PrismaService) {}
 
   async getAuditLog(query: AuditLogQueryDto) {
-    const { userId, action, entity, entityId, from, to, page = 1, limit = 20 } = query;
+    const {
+      userId,
+      action,
+      entity,
+      entityId,
+      from,
+      to,
+      page = 1,
+      limit = 20,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};

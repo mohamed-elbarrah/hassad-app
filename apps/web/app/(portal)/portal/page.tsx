@@ -100,9 +100,10 @@ export default function PortalPage() {
         pollingInterval: PORTAL_POLLING_INTERVAL_MS,
       },
     );
-  const { data: projectProgress, error: projectError } = useGetProjectProgressQuery(undefined, {
-    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-  });
+  const { data: projectProgress, error: projectError } =
+    useGetProjectProgressQuery(undefined, {
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+    });
   const { data: activity } = useGetActivityFeedQuery(undefined, {
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
@@ -138,7 +139,11 @@ export default function PortalPage() {
   const actionItems = actionItemsData?.items ?? [];
   const activityItems = activityFeedData?.items ?? [];
 
-  const handleSnooze = async (item: { id: string; type: string; title: string }) => {
+  const handleSnooze = async (item: {
+    id: string;
+    type: string;
+    title: string;
+  }) => {
     await snoozeItem(item.type, item.id);
   };
 
@@ -178,327 +183,336 @@ export default function PortalPage() {
         className="grid grid-cols-1 lg:grid-cols-3 gap-5 w-full mx-auto"
         dir="rtl"
       >
-      {/* COLUMN 1 */}
-      <div className="flex flex-col gap-5">
-        {/* ── تتبع المشاريع ──────────────────────────── */}
-        <DashboardCard
-          title="تتبع المشاريع"
-          icon={Activity}
-          onShowAll={() => router.push("/portal/projects")}
-        >
-          {projectError ? (
-            <div className="flex flex-col items-center gap-5 py-8">
-              <p className="text-base text-portal-note-text">
-                تعذر تحميل بيانات المشاريع
-              </p>
-            </div>
-          ) : projectProgress && projects.length > 0 ? (
-            <div className="flex flex-col items-center gap-5">
-              <GaugeChart value={gaugeValue} max={100} />
+        {/* COLUMN 1 */}
+        <div className="flex flex-col gap-5">
+          {/* ── تتبع المشاريع ──────────────────────────── */}
+          <DashboardCard
+            title="تتبع المشاريع"
+            icon={Activity}
+            onShowAll={() => router.push("/portal/projects")}
+          >
+            {projectError ? (
+              <div className="flex flex-col items-center gap-5 py-8">
+                <p className="text-base text-portal-note-text">
+                  تعذر تحميل بيانات المشاريع
+                </p>
+              </div>
+            ) : projectProgress && projects.length > 0 ? (
+              <div className="flex flex-col items-center gap-5">
+                <GaugeChart value={gaugeValue} max={100} />
 
-              <div className="w-full space-y-3">
-                {projects.slice(0, 3).map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-4 bg-natural-0 border-portal-card-border border rounded-2xl"
-                  >
-                    <span className="text-base font-medium text-natural-100">
-                      {p.name}
-                    </span>
-                    <StatusBadge
-                      status={mapProjectStatusToUI(p.status)}
-                      label={p.statusAr}
+                <div className="w-full space-y-3">
+                  {projects.slice(0, 3).map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between p-4 bg-natural-0 border-portal-card-border border rounded-2xl"
+                    >
+                      <span className="text-base font-medium text-natural-100">
+                        {p.name}
+                      </span>
+                      <StatusBadge
+                        status={mapProjectStatusToUI(p.status)}
+                        label={p.statusAr}
+                      />
+                    </div>
+                  ))}
+
+                  <div className="p-5 text-right bg-portal-bg rounded-2xl">
+                    <p className="text-base font-medium text-natural-100">
+                      المشاريع النشطة :
+                    </p>
+                    <p className="mt-1 text-sm text-portal-note-text">
+                      {projectProgress.activeProjects} من{" "}
+                      {projectProgress.totalProjects}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-5 py-8">
+                <GaugeChart value={0} max={100} />
+                <p className="text-base text-portal-note-text">
+                  لا يوجد مشروع نشط حالياً
+                </p>
+              </div>
+            )}
+          </DashboardCard>
+
+          {/* ── آخر التحديثات ─────────────────────────── */}
+          <DashboardCard title="آخر التحديثات" icon={Clock} showAll={false}>
+            {activityError ? (
+              <p className="text-base text-portal-note-text text-center py-4">
+                تعذر تحميل التحديثات
+              </p>
+            ) : activityItems.length > 0 ? (
+              <div className="space-y-3">
+                {activityItems.slice(0, 3).map((item) => {
+                  const dateStr = new Date(item.date).toLocaleDateString(
+                    "ar-SA-u-nu-latn",
+                    {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    },
+                  );
+                  return (
+                    <TimelineItem
+                      key={item.id}
+                      date={dateStr}
+                      text={item.text}
+                      icon={
+                        ACTIVITY_ICON_MAP[item.icon] ?? (
+                          <FileText className="w-5 h-[23px] text-secondary-500" />
+                        )
+                      }
                     />
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-base text-portal-note-text text-center py-4">
+                لا توجد تحديثات حالياً
+              </p>
+            )}
+          </DashboardCard>
+        </div>
+
+        {/* COLUMN 2 */}
+        <div className="flex flex-col gap-5">
+          {/* ── إجراءات تحتاج تدخلك ─────────────────── */}
+          <DashboardCard
+            title="إجراءات تحتاج تدخلك"
+            icon={Settings}
+            onShowAll={() => router.push("/portal/actions")}
+          >
+            {actionItemsError ? (
+              <p className="text-base text-portal-note-text text-center py-4">
+                تعذر تحميل الإجراءات
+              </p>
+            ) : actionItems.length > 0 ? (
+              <div className="space-y-3">
+                {actionItems.slice(0, 3).map((item) => {
+                  const config =
+                    ACTION_TYPE_CONFIG[item.type] ??
+                    ACTION_TYPE_CONFIG.DELIVERABLE_APPROVAL;
+                  return (
+                    <ActionItemCard
+                      key={item.id}
+                      title={item.title}
+                      subtitle={item.subtitle}
+                      icon={
+                        config.icon ? (
+                          <config.icon className="w-[26px] h-[26px] text-secondary-500" />
+                        ) : (
+                          <Settings className="w-[26px] h-[26px] text-secondary-500" />
+                        )
+                      }
+                      secondaryAction="ذكرني لاحقًا"
+                      primaryAction={config.primaryAction}
+                      primaryColor={config.primaryColor}
+                      onPrimary={() => router.push(item.actionUrl)}
+                      onSecondary={() => handleSnooze(item)}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-base text-portal-note-text text-center py-4">
+                لا توجد إجراءات معلقة
+              </p>
+            )}
+          </DashboardCard>
+
+          {/* ── أداء الحملة ───────────────────────────── */}
+          <DashboardCard
+            title="أداء الحملة"
+            icon={TrendingUp}
+            onShowAll={() => router.push("/portal/campaigns")}
+          >
+            {campaignLoading ? (
+              <div className="space-y-3 px-1">
+                <Skeleton className="h-[30px] w-full rounded-2xl" />
+                <Skeleton className="h-[30px] w-full rounded-2xl" />
+                <Skeleton className="h-[30px] w-3/4 rounded-2xl" />
+              </div>
+            ) : campaignError ? (
+              <p className="text-base text-portal-note-text text-center py-4">
+                تعذر تحميل بيانات الحملة
+              </p>
+            ) : campaignSummary &&
+              (campaignSummary.totalVisits > 0 ||
+                campaignSummary.totalConversions > 0) ? (
+              <div className="space-y-3">
+                <KpiRow
+                  label="الزيارات"
+                  value={`${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`}
+                  icon={
+                    <Users className="w-[29px] h-[22px] text-secondary-500" />
+                  }
+                />
+                <KpiRow
+                  label="التحويلات"
+                  value={`${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`}
+                  icon={
+                    <Filter className="w-[23px] h-[23px] text-secondary-500" />
+                  }
+                />
+                <KpiRow
+                  label="العائد على الإنفاق الإعلاني"
+                  value={`${campaignSummary.avgRoas}x`}
+                  icon={<DollarSign className="w-7 h-7 text-secondary-500" />}
+                />
+
+                {campaignSummary.improvementPercent !== 0 && (
+                  <div
+                    className={cn(
+                      "p-5 text-right rounded-2xl",
+                      campaignSummary.improvementPercent > 0
+                        ? "bg-success-100/15"
+                        : "bg-danger-100/10",
+                    )}
+                  >
+                    <p className="text-base font-medium text-natural-100">
+                      ملاحظة:
+                    </p>
+                    <p className="mt-1 text-sm text-portal-note-text">
+                      الأداء{" "}
+                      {campaignSummary.improvementPercent > 0
+                        ? "تحسن"
+                        : "انخفض"}{" "}
+                      بنسبة {Math.abs(campaignSummary.improvementPercent)}%
+                      مقارنة بالأسبوع الماضي
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-base text-portal-note-text text-center py-4">
+                لا توجد حملات نشطة حالياً
+              </p>
+            )}
+          </DashboardCard>
+        </div>
+
+        {/* COLUMN 3 */}
+        <div className="flex flex-col gap-5">
+          <DashboardCard
+            title="الطلبات قيد الانتظار"
+            icon={ClipboardList}
+            onShowAll={() => router.push("/portal/requests")}
+          >
+            {pendingRequestsError ? (
+              <p className="text-base text-portal-note-text text-center py-4">
+                تعذر تحميل الطلبات الحالية
+              </p>
+            ) : pendingRequests.length > 0 ? (
+              <div className="space-y-3">
+                {pendingRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="rounded-2xl border border-portal-card-border bg-natural-0 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-base font-semibold text-natural-100 truncate">
+                          {request.companyName}
+                        </p>
+                        <p className="text-sm text-portal-note-text">
+                          {request.contactName}
+                        </p>
+                      </div>
+                      <StatusBadge
+                        status="pending"
+                        label={request.statusLabel}
+                      />
+                    </div>
+                    <p className="mt-3 text-sm text-portal-note-text/90">
+                      {request.stageLabel}
+                    </p>
+                    <p className="mt-2 text-xs text-portal-note-text/80">
+                      تاريخ الطلب:{" "}
+                      {new Date(request.createdAt).toLocaleDateString(
+                        "ar-SA-u-nu-latn",
+                      )}
+                    </p>
                   </div>
                 ))}
-
-                <div className="p-5 text-right bg-portal-bg rounded-2xl">
-                  <p className="text-base font-medium text-natural-100">
-                    المشاريع النشطة :
-                  </p>
-                  <p className="mt-1 text-sm text-portal-note-text">
-                    {projectProgress.activeProjects} من{" "}
-                    {projectProgress.totalProjects}
-                  </p>
-                </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-5 py-8">
-              <GaugeChart value={0} max={100} />
-              <p className="text-base text-portal-note-text">
-                لا يوجد مشروع نشط حالياً
+            ) : (
+              <p className="text-base text-portal-note-text text-center py-4">
+                لا توجد طلبات بانتظار المتابعة حالياً
               </p>
-            </div>
-          )}
-        </DashboardCard>
+            )}
+          </DashboardCard>
 
-        {/* ── آخر التحديثات ─────────────────────────── */}
-        <DashboardCard title="آخر التحديثات" icon={Clock} showAll={false}>
-          {activityError ? (
-            <p className="text-base text-portal-note-text text-center py-4">
-              تعذر تحميل التحديثات
-            </p>
-          ) : activityItems.length > 0 ? (
-            <div className="space-y-3">
-              {activityItems.slice(0, 3).map((item) => {
-                const dateStr = new Date(item.date).toLocaleDateString(
-                  "ar-SA-u-nu-latn",
-                  {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  },
-                );
-                return (
-                  <TimelineItem
-                    key={item.id}
-                    date={dateStr}
-                    text={item.text}
-                    icon={
-                      ACTIVITY_ICON_MAP[item.icon] ?? (
-                        <FileText className="w-5 h-[23px] text-secondary-500" />
-                      )
-                    }
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-base text-portal-note-text text-center py-4">
-              لا توجد تحديثات حالياً
-            </p>
-          )}
-        </DashboardCard>
-      </div>
-
-      {/* COLUMN 2 */}
-      <div className="flex flex-col gap-5">
-        {/* ── إجراءات تحتاج تدخلك ─────────────────── */}
-        <DashboardCard
-          title="إجراءات تحتاج تدخلك"
-          icon={Settings}
-          onShowAll={() => router.push("/portal/actions")}
-        >
-          {actionItemsError ? (
-            <p className="text-base text-portal-note-text text-center py-4">
-              تعذر تحميل الإجراءات
-            </p>
-          ) : actionItems.length > 0 ? (
-            <div className="space-y-3">
-              {actionItems.slice(0, 3).map((item) => {
-                const config =
-                  ACTION_TYPE_CONFIG[item.type] ??
-                  ACTION_TYPE_CONFIG.DELIVERABLE_APPROVAL;
-                return (
-                  <ActionItemCard
-                    key={item.id}
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    icon={
-                      config.icon ? (
-                        <config.icon className="w-[26px] h-[26px] text-secondary-500" />
-                      ) : (
-                        <Settings className="w-[26px] h-[26px] text-secondary-500" />
-                      )
-                    }
-                    secondaryAction="ذكرني لاحقًا"
-                    primaryAction={config.primaryAction}
-                    primaryColor={config.primaryColor}
-                    onPrimary={() => router.push(item.actionUrl)}
-                    onSecondary={() => handleSnooze(item)}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-base text-portal-note-text text-center py-4">
-              لا توجد إجراءات معلقة
-            </p>
-          )}
-        </DashboardCard>
-
-        {/* ── أداء الحملة ───────────────────────────── */}
-        <DashboardCard
-          title="أداء الحملة"
-          icon={TrendingUp}
-          onShowAll={() => router.push("/portal/campaigns")}
-        >
-          {campaignLoading ? (
-            <div className="space-y-3 px-1">
-              <Skeleton className="h-[30px] w-full rounded-2xl" />
-              <Skeleton className="h-[30px] w-full rounded-2xl" />
-              <Skeleton className="h-[30px] w-3/4 rounded-2xl" />
-            </div>
-          ) : campaignError ? (
-            <p className="text-base text-portal-note-text text-center py-4">
-              تعذر تحميل بيانات الحملة
-            </p>
-          ) : campaignSummary &&
-            (campaignSummary.totalVisits > 0 ||
-              campaignSummary.totalConversions > 0) ? (
-            <div className="space-y-3">
-              <KpiRow
-                label="الزيارات"
-                value={`${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`}
-                icon={
-                  <Users className="w-[29px] h-[22px] text-secondary-500" />
-                }
-              />
-              <KpiRow
-                label="التحويلات"
-                value={`${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`}
-                icon={
-                  <Filter className="w-[23px] h-[23px] text-secondary-500" />
-                }
-              />
-              <KpiRow
-                label="العائد على الإنفاق الإعلاني"
-                value={`${campaignSummary.avgRoas}x`}
-                icon={<DollarSign className="w-7 h-7 text-secondary-500" />}
-              />
-
-              {campaignSummary.improvementPercent !== 0 && (
-                <div
-                  className={cn(
-                    "p-5 text-right rounded-2xl",
-                    campaignSummary.improvementPercent > 0
-                      ? "bg-success-100/15"
-                      : "bg-danger-100/10",
-                  )}
-                >
-                  <p className="text-base font-medium text-natural-100">
-                    ملاحظة:
-                  </p>
-                  <p className="mt-1 text-sm text-portal-note-text">
-                    الأداء{" "}
-                    {campaignSummary.improvementPercent > 0 ? "تحسن" : "انخفض"}{" "}
-                    بنسبة {Math.abs(campaignSummary.improvementPercent)}% مقارنة
-                    بالأسبوع الماضي
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-base text-portal-note-text text-center py-4">
-              لا توجد حملات نشطة حالياً
-            </p>
-          )}
-        </DashboardCard>
-      </div>
-
-      {/* COLUMN 3 */}
-      <div className="flex flex-col gap-5">
-        <DashboardCard
-          title="الطلبات قيد الانتظار"
-          icon={ClipboardList}
-          onShowAll={() => router.push("/portal/requests")}
-        >
-          {pendingRequestsError ? (
-            <p className="text-base text-portal-note-text text-center py-4">
-              تعذر تحميل الطلبات الحالية
-            </p>
-          ) : pendingRequests.length > 0 ? (
-            <div className="space-y-3">
-              {pendingRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="rounded-2xl border border-portal-card-border bg-natural-0 p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-base font-semibold text-natural-100 truncate">
-                        {request.companyName}
-                      </p>
-                      <p className="text-sm text-portal-note-text">
-                        {request.contactName}
-                      </p>
-                    </div>
-                    <StatusBadge status="pending" label={request.statusLabel} />
-                  </div>
-                  <p className="mt-3 text-sm text-portal-note-text/90">
-                    {request.stageLabel}
-                  </p>
-                  <p className="mt-2 text-xs text-portal-note-text/80">
-                    تاريخ الطلب:{" "}
-                    {new Date(request.createdAt).toLocaleDateString(
-                      "ar-SA-u-nu-latn",
-                    )}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-base text-portal-note-text text-center py-4">
-              لا توجد طلبات بانتظار المتابعة حالياً
-            </p>
-          )}
-        </DashboardCard>
-
-        {/* ── المسؤولون عن مشروعي ──────────────────────────── */}
-        <DashboardCard
-          title="المسؤولون عن مشروعي"
-          icon={Users}
-          showAll={false}
-        >
-          {teamMembersData?.members && teamMembersData.members.length > 0 ? (
-            <div className="space-y-3">
-              {teamMembersData.members.map((member) => (
-                <div
-                  key={member.id}
-                  className="p-4 bg-card border-[1.5px] border-portal-card-border rounded-2xl space-y-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      {member.avatarUrl ? (
-                        <img
-                          src={member.avatarUrl}
-                          alt={member.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-secondary-500 text-white flex items-center justify-center text-lg font-semibold">
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      {member.isOnline && (
-                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-success-500 rounded-full border-2 border-white" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-base font-semibold text-natural-100 truncate">
-                        {member.name}
-                      </h4>
-                      <p className="text-sm text-portal-note-text">{member.role}</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/portal/chat?userId=${member.id}`)}
-                    className="w-full h-12 px-4 flex items-center justify-center gap-2 rounded-xl bg-pm-button-bg text-pm-button-text hover:bg-pm-button-bg/80 transition-colors font-semibold"
+          {/* ── المسؤولون عن مشروعي ──────────────────────────── */}
+          <DashboardCard
+            title="المسؤولون عن مشروعي"
+            icon={Users}
+            showAll={false}
+          >
+            {teamMembersData?.members && teamMembersData.members.length > 0 ? (
+              <div className="space-y-3">
+                {teamMembersData.members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="p-4 bg-card border-[1.5px] border-portal-card-border rounded-2xl space-y-3"
                   >
-                    <MessageCircle className="w-5 h-5" />
-                    تواصل معه
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-5 text-center">
-              <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-badge-gray-bg flex items-center justify-center">
-                <Users className="w-8 h-8 text-secondary-500" />
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        {member.avatarUrl ? (
+                          <img
+                            src={member.avatarUrl}
+                            alt={member.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-secondary-500 text-white flex items-center justify-center text-lg font-semibold">
+                            {member.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        {member.isOnline && (
+                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-success-500 rounded-full border-2 border-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-base font-semibold text-natural-100 truncate">
+                          {member.name}
+                        </h4>
+                        <p className="text-sm text-portal-note-text">
+                          {member.role}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(`/portal/chat?userId=${member.id}`)
+                      }
+                      className="w-full h-12 px-4 flex items-center justify-center gap-2 rounded-xl bg-pm-button-bg text-pm-button-text hover:bg-pm-button-bg/80 transition-colors font-semibold"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      تواصل معه
+                    </button>
+                  </div>
+                ))}
               </div>
-              <p className="text-base font-medium text-natural-100 mb-1">
-                لم يتم تعيين فريق بعد
-              </p>
-              <p className="text-sm text-portal-note-text">
-                سيظهر فريق العمل المسؤول عن مشروعك هنا
-              </p>
-            </div>
-          )}
-        </DashboardCard>
+            ) : (
+              <div className="p-5 text-center">
+                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-badge-gray-bg flex items-center justify-center">
+                  <Users className="w-8 h-8 text-secondary-500" />
+                </div>
+                <p className="text-base font-medium text-natural-100 mb-1">
+                  لم يتم تعيين فريق بعد
+                </p>
+                <p className="text-sm text-portal-note-text">
+                  سيظهر فريق العمل المسؤول عن مشروعك هنا
+                </p>
+              </div>
+            )}
+          </DashboardCard>
+        </div>
       </div>
     </div>
-  </div>
   );
 }

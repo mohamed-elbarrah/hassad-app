@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Hash, Copy, CheckCheck, Calendar, CreditCard, User } from "lucide-react";
+import {
+  Hash,
+  Copy,
+  CheckCheck,
+  Calendar,
+  CreditCard,
+  User,
+} from "lucide-react";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
@@ -38,7 +45,11 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
   const [copied, setCopied] = useState(false);
   const daysRemaining = getDaysRemaining(invoice.dueDate);
-  const isOverdue = invoice.status === "LATE" || (invoice.status !== "PAID" && invoice.status !== "CANCELLED" && daysRemaining < 0);
+  const isOverdue =
+    invoice.status === "LATE" ||
+    (invoice.status !== "PAID" &&
+      invoice.status !== "CANCELLED" &&
+      daysRemaining < 0);
   const isPaid = invoice.status === "PAID";
   const accentColor = STATUS_ACCENT[invoice.status] || "bg-secondary-500";
 
@@ -49,7 +60,8 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const methodLabel = PAYMENT_METHOD_LABELS[invoice.paymentMethod] || invoice.paymentMethod;
+  const methodLabel =
+    PAYMENT_METHOD_LABELS[invoice.paymentMethod] || invoice.paymentMethod;
 
   return (
     <div>
@@ -70,7 +82,7 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
                 size="sm"
                 className={cn(
                   "h-7 w-7 p-0 transition-all",
-                  copied ? "text-success-500" : "hover:bg-secondary-50"
+                  copied ? "text-success-500" : "hover:bg-secondary-50",
                 )}
                 onClick={handleCopyNumber}
                 title="نسخ الرقم"
@@ -111,7 +123,7 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
                     ? "bg-danger-100 text-danger-600"
                     : daysRemaining <= 7
                       ? "bg-alert-100 text-alert-700"
-                      : "bg-success-100 text-success-600"
+                      : "bg-success-100 text-success-600",
                 )}
               >
                 {isOverdue

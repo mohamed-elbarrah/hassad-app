@@ -2,7 +2,19 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, MessageSquare, History, Clock, User, Building2, Check, X, ArrowRightLeft, Ban, AlertTriangle } from "lucide-react";
+import {
+  ArrowRight,
+  MessageSquare,
+  History,
+  Clock,
+  User,
+  Building2,
+  Check,
+  X,
+  ArrowRightLeft,
+  Ban,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   useGetAdminDisputeDetailQuery,
@@ -35,7 +47,9 @@ interface AdminDisputeDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPageProps) {
+export default function AdminDisputeDetailPage({
+  params,
+}: AdminDisputeDetailPageProps) {
   const { id } = use(params);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -51,37 +65,43 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
     pollingInterval: 30_000,
   });
 
-  const { data: pmStats, isLoading: isLoadingPmStats } = useGetPmDisputeStatsQuery(
-    dispute?.pm.id ?? "",
-    { skip: !dispute?.pm.id }
-  );
+  const { data: pmStats, isLoading: isLoadingPmStats } =
+    useGetPmDisputeStatsQuery(dispute?.pm.id ?? "", { skip: !dispute?.pm.id });
 
   const [closeDispute, { isLoading: isClosing }] = useCloseDisputeMutation();
-  const [addMessage, { isLoading: isSendingMessage }] = useAddAdminMessageMutation();
+  const [addMessage, { isLoading: isSendingMessage }] =
+    useAddAdminMessageMutation();
 
   const handleSendMessage = async (content: string) => {
     try {
       await addMessage({ id, input: { content, isInternal: true } }).unwrap();
       refetch();
     } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
       toast.error(message);
     }
   };
 
   const handleClose = async () => {
     if (closeResolution.trim().length < 10) {
-      toast.error("قرار الحل مطلوب", { description: "يجب أن يكون القرار 10 أحرف على الأقل" });
+      toast.error("قرار الحل مطلوب", {
+        description: "يجب أن يكون القرار 10 أحرف على الأقل",
+      });
       return;
     }
 
     try {
-      await closeDispute({ id, input: { resolution: closeResolution.trim() } }).unwrap();
+      await closeDispute({
+        id,
+        input: { resolution: closeResolution.trim() },
+      }).unwrap();
       toast.success("تم إغلاق التذكرة");
       setCloseDialogOpen(false);
       refetch();
     } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إغلاق التذكرة";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء إغلاق التذكرة";
       toast.error(message);
     }
   };
@@ -92,9 +112,14 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
 
   if (!dispute) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16" dir="rtl">
+      <div
+        className="flex flex-col items-center justify-center gap-4 py-16"
+        dir="rtl"
+      >
         <div className="text-6xl">🔍</div>
-        <h1 className="text-xl font-semibold text-natural-100">التذكرة غير موجودة</h1>
+        <h1 className="text-xl font-semibold text-natural-100">
+          التذكرة غير موجودة
+        </h1>
         <p className="text-portal-note-text">لا يمكنك الوصول إلى هذه التذكرة</p>
         <Link href="/dashboard/admin/disputes">
           <Button variant="outline" className="mt-4 rounded-xl">
@@ -109,9 +134,17 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
   const canApprove = dispute.status === "PENDING_APPROVAL";
   const canReject = dispute.status === "PENDING_APPROVAL";
   const canChangePm = dispute.status === "ESCALATED";
-  const canClose = dispute.status === "ESCALATED" || dispute.status === "IN_PROGRESS" || dispute.status === "PENDING_CLIENT";
-  const canSendMessage = dispute.status !== "PENDING_APPROVAL" && dispute.status !== "REJECTED" && dispute.status !== "CLOSED";
-  const showTimer = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(dispute.status);
+  const canClose =
+    dispute.status === "ESCALATED" ||
+    dispute.status === "IN_PROGRESS" ||
+    dispute.status === "PENDING_CLIENT";
+  const canSendMessage =
+    dispute.status !== "PENDING_APPROVAL" &&
+    dispute.status !== "REJECTED" &&
+    dispute.status !== "CLOSED";
+  const showTimer = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(
+    dispute.status,
+  );
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
@@ -136,13 +169,19 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
                 الأولوية: {DISPUTE_PRIORITY_AR[dispute.priority]}
               </span>
             </div>
-            <h1 className="text-2xl font-semibold text-natural-100">{dispute.title}</h1>
+            <h1 className="text-2xl font-semibold text-natural-100">
+              {dispute.title}
+            </h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-portal-note-text">
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 {new Date(dispute.openedAt).toLocaleDateString("ar-SA")}
               </span>
-              <DisputeCategoryIcon category={dispute.category} showLabel size="md" />
+              <DisputeCategoryIcon
+                category={dispute.category}
+                showLabel
+                size="md"
+              />
             </div>
           </div>
 
@@ -163,7 +202,9 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
         <div className="lg:col-span-2 space-y-5">
           {/* ── Parties Card ───────────────────────────────────────────────────── */}
           <SurfaceCard className="p-5">
-            <h2 className="text-lg font-semibold text-natural-100 mb-4">أطراف النزاع</h2>
+            <h2 className="text-lg font-semibold text-natural-100 mb-4">
+              أطراف النزاع
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
@@ -171,7 +212,9 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
                 </div>
                 <div>
                   <p className="text-xs text-portal-note-text">العميل</p>
-                  <p className="text-sm font-medium text-natural-100">{dispute.client.name}</p>
+                  <p className="text-sm font-medium text-natural-100">
+                    {dispute.client.name}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -180,7 +223,9 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
                 </div>
                 <div>
                   <p className="text-xs text-portal-note-text">المدير</p>
-                  <p className="text-sm font-medium text-natural-100">{dispute.pm.name}</p>
+                  <p className="text-sm font-medium text-natural-100">
+                    {dispute.pm.name}
+                  </p>
                   {dispute.pmChanged && dispute.newPm && (
                     <p className="text-xs text-green-600">
                       تم التغيير → {dispute.newPm.name}
@@ -194,7 +239,9 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
                 </div>
                 <div>
                   <p className="text-xs text-portal-note-text">المشروع</p>
-                  <p className="text-sm font-medium text-natural-100">{dispute.project.name}</p>
+                  <p className="text-sm font-medium text-natural-100">
+                    {dispute.project.name}
+                  </p>
                 </div>
               </div>
             </div>
@@ -202,14 +249,18 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
 
           {/* ── Description Card ─────────────────────────────────────────────────── */}
           <SurfaceCard className="p-5">
-            <h2 className="text-lg font-semibold text-natural-100 mb-3">وصف المشكلة</h2>
+            <h2 className="text-lg font-semibold text-natural-100 mb-3">
+              وصف المشكلة
+            </h2>
             <p className="text-sm text-portal-note-text leading-relaxed whitespace-pre-wrap">
               {dispute.description}
             </p>
             {dispute.rejectionReason && (
               <div className="mt-4 p-3 bg-red-50 rounded-xl border border-red-200">
                 <p className="text-xs text-red-600 mb-1">سبب الرفض:</p>
-                <p className="text-sm text-red-800">{dispute.rejectionReason}</p>
+                <p className="text-sm text-red-800">
+                  {dispute.rejectionReason}
+                </p>
               </div>
             )}
           </SurfaceCard>
@@ -223,7 +274,9 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
                     <Clock className="h-5 w-5 text-yellow-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-natural-100">بانتظار الموافقة</p>
+                    <p className="font-medium text-natural-100">
+                      بانتظار الموافقة
+                    </p>
                     <p className="text-sm text-portal-note-text">
                       راجع التذكرة وقرر الموافقة أو الرفض
                     </p>
@@ -305,7 +358,9 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
 
           {dispute.resolution && (
             <SurfaceCard className="p-4 bg-green-50 border-green-200">
-              <h3 className="text-sm font-medium text-green-800 mb-2">قرار الحل:</h3>
+              <h3 className="text-sm font-medium text-green-800 mb-2">
+                قرار الحل:
+              </h3>
               <p className="text-sm text-green-700">{dispute.resolution}</p>
             </SurfaceCard>
           )}
@@ -314,8 +369,12 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
           <SurfaceCard className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <MessageSquare className="h-5 w-5 text-secondary-500" />
-              <h2 className="text-lg font-semibold text-natural-100">الرسائل</h2>
-              <span className="text-xs text-portal-note-text">(الملاحظات الداخلية باللون الرمادي)</span>
+              <h2 className="text-lg font-semibold text-natural-100">
+                الرسائل
+              </h2>
+              <span className="text-xs text-portal-note-text">
+                (الملاحظات الداخلية باللون الرمادي)
+              </span>
             </div>
             <DisputeMessageThread
               messages={dispute.messages}
@@ -331,7 +390,9 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
             <SurfaceCard className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <History className="h-5 w-5 text-secondary-500" />
-                <h2 className="text-lg font-semibold text-natural-100">سجل التحديثات</h2>
+                <h2 className="text-lg font-semibold text-natural-100">
+                  سجل التحديثات
+                </h2>
               </div>
               <div className="space-y-3">
                 {dispute.history.map((event) => (
@@ -352,17 +413,27 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-portal-note-text">الحالة:</span>
+                        <span className="text-xs text-portal-note-text">
+                          الحالة:
+                        </span>
                         {event.fromStatus && (
                           <>
-                            <DisputeStatusBadge status={event.fromStatus} className="text-xs" />
+                            <DisputeStatusBadge
+                              status={event.fromStatus}
+                              className="text-xs"
+                            />
                             <span className="text-xs">→</span>
                           </>
                         )}
-                        <DisputeStatusBadge status={event.toStatus} className="text-xs" />
+                        <DisputeStatusBadge
+                          status={event.toStatus}
+                          className="text-xs"
+                        />
                       </div>
                       {event.note && (
-                        <p className="mt-1 text-sm text-portal-note-text">{event.note}</p>
+                        <p className="mt-1 text-sm text-portal-note-text">
+                          {event.note}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -385,8 +456,14 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
 
           {/* Category Card */}
           <SurfaceCard className="p-5">
-            <h3 className="text-sm font-medium text-portal-note-text mb-2">التصنيف</h3>
-            <DisputeCategoryIcon category={dispute.category} showLabel size="lg" />
+            <h3 className="text-sm font-medium text-portal-note-text mb-2">
+              التصنيف
+            </h3>
+            <DisputeCategoryIcon
+              category={dispute.category}
+              showLabel
+              size="lg"
+            />
           </SurfaceCard>
         </div>
       </div>
@@ -428,7 +505,11 @@ export default function AdminDisputeDetailPage({ params }: AdminDisputeDetailPag
         description={`التذكرة: ${dispute.title}`}
         footer={
           <>
-            <Button variant="outline" onClick={() => setCloseDialogOpen(false)} disabled={isClosing}>
+            <Button
+              variant="outline"
+              onClick={() => setCloseDialogOpen(false)}
+              disabled={isClosing}
+            >
               إلغاء
             </Button>
             <Button

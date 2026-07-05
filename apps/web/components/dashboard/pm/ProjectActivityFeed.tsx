@@ -21,7 +21,13 @@ import type { Task } from "@hassad/shared";
 
 interface ActivityItem {
   id: string;
-  type: "status_change" | "file_upload" | "task_created" | "task_completed" | "milestone" | "comment";
+  type:
+    | "status_change"
+    | "file_upload"
+    | "task_created"
+    | "task_completed"
+    | "milestone"
+    | "comment";
   title: string;
   description?: string;
   user?: string;
@@ -55,8 +61,12 @@ export function ProjectActivityFeed({
       id: "project-created",
       type: "milestone",
       title: "تم إنشاء المشروع",
-      description: projectManagerName ? `بواسطة ${projectManagerName}` : undefined,
-      timestamp: String(files[0]?.uploadedAt ?? tasks[0]?.createdAt ?? new Date().toISOString()),
+      description: projectManagerName
+        ? `بواسطة ${projectManagerName}`
+        : undefined,
+      timestamp: String(
+        files[0]?.uploadedAt ?? tasks[0]?.createdAt ?? new Date().toISOString(),
+      ),
     });
 
     // Status changes (simulated)
@@ -104,7 +114,10 @@ export function ProjectActivityFeed({
 
     // Sort by timestamp (newest first)
     return items
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )
       .slice(0, 10);
   }, [projectStatus, projectStatusChangedAt, files, tasks, projectManagerName]);
 
@@ -167,7 +180,7 @@ export function ProjectActivityFeed({
           {/* Icon */}
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${getActivityBg(
-              activity.type
+              activity.type,
             )}`}
           >
             {getActivityIcon(activity.type)}

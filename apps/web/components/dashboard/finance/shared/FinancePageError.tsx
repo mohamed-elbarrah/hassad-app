@@ -17,7 +17,10 @@ export function FinancePageError({
   hint = "يرجى المحاولة مرة أخرى.",
 }: FinancePageErrorProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4" dir="rtl">
+    <div
+      className="flex flex-col items-center justify-center min-h-[50vh] gap-4"
+      dir="rtl"
+    >
       <EmptyState
         icon={error ? (error as any).icon : undefined}
         title={message}

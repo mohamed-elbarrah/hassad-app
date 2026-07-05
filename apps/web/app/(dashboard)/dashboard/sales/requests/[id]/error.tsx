@@ -2,6 +2,19 @@
 
 import { SalesPageError } from "@/components/dashboard/sales/shared/SalesPageError";
 
-export default function RequestDetailError({ error, reset }: { error: Error; reset: () => void }) {
-  return <SalesPageError error={error} reset={reset} backHref="/dashboard/sales/pipeline" backLabel="لوحة المبيعات" />;
+export default function RequestDetailError({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
+  return (
+    <SalesPageError
+      error={error}
+      reset={reset}
+      backHref="/dashboard/sales/pipeline"
+      backLabel="لوحة المبيعات"
+    />
+  );
 }

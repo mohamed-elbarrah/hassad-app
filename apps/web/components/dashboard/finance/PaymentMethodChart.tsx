@@ -39,17 +39,26 @@ function ChartTooltip({ active, payload }: any) {
     <div className="rounded-lg border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[140px]">
       <p className="text-xs font-bold text-natural-100 mb-1">{item.label}</p>
       <div className="flex items-center gap-1">
-        <span className="text-xs text-portal-note-text">{fmtAmount(item.amount)}</span>
-        <span className="text-xs text-portal-note-text">· {item.percentage}%</span>
+        <span className="text-xs text-portal-note-text">
+          {fmtAmount(item.amount)}
+        </span>
+        <span className="text-xs text-portal-note-text">
+          · {item.percentage}%
+        </span>
       </div>
-      <p className="text-[10px] text-portal-note-text mt-0.5">{item.count} عملية</p>
+      <p className="text-[10px] text-portal-note-text mt-0.5">
+        {item.count} عملية
+      </p>
     </div>
   );
 }
 
 export function PaymentMethodChart({ data, isLoading }: Props) {
   const total = useMemo(() => data.reduce((s, d) => s + d.amount, 0), [data]);
-  const totalCount = useMemo(() => data.reduce((s, d) => s + d.count, 0), [data]);
+  const totalCount = useMemo(
+    () => data.reduce((s, d) => s + d.count, 0),
+    [data],
+  );
 
   if (isLoading) {
     return (
@@ -88,7 +97,9 @@ export function PaymentMethodChart({ data, isLoading }: Props) {
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-lg font-bold text-natural-100">{totalCount}</span>
+            <span className="text-lg font-bold text-natural-100">
+              {totalCount}
+            </span>
             <span className="text-[10px] text-portal-note-text">عملية</span>
           </div>
         </div>
@@ -101,10 +112,13 @@ export function PaymentMethodChart({ data, isLoading }: Props) {
                 style={{ backgroundColor: COLORS[idx % COLORS.length] }}
               />
               <div className="flex-1 min-w-0">
-                <p className="truncate text-natural-100 font-medium">{item.label}</p>
+                <p className="truncate text-natural-100 font-medium">
+                  {item.label}
+                </p>
                 <p className="text-portal-note-text">
                   <CurrencyDisplay amount={item.amount} size="sm" />
-                  {" · "}{item.percentage}%
+                  {" · "}
+                  {item.percentage}%
                 </p>
               </div>
             </div>

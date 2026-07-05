@@ -6,14 +6,19 @@ export class AdminEnvironmentService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getInfo() {
-    const [dbVersion, pendingMigrations, externalServices, settingsCount] = await Promise.all([
-      this.prisma.$queryRawUnsafe<Array<{ version: string }>>("SELECT version() as version"),
-      this.prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
-        "SELECT COUNT(*) as count FROM _prisma_migrations WHERE applied_steps_count = 0",
-      ),
-      this.prisma.externalServiceHealth.findMany({ orderBy: { lastCheckedAt: "desc" } }),
-      this.prisma.companySetting.count(),
-    ]);
+    const [dbVersion, pendingMigrations, externalServices, settingsCount] =
+      await Promise.all([
+        this.prisma.$queryRawUnsafe<Array<{ version: string }>>(
+          "SELECT version() as version",
+        ),
+        this.prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+          "SELECT COUNT(*) as count FROM _prisma_migrations WHERE applied_steps_count = 0",
+        ),
+        this.prisma.externalServiceHealth.findMany({
+          orderBy: { lastCheckedAt: "desc" },
+        }),
+        this.prisma.companySetting.count(),
+      ]);
 
     return {
       nodeVersion: process.version,

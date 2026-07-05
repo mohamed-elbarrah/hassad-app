@@ -2,7 +2,16 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, MessageSquare, History, Clock, User, Building2, Play, CheckCircle } from "lucide-react";
+import {
+  ArrowRight,
+  MessageSquare,
+  History,
+  Clock,
+  User,
+  Building2,
+  Play,
+  CheckCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   useGetPmDisputeDetailQuery,
@@ -10,7 +19,11 @@ import {
   useAddPmDisputeMessageMutation,
   useResolveDisputeMutation,
 } from "@/features/disputes/pmDisputesApi";
-import { DISPUTE_STATUS_AR, DISPUTE_PRIORITY_AR, type DisputeStatus } from "@hassad/shared";
+import {
+  DISPUTE_STATUS_AR,
+  DISPUTE_PRIORITY_AR,
+  type DisputeStatus,
+} from "@hassad/shared";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -30,7 +43,9 @@ interface PmDisputeDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps) {
+export default function PmDisputeDetailPage({
+  params,
+}: PmDisputeDetailPageProps) {
   const { id } = use(params);
   const [isAcknowledgeLoading, setIsAcknowledgeLoading] = useState(false);
   const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);
@@ -57,7 +72,8 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
       });
       refetch();
     } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء تحديث الحالة";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء تحديث الحالة";
       toast.error(message);
     } finally {
       setIsAcknowledgeLoading(false);
@@ -69,7 +85,8 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
       await addMessage({ disputeId: id, input: { content }, files }).unwrap();
       refetch();
     } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
       toast.error(message);
     }
   };
@@ -104,9 +121,13 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
   }
 
   const canAcknowledge = dispute.status === "APPROVED";
-  const canSendMessage = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(dispute.status);
+  const canSendMessage = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(
+    dispute.status,
+  );
   const canResolve = dispute.status === "IN_PROGRESS";
-  const showTimer = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(dispute.status);
+  const showTimer = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(
+    dispute.status,
+  );
 
   return (
     <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
@@ -130,7 +151,9 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
                 الأولوية: {DISPUTE_PRIORITY_AR[dispute.priority]}
               </span>
             </div>
-            <h1 className="text-xl font-semibold text-natural-100">{dispute.title}</h1>
+            <h1 className="text-xl font-semibold text-natural-100">
+              {dispute.title}
+            </h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-portal-note-text">
               <span className="flex items-center gap-1">
                 <User className="h-4 w-4" />
@@ -150,7 +173,11 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
           </div>
 
           <div className="flex items-center gap-2">
-            <DisputeCategoryIcon category={dispute.category} showLabel size="md" />
+            <DisputeCategoryIcon
+              category={dispute.category}
+              showLabel
+              size="md"
+            />
             {showTimer && (
               <DisputeResolutionTimer
                 deadlineAt={dispute.deadlineAt}
@@ -162,7 +189,9 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
 
         {/* ── Description Card ─────────────────────────────────────────────── */}
         <SurfaceCard className="p-4">
-          <p className="text-sm font-medium text-natural-100 mb-2">وصف المشكلة:</p>
+          <p className="text-sm font-medium text-natural-100 mb-2">
+            وصف المشكلة:
+          </p>
           <p className="text-sm text-portal-note-text leading-relaxed whitespace-pre-wrap">
             {dispute.description}
           </p>
@@ -202,7 +231,9 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
                   <CheckCircle className="h-5 w-5 text-success-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-natural-100">هل تم حل المشكلة؟</p>
+                  <p className="font-medium text-natural-100">
+                    هل تم حل المشكلة؟
+                  </p>
                   <p className="text-sm text-portal-note-text">
                     اضغط "تأكيد الحل" لإرسال طلب تأكيد للعميل
                   </p>
@@ -236,15 +267,20 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
               ⏳ بانتظار تأكيد العميل
             </p>
             <p className="text-sm text-portal-note-text">
-              تم إرسال طلب التأكيد للعميل. سيتم إغلاق التذكرة تلقائياً بعد تأكيد العميل.
+              تم إرسال طلب التأكيد للعميل. سيتم إغلاق التذكرة تلقائياً بعد تأكيد
+              العميل.
             </p>
           </SurfaceCard>
         )}
 
         {dispute.status === "RESOLVED" && dispute.resolution && (
           <SurfaceCard className="p-4 bg-success-100/50 border-success-200">
-            <p className="text-sm font-medium text-natural-100 mb-2">ملاحظات الحل:</p>
-            <p className="text-sm text-portal-note-text">{dispute.resolution}</p>
+            <p className="text-sm font-medium text-natural-100 mb-2">
+              ملاحظات الحل:
+            </p>
+            <p className="text-sm text-portal-note-text">
+              {dispute.resolution}
+            </p>
           </SurfaceCard>
         )}
       </div>
@@ -268,7 +304,9 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
         <SurfaceCard className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <History className="h-5 w-5 text-secondary-500" />
-            <h2 className="text-lg font-semibold text-natural-100">سجل التحديثات</h2>
+            <h2 className="text-lg font-semibold text-natural-100">
+              سجل التحديثات
+            </h2>
           </div>
           <div className="space-y-3">
             {dispute.history.map((event) => (
@@ -289,17 +327,29 @@ export default function PmDisputeDetailPage({ params }: PmDisputeDetailPageProps
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-portal-note-text">الحالة:</span>
+                    <span className="text-xs text-portal-note-text">
+                      الحالة:
+                    </span>
                     {event.fromStatus && (
                       <>
-                        <PmStatusBadge domain="dispute" status={event.fromStatus} className="text-xs" />
+                        <PmStatusBadge
+                          domain="dispute"
+                          status={event.fromStatus}
+                          className="text-xs"
+                        />
                         <span className="text-xs text-portal-note-text">→</span>
                       </>
                     )}
-                    <PmStatusBadge domain="dispute" status={event.toStatus} className="text-xs" />
+                    <PmStatusBadge
+                      domain="dispute"
+                      status={event.toStatus}
+                      className="text-xs"
+                    />
                   </div>
                   {event.note && (
-                    <p className="mt-1 text-sm text-portal-note-text">{event.note}</p>
+                    <p className="mt-1 text-sm text-portal-note-text">
+                      {event.note}
+                    </p>
                   )}
                 </div>
               </div>

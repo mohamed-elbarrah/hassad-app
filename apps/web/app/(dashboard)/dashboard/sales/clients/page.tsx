@@ -3,7 +3,10 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
-import { useGetClientsQuery, type ClientFilters } from "@/features/clients/clientsApi";
+import {
+  useGetClientsQuery,
+  type ClientFilters,
+} from "@/features/clients/clientsApi";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Pagination } from "@/components/design-system/Pagination";
 import { renderClientRowCells } from "@/components/dashboard/sales/ClientRow";
@@ -30,9 +33,9 @@ const STATUS_FILTERS: FilterGroup[] = [
 export default function SalesClientsPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [activeFilters, setActiveFilters] = useState<
-    Record<string, string[]>
-  >({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [page, setPage] = useState(1);
 
   const statusFilter = activeFilters["status"]?.[0] ?? "";

@@ -35,8 +35,11 @@ export default function ClientFinanceDetailPage({
 }) {
   const { clientId } = use(params);
 
-  const { data: client, isLoading: loadingClient, isError: clientError } =
-    useGetClientByIdQuery(clientId);
+  const {
+    data: client,
+    isLoading: loadingClient,
+    isError: clientError,
+  } = useGetClientByIdQuery(clientId);
   const { data: invoicesData, isLoading: loadingInvoices } =
     useGetInvoicesQuery({ clientId });
 
@@ -88,26 +91,41 @@ export default function ClientFinanceDetailPage({
             </div>
             <div>
               <h1 className="text-2xl font-bold">{client.companyName}</h1>
-              <p className="text-portal-note-text text-sm">معرف العميل: {client.id}</p>
+              <p className="text-portal-note-text text-sm">
+                معرف العميل: {client.id}
+              </p>
             </div>
           </div>
-          <ActionButton variant="outline" icon={<Download className="w-4 h-4" />}>
+          <ActionButton
+            variant="outline"
+            icon={<Download className="w-4 h-4" />}
+          >
             تصدير التقرير المالي
           </ActionButton>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
-            <p className="text-sm text-portal-note-text mb-1">إجمالي قيمة العقود</p>
-            <p className="text-xl font-bold text-natural-100"><CurrencyDisplay amount={totalValue} /></p>
+            <p className="text-sm text-portal-note-text mb-1">
+              إجمالي قيمة العقود
+            </p>
+            <p className="text-xl font-bold text-natural-100">
+              <CurrencyDisplay amount={totalValue} />
+            </p>
           </div>
           <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
-            <p className="text-sm text-portal-note-text mb-1">المبالغ المحصلة</p>
-            <p className="text-xl font-bold text-success-600"><CurrencyDisplay amount={totalPaid} /></p>
+            <p className="text-sm text-portal-note-text mb-1">
+              المبالغ المحصلة
+            </p>
+            <p className="text-xl font-bold text-success-600">
+              <CurrencyDisplay amount={totalPaid} />
+            </p>
           </div>
           <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4">
             <p className="text-sm text-portal-note-text mb-1">نسبة التحصيل</p>
-            <p className="text-xl font-bold text-natural-100">{collectionRate.toFixed(1)}%</p>
+            <p className="text-xl font-bold text-natural-100">
+              {collectionRate.toFixed(1)}%
+            </p>
             <ProgressBar value={collectionRate} size="sm" className="mt-2" />
           </div>
         </div>
@@ -149,8 +167,12 @@ export default function ClientFinanceDetailPage({
               }}
               renderRow={(inv) => (
                 <tr className="border-b-[1.5px] border-portal-divider">
-                  <td className="px-5 py-4 font-mono font-bold text-xs">{inv.id}</td>
-                  <td className="px-5 py-4"><CurrencyDisplay amount={inv.amount} /></td>
+                  <td className="px-5 py-4 font-mono font-bold text-xs">
+                    {inv.id}
+                  </td>
+                  <td className="px-5 py-4">
+                    <CurrencyDisplay amount={inv.amount} />
+                  </td>
                   <td className="px-5 py-4 text-success-600">
                     <CurrencyDisplay
                       amount={
@@ -165,7 +187,9 @@ export default function ClientFinanceDetailPage({
                     <FinanceStatusBadge status={inv.status} />
                   </td>
                   <td className="px-5 py-4 text-left text-sm text-portal-note-text">
-                    {new Date(inv.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}
+                    {new Date(inv.dueDate).toLocaleDateString(
+                      "ar-SA-u-nu-latn",
+                    )}
                   </td>
                 </tr>
               )}
@@ -194,7 +218,9 @@ export default function ClientFinanceDetailPage({
               renderRow={(p) => (
                 <tr className="border-b-[1.5px] border-portal-divider">
                   <td className="px-5 py-4 font-mono text-xs">{p.id}</td>
-                  <td className="px-5 py-4 font-bold"><CurrencyDisplay amount={p.amount} /></td>
+                  <td className="px-5 py-4 font-bold">
+                    <CurrencyDisplay amount={p.amount} />
+                  </td>
                   <td className="px-5 py-4">{p.method}</td>
                   <td className="px-5 py-4">
                     <FinanceStatusBadge status={p.status} />

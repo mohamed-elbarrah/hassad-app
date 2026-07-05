@@ -8,7 +8,12 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton } from "@/components/design-system/Skeleton";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Dialog } from "@/components/design-system/Dialog";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
@@ -21,14 +26,7 @@ import {
   useForceProjectStatusMutation,
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-
-const STATUS_MAP: Record<string, string> = {
-  ACTIVE: "نشط", PLANNING: "تخطيط", COMPLETED: "مكتمل", ON_HOLD: "معلق", CANCELLED: "ملغي",
-};
-const STATUS_OPTIONS = [
-  { label: "نشط", value: "ACTIVE" }, { label: "تخطيط", value: "PLANNING" },
-  { label: "مكتمل", value: "COMPLETED" }, { label: "معلق", value: "ON_HOLD" }, { label: "ملغي", value: "CANCELLED" },
-];
+import { PROJECT_STATUS_AR } from "@hassad/shared";
 
 export default function AdminProjectDetailPage() {
   const params = useParams();
@@ -56,8 +54,14 @@ export default function AdminProjectDetailPage() {
     return (
       <div className="flex flex-col gap-6 p-6" dir="rtl">
         <div className="flex items-center justify-between">
-          <div className="space-y-2"><Skeleton className="h-8 w-48 rounded-lg" /><Skeleton className="h-4 w-72 rounded-lg" /></div>
-          <div className="flex gap-2"><Skeleton className="h-10 w-28 rounded-xl" /><Skeleton className="h-10 w-28 rounded-xl" /></div>
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48 rounded-lg" />
+            <Skeleton className="h-4 w-72 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-28 rounded-xl" />
+            <Skeleton className="h-10 w-28 rounded-xl" />
+          </div>
         </div>
         <Skeleton className="h-96 w-full rounded-2xl" />
       </div>
@@ -65,31 +69,60 @@ export default function AdminProjectDetailPage() {
   }
 
   if (!project) {
-    return <div className="p-6 text-center text-portal-note-text" dir="rtl">المشروع غير موجود</div>;
+    return (
+      <div className="p-6 text-center text-portal-note-text" dir="rtl">
+        المشروع غير موجود
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       <PageIntro
         title={project.name}
-        description={`${project.client?.companyName ?? "—"} · ${STATUS_MAP[project.status] ?? project.status}`}
+        description={`${project.client?.companyName ?? "—"} · ${PROJECT_STATUS_AR[project.status] ?? project.status}`}
         icon={Briefcase}
         actions={
           <div className="flex gap-2">
-            <ActionButton variant="outline" size="md" onClick={() => router.push("/dashboard/admin/projects")}>
-              <ArrowRight className="size-4 ml-1" />العودة
+            <ActionButton
+              variant="outline"
+              size="md"
+              onClick={() => router.push("/dashboard/admin/projects")}
+            >
+              <ArrowRight className="size-4 ml-1" />
+              العودة
             </ActionButton>
-            <ActionButton variant="outline" size="md" onClick={() => setShowReassign(true)}>
-              <UserCog className="size-4 ml-1" />إعادة تعيين PM
+            <ActionButton
+              variant="outline"
+              size="md"
+              onClick={() => setShowReassign(true)}
+            >
+              <UserCog className="size-4 ml-1" />
+              إعادة تعيين PM
             </ActionButton>
-            <ActionButton variant="outline" size="md" onClick={() => setShowStatus(true)}>
-              <Flag className="size-4 ml-1" />تغيير الحالة
+            <ActionButton
+              variant="outline"
+              size="md"
+              onClick={() => setShowStatus(true)}
+            >
+              <Flag className="size-4 ml-1" />
+              تغيير الحالة
             </ActionButton>
-            <ActionButton variant="outline" size="md" onClick={async () => {
-              try { await archiveProject(id).unwrap(); toast.success("تم أرشفة المشروع"); router.push("/dashboard/admin/projects"); }
-              catch { toast.error("فشل"); }
-            }}>
-              <Archive className="size-4 ml-1" />أرشفة
+            <ActionButton
+              variant="outline"
+              size="md"
+              onClick={async () => {
+                try {
+                  await archiveProject(id).unwrap();
+                  toast.success("تم أرشفة المشروع");
+                  router.push("/dashboard/admin/projects");
+                } catch {
+                  toast.error("فشل");
+                }
+              }}
+            >
+              <Archive className="size-4 ml-1" />
+              أرشفة
             </ActionButton>
           </div>
         }
@@ -110,31 +143,113 @@ export default function AdminProjectDetailPage() {
             <TabsContent value="overview">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <div><span className="text-sm text-portal-note-text">العميل</span><p className="text-base font-medium">{project.client?.companyName ?? "—"}</p></div>
-                  <div><span className="text-sm text-portal-note-text">مدير المشروع</span><p className="text-base font-medium">{project.manager?.name ?? "—"}</p></div>
-                  <div><span className="text-sm text-portal-note-text">الحالة</span><div className="mt-1"><StatusBadge status={project.status} label={STATUS_MAP[project.status] ?? project.status} /></div></div>
-                  <div><span className="text-sm text-portal-note-text">الأولوية</span><p className="text-base font-medium">{project.priority}</p></div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      العميل
+                    </span>
+                    <p className="text-base font-medium">
+                      {project.client?.companyName ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      مدير المشروع
+                    </span>
+                    <p className="text-base font-medium">
+                      {project.manager?.name ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      الحالة
+                    </span>
+                    <div className="mt-1">
+                      <StatusBadge
+                        status={project.status}
+                        label={
+                          PROJECT_STATUS_AR[project.status] ?? project.status
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      الأولوية
+                    </span>
+                    <p className="text-base font-medium">{project.priority}</p>
+                  </div>
                 </div>
                 <div className="space-y-4">
-                  <div><span className="text-sm text-portal-note-text">نسبة الإنجاز</span><Pill tone={project.completionPercentage >= 100 ? "success" : project.completionPercentage >= 50 ? "warning" : "neutral"}>{project.completionPercentage}%</Pill></div>
-                  <div><span className="text-sm text-portal-note-text">تاريخ البداية</span><p className="text-base font-medium">{project.startDate?.slice(0, 10) ?? "—"}</p></div>
-                  <div><span className="text-sm text-portal-note-text">تاريخ النهاية</span><p className="text-base font-medium">{project.endDate?.slice(0, 10) ?? "—"}</p></div>
-                  <div><span className="text-sm text-portal-note-text">الوصف</span><p className="text-base font-medium">{project.description ?? "—"}</p></div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      نسبة الإنجاز
+                    </span>
+                    <Pill
+                      tone={
+                        project.completionPercentage >= 100
+                          ? "success"
+                          : project.completionPercentage >= 50
+                            ? "warning"
+                            : "neutral"
+                      }
+                    >
+                      {project.completionPercentage}%
+                    </Pill>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      تاريخ البداية
+                    </span>
+                    <p className="text-base font-medium">
+                      {project.startDate?.slice(0, 10) ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      تاريخ النهاية
+                    </span>
+                    <p className="text-base font-medium">
+                      {project.endDate?.slice(0, 10) ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">الوصف</span>
+                    <p className="text-base font-medium">
+                      {project.description ?? "—"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </TabsContent>
 
             <TabsContent value="members">
               <DataTable
-                columns={[{ id: "name", label: "الاسم" }, { id: "email", label: "البريد" }, { id: "role", label: "الدور" }, { id: "joinedAt", label: "تاريخ الانضمام", align: "left" }]}
-                data={project.members ?? []} isLoading={false} isError={false}
-                emptyState={{ icon: Briefcase, message: "لا يوجد أعضاء", hint: "لم يتم إضافة أعضاء للمشروع بعد" }}
+                columns={[
+                  { id: "name", label: "الاسم" },
+                  { id: "email", label: "البريد" },
+                  { id: "role", label: "الدور" },
+                  { id: "joinedAt", label: "تاريخ الانضمام", align: "left" },
+                ]}
+                data={project.members ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: Briefcase,
+                  message: "لا يوجد أعضاء",
+                  hint: "لم يتم إضافة أعضاء للمشروع بعد",
+                }}
                 renderRow={(m: any) => (
                   <tr key={m.id} className="border-b border-portal-divider">
-                    <td className="px-5 py-3 text-sm font-medium">{m.user?.name ?? "—"}</td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text">{m.user?.email ?? "—"}</td>
+                    <td className="px-5 py-3 text-sm font-medium">
+                      {m.user?.name ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text">
+                      {m.user?.email ?? "—"}
+                    </td>
                     <td className="px-5 py-3 text-sm">{m.role}</td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">{m.joinedAt?.slice(0, 10) ?? "—"}</td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {m.joinedAt?.slice(0, 10) ?? "—"}
+                    </td>
                   </tr>
                 )}
               />
@@ -142,15 +257,42 @@ export default function AdminProjectDetailPage() {
 
             <TabsContent value="tasks">
               <DataTable
-                columns={[{ id: "title", label: "المهمة" }, { id: "status", label: "الحالة" }, { id: "priority", label: "الأولوية" }, { id: "dueDate", label: "تاريخ التسليم", align: "left" }]}
-                data={project.tasks ?? []} isLoading={false} isError={false}
-                emptyState={{ icon: Briefcase, message: "لا توجد مهام", hint: "لم يتم إنشاء مهام لهذا المشروع بعد" }}
+                columns={[
+                  { id: "title", label: "المهمة" },
+                  { id: "status", label: "الحالة" },
+                  { id: "priority", label: "الأولوية" },
+                  { id: "dueDate", label: "تاريخ التسليم", align: "left" },
+                ]}
+                data={project.tasks ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: Briefcase,
+                  message: "لا توجد مهام",
+                  hint: "لم يتم إنشاء مهام لهذا المشروع بعد",
+                }}
                 renderRow={(t: any) => (
                   <tr key={t.id} className="border-b border-portal-divider">
                     <td className="px-5 py-3 text-sm font-medium">{t.title}</td>
-                    <td className="px-5 py-3"><StatusBadge status={t.status} label={t.status} /></td>
-                    <td className="px-5 py-3"><Pill tone={t.priority === "HIGH" ? "danger" : t.priority === "MEDIUM" ? "warning" : "neutral"}>{t.priority}</Pill></td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">{t.dueDate?.slice(0, 10) ?? "—"}</td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={t.status} label={t.status} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <Pill
+                        tone={
+                          t.priority === "HIGH"
+                            ? "danger"
+                            : t.priority === "MEDIUM"
+                              ? "warning"
+                              : "neutral"
+                        }
+                      >
+                        {t.priority}
+                      </Pill>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {t.dueDate?.slice(0, 10) ?? "—"}
+                    </td>
                   </tr>
                 )}
               />
@@ -158,14 +300,30 @@ export default function AdminProjectDetailPage() {
 
             <TabsContent value="files">
               <DataTable
-                columns={[{ id: "name", label: "الملف" }, { id: "uploadedBy", label: "رفع بواسطة" }, { id: "uploadedAt", label: "تاريخ الرفع", align: "left" }]}
-                data={project.files ?? []} isLoading={false} isError={false}
-                emptyState={{ icon: Briefcase, message: "لا توجد ملفات", hint: "لم يتم رفع ملفات لهذا المشروع بعد" }}
+                columns={[
+                  { id: "name", label: "الملف" },
+                  { id: "uploadedBy", label: "رفع بواسطة" },
+                  { id: "uploadedAt", label: "تاريخ الرفع", align: "left" },
+                ]}
+                data={project.files ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: Briefcase,
+                  message: "لا توجد ملفات",
+                  hint: "لم يتم رفع ملفات لهذا المشروع بعد",
+                }}
                 renderRow={(f: any) => (
                   <tr key={f.id} className="border-b border-portal-divider">
-                    <td className="px-5 py-3 text-sm font-medium">{f.fileName}</td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text">{f.uploadedBy ?? "—"}</td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">{f.uploadedAt?.slice(0, 10) ?? "—"}</td>
+                    <td className="px-5 py-3 text-sm font-medium">
+                      {f.fileName}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text">
+                      {f.uploadedBy ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {f.uploadedAt?.slice(0, 10) ?? "—"}
+                    </td>
                   </tr>
                 )}
               />
@@ -173,14 +331,28 @@ export default function AdminProjectDetailPage() {
 
             <TabsContent value="meetings">
               <DataTable
-                columns={[{ id: "title", label: "الاجتماع" }, { id: "date", label: "التاريخ", align: "left" }, { id: "notes", label: "الملاحظات" }]}
-                data={project.meetings ?? []} isLoading={false} isError={false}
-                emptyState={{ icon: Briefcase, message: "لا توجد اجتماعات", hint: "لم يتم تسجيل اجتماعات لهذا المشروع بعد" }}
+                columns={[
+                  { id: "title", label: "الاجتماع" },
+                  { id: "date", label: "التاريخ", align: "left" },
+                  { id: "notes", label: "الملاحظات" },
+                ]}
+                data={project.meetings ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: Briefcase,
+                  message: "لا توجد اجتماعات",
+                  hint: "لم يتم تسجيل اجتماعات لهذا المشروع بعد",
+                }}
                 renderRow={(m: any) => (
                   <tr key={m.id} className="border-b border-portal-divider">
                     <td className="px-5 py-3 text-sm font-medium">{m.title}</td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">{m.scheduledAt?.slice(0, 10) ?? "—"}</td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text">{m.notes ?? "—"}</td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {m.scheduledAt?.slice(0, 10) ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text">
+                      {m.notes ?? "—"}
+                    </td>
                   </tr>
                 )}
               />
@@ -188,16 +360,38 @@ export default function AdminProjectDetailPage() {
 
             <TabsContent value="periods">
               <DataTable
-                columns={[{ id: "period", label: "الفترة" }, { id: "start", label: "تاريخ البداية", align: "left" }, { id: "end", label: "تاريخ النهاية", align: "left" }, { id: "status", label: "الحالة" }, { id: "completion", label: "الإنجاز" }]}
-                data={project.periods ?? []} isLoading={false} isError={false}
-                emptyState={{ icon: Briefcase, message: "لا توجد فترات", hint: "لم يتم إنشاء فترات لهذا المشروع بعد" }}
+                columns={[
+                  { id: "period", label: "الفترة" },
+                  { id: "start", label: "تاريخ البداية", align: "left" },
+                  { id: "end", label: "تاريخ النهاية", align: "left" },
+                  { id: "status", label: "الحالة" },
+                  { id: "completion", label: "الإنجاز" },
+                ]}
+                data={project.periods ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: Briefcase,
+                  message: "لا توجد فترات",
+                  hint: "لم يتم إنشاء فترات لهذا المشروع بعد",
+                }}
                 renderRow={(p: any) => (
                   <tr key={p.id} className="border-b border-portal-divider">
-                    <td className="px-5 py-3 text-sm font-medium">الفترة {p.periodNumber}</td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">{p.startDate?.slice(0, 10) ?? "—"}</td>
-                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">{p.endDate?.slice(0, 10) ?? "—"}</td>
-                    <td className="px-5 py-3"><StatusBadge status={p.status} label={p.status} /></td>
-                    <td className="px-5 py-3"><Pill tone="neutral">{p.completionPercentage ?? 0}%</Pill></td>
+                    <td className="px-5 py-3 text-sm font-medium">
+                      الفترة {p.periodNumber}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {p.startDate?.slice(0, 10) ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {p.endDate?.slice(0, 10) ?? "—"}
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={p.status} label={p.status} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <Pill tone="neutral">{p.completionPercentage ?? 0}%</Pill>
+                    </td>
                   </tr>
                 )}
               />
@@ -206,37 +400,108 @@ export default function AdminProjectDetailPage() {
         </Tabs>
       </SurfaceCard>
 
-      <Dialog open={showReassign} onOpenChange={setShowReassign} title="إعادة تعيين PM"
-        footer={<div className="flex gap-2 justify-end"><ActionButton variant="outline" onClick={() => setShowReassign(false)}>إلغاء</ActionButton>
-          <ActionButton onClick={async () => {
-            if (!selectedPmId) { toast.error("يرجى اختيار PM"); return; }
-            try { await reassignPm({ id, pmUserId: selectedPmId }).unwrap(); toast.success("تم إعادة تعيين PM"); setShowReassign(false); }
-            catch { toast.error("فشل"); }
-          }}>تأكيد</ActionButton></div>}>
+      <Dialog
+        open={showReassign}
+        onOpenChange={setShowReassign}
+        title="إعادة تعيين PM"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowReassign(false)}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              onClick={async () => {
+                if (!selectedPmId) {
+                  toast.error("يرجى اختيار PM");
+                  return;
+                }
+                try {
+                  await reassignPm({ id, pmUserId: selectedPmId }).unwrap();
+                  toast.success("تم إعادة تعيين PM");
+                  setShowReassign(false);
+                } catch {
+                  toast.error("فشل");
+                }
+              }}
+            >
+              تأكيد
+            </ActionButton>
+          </div>
+        }
+      >
         <div className="space-y-4">
-          <FormInputControl placeholder="ابحث عن PM..." value={pmSearch} onChange={(e) => setPmSearch(e.target.value)} />
+          <FormInputControl
+            placeholder="ابحث عن PM..."
+            value={pmSearch}
+            onChange={(e) => setPmSearch(e.target.value)}
+          />
           <div className="max-h-48 overflow-y-auto space-y-1">
             {(pmData?.items ?? []).map((u: any) => (
-              <button key={u.id} onClick={() => setSelectedPmId(u.id)}
-                className={`w-full text-right px-3 py-2 rounded-xl text-sm transition-colors ${selectedPmId === u.id ? "bg-secondary-50 text-secondary-600" : "hover:bg-badge-gray-bg"}`}>{u.name} — {u.email}</button>
+              <button
+                key={u.id}
+                onClick={() => setSelectedPmId(u.id)}
+                className={`w-full text-right px-3 py-2 rounded-xl text-sm transition-colors ${selectedPmId === u.id ? "bg-secondary-50 text-secondary-600" : "hover:bg-badge-gray-bg"}`}
+              >
+                {u.name} — {u.email}
+              </button>
             ))}
           </div>
         </div>
       </Dialog>
 
-      <Dialog open={showStatus} onOpenChange={setShowStatus} title="تغيير الحالة"
-        footer={<div className="flex gap-2 justify-end"><ActionButton variant="outline" onClick={() => setShowStatus(false)}>إلغاء</ActionButton>
-          <ActionButton onClick={async () => {
-            if (!newStatus || !reason) { toast.error("يرجى اختيار الحالة وكتابة السبب"); return; }
-            try { await forceStatus({ id, status: newStatus, reason }).unwrap(); toast.success("تم تغيير الحالة"); setShowStatus(false); }
-            catch { toast.error("فشل"); }
-          }}>تأكيد</ActionButton></div>}>
+      <Dialog
+        open={showStatus}
+        onOpenChange={setShowStatus}
+        title="تغيير الحالة"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowStatus(false)}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              onClick={async () => {
+                if (!newStatus || !reason) {
+                  toast.error("يرجى اختيار الحالة وكتابة السبب");
+                  return;
+                }
+                try {
+                  await forceStatus({ id, status: newStatus, reason }).unwrap();
+                  toast.success("تم تغيير الحالة");
+                  setShowStatus(false);
+                } catch {
+                  toast.error("فشل");
+                }
+              }}
+            >
+              تأكيد
+            </ActionButton>
+          </div>
+        }
+      >
         <div className="space-y-4">
-          <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm">
+          <select
+            value={newStatus}
+            onChange={(e) => setNewStatus(e.target.value)}
+            className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
+          >
             <option value="">اختر الحالة...</option>
-            {STATUS_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            {Object.entries(PROJECT_STATUS_AR).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
-          <FormInputControl placeholder="سبب تغيير الحالة..." value={reason} onChange={(e) => setReason(e.target.value)} />
+          <FormInputControl
+            placeholder="سبب تغيير الحالة..."
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
         </div>
       </Dialog>
     </div>

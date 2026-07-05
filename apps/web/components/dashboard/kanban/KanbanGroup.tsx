@@ -14,11 +14,7 @@ interface KanbanGroupProps {
  * Renders a rounded-2xl container with a header showing the group label
  * and total item count, and a scrollable body for the stage columns.
  */
-export function KanbanGroup({
-  label,
-  totalCount,
-  children,
-}: KanbanGroupProps) {
+export function KanbanGroup({ label, totalCount, children }: KanbanGroupProps) {
   return (
     <div
       className={cn(

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Param, Query, UseGuards } from "@nestjs/common";
 import { AdminSessionsService } from "../services/admin-sessions.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -15,9 +8,7 @@ import { QuerySessionsDto } from "../dto/admin-sessions.dto";
 @Controller("admin/sessions")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminSessionsController {
-  constructor(
-    private readonly adminSessionsService: AdminSessionsService,
-  ) {}
+  constructor(private readonly adminSessionsService: AdminSessionsService) {}
 
   @Get()
   @RequirePermissions("admin.sessions.read")

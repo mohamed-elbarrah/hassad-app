@@ -52,7 +52,9 @@ export function RegisterPaymentModal({
       return;
     }
     if (numAmount > maxAmount) {
-      toast.error(`المبلغ يتجاوز المتبقي (${maxAmount.toLocaleString("ar-SA-u-nu-latn")})`);
+      toast.error(
+        `المبلغ يتجاوز المتبقي (${maxAmount.toLocaleString("ar-SA-u-nu-latn")})`,
+      );
       return;
     }
 
@@ -95,7 +97,6 @@ export function RegisterPaymentModal({
               placeholder="أدخل المبلغ"
               min="0"
               step="0.01"
-             
             />
           </div>
 
@@ -134,17 +135,18 @@ export function RegisterPaymentModal({
         </div>
 
         <div className="flex gap-2 justify-end">
-          <ActionButton
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <ActionButton variant="outline" onClick={() => onOpenChange(false)}>
             إلغاء
           </ActionButton>
           <ActionButton
             variant="primary"
             onClick={handleSubmit}
             loading={isLoading}
-            icon={isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
+            icon={
+              isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : undefined
+            }
           >
             تسجيل الدفعة
           </ActionButton>

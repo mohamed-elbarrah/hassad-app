@@ -37,10 +37,7 @@ export function ContractsToolbar({
       countLabel="عقد"
       count={visibleCount}
       actions={
-        <DateRangePopover
-          value={dateRange}
-          onChange={onDateRangeChange}
-        />
+        <DateRangePopover value={dateRange} onChange={onDateRangeChange} />
       }
     />
   );
@@ -169,9 +166,7 @@ function DateField({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-portal-note-text">
-        {label}
-      </span>
+      <span className="text-xs font-medium text-portal-note-text">{label}</span>
       <input
         type="date"
         value={value}

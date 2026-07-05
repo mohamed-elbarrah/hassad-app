@@ -39,7 +39,5 @@ export const departmentsApi = createApi({
   }),
 });
 
-export const {
-  useGetDepartmentsQuery,
-  useCreateDepartmentMutation,
-} = departmentsApi;
+export const { useGetDepartmentsQuery, useCreateDepartmentMutation } =
+  departmentsApi;

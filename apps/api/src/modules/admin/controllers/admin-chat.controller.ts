@@ -9,7 +9,18 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 export class AdminChatController {
   constructor(private readonly service: AdminChatService) {}
 
-  @Get() @RequirePermissions("admin.chat.read") findAll(@Query() q: any) { return this.service.findAllConversations(q); }
-  @Get(":id/messages") @RequirePermissions("admin.chat.read") getMessages(@Param("id") id: string, @Query() q: any) { return this.service.getMessages(id, q); }
-  @Post(":id/hide") @RequirePermissions("admin.chat.moderate") hide(@Param("id") id: string) { return this.service.hideConversation(id); }
+  @Get() @RequirePermissions("admin.chat.read") findAll(@Query() q: any) {
+    return this.service.findAllConversations(q);
+  }
+  @Get(":id/messages") @RequirePermissions("admin.chat.read") getMessages(
+    @Param("id") id: string,
+    @Query() q: any,
+  ) {
+    return this.service.getMessages(id, q);
+  }
+  @Post(":id/hide") @RequirePermissions("admin.chat.moderate") hide(
+    @Param("id") id: string,
+  ) {
+    return this.service.hideConversation(id);
+  }
 }

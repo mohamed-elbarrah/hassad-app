@@ -65,8 +65,7 @@ export function ActionButton({
       "bg-action-purple text-white hover:bg-action-purple-hover hover:text-white active:bg-action-purple",
     "action-blue":
       "bg-action-blue text-white hover:bg-action-blue-hover hover:text-white active:bg-action-blue",
-    pm:
-      "bg-pm-button-bg text-pm-button-text hover:bg-pm-button-bg/80 hover:text-pm-button-text active:bg-pm-button-bg/60",
+    pm: "bg-pm-button-bg text-pm-button-text hover:bg-pm-button-bg/80 hover:text-pm-button-text active:bg-pm-button-bg/60",
     submit:
       "bg-secondary-500 text-white hover:bg-secondary-400 hover:text-white active:bg-secondary-700",
   };

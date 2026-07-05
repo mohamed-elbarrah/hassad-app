@@ -10,7 +10,11 @@ export class AdminContractsService {
     if (query.search) {
       where.OR = [
         { title: { contains: query.search, mode: "insensitive" } },
-        { client: { companyName: { contains: query.search, mode: "insensitive" } } },
+        {
+          client: {
+            companyName: { contains: query.search, mode: "insensitive" },
+          },
+        },
       ];
     }
     if (query.clientId) where.clientId = query.clientId;
@@ -18,7 +22,9 @@ export class AdminContractsService {
     if (query.type) where.type = query.type;
     if (query.expiringDays) {
       const now = new Date();
-      const future = new Date(now.getTime() + parseInt(query.expiringDays, 10) * 24 * 60 * 60 * 1000);
+      const future = new Date(
+        now.getTime() + parseInt(query.expiringDays, 10) * 24 * 60 * 60 * 1000,
+      );
       where.endDate = { gte: now, lte: future };
       where.status = "ACTIVE";
     }
@@ -81,11 +87,16 @@ export class AdminContractsService {
   }
 
   async cancel(contractId: string, reason: string) {
-    const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+    });
     if (!contract) throw new NotFoundException("Contract not found");
 
     await this.prisma.$transaction([
-      this.prisma.contract.update({ where: { id: contractId }, data: { status: "CANCELLED" as any } }),
+      this.prisma.contract.update({
+        where: { id: contractId },
+        data: { status: "CANCELLED" as any },
+      }),
       this.prisma.ledger.create({
         data: {
           action: "admin.contracts.cancel",
@@ -99,7 +110,9 @@ export class AdminContractsService {
   }
 
   async triggerRenewalAlert(contractId: string) {
-    const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+    });
     if (!contract) throw new NotFoundException("Contract not found");
 
     await this.prisma.contractRenewalAlert.create({

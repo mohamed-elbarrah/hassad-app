@@ -119,7 +119,12 @@ export interface AdminUserFilters {
 
 export interface BulkUserAction {
   userIds: string[];
-  action: "activate" | "deactivate" | "changeRole" | "reassignDepartment" | "export";
+  action:
+    | "activate"
+    | "deactivate"
+    | "changeRole"
+    | "reassignDepartment"
+    | "export";
   value?: string;
 }
 
@@ -256,66 +261,187 @@ export interface AlertsData {
 // ── Business Operations types ─────────────────────────────────────────────────
 
 export interface ProjectRow {
-  id: string; name: string; clientName: string; pmId: string | null; pmName: string;
-  status: string; completionPercentage: number; overdueTasksCount: number;
-  priority: string | null; startDate: string | null; endDate: string | null; createdAt: string;
+  id: string;
+  name: string;
+  clientName: string;
+  pmId: string | null;
+  pmName: string;
+  status: string;
+  completionPercentage: number;
+  overdueTasksCount: number;
+  priority: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
 }
-export interface PaginatedProjects { items: ProjectRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface PaginatedProjects {
+  items: ProjectRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export interface TaskRow {
-  id: string; title: string; projectName: string; assigneeId: string | null; assigneeName: string;
-  department: string | null; status: string; priority: string | null;
-  dueDate: string | null; isOverdue: boolean; revisionCount: number; createdAt: string;
+  id: string;
+  title: string;
+  projectName: string;
+  assigneeId: string | null;
+  assigneeName: string;
+  department: string | null;
+  status: string;
+  priority: string | null;
+  dueDate: string | null;
+  isOverdue: boolean;
+  revisionCount: number;
+  createdAt: string;
 }
-export interface PaginatedTasks { items: TaskRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface PaginatedTasks {
+  items: TaskRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export interface ContractRow {
-  id: string; title: string; clientName: string; type: string; status: string;
-  monthlyValue: number; totalValue: number; currency: string;
-  startDate: string | null; endDate: string | null; versionNumber: number;
-  eSigned: boolean; pendingRenewalAlerts: number; createdAt: string;
+  id: string;
+  title: string;
+  clientName: string;
+  type: string;
+  status: string;
+  monthlyValue: number;
+  totalValue: number;
+  currency: string;
+  startDate: string | null;
+  endDate: string | null;
+  versionNumber: number;
+  eSigned: boolean;
+  pendingRenewalAlerts: number;
+  createdAt: string;
 }
-export interface PaginatedContracts { items: ContractRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface PaginatedContracts {
+  items: ContractRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export interface LeadRow {
-  id: string; companyName: string; contactName: string; email: string | null; phone: string | null;
-  assigneeId: string | null; assigneeName: string; pipelineStage: string;
-  source: string | null; businessType: string | null;
-  contactAttemptCount: number; lastContactAt: string | null; createdAt: string;
+  id: string;
+  companyName: string;
+  contactName: string;
+  email: string | null;
+  phone: string | null;
+  assigneeId: string | null;
+  assigneeName: string;
+  pipelineStage: string;
+  source: string | null;
+  businessType: string | null;
+  contactAttemptCount: number;
+  lastContactAt: string | null;
+  createdAt: string;
 }
-export interface PaginatedLeads { items: LeadRow[]; total: number; page: number; limit: number; totalPages: number; }
-export interface LeadStats { byStage: { stage: string; count: number }[]; bySource: { source: string; count: number }[]; conversionRate: number; }
+export interface PaginatedLeads {
+  items: LeadRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+export interface LeadStats {
+  byStage: { stage: string; count: number }[];
+  bySource: { source: string; count: number }[];
+  conversionRate: number;
+}
 
 export interface RequestRow {
-  id: string; clientName: string; assigneeId: string | null; assigneeName: string;
-  status: string; servicesCount: number; ageDays: number; createdAt: string;
+  id: string;
+  clientName: string;
+  assigneeId: string | null;
+  assigneeName: string;
+  status: string;
+  servicesCount: number;
+  ageDays: number;
+  createdAt: string;
 }
-export interface PaginatedRequests { items: RequestRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface PaginatedRequests {
+  items: RequestRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export interface CampaignRow {
-  id: string; name: string; clientName: string; managedById: string | null; managedByName: string;
-  platform: string | null; status: string; budgetTotal: number; budgetSpent: number;
-  isOverspent: boolean; startDate: string | null; endDate: string | null; createdAt: string;
+  id: string;
+  name: string;
+  clientName: string;
+  managedById: string | null;
+  managedByName: string;
+  platform: string | null;
+  status: string;
+  budgetTotal: number;
+  budgetSpent: number;
+  isOverspent: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
 }
-export interface PaginatedCampaigns { items: CampaignRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface PaginatedCampaigns {
+  items: CampaignRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export interface ConversationRow {
-  id: string; participants: { id: string; name: string }[];
-  lastMessageAt: string | null; lastMessageContent: string | null;
-  messageCount: number; isActive: boolean; isStale: boolean; createdAt: string;
+  id: string;
+  participants: { id: string; name: string }[];
+  lastMessageAt: string | null;
+  lastMessageContent: string | null;
+  messageCount: number;
+  isActive: boolean;
+  isStale: boolean;
+  createdAt: string;
 }
-export interface PaginatedConversations { items: ConversationRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface PaginatedConversations {
+  items: ConversationRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export interface PortalClientRow {
-  id: string; companyName: string; contactName: string; status: string;
-  hasPortalAccess: boolean; lastLoginAt: string | null;
-  intakeCompleted: boolean; pendingApprovalsCount: number; createdAt: string;
+  id: string;
+  companyName: string;
+  contactName: string;
+  status: string;
+  hasPortalAccess: boolean;
+  lastLoginAt: string | null;
+  intakeCompleted: boolean;
+  pendingApprovalsCount: number;
+  createdAt: string;
 }
-export interface PaginatedPortalClients { items: PortalClientRow[]; total: number; page: number; limit: number; totalPages: number; }
+export interface PaginatedPortalClients {
+  items: PortalClientRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 export interface PortalOverview {
-  totalClients: number; activeClients: number; idleClients: number;
-  pendingApprovals: number; pendingRevisions: number;
-  unsubmittedIntakeForms: number; snoozedItemsCount: number; activeTokens: number;
+  totalClients: number;
+  activeClients: number;
+  idleClients: number;
+  pendingApprovals: number;
+  pendingRevisions: number;
+  unsubmittedIntakeForms: number;
+  snoozedItemsCount: number;
+  activeTokens: number;
 }
 
 // ── API slice ─────────────────────────────────────────────────────────────────
@@ -430,10 +556,7 @@ export const adminApi = createApi({
       }),
     }),
 
-    revokeUserSessions: builder.mutation<
-      { revokedCount: number },
-      string
-    >({
+    revokeUserSessions: builder.mutation<{ revokedCount: number }, string>({
       query: (id) => ({
         url: `/admin/users/${id}/revoke-sessions`,
         method: "POST",
@@ -450,14 +573,15 @@ export const adminApi = createApi({
         method: "POST",
         body: { permissionIds },
       }),
-      invalidatesTags: (_result, _error, { id }) => [
-        { type: "AdminUser", id },
-      ],
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminUser", id }],
     }),
 
     // ── Admin Sessions ──────────────────────────────────────────────────────
 
-    getAdminSessions: builder.query<PaginatedSessions, { userId?: string; page?: number; limit?: number }>({
+    getAdminSessions: builder.query<
+      PaginatedSessions,
+      { userId?: string; page?: number; limit?: number }
+    >({
       query: (params) => ({
         url: "/admin/sessions",
         params,
@@ -477,7 +601,14 @@ export const adminApi = createApi({
 
     getSecurityEvents: builder.query<
       PaginatedSecurityEvents,
-      { userId?: string; type?: string; from?: string; to?: string; page?: number; limit?: number }
+      {
+        userId?: string;
+        type?: string;
+        from?: string;
+        to?: string;
+        page?: number;
+        limit?: number;
+      }
     >({
       query: (params) => ({
         url: "/admin/security/events",
@@ -520,16 +651,29 @@ export const adminApi = createApi({
     getAdminProject: builder.query<any, string>({
       query: (id) => `/admin/projects/${id}`,
     }),
-    reassignProjectPm: builder.mutation<void, { id: string; pmUserId: string }>({
-      query: ({ id, pmUserId }) => ({ url: `/admin/projects/${id}/reassign-pm`, method: "POST", body: { pmUserId } }),
-      invalidatesTags: ["AdminStats"],
-    }),
+    reassignProjectPm: builder.mutation<void, { id: string; pmUserId: string }>(
+      {
+        query: ({ id, pmUserId }) => ({
+          url: `/admin/projects/${id}/reassign-pm`,
+          method: "POST",
+          body: { pmUserId },
+        }),
+        invalidatesTags: ["AdminStats"],
+      },
+    ),
     archiveProject: builder.mutation<void, string>({
       query: (id) => ({ url: `/admin/projects/${id}/archive`, method: "POST" }),
       invalidatesTags: ["AdminStats"],
     }),
-    forceProjectStatus: builder.mutation<void, { id: string; status: string; reason: string }>({
-      query: ({ id, status, reason }) => ({ url: `/admin/projects/${id}/force-status`, method: "POST", body: { status, reason } }),
+    forceProjectStatus: builder.mutation<
+      void,
+      { id: string; status: string; reason: string }
+    >({
+      query: ({ id, status, reason }) => ({
+        url: `/admin/projects/${id}/force-status`,
+        method: "POST",
+        body: { status, reason },
+      }),
       invalidatesTags: ["AdminStats"],
     }),
 
@@ -542,10 +686,21 @@ export const adminApi = createApi({
       query: (id) => `/admin/tasks/${id}`,
     }),
     reassignTask: builder.mutation<void, { id: string; assigneeId: string }>({
-      query: ({ id, assigneeId }) => ({ url: `/admin/tasks/${id}/reassign`, method: "POST", body: { assigneeId } }),
+      query: ({ id, assigneeId }) => ({
+        url: `/admin/tasks/${id}/reassign`,
+        method: "POST",
+        body: { assigneeId },
+      }),
     }),
-    forceTaskTransition: builder.mutation<void, { id: string; status: string; reason: string }>({
-      query: ({ id, status, reason }) => ({ url: `/admin/tasks/${id}/force-transition`, method: "POST", body: { status, reason } }),
+    forceTaskTransition: builder.mutation<
+      void,
+      { id: string; status: string; reason: string }
+    >({
+      query: ({ id, status, reason }) => ({
+        url: `/admin/tasks/${id}/force-transition`,
+        method: "POST",
+        body: { status, reason },
+      }),
     }),
 
     // ── Contracts ──────────────────────────────────────────────────────────
@@ -557,10 +712,17 @@ export const adminApi = createApi({
       query: (id) => `/admin/contracts/${id}`,
     }),
     cancelContract: builder.mutation<void, { id: string; reason: string }>({
-      query: ({ id, reason }) => ({ url: `/admin/contracts/${id}/cancel`, method: "POST", body: { reason } }),
+      query: ({ id, reason }) => ({
+        url: `/admin/contracts/${id}/cancel`,
+        method: "POST",
+        body: { reason },
+      }),
     }),
     triggerRenewalAlert: builder.mutation<void, string>({
-      query: (id) => ({ url: `/admin/contracts/${id}/trigger-renewal-alert`, method: "POST" }),
+      query: (id) => ({
+        url: `/admin/contracts/${id}/trigger-renewal-alert`,
+        method: "POST",
+      }),
     }),
 
     // ── Leads ──────────────────────────────────────────────────────────────
@@ -575,7 +737,11 @@ export const adminApi = createApi({
       query: () => "/admin/leads/stats",
     }),
     reassignLead: builder.mutation<void, { id: string; assigneeId: string }>({
-      query: ({ id, assigneeId }) => ({ url: `/admin/leads/${id}/reassign`, method: "POST", body: { assigneeId } }),
+      query: ({ id, assigneeId }) => ({
+        url: `/admin/leads/${id}/reassign`,
+        method: "POST",
+        body: { assigneeId },
+      }),
     }),
 
     // ── Requests ───────────────────────────────────────────────────────────
@@ -586,11 +752,24 @@ export const adminApi = createApi({
     getAdminRequest: builder.query<any, string>({
       query: (id) => `/admin/requests/${id}`,
     }),
-    reassignRequest: builder.mutation<void, { id: string; assigneeId: string }>({
-      query: ({ id, assigneeId }) => ({ url: `/admin/requests/${id}/reassign`, method: "POST", body: { assigneeId } }),
-    }),
-    forceRequestStatus: builder.mutation<void, { id: string; status: string; reason: string }>({
-      query: ({ id, status, reason }) => ({ url: `/admin/requests/${id}/force-status`, method: "POST", body: { status, reason } }),
+    reassignRequest: builder.mutation<void, { id: string; assigneeId: string }>(
+      {
+        query: ({ id, assigneeId }) => ({
+          url: `/admin/requests/${id}/reassign`,
+          method: "POST",
+          body: { assigneeId },
+        }),
+      },
+    ),
+    forceRequestStatus: builder.mutation<
+      void,
+      { id: string; status: string; reason: string }
+    >({
+      query: ({ id, status, reason }) => ({
+        url: `/admin/requests/${id}/force-status`,
+        method: "POST",
+        body: { status, reason },
+      }),
     }),
 
     // ── Campaigns ──────────────────────────────────────────────────────────
@@ -610,14 +789,26 @@ export const adminApi = createApi({
 
     // ── Chat ───────────────────────────────────────────────────────────────
 
-    getAdminConversations: builder.query<PaginatedConversations, Record<string, any>>({
+    getAdminConversations: builder.query<
+      PaginatedConversations,
+      Record<string, any>
+    >({
       query: (params) => ({ url: "/admin/conversations", params }),
     }),
-    getAdminConversationMessages: builder.query<any, { id: string; page?: number; limit?: number }>({
-      query: ({ id, page, limit }) => ({ url: `/admin/conversations/${id}/messages`, params: { page, limit } }),
+    getAdminConversationMessages: builder.query<
+      any,
+      { id: string; page?: number; limit?: number }
+    >({
+      query: ({ id, page, limit }) => ({
+        url: `/admin/conversations/${id}/messages`,
+        params: { page, limit },
+      }),
     }),
     hideConversation: builder.mutation<void, string>({
-      query: (id) => ({ url: `/admin/conversations/${id}/hide`, method: "POST" }),
+      query: (id) => ({
+        url: `/admin/conversations/${id}/hide`,
+        method: "POST",
+      }),
     }),
 
     // ── Portal ─────────────────────────────────────────────────────────────
@@ -625,11 +816,20 @@ export const adminApi = createApi({
     getPortalOverview: builder.query<PortalOverview, void>({
       query: () => "/admin/portal/overview",
     }),
-    getPortalClients: builder.query<PaginatedPortalClients, Record<string, any>>({
+    getPortalClients: builder.query<
+      PaginatedPortalClients,
+      Record<string, any>
+    >({
       query: (params) => ({ url: "/admin/portal/clients", params }),
     }),
-    regeneratePortalToken: builder.mutation<{ token: string; expiresAt: string }, string>({
-      query: (id) => ({ url: `/admin/portal/clients/${id}/regenerate-token`, method: "POST" }),
+    regeneratePortalToken: builder.mutation<
+      { token: string; expiresAt: string },
+      string
+    >({
+      query: (id) => ({
+        url: `/admin/portal/clients/${id}/regenerate-token`,
+        method: "POST",
+      }),
     }),
 
     // ── Proposals ──────────────────────────────────────────────────────────
@@ -656,26 +856,55 @@ export const adminApi = createApi({
       query: () => "/admin/finance/overview",
       providesTags: ["AdminStats"],
     }),
-    forceAdminInvoiceStatus: builder.mutation<any, { id: string; status: string; reason: string }>({
-      query: ({ id, ...body }) => ({ url: `/admin/finance/invoices/${id}/force-status`, method: "POST", body }),
+    forceAdminInvoiceStatus: builder.mutation<
+      any,
+      { id: string; status: string; reason: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/admin/finance/invoices/${id}/force-status`,
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["AdminStats"],
     }),
-    writeOffAdminInvoice: builder.mutation<any, { id: string; reason: string }>({
-      query: ({ id, ...body }) => ({ url: `/admin/finance/invoices/${id}/write-off`, method: "POST", body }),
-      invalidatesTags: ["AdminStats"],
-    }),
-    triggerAdminRefund: builder.mutation<any, { id: string; amount: number; reason: string }>({
-      query: ({ id, ...body }) => ({ url: `/admin/finance/invoices/${id}/refund`, method: "POST", body }),
+    writeOffAdminInvoice: builder.mutation<any, { id: string; reason: string }>(
+      {
+        query: ({ id, ...body }) => ({
+          url: `/admin/finance/invoices/${id}/write-off`,
+          method: "POST",
+          body,
+        }),
+        invalidatesTags: ["AdminStats"],
+      },
+    ),
+    triggerAdminRefund: builder.mutation<
+      any,
+      { id: string; amount: number; reason: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/admin/finance/invoices/${id}/refund`,
+        method: "POST",
+        body,
+      }),
       invalidatesTags: ["AdminStats"],
     }),
     getAdminPaymentEvents: builder.query<any, string | void>({
-      query: (paymentId) => ({ url: "/admin/finance/payment-events", params: paymentId ? { paymentId } : {} }),
+      query: (paymentId) => ({
+        url: "/admin/finance/payment-events",
+        params: paymentId ? { paymentId } : {},
+      }),
     }),
     getAdminWebhookLogs: builder.query<any, any>({
-      query: (filters) => ({ url: "/admin/finance/webhook-logs", params: filters }),
+      query: (filters) => ({
+        url: "/admin/finance/webhook-logs",
+        params: filters,
+      }),
     }),
     retryAdminWebhook: builder.mutation<any, string>({
-      query: (id) => ({ url: `/admin/finance/webhook-logs/${id}/retry`, method: "POST" }),
+      query: (id) => ({
+        url: `/admin/finance/webhook-logs/${id}/retry`,
+        method: "POST",
+      }),
     }),
     getAdminGatewaysHealth: builder.query<any, void>({
       query: () => "/admin/finance/gateways-health",
@@ -688,25 +917,47 @@ export const adminApi = createApi({
     getAdminFeatureFlags: builder.query<any, void>({
       query: () => "/admin/feature-flags",
     }),
-    updateAdminFeatureFlag: builder.mutation<any, { key: string; enabled: boolean }>({
-      query: ({ key, ...body }) => ({ url: `/admin/feature-flags/${key}`, method: "POST", body }),
+    updateAdminFeatureFlag: builder.mutation<
+      any,
+      { key: string; enabled: boolean }
+    >({
+      query: ({ key, ...body }) => ({
+        url: `/admin/feature-flags/${key}`,
+        method: "POST",
+        body,
+      }),
     }),
     getAdminAutomationRules: builder.query<any, void>({
       query: () => "/admin/automation/rules",
     }),
     getAdminAutomationLogs: builder.query<any, string | void>({
-      query: (ruleId) => ({ url: "/admin/automation/logs", params: ruleId ? { ruleId } : {} }),
+      query: (ruleId) => ({
+        url: "/admin/automation/logs",
+        params: ruleId ? { ruleId } : {},
+      }),
     }),
     createAdminAutomationRule: builder.mutation<any, any>({
-      query: (body) => ({ url: "/admin/automation/rules", method: "POST", body }),
+      query: (body) => ({
+        url: "/admin/automation/rules",
+        method: "POST",
+        body,
+      }),
     }),
-    updateAdminAutomationRule: builder.mutation<any, { id: string; body: any }>({
-      query: ({ id, body }) => ({ url: `/admin/automation/rules/${id}`, method: "PATCH", body }),
-    }),
+    updateAdminAutomationRule: builder.mutation<any, { id: string; body: any }>(
+      {
+        query: ({ id, body }) => ({
+          url: `/admin/automation/rules/${id}`,
+          method: "PATCH",
+          body,
+        }),
+      },
+    ),
     deleteAdminAutomationRule: builder.mutation<any, string>({
-      query: (id) => ({ url: `/admin/automation/rules/${id}`, method: "DELETE" }),
+      query: (id) => ({
+        url: `/admin/automation/rules/${id}`,
+        method: "DELETE",
+      }),
     }),
-
   }),
 });
 

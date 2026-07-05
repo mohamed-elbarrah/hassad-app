@@ -23,12 +23,6 @@ import {
   Bell,
   Ticket,
   AlertTriangle,
-  Globe,
-  Puzzle,
-  Bot,
-  Flag,
-  Monitor,
-  Database,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -132,15 +126,9 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
-        title: "المحادثات",
-        url: "/dashboard/admin/chat",
-        icon: MessageSquare,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "بوابة العملاء",
-        url: "/dashboard/admin/portal",
-        icon: Globe,
+        title: "النزاعات",
+        url: "/dashboard/admin/disputes",
+        icon: AlertTriangle,
         roles: ["ADMIN"],
       },
     ],
@@ -179,18 +167,6 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
-        title: "تذاكر الدفع",
-        url: "/dashboard/admin/finance/payment-tickets",
-        icon: Ticket,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "بوابات الدفع",
-        url: "/dashboard/admin/payments",
-        icon: CreditCard,
-        roles: ["ADMIN"],
-      },
-      {
         title: "العملات",
         url: "/dashboard/admin/currency",
         icon: DollarSign,
@@ -201,12 +177,6 @@ export const adminNavSections: NavSection[] = [
   {
     label: "المراقبة",
     items: [
-      {
-        title: "النزاعات",
-        url: "/dashboard/admin/disputes",
-        icon: AlertTriangle,
-        roles: ["ADMIN"],
-      },
       {
         title: "سجل النشاطات",
         url: "/dashboard/admin/audit-log",
@@ -237,39 +207,9 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
-        title: "التكاملات والويب هوك",
-        url: "/dashboard/admin/integrations",
-        icon: Puzzle,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "قواعد الأتمتة",
-        url: "/dashboard/admin/automation",
-        icon: Bot,
-        roles: ["ADMIN"],
-      },
-      {
         title: "قوالب الإشعارات",
         url: "/dashboard/admin/notification-templates",
         icon: Bell,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "خصائص المنصة",
-        url: "/dashboard/admin/feature-flags",
-        icon: Flag,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "معلومات البيئة",
-        url: "/dashboard/admin/environment",
-        icon: Monitor,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "النسخ الاحتياطي",
-        url: "/dashboard/admin/backups",
-        icon: Database,
         roles: ["ADMIN"],
       },
     ],

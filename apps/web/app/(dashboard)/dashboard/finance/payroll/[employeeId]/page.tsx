@@ -2,7 +2,11 @@
 
 import { use, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useGetEmployeeByIdQuery, usePaySalaryMutation, useUpdateSalaryMutation } from "@/features/finance/financeApi";
+import {
+  useGetEmployeeByIdQuery,
+  usePaySalaryMutation,
+  useUpdateSalaryMutation,
+} from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
 import { FinanceDetailBreadcrumb } from "@/components/dashboard/finance/shared/FinanceDetailBreadcrumb";
 import { FinanceDetailSkeleton } from "@/components/dashboard/finance/shared/FinanceDetailSkeleton";
@@ -35,8 +39,18 @@ import {
 } from "@/components/ui/dialog";
 
 const MONTHS = [
-  "يناير","فبراير","مارس","أبريل","مايو","يونيو",
-  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
 export default function SalaryDetailPage({
@@ -61,7 +75,11 @@ export default function SalaryDetailPage({
   const [showAllowancesModal, setShowAllowancesModal] = useState(false);
   const [showPayConfirm, setShowPayConfirm] = useState(false);
 
-  const { data: employee, isLoading, isError } = useGetEmployeeByIdQuery(employeeId);
+  const {
+    data: employee,
+    isLoading,
+    isError,
+  } = useGetEmployeeByIdQuery(employeeId);
   const [paySalary, { isLoading: isPaying }] = usePaySalaryMutation();
   const [updateSalary, { isLoading: isUpdating }] = useUpdateSalaryMutation();
 
@@ -106,7 +124,11 @@ export default function SalaryDetailPage({
         />
 
         <div className="flex items-center gap-2">
-          <ActionButton variant="outline" size="sm" icon={<FileText className="w-4 h-4" />}>
+          <ActionButton
+            variant="outline"
+            size="sm"
+            icon={<FileText className="w-4 h-4" />}
+          >
             تصدير مسير الرواتب
           </ActionButton>
           {salary?.status === "PENDING" && (
@@ -140,15 +162,19 @@ export default function SalaryDetailPage({
               <div className="flex-1 space-y-1 text-center md:text-right">
                 <div className="flex flex-col md:flex-row md:items-center gap-2">
                   <h2 className="text-2xl font-bold">{employee.name}</h2>
-                  <FinanceStatusBadge status={employee.isActive ? "ACTIVE" : "CANCELLED"} />
+                  <FinanceStatusBadge
+                    status={employee.isActive ? "ACTIVE" : "CANCELLED"}
+                  />
                 </div>
                 <p className="text-portal-note-text">{employee.role}</p>
                 <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-3">
                   <span className="bg-badge-gray-bg px-3 py-1 rounded-lg text-xs font-mono">
-                    <Hash className="w-3 h-3 inline ml-1" />{employee.id.substring(0, 8)}...
+                    <Hash className="w-3 h-3 inline ml-1" />
+                    {employee.id.substring(0, 8)}...
                   </span>
                   <span className="bg-badge-gray-bg px-3 py-1 rounded-lg text-xs">
-                    الراتب الأساسي: <CurrencyDisplay amount={employee.baseSalary} />
+                    الراتب الأساسي:{" "}
+                    <CurrencyDisplay amount={employee.baseSalary} />
                   </span>
                 </div>
               </div>
@@ -173,7 +199,10 @@ export default function SalaryDetailPage({
                 {Array.from({ length: 12 }, (_, i) => {
                   const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                   return (
-                    <option key={i} value={`${d.getMonth() + 1}-${d.getFullYear()}`}>
+                    <option
+                      key={i}
+                      value={`${d.getMonth() + 1}-${d.getFullYear()}`}
+                    >
                       {MONTHS[d.getMonth()]} {d.getFullYear()}
                     </option>
                   );
@@ -183,8 +212,15 @@ export default function SalaryDetailPage({
           >
             {!salary ? (
               <div className="text-center py-8">
-                <p className="text-portal-note-text">لم يتم توليد راتب لهذا الشهر</p>
-                <ActionButton variant="outline" size="sm" className="mt-3" href="/dashboard/finance/payroll">
+                <p className="text-portal-note-text">
+                  لم يتم توليد راتب لهذا الشهر
+                </p>
+                <ActionButton
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  href="/dashboard/finance/payroll"
+                >
                   الذهاب لتوليد الراتب
                 </ActionButton>
               </div>
@@ -192,34 +228,51 @@ export default function SalaryDetailPage({
               <div className="space-y-5">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4 text-center">
-                    <p className="text-xs text-portal-note-text mb-1">الأساسي</p>
-                    <p className="text-lg font-bold text-natural-100"><CurrencyDisplay amount={salary.baseSalary} /></p>
+                    <p className="text-xs text-portal-note-text mb-1">
+                      الأساسي
+                    </p>
+                    <p className="text-lg font-bold text-natural-100">
+                      <CurrencyDisplay amount={salary.baseSalary} />
+                    </p>
                   </div>
                   <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4 text-center">
                     <p className="text-xs text-success-600 mb-1 flex items-center justify-center gap-1">
-                      <ArrowUp className="w-3 h-3" />البدلات
+                      <ArrowUp className="w-3 h-3" />
+                      البدلات
                     </p>
-                    <p className="text-lg font-bold text-success-600"><CurrencyDisplay amount={salary.bonuses || 0} /></p>
+                    <p className="text-lg font-bold text-success-600">
+                      <CurrencyDisplay amount={salary.bonuses || 0} />
+                    </p>
                   </div>
                   <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4 text-center">
                     <p className="text-xs text-danger-600 mb-1 flex items-center justify-center gap-1">
-                      <ArrowDown className="w-3 h-3" />الاستقطاعات
+                      <ArrowDown className="w-3 h-3" />
+                      الاستقطاعات
                     </p>
-                    <p className="text-lg font-bold text-danger-600"><CurrencyDisplay amount={salary.deductions || 0} /></p>
+                    <p className="text-lg font-bold text-danger-600">
+                      <CurrencyDisplay amount={salary.deductions || 0} />
+                    </p>
                   </div>
                   <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-portal-bg p-4 text-center">
                     <p className="text-xs text-secondary-600 mb-1">الصافي</p>
-                    <p className="text-lg font-bold text-secondary-600"><CurrencyDisplay amount={salary.amount} /></p>
+                    <p className="text-lg font-bold text-secondary-600">
+                      <CurrencyDisplay amount={salary.amount} />
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-3">
-                    <FinanceStatusBadge status={salary.status} className="text-base px-3 py-1" />
+                    <FinanceStatusBadge
+                      status={salary.status}
+                      className="text-base px-3 py-1"
+                    />
                     {salary.paymentDate && (
                       <span className="text-sm text-portal-note-text">
                         تاريخ الصرف:{" "}
-                        {new Date(salary.paymentDate).toLocaleDateString("ar-SA-u-nu-latn")}
+                        {new Date(salary.paymentDate).toLocaleDateString(
+                          "ar-SA-u-nu-latn",
+                        )}
                       </span>
                     )}
                   </div>
@@ -282,14 +335,26 @@ export default function SalaryDetailPage({
                   <td className="px-5 py-4 font-medium">
                     {MONTHS[s.month - 1]} {s.year}
                   </td>
-                  <td className="px-5 py-4"><CurrencyDisplay amount={s.baseSalary} /></td>
-                  <td className="px-5 py-4 text-success-600">+<CurrencyDisplay amount={s.bonuses || 0} /></td>
-                  <td className="px-5 py-4 text-danger-600">-<CurrencyDisplay amount={s.deductions || 0} /></td>
-                  <td className="px-5 py-4 font-bold"><CurrencyDisplay amount={s.amount} /></td>
-                  <td className="px-5 py-4"><FinanceStatusBadge status={s.status} /></td>
+                  <td className="px-5 py-4">
+                    <CurrencyDisplay amount={s.baseSalary} />
+                  </td>
+                  <td className="px-5 py-4 text-success-600">
+                    +<CurrencyDisplay amount={s.bonuses || 0} />
+                  </td>
+                  <td className="px-5 py-4 text-danger-600">
+                    -<CurrencyDisplay amount={s.deductions || 0} />
+                  </td>
+                  <td className="px-5 py-4 font-bold">
+                    <CurrencyDisplay amount={s.amount} />
+                  </td>
+                  <td className="px-5 py-4">
+                    <FinanceStatusBadge status={s.status} />
+                  </td>
                   <td className="px-5 py-4 text-left text-xs text-portal-note-text">
                     {s.paymentDate
-                      ? new Date(s.paymentDate).toLocaleDateString("ar-SA-u-nu-latn")
+                      ? new Date(s.paymentDate).toLocaleDateString(
+                          "ar-SA-u-nu-latn",
+                        )
                       : "—"}
                   </td>
                 </tr>
@@ -301,10 +366,16 @@ export default function SalaryDetailPage({
         {/* ─── Sidebar (1/3) ─── */}
         <div className="space-y-5">
           {/* Pay Configuration */}
-          <SurfaceCard title="إعدادات الراتب" icon={DollarSign} className="border-none shadow-sm">
+          <SurfaceCard
+            title="إعدادات الراتب"
+            icon={DollarSign}
+            className="border-none shadow-sm"
+          >
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-portal-note-text">نوع الراتب</span>
+                <span className="text-sm text-portal-note-text">
+                  نوع الراتب
+                </span>
                 <span className="text-sm font-bold">
                   {employee.payType === "HYBRID"
                     ? "ثابت + عمولة"
@@ -316,19 +387,31 @@ export default function SalaryDetailPage({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-portal-note-text">الراتب الأساسي</span>
-                <span className="text-sm font-bold"><CurrencyDisplay amount={employee.baseSalary} /></span>
+                <span className="text-sm text-portal-note-text">
+                  الراتب الأساسي
+                </span>
+                <span className="text-sm font-bold">
+                  <CurrencyDisplay amount={employee.baseSalary} />
+                </span>
               </div>
               {employee.commissionRate && employee.commissionRate > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-portal-note-text">نسبة العمولة</span>
-                  <span className="text-sm font-bold text-secondary-600">{Math.round(employee.commissionRate * 100)}%</span>
+                  <span className="text-sm text-portal-note-text">
+                    نسبة العمولة
+                  </span>
+                  <span className="text-sm font-bold text-secondary-600">
+                    {Math.round(employee.commissionRate * 100)}%
+                  </span>
                 </div>
               )}
               {employee.hourlyRate && employee.hourlyRate > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-portal-note-text">الأجر بالساعة</span>
-                  <span className="text-sm font-bold"><CurrencyDisplay amount={employee.hourlyRate} /></span>
+                  <span className="text-sm text-portal-note-text">
+                    الأجر بالساعة
+                  </span>
+                  <span className="text-sm font-bold">
+                    <CurrencyDisplay amount={employee.hourlyRate} />
+                  </span>
                 </div>
               )}
             </div>
@@ -353,12 +436,18 @@ export default function SalaryDetailPage({
                   <p className="text-success-600 font-bold">تم الصرف</p>
                   <p className="text-xs text-portal-note-text mt-1">
                     {salary.paymentDate
-                      ? new Date(salary.paymentDate).toLocaleDateString("ar-SA-u-nu-latn")
+                      ? new Date(salary.paymentDate).toLocaleDateString(
+                          "ar-SA-u-nu-latn",
+                        )
                       : ""}
                   </p>
                 </div>
               ) : (
-                <ActionButton variant="outline" className="w-full justify-center" disabled>
+                <ActionButton
+                  variant="outline"
+                  className="w-full justify-center"
+                  disabled
+                >
                   لا يوجد راتب لهذا الشهر
                 </ActionButton>
               )}
@@ -375,7 +464,11 @@ export default function SalaryDetailPage({
                 </ActionButton>
               )}
 
-              <ActionButton variant="ghost" className="w-full justify-center" icon={<FileText className="w-4 h-4" />}>
+              <ActionButton
+                variant="ghost"
+                className="w-full justify-center"
+                icon={<FileText className="w-4 h-4" />}
+              >
                 تحميل قسيمة الراتب
               </ActionButton>
             </div>
@@ -402,21 +495,32 @@ export default function SalaryDetailPage({
                 <div className="mt-2 p-3 rounded-lg bg-badge-gray-bg space-y-1">
                   <div className="flex justify-between text-sm">
                     <span>المبلغ:</span>
-                    <span className="font-bold"><CurrencyDisplay amount={salary.amount} /></span>
+                    <span className="font-bold">
+                      <CurrencyDisplay amount={salary.amount} />
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>الشهر:</span>
-                    <span>{MONTHS[salary.month - 1]} {salary.year}</span>
+                    <span>
+                      {MONTHS[salary.month - 1]} {salary.year}
+                    </span>
                   </div>
                 </div>
               )}
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 justify-end pt-2">
-            <ActionButton variant="outline" onClick={() => setShowPayConfirm(false)}>
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowPayConfirm(false)}
+            >
               إلغاء
             </ActionButton>
-            <ActionButton variant="primary" onClick={handlePay} loading={isPaying}>
+            <ActionButton
+              variant="primary"
+              onClick={handlePay}
+              loading={isPaying}
+            >
               تأكيد الصرف
             </ActionButton>
           </div>
@@ -484,7 +588,9 @@ function AllowancesModal({
 
         <div className="space-y-4 py-2">
           <div>
-            <label className="text-sm font-medium mb-1 block text-success-600">البدلات والحوافز</label>
+            <label className="text-sm font-medium mb-1 block text-success-600">
+              البدلات والحوافز
+            </label>
             <input
               type="number"
               value={bonuses}
@@ -494,7 +600,9 @@ function AllowancesModal({
             />
           </div>
           <div>
-            <label className="text-sm font-medium mb-1 block text-danger-600">الاستقطاعات</label>
+            <label className="text-sm font-medium mb-1 block text-danger-600">
+              الاستقطاعات
+            </label>
             <input
               type="number"
               value={deductions}
@@ -507,19 +615,33 @@ function AllowancesModal({
             <div className="p-3 rounded-lg bg-badge-gray-bg text-sm space-y-1">
               <div className="flex justify-between">
                 <span>الأساسي</span>
-                <span><CurrencyDisplay amount={salary.baseSalary} /></span>
+                <span>
+                  <CurrencyDisplay amount={salary.baseSalary} />
+                </span>
               </div>
               <div className="flex justify-between text-success-600">
                 <span>+ البدلات</span>
-                <span>+<CurrencyDisplay amount={Number(bonuses) || 0} /></span>
+                <span>
+                  +<CurrencyDisplay amount={Number(bonuses) || 0} />
+                </span>
               </div>
               <div className="flex justify-between text-danger-600">
                 <span>- الاستقطاعات</span>
-                <span>-<CurrencyDisplay amount={Number(deductions) || 0} /></span>
+                <span>
+                  -<CurrencyDisplay amount={Number(deductions) || 0} />
+                </span>
               </div>
               <div className="flex justify-between font-bold pt-1 border-t border-portal-divider">
                 <span>الصافي المتوقع</span>
-                <span><CurrencyDisplay amount={salary.baseSalary + (Number(bonuses) || 0) - (Number(deductions) || 0)} /></span>
+                <span>
+                  <CurrencyDisplay
+                    amount={
+                      salary.baseSalary +
+                      (Number(bonuses) || 0) -
+                      (Number(deductions) || 0)
+                    }
+                  />
+                </span>
               </div>
             </div>
           )}
@@ -529,7 +651,11 @@ function AllowancesModal({
           <ActionButton variant="outline" onClick={() => onOpenChange(false)}>
             إلغاء
           </ActionButton>
-          <ActionButton variant="primary" onClick={handleSave} loading={isUpdating}>
+          <ActionButton
+            variant="primary"
+            onClick={handleSave}
+            loading={isUpdating}
+          >
             حفظ التعديلات
           </ActionButton>
         </div>

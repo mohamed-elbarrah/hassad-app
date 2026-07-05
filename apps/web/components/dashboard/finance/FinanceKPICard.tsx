@@ -44,7 +44,9 @@ export function FinanceKPICard({
       {/* Top: icon + label */}
       <div className="flex items-center gap-2 mb-3">
         <Icon className="w-4 h-4 text-portal-note-text" />
-        <span className="text-xs font-medium text-portal-note-text">{title}</span>
+        <span className="text-xs font-medium text-portal-note-text">
+          {title}
+        </span>
       </div>
 
       {/* Middle: value + inline trend badge */}

@@ -7,19 +7,23 @@ A comprehensive, production-ready health monitoring system that provides real-ti
 ## Features
 
 ### 🏥 Health Checks
+
 - **Liveness Check** (`/health/live`) - Quick check for load balancers
 - **Readiness Check** (`/health/ready`) - Verifies critical dependencies (DB, memory)
 - **Detailed Health Check** (`/health`) - Full system health with all services
 - **Health Summary** (`/health/summary`) - Aggregated dashboard data
 
 ### 📊 Service Monitoring
+
 Monitors the following external services:
+
 - **Database (PostgreSQL)** - Connection and query performance
 - **R2 Storage (Cloudflare)** - Object storage connectivity
 - **SMTP** - Email service status
 - **Stripe** - Payment gateway health
 
 ### 🚨 Error Logging & Tracking
+
 - Automatic error capture from HTTP requests
 - Categorized errors (Database, Storage, Auth, etc.)
 - Stack trace preservation
@@ -27,6 +31,7 @@ Monitors the following external services:
 - Historical error analytics
 
 ### 📈 Historical Data
+
 - Health check history with scoring
 - Service response time trends
 - Error frequency analysis
@@ -63,7 +68,9 @@ GET  /admin/health              # Backward compatible health data
 ## Database Schema
 
 ### SystemHealthCheck
+
 Stores periodic health snapshots:
+
 - `status`: HEALTHY | DEGRADED | UNHEALTHY
 - `overallScore`: 0-100 health score
 - `components`: JSON blob of all component statuses
@@ -71,7 +78,9 @@ Stores periodic health snapshots:
 - `totalResponseTime`: Check duration
 
 ### SystemError
+
 Persistent error log:
+
 - `level`: ERROR | WARN | INFO
 - `category`: DATABASE | STORAGE | AUTH | etc.
 - `message`, `stackTrace`: Error details
@@ -80,7 +89,9 @@ Persistent error log:
 - `resolved`, `resolvedAt`, `resolutionNote`: Resolution tracking
 
 ### ExternalServiceHealth
+
 Service status tracking:
+
 - `serviceName`: R2_STORAGE | SMTP | STRIPE | DATABASE
 - `status`: UP | DEGRADED | DOWN
 - `responseTime`: Last check response time
@@ -98,6 +109,7 @@ Service status tracking:
 4. **ErrorStats**: Error distribution by category
 
 ### Features
+
 - Real-time health updates
 - Service response times
 - Error categorization and filtering
@@ -105,6 +117,7 @@ Service status tracking:
 - Historical health trends
 
 ### Usage
+
 ```typescript
 // Get current health
 const { data: health } = useGetHealthQuery();
@@ -152,6 +165,7 @@ STRIPE_*=...
 ### Service Thresholds
 
 Default thresholds (configurable per service):
+
 - **Timeout**: 5000ms (mark as DOWN)
 - **Degradation**: 2000ms (mark as DEGRADED)
 
@@ -207,6 +221,7 @@ Status:
 ## Migration from Old System
 
 The old `/admin/health` endpoint is preserved for backward compatibility:
+
 - Returns basic health status
 - Includes new `overallScore` field
 - Includes `services` array
@@ -227,16 +242,19 @@ For full features, use the new `/health/*` endpoints.
 ## Troubleshooting
 
 ### Health checks return empty
+
 - Verify Prisma client is generated: `npx prisma generate`
 - Check database connection
 - Verify HealthModule is imported in AppModule
 
 ### Errors not being logged
+
 - Check HttpExceptionFilter is properly registered in main.ts
 - Verify ErrorLoggerService is in HealthModule providers
 - Check console for database write errors
 
 ### Services show as DOWN
+
 - Check environment variables are set
 - Verify network connectivity
 - Check service-specific logs

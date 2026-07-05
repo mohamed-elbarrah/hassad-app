@@ -186,7 +186,9 @@ export function ClientBriefCompact({
             icon={Mail}
             label="البريد الإلكتروني"
             value={client.user?.email}
-            href={client.user?.email ? `mailto:${client.user.email}` : undefined}
+            href={
+              client.user?.email ? `mailto:${client.user.email}` : undefined
+            }
             dir="ltr"
           />
           <ClientBriefField
@@ -264,29 +266,27 @@ export function ClientBriefCompact({
                   label="نطاق الميزانية"
                   value={
                     profile?.budgetRangeMin != null ||
-                    profile?.budgetRangeMax != null
-                      ? (
-                        <>
-                          {profile?.budgetRangeMin != null
-                            ? (
-                              <>
-                                {fmtAmount(profile.budgetRangeMin)}{" "}
-                                <CurrencySymbol className="inline-block" />
-                              </>
-                            )
-                            : "—"}
-                          {" — "}
-                          {profile?.budgetRangeMax != null
-                            ? (
-                              <>
-                                {fmtAmount(profile.budgetRangeMax)}{" "}
-                                <CurrencySymbol className="inline-block" />
-                              </>
-                            )
-                            : "—"}
-                        </>
-                      )
-                      : null
+                    profile?.budgetRangeMax != null ? (
+                      <>
+                        {profile?.budgetRangeMin != null ? (
+                          <>
+                            {fmtAmount(profile.budgetRangeMin)}{" "}
+                            <CurrencySymbol className="inline-block" />
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                        {" — "}
+                        {profile?.budgetRangeMax != null ? (
+                          <>
+                            {fmtAmount(profile.budgetRangeMax)}{" "}
+                            <CurrencySymbol className="inline-block" />
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </>
+                    ) : null
                   }
                 />
               )}

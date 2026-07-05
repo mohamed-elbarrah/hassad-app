@@ -26,10 +26,7 @@ export const SALES_PIPELINE_CONFIG: KanbanConfig = {
     {
       id: "contract",
       label: "العقد",
-      stages: [
-        RequestStatus.CONTRACT_PREPARATION,
-        RequestStatus.CONTRACT_SENT,
-      ],
+      stages: [RequestStatus.CONTRACT_PREPARATION, RequestStatus.CONTRACT_SENT],
     },
     {
       id: "handoff",

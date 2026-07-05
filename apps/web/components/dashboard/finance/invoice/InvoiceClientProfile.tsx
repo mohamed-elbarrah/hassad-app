@@ -1,6 +1,13 @@
 "use client";
 
-import { Building2, User, Mail, Phone, ExternalLink, Briefcase } from "lucide-react";
+import {
+  Building2,
+  User,
+  Mail,
+  Phone,
+  ExternalLink,
+  Briefcase,
+} from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import Link from "next/link";
 
@@ -30,7 +37,10 @@ interface InvoiceClientProfileProps {
   clientId: string;
 }
 
-export function InvoiceClientProfile({ client, clientId }: InvoiceClientProfileProps) {
+export function InvoiceClientProfile({
+  client,
+  clientId,
+}: InvoiceClientProfileProps) {
   if (!client) {
     return (
       <div className="text-center py-4 text-portal-note-text text-sm">
@@ -59,9 +69,13 @@ export function InvoiceClientProfile({ client, clientId }: InvoiceClientProfileP
               <Building2 className="w-4 h-4 text-secondary-500" />
             </div>
             <div>
-              <p className="text-sm font-bold text-natural-100">{client.companyName}</p>
+              <p className="text-sm font-bold text-natural-100">
+                {client.companyName}
+              </p>
               {client.businessType && (
-                <span className="text-[11px] text-portal-note-text">{client.businessType}</span>
+                <span className="text-[11px] text-portal-note-text">
+                  {client.businessType}
+                </span>
               )}
             </div>
           </div>
@@ -80,7 +94,6 @@ export function InvoiceClientProfile({ client, clientId }: InvoiceClientProfileP
             <a
               href={`mailto:${email}`}
               className="flex items-center gap-2.5 text-sm text-natural-100 hover:text-secondary-500 transition-colors"
-             
             >
               <Mail className="w-3.5 h-3.5 text-portal-icon shrink-0" />
               {email}
@@ -90,7 +103,6 @@ export function InvoiceClientProfile({ client, clientId }: InvoiceClientProfileP
             <a
               href={`tel:${phone}`}
               className="flex items-center gap-2.5 text-sm text-natural-100 hover:text-secondary-500 transition-colors font-mono"
-             
             >
               <Phone className="w-3.5 h-3.5 text-portal-icon shrink-0" />
               {phone}
@@ -99,8 +111,12 @@ export function InvoiceClientProfile({ client, clientId }: InvoiceClientProfileP
           {managerName && (
             <div className="flex items-center gap-2.5">
               <Briefcase className="w-3.5 h-3.5 text-portal-icon shrink-0" />
-              <span className="text-sm text-portal-note-text">مدير الحساب:</span>
-              <span className="text-sm font-medium text-natural-100">{managerName}</span>
+              <span className="text-sm text-portal-note-text">
+                مدير الحساب:
+              </span>
+              <span className="text-sm font-medium text-natural-100">
+                {managerName}
+              </span>
             </div>
           )}
         </div>
@@ -108,7 +124,11 @@ export function InvoiceClientProfile({ client, clientId }: InvoiceClientProfileP
         {/* Link */}
         <div className="shrink-0">
           <Link href={`/dashboard/finance/clients/${clientId}`}>
-            <ActionButton variant="ghost" size="sm" icon={<ExternalLink className="w-3.5 h-3.5" />}>
+            <ActionButton
+              variant="ghost"
+              size="sm"
+              icon={<ExternalLink className="w-3.5 h-3.5" />}
+            >
               الملف المالي
             </ActionButton>
           </Link>

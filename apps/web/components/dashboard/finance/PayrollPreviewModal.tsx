@@ -19,11 +19,28 @@ interface Props {
 }
 
 const MONTHS = [
-  "يناير","فبراير","مارس","أبريل","مايو","يونيو",
-  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
-export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPaying }: Props) {
+export function PayrollPreviewModal({
+  month,
+  year,
+  open,
+  onClose,
+  onPayAll,
+  isPaying,
+}: Props) {
   const { data, isLoading } = usePreviewPayrollQuery(
     { month, year },
     { skip: !open },
@@ -39,9 +56,14 @@ export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPa
           <div className="px-6 py-5 border-b border-portal-divider flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">معاينة مسير الرواتب</h2>
-              <p className="text-sm text-portal-note-text">{MONTHS[month - 1]} {year}</p>
+              <p className="text-sm text-portal-note-text">
+                {MONTHS[month - 1]} {year}
+              </p>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-badge-gray-bg">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-badge-gray-bg"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -57,17 +79,25 @@ export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPa
               <div className="p-6 grid grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl bg-secondary-50/50 text-center">
                   <DollarSign className="w-5 h-5 text-secondary-600 mx-auto mb-1" />
-                  <p className="text-xs text-portal-note-text">إجمالي التكلفة</p>
-                  <p className="text-xl font-bold"><CurrencyDisplay amount={data?.totalCost} size="sm" /></p>
+                  <p className="text-xs text-portal-note-text">
+                    إجمالي التكلفة
+                  </p>
+                  <p className="text-xl font-bold">
+                    <CurrencyDisplay amount={data?.totalCost} size="sm" />
+                  </p>
                 </div>
                 <div className="p-4 rounded-xl bg-warning-50/50 text-center">
                   <Clock className="w-5 h-5 text-warning-600 mx-auto mb-1" />
                   <p className="text-xs text-portal-note-text">معلقة للصرف</p>
-                  <p className="text-xl font-bold text-warning-600">{data?.pendingCount}</p>
+                  <p className="text-xl font-bold text-warning-600">
+                    {data?.pendingCount}
+                  </p>
                 </div>
                 <div className="p-4 rounded-xl bg-badge-gray-bg text-center">
                   <Users className="w-5 h-5 text-portal-note-text mx-auto mb-1" />
-                  <p className="text-xs text-portal-note-text">لم يتم التوليد</p>
+                  <p className="text-xs text-portal-note-text">
+                    لم يتم التوليد
+                  </p>
                   <p className="text-xl font-bold">{data?.notGenerated}</p>
                 </div>
               </div>
@@ -100,18 +130,24 @@ export function PayrollPreviewModal({ month, year, open, onClose, onPayAll, isPa
                                 : emp.payType === "HOURLY"
                                   ? "بالساعة"
                                   : "ثابت"}
-                            {emp.commissionRate && ` (${Math.round(emp.commissionRate * 100)}%)`}
+                            {emp.commissionRate &&
+                              ` (${Math.round(emp.commissionRate * 100)}%)`}
                           </p>
                         </div>
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-bold"><CurrencyDisplay amount={emp.amount} size="sm" /></p>
+                        <p className="text-sm font-bold">
+                          <CurrencyDisplay amount={emp.amount} size="sm" />
+                        </p>
                         <span
                           className={cn(
                             "text-[10px] px-2 py-0.5 rounded-full font-medium",
-                            emp.status === "PAID" && "bg-success-100 text-success-600",
-                            emp.status === "PENDING" && "bg-warning-100 text-warning-600",
-                            emp.status === "NOT_GENERATED" && "bg-badge-gray-bg text-portal-note-text",
+                            emp.status === "PAID" &&
+                              "bg-success-100 text-success-600",
+                            emp.status === "PENDING" &&
+                              "bg-warning-100 text-warning-600",
+                            emp.status === "NOT_GENERATED" &&
+                              "bg-badge-gray-bg text-portal-note-text",
                           )}
                         >
                           {emp.status === "PAID"

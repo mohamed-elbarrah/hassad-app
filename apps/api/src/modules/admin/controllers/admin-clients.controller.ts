@@ -11,9 +11,13 @@ export class AdminClientsController {
 
   @Get()
   @RequirePermissions("admin.clients.read")
-  findAll(@Query() q: any) { return this.service.findAll(q); }
+  findAll(@Query() q: any) {
+    return this.service.findAll(q);
+  }
 
   @Get(":id")
   @RequirePermissions("admin.clients.read")
-  findOne(@Param("id") id: string) { return this.service.findOne(id); }
+  findOne(@Param("id") id: string) {
+    return this.service.findOne(id);
+  }
 }

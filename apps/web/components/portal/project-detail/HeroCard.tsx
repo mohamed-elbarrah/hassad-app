@@ -7,7 +7,11 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { CircularProgress } from "@/components/design-system/CircularProgress";
 import { PeriodTimeline } from "./PeriodTimeline";
-import { formatShortDateTz, formatDateTz, getDaysRemaining } from "@/lib/format";
+import {
+  formatShortDateTz,
+  formatDateTz,
+  getDaysRemaining,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface HeroCardProps {
@@ -83,8 +87,8 @@ export function HeroCard({
             />
           </div>
           <h2 className="text-xl font-bold text-natural-100">
-            الفترة {period.periodNumber}: {formatShortDateTz(period.startDate)} —{" "}
-            {formatShortDateTz(period.endDate)}
+            الفترة {period.periodNumber}: {formatShortDateTz(period.startDate)}{" "}
+            — {formatShortDateTz(period.endDate)}
           </h2>
           <p className="text-sm text-portal-note-text">
             {formatDateTz(period.startDate)} — {formatDateTz(period.endDate)}

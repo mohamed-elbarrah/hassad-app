@@ -138,7 +138,9 @@ export function KanbanBoard<T extends { id: string }>({
 
   // ── Loading state ─────────────────────────────────────────────────────
   if (isLoading) {
-    return renderLoadingSkeleton?.() ?? <DefaultLoadingSkeleton config={config} />;
+    return (
+      renderLoadingSkeleton?.() ?? <DefaultLoadingSkeleton config={config} />
+    );
   }
 
   // ── Error state ───────────────────────────────────────────────────────

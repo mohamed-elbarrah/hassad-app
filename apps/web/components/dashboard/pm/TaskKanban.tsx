@@ -24,7 +24,11 @@ interface TaskKanbanProps {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function TaskKanban({ projectId }: TaskKanbanProps) {
-  const { data: tasks, isLoading, isError } = useGetTasksByProjectQuery(projectId);
+  const {
+    data: tasks,
+    isLoading,
+    isError,
+  } = useGetTasksByProjectQuery(projectId);
   const [startTask] = useStartTaskMutation();
   const [submitTask] = useSubmitTaskMutation();
   const [approveTask] = useApproveTaskMutation();

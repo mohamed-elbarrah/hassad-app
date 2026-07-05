@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { RequestItem } from "@/features/requests/requestsApi";
 import { cn } from "@/lib/utils";
-import { Building2, Clock, GripVertical, Phone, FileText, PenLine, History } from "lucide-react";
+import {
+  Building2,
+  Clock,
+  GripVertical,
+  Phone,
+  FileText,
+  PenLine,
+  History,
+} from "lucide-react";
 import { RequestStatus } from "@hassad/shared";
 
 interface KanbanCardProps {
@@ -119,16 +127,17 @@ export function KanbanCard({
           )}
 
           {/* Returning client indicator */}
-          {request.client?.totalProjects != null && request.client.totalProjects > 0 && (
-            <Link
-              href={`/dashboard/sales/clients/${request.clientId}`}
-              className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <History className="w-3 h-3" />
-              {request.client.totalProjects} مشاريع سابقة
-            </Link>
-          )}
+          {request.client?.totalProjects != null &&
+            request.client.totalProjects > 0 && (
+              <Link
+                href={`/dashboard/sales/clients/${request.clientId}`}
+                className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <History className="w-3 h-3" />
+                {request.client.totalProjects} مشاريع سابقة
+              </Link>
+            )}
         </div>
         <GripVertical
           className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity"
@@ -170,23 +179,24 @@ export function KanbanCard({
       </div>
 
       {/* ── Pipeline Action Buttons ───────────────────────────────── */}
-      {request.status === RequestStatus.PROPOSAL_IN_PROGRESS && onCreateProposal && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCreateProposal(request);
-          }}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
-          style={{
-            backgroundColor: "#EFF6FF",
-            color: "#1D4ED8",
-            border: "1px solid #BFDBFE",
-          }}
-        >
-          <FileText className="w-3.5 h-3.5" />
-          إنشاء عرض فني
-        </button>
-      )}
+      {request.status === RequestStatus.PROPOSAL_IN_PROGRESS &&
+        onCreateProposal && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCreateProposal(request);
+            }}
+            className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
+            style={{
+              backgroundColor: "#EFF6FF",
+              color: "#1D4ED8",
+              border: "1px solid #BFDBFE",
+            }}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            إنشاء عرض فني
+          </button>
+        )}
 
       {request.status === RequestStatus.PROPOSAL_SENT && onEditProposal && (
         <button
@@ -206,23 +216,24 @@ export function KanbanCard({
         </button>
       )}
 
-      {request.status === RequestStatus.CONTRACT_PREPARATION && onCreateContract && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCreateContract(request);
-          }}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
-          style={{
-            backgroundColor: "#F5F3FF",
-            color: "#6D28D9",
-            border: "1px solid #DDD6FE",
-          }}
-        >
-          <FileText className="w-3.5 h-3.5" />
-          إنشاء عقد
-        </button>
-      )}
+      {request.status === RequestStatus.CONTRACT_PREPARATION &&
+        onCreateContract && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCreateContract(request);
+            }}
+            className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
+            style={{
+              backgroundColor: "#F5F3FF",
+              color: "#6D28D9",
+              border: "1px solid #DDD6FE",
+            }}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            إنشاء عقد
+          </button>
+        )}
 
       {request.status === RequestStatus.CONTRACT_SENT && onEditContract && (
         <button

@@ -30,26 +30,28 @@ POST   /admin/projects/:id/force-status  { status: ProjectStatus, reason: string
 
 ### ProjectRow columns
 
-| Column | Source | Filterable? |
-|---|---|---|
-| name | Project.name | search |
-| clientName | Project.client.companyName | clientId filter |
-| pmName | Project.projectManager.name | pmId filter |
-| status | Project.status | status filter (ACTIVE/PLANNING/COMPLETED/ON_HOLD/CANCELLED) |
-| completionPercentage | Project.completionPercentage | — |
-| overdueTasksCount | count of tasks where dueDate < now && status not in [DONE, REVISION] | overdueOnly filter |
-| priority | Project.priority | priority filter |
-| startDate | Project.startDate | — |
-| endDate | Project.endDate | — |
-| createdAt | Project.createdAt | — |
+| Column               | Source                                                               | Filterable?                                                 |
+| -------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| name                 | Project.name                                                         | search                                                      |
+| clientName           | Project.client.companyName                                           | clientId filter                                             |
+| pmName               | Project.projectManager.name                                          | pmId filter                                                 |
+| status               | Project.status                                                       | status filter (ACTIVE/PLANNING/COMPLETED/ON_HOLD/CANCELLED) |
+| completionPercentage | Project.completionPercentage                                         | —                                                           |
+| overdueTasksCount    | count of tasks where dueDate < now && status not in [DONE, REVISION] | overdueOnly filter                                          |
+| priority             | Project.priority                                                     | priority filter                                             |
+| startDate            | Project.startDate                                                    | —                                                           |
+| endDate              | Project.endDate                                                      | —                                                           |
+| createdAt            | Project.createdAt                                                    | —                                                           |
 
 ### Row actions
+
 - Click row → navigate to `/admin/projects/[id]`
 - "إعادة تعيين PM" → dialog with user search/select → confirm → POST reassign-pm
 - "أرشفة" → confirmation dialog → POST archive
 - "تغيير الحالة" → dialog with status dropdown + reason textarea → POST force-status
 
 ### Detail page tabs (`/admin/projects/[id]`)
+
 1. **نظرة عامة**: name, client, PM, status, priority, dates, completion %, description, action buttons
 2. **الأعضاء**: list of ProjectMember (user name, role, joinedAt), "إضافة عضو" dialog (search user + select role), "إزالة" button
 3. **المهام**: DataTable of tasks in this project (title, assignee, status, dueDate, priority) + "إعادة تعيين" + "تغيير الحالة" per row
@@ -81,25 +83,27 @@ POST   /admin/tasks/:id/force-transition  { status: TaskStatus, reason: string }
 
 ### TaskRow columns
 
-| Column | Source | Filterable? |
-|---|---|---|
-| title | Task.title | search |
-| projectName | Task.project.name | projectId filter |
-| assigneeName | Task.assignedTo.name | assigneeId filter |
-| department | Task.departmentId → Department.name | department filter |
-| status | Task.status | status filter (TODO/IN_PROGRESS/IN_REVIEW/DONE/REVISION) |
-| priority | Task.priority | priority filter |
-| dueDate | Task.dueDate | — |
-| isOverdue | dueDate < now && status not in [DONE, REVISION] | overdueOnly filter |
-| revisionCount | Task.revisionCount | — |
-| createdAt | Task.createdAt | — |
+| Column        | Source                                          | Filterable?                                              |
+| ------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| title         | Task.title                                      | search                                                   |
+| projectName   | Task.project.name                               | projectId filter                                         |
+| assigneeName  | Task.assignedTo.name                            | assigneeId filter                                        |
+| department    | Task.departmentId → Department.name             | department filter                                        |
+| status        | Task.status                                     | status filter (TODO/IN_PROGRESS/IN_REVIEW/DONE/REVISION) |
+| priority      | Task.priority                                   | priority filter                                          |
+| dueDate       | Task.dueDate                                    | —                                                        |
+| isOverdue     | dueDate < now && status not in [DONE, REVISION] | overdueOnly filter                                       |
+| revisionCount | Task.revisionCount                              | —                                                        |
+| createdAt     | Task.createdAt                                  | —                                                        |
 
 ### Row actions
+
 - Click row → navigate to `/admin/tasks/[id]`
 - "إعادة تعيين" → dialog with user search/select → POST reassign
 - "تغيير الحالة" → dialog with status dropdown + reason → POST force-transition
 
 ### Detail page tabs (`/admin/tasks/[id]`)
+
 1. **نظرة عامة**: title, description, project, assignee, status, priority, dueDate, revisionCount
 2. **السجل**: TaskStatusHistory timeline (from_status → to_status, changedBy, changedAt)
 3. **التعليقات**: TaskComment list
@@ -128,27 +132,29 @@ POST   /admin/contracts/:id/trigger-renewal-alert
 
 ### ContractRow columns
 
-| Column | Source | Filterable? |
-|---|---|---|
-| title | Contract.title | search |
-| clientName | Contract.client.companyName | clientId filter |
-| type | Contract.type | type filter |
-| status | Contract.status | status filter (DRAFT/ACTIVE/COMPLETED/CANCELLED) |
-| monthlyValue | Contract.monthlyValue | — |
-| totalValue | Contract.totalValue | — |
-| currency | Contract.currency | — |
-| startDate | Contract.startDate | — |
-| endDate | Contract.endDate | — |
-| isExpiring | endDate within next N days | expiringDays filter |
-| versionNumber | Contract.versionNumber | — |
-| eSigned | Contract.eSigned | — |
+| Column        | Source                      | Filterable?                                      |
+| ------------- | --------------------------- | ------------------------------------------------ |
+| title         | Contract.title              | search                                           |
+| clientName    | Contract.client.companyName | clientId filter                                  |
+| type          | Contract.type               | type filter                                      |
+| status        | Contract.status             | status filter (DRAFT/ACTIVE/COMPLETED/CANCELLED) |
+| monthlyValue  | Contract.monthlyValue       | —                                                |
+| totalValue    | Contract.totalValue         | —                                                |
+| currency      | Contract.currency           | —                                                |
+| startDate     | Contract.startDate          | —                                                |
+| endDate       | Contract.endDate            | —                                                |
+| isExpiring    | endDate within next N days  | expiringDays filter                              |
+| versionNumber | Contract.versionNumber      | —                                                |
+| eSigned       | Contract.eSigned            | —                                                |
 
 ### Row actions
+
 - Click row → navigate to `/admin/contracts/[id]`
 - "إلغاء" → dialog with reason → POST cancel
 - "تفعيل تنبيه التجديد" → POST trigger-renewal-alert
 
 ### Detail page tabs (`/admin/contracts/[id]`)
+
 1. **نظرة عامة**: title, client, type, status, dates, values, e-sign status
 2. **خطة الدفع**: ContractPaymentPlan rows (description, amount, dueDate, status)
 3. **الإصدارات**: ContractVersion list (versionNumber, filePath, createdBy, createdAt)
@@ -178,25 +184,27 @@ GET    /admin/leads/stats
 
 ### LeadRow columns
 
-| Column | Source | Filterable? |
-|---|---|---|
-| companyName | Lead.companyName | search |
-| contactName | Lead.contactName | search |
-| email | Lead.email | — |
-| phone | Lead.phoneWhatsapp | — |
-| assigneeName | Lead.assignedTo.name | assigneeId filter |
-| pipelineStage | Lead.pipelineStage | stage filter |
-| source | Lead.source | source filter |
-| businessType | Lead.businessType | businessType filter |
-| contactAttemptCount | Lead.contactAttemptCount | — |
-| lastContactAt | Lead.lastContactAt | — |
-| createdAt | Lead.createdAt | — |
+| Column              | Source                   | Filterable?         |
+| ------------------- | ------------------------ | ------------------- |
+| companyName         | Lead.companyName         | search              |
+| contactName         | Lead.contactName         | search              |
+| email               | Lead.email               | —                   |
+| phone               | Lead.phoneWhatsapp       | —                   |
+| assigneeName        | Lead.assignedTo.name     | assigneeId filter   |
+| pipelineStage       | Lead.pipelineStage       | stage filter        |
+| source              | Lead.source              | source filter       |
+| businessType        | Lead.businessType        | businessType filter |
+| contactAttemptCount | Lead.contactAttemptCount | —                   |
+| lastContactAt       | Lead.lastContactAt       | —                   |
+| createdAt           | Lead.createdAt           | —                   |
 
 ### Row actions
+
 - Click row → navigate to `/admin/leads/[id]`
 - "إعادة تعيين" → dialog with user search/select → POST reassign
 
 ### Detail page tabs (`/admin/leads/[id]`)
+
 1. **نظرة عامة**: company, contact, email, phone, stage, source, notes
 2. **سجل التواصل**: LeadContactLog timeline (type, result, notes, contactedAt)
 3. **سجل المراحل**: LeadPipelineHistory timeline (from_stage → to_stage, changedBy)
@@ -226,22 +234,24 @@ POST   /admin/requests/:id/force-status   { status: RequestStatus, reason: strin
 
 ### RequestRow columns
 
-| Column | Source | Filterable? |
-|---|---|---|
-| id (رقم الطلب) | Request.id (short) | search |
-| clientName | Request.client.name | clientId filter |
-| assigneeName | Request.assignedTo.name | assigneeId filter |
-| status | Request.status | status filter (SUBMITTED/QUALIFYING/APPROVED/REJECTED/CLOSED) |
-| servicesCount | count of RequestService | — |
-| ageDays | days since createdAt | — |
-| createdAt | Request.createdAt | — |
+| Column         | Source                  | Filterable?                                                   |
+| -------------- | ----------------------- | ------------------------------------------------------------- |
+| id (رقم الطلب) | Request.id (short)      | search                                                        |
+| clientName     | Request.client.name     | clientId filter                                               |
+| assigneeName   | Request.assignedTo.name | assigneeId filter                                             |
+| status         | Request.status          | status filter (SUBMITTED/QUALIFYING/APPROVED/REJECTED/CLOSED) |
+| servicesCount  | count of RequestService | —                                                             |
+| ageDays        | days since createdAt    | —                                                             |
+| createdAt      | Request.createdAt       | —                                                             |
 
 ### Row actions
+
 - Click row → navigate to `/admin/requests/[id]`
 - "إعادة تعيين" → dialog with user search/select → POST reassign
 - "تغيير الحالة" → dialog with status dropdown + reason → POST force-status
 
 ### Detail page tabs (`/admin/requests/[id]`)
+
 1. **نظرة عامة**: client, assignee, status, description, age
 2. **الخدمات المطلوبة**: RequestService list (serviceCatalog name, quantity)
 3. **سجل الحالة**: RequestStatusHistory timeline
@@ -266,25 +276,27 @@ POST   /admin/campaigns/:id/end          → { success: true }
 
 ### CampaignRow columns
 
-| Column | Source | Filterable? |
-|---|---|---|
-| name | Campaign.name | search |
-| clientName | Campaign.client.companyName | clientId filter |
-| managedByName | Campaign.managedBy.name | managedById filter |
-| platform | Campaign.platform | platform filter |
-| status | Campaign.status | status filter (PLANNING/ACTIVE/PAUSED/ENDED) |
-| budgetTotal | Campaign.budgetTotal | — |
-| budgetSpent | Campaign.budgetSpent | — |
-| isOverspent | budgetSpent > budgetTotal | overspentOnly filter |
-| startDate | Campaign.startDate | — |
-| endDate | Campaign.endDate | — |
+| Column        | Source                      | Filterable?                                  |
+| ------------- | --------------------------- | -------------------------------------------- |
+| name          | Campaign.name               | search                                       |
+| clientName    | Campaign.client.companyName | clientId filter                              |
+| managedByName | Campaign.managedBy.name     | managedById filter                           |
+| platform      | Campaign.platform           | platform filter                              |
+| status        | Campaign.status             | status filter (PLANNING/ACTIVE/PAUSED/ENDED) |
+| budgetTotal   | Campaign.budgetTotal        | —                                            |
+| budgetSpent   | Campaign.budgetSpent        | —                                            |
+| isOverspent   | budgetSpent > budgetTotal   | overspentOnly filter                         |
+| startDate     | Campaign.startDate          | —                                            |
+| endDate       | Campaign.endDate            | —                                            |
 
 ### Row actions
+
 - Click row → navigate to `/admin/campaigns/[id]`
 - "إيقاف مؤقت" → POST pause
 - "إنهاء" → confirmation dialog → POST end
 
 ### Detail page tabs (`/admin/campaigns/[id]`)
+
 1. **نظرة عامة**: name, client, manager, platform, status, dates, budget vs spent
 2. **مؤشرات الأداء**: CampaignKpiSnapshot list (impressions, clicks, conversions, revenue, CPC, CPA, CTR, conversionRate, ROAS, recordedAt)
 3. **اختبارات A/B**: AbTest list (name, testElement, status, variants, winningVariant)
@@ -312,18 +324,19 @@ GET    /admin/conversations/:id/export   → CSV file download
 
 ### ConversationRow columns
 
-| Column | Source | Filterable? |
-|---|---|---|
-| id | Conversation.id (short) | search |
-| participants | ConversationParticipant[].user.name | participantId filter |
-| lastMessageAt | max(Message.createdAt) | — |
-| messageCount | count of Message | — |
-| projectId | (from context) | projectId filter |
-| isActive | Conversation.isActive | isActive filter |
-| isStale | last message > N days ago | staleDays filter |
-| createdAt | Conversation.createdAt | — |
+| Column        | Source                              | Filterable?          |
+| ------------- | ----------------------------------- | -------------------- |
+| id            | Conversation.id (short)             | search               |
+| participants  | ConversationParticipant[].user.name | participantId filter |
+| lastMessageAt | max(Message.createdAt)              | —                    |
+| messageCount  | count of Message                    | —                    |
+| projectId     | (from context)                      | projectId filter     |
+| isActive      | Conversation.isActive               | isActive filter      |
+| isStale       | last message > N days ago           | staleDays filter     |
+| createdAt     | Conversation.createdAt              | —                    |
 
 ### Row actions
+
 - Click row → view messages (read-only)
 - "إخفاء" → POST hide (soft moderation)
 - "تصدير" → GET export (CSV download)
@@ -348,6 +361,7 @@ POST   /admin/clients/:id/regenerate-portal-token
 ```
 
 ### Portal overview data
+
 - **activeClients**: clients who logged into portal in last 30 days
 - **idleClients**: clients with portal access but no login in 30 days
 - **pendingApprovals**: deliverables/projects/reports awaiting client approval
@@ -358,17 +372,18 @@ POST   /admin/clients/:id/regenerate-portal-token
 
 ### PortalClientRow columns
 
-| Column | Source | Filterable? |
-|---|---|---|
-| clientName | Client.contactName | search |
-| companyName | Client.companyName | search |
-| status | Client.status | status filter |
-| hasPortalAccess | Client.portalAccessToken != null | hasPortalAccess filter |
-| lastLoginAt | User.lastLoginAt (linked via userId) | — |
-| intakeCompleted | Client.intakeCompleted | — |
-| pendingApprovalsCount | count of pending deliverables/projects | — |
+| Column                | Source                                 | Filterable?            |
+| --------------------- | -------------------------------------- | ---------------------- |
+| clientName            | Client.contactName                     | search                 |
+| companyName           | Client.companyName                     | search                 |
+| status                | Client.status                          | status filter          |
+| hasPortalAccess       | Client.portalAccessToken != null       | hasPortalAccess filter |
+| lastLoginAt           | User.lastLoginAt (linked via userId)   | —                      |
+| intakeCompleted       | Client.intakeCompleted                 | —                      |
+| pendingApprovalsCount | count of pending deliverables/projects | —                      |
 
 ### Row actions
+
 - "إعادة إنشاء رمز البوابة" → POST regenerate-portal-token → show new token
 - Click row → navigate to existing `/admin/clients/[id]`
 
@@ -377,6 +392,7 @@ POST   /admin/clients/:id/regenerate-portal-token
 ## Shared patterns across ALL pages
 
 ### Backend
+
 - Every list endpoint: `?search=&...&page=&limit=` → `{ items, total, page, limit, totalPages }`
 - Every mutation: `POST` with body → `{ success: true }` or throws `HttpException`
 - Every mutation writes to `Ledger` (audit) with `action`, `entity`, `entityId`, `userId`, `after`
@@ -385,6 +401,7 @@ POST   /admin/clients/:id/regenerate-portal-token
 - All services use `PrismaService` with proper transactions where needed
 
 ### Frontend
+
 - Every list page: `DataTable` + `FilterBar` + search + pagination + loading/error/empty states
 - Every detail page: tabs using `Tabs` + `TabsList` + `TabsTrigger` + `TabsContent`
 - Every action: `Dialog` with confirmation + `toast.success`/`toast.error`
@@ -393,6 +410,7 @@ POST   /admin/clients/:id/regenerate-portal-token
 - All API calls through RTK Query with proper `tagTypes` and cache invalidation
 
 ### Permissions needed (data migration)
+
 ```
 admin.projects.read, admin.projects.intervene
 admin.tasks.read, admin.tasks.intervene
@@ -403,6 +421,7 @@ admin.campaigns.read
 admin.chat.read, admin.chat.moderate
 admin.portal.read, admin.portal.manage
 ```
+
 (Already registered in the Phase 0 data migration.)
 
 ---

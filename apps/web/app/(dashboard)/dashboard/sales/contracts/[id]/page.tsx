@@ -198,13 +198,20 @@ export default function SalesContractDetailPage({ params }: PageProps) {
                       : `${data.downPaymentValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`}
                     {data.downPaymentType === "PERCENT" && (
                       <span className="text-xs text-portal-note-text font-normal mr-1">
-                        ({(data.totalValue * (data.downPaymentValue / 100)).toLocaleString("ar-SA-u-nu-latn")} ر.س)
+                        (
+                        {(
+                          data.totalValue *
+                          (data.downPaymentValue / 100)
+                        ).toLocaleString("ar-SA-u-nu-latn")}{" "}
+                        ر.س)
                       </span>
                     )}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-portal-note-text">الدفعة الشهرية</p>
+                  <p className="text-xs text-portal-note-text">
+                    الدفعة الشهرية
+                  </p>
                   <p className="text-sm font-bold text-natural-100 mt-0.5">
                     {data.monthlyValue > 0
                       ? `${data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`
@@ -251,7 +258,10 @@ export default function SalesContractDetailPage({ params }: PageProps) {
               }}
               renderCells={(inv) => [
                 <td key="num" className="px-5 py-3.5 align-middle">
-                  <span className="text-sm font-mono text-natural-100" dir="ltr">
+                  <span
+                    className="text-sm font-mono text-natural-100"
+                    dir="ltr"
+                  >
                     {inv.invoiceNumber}
                   </span>
                 </td>,
@@ -270,7 +280,10 @@ export default function SalesContractDetailPage({ params }: PageProps) {
                     {formatShortDate(inv.dueDate)}
                   </span>
                 </td>,
-                <td key="action" className="px-5 py-3.5 align-middle text-start">
+                <td
+                  key="action"
+                  className="px-5 py-3.5 align-middle text-start"
+                >
                   <Link
                     href={`/dashboard/finance/invoices/${inv.id}`}
                     onClick={(e) => e.stopPropagation()}
@@ -290,9 +303,7 @@ export default function SalesContractDetailPage({ params }: PageProps) {
               <div className="flex items-center gap-3">
                 <FileText className="h-8 w-8 shrink-0 text-action-blue" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm text-natural-100">
-                    العقد بصيغة PDF
-                  </p>
+                  <p className="text-sm text-natural-100">العقد بصيغة PDF</p>
                 </div>
                 <a
                   href={fileUrl}

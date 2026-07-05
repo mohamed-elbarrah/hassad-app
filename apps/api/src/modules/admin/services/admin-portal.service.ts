@@ -59,7 +59,8 @@ export class AdminPortalService {
       ];
     }
     if (query.status) where.status = query.status;
-    if (query.hasPortalAccess === "true") where.portalAccessToken = { not: null };
+    if (query.hasPortalAccess === "true")
+      where.portalAccessToken = { not: null };
     if (query.hasPortalAccess === "false") where.portalAccessToken = null;
 
     const page = query.page ? parseInt(query.page, 10) : 1;
@@ -99,7 +100,9 @@ export class AdminPortalService {
   }
 
   async regeneratePortalToken(clientId: string) {
-    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+    });
     if (!client) throw new NotFoundException("Client not found");
 
     const token = crypto.randomBytes(32).toString("hex");

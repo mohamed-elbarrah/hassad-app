@@ -9,7 +9,14 @@ export class AdminService {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const endOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+    );
 
     const [
       totalUsers,
@@ -29,6 +36,7 @@ export class AdminService {
       conversationsCount,
       recentUsers,
       usersByRole,
+      satisfactionResult,
     ] = await Promise.all([
       // Total users (exclude clients)
       this.prisma.user.count({
@@ -106,13 +114,18 @@ export class AdminService {
           _count: { select: { users: true } },
         },
       }),
+      // Average satisfaction score (1-5 scale, convert to 0-100)
+      this.prisma.satisfactionRating.aggregate({
+        _avg: { score: true },
+      }),
     ]);
 
     const lastMonthRev = lastMonthRevenue._sum.amount ?? 0;
     const thisMonthRev = monthlyRevenue._sum.amount ?? 0;
-    const revenueChange = lastMonthRev > 0
-      ? Math.round(((thisMonthRev - lastMonthRev) / lastMonthRev) * 100)
-      : 0;
+    const revenueChange =
+      lastMonthRev > 0
+        ? Math.round(((thisMonthRev - lastMonthRev) / lastMonthRev) * 100)
+        : 0;
 
     return {
       // Users
@@ -143,8 +156,10 @@ export class AdminService {
       pendingRequests,
       activeCampaigns,
       conversationsCount,
-      // Satisfaction (placeholder until real data)
-      satisfactionRate: 92,
+      // Satisfaction — real average from SatisfactionRating table (score 1-5 → 0-100)
+      satisfactionRate: satisfactionResult._avg.score
+        ? Math.round(satisfactionResult._avg.score * 20)
+        : null,
     };
   }
 
@@ -210,48 +225,59 @@ export class AdminService {
 
       revenue.push(
         paidInvoices
-          .filter((inv) => inv.paidAt && inv.paidAt >= dayStart && inv.paidAt <= dayEnd)
+          .filter(
+            (inv) =>
+              inv.paidAt && inv.paidAt >= dayStart && inv.paidAt <= dayEnd,
+          )
           .reduce((sum, inv) => sum + Number(inv.amount), 0),
       );
       newUsersArr.push(
-        newUsers.filter((u) => u.createdAt >= dayStart && u.createdAt <= dayEnd).length,
+        newUsers.filter((u) => u.createdAt >= dayStart && u.createdAt <= dayEnd)
+          .length,
       );
       newClientsArr.push(
-        newClients.filter((c) => c.createdAt >= dayStart && c.createdAt <= dayEnd).length,
+        newClients.filter(
+          (c) => c.createdAt >= dayStart && c.createdAt <= dayEnd,
+        ).length,
       );
       newProjectsArr.push(
-        newProjects.filter((p) => p.createdAt >= dayStart && p.createdAt <= dayEnd).length,
+        newProjects.filter(
+          (p) => p.createdAt >= dayStart && p.createdAt <= dayEnd,
+        ).length,
       );
       tasksCompletedArr.push(
         completedTasks.filter(
-          (t) => t.approvedAt && t.approvedAt >= dayStart && t.approvedAt <= dayEnd,
+          (t) =>
+            t.approvedAt && t.approvedAt >= dayStart && t.approvedAt <= dayEnd,
         ).length,
       );
     }
 
-    return { revenue, newUsers: newUsersArr, newClients: newClientsArr, newProjects: newProjectsArr, tasksCompleted: tasksCompletedArr, labels };
+    return {
+      revenue,
+      newUsers: newUsersArr,
+      newClients: newClientsArr,
+      newProjects: newProjectsArr,
+      tasksCompleted: tasksCompletedArr,
+      labels,
+    };
   }
 
   // ── Funnel ────────────────────────────────────────────────────────────────────
 
   async getFunnel() {
-    const [
-      leads,
-      clients,
-      proposals,
-      contracts,
-      projects,
-      invoices,
-      payments,
-    ] = await Promise.all([
-      this.prisma.lead.count({ where: { isActive: true } }),
-      this.prisma.client.count({ where: { status: { not: "STOPPED" } } }),
-      this.prisma.proposal.count(),
-      this.prisma.contract.count({ where: { status: { notIn: ["CANCELLED", "DRAFT"] } } }),
-      this.prisma.project.count({ where: { isArchived: false } }),
-      this.prisma.invoice.count(),
-      this.prisma.payment.count({ where: { status: "SUCCESS" } }),
-    ]);
+    const [leads, clients, proposals, contracts, projects, invoices, payments] =
+      await Promise.all([
+        this.prisma.lead.count({ where: { isActive: true } }),
+        this.prisma.client.count({ where: { status: { not: "STOPPED" } } }),
+        this.prisma.proposal.count(),
+        this.prisma.contract.count({
+          where: { status: { notIn: ["CANCELLED", "DRAFT"] } },
+        }),
+        this.prisma.project.count({ where: { isArchived: false } }),
+        this.prisma.invoice.count(),
+        this.prisma.payment.count({ where: { status: "SUCCESS" } }),
+      ]);
 
     const calcRate = (from: number, to: number) =>
       from > 0 ? Math.round((to / from) * 100 * 10) / 10 : 0;
@@ -279,7 +305,9 @@ export class AdminService {
 
   async getAlerts() {
     const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysFromNow = new Date(
+      now.getTime() + 30 * 24 * 60 * 60 * 1000,
+    );
 
     const [
       overdueTasks,
@@ -319,12 +347,36 @@ export class AdminService {
     ]);
 
     return {
-      overdueTasks: { count: overdueTasks, label: "مهام متأخرة", link: "/dashboard/admin/tasks?status=OVERDUE" },
-      agedInvoices: { count: agedInvoices, label: "فواتير غير مسددة (+60 يوم)", link: "/dashboard/admin/invoices?aging=60" },
-      escalatedDisputes: { count: escalatedDisputes, label: "نزاعات تم تصعيدها", link: "/dashboard/admin/disputes?status=ESCALATED" },
-      failedWebhooks: { count: failedWebhooks, label: "Webhooks فاشلة", link: "/dashboard/admin/integrations?status=failed" },
-      expiringContracts: { count: expiringContracts, label: "عقود تنتهي قريباً", link: "/dashboard/admin/contracts?expiring=30" },
-      pendingRequests: { count: pendingRequests, label: "طلبات معلقة", link: "/dashboard/admin/requests?status=PENDING" },
+      overdueTasks: {
+        count: overdueTasks,
+        label: "مهام متأخرة",
+        link: "/dashboard/admin/tasks?status=OVERDUE",
+      },
+      agedInvoices: {
+        count: agedInvoices,
+        label: "فواتير غير مسددة (+60 يوم)",
+        link: "/dashboard/admin/invoices?aging=60",
+      },
+      escalatedDisputes: {
+        count: escalatedDisputes,
+        label: "نزاعات تم تصعيدها",
+        link: "/dashboard/admin/disputes?status=ESCALATED",
+      },
+      failedWebhooks: {
+        count: failedWebhooks,
+        label: "Webhooks فاشلة",
+        link: "/dashboard/admin/integrations?status=failed",
+      },
+      expiringContracts: {
+        count: expiringContracts,
+        label: "عقود تنتهي قريباً",
+        link: "/dashboard/admin/contracts?expiring=30",
+      },
+      pendingRequests: {
+        count: pendingRequests,
+        label: "طلبات معلقة",
+        link: "/dashboard/admin/requests?status=PENDING",
+      },
     };
   }
 
@@ -340,7 +392,9 @@ export class AdminService {
       pendingWebhooks,
     ] = await Promise.all([
       // Quick DB connectivity test
-      this.prisma.$queryRawUnsafe<[{ "1": number }]>(`SELECT 1`).catch(() => [{ 1: 0 }]),
+      this.prisma
+        .$queryRawUnsafe<[{ "1": number }]>(`SELECT 1`)
+        .catch(() => [{ 1: 0 }]),
       // Recent errors (webhook failures + other indicators)
       this.prisma.webhookLog.count({
         where: {

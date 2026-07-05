@@ -117,7 +117,10 @@ export type PmResolveDisputeInput = z.infer<typeof pmResolveDisputeSchema>;
 
 export const clientConfirmSchema = z.object({
   confirmed: z.boolean(),
-  feedback: z.string().max(500, "Feedback must be at most 500 characters").optional(),
+  feedback: z
+    .string()
+    .max(500, "Feedback must be at most 500 characters")
+    .optional(),
 });
 
 export type ClientConfirmInput = z.infer<typeof clientConfirmSchema>;

@@ -47,9 +47,7 @@ import { ClientBriefCompact } from "@/components/client-brief";
 import { MarketingStrategySection } from "@/components/dashboard/marketing/MarketingStrategySection";
 import { downloadTaskFile } from "@/lib/downloadFile";
 import { formatFileSize } from "@/lib/format";
-import {
-  useGetClientTeamViewQuery,
-} from "@/features/clients/clientsApi";
+import { useGetClientTeamViewQuery } from "@/features/clients/clientsApi";
 
 // Utils / format
 import {
@@ -63,7 +61,12 @@ import {
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
 } from "@/lib/utils/task-status";
-import { TaskStatus, TaskPriority, CampaignStatus, FilePurpose } from "@hassad/shared";
+import {
+  TaskStatus,
+  TaskPriority,
+  CampaignStatus,
+  FilePurpose,
+} from "@hassad/shared";
 import type { TaskFile, TaskComment } from "@hassad/shared";
 
 // Icons
@@ -134,7 +137,8 @@ export default function MarketingTaskDetailPage() {
   const params = useParams();
   const taskId = params.taskId as string;
 
-  const { data: rawTask, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId);
+  const { data: rawTask, isLoading: isTaskLoading } =
+    useGetTaskByIdQuery(taskId);
   const task = rawTask as unknown as TaskWithProject;
   const { data: campaigns = [] } = useGetCampaignsByTaskQuery(taskId);
   const { data: strategy } = useGetTaskStrategyQuery(taskId);
@@ -153,11 +157,23 @@ export default function MarketingTaskDetailPage() {
 
   // ── Aggregated metrics (MUST be before any conditional returns) ────────
   const aggregated = useMemo(() => {
-    const spend = campaigns.reduce((acc, c: any) => acc + (c.budgetSpent ?? 0), 0);
-    const budgetTotal = campaigns.reduce((acc, c: any) => acc + (c.budgetTotal ?? 0), 0);
-    const conv = campaigns.reduce((acc, c: any) => acc + (c.conversions ?? 0), 0);
+    const spend = campaigns.reduce(
+      (acc, c: any) => acc + (c.budgetSpent ?? 0),
+      0,
+    );
+    const budgetTotal = campaigns.reduce(
+      (acc, c: any) => acc + (c.budgetTotal ?? 0),
+      0,
+    );
+    const conv = campaigns.reduce(
+      (acc, c: any) => acc + (c.conversions ?? 0),
+      0,
+    );
     const rev = campaigns.reduce((acc, c: any) => acc + (c.revenue ?? 0), 0);
-    const impressions = campaigns.reduce((acc, c: any) => acc + (c.impressions ?? 0), 0);
+    const impressions = campaigns.reduce(
+      (acc, c: any) => acc + (c.impressions ?? 0),
+      0,
+    );
     const clicks = campaigns.reduce((acc, c: any) => acc + (c.clicks ?? 0), 0);
     return { spend, budgetTotal, conv, rev, impressions, clicks };
   }, [campaigns]);
@@ -173,7 +189,7 @@ export default function MarketingTaskDetailPage() {
   if (isTaskLoading) return <DetailSkeleton />;
   if (!task)
     return (
-      <div className="py-20 text-center"  >
+      <div className="py-20 text-center">
         <p className="text-lg text-neutral-300">المهمة غير موجودة</p>
       </div>
     );
@@ -184,16 +200,24 @@ export default function MarketingTaskDetailPage() {
   const isDueSoon =
     days !== null && days >= 0 && days <= 3 && task.status !== TaskStatus.DONE;
 
-  const totalRoas = aggregated.spend > 0 ? aggregated.rev / aggregated.spend : 0;
-  const totalCtr = aggregated.impressions > 0 ? (aggregated.clicks / aggregated.impressions) * 100 : 0;
-  const totalCpc = aggregated.clicks > 0 ? aggregated.spend / aggregated.clicks : 0;
-  const budgetPct = aggregated.budgetTotal > 0 ? Math.round((aggregated.spend / aggregated.budgetTotal) * 100) : 0;
+  const totalRoas =
+    aggregated.spend > 0 ? aggregated.rev / aggregated.spend : 0;
+  const totalCtr =
+    aggregated.impressions > 0
+      ? (aggregated.clicks / aggregated.impressions) * 100
+      : 0;
+  const totalCpc =
+    aggregated.clicks > 0 ? aggregated.spend / aggregated.clicks : 0;
+  const budgetPct =
+    aggregated.budgetTotal > 0
+      ? Math.round((aggregated.spend / aggregated.budgetTotal) * 100)
+      : 0;
 
   const canStart = task.status === TaskStatus.TODO;
   const canSubmit = task.status === TaskStatus.IN_PROGRESS;
 
   return (
-    <div className="flex flex-col gap-6 pb-10"  >
+    <div className="flex flex-col gap-6 pb-10">
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
       <Link
         href="/dashboard/marketing/tasks"
@@ -258,7 +282,7 @@ export default function MarketingTaskDetailPage() {
               <p
                 className={cn(
                   "text-sm font-semibold",
-                  isOverdue ? "text-danger-600" : "text-natural-100"
+                  isOverdue ? "text-danger-600" : "text-natural-100",
                 )}
               >
                 {formatDate(task.dueDate)}
@@ -371,7 +395,11 @@ export default function MarketingTaskDetailPage() {
               onClick={() => setIsModalOpen(true)}
               icon={<Plus className="w-4 h-4" />}
               disabled={!strategyApproved}
-              title={!strategyApproved ? "يجب الموافقة على الدراسة التسويقية أولاً" : undefined}
+              title={
+                !strategyApproved
+                  ? "يجب الموافقة على الدراسة التسويقية أولاً"
+                  : undefined
+              }
             >
               إضافة حملة
             </ActionButton>
@@ -416,7 +444,9 @@ export default function MarketingTaskDetailPage() {
                     </p>
                   </InfoPanel>
                   <InfoPanel variant="bordered" className="text-center">
-                    <p className="text-xs text-portal-note-text mb-1">الأولوية</p>
+                    <p className="text-xs text-portal-note-text mb-1">
+                      الأولوية
+                    </p>
                     <p className="text-sm font-semibold text-natural-100">
                       {TASK_PRIORITY_LABELS[task.priority as TaskPriority]}
                     </p>
@@ -451,7 +481,9 @@ export default function MarketingTaskDetailPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-portal-note-text mb-1">المشروع</p>
+                    <p className="text-xs text-portal-note-text mb-1">
+                      المشروع
+                    </p>
                     <p className="text-sm font-semibold text-natural-100">
                       {task.project?.name || "—"}
                     </p>
@@ -504,8 +536,16 @@ export default function MarketingTaskDetailPage() {
                 title="متوسط ROAS"
                 value={totalRoas > 0 ? `${totalRoas.toFixed(2)}x` : "—"}
                 icon={Zap}
-                variant={totalRoas >= 2 ? "success" : totalRoas < 1 ? "danger" : "default"}
-                trend={totalRoas >= 2 ? "up" : totalRoas < 1 ? "down" : "neutral"}
+                variant={
+                  totalRoas >= 2
+                    ? "success"
+                    : totalRoas < 1
+                      ? "danger"
+                      : "default"
+                }
+                trend={
+                  totalRoas >= 2 ? "up" : totalRoas < 1 ? "down" : "neutral"
+                }
                 trendValue={
                   totalRoas >= 2 ? "مربح" : totalRoas < 1 ? "خاسر" : "محايد"
                 }
@@ -597,7 +637,10 @@ export default function MarketingTaskDetailPage() {
                       <p className="text-sm text-portal-note-text">المتبقي</p>
                       <p className="text-lg font-semibold text-natural-100">
                         {formatCurrency(
-                          Math.max(0, aggregated.budgetTotal - aggregated.spend)
+                          Math.max(
+                            0,
+                            aggregated.budgetTotal - aggregated.spend,
+                          ),
                         )}
                       </p>
                     </div>
@@ -606,7 +649,11 @@ export default function MarketingTaskDetailPage() {
                     value={budgetPct}
                     max={100}
                     variant={
-                      budgetPct > 90 ? "danger" : budgetPct > 70 ? "warning" : "default"
+                      budgetPct > 90
+                        ? "danger"
+                        : budgetPct > 70
+                          ? "warning"
+                          : "default"
                     }
                     size="md"
                     showLabel
@@ -672,11 +719,7 @@ export default function MarketingTaskDetailPage() {
 
 // ── Campaign Card ───────────────────────────────────────────────────────────
 
-function CampaignCard({
-  campaign,
-}: {
-  campaign: any;
-}) {
+function CampaignCard({ campaign }: { campaign: any }) {
   const [updateStatus] = useUpdateCampaignStatusMutation();
 
   const roas =
@@ -701,12 +744,11 @@ function CampaignCard({
     campaign.status === CampaignStatus.ACTIVE ||
     campaign.status === CampaignStatus.PAUSED;
 
-
   return (
     <SurfaceCard
       className={cn(
         "group border-portal-card-border hover:border-secondary-500/40 transition-all",
-        campaign.needsOptimization && "border-danger-200 bg-danger-50/10"
+        campaign.needsOptimization && "border-danger-200 bg-danger-50/10",
       )}
     >
       {/* Header */}
@@ -717,7 +759,8 @@ function CampaignCard({
             size="sm"
             className={cn(
               "border-0",
-              PLATFORM_ICON_BG[campaign.platform] || "bg-neutral-100 text-neutral-500"
+              PLATFORM_ICON_BG[campaign.platform] ||
+                "bg-neutral-100 text-neutral-500",
             )}
           />
           <span className="text-xs font-medium text-portal-note-text">
@@ -774,7 +817,7 @@ function CampaignCard({
                 ? "text-success-600"
                 : roas < 1 && roas > 0
                   ? "text-danger-600"
-                  : "text-natural-100"
+                  : "text-natural-100",
             )}
           >
             {roas > 0 ? `${roas.toFixed(1)}x` : "—"}
@@ -804,7 +847,10 @@ function CampaignCard({
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <Link href={`/dashboard/marketing/campaigns/${campaign.id}`} className="flex-1">
+        <Link
+          href={`/dashboard/marketing/campaigns/${campaign.id}`}
+          className="flex-1"
+        >
           <ActionButton
             variant="outline"
             size="sm"
@@ -1089,7 +1135,7 @@ function TaskTimeline({ task }: { task: TaskWithProject }) {
             <div
               className={cn(
                 "absolute right-[15px] top-8 bottom-0 w-0.5",
-                step.done ? "bg-secondary-500" : "bg-neutral-100"
+                step.done ? "bg-secondary-500" : "bg-neutral-100",
               )}
             />
           )}
@@ -1098,7 +1144,7 @@ function TaskTimeline({ task }: { task: TaskWithProject }) {
               "w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10",
               step.done
                 ? "bg-secondary-500 text-white"
-                : "bg-neutral-100 text-neutral-300 border border-neutral-200"
+                : "bg-neutral-100 text-neutral-300 border border-neutral-200",
             )}
           >
             {step.done ? (
@@ -1111,7 +1157,7 @@ function TaskTimeline({ task }: { task: TaskWithProject }) {
             <p
               className={cn(
                 "text-sm font-medium",
-                step.done ? "text-natural-100" : "text-neutral-300"
+                step.done ? "text-natural-100" : "text-neutral-300",
               )}
             >
               {step.label}
@@ -1132,7 +1178,7 @@ function TaskTimeline({ task }: { task: TaskWithProject }) {
 
 function DetailSkeleton() {
   return (
-    <div className="space-y-6"  >
+    <div className="space-y-6">
       <Skeleton className="h-6 w-48" />
       <div className="space-y-2">
         <Skeleton className="h-8 w-3/4" />

@@ -1,6 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { Prisma, DisputeStatus, DisputeCategory, DisputePriority } from "@prisma/client";
+import {
+  Prisma,
+  DisputeStatus,
+  DisputeCategory,
+  DisputePriority,
+} from "@prisma/client";
 import {
   CreateDisputeDto,
   CreateDisputeMessageDto,
@@ -32,7 +42,11 @@ export class DisputesService {
    * Client creates a new dispute ticket
    * Business Rule: One active dispute per project per client
    */
-  async createDispute(clientId: string, dto: CreateDisputeDto, files?: Express.Multer.File[]) {
+  async createDispute(
+    clientId: string,
+    dto: CreateDisputeDto,
+    files?: Express.Multer.File[],
+  ) {
     // Verify project belongs to client and get PM
     const project = await this.prisma.project.findFirst({
       where: {
@@ -219,7 +233,12 @@ export class DisputesService {
   /**
    * Client adds message to dispute
    */
-  async addMessage(disputeId: string, authorId: string, dto: CreateDisputeMessageDto, files?: Express.Multer.File[]) {
+  async addMessage(
+    disputeId: string,
+    authorId: string,
+    dto: CreateDisputeMessageDto,
+    files?: Express.Multer.File[],
+  ) {
     const dispute = await this.prisma.disputeTicket.findUnique({
       where: { id: disputeId },
       select: { id: true, status: true },
@@ -255,7 +274,13 @@ export class DisputesService {
       });
 
       if (files?.length) {
-        await this.uploadAttachments(tx, disputeId, authorId, files, created.id);
+        await this.uploadAttachments(
+          tx,
+          disputeId,
+          authorId,
+          files,
+          created.id,
+        );
       }
 
       return created;
@@ -274,7 +299,11 @@ export class DisputesService {
   /**
    * Client confirms resolution or escalates
    */
-  async clientConfirmResolution(clientId: string, disputeId: string, dto: ClientConfirmDto) {
+  async clientConfirmResolution(
+    clientId: string,
+    disputeId: string,
+    dto: ClientConfirmDto,
+  ) {
     const dispute = await this.prisma.disputeTicket.findFirst({
       where: { id: disputeId, clientId },
       include: {
@@ -387,7 +416,7 @@ export class DisputesService {
         orderBy: { openedAt: "desc" },
         include: {
           project: { select: { id: true, name: true } },
-          client: { select: { id: true, companyName: true,  } },
+          client: { select: { id: true, companyName: true } },
           messages: {
             take: 1,
             orderBy: { createdAt: "desc" },
@@ -417,7 +446,7 @@ export class DisputesService {
       where: { id: disputeId, pmId },
       include: {
         project: { select: { id: true, name: true } },
-        client: { select: { id: true, companyName: true,  } },
+        client: { select: { id: true, companyName: true } },
         messages: {
           where: { isInternal: false }, // PM cannot see internal admin notes
           orderBy: { createdAt: "asc" },
@@ -433,7 +462,9 @@ export class DisputesService {
     });
 
     if (!dispute) {
-      throw new NotFoundException("التذكرة غير موجودة أو ليس لديك صلاحية للوصول إليها");
+      throw new NotFoundException(
+        "التذكرة غير موجودة أو ليس لديك صلاحية للوصول إليها",
+      );
     }
 
     return dispute;
@@ -559,7 +590,7 @@ export class DisputesService {
         orderBy: { openedAt: "desc" },
         include: {
           project: { select: { id: true, name: true } },
-          client: { select: { id: true, companyName: true,  } },
+          client: { select: { id: true, companyName: true } },
           pm: { select: { id: true, name: true, avatarUrl: true } },
           reviewer: { select: { id: true, name: true } },
           resolver: { select: { id: true, name: true } },
@@ -622,7 +653,11 @@ export class DisputesService {
   /**
    * Admin approves dispute
    */
-  async approveDispute(adminId: string, disputeId: string, dto: ApproveDisputeDto) {
+  async approveDispute(
+    adminId: string,
+    disputeId: string,
+    dto: ApproveDisputeDto,
+  ) {
     const dispute = await this.prisma.disputeTicket.findUnique({
       where: { id: disputeId },
       select: { id: true, status: true, pmId: true, clientId: true },
@@ -675,7 +710,11 @@ export class DisputesService {
   /**
    * Admin rejects dispute
    */
-  async rejectDispute(adminId: string, disputeId: string, dto: RejectDisputeDto) {
+  async rejectDispute(
+    adminId: string,
+    disputeId: string,
+    dto: RejectDisputeDto,
+  ) {
     const dispute = await this.prisma.disputeTicket.findUnique({
       where: { id: disputeId },
       select: { id: true, status: true, clientId: true },
@@ -885,34 +924,37 @@ export class DisputesService {
    * Get admin dispute statistics
    */
   async getAdminStats() {
-    const [
-      pendingApproval,
-      active,
-      escalated,
-      resolved,
-      closed,
-    ] = await Promise.all([
-      // Pending approval
-      this.prisma.disputeTicket.count({
-        where: { status: DisputeStatus.PENDING_APPROVAL },
-      }),
-      // Active (approved or in progress)
-      this.prisma.disputeTicket.count({
-        where: { status: { in: [DisputeStatus.APPROVED, DisputeStatus.IN_PROGRESS, DisputeStatus.PENDING_CLIENT] } },
-      }),
-      // Escalated
-      this.prisma.disputeTicket.count({
-        where: { status: DisputeStatus.ESCALATED },
-      }),
-      // Resolved
-      this.prisma.disputeTicket.count({
-        where: { status: DisputeStatus.RESOLVED },
-      }),
-      // Closed
-      this.prisma.disputeTicket.count({
-        where: { status: DisputeStatus.CLOSED },
-      }),
-    ]);
+    const [pendingApproval, active, escalated, resolved, closed] =
+      await Promise.all([
+        // Pending approval
+        this.prisma.disputeTicket.count({
+          where: { status: DisputeStatus.PENDING_APPROVAL },
+        }),
+        // Active (approved or in progress)
+        this.prisma.disputeTicket.count({
+          where: {
+            status: {
+              in: [
+                DisputeStatus.APPROVED,
+                DisputeStatus.IN_PROGRESS,
+                DisputeStatus.PENDING_CLIENT,
+              ],
+            },
+          },
+        }),
+        // Escalated
+        this.prisma.disputeTicket.count({
+          where: { status: DisputeStatus.ESCALATED },
+        }),
+        // Resolved
+        this.prisma.disputeTicket.count({
+          where: { status: DisputeStatus.RESOLVED },
+        }),
+        // Closed
+        this.prisma.disputeTicket.count({
+          where: { status: DisputeStatus.CLOSED },
+        }),
+      ]);
 
     return {
       pendingApproval,
@@ -957,7 +999,7 @@ export class DisputesService {
           fileSize: result.size,
           mimeType: result.mimeType,
         };
-      })
+      }),
     );
 
     await tx.disputeAttachment.createMany({ data: attachmentData });
@@ -966,7 +1008,10 @@ export class DisputesService {
   /**
    * Update PM dispute statistics
    */
-  private async updatePmStats(pmId: string, event: "new" | "resolved" | "escalated" | "pm_changed" | "assigned") {
+  private async updatePmStats(
+    pmId: string,
+    event: "new" | "resolved" | "escalated" | "pm_changed" | "assigned",
+  ) {
     // Get current stats or create
     let stats = await this.prisma.pmDisputeStats.findUnique({
       where: { userId: pmId },
@@ -1000,7 +1045,9 @@ export class DisputesService {
         if (resolvedDisputes.length > 0) {
           const totalDays = resolvedDisputes.reduce((sum, d) => {
             if (d.approvedAt && d.resolvedAt) {
-              const days = (d.resolvedAt.getTime() - d.approvedAt.getTime()) / (1000 * 60 * 60 * 24);
+              const days =
+                (d.resolvedAt.getTime() - d.approvedAt.getTime()) /
+                (1000 * 60 * 60 * 24);
               return sum + days;
             }
             return sum;
@@ -1029,7 +1076,7 @@ export class DisputesService {
    */
   async checkDeadlineDisputes() {
     const now = new Date();
-    
+
     // Get system user ID (first admin) for automated actions
     const systemUser = await this.prisma.user.findFirst({
       where: {
@@ -1038,12 +1085,12 @@ export class DisputesService {
       },
       select: { id: true },
     });
-    
+
     if (!systemUser) {
       // No admin user found, skip this run
       return { escalated: 0, error: "No admin user found for system actions" };
     }
-    
+
     const pastDeadline = await this.prisma.disputeTicket.findMany({
       where: {
         status: { in: [DisputeStatus.APPROVED, DisputeStatus.IN_PROGRESS] },

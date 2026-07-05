@@ -57,8 +57,10 @@ export default function InvoicesPage() {
     const totalPaid = invoices.reduce(
       (s, inv) =>
         s +
-        ((inv as any).payments?.reduce((p: number, x: any) => p + x.amount, 0) ||
-          0),
+        ((inv as any).payments?.reduce(
+          (p: number, x: any) => p + x.amount,
+          0,
+        ) || 0),
       0,
     );
     const overdue = invoices.filter((inv) => {
@@ -188,7 +190,9 @@ export default function InvoicesPage() {
                 <FinanceStatusBadge status={invoice.status} />
               </td>
               <td className="px-5 py-4 text-portal-note-text text-sm text-left">
-                {new Date(invoice.dueDate).toLocaleDateString("ar-SA-u-nu-latn")}
+                {new Date(invoice.dueDate).toLocaleDateString(
+                  "ar-SA-u-nu-latn",
+                )}
               </td>
               <td className="px-5 py-4 text-left">
                 <div className="flex items-center justify-end gap-1">
@@ -203,7 +207,11 @@ export default function InvoicesPage() {
                   </Link>
                   <Popover
                     trigger={
-                      <ActionButton variant="ghost" size="sm" className="h-8 w-8">
+                      <ActionButton
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8"
+                      >
                         <MoreHorizontal className="w-4 h-4" />
                       </ActionButton>
                     }
@@ -211,7 +219,9 @@ export default function InvoicesPage() {
                     contentClassName="p-2 min-w-[180px]"
                   >
                     <div className="flex flex-col gap-1 text-right">
-                      <p className="text-xs font-semibold text-portal-note-text px-3 py-1">إجراءات الفاتورة</p>
+                      <p className="text-xs font-semibold text-portal-note-text px-3 py-1">
+                        إجراءات الفاتورة
+                      </p>
                       <div className="border-t border-portal-divider my-1" />
                       <button className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-badge-gray-bg transition-colors cursor-pointer">
                         تسجيل دفعة

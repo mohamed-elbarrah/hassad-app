@@ -26,7 +26,13 @@ import Link from "next/link";
 
 // ── Status filter type ───────────────────────────────────────────────────────
 
-type RevisionFilter = "all" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "REVISION" | "DONE";
+type RevisionFilter =
+  | "all"
+  | "TODO"
+  | "IN_PROGRESS"
+  | "IN_REVIEW"
+  | "REVISION"
+  | "DONE";
 
 const FILTER_TABS: { key: RevisionFilter; label: string }[] = [
   { key: "all", label: "الكل" },
@@ -94,7 +100,11 @@ export default function PMChangeRequestsPage() {
     return filtered.reduce<
       Record<
         string,
-        { projectName: string; projectId: string; deliverables: PmDeliverableWithRevisions[] }
+        {
+          projectName: string;
+          projectId: string;
+          deliverables: PmDeliverableWithRevisions[];
+        }
       >
     >((acc, del) => {
       const projectId = del.project?.id ?? del.projectId;
@@ -169,7 +179,9 @@ export default function PMChangeRequestsPage() {
         <SurfaceCard className="border-danger-200 bg-danger-50/30">
           <div className="flex items-center gap-3 text-sm text-danger-600">
             <AlertCircle className="w-5 h-5 shrink-0" />
-            <span>حدث خطأ أثناء تحميل طلبات التعديل. يرجى المحاولة لاحقاً.</span>
+            <span>
+              حدث خطأ أثناء تحميل طلبات التعديل. يرجى المحاولة لاحقاً.
+            </span>
           </div>
         </SurfaceCard>
       )}

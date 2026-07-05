@@ -87,7 +87,9 @@ export default function PortalContractsPage() {
               ? "جرّب كلمات بحث مختلفة أو امسح عوامل التصفية."
               : "ستظهر هنا جميع العقود المرتبطة بحسابك بمجرد إنشائها.",
         }}
-        renderCells={(c, { onActivate }) => renderContractRowCells(c, { onActivate })}
+        renderCells={(c, { onActivate }) =>
+          renderContractRowCells(c, { onActivate })
+        }
       />
 
       {!isLoading && !isError && contracts.length > 0 && (

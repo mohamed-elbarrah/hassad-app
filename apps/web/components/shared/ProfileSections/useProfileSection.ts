@@ -1,6 +1,6 @@
 /**
  * useProfileSection - Shared Hook for Profile Section Components
- * 
+ *
  * Provides common functionality for all profile section components:
  * - Form state management with react-hook-form
  * - Data synchronization with parent component
@@ -25,14 +25,14 @@ interface UseProfileSectionOptions<T extends FieldValues> {
 
 /**
  * Hook for managing profile section forms
- * 
+ *
  * @example
  * const form = useForm<CommunicationInfo>({
  *   resolver: zodResolver(CommunicationInfoSchema),
  *   defaultValues: initialData,
  *   mode: 'onChange',
  * });
- * 
+ *
  * useProfileSection({
  *   form,
  *   onDataChange,
@@ -99,19 +99,19 @@ export function useProfileSection<T extends FieldValues>({
 /**
  * Hook for managing multi-field arrays (like FAQ pairs, benefits, etc.)
  */
-export function useFieldArray<T>(
-  initialItems: T[] = [],
-  maxItems?: number,
-) {
+export function useFieldArray<T>(initialItems: T[] = [], maxItems?: number) {
   const [items, setItems] = useState<T[]>(initialItems);
 
-  const addItem = useCallback((item: T) => {
-    if (maxItems && items.length >= maxItems) {
-      return false;
-    }
-    setItems((prev) => [...prev, item]);
-    return true;
-  }, [items.length, maxItems]);
+  const addItem = useCallback(
+    (item: T) => {
+      if (maxItems && items.length >= maxItems) {
+        return false;
+      }
+      setItems((prev) => [...prev, item]);
+      return true;
+    },
+    [items.length, maxItems],
+  );
 
   const removeItem = useCallback((index: number) => {
     setItems((prev) => prev.filter((_, i) => i !== index));

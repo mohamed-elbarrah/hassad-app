@@ -25,7 +25,10 @@ export const CreateClientSchema = z.object({
     .optional(),
   businessType: z.nativeEnum(BusinessType).optional(),
   accountManager: z.string().uuid("Invalid user ID format").optional(),
-  password: z.string().min(8, "Password must be at least 8 characters").optional(),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .optional(),
 });
 
 export type CreateClientInput = z.infer<typeof CreateClientSchema>;
@@ -90,7 +93,7 @@ export const UpsertClientProfileSchema = z.object({
         originalName: z.string(),
         mimeType: z.string(),
         size: z.number().optional(),
-      })
+      }),
     )
     .optional(),
 });
@@ -139,7 +142,7 @@ export const IntakeFormSchema = z.object({
         originalName: z.string(),
         mimeType: z.string(),
         size: z.number().optional(),
-      })
+      }),
     )
     .optional(),
 });

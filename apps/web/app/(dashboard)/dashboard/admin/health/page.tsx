@@ -186,7 +186,8 @@ function OverallHealthCard({
   const healthyCount = Object.keys(health?.info || {}).length;
   const errorCount = Object.keys(health?.error || {}).length;
   const totalCount = healthyCount + errorCount;
-  const score = totalCount > 0 ? Math.round((healthyCount / totalCount) * 100) : 100;
+  const score =
+    totalCount > 0 ? Math.round((healthyCount / totalCount) * 100) : 100;
 
   return (
     <div
@@ -233,7 +234,10 @@ function OverallHealthCard({
           <h4 className="font-semibold text-red-700 mb-2">الخدمات المتوقفة:</h4>
           <div className="flex flex-wrap gap-2">
             {Object.entries(health?.error || {}).map(([name, detail]) => (
-              <div key={name} className="flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm">
+              <div
+                key={name}
+                className="flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm"
+              >
                 <XCircle className="size-4" />
                 <span>{getComponentDisplayName(name)}</span>
                 {detail.message && (
@@ -248,9 +252,12 @@ function OverallHealthCard({
       {health?.timestamp && (
         <div className="mt-4 pt-4 border-t border-slate-200/60 flex items-center gap-2 text-sm text-slate-500">
           <Clock className="size-4" />
-          آخر فحص: {formatDistanceToNow(new Date(health.timestamp), { locale: ar })}
+          آخر فحص:{" "}
+          {formatDistanceToNow(new Date(health.timestamp), { locale: ar })}
           {health.responseTimeMs && (
-            <span className="mr-2">• وقت الاستجابة: {health.responseTimeMs}ms</span>
+            <span className="mr-2">
+              • وقت الاستجابة: {health.responseTimeMs}ms
+            </span>
           )}
         </div>
       )}
@@ -275,34 +282,44 @@ function ComponentHealthCard({
   const statusColor = getStatusColor(detail.status);
 
   return (
-    <div className={`rounded-xl p-4 shadow-sm border-2 transition-all hover:shadow-md ${
-      isUp 
-        ? "bg-white border-emerald-200" 
-        : "bg-red-50 border-red-200"
-    }`}>
+    <div
+      className={`rounded-xl p-4 shadow-sm border-2 transition-all hover:shadow-md ${
+        isUp ? "bg-white border-emerald-200" : "bg-red-50 border-red-200"
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${isUp ? "bg-emerald-100" : "bg-red-100"}`}>
-            <Icon className={`size-5 ${isUp ? "text-emerald-600" : "text-red-600"}`} />
+          <div
+            className={`p-2 rounded-lg ${isUp ? "bg-emerald-100" : "bg-red-100"}`}
+          >
+            <Icon
+              className={`size-5 ${isUp ? "text-emerald-600" : "text-red-600"}`}
+            />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900">{getComponentDisplayName(name)}</h3>
+            <h3 className="font-semibold text-slate-900">
+              {getComponentDisplayName(name)}
+            </h3>
           </div>
         </div>
 
-        <div className={`p-2 rounded-full ${
-          isUp ? "bg-emerald-100" : "bg-red-100"
-        }`}>
-          <StatusIcon className={`size-5 ${
-            isUp ? "text-emerald-600" : "text-red-600"
-          }`} />
+        <div
+          className={`p-2 rounded-full ${
+            isUp ? "bg-emerald-100" : "bg-red-100"
+          }`}
+        >
+          <StatusIcon
+            className={`size-5 ${isUp ? "text-emerald-600" : "text-red-600"}`}
+          />
         </div>
       </div>
 
       <div className="mt-4 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-slate-500">الحالة:</span>
-          <span className={`font-medium ${isUp ? "text-emerald-600" : "text-red-600"}`}>
+          <span
+            className={`font-medium ${isUp ? "text-emerald-600" : "text-red-600"}`}
+          >
             {isUp ? "يعمل" : "متوقف"}
           </span>
         </div>
@@ -310,27 +327,37 @@ function ComponentHealthCard({
         {detail.responseTimeMs !== undefined && (
           <div className="flex justify-between text-sm">
             <span className="text-slate-500">وقت الاستجابة:</span>
-            <span className="font-medium text-slate-900">{detail.responseTimeMs}ms</span>
+            <span className="font-medium text-slate-900">
+              {detail.responseTimeMs}ms
+            </span>
           </div>
         )}
 
         {detail.message && (
-          <div className={`mt-2 p-2 rounded text-sm ${
-            isUp ? "bg-slate-50 text-slate-600" : "bg-red-100 text-red-700"
-          }`}>
+          <div
+            className={`mt-2 p-2 rounded text-sm ${
+              isUp ? "bg-slate-50 text-slate-600" : "bg-red-100 text-red-700"
+            }`}
+          >
             {detail.message}
           </div>
         )}
 
         {/* Additional details */}
-        {Object.entries(detail).filter(([k]) => !['status', 'message', 'responseTimeMs'].includes(k)).map(([key, value]) => (
-          <div key={key} className="flex justify-between text-sm">
-            <span className="text-slate-500">{key}:</span>
-            <span className="font-medium text-slate-900">
-              {typeof value === 'boolean' ? (value ? 'نعم' : 'لا') : String(value)}
-            </span>
-          </div>
-        ))}
+        {Object.entries(detail)
+          .filter(([k]) => !["status", "message", "responseTimeMs"].includes(k))
+          .map(([key, value]) => (
+            <div key={key} className="flex justify-between text-sm">
+              <span className="text-slate-500">{key}:</span>
+              <span className="font-medium text-slate-900">
+                {typeof value === "boolean"
+                  ? value
+                    ? "نعم"
+                    : "لا"
+                  : String(value)}
+              </span>
+            </div>
+          ))}
       </div>
     </div>
   );
@@ -370,7 +397,9 @@ function ErrorLogTable({
     return (
       <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 text-center">
         <CheckCircle className="size-12 text-emerald-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-slate-900">لا توجد أخطاء مسجلة</h3>
+        <h3 className="text-lg font-semibold text-slate-900">
+          لا توجد أخطاء مسجلة
+        </h3>
         <p className="text-slate-500 mt-2">النظام يعمل بشكل طبيعي بدون أخطاء</p>
       </div>
     );
@@ -389,7 +418,9 @@ function ErrorLogTable({
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h3 className="font-semibold text-slate-900">سجل الأخطاء ({errors.total})</h3>
+        <h3 className="font-semibold text-slate-900">
+          سجل الأخطاء ({errors.total})
+        </h3>
       </div>
 
       <div className="divide-y divide-slate-200 max-h-96 overflow-auto">
@@ -399,7 +430,10 @@ function ErrorLogTable({
           const isExpanded = expandedErrors.has(error.id);
 
           return (
-            <div key={error.id} className="p-4 hover:bg-slate-50 transition-colors">
+            <div
+              key={error.id}
+              className="p-4 hover:bg-slate-50 transition-colors"
+            >
               <div className="flex items-start gap-3">
                 <div className={`p-2 rounded-full ${levelColor}`}>
                   <LevelIcon className="size-4" />
@@ -407,12 +441,18 @@ function ErrorLogTable({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${levelColor}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-medium ${levelColor}`}
+                    >
                       {error.level}
                     </span>
-                    <span className="text-xs text-slate-500">{error.category}</span>
+                    <span className="text-xs text-slate-500">
+                      {error.category}
+                    </span>
                     <span className="text-xs text-slate-400">
-                      {formatDistanceToNow(new Date(error.createdAt), { locale: ar })}
+                      {formatDistanceToNow(new Date(error.createdAt), {
+                        locale: ar,
+                      })}
                     </span>
                     {error.resolved && (
                       <span className="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">
@@ -435,24 +475,33 @@ function ErrorLogTable({
                     <div className="mt-3 p-3 bg-slate-100 rounded-lg text-sm">
                       {error.stackTrace && (
                         <div className="mb-2">
-                          <span className="font-semibold text-slate-700">تتبع الخطأ:</span>
+                          <span className="font-semibold text-slate-700">
+                            تتبع الخطأ:
+                          </span>
                           <pre className="mt-1 text-xs text-slate-600 overflow-auto max-h-32">
                             {error.stackTrace}
                           </pre>
                         </div>
                       )}
-                      {error.context && Object.keys(error.context).length > 0 && (
-                        <div>
-                          <span className="font-semibold text-slate-700">سياق:</span>
-                          <pre className="mt-1 text-xs text-slate-600 overflow-auto max-h-32">
-                            {JSON.stringify(error.context, null, 2)}
-                          </pre>
-                        </div>
-                      )}
+                      {error.context &&
+                        Object.keys(error.context).length > 0 && (
+                          <div>
+                            <span className="font-semibold text-slate-700">
+                              سياق:
+                            </span>
+                            <pre className="mt-1 text-xs text-slate-600 overflow-auto max-h-32">
+                              {JSON.stringify(error.context, null, 2)}
+                            </pre>
+                          </div>
+                        )}
                       {error.resolved && (
                         <div className="mt-2 p-2 bg-emerald-100 rounded">
-                          <span className="font-semibold text-emerald-700">تم الحل:</span>
-                          <p className="text-emerald-600">{error.resolutionNote}</p>
+                          <span className="font-semibold text-emerald-700">
+                            تم الحل:
+                          </span>
+                          <p className="text-emerald-600">
+                            {error.resolutionNote}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -496,8 +545,10 @@ function ErrorLogTable({
       {selectedError && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">حل الخطأ</h3>
-            
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              حل الخطأ
+            </h3>
+
             <div className="mb-4 p-3 bg-slate-50 rounded-lg">
               <p className="text-sm text-slate-700">{selectedError.message}</p>
             </div>
@@ -541,7 +592,16 @@ function ErrorLogTable({
 // COMPONENT: ErrorStats
 // ============================================================================
 
-function ErrorStats({ stats, isLoading }: { stats?: { byCategory: Array<{ category: string; count: number }>; total: number }; isLoading: boolean }) {
+function ErrorStats({
+  stats,
+  isLoading,
+}: {
+  stats?: {
+    byCategory: Array<{ category: string; count: number }>;
+    total: number;
+  };
+  isLoading: boolean;
+}) {
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
@@ -558,15 +618,20 @@ function ErrorStats({ stats, isLoading }: { stats?: { byCategory: Array<{ catego
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
       <h3 className="font-semibold text-slate-900 mb-4">توزيع الأخطاء</h3>
-      
+
       <div className="text-center mb-6">
-        <div className="text-4xl font-bold text-slate-900">{stats?.total || 0}</div>
+        <div className="text-4xl font-bold text-slate-900">
+          {stats?.total || 0}
+        </div>
         <div className="text-sm text-slate-500">خطأ في آخر 24 ساعة</div>
       </div>
 
       <div className="space-y-3">
         {stats?.byCategory?.slice(0, 6).map((item) => (
-          <div key={item.category} className="flex items-center justify-between">
+          <div
+            key={item.category}
+            className="flex items-center justify-between"
+          >
             <span className="text-sm text-slate-600">{item.category}</span>
             <div className="flex items-center gap-2">
               <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -593,14 +658,19 @@ function ErrorStats({ stats, isLoading }: { stats?: { byCategory: Array<{ catego
 // ============================================================================
 
 export default function HealthPage() {
-  const { data: health, isLoading: healthLoading, refetch: refetchHealth } =
-    useGetHealthQuery();
+  const {
+    data: health,
+    isLoading: healthLoading,
+    refetch: refetchHealth,
+  } = useGetHealthQuery();
   const { data: services, isLoading: servicesLoading } =
     useGetServiceHealthQuery();
   const { data: errorStats, isLoading: statsLoading } =
     useGetErrorStatsQuery(24);
-  const { data: errors, isLoading: errorsLoading } =
-    useGetErrorsQuery({ hours: 24, limit: 10 });
+  const { data: errors, isLoading: errorsLoading } = useGetErrorsQuery({
+    hours: 24,
+    limit: 10,
+  });
   const [resolveError] = useResolveErrorMutation();
 
   const handleResolve = async (id: string, note: string) => {
@@ -608,10 +678,12 @@ export default function HealthPage() {
   };
 
   // Combine health check results with services
-  const allComponents = health ? {
-    ...health.info,
-    ...health.error,
-  } : {};
+  const allComponents = health
+    ? {
+        ...health.info,
+        ...health.error,
+      }
+    : {};
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -626,7 +698,9 @@ export default function HealthPage() {
             onClick={() => refetchHealth()}
             disabled={healthLoading}
           >
-            <RefreshCw className={`size-4 mr-1 ${healthLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`size-4 mr-1 ${healthLoading ? "animate-spin" : ""}`}
+            />
             تحديث
           </ActionButton>
         }
@@ -644,14 +718,12 @@ export default function HealthPage() {
         </div>
       ) : Object.keys(allComponents).length > 0 ? (
         <>
-          <h3 className="text-lg font-semibold text-slate-900">حالة المكونات</h3>
+          <h3 className="text-lg font-semibold text-slate-900">
+            حالة المكونات
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Object.entries(allComponents).map(([name, detail]) => (
-              <ComponentHealthCard
-                key={name}
-                name={name}
-                detail={detail}
-              />
+              <ComponentHealthCard key={name} name={name} detail={detail} />
             ))}
           </div>
         </>
@@ -660,51 +732,78 @@ export default function HealthPage() {
       {/* External Services Status */}
       {(servicesLoading || (services && services.length > 0)) && (
         <>
-          <h3 className="text-lg font-semibold text-slate-900">الخدمات الخارجية</h3>
+          <h3 className="text-lg font-semibold text-slate-900">
+            الخدمات الخارجية
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {servicesLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-40 rounded-xl" />
                 ))
               : services?.map((service) => (
-                  <div key={service.serviceName} className={`rounded-xl p-4 shadow-sm border ${
-                    service.status === 'UP' ? 'bg-emerald-50 border-emerald-200' :
-                    service.status === 'DEGRADED' ? 'bg-amber-50 border-amber-200' :
-                    'bg-red-50 border-red-200'
-                  }`}>
+                  <div
+                    key={service.serviceName}
+                    className={`rounded-xl p-4 shadow-sm border ${
+                      service.status === "UP"
+                        ? "bg-emerald-50 border-emerald-200"
+                        : service.status === "DEGRADED"
+                          ? "bg-amber-50 border-amber-200"
+                          : "bg-red-50 border-red-200"
+                    }`}
+                  >
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`p-2 rounded-lg ${
-                        service.status === 'UP' ? 'bg-emerald-100' :
-                        service.status === 'DEGRADED' ? 'bg-amber-100' :
-                        'bg-red-100'
-                      }`}>
-                        <Server className={`size-5 ${
-                          service.status === 'UP' ? 'text-emerald-600' :
-                          service.status === 'DEGRADED' ? 'text-amber-600' :
-                          'text-red-600'
-                        }`} />
+                      <div
+                        className={`p-2 rounded-lg ${
+                          service.status === "UP"
+                            ? "bg-emerald-100"
+                            : service.status === "DEGRADED"
+                              ? "bg-amber-100"
+                              : "bg-red-100"
+                        }`}
+                      >
+                        <Server
+                          className={`size-5 ${
+                            service.status === "UP"
+                              ? "text-emerald-600"
+                              : service.status === "DEGRADED"
+                                ? "text-amber-600"
+                                : "text-red-600"
+                          }`}
+                        />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-slate-900">{service.displayName}</h4>
-                        <p className="text-xs text-slate-500">{service.serviceName}</p>
+                        <h4 className="font-semibold text-slate-900">
+                          {service.displayName}
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          {service.serviceName}
+                        </p>
                       </div>
                     </div>
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-500">الحالة:</span>
-                        <span className={`font-medium ${
-                          service.status === 'UP' ? 'text-emerald-600' :
-                          service.status === 'DEGRADED' ? 'text-amber-600' :
-                          'text-red-600'
-                        }`}>
-                          {service.status === 'UP' ? 'يعمل' :
-                           service.status === 'DEGRADED' ? 'منخفض الأداء' :
-                           'متوقف'}
+                        <span
+                          className={`font-medium ${
+                            service.status === "UP"
+                              ? "text-emerald-600"
+                              : service.status === "DEGRADED"
+                                ? "text-amber-600"
+                                : "text-red-600"
+                          }`}
+                        >
+                          {service.status === "UP"
+                            ? "يعمل"
+                            : service.status === "DEGRADED"
+                              ? "منخفض الأداء"
+                              : "متوقف"}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">وقت الاستجابة:</span>
-                        <span className="font-medium">{service.responseTime}ms</span>
+                        <span className="font-medium">
+                          {service.responseTime}ms
+                        </span>
                       </div>
                       {service.lastError && (
                         <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
@@ -719,12 +818,14 @@ export default function HealthPage() {
       )}
 
       {/* Errors Section */}
-      <h3 className="text-lg font-semibold text-slate-900">الأخطاء والإحصائيات</h3>
+      <h3 className="text-lg font-semibold text-slate-900">
+        الأخطاء والإحصائيات
+      </h3>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <ErrorStats stats={errorStats} isLoading={statsLoading} />
         </div>
-        
+
         <div className="lg:col-span-2">
           <ErrorLogTable
             errors={errors}

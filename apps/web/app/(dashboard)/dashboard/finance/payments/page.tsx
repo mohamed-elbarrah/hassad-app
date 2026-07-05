@@ -58,10 +58,14 @@ export default function PaymentsPage() {
   // Stats from all loaded payments
   const stats = useMemo(() => {
     const totalAmount = payments.reduce((s, p) => s + p.amount, 0);
-    const successful = payments.filter((p) => p.status === PaymentStatus.SUCCESS);
+    const successful = payments.filter(
+      (p) => p.status === PaymentStatus.SUCCESS,
+    );
     const successfulAmount = successful.reduce((s, p) => s + p.amount, 0);
     const failed = payments.filter((p) => p.status === PaymentStatus.FAILED);
-    const refunded = payments.filter((p) => p.status === PaymentStatus.REFUNDED);
+    const refunded = payments.filter(
+      (p) => p.status === PaymentStatus.REFUNDED,
+    );
     const pending = payments.filter((p) => p.status === PaymentStatus.PENDING);
     return {
       count: total,
@@ -70,7 +74,10 @@ export default function PaymentsPage() {
       failedCount: failed.length,
       refundedCount: refunded.length,
       pendingCount: pending.length,
-      rate: totalAmount > 0 ? Math.round((successfulAmount / totalAmount) * 100) : 0,
+      rate:
+        totalAmount > 0
+          ? Math.round((successfulAmount / totalAmount) * 100)
+          : 0,
     };
   }, [payments, total]);
 
@@ -114,7 +121,10 @@ export default function PaymentsPage() {
         description="سجل شامل لجميع العمليات المالية الواردة والمعلقة."
         icon={CreditCard}
         actions={
-          <ActionButton variant="outline" icon={<Download className="w-4 h-4" />}>
+          <ActionButton
+            variant="outline"
+            icon={<Download className="w-4 h-4" />}
+          >
             تحميل كشف الحساب
           </ActionButton>
         }
@@ -138,7 +148,9 @@ export default function PaymentsPage() {
           title="فاشلة / مسترجعة"
           value={stats.failedCount + stats.refundedCount}
           icon={AlertTriangle}
-          variant={(stats.failedCount + stats.refundedCount) > 0 ? "danger" : "default"}
+          variant={
+            stats.failedCount + stats.refundedCount > 0 ? "danger" : "default"
+          }
         />
         <StatCard
           title="نسبة النجاح"
@@ -212,7 +224,9 @@ export default function PaymentsPage() {
             <td className="px-5 py-4">
               <div className="flex items-center gap-2">
                 {getMethodIcon(p.method)}
-                <span className="text-sm text-portal-note-text">{p.method}</span>
+                <span className="text-sm text-portal-note-text">
+                  {p.method}
+                </span>
               </div>
             </td>
             <td className="px-5 py-4">

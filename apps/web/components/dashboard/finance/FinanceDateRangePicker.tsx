@@ -62,7 +62,8 @@ export function FinanceDateRangePicker({ value, onChange, className }: Props) {
     setOpen(false);
   };
 
-  const activeLabel = RANGE_OPTIONS.find((o) => o.value === value)?.label || "هذه السنة";
+  const activeLabel =
+    RANGE_OPTIONS.find((o) => o.value === value)?.label || "هذه السنة";
 
   return (
     <div className={cn("relative", className)}>
@@ -77,7 +78,10 @@ export function FinanceDateRangePicker({ value, onChange, className }: Props) {
         <Calendar className="w-4 h-4 text-portal-note-text" />
         <span>{activeLabel}</span>
         <ChevronDown
-          className={cn("w-3.5 h-3.5 text-portal-note-text transition-transform", open && "rotate-180")}
+          className={cn(
+            "w-3.5 h-3.5 text-portal-note-text transition-transform",
+            open && "rotate-180",
+          )}
         />
       </button>
 
@@ -91,7 +95,8 @@ export function FinanceDateRangePicker({ value, onChange, className }: Props) {
                 onClick={() => handleSelect(opt.value)}
                 className={cn(
                   "w-full text-right px-4 py-2.5 text-sm transition-colors hover:bg-badge-gray-bg",
-                  value === opt.value && "bg-secondary-50 text-secondary-600 font-semibold",
+                  value === opt.value &&
+                    "bg-secondary-50 text-secondary-600 font-semibold",
                 )}
               >
                 {opt.label}

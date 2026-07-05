@@ -160,7 +160,8 @@ export function AudienceSection({
     return () => sub.unsubscribe();
   }, [form, onDataChange, mode, faqPairs]);
 
-  const { addFaqPair, removeFaqPair, updateFaqPair } = useFaqManager(setFaqPairs);
+  const { addFaqPair, removeFaqPair, updateFaqPair } =
+    useFaqManager(setFaqPairs);
 
   const onSubmit = useCallback(
     (data: AudienceForm) => {
@@ -451,9 +452,12 @@ function useFaqManager(
     setFaqPairs((prev) => [...prev, { question: "", answer: "" }]);
   }, [setFaqPairs]);
 
-  const removeFaqPair = useCallback((index: number) => {
-    setFaqPairs((prev) => prev.filter((_, i) => i !== index));
-  }, [setFaqPairs]);
+  const removeFaqPair = useCallback(
+    (index: number) => {
+      setFaqPairs((prev) => prev.filter((_, i) => i !== index));
+    },
+    [setFaqPairs],
+  );
 
   const updateFaqPair = useCallback(
     (index: number, field: "question" | "answer", value: string) => {
@@ -478,7 +482,11 @@ function FaqEditor({
   onAdd,
 }: {
   faqPairs: FaqPair[];
-  onUpdate: (index: number, field: "question" | "answer", value: string) => void;
+  onUpdate: (
+    index: number,
+    field: "question" | "answer",
+    value: string,
+  ) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
 }) {

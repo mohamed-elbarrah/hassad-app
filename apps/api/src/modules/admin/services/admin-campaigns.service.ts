@@ -10,7 +10,11 @@ export class AdminCampaignsService {
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: "insensitive" } },
-        { client: { companyName: { contains: query.search, mode: "insensitive" } } },
+        {
+          client: {
+            companyName: { contains: query.search, mode: "insensitive" },
+          },
+        },
       ];
     }
     if (query.clientId) where.clientId = query.clientId;
@@ -42,7 +46,9 @@ export class AdminCampaignsService {
 
     // Apply overspent filter in-memory
     if (query.overspentOnly === "true") {
-      items = items.filter((c) => Number(c.budgetSpent) > Number(c.budgetTotal));
+      items = items.filter(
+        (c) => Number(c.budgetSpent) > Number(c.budgetTotal),
+      );
       total = items.length;
     }
 
@@ -85,26 +91,44 @@ export class AdminCampaignsService {
   }
 
   async pause(campaignId: string) {
-    const campaign = await this.prisma.campaign.findUnique({ where: { id: campaignId } });
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+    });
     if (!campaign) throw new NotFoundException("Campaign not found");
 
     await this.prisma.$transaction([
-      this.prisma.campaign.update({ where: { id: campaignId }, data: { status: "PAUSED" as any } }),
+      this.prisma.campaign.update({
+        where: { id: campaignId },
+        data: { status: "PAUSED" as any },
+      }),
       this.prisma.ledger.create({
-        data: { action: "admin.campaigns.pause", entity: "campaign", entityId: campaignId },
+        data: {
+          action: "admin.campaigns.pause",
+          entity: "campaign",
+          entityId: campaignId,
+        },
       }),
     ]);
     return { success: true };
   }
 
   async end(campaignId: string) {
-    const campaign = await this.prisma.campaign.findUnique({ where: { id: campaignId } });
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+    });
     if (!campaign) throw new NotFoundException("Campaign not found");
 
     await this.prisma.$transaction([
-      this.prisma.campaign.update({ where: { id: campaignId }, data: { status: "ENDED" as any } }),
+      this.prisma.campaign.update({
+        where: { id: campaignId },
+        data: { status: "ENDED" as any },
+      }),
       this.prisma.ledger.create({
-        data: { action: "admin.campaigns.end", entity: "campaign", entityId: campaignId },
+        data: {
+          action: "admin.campaigns.end",
+          entity: "campaign",
+          entityId: campaignId,
+        },
       }),
     ]);
     return { success: true };

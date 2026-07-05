@@ -24,7 +24,10 @@ interface Props {
 export function TopClientsTable({ clients, isLoading }: Props) {
   if (isLoading) {
     return (
-      <SurfaceCard className="border-none shadow-md h-full" title="أفضل العملاء">
+      <SurfaceCard
+        className="border-none shadow-md h-full"
+        title="أفضل العملاء"
+      >
         <div className="space-y-3 animate-pulse">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="h-12 bg-badge-gray-bg rounded-xl" />
@@ -56,8 +59,12 @@ export function TopClientsTable({ clients, isLoading }: Props) {
               </div>
               <div className="flex-1 min-w-0 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-natural-100 truncate">{client.companyName}</span>
-                  <span className="text-sm font-bold text-natural-100"><CurrencyDisplay amount={client.revenue} size="sm" /></span>
+                  <span className="text-sm font-medium text-natural-100 truncate">
+                    {client.companyName}
+                  </span>
+                  <span className="text-sm font-bold text-natural-100">
+                    <CurrencyDisplay amount={client.revenue} size="sm" />
+                  </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-badge-gray-bg overflow-hidden">
                   <div
@@ -66,13 +73,21 @@ export function TopClientsTable({ clients, isLoading }: Props) {
                   />
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-portal-note-text">
-                  <span>{client.invoiceCount} فاتورة · {client.paymentCount} دفعة</span>
+                  <span>
+                    {client.invoiceCount} فاتورة · {client.paymentCount} دفعة
+                  </span>
                   <div className="flex items-center gap-1">
                     <span>نسبة التحصيل</span>
-                    <span className={cn(
-                      "font-semibold",
-                      client.collectionRate >= 80 ? "text-success-600" : client.collectionRate >= 50 ? "text-alert-600" : "text-danger-600"
-                    )}>
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        client.collectionRate >= 80
+                          ? "text-success-600"
+                          : client.collectionRate >= 50
+                            ? "text-alert-600"
+                            : "text-danger-600",
+                      )}
+                    >
                       {client.collectionRate}%
                     </span>
                   </div>
@@ -85,7 +100,9 @@ export function TopClientsTable({ clients, isLoading }: Props) {
           );
         })}
         {clients.length === 0 && (
-          <div className="text-center py-8 text-portal-note-text text-sm">لا توجد بيانات عملاء</div>
+          <div className="text-center py-8 text-portal-note-text text-sm">
+            لا توجد بيانات عملاء
+          </div>
         )}
       </div>
     </SurfaceCard>

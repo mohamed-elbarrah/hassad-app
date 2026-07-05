@@ -40,9 +40,7 @@ const REQUEST_STATUS_LABELS: Record<string, string> = {
   CANCELLED: "ملغي",
 };
 
-const PROPOSAL_READY_STATUSES = new Set<string>([
-  "PROPOSAL_IN_PROGRESS",
-]);
+const PROPOSAL_READY_STATUSES = new Set<string>(["PROPOSAL_IN_PROGRESS"]);
 
 function formatNumber(num: number): string {
   if (num === 0) return "0";
@@ -424,8 +422,12 @@ export function ProposalFormDialog({
                     <FormInputControl
                       readOnly
                       value={(() => {
-                        const req = requestsData?.find((r: any) => r.id === preSelectedRequestId);
-                        return req ? `${req.companyName} — ${req.contactName} (${REQUEST_STATUS_LABELS[req.status] ?? req.status})` : preSelectedRequestId;
+                        const req = requestsData?.find(
+                          (r: any) => r.id === preSelectedRequestId,
+                        );
+                        return req
+                          ? `${req.companyName} — ${req.contactName} (${REQUEST_STATUS_LABELS[req.status] ?? req.status})`
+                          : preSelectedRequestId;
                       })()}
                       className="w-full h-12 px-4 text-[13px] bg-neutral-50"
                     />
@@ -563,7 +565,11 @@ export function ProposalFormDialog({
                         className="w-full h-12 px-3 pl-10 text-left text-[13px] text-natural-100 placeholder:text-neutral-200 border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 transition-colors bg-natural-0"
                       />
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-200 text-[12px] font-medium pointer-events-none">
-                        <SymbolRenderer currency={currency} width={14} height={14} />
+                        <SymbolRenderer
+                          currency={currency}
+                          width={14}
+                          height={14}
+                        />
                       </span>
                     </div>
                   </div>

@@ -64,7 +64,9 @@ export function UpdateStatusModal({
         id: invoiceId,
         status: selectedStatus as InvoiceStatus,
       }).unwrap();
-      toast.success(`تم تحديث الحالة إلى ${STATUS_LABELS[selectedStatus] || selectedStatus}`);
+      toast.success(
+        `تم تحديث الحالة إلى ${STATUS_LABELS[selectedStatus] || selectedStatus}`,
+      );
       onOpenChange(false);
       onSuccess?.();
     } catch {
@@ -85,7 +87,8 @@ export function UpdateStatusModal({
         <div className="space-y-4 py-4">
           {allowedTransitions.length === 0 ? (
             <p className="text-sm text-portal-note-text text-center">
-              لا يمكن تغيير حالة فاتورة {STATUS_LABELS[currentStatus] || currentStatus}
+              لا يمكن تغيير حالة فاتورة{" "}
+              {STATUS_LABELS[currentStatus] || currentStatus}
             </p>
           ) : (
             <div className="space-y-2">

@@ -23,7 +23,10 @@ export function ImpersonateDialog({
 }: ImpersonateDialogProps) {
   const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<{ token: string; expiresAt: string } | null>(null);
+  const [result, setResult] = useState<{
+    token: string;
+    expiresAt: string;
+  } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const handleConfirm = async () => {
@@ -77,7 +80,11 @@ export function ImpersonateDialog({
         result ? (
           <div className="flex gap-2 justify-end">
             <ActionButton variant="outline" onClick={handleCopy}>
-              {copied ? <Check className="size-4 ml-1" /> : <Copy className="size-4 ml-1" />}
+              {copied ? (
+                <Check className="size-4 ml-1" />
+              ) : (
+                <Copy className="size-4 ml-1" />
+              )}
               {copied ? "تم النسخ" : "نسخ الرمز"}
             </ActionButton>
             <ActionButton onClick={() => handleOpenChange(false)}>
@@ -86,10 +93,16 @@ export function ImpersonateDialog({
           </div>
         ) : (
           <div className="flex gap-2 justify-end">
-            <ActionButton variant="outline" onClick={() => handleOpenChange(false)}>
+            <ActionButton
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
               إلغاء
             </ActionButton>
-            <ActionButton onClick={handleConfirm} disabled={isLoading || !reason.trim()}>
+            <ActionButton
+              onClick={handleConfirm}
+              disabled={isLoading || !reason.trim()}
+            >
               {isLoading ? "جارٍ..." : "تأكيد الدخول"}
             </ActionButton>
           </div>

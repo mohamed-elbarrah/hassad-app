@@ -161,10 +161,14 @@ export class ChatController {
           )
         : [];
 
-    return this.chatService.createMessageWithAttachments(user.id, {
-      ...dto,
-      conversationId,
-    }, attachments);
+    return this.chatService.createMessageWithAttachments(
+      user.id,
+      {
+        ...dto,
+        conversationId,
+      },
+      attachments,
+    );
   }
 
   @Get("conversations/:id/messages")

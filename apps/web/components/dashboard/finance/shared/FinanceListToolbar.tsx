@@ -62,21 +62,13 @@ export function FinanceListToolbar({
       {/* Right controls */}
       <div className="flex items-center gap-2">
         {hasFilters && onClearFilters && (
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            onClick={onClearFilters}
-          >
+          <ActionButton variant="ghost" size="sm" onClick={onClearFilters}>
             <X className="w-4 h-4" />
             مسح الفلاتر
           </ActionButton>
         )}
         {onExport && (
-          <ActionButton
-            variant="outline"
-            size="sm"
-            onClick={onExport}
-          >
+          <ActionButton variant="outline" size="sm" onClick={onExport}>
             تصدير
           </ActionButton>
         )}

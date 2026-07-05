@@ -8,9 +8,7 @@ import type { Client } from "@hassad/shared";
  * Cells-only renderer for the clients queue.
  * The <tr> chrome is owned by `<DataTable>`; this only emits <td>s.
  */
-export function renderClientRowCells(
-  client: Client,
-): React.ReactNode[] {
+export function renderClientRowCells(client: Client): React.ReactNode[] {
   return [
     // Company name
     <td key="companyName" className="px-5 py-3.5 align-middle">

@@ -60,12 +60,14 @@ export const BudgetInfoSchema = z.object({
 
 export const VisualIdentityInfoSchema = z.object({
   hasVisualIdentity: z.boolean().optional(),
-  brandAssets: z.object({
-    logoUrl: z.string().optional(),
-    brandColors: z.array(z.string()).optional(),
-    fonts: z.array(z.string()).optional(),
-    guidelinesUrl: z.string().optional(),
-  }).optional(),
+  brandAssets: z
+    .object({
+      logoUrl: z.string().optional(),
+      brandColors: z.array(z.string()).optional(),
+      fonts: z.array(z.string()).optional(),
+      guidelinesUrl: z.string().optional(),
+    })
+    .optional(),
   pastDesigns: z.string().optional(),
   productPhotos: z.array(z.string()).optional(),
   visualDirection: z.array(z.string()).max(3).optional(),

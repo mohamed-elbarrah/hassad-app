@@ -400,47 +400,63 @@ export function KanbanBoard() {
           <KanbanCard
             client={activeRequest}
             isOverlay
-            accentColor={STATUS_THEME[activeRequest.status as RequestStatus]?.cardBorder}
+            accentColor={
+              STATUS_THEME[activeRequest.status as RequestStatus]?.cardBorder
+            }
           />
         ) : null}
       </DragOverlay>
 
       {/* ── Pipeline Dialogs ──────────────────────────────────────── */}
-      {pipelineDialog?.type === "proposal" && pipelineDialog.mode === "create" && (
-        <ProposalFormDialog
-          mode="create"
-          preSelectedRequestId={pipelineDialog.requestId}
-          open={true}
-          onOpenChange={(open) => { if (!open) closePipelineDialog(); }}
-        />
-      )}
+      {pipelineDialog?.type === "proposal" &&
+        pipelineDialog.mode === "create" && (
+          <ProposalFormDialog
+            mode="create"
+            preSelectedRequestId={pipelineDialog.requestId}
+            open={true}
+            onOpenChange={(open) => {
+              if (!open) closePipelineDialog();
+            }}
+          />
+        )}
 
-      {pipelineDialog?.type === "proposal" && pipelineDialog.mode === "edit" && editProposalData && (
-        <ProposalFormDialog
-          mode="edit"
-          proposal={editProposalData}
-          open={true}
-          onOpenChange={(open) => { if (!open) closePipelineDialog(); }}
-        />
-      )}
+      {pipelineDialog?.type === "proposal" &&
+        pipelineDialog.mode === "edit" &&
+        editProposalData && (
+          <ProposalFormDialog
+            mode="edit"
+            proposal={editProposalData}
+            open={true}
+            onOpenChange={(open) => {
+              if (!open) closePipelineDialog();
+            }}
+          />
+        )}
 
-      {pipelineDialog?.type === "contract" && pipelineDialog.mode === "create" && (
-        <CreateContractDialog
-          mode="create"
-          preSelectedRequestId={pipelineDialog.requestId}
-          open={true}
-          onOpenChange={(open) => { if (!open) closePipelineDialog(); }}
-        />
-      )}
+      {pipelineDialog?.type === "contract" &&
+        pipelineDialog.mode === "create" && (
+          <CreateContractDialog
+            mode="create"
+            preSelectedRequestId={pipelineDialog.requestId}
+            open={true}
+            onOpenChange={(open) => {
+              if (!open) closePipelineDialog();
+            }}
+          />
+        )}
 
-      {pipelineDialog?.type === "contract" && pipelineDialog.mode === "edit" && editContractData && (
-        <CreateContractDialog
-          mode="edit"
-          contract={editContractData}
-          open={true}
-          onOpenChange={(open) => { if (!open) closePipelineDialog(); }}
-        />
-      )}
+      {pipelineDialog?.type === "contract" &&
+        pipelineDialog.mode === "edit" &&
+        editContractData && (
+          <CreateContractDialog
+            mode="edit"
+            contract={editContractData}
+            open={true}
+            onOpenChange={(open) => {
+              if (!open) closePipelineDialog();
+            }}
+          />
+        )}
     </DndContext>
   );
 }

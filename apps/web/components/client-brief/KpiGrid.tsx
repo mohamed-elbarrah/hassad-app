@@ -21,10 +21,7 @@ interface KpiGridProps {
 }
 
 /** Map each KpiKey to its render function */
-const KPI_RENDERERS: Record<
-  KpiKey,
-  (kpis: KpiViewModel) => React.ReactNode
-> = {
+const KPI_RENDERERS: Record<KpiKey, (kpis: KpiViewModel) => React.ReactNode> = {
   totalProjects: (kpis) => (
     <ClientBriefStatCard
       key="totalProjects"

@@ -39,7 +39,11 @@ import {
   useUpdateContractMutation,
   type ContractItem,
 } from "@/features/contracts/contractsApi";
-import { ContractType, PaymentAmountType, ProposalStatus } from "@hassad/shared";
+import {
+  ContractType,
+  PaymentAmountType,
+  ProposalStatus,
+} from "@hassad/shared";
 import { useCurrency } from "@/hooks/useCurrency";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
@@ -109,7 +113,8 @@ export function CreateContractDialog({
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [createContract, { isLoading }] = useCreateContractMutation();
-  const [updateContract, { isLoading: isUpdating }] = useUpdateContractMutation();
+  const [updateContract, { isLoading: isUpdating }] =
+    useUpdateContractMutation();
   const isEdit = mode === "edit";
   const isSubmitting = isEdit ? isUpdating : isLoading;
   const { currency, fmtAmount } = useCurrency();
@@ -235,7 +240,9 @@ export function CreateContractDialog({
     if (!open || isEdit || !preSelectedRequestId) return;
     // Find the approved proposal linked to this request and auto-select it
     const matchingProposal = proposalsData?.items.find(
-      (p) => p.requestId === preSelectedRequestId && p.status === ProposalStatus.APPROVED,
+      (p) =>
+        p.requestId === preSelectedRequestId &&
+        p.status === ProposalStatus.APPROVED,
     );
     if (matchingProposal && !selectedProposalId) {
       setSelectedProposalId(matchingProposal.id);
@@ -284,7 +291,10 @@ export function CreateContractDialog({
   // ── Auto-suggest numberOfMonths when type → MONTHLY_RETAINER ──────────
   const watchedType = form.watch("type");
   useEffect(() => {
-    if (watchedType === ContractType.MONTHLY_RETAINER && selectedProposal?.durationDays) {
+    if (
+      watchedType === ContractType.MONTHLY_RETAINER &&
+      selectedProposal?.durationDays
+    ) {
       const months = Math.round(selectedProposal.durationDays / 30);
       if (months > 0 && !form.getValues("numberOfMonths")) {
         form.setValue("numberOfMonths", months);
@@ -335,9 +345,18 @@ export function CreateContractDialog({
           type: values.type,
           file,
           proposalId: selectedProposalId,
-          downPaymentType: values.type === ContractType.MONTHLY_RETAINER ? values.downPaymentType : undefined,
-          downPaymentValue: values.type === ContractType.MONTHLY_RETAINER ? values.downPaymentValue : undefined,
-          numberOfMonths: values.type === ContractType.MONTHLY_RETAINER ? values.numberOfMonths : undefined,
+          downPaymentType:
+            values.type === ContractType.MONTHLY_RETAINER
+              ? values.downPaymentType
+              : undefined,
+          downPaymentValue:
+            values.type === ContractType.MONTHLY_RETAINER
+              ? values.downPaymentValue
+              : undefined,
+          numberOfMonths:
+            values.type === ContractType.MONTHLY_RETAINER
+              ? values.numberOfMonths
+              : undefined,
         };
 
         const result = await createContract(payload).unwrap();
@@ -394,7 +413,9 @@ export function CreateContractDialog({
                 <CheckCheck className="h-7 w-7 text-success-600" />
               </div>
               <div>
-                <p className="font-semibold text-base">تم إنشاء العقد وإرساله</p>
+                <p className="font-semibold text-base">
+                  تم إنشاء العقد وإرساله
+                </p>
                 <p className="text-sm text-neutral-300 mt-1">
                   شارك رابط التوقيع مع العميل ليوقّع إلكترونياً
                 </p>
@@ -433,10 +454,7 @@ export function CreateContractDialog({
         ) : (
           /* ── Form ─────────────────────────────────────────── */
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6"
-            >
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Header */}
               <div className="text-center space-y-1.5">
                 <h1 className="text-[22px] font-bold text-natural-100 leading-tight">
@@ -454,13 +472,13 @@ export function CreateContractDialog({
                 <h2 className="text-[15px] font-bold text-natural-100 mb-3">
                   اختيار العرض الفني
                 </h2>
-                <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0"
-                >
+                <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0">
                   <div>
-                    <label className="text-[13px] font-bold text-natural-100 block mb-1.5"
-                    >
+                    <label className="text-[13px] font-bold text-natural-100 block mb-1.5">
                       عرض معتمد
-                      {!isEdit && <span className="text-danger-500 mr-1">*</span>}
+                      {!isEdit && (
+                        <span className="text-danger-500 mr-1">*</span>
+                      )}
                     </label>
                     <SearchCombobox
                       value={selectedProposalId}
@@ -481,17 +499,13 @@ export function CreateContractDialog({
 
                   {/* Proposal summary card */}
                   {hasProposal && (
-                    <div className="rounded-xl border border-neutral-200 p-4 space-y-2 bg-neutral-50"
-                    >
-                      <p className="text-sm font-semibold text-natural-100"
-                      >
+                    <div className="rounded-xl border border-neutral-200 p-4 space-y-2 bg-neutral-50">
+                      <p className="text-sm font-semibold text-natural-100">
                         بيانات العرض الفني
                       </p>
-                      <div className="text-sm text-neutral-300 space-y-1"
-                      >
+                      <div className="text-sm text-neutral-300 space-y-1">
                         <p>
-                          <span className="font-medium text-natural-100"
-                          >
+                          <span className="font-medium text-natural-100">
                             العميل:{" "}
                           </span>
                           {selectedProposal?.request?.companyName ??
@@ -499,14 +513,12 @@ export function CreateContractDialog({
                             "—"}
                         </p>
                         <p>
-                          <span className="font-medium text-natural-100"
-                          >
+                          <span className="font-medium text-natural-100">
                             العنوان:{" "}
                           </span>
                           {selectedProposal?.title}
                         </p>
-                        <div className="flex items-center gap-2"
-                        >
+                        <div className="flex items-center gap-2">
                           <Calculator className="w-4 h-4" />
                           <span>
                             إجمالي القيمة:{" "}
@@ -516,20 +528,16 @@ export function CreateContractDialog({
                             />
                           </span>
                         </div>
-                        <div className="flex items-center gap-2"
-                        >
+                        <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4" />
                           <span>
-                            المدة:{" "}
-                            {selectedProposal?.durationDays} يوم
+                            المدة: {selectedProposal?.durationDays} يوم
                           </span>
                         </div>
-                        <div className="flex items-center gap-2"
-                        >
+                        <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
                           <span>
-                            تاريخ البداية:{" "}
-                            {form.watch("startDate") || "—"}
+                            تاريخ البداية: {form.watch("startDate") || "—"}
                           </span>
                         </div>
                       </div>
@@ -540,17 +548,12 @@ export function CreateContractDialog({
 
               {/* ── Contract Info ───────────────────────────────── */}
               <div>
-                <h2 className="text-[15px] font-bold text-natural-100 mb-3"
-                >
+                <h2 className="text-[15px] font-bold text-natural-100 mb-3">
                   بيانات العقد
                 </h2>
-                <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0"
-                >
+                <div className="border border-neutral-200 rounded-2xl p-4 space-y-4 bg-natural-0">
                   {/* Hidden requestId from proposal */}
-                  <input
-                    type="hidden"
-                    {...form.register("requestId")}
-                  />
+                  <input type="hidden" {...form.register("requestId")} />
 
                   <FormField
                     control={form.control}
@@ -600,35 +603,32 @@ export function CreateContractDialog({
                   />
 
                   {/* Total display */}
-                  <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between"
-                  >
-                    <span className="text-[15px] font-bold text-natural-100"
-                    >
-                    <CurrencyDisplay
-                      amount={selectedProposal?.totalPrice ?? 0}
-                      className="text-[15px] font-bold text-natural-100"
-                    />
+                  <div className="bg-neutral-50 rounded-xl px-5 py-4 flex items-center justify-between">
+                    <span className="text-[15px] font-bold text-natural-100">
+                      <CurrencyDisplay
+                        amount={selectedProposal?.totalPrice ?? 0}
+                        className="text-[15px] font-bold text-natural-100"
+                      />
                     </span>
-                    <span className="text-[14px] font-bold text-natural-100"
-                    >
+                    <span className="text-[14px] font-bold text-natural-100">
                       الإجمالي الكلي
                     </span>
                   </div>
 
                   {/* PDF Upload */}
                   <div>
-                    <p className="text-[13px] font-bold text-natural-100 mb-1.5"
-                    >
+                    <p className="text-[13px] font-bold text-natural-100 mb-1.5">
                       ملف العقد (PDF)
-                      {!isEdit && <span className="text-danger-500 mr-1">*</span>}
+                      {!isEdit && (
+                        <span className="text-danger-500 mr-1">*</span>
+                      )}
                     </p>
                     <div
                       className="flex items-center gap-3 rounded-xl border border-neutral-200 h-12 px-4 cursor-pointer hover:bg-neutral-50 transition-colors"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <FileText className="w-4 h-4 text-neutral-200 shrink-0" />
-                      <span className="text-[13px] text-neutral-300 flex-1 truncate"
-                      >
+                      <span className="text-[13px] text-neutral-300 flex-1 truncate">
                         {file
                           ? file.name
                           : isEdit
@@ -683,10 +683,14 @@ export function CreateContractDialog({
                                   </FormSelectTrigger>
                                 </FormControl>
                                 <FormSelectContent>
-                                  <FormSelectItem value={PaymentAmountType.PERCENT}>
+                                  <FormSelectItem
+                                    value={PaymentAmountType.PERCENT}
+                                  >
                                     نسبة مئوية (%)
                                   </FormSelectItem>
-                                  <FormSelectItem value={PaymentAmountType.FIXED}>
+                                  <FormSelectItem
+                                    value={PaymentAmountType.FIXED}
+                                  >
                                     مبلغ ثابت (ر.س)
                                   </FormSelectItem>
                                 </FormSelectContent>
@@ -702,7 +706,8 @@ export function CreateContractDialog({
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>
-                                {form.watch("downPaymentType") === PaymentAmountType.PERCENT
+                                {form.watch("downPaymentType") ===
+                                PaymentAmountType.PERCENT
                                   ? "نسبة الدفعة الأولى (%)"
                                   : "قيمة الدفعة الأولى (ر.س)"}
                               </FormLabel>
@@ -711,12 +716,17 @@ export function CreateContractDialog({
                                   type="number"
                                   min={0}
                                   placeholder={
-                                    form.watch("downPaymentType") === PaymentAmountType.PERCENT
+                                    form.watch("downPaymentType") ===
+                                    PaymentAmountType.PERCENT
                                       ? "مثال: 20"
                                       : "مثال: 5000"
                                   }
                                   {...field}
-                                  onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      e.target.valueAsNumber || undefined,
+                                    )
+                                  }
                                 />
                               </FormControl>
                               <FormMessage />
@@ -737,7 +747,11 @@ export function CreateContractDialog({
                                 min={1}
                                 placeholder="مثال: 6"
                                 {...field}
-                                onChange={(e) => field.onChange(e.target.valueAsNumber || undefined)}
+                                onChange={(e) =>
+                                  field.onChange(
+                                    e.target.valueAsNumber || undefined,
+                                  )
+                                }
                               />
                             </FormControl>
                             <FormMessage />

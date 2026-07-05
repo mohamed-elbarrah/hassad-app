@@ -220,7 +220,8 @@ export class DisputesNotificationsService {
     if (!client?.userId) return;
 
     // Determine recipient: if author is PM, notify client; if author is client, notify PM
-    const recipientId = message.authorId === dispute.pmId ? client.userId : dispute.pmId;
+    const recipientId =
+      message.authorId === dispute.pmId ? client.userId : dispute.pmId;
 
     await this.notificationsService.notifyUsers({
       userIds: [recipientId],
@@ -349,39 +350,45 @@ export class DisputesNotificationsService {
     // Notify client
     if (client?.userId) {
       notifications.push(
-        this.notificationsService.notifyUsers({
-          userIds: [client.userId],
-          title: "تغيير مدير المشروع",
-          message: `تم تغيير مدير المشروع لحل التذكرة #${dispute.ticketNumber}`,
-          entityId: payload.disputeId,
-          entityType: "DISPUTE",
-          eventType: "DISPUTE_PM_CHANGED",
-        }).then(() => {}),
+        this.notificationsService
+          .notifyUsers({
+            userIds: [client.userId],
+            title: "تغيير مدير المشروع",
+            message: `تم تغيير مدير المشروع لحل التذكرة #${dispute.ticketNumber}`,
+            entityId: payload.disputeId,
+            entityType: "DISPUTE",
+            eventType: "DISPUTE_PM_CHANGED",
+          })
+          .then(() => {}),
       );
     }
 
     // Notify old PM
     notifications.push(
-      this.notificationsService.notifyUsers({
-        userIds: [payload.oldPmId],
-        title: "تم تغييرك من مشروع",
-        message: `تم تغييرك كمدير لمشروع "${dispute.project.name}" بسبب نزاع`,
-        entityId: payload.disputeId,
-        entityType: "DISPUTE",
-        eventType: "DISPUTE_PM_CHANGED",
-      }).then(() => {}),
+      this.notificationsService
+        .notifyUsers({
+          userIds: [payload.oldPmId],
+          title: "تم تغييرك من مشروع",
+          message: `تم تغييرك كمدير لمشروع "${dispute.project.name}" بسبب نزاع`,
+          entityId: payload.disputeId,
+          entityType: "DISPUTE",
+          eventType: "DISPUTE_PM_CHANGED",
+        })
+        .then(() => {}),
     );
 
     // Notify new PM
     notifications.push(
-      this.notificationsService.notifyUsers({
-        userIds: [payload.newPmId],
-        title: "تعيينك كمدير مشروع جديد",
-        message: `تم تعيينك كمدير لمشروع "${dispute.project.name}"`,
-        entityId: payload.disputeId,
-        entityType: "DISPUTE",
-        eventType: "DISPUTE_PM_CHANGED",
-      }).then(() => {}),
+      this.notificationsService
+        .notifyUsers({
+          userIds: [payload.newPmId],
+          title: "تعيينك كمدير مشروع جديد",
+          message: `تم تعيينك كمدير لمشروع "${dispute.project.name}"`,
+          entityId: payload.disputeId,
+          entityType: "DISPUTE",
+          eventType: "DISPUTE_PM_CHANGED",
+        })
+        .then(() => {}),
     );
 
     await Promise.all(notifications);
@@ -404,27 +411,31 @@ export class DisputesNotificationsService {
     // Notify client
     if (client?.userId) {
       notifications.push(
-        this.notificationsService.notifyUsers({
-          userIds: [client.userId],
-          title: "تم إغلاق التذكرة",
-          message: `تم إغلاق تذكرتك #${dispute.ticketNumber}`,
-          entityId: payload.disputeId,
-          entityType: "DISPUTE",
-          eventType: "DISPUTE_CLOSED",
-        }).then(() => {}),
+        this.notificationsService
+          .notifyUsers({
+            userIds: [client.userId],
+            title: "تم إغلاق التذكرة",
+            message: `تم إغلاق تذكرتك #${dispute.ticketNumber}`,
+            entityId: payload.disputeId,
+            entityType: "DISPUTE",
+            eventType: "DISPUTE_CLOSED",
+          })
+          .then(() => {}),
       );
     }
 
     // Notify PM
     notifications.push(
-      this.notificationsService.notifyUsers({
-        userIds: [payload.pmId],
-        title: "تم إغلاق التذكرة",
-        message: `تم إغلاق التذكرة #${dispute.ticketNumber}`,
-        entityId: payload.disputeId,
-        entityType: "DISPUTE",
-        eventType: "DISPUTE_CLOSED",
-      }).then(() => {}),
+      this.notificationsService
+        .notifyUsers({
+          userIds: [payload.pmId],
+          title: "تم إغلاق التذكرة",
+          message: `تم إغلاق التذكرة #${dispute.ticketNumber}`,
+          entityId: payload.disputeId,
+          entityType: "DISPUTE",
+          eventType: "DISPUTE_CLOSED",
+        })
+        .then(() => {}),
     );
 
     await Promise.all(notifications);
@@ -433,7 +444,9 @@ export class DisputesNotificationsService {
   // ─── Reminder Handler (called by scheduler) ────────────────────────────────
 
   async sendReminder(payload: DisputeReminderPayload) {
-    this.logger.log(`Sending reminder ${payload.reminderNumber} for dispute: ${payload.disputeId}`);
+    this.logger.log(
+      `Sending reminder ${payload.reminderNumber} for dispute: ${payload.disputeId}`,
+    );
 
     const dispute = await this.getDisputeDetails(payload.disputeId);
     if (!dispute) return false;

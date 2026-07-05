@@ -145,7 +145,12 @@ export function SalesPipelineKanban() {
         onEditContract={handleEditContract}
       />
     ),
-    [handleCreateProposal, handleEditProposal, handleCreateContract, handleEditContract],
+    [
+      handleCreateProposal,
+      handleEditProposal,
+      handleCreateContract,
+      handleEditContract,
+    ],
   );
 
   const requests = data ?? [];

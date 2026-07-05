@@ -29,7 +29,8 @@ function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
 
   const income = payload.find((p: any) => p.dataKey === "income")?.value ?? 0;
-  const invoiced = payload.find((p: any) => p.dataKey === "invoiced")?.value ?? 0;
+  const invoiced =
+    payload.find((p: any) => p.dataKey === "invoiced")?.value ?? 0;
 
   return (
     <div className="rounded-lg border border-portal-card-border bg-natural-0 shadow-lg px-3 py-2 min-w-[160px]">
@@ -42,14 +43,18 @@ function CustomTooltip({ active, payload, label }: any) {
             <div className="w-2 h-2 rounded-full bg-[hsl(var(--primary))]" />
             <span className="text-xs text-portal-note-text">المدفوعات</span>
           </div>
-          <span className="text-xs font-bold text-natural-100"><CurrencyDisplay amount={income} size="sm" /></span>
+          <span className="text-xs font-bold text-natural-100">
+            <CurrencyDisplay amount={income} size="sm" />
+          </span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-[#f43f5e]" />
             <span className="text-xs text-portal-note-text">الفواتير</span>
           </div>
-          <span className="text-xs font-bold text-natural-100"><CurrencyDisplay amount={invoiced} size="sm" /></span>
+          <span className="text-xs font-bold text-natural-100">
+            <CurrencyDisplay amount={invoiced} size="sm" />
+          </span>
         </div>
       </div>
     </div>
@@ -69,7 +74,10 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
 
   if (isLoading) {
     return (
-      <SurfaceCard className="border-none shadow-md" title="الإيرادات مقابل الفواتير">
+      <SurfaceCard
+        className="border-none shadow-md"
+        title="الإيرادات مقابل الفواتير"
+      >
         <div className="h-[340px] animate-pulse bg-badge-gray-bg rounded-xl" />
       </SurfaceCard>
     );
@@ -97,7 +105,9 @@ export function RevenueTrendChart({ data, isLoading }: Props) {
                 "repeating-linear-gradient(90deg, #f43f5e, #f43f5e 4px, transparent 4px, transparent 7px)",
             }}
           />
-          <span className="text-xs text-portal-note-text">الفواتير المصدرة</span>
+          <span className="text-xs text-portal-note-text">
+            الفواتير المصدرة
+          </span>
         </div>
       </div>
 

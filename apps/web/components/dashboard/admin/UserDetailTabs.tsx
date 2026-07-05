@@ -1,20 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { User, Activity, Monitor, Lock } from "lucide-react";
 import {
-  User,
-  Activity,
-  Monitor,
-  Lock,
-} from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { formatDate } from "@/lib/format";
-import type { AdminUserDetail, SecurityEvent, AdminSession } from "@/features/admin/adminApi";
+import type {
+  AdminUserDetail,
+  SecurityEvent,
+  AdminSession,
+} from "@/features/admin/adminApi";
 
 interface UserDetailTabsProps {
   user: AdminUserDetail | null;
@@ -38,7 +42,10 @@ const ROLE_LABELS: Record<string, string> = {
   CLIENT: "عميل",
 };
 
-const ROLE_PILL_TONE: Record<string, "danger" | "neutral" | "warning" | "success" | "blue"> = {
+const ROLE_PILL_TONE: Record<
+  string,
+  "danger" | "neutral" | "warning" | "success" | "blue"
+> = {
   ADMIN: "danger",
   PM: "neutral",
   SALES: "warning",
@@ -125,11 +132,20 @@ export function UserDetailTabs({
               <div className="space-y-4">
                 <div>
                   <span className="text-sm text-portal-note-text">الاسم</span>
-                  <p className="text-base font-medium text-natural-100">{user.name}</p>
+                  <p className="text-base font-medium text-natural-100">
+                    {user.name}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-sm text-portal-note-text">البريد الإلكتروني</span>
-                  <p className="text-base font-medium text-natural-100" dir="ltr">{user.email}</p>
+                  <span className="text-sm text-portal-note-text">
+                    البريد الإلكتروني
+                  </span>
+                  <p
+                    className="text-base font-medium text-natural-100"
+                    dir="ltr"
+                  >
+                    {user.email}
+                  </p>
                 </div>
                 <div>
                   <span className="text-sm text-portal-note-text">الدور</span>
@@ -157,25 +173,33 @@ export function UserDetailTabs({
                   </div>
                 </div>
                 <div>
-                  <span className="text-sm text-portal-note-text">آخر تسجيل دخول</span>
+                  <span className="text-sm text-portal-note-text">
+                    آخر تسجيل دخول
+                  </span>
                   <p className="text-base font-medium text-natural-100">
                     {user.lastLoginAt ? formatDate(user.lastLoginAt) : "—"}
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-portal-note-text">التحقق بخطوتين</span>
+                  <span className="text-sm text-portal-note-text">
+                    التحقق بخطوتين
+                  </span>
                   <p className="text-base font-medium text-natural-100">
                     {user.twoFactorEnabled ? "مفعل" : "غير مفعل"}
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-portal-note-text">محاولات دخول فاشلة</span>
+                  <span className="text-sm text-portal-note-text">
+                    محاولات دخول فاشلة
+                  </span>
                   <p className="text-base font-medium text-natural-100">
                     {user.failedLoginAttempts}
                   </p>
                 </div>
                 <div>
-                  <span className="text-sm text-portal-note-text">تاريخ الإنشاء</span>
+                  <span className="text-sm text-portal-note-text">
+                    تاريخ الإنشاء
+                  </span>
                   <p className="text-base font-medium text-natural-100">
                     {formatDate(user.createdAt)}
                   </p>
@@ -212,7 +236,10 @@ export function UserDetailTabs({
                   <td className="px-5 py-3 text-sm text-portal-note-text font-mono">
                     {entry.entityId?.slice(0, 8)}...
                   </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text text-left" dir="ltr">
+                  <td
+                    className="px-5 py-3 text-sm text-portal-note-text text-left"
+                    dir="ltr"
+                  >
                     {formatDate(entry.createdAt)}
                   </td>
                 </tr>
@@ -244,13 +271,22 @@ export function UserDetailTabs({
                   <td className="px-5 py-3 text-sm text-natural-100 max-w-[200px] truncate">
                     {session.userAgent ?? "—"}
                   </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text font-mono" dir="ltr">
+                  <td
+                    className="px-5 py-3 text-sm text-portal-note-text font-mono"
+                    dir="ltr"
+                  >
                     {session.ip ?? "—"}
                   </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text text-left" dir="ltr">
+                  <td
+                    className="px-5 py-3 text-sm text-portal-note-text text-left"
+                    dir="ltr"
+                  >
                     {formatDate(session.createdAt)}
                   </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text text-left" dir="ltr">
+                  <td
+                    className="px-5 py-3 text-sm text-portal-note-text text-left"
+                    dir="ltr"
+                  >
                     {formatDate(session.expiresAt)}
                   </td>
                   <td className="px-5 py-3">
@@ -295,10 +331,16 @@ export function UserDetailTabs({
                   <td className="px-5 py-3 text-sm font-medium text-natural-100">
                     {SECURITY_EVENT_LABELS[event.type] ?? event.type}
                   </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text font-mono" dir="ltr">
+                  <td
+                    className="px-5 py-3 text-sm text-portal-note-text font-mono"
+                    dir="ltr"
+                  >
                     {event.ip ?? "—"}
                   </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text text-left" dir="ltr">
+                  <td
+                    className="px-5 py-3 text-sm text-portal-note-text text-left"
+                    dir="ltr"
+                  >
                     {formatDate(event.createdAt)}
                   </td>
                 </tr>

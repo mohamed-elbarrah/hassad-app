@@ -58,18 +58,20 @@ export default function FinanceDashboardPage() {
     setDates(newDates);
   };
 
-  const params = useMemo(
-    () => ({ from: dates.from, to: dates.to }),
-    [dates],
-  );
+  const params = useMemo(() => ({ from: dates.from, to: dates.to }), [dates]);
 
   const groupBy = useMemo(() => {
     switch (range) {
-      case "week": return "day";
-      case "month": return "day";
-      case "quarter": return "month";
-      case "year": return "month";
-      default: return "day";
+      case "week":
+        return "day";
+      case "month":
+        return "day";
+      case "quarter":
+        return "month";
+      case "year":
+        return "month";
+      default:
+        return "day";
     }
   }, [range]);
 
@@ -77,23 +79,27 @@ export default function FinanceDashboardPage() {
   const { data: metrics, isLoading: metricsLoading } =
     useGetFinanceMetricsQuery(params);
 
-  const { data: trend, isLoading: trendLoading } =
-    useGetRevenueTrendQuery({ ...params, groupBy });
+  const { data: trend, isLoading: trendLoading } = useGetRevenueTrendQuery({
+    ...params,
+    groupBy,
+  });
 
-  const { data: aging, isLoading: agingLoading } =
-    useGetAgingQuery();
+  const { data: aging, isLoading: agingLoading } = useGetAgingQuery();
 
   const { data: actions, isLoading: actionsLoading } =
     useGetFinanceActionsQuery();
 
-  const { data: topClients, isLoading: clientsLoading } =
-    useGetTopClientsQuery({ ...params, limit: 5 });
+  const { data: topClients, isLoading: clientsLoading } = useGetTopClientsQuery(
+    { ...params, limit: 5 },
+  );
 
   const { data: paymentMethods, isLoading: methodsLoading } =
     useGetPaymentMethodsQuery(params);
 
-  const { data: ledgerData, isLoading: ledgerLoading } =
-    useGetLedgerQuery({ limit: 6, page: 1 });
+  const { data: ledgerData, isLoading: ledgerLoading } = useGetLedgerQuery({
+    limit: 6,
+    page: 1,
+  });
 
   const { data: invoicesData } = useGetInvoicesQuery({ limit: 1 });
 
@@ -112,7 +118,9 @@ export default function FinanceDashboardPage() {
         title="لوحة التحكم المالية"
         description="نظرة شاملة على الأداء المالي للفترة المختارة"
         icon={DollarSign}
-        actions={<FinanceDateRangePicker value={range} onChange={handleRangeChange} />}
+        actions={
+          <FinanceDateRangePicker value={range} onChange={handleRangeChange} />
+        }
       />
 
       {/* ── KPI Row 1 ─────────────────────────────────────────────────────── */}
@@ -122,7 +130,9 @@ export default function FinanceDashboardPage() {
           value={<CurrencyDisplay amount={metrics?.revenue ?? 0} />}
           icon={DollarSign}
           variant="default"
-          trend={metrics?.revenueChange && metrics.revenueChange >= 0 ? "up" : "down"}
+          trend={
+            metrics?.revenueChange && metrics.revenueChange >= 0 ? "up" : "down"
+          }
           trendValue={`${Math.abs(metrics?.revenueChange ?? 0).toFixed(2)}%`}
         />
         <StatCard
@@ -142,7 +152,11 @@ export default function FinanceDashboardPage() {
           value={<CurrencyDisplay amount={metrics?.netProfit ?? 0} />}
           icon={Wallet}
           variant="default"
-          trend={metrics?.netProfitChange && metrics.netProfitChange >= 0 ? "up" : "down"}
+          trend={
+            metrics?.netProfitChange && metrics.netProfitChange >= 0
+              ? "up"
+              : "down"
+          }
           trendValue={`${Math.abs(metrics?.netProfitChange ?? 0).toFixed(2)}%`}
         />
       </div>
@@ -153,7 +167,9 @@ export default function FinanceDashboardPage() {
           title="المدفوعات الفاشلة"
           value={<CurrencyDisplay amount={metrics?.failedPaymentsValue ?? 0} />}
           icon={AlertTriangle}
-          variant={(metrics?.failedPaymentsCount ?? 0) > 0 ? "danger" : "default"}
+          variant={
+            (metrics?.failedPaymentsCount ?? 0) > 0 ? "danger" : "default"
+          }
         />
         <StatCard
           title="متوسط قيمة الفاتورة"
@@ -172,7 +188,11 @@ export default function FinanceDashboardPage() {
           value={<CurrencyDisplay amount={metrics?.salariesTotal ?? 0} />}
           icon={CreditCard}
           variant="default"
-          trend={metrics?.salariesChange && metrics.salariesChange >= 0 ? "up" : "down"}
+          trend={
+            metrics?.salariesChange && metrics.salariesChange >= 0
+              ? "up"
+              : "down"
+          }
           trendValue={`${Math.abs(metrics?.salariesChange ?? 0).toFixed(2)}%`}
         />
       </div>
@@ -183,7 +203,10 @@ export default function FinanceDashboardPage() {
           <RevenueTrendChart data={trend || []} isLoading={trendLoading} />
         </div>
         <div className="lg:col-span-1">
-          <PaymentMethodChart data={paymentMethods || []} isLoading={methodsLoading} />
+          <PaymentMethodChart
+            data={paymentMethods || []}
+            isLoading={methodsLoading}
+          />
         </div>
       </div>
 
@@ -191,7 +214,10 @@ export default function FinanceDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <AgingChart data={aging || []} isLoading={agingLoading} />
         <ActionQueue actions={actions || []} isLoading={actionsLoading} />
-        <TopClientsTable clients={topClients || []} isLoading={clientsLoading} />
+        <TopClientsTable
+          clients={topClients || []}
+          isLoading={clientsLoading}
+        />
       </div>
 
       {/* ── Bottom Row: Activity + Quick Links ───────────────────────────── */}
@@ -258,8 +284,16 @@ export default function FinanceDashboardPage() {
             badge={metrics?.pendingLateCount}
             description="إصدار ومتابعة الفواتير"
             meta={[
-              { value: metrics?.invoicesCount ?? 0, label: "مصدرة", accent: "neutral" },
-              { value: metrics?.pendingLateCount ?? 0, label: "متأخرة", accent: metrics?.pendingLateCount > 0 ? "danger" : "neutral" },
+              {
+                value: metrics?.invoicesCount ?? 0,
+                label: "مصدرة",
+                accent: "neutral",
+              },
+              {
+                value: metrics?.pendingLateCount ?? 0,
+                label: "متأخرة",
+                accent: metrics?.pendingLateCount > 0 ? "danger" : "neutral",
+              },
             ]}
             progress={metrics?.collectionRate}
             progressLabel="نسبة التحصيل"
@@ -272,7 +306,9 @@ export default function FinanceDashboardPage() {
             description="صرف الرواتب والمستحقات"
             meta={[
               {
-                value: actions?.filter((a) => a.type === "PENDING_SALARY").length ?? 0,
+                value:
+                  actions?.filter((a) => a.type === "PENDING_SALARY").length ??
+                  0,
                 label: "معلق للصرف",
                 accent: "alert",
               },
@@ -286,9 +322,12 @@ export default function FinanceDashboardPage() {
             description="مراجعة التدقيق المالي"
             meta={[
               {
-                value: ledgerData?.items?.filter(
-                  (l) => new Date(l.createdAt).toDateString() === new Date().toDateString(),
-                ).length ?? 0,
+                value:
+                  ledgerData?.items?.filter(
+                    (l) =>
+                      new Date(l.createdAt).toDateString() ===
+                      new Date().toDateString(),
+                  ).length ?? 0,
                 label: "عملية اليوم",
                 accent: "neutral",
               },

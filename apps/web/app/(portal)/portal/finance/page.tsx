@@ -38,17 +38,22 @@ export default function PortalFinancePage() {
   const statusFilter = activeFilters["status"]?.[0] ?? "ALL";
 
   const { data: summaryData, isLoading: summaryLoading } =
-    useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: PORTAL_POLLING_INTERVAL_MS });
+    useGetPortalFinanceSummaryQuery(undefined, {
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+    });
 
-  const { data: invoicesData, isLoading: invoicesLoading, isError } =
-    useGetPortalInvoicesQuery(
-      {
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-        page,
-        limit: PAGE_SIZE,
-      },
-      { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
-    );
+  const {
+    data: invoicesData,
+    isLoading: invoicesLoading,
+    isError,
+  } = useGetPortalInvoicesQuery(
+    {
+      status: statusFilter === "ALL" ? undefined : statusFilter,
+      page,
+      limit: PAGE_SIZE,
+    },
+    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
+  );
 
   const invoices: PortalInvoiceSummary[] = invoicesData?.data ?? [];
   const total = invoicesData?.total ?? 0;
@@ -94,10 +99,7 @@ export default function PortalFinancePage() {
         icon={Receipt}
       />
 
-      <FinanceSummaryKpis
-        data={summaryData}
-        isLoading={summaryLoading}
-      />
+      <FinanceSummaryKpis data={summaryData} isLoading={summaryLoading} />
 
       <FinanceToolbar
         search={searchQuery}

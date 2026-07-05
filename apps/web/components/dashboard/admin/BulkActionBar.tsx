@@ -8,7 +8,7 @@ import { Dialog } from "@/components/design-system/Dialog";
 export interface BulkAction {
   label: string;
   icon?: React.ComponentType<{ className?: string }>;
-  variant?: "default" | "danger" | "warning" | "outline" | "ghost";
+  variant?: "primary" | "outline" | "ghost";
   requiresConfirmation?: boolean;
   confirmationTitle?: string;
   confirmationMessage?: string;
@@ -21,10 +21,17 @@ interface BulkActionBarProps {
   actions: BulkAction[];
 }
 
-export function BulkActionBar({ selectedIds, onClear, actions }: BulkActionBarProps) {
+export function BulkActionBar({
+  selectedIds,
+  onClear,
+  actions,
+}: BulkActionBarProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<BulkAction | null>(null);
-  const [result, setResult] = useState<{ affected: number; failed: string[] } | null>(null);
+  const [result, setResult] = useState<{
+    affected: number;
+    failed: string[];
+  } | null>(null);
 
   if (selectedIds.length === 0) return null;
 
@@ -66,7 +73,7 @@ export function BulkActionBar({ selectedIds, onClear, actions }: BulkActionBarPr
             return (
               <ActionButton
                 key={action.label}
-                variant={action.variant ?? "default"}
+                variant={action.variant ?? "primary"}
                 size="sm"
                 disabled={isExecuting}
                 onClick={() => handleExecute(action)}
@@ -99,30 +106,41 @@ export function BulkActionBar({ selectedIds, onClear, actions }: BulkActionBarPr
       {/* Confirmation dialog */}
       <Dialog
         open={!!confirmAction}
-        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null);
+        }}
         title={confirmAction?.confirmationTitle ?? "تأكيد العملية"}
         description={confirmAction?.confirmationMessage}
         icon={AlertTriangle}
         footer={
           <div className="flex gap-2 justify-end">
-            <ActionButton variant="outline" onClick={() => setConfirmAction(null)}>
+            <ActionButton
+              variant="outline"
+              onClick={() => setConfirmAction(null)}
+            >
               إلغاء
             </ActionButton>
             <ActionButton
-              variant={confirmAction?.variant === "danger" ? "danger" : "default"}
+              variant="primary"
               onClick={() => confirmAction && runAction(confirmAction)}
             >
               تأكيد
             </ActionButton>
           </div>
         }
-      />
+      >
+        <div />
+      </Dialog>
 
       {/* Result dialog */}
       <Dialog
         open={!!result}
-        onOpenChange={(open) => { if (!open) setResult(null); }}
-        title={result?.failed.length === 0 ? "تمت العملية بنجاح" : "اكتمل مع أخطاء"}
+        onOpenChange={(open) => {
+          if (!open) setResult(null);
+        }}
+        title={
+          result?.failed.length === 0 ? "تمت العملية بنجاح" : "اكتمل مع أخطاء"
+        }
         description={
           result
             ? `تم بنجاح: ${result.affected}، فشل: ${result.failed.length}`
@@ -130,12 +148,12 @@ export function BulkActionBar({ selectedIds, onClear, actions }: BulkActionBarPr
         }
         footer={
           <div className="flex gap-2 justify-end">
-            <ActionButton onClick={() => setResult(null)}>
-              حسناً
-            </ActionButton>
+            <ActionButton onClick={() => setResult(null)}>حسناً</ActionButton>
           </div>
         }
-      />
+      >
+        <div />
+      </Dialog>
     </>
   );
 }

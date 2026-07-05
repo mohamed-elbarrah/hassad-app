@@ -9,6 +9,9 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 export class AdminEnvironmentController {
   constructor(private readonly service: AdminEnvironmentService) {}
 
-  @Get() @RequirePermissions("admin.settings")
-  getInfo() { return this.service.getInfo(); }
+  @Get()
+  @RequirePermissions("admin.settings")
+  getInfo() {
+    return this.service.getInfo();
+  }
 }

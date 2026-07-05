@@ -30,7 +30,10 @@ export default function DepartmentsPage() {
       return;
     }
     try {
-      await createDept({ name: name.trim(), description: description.trim() || undefined }).unwrap();
+      await createDept({
+        name: name.trim(),
+        description: description.trim() || undefined,
+      }).unwrap();
       toast.success("تم إنشاء القسم بنجاح");
       setName("");
       setDescription("");
@@ -74,12 +77,19 @@ export default function DepartmentsPage() {
         }}
         renderRow={(dept, idx) => (
           <tr key={dept.id} className="border-b-[1.5px] border-portal-divider">
-            <td className="px-5 py-4 text-sm text-portal-note-text">{idx + 1}</td>
-            <td className="px-5 py-4 text-base font-medium text-natural-100">{dept.name}</td>
+            <td className="px-5 py-4 text-sm text-portal-note-text">
+              {idx + 1}
+            </td>
+            <td className="px-5 py-4 text-base font-medium text-natural-100">
+              {dept.name}
+            </td>
             <td className="px-5 py-4 text-sm text-portal-note-text max-w-xs truncate">
               {dept.description ?? "—"}
             </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text text-left" dir="ltr">
+            <td
+              className="px-5 py-4 text-sm text-portal-note-text text-left"
+              dir="ltr"
+            >
               {formatDate(dept.createdAt)}
             </td>
           </tr>
@@ -117,7 +127,9 @@ export default function DepartmentsPage() {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label className="text-sm font-medium text-natural-100">الوصف</Label>
+            <Label className="text-sm font-medium text-natural-100">
+              الوصف
+            </Label>
             <FormInputControl
               placeholder="وصف مختصر للقسم..."
               value={description}

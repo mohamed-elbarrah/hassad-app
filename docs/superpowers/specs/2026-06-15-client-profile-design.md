@@ -65,30 +65,30 @@ model Client {
 
 ### 2.3 What Exists (Reusable)
 
-| Component | Status | Location |
-|-----------|--------|----------|
-| `CanonicalClientService` | Active — deduplication engine | `apps/api/src/modules/requests/canonical-client.service.ts` |
-| `ClientHistoryLog` | Active — flat event log | `apps/api/prisma/schema.prisma` |
-| `PortalIntakeForm` | Dead code — model + endpoints exist, no UI | `apps/api/prisma/schema.prisma:839` |
-| `ClientInfoCard` | Active — displays identity | `apps/web/components/dashboard/crm/ClientInfoCard.tsx` |
-| `ClientTimeline` | Active — activity log display | `apps/web/components/dashboard/crm/ClientTimeline.tsx` |
-| `ClientsTable` | Built but unused — not wired to any page | `apps/web/components/dashboard/crm/ClientsTable.tsx` |
-| `ClientFiltersBar` | Built but unused | `apps/web/components/dashboard/crm/ClientFiltersBar.tsx` |
-| `CreateClientDialog` | Built but unused | `apps/web/components/dashboard/crm/CreateClientDialog.tsx` |
-| `RequirementsForm` | Active — redundant with ClientInfoCard | `apps/web/components/dashboard/crm/RequirementsForm.tsx` |
+| Component                | Status                                     | Location                                                    |
+| ------------------------ | ------------------------------------------ | ----------------------------------------------------------- |
+| `CanonicalClientService` | Active — deduplication engine              | `apps/api/src/modules/requests/canonical-client.service.ts` |
+| `ClientHistoryLog`       | Active — flat event log                    | `apps/api/prisma/schema.prisma`                             |
+| `PortalIntakeForm`       | Dead code — model + endpoints exist, no UI | `apps/api/prisma/schema.prisma:839`                         |
+| `ClientInfoCard`         | Active — displays identity                 | `apps/web/components/dashboard/crm/ClientInfoCard.tsx`      |
+| `ClientTimeline`         | Active — activity log display              | `apps/web/components/dashboard/crm/ClientTimeline.tsx`      |
+| `ClientsTable`           | Built but unused — not wired to any page   | `apps/web/components/dashboard/crm/ClientsTable.tsx`        |
+| `ClientFiltersBar`       | Built but unused                           | `apps/web/components/dashboard/crm/ClientFiltersBar.tsx`    |
+| `CreateClientDialog`     | Built but unused                           | `apps/web/components/dashboard/crm/CreateClientDialog.tsx`  |
+| `RequirementsForm`       | Active — redundant with ClientInfoCard     | `apps/web/components/dashboard/crm/RequirementsForm.tsx`    |
 
 ### 2.4 Gaps
 
-| Gap | Impact |
-|-----|--------|
-| No business profile (description, industry, goals, audience, budget) | Sales/PMs lack context about the client |
-| No project history aggregated per client | Sales doesn't know if client is returning; PM doesn't see past projects |
-| `Request` duplicates identity via schema | Every new request re-asks for identity; client model drift over time |
-| No `DIRECT` source enum value | Cannot distinguish "returning client" requests from first-time portal submissions |
-| `Client` shared type missing `userId` and `intakeCompleted` | Frontend type-safety gap |
-| No "create request for existing client" endpoint | Sales must use the same form as portal clients, re-entering all data |
-| 4 placeholder cards in admin client detail | All show "coming soon" — no projects, invoices, chats, or contracts |
-| PMs have zero client visibility | No client list, no client detail, no client name on project cards |
+| Gap                                                                  | Impact                                                                            |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| No business profile (description, industry, goals, audience, budget) | Sales/PMs lack context about the client                                           |
+| No project history aggregated per client                             | Sales doesn't know if client is returning; PM doesn't see past projects           |
+| `Request` duplicates identity via schema                             | Every new request re-asks for identity; client model drift over time              |
+| No `DIRECT` source enum value                                        | Cannot distinguish "returning client" requests from first-time portal submissions |
+| `Client` shared type missing `userId` and `intakeCompleted`          | Frontend type-safety gap                                                          |
+| No "create request for existing client" endpoint                     | Sales must use the same form as portal clients, re-entering all data              |
+| 4 placeholder cards in admin client detail                           | All show "coming soon" — no projects, invoices, chats, or contracts               |
+| PMs have zero client visibility                                      | No client list, no client detail, no client name on project cards                 |
 
 ---
 
@@ -184,13 +184,14 @@ model ClientProfile {
 
 **Why typed columns + Json?**
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| Typed columns only | Type-safe, queryable, indexed | Every new field needs a migration |
-| Pure Json | Zero migrations, fully flexible | No queryability, no validation, no type safety |
-| **Hybrid (chosen)** | Core fields queryable + filterable; customJson for extensibility | Requires judgment about what goes where |
+| Approach            | Pros                                                             | Cons                                           |
+| ------------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| Typed columns only  | Type-safe, queryable, indexed                                    | Every new field needs a migration              |
+| Pure Json           | Zero migrations, fully flexible                                  | No queryability, no validation, no type safety |
+| **Hybrid (chosen)** | Core fields queryable + filterable; customJson for extensibility | Requires judgment about what goes where        |
 
 **Rules for what goes in typed columns vs. customFields:**
+
 - Typed column: has a defined business meaning and is used in queries/filters/lists
 - customFields: experimental, client-specific, or future fields not yet standardized
 
@@ -221,15 +222,15 @@ model Client {
 
 **Counter update strategy:** A `ClientCounterService` hooks into relevant business events:
 
-| Event | Counter |
-|-------|---------|
-| Project status → ACTIVE | `activeProjects++` |
-| Project status → COMPLETED | `completedProjects++` |
-| Project status → CANCELLED | `cancelledProjects++` |
-| Contract → SIGNED | `totalContractValue += monthlyValue` |
-| Invoice → PAID | `totalInvoiced += amount`, `totalPaid += amount` |
-| Payment → recorded | `totalPaid += amount` |
-| SatisfactionRating → created | Recompute `avgSatisfactionScore` |
+| Event                        | Counter                                          |
+| ---------------------------- | ------------------------------------------------ |
+| Project status → ACTIVE      | `activeProjects++`                               |
+| Project status → COMPLETED   | `completedProjects++`                            |
+| Project status → CANCELLED   | `cancelledProjects++`                            |
+| Contract → SIGNED            | `totalContractValue += monthlyValue`             |
+| Invoice → PAID               | `totalInvoiced += amount`, `totalPaid += amount` |
+| Payment → recorded           | `totalPaid += amount`                            |
+| SatisfactionRating → created | Recompute `avgSatisfactionScore`                 |
 
 These updates run `after` the core transaction commits (fire-and-forget), matching the existing notification pattern. A counter failure must never roll back business data.
 
@@ -238,6 +239,7 @@ These updates run `after` the core transaction commits (fire-and-forget), matchi
 The `Request` model currently has 6 duplicated identity fields. Strategy:
 
 **Phase 4 (cleanup):**
+
 1. Add `@deprecated` JSDoc comments in the Prisma schema
 2. Stop writing to these fields in the service layer (read from `request.client` instead)
 3. Update all frontend consumers to read identity from `request.client.relation`
@@ -282,11 +284,11 @@ The `metadata` Json field captures context: project ID, invoice ID, score, etc.
 
 ### 5.1 Client Profile Endpoints
 
-| Method | Endpoint | Permission | Description |
-|--------|----------|------------|-------------|
-| `GET` | `/clients/:id/profile` | `clients.read` | Get profile (returns ClientProfile + Client counters) |
-| `PUT` | `/clients/:id/profile` | `clients.update` | Create or update profile (upsert) |
-| `PATCH` | `/clients/:id/profile` | `clients.update` | Partial update of profile |
+| Method  | Endpoint               | Permission       | Description                                           |
+| ------- | ---------------------- | ---------------- | ----------------------------------------------------- |
+| `GET`   | `/clients/:id/profile` | `clients.read`   | Get profile (returns ClientProfile + Client counters) |
+| `PUT`   | `/clients/:id/profile` | `clients.update` | Create or update profile (upsert)                     |
+| `PATCH` | `/clients/:id/profile` | `clients.update` | Partial update of profile                             |
 
 **GET Response:**
 
@@ -354,8 +356,8 @@ interface UpsertClientProfileDto {
 
 ### 5.2 Request Endpoint for Returning Clients
 
-| Method | Endpoint | Permission | Description |
-|--------|----------|------------|-------------|
+| Method | Endpoint               | Permission     | Description                                               |
+| ------ | ---------------------- | -------------- | --------------------------------------------------------- |
 | `POST` | `/requests/for-client` | `leads.create` | Create request for existing client (no identity re-entry) |
 
 **DTO:**
@@ -402,6 +404,7 @@ This powers the sales client list page with project counts per row.
 ### 5.4 Client Detail Endpoint Enhancement
 
 Update `GET /clients/:id` to include:
+
 - `profile` (ClientProfile)
 - Denormalized counters
 - `recentProjects` — last 5 projects with status, contract value, dates, PM name
@@ -415,14 +418,15 @@ Update `GET /clients/:id` to include:
 ```typescript
 class ClientCounterService {
   async onProjectStatusChange(projectId: string): Promise<void>; // Recompute all project counters
-  async onContractSigned(contractId: string): Promise<void>;     // totalContractValue +=
-  async onInvoicePaid(invoiceId: string): Promise<void>;         // totalInvoiced +=, totalPaid +=
-  async onSatisfactionRated(clientId: string): Promise<void>;    // Recompute avg score
-  async recomputeAll(clientId: string): Promise<void>;           // Full recompute (admin repair tool)
+  async onContractSigned(contractId: string): Promise<void>; // totalContractValue +=
+  async onInvoicePaid(invoiceId: string): Promise<void>; // totalInvoiced +=, totalPaid +=
+  async onSatisfactionRated(clientId: string): Promise<void>; // Recompute avg score
+  async recomputeAll(clientId: string): Promise<void>; // Full recompute (admin repair tool)
 }
 ```
 
 Counter updates are:
+
 - **Fire-and-forget** — never block the originating transaction
 - **Idempotent** — safe to call multiple times
 - **Loggable** — write a `CLIENT_COUNTERS_UPDATED` history log for audit
@@ -465,6 +469,7 @@ Counter updates are:
 Columns: Company Name, Contact Name, Phone, Status, Projects Count, Account Manager, Last Activity
 
 Actions:
+
 - Click row → client profile
 - Filter by status (ACTIVE/LEAD/STOPPED)
 - Search by company name or contact name
@@ -615,14 +620,14 @@ When `client.intakeCompleted === true` (returning client):
 
 ## 9. Backward Compatibility
 
-| Change | Compatibility Strategy |
-|--------|------------------------|
-| `ClientProfile` table added | New table — all existing queries unaffected |
-| Counter columns on `Client` | Nullable — existing rows get `0` via backfill script |
-| `DIRECT` in `ClientSource` | Added to enum — existing values unchanged |
+| Change                                  | Compatibility Strategy                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| `ClientProfile` table added             | New table — all existing queries unaffected                                    |
+| Counter columns on `Client`             | Nullable — existing rows get `0` via backfill script                           |
+| `DIRECT` in `ClientSource`              | Added to enum — existing values unchanged                                      |
 | Deprecated identity fields on `Request` | Still in DB, still populated by old code paths — dropping them is Phase 4 only |
-| New `/requests/for-client` endpoint | New endpoint — existing clients using the old flow are unaffected |
-| Portal simplified form | Gated on `intakeCompleted` — first-timers see the same form as today |
+| New `/requests/for-client` endpoint     | New endpoint — existing clients using the old flow are unaffected              |
+| Portal simplified form                  | Gated on `intakeCompleted` — first-timers see the same form as today           |
 
 ---
 
@@ -669,7 +674,7 @@ interface ClientProfile {
 // ── Client (updated) ──
 interface Client {
   // ... existing fields ...
-  userId?: string | null;  // ADD — was missing from shared types
+  userId?: string | null; // ADD — was missing from shared types
   intakeCompleted: boolean; // ADD — was missing from shared types
 
   // New fields
@@ -703,7 +708,12 @@ interface UpsertClientProfileDto {
   timezone?: string;
   preferredPlatforms?: string;
   competitors?: { name: string; url?: string; notes?: string }[];
-  brandAssets?: { logoUrl?: string; brandColors?: string[]; fonts?: string[]; guidelinesUrl?: string };
+  brandAssets?: {
+    logoUrl?: string;
+    brandColors?: string[];
+    fonts?: string[];
+    guidelinesUrl?: string;
+  };
   customFields?: Record<string, unknown>;
 }
 ```

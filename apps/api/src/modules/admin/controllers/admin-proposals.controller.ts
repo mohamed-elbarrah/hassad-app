@@ -11,13 +11,19 @@ export class AdminProposalsController {
 
   @Get()
   @RequirePermissions("admin.proposals.read")
-  findAll(@Query() q: any) { return this.service.findAll(q); }
+  findAll(@Query() q: any) {
+    return this.service.findAll(q);
+  }
 
   @Get("stats")
   @RequirePermissions("admin.proposals.read")
-  getStats() { return this.service.getStats(); }
+  getStats() {
+    return this.service.getStats();
+  }
 
   @Get(":id")
   @RequirePermissions("admin.proposals.read")
-  findOne(@Param("id") id: string) { return this.service.findOne(id); }
+  findOne(@Param("id") id: string) {
+    return this.service.findOne(id);
+  }
 }

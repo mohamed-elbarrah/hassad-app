@@ -152,31 +152,36 @@ export class ClientCounterService {
     });
     if (!exists) return null;
 
-    const [projectStats, contractStats, invoiceStats, satisfactionStats, lastProject] =
-      await Promise.all([
-        prisma.project.groupBy({
-          by: ["status"],
-          where: { clientId, isArchived: false },
-          _count: true,
-        }),
-        prisma.contract.aggregate({
-          where: { clientId, status: { in: ["SIGNED", "ACTIVE"] } },
-          _sum: { totalValue: true },
-        }),
-        prisma.invoice.aggregate({
-          where: { clientId, status: { in: ["PAID", "PARTIAL"] } },
-          _sum: { amount: true },
-        }),
-        prisma.satisfactionRating.aggregate({
-          where: { clientId },
-          _avg: { score: true },
-        }),
-        prisma.project.findFirst({
-          where: { clientId },
-          orderBy: { createdAt: "desc" },
-          select: { createdAt: true },
-        }),
-      ]);
+    const [
+      projectStats,
+      contractStats,
+      invoiceStats,
+      satisfactionStats,
+      lastProject,
+    ] = await Promise.all([
+      prisma.project.groupBy({
+        by: ["status"],
+        where: { clientId, isArchived: false },
+        _count: true,
+      }),
+      prisma.contract.aggregate({
+        where: { clientId, status: { in: ["SIGNED", "ACTIVE"] } },
+        _sum: { totalValue: true },
+      }),
+      prisma.invoice.aggregate({
+        where: { clientId, status: { in: ["PAID", "PARTIAL"] } },
+        _sum: { amount: true },
+      }),
+      prisma.satisfactionRating.aggregate({
+        where: { clientId },
+        _avg: { score: true },
+      }),
+      prisma.project.findFirst({
+        where: { clientId },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+    ]);
 
     return {
       totalProjects: projectStats.reduce((sum, g) => sum + g._count, 0),

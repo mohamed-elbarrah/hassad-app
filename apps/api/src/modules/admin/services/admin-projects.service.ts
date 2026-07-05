@@ -11,7 +11,11 @@ export class AdminProjectsService {
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: "insensitive" } },
-        { client: { companyName: { contains: query.search, mode: "insensitive" } } },
+        {
+          client: {
+            companyName: { contains: query.search, mode: "insensitive" },
+          },
+        },
       ];
     }
     if (query.pmId) where.projectManagerId = query.pmId;
@@ -40,7 +44,10 @@ export class AdminProjectsService {
           client: { select: { companyName: true } },
           manager: { select: { id: true, name: true } },
           tasks: {
-            where: { dueDate: { lt: new Date() }, status: { notIn: ["DONE", "REVISION"] } },
+            where: {
+              dueDate: { lt: new Date() },
+              status: { notIn: ["DONE", "REVISION"] },
+            },
             select: { id: true },
           },
         },
@@ -77,15 +84,49 @@ export class AdminProjectsService {
       include: {
         client: { select: { id: true, companyName: true } },
         manager: { select: { id: true, name: true, email: true } },
-        members: { include: { user: { select: { id: true, name: true, email: true } } } },
+        members: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
         tasks: {
-          select: { id: true, title: true, status: true, priority: true, dueDate: true, assignedTo: true },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            dueDate: true,
+            assignedTo: true,
+          },
           orderBy: { createdAt: "desc" },
           take: 50,
         },
-        files: { select: { id: true, fileName: true, filePath: true, uploadedBy: true, uploadedAt: true } },
-        meetings: { select: { id: true, title: true, scheduledAt: true, notes: true, createdBy: true } },
-        periods: { select: { id: true, periodNumber: true, startDate: true, endDate: true, status: true, completionPercentage: true } },
+        files: {
+          select: {
+            id: true,
+            fileName: true,
+            filePath: true,
+            uploadedBy: true,
+            uploadedAt: true,
+          },
+        },
+        meetings: {
+          select: {
+            id: true,
+            title: true,
+            scheduledAt: true,
+            notes: true,
+            createdBy: true,
+          },
+        },
+        periods: {
+          select: {
+            id: true,
+            periodNumber: true,
+            startDate: true,
+            endDate: true,
+            status: true,
+            completionPercentage: true,
+          },
+        },
       },
     });
     if (!project) throw new NotFoundException("Project not found");
@@ -118,7 +159,9 @@ export class AdminProjectsService {
   }
 
   async archive(projectId: string) {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
     if (!project) throw new NotFoundException("Project not found");
 
     await this.prisma.$transaction([
@@ -127,14 +170,20 @@ export class AdminProjectsService {
         data: { isArchived: true, archivedAt: new Date() },
       }),
       this.prisma.ledger.create({
-        data: { action: "admin.projects.archive", entity: "project", entityId: projectId },
+        data: {
+          action: "admin.projects.archive",
+          entity: "project",
+          entityId: projectId,
+        },
       }),
     ]);
     return { success: true };
   }
 
   async forceStatus(projectId: string, status: ProjectStatus, reason: string) {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
     if (!project) throw new NotFoundException("Project not found");
 
     await this.prisma.$transaction([

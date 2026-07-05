@@ -120,7 +120,9 @@ export function CampaignPerformanceList({
             {/* Budget bar */}
             <div className="col-span-2">
               <div className="flex items-center justify-between md:justify-center gap-2">
-                <span className="text-xs font-medium md:hidden">الميزانية:</span>
+                <span className="text-xs font-medium md:hidden">
+                  الميزانية:
+                </span>
                 <div className="w-full max-w-[120px]">
                   <div className="flex items-center justify-between text-[10px] text-neutral-300 mb-0.5">
                     <span>{budgetPct}%</span>

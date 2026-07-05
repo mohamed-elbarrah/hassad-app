@@ -4,7 +4,10 @@ import { cn } from "@/lib/utils";
 import type { DisputeStatus } from "@hassad/shared";
 import { DISPUTE_STATUS_AR } from "@hassad/shared";
 
-const STATUS_STYLES: Record<DisputeStatus, { bg: string; text: string; border: string }> = {
+const STATUS_STYLES: Record<
+  DisputeStatus,
+  { bg: string; text: string; border: string }
+> = {
   PENDING_APPROVAL: {
     bg: "bg-yellow-100",
     text: "text-yellow-800",
@@ -52,7 +55,10 @@ interface DisputeStatusBadgeProps {
   className?: string;
 }
 
-export function DisputeStatusBadge({ status, className }: DisputeStatusBadgeProps) {
+export function DisputeStatusBadge({
+  status,
+  className,
+}: DisputeStatusBadgeProps) {
   const styles = STATUS_STYLES[status];
 
   return (
@@ -62,7 +68,7 @@ export function DisputeStatusBadge({ status, className }: DisputeStatusBadgeProp
         styles.bg,
         styles.text,
         styles.border,
-        className
+        className,
       )}
       dir="rtl"
     >

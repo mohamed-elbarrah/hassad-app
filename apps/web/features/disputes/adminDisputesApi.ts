@@ -136,7 +136,10 @@ export const adminDisputesApi = createApi({
   tagTypes: ["AdminDisputes", "AdminDispute", "DisputeStats", "PmStats"],
   endpoints: (builder) => ({
     // ─── List & Stats ────────────────────────────────────────────────────────
-    getAdminDisputes: builder.query<AdminDisputeListResponse, AdminDisputeFilterInput | void>({
+    getAdminDisputes: builder.query<
+      AdminDisputeListResponse,
+      AdminDisputeFilterInput | void
+    >({
       query: (params) => ({
         url: "/admin/disputes",
         params: params || undefined,
@@ -144,7 +147,10 @@ export const adminDisputesApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({ type: "AdminDispute" as const, id })),
+              ...result.data.map(({ id }) => ({
+                type: "AdminDispute" as const,
+                id,
+              })),
               "AdminDisputes",
             ]
           : ["AdminDisputes"],
@@ -167,7 +173,10 @@ export const adminDisputesApi = createApi({
     }),
 
     // ─── Actions ─────────────────────────────────────────────────────────────
-    approveDispute: builder.mutation<AdminDisputeDetail, { id: string; input: ApproveDisputeInput }>({
+    approveDispute: builder.mutation<
+      AdminDisputeDetail,
+      { id: string; input: ApproveDisputeInput }
+    >({
       query: ({ id, input }) => ({
         url: `/admin/disputes/${id}/approve`,
         method: "POST",
@@ -180,7 +189,10 @@ export const adminDisputesApi = createApi({
       ],
     }),
 
-    rejectDispute: builder.mutation<AdminDisputeDetail, { id: string; input: RejectDisputeInput }>({
+    rejectDispute: builder.mutation<
+      AdminDisputeDetail,
+      { id: string; input: RejectDisputeInput }
+    >({
       query: ({ id, input }) => ({
         url: `/admin/disputes/${id}/reject`,
         method: "POST",
@@ -193,7 +205,10 @@ export const adminDisputesApi = createApi({
       ],
     }),
 
-    changePm: builder.mutation<AdminDisputeDetail, { id: string; input: ChangePmInput }>({
+    changePm: builder.mutation<
+      AdminDisputeDetail,
+      { id: string; input: ChangePmInput }
+    >({
       query: ({ id, input }) => ({
         url: `/admin/disputes/${id}/change-pm`,
         method: "POST",
@@ -207,7 +222,10 @@ export const adminDisputesApi = createApi({
       ],
     }),
 
-    closeDispute: builder.mutation<AdminDisputeDetail, { id: string; input: CloseDisputeInput }>({
+    closeDispute: builder.mutation<
+      AdminDisputeDetail,
+      { id: string; input: CloseDisputeInput }
+    >({
       query: ({ id, input }) => ({
         url: `/admin/disputes/${id}/close`,
         method: "POST",
@@ -220,13 +238,18 @@ export const adminDisputesApi = createApi({
       ],
     }),
 
-    addAdminMessage: builder.mutation<AdminDisputeMessage, { id: string; input: AddMessageInput }>({
+    addAdminMessage: builder.mutation<
+      AdminDisputeMessage,
+      { id: string; input: AddMessageInput }
+    >({
       query: ({ id, input }) => ({
         url: `/admin/disputes/${id}/messages`,
         method: "POST",
         body: input,
       }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminDispute", id }],
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminDispute", id },
+      ],
     }),
   }),
 });

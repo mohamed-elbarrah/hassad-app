@@ -49,7 +49,7 @@ export class AdminController {
   async getHealth() {
     // Use the new health check system
     const startTime = Date.now();
-    
+
     const result = await this.health.check([
       () => this.prismaIndicator.pingCheck("database", { timeout: 3000 }),
       () => this.memoryIndicator.checkHeap("memory_heap", 512 * 1024 * 1024),
@@ -72,7 +72,7 @@ export class AdminController {
       timestamp: new Date().toISOString(),
       // Additional new fields
       overallScore: this.calculateHealthScore(result),
-      services: services.map(s => ({
+      services: services.map((s) => ({
         name: s.serviceName,
         status: s.status.toLowerCase(),
         responseTime: s.responseTime,
@@ -84,7 +84,7 @@ export class AdminController {
   private calculateHealthScore(result: any): number {
     const allIndicators = { ...result.info, ...result.error };
     const totalIndicators = Object.keys(allIndicators).length;
-    
+
     if (totalIndicators === 0) return 0;
 
     const healthyIndicators = Object.keys(result.info).length;

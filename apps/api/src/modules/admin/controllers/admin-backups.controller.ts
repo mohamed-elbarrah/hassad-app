@@ -9,6 +9,9 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 export class AdminBackupsController {
   constructor(private readonly service: AdminBackupsService) {}
 
-  @Get(":type") @RequirePermissions("admin.settings")
-  exportData(@Param("type") type: string) { return this.service.exportData(type); }
+  @Get(":type")
+  @RequirePermissions("admin.settings")
+  exportData(@Param("type") type: string) {
+    return this.service.exportData(type);
+  }
 }

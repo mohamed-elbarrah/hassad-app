@@ -56,7 +56,8 @@ export function EmployeeTaskKanban({
   const canDragItem = useCallback(
     (task: TaskWithProject) => {
       if (!user) return false;
-      if (user.role === UserRole.ADMIN || user.role === UserRole.PM) return true;
+      if (user.role === UserRole.ADMIN || user.role === UserRole.PM)
+        return true;
       return task.assignedTo === user.id;
     },
     [user],
@@ -142,16 +143,21 @@ export function EmployeeTaskKanban({
         toast.error(msg);
       }
     },
-    [user, localTasks, startTask, submitTask, approveTask, rejectTask, onStatusChange],
+    [
+      user,
+      localTasks,
+      startTask,
+      submitTask,
+      approveTask,
+      rejectTask,
+      onStatusChange,
+    ],
   );
 
   // ── Render card ──────────────────────────────────────────────────────
   const renderCard = useCallback(
     (task: TaskWithProject, _options: { isOverlay: boolean }) => (
-      <EmployeeTaskKanbanCardContent
-        task={task}
-        canDrag={canDragItem(task)}
-      />
+      <EmployeeTaskKanbanCardContent task={task} canDrag={canDragItem(task)} />
     ),
     [canDragItem],
   );

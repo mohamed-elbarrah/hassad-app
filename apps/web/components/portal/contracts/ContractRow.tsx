@@ -65,11 +65,18 @@ export function renderContractRowCells(
     <td key="status" className="px-5 py-3.5 align-middle">
       <DomainStatusPill domain="contract" status={contract.status} />
     </td>,
-    <td key="manager" className="px-5 py-3.5 align-middle text-sm text-portal-note-text">
+    <td
+      key="manager"
+      className="px-5 py-3.5 align-middle text-sm text-portal-note-text"
+    >
       {contract.projectManager ?? "غير معين"}
     </td>,
     <td key="action" className="px-5 py-3.5 align-middle text-start w-[150px]">
-      <Link href={href} onClick={(e) => e.stopPropagation()} className="inline-block">
+      <Link
+        href={href}
+        onClick={(e) => e.stopPropagation()}
+        className="inline-block"
+      >
         <ActionButton
           variant={isActionable ? "primary" : "outline"}
           size="md"
@@ -83,10 +90,7 @@ export function renderContractRowCells(
   ];
 }
 
-function formatPeriod(
-  start?: string | null,
-  end?: string | null,
-): string {
+function formatPeriod(start?: string | null, end?: string | null): string {
   const s = formatShortDateLong(start);
   const e = formatShortDateLong(end);
   if (s === "—" && e === "—") return "—";

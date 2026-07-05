@@ -4,7 +4,7 @@
 
 /**
  * Lifecycle status of a dispute ticket.
- * 
+ *
  * PENDING_APPROVAL → Admin reviews
  * REJECTED → Admin rejects (terminal)
  * APPROVED → Admin approves, PM notified

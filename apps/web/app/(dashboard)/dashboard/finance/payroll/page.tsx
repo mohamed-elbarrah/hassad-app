@@ -45,8 +45,18 @@ import {
 } from "@/components/ui/dialog";
 
 const MONTHS = [
-  "يناير","فبراير","مارس","أبريل","مايو","يونيو",
-  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
 function getMonthYearOptions() {
@@ -71,7 +81,10 @@ export default function PayrollPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
 
   const { data: employees = [], isLoading } = useGetEmployeesQuery();
@@ -110,10 +123,7 @@ export default function PayrollPage() {
     const paid = rows.filter(
       (r) => r.salary && r.salary.status === "PAID",
     ).length;
-    const totalCost = rows.reduce(
-      (s, r) => s + (r.salary?.amount || 0),
-      0,
-    );
+    const totalCost = rows.reduce((s, r) => s + (r.salary?.amount || 0), 0);
     return { total, generated, pending, paid, totalCost };
   }, [rows]);
 
@@ -126,17 +136,20 @@ export default function PayrollPage() {
     }
   };
 
-  const handlePay = useCallback(async (salaryId: string, employeeName: string) => {
-    setPayingId(salaryId);
-    try {
-      await paySalary({ id: salaryId }).unwrap();
-      toast.success(`تم صرف راتب ${employeeName} بنجاح`);
-    } catch {
-      toast.error("فشل في صرف الراتب");
-    } finally {
-      setPayingId(null);
-    }
-  }, [paySalary]);
+  const handlePay = useCallback(
+    async (salaryId: string, employeeName: string) => {
+      setPayingId(salaryId);
+      try {
+        await paySalary({ id: salaryId }).unwrap();
+        toast.success(`تم صرف راتب ${employeeName} بنجاح`);
+      } catch {
+        toast.error("فشل في صرف الراتب");
+      } finally {
+        setPayingId(null);
+      }
+    },
+    [paySalary],
+  );
 
   const handlePayAll = async () => {
     try {
@@ -177,7 +190,11 @@ export default function PayrollPage() {
         icon={Wallet}
         actions={
           <div className="flex gap-2">
-            <ActionButton variant="outline" onClick={handleAdd} icon={<Plus className="w-4 h-4" />}>
+            <ActionButton
+              variant="outline"
+              onClick={handleAdd}
+              icon={<Plus className="w-4 h-4" />}
+            >
               إضافة موظف
             </ActionButton>
             <ActionButton
@@ -200,15 +217,30 @@ export default function PayrollPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="الموظفين" value={stats.total} icon={Users} variant="default" />
+        <StatCard
+          title="الموظفين"
+          value={stats.total}
+          icon={Users}
+          variant="default"
+        />
         <StatCard
           title="معلقة للصرف"
           value={stats.pending}
           icon={Clock}
           variant={stats.pending > 0 ? "warning" : "default"}
         />
-        <StatCard title="تم الصرف" value={stats.paid} icon={CheckCircle2} variant="success" />
-        <StatCard title="إجمالي التكلفة" value={<CurrencyDisplay amount={stats.totalCost} />} icon={DollarSign} variant="default" />
+        <StatCard
+          title="تم الصرف"
+          value={stats.paid}
+          icon={CheckCircle2}
+          variant="success"
+        />
+        <StatCard
+          title="إجمالي التكلفة"
+          value={<CurrencyDisplay amount={stats.totalCost} />}
+          icon={DollarSign}
+          variant="default"
+        />
       </div>
 
       {/* Toolbar */}
@@ -224,7 +256,10 @@ export default function PayrollPage() {
             className="h-11 pl-10 pr-4 rounded-xl border border-portal-card-border bg-natural-0 text-sm font-medium appearance-none cursor-pointer hover:border-secondary-500/40 transition-colors"
           >
             {monthOptions.map((opt) => (
-              <option key={`${opt.month}-${opt.year}`} value={`${opt.month}-${opt.year}`}>
+              <option
+                key={`${opt.month}-${opt.year}`}
+                value={`${opt.month}-${opt.year}`}
+              >
                 {opt.label}
               </option>
             ))}
@@ -286,14 +321,24 @@ export default function PayrollPage() {
             <tr className="border-b-[1.5px] border-portal-divider">
               <td className="px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <UserAvatar name={employee.name} size="md" variant="circle" showBorder className="h-9 w-9" />
+                  <UserAvatar
+                    name={employee.name}
+                    size="md"
+                    variant="circle"
+                    showBorder
+                    className="h-9 w-9"
+                  />
                   <div>
                     <p className="font-bold text-sm">{employee.name}</p>
-                    <p className="text-xs text-portal-note-text">{employee.role}</p>
+                    <p className="text-xs text-portal-note-text">
+                      {employee.role}
+                    </p>
                   </div>
                 </div>
               </td>
-              <td className="px-5 py-4 text-sm text-portal-note-text">{employee.role}</td>
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {employee.role}
+              </td>
               <td className="px-5 py-4">
                 <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-medium bg-badge-gray-bg text-natural-100">
                   {employee.payType === "HYBRID"
@@ -335,7 +380,13 @@ export default function PayrollPage() {
                     <ActionButton
                       variant="primary"
                       size="sm"
-                      icon={isPayingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wallet className="w-3.5 h-3.5" />}
+                      icon={
+                        isPayingThis ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Wallet className="w-3.5 h-3.5" />
+                        )
+                      }
                       onClick={() => handlePay(salary.id, employee.name)}
                       disabled={isPayingThis}
                     >
@@ -355,13 +406,21 @@ export default function PayrollPage() {
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 hover:bg-danger-50 hover:text-danger-500"
-                    onClick={() => setDeleteConfirm({ id: employee.id, name: employee.name })}
+                    onClick={() =>
+                      setDeleteConfirm({ id: employee.id, name: employee.name })
+                    }
                     title="إلغاء تنشيط"
                   >
                     <Trash2 className="w-4 h-4" />
                   </ActionButton>
-                  <Link href={`/dashboard/finance/payroll/${employee.id}?month=${month}&year=${year}`}>
-                    <ActionButton variant="ghost" size="sm" className="hover:bg-secondary-500/10 hover:text-secondary-500">
+                  <Link
+                    href={`/dashboard/finance/payroll/${employee.id}?month=${month}&year=${year}`}
+                  >
+                    <ActionButton
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-secondary-500/10 hover:text-secondary-500"
+                    >
                       <ChevronLeft className="w-4 h-4" />
                     </ActionButton>
                   </Link>
@@ -373,7 +432,10 @@ export default function PayrollPage() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+      <Dialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+      >
         <DialogContent className="sm:max-w-sm" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -381,14 +443,22 @@ export default function PayrollPage() {
               تأكيد إلغاء التنشيط
             </DialogTitle>
             <DialogDescription>
-              هل أنت متأكد من إلغاء تنشيط <strong>{deleteConfirm?.name}</strong>؟ لن يتم حذف البيانات بل سيتم تعطيل الحساب.
+              هل أنت متأكد من إلغاء تنشيط <strong>{deleteConfirm?.name}</strong>
+              ؟ لن يتم حذف البيانات بل سيتم تعطيل الحساب.
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 justify-end pt-2">
-            <ActionButton variant="outline" onClick={() => setDeleteConfirm(null)}>
+            <ActionButton
+              variant="outline"
+              onClick={() => setDeleteConfirm(null)}
+            >
               إلغاء
             </ActionButton>
-            <ActionButton variant="primary" className="bg-danger-500 hover:bg-danger-600" onClick={handleDeleteConfirm}>
+            <ActionButton
+              variant="primary"
+              className="bg-danger-500 hover:bg-danger-600"
+              onClick={handleDeleteConfirm}
+            >
               تأكيد الإلغاء
             </ActionButton>
           </div>

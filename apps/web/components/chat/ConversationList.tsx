@@ -37,7 +37,9 @@ export function ConversationList({
         "";
       const clientName = conv.client?.companyName?.toLowerCase() ?? "";
       const projectName = conv.project?.name?.toLowerCase() ?? "";
-      return name.includes(q) || clientName.includes(q) || projectName.includes(q);
+      return (
+        name.includes(q) || clientName.includes(q) || projectName.includes(q)
+      );
     });
   }, [conversations, searchQuery]);
 

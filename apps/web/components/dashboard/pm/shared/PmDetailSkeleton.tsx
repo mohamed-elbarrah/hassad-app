@@ -6,7 +6,9 @@ interface PmDetailSkeletonProps {
   variant?: "project" | "task" | "dispute";
 }
 
-export function PmDetailSkeleton({ variant = "project" }: PmDetailSkeletonProps) {
+export function PmDetailSkeleton({
+  variant = "project",
+}: PmDetailSkeletonProps) {
   return (
     <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
       <Skeleton className="h-5 w-48" />

@@ -55,8 +55,10 @@ export function resolveEntityUrl(
     return `/dashboard/marketing/campaigns`;
   }
   if (entityType === "marketing_strategy") {
-    if (role === UserRole.CLIENT) return `/portal/marketing-strategies/${entityId}`;
-    if (role === UserRole.MARKETING) return `/dashboard/marketing/tasks/${entityId}`;
+    if (role === UserRole.CLIENT)
+      return `/portal/marketing-strategies/${entityId}`;
+    if (role === UserRole.MARKETING)
+      return `/dashboard/marketing/tasks/${entityId}`;
     return `/dashboard/marketing`;
   }
   if (entityType === "invoice" || entityType === "INVOICE") {
@@ -254,7 +256,8 @@ export function NotificationsDropdown() {
                       ? "عرض العروض"
                       : selectedNotification?.entityType === "contract"
                         ? "عرض العقود"
-                        : selectedNotification?.entityType === "marketing_strategy"
+                        : selectedNotification?.entityType ===
+                            "marketing_strategy"
                           ? "مراجعة الدراسة"
                           : "فتح"}
               </ActionButton>

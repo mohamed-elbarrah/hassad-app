@@ -308,10 +308,7 @@ export const financeApi = createApi({
       query: (id) => `/payroll/${id}`,
       providesTags: (_r, _e, id) => [{ type: "Employee", id }],
     }),
-    paySalary: builder.mutation<
-      Salary,
-      { id: string; notes?: string }
-    >({
+    paySalary: builder.mutation<Salary, { id: string; notes?: string }>({
       query: ({ id, notes }) => ({
         url: `/payroll/salaries/${id}/pay`,
         method: "POST",
@@ -387,10 +384,26 @@ export const financeApi = createApi({
     }),
     updateEmployee: builder.mutation<
       Employee,
-      { id: string; name?: string; role?: string; baseSalary?: number; payType?: string; commissionRate?: number; hourlyRate?: number; isActive?: boolean }
+      {
+        id: string;
+        name?: string;
+        role?: string;
+        baseSalary?: number;
+        payType?: string;
+        commissionRate?: number;
+        hourlyRate?: number;
+        isActive?: boolean;
+      }
     >({
-      query: ({ id, ...body }) => ({ url: `/employees/${id}`, method: "PATCH", body }),
-      invalidatesTags: (_r, _e, { id }) => [{ type: "Employee", id }, "Employee"],
+      query: ({ id, ...body }) => ({
+        url: `/employees/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Employee", id },
+        "Employee",
+      ],
     }),
     deleteEmployee: builder.mutation<Employee, string>({
       query: (id) => ({ url: `/employees/${id}`, method: "DELETE" }),

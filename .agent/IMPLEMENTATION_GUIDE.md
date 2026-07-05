@@ -17,30 +17,33 @@ This guide provides a **step-by-step walkthrough** to fix all identified issues 
 ## 🎯 Quick Start (5 Minutes)
 
 ### Step 1: Install Dependencies
+
 ```bash
 cd /home/mohamed/Documents/Apps/hassad-platform/apps/api
 npm install @nestjs/throttler
 ```
 
 ### Step 2: Run Verification
+
 ```bash
 cd /home/mohamed/Documents/Apps/hassad-platform
 ./.agent/verify-audit.sh
 ```
 
 ### Step 3: Read Implementation Steps
+
 See `/.agent/IMPLEMENTATION_STEPS.md` for exact code changes.
 
 ---
 
 ## 📚 Documentation Files
 
-| File | When to Read | Duration |
-|------|-------------|----------|
-| **CLIENT_DASHBOARD_AUDIT_SUMMARY.md** | Start here - overview | 5 min |
-| **IMPLEMENTATION_STEPS.md** | During implementation | 30 min |
-| **CLIENT_DASHBOARD_FIX_PLAN.md** | For planning | 15 min |
-| **README.md** | Reference guide | 10 min |
+| File                                  | When to Read          | Duration |
+| ------------------------------------- | --------------------- | -------- |
+| **CLIENT_DASHBOARD_AUDIT_SUMMARY.md** | Start here - overview | 5 min    |
+| **IMPLEMENTATION_STEPS.md**           | During implementation | 30 min   |
+| **CLIENT_DASHBOARD_FIX_PLAN.md**      | For planning          | 15 min   |
+| **README.md**                         | Reference guide       | 10 min   |
 
 ---
 
@@ -72,9 +75,11 @@ See `/.agent/IMPLEMENTATION_STEPS.md` for exact code changes.
    - Add error handling to all action handlers
 
 #### Breaking Changes:
+
 - None (except file size >25MB gets 400 error)
 
 #### Testing:
+
 - [ ] Login with 6 rapid requests → 429 error
 - [ ] Upload 26MB file → 413 error
 - [ ] Request with `?limit=1000` → returns max 100 items
@@ -109,11 +114,13 @@ See `/.agent/IMPLEMENTATION_STEPS.md` for exact code changes.
    - Update invalidation tags on existing mutations
 
 #### Breaking Changes:
+
 - JWT payload now includes `permissions: string[]`
 - Permission changes require token refresh (not real-time)
 - Requests with `?limit=1000` now return max 100 items
 
 #### Testing:
+
 - [ ] DB query count reduced by 30%
 - [ ] API response time reduced by 50ms
 - [ ] Approve project → dashboard updates within 2s
@@ -149,9 +156,11 @@ See `/.agent/IMPLEMENTATION_STEPS.md` for exact code changes.
    - Deploy to production
 
 #### Breaking Changes:
+
 - None
 
 #### Testing:
+
 - [ ] Network disconnect → request retries 3 times
 - [ ] All toast errors appear correctly
 - [ ] Real-time updates working across all pages
@@ -170,7 +179,7 @@ import { ThrottlerModule } from "@nestjs/throttler"; // ADD
 @Module({
   imports: [
     // ... existing imports
-    
+
     // Rate limiting (NEW)
     ThrottlerModule.forRoot([
       { ttl: 60000, limit: 100 }, // Default: 100 req/minute
@@ -179,13 +188,13 @@ import { ThrottlerModule } from "@nestjs/throttler"; // ADD
       global: true,
       limits: [
         { ttl: 60000, limit: 100 }, // Default: 100 req/minute
-        { ttl: 60000, limit: 5 },   // Login: 5 req/minute
-        { ttl: 60000, limit: 3 },   // Register: 3 req/minute
-        { ttl: 300000, limit: 2 },  // Forgot password: 2 req/5 minutes
+        { ttl: 60000, limit: 5 }, // Login: 5 req/minute
+        { ttl: 60000, limit: 3 }, // Register: 3 req/minute
+        { ttl: 300000, limit: 2 }, // Forgot password: 2 req/5 minutes
         { ttl: 600000, limit: 10 }, // Reset password: 10 req/10 minutes
       ],
     }),
-    
+
     // ... V2 Modules
   ],
 })
@@ -230,7 +239,7 @@ export class PortalController {
     if (isNaN(limit) || limit < 1) return defaultLimit;
     return Math.min(limit, maxLimit);
   }
-  
+
   // ... update all paginated endpoints to use parseLimit()
   // Example:
   // limit: this.parseLimit(limit, 20) // instead of Number(limit) || 20
@@ -263,7 +272,7 @@ Repeat for chat and notifications pages.
 ```typescript
 async login(dto: LoginDto) {
   // ... existing login logic
-  
+
   // Get permissions for JWT payload (NEW)
   const permissions = [
     ...user.role.permissions.map((p: any) => p.permission.name),
@@ -278,7 +287,7 @@ async login(dto: LoginDto) {
     permissions, // NEW - add permissions array
   };
   const accessToken = this.jwtService.sign(payload);
-  
+
   // ... rest of login
 }
 ```
@@ -288,13 +297,13 @@ async login(dto: LoginDto) {
 ```typescript
 async canActivate(context: ExecutionContext): Promise<boolean> {
   // ... existing public check
-  
+
   // NEW: Check if permissions exist in JWT
   if (user.permissions && Array.isArray(user.permissions)) {
     const hasPermission = requiredPermissions.every((permission) =>
       user.permissions.includes(permission),
     );
-    
+
     if (!hasPermission) {
       throw new ForbiddenException("Missing required permissions");
     }
@@ -329,7 +338,7 @@ private async broadcastInvalidations(clientId: string, tags: string[]) {
 // Update approveProject
 async approveProject(projectId: string, clientId: string) {
   // ... approval logic
-  
+
   // NEW: Broadcast invalidations
   await this.broadcastInvalidations(clientId, [
     "ReviewProjects",
@@ -338,7 +347,7 @@ async approveProject(projectId: string, clientId: string) {
     "ActionItems",
     "ActivityFeed",
   ]);
-  
+
   return { success: true };
 }
 
@@ -366,16 +375,19 @@ approveProject: builder.mutation<any, string>({
 #### 2.6 Change Polling Intervals in All Portal Pages
 
 **Before:**
+
 ```typescript
 pollingInterval: 30_000,
 ```
 
 **After:**
+
 ```typescript
 pollingInterval: 120_000,
 ```
 
 Use this command to update all files:
+
 ```bash
 cd /home/mohamed/Documents/Apps/hassad-platform/apps/web
 find app -name "*.tsx" -type f -exec sed -i 's/pollingInterval: 30_000/pollingInterval: 120_000/g' {} +
@@ -394,11 +406,11 @@ export const baseQuery: BaseQueryFn<...> = async (args, api, extraOptions) => {
   );
 
   // ... existing 401 refresh logic
-  
+
   // NEW: Add retry logic
   const maxRetries = 3;
   let retryCount = 0;
-  
+
   while (result.error && retryCount < maxRetries) {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
     retryCount++;
@@ -472,6 +484,7 @@ curl -X POST http://localhost:3001/v1/auth/login \
 ## 📊 Expected Outcomes
 
 ### After Phase 1 (Security):
+
 - ✅ Brute-force attacks prevented (5 req/min limit)
 - ✅ Email bombing prevented (2 req/5min limit)
 - ✅ Memory exhaustion prevented (25MB file limit)
@@ -479,6 +492,7 @@ curl -X POST http://localhost:3001/v1/auth/login \
 - ✅ All errors visible to users
 
 ### After Phase 2 (Performance):
+
 - ✅ **75% reduction** in polling requests
 - ✅ **50% reduction** in DB queries
 - ✅ **47% faster** API responses
@@ -486,6 +500,7 @@ curl -X POST http://localhost:3001/v1/auth/login \
 - ✅ Handle 10x more concurrent users
 
 ### After Phase 3 (Polish):
+
 - ✅ Automatic retry on network failures
 - ✅ Clear error messages for all actions
 - ✅ 100% real-time updates across all pages
@@ -582,22 +597,29 @@ After deployment, monitor:
 ## 🛠️ Troubleshooting
 
 ### Issue: Permission caching not working
+
 **Solution:** Check JWT payload includes `permissions` array
 
 ### Issue: WebSocket invalidations not working
-**Solution:** 
+
+**Solution:**
+
 1. Verify WebSocket connection established
 2. Check broadcastInvalidations calls in backend
 3. Verify invalidation tags in frontend
 
 ### Issue: DB queries still high
-**Solution:** 
+
+**Solution:**
+
 1. Verify PermissionsGuard using JWT
 2. Check for N+1 queries
 3. Add caching for other expensive queries
 
 ### Issue: Polling still using 30s
-**Solution:** 
+
+**Solution:**
+
 1. Verify all 31 files updated
 2. Check RTK Query cache is working
 3. Verify WebSocket events are being sent
@@ -607,12 +629,14 @@ After deployment, monitor:
 ## 📞 Support & Resources
 
 ### Files Reference:
+
 - Full audit report: `/.agent/CLIENT_DASHBOARD_AUDIT_SUMMARY.md`
 - Implementation plan: `/.agent/CLIENT_DASHBOARD_FIX_PLAN.md`
 - Exact code changes: `/.agent/IMPLEMENTATION_STEPS.md`
 - Verification script: `/.agent/verify-audit.sh`
 
 ### Commands:
+
 ```bash
 # Check current state
 ./.agent/verify-audit.sh

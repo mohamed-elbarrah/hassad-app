@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  KeyRound,
-  UserCheck,
-  Monitor,
-  Shield,
-} from "lucide-react";
+import { ArrowRight, KeyRound, UserCheck, Monitor, Shield } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserDetailTabs } from "@/components/dashboard/admin/UserDetailTabs";
@@ -32,17 +26,20 @@ export default function AdminUserDetailPage() {
   const userId = params.id as string;
 
   const { data: user, isLoading } = useGetAdminUserQuery(userId);
-  const { data: activity, isLoading: isActivityLoading } = useGetUserActivityQuery({
-    id: userId,
-    limit: 20,
-  });
-  const { data: sessionsData, isLoading: isSessionsLoading } = useGetAdminSessionsQuery({
-    userId,
-  });
-  const { data: securityData, isLoading: isSecurityLoading } = useGetSecurityEventsQuery({
-    userId,
-    limit: 20,
-  });
+  const { data: activity, isLoading: isActivityLoading } =
+    useGetUserActivityQuery({
+      id: userId,
+      limit: 20,
+    });
+  const { data: sessionsData, isLoading: isSessionsLoading } =
+    useGetAdminSessionsQuery({
+      userId,
+    });
+  const { data: securityData, isLoading: isSecurityLoading } =
+    useGetSecurityEventsQuery({
+      userId,
+      limit: 20,
+    });
 
   const [resetPassword] = useResetUserPasswordMutation();
   const [impersonate] = useImpersonateUserMutation();

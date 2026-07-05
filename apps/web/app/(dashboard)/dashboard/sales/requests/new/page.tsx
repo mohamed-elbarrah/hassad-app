@@ -15,11 +15,7 @@ import { FormInput } from "@/components/design-system/FormInput";
 import { FormTextarea } from "@/components/design-system/FormTextarea";
 import { Checkbox } from "@/components/design-system/Checkbox";
 import { Input } from "@/components/design-system/Input";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/design-system/Tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
 import { SalesPageHeader } from "@/components/dashboard/sales/shared/SalesPageHeader";
 import { useCreateRequestForClientMutation } from "@/features/requests/requestsApi";
 import {
@@ -83,7 +79,11 @@ export default function NewOrderPage() {
     if (!debouncedSearch) return clientsData.items;
     const q = debouncedSearch.toLowerCase();
     return clientsData.items.filter((client) => {
-      const name = (client.companyName || client.user?.name || "").toLowerCase();
+      const name = (
+        client.companyName ||
+        client.user?.name ||
+        ""
+      ).toLowerCase();
       return name.includes(q);
     });
   }, [clientsData, debouncedSearch]);
@@ -160,9 +160,7 @@ export default function NewOrderPage() {
       router.push(`/dashboard/sales/requests/${result.id}`);
     } catch (err: unknown) {
       const error = err as { data?: { message?: string } };
-      toast.error(
-        error?.data?.message || "حدث خطأ. يرجى المحاولة مرة أخرى.",
-      );
+      toast.error(error?.data?.message || "حدث خطأ. يرجى المحاولة مرة أخرى.");
     }
   }
 
@@ -221,9 +219,7 @@ export default function NewOrderPage() {
                   onFocus={() => setShowDropdown(true)}
                   placeholder="ابحث باسم العميل أو الشركة..."
                   icon={<Search className="w-4 h-4" />}
-                  className={cn(
-                    selectedClient && "border-success-400",
-                  )}
+                  className={cn(selectedClient && "border-success-400")}
                 />
                 {selectedClient && (
                   <button
@@ -285,8 +281,7 @@ export default function NewOrderPage() {
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-success-600 shrink-0" />
                     <span className="text-sm font-medium text-natural-100">
-                      {selectedClient.companyName ||
-                        selectedClient.user?.name}
+                      {selectedClient.companyName || selectedClient.user?.name}
                     </span>
                   </div>
                   {selectedClient.user?.name && (
@@ -353,14 +348,23 @@ export default function NewOrderPage() {
             {(activeServices.length > 0
               ? activeServices
               : [
-                  { id: "social_media", nameAr: "إدارة وسائل التواصل الاجتماعي" },
+                  {
+                    id: "social_media",
+                    nameAr: "إدارة وسائل التواصل الاجتماعي",
+                  },
                   { id: "content", nameAr: "إنشاء المحتوى" },
-                  { id: "paid_ads", nameAr: "الإعلانات المدفوعة (Meta / Google)" },
+                  {
+                    id: "paid_ads",
+                    nameAr: "الإعلانات المدفوعة (Meta / Google)",
+                  },
                   { id: "seo", nameAr: "تحسين محركات البحث (SEO)" },
                   { id: "web_dev", nameAr: "تطوير المواقع الإلكترونية" },
                   { id: "design", nameAr: "التصميم الجرافيكي" },
                   { id: "branding", nameAr: "إدارة العلامة التجارية" },
-                  { id: "email_marketing", nameAr: "التسويق بالبريد الإلكتروني" },
+                  {
+                    id: "email_marketing",
+                    nameAr: "التسويق بالبريد الإلكتروني",
+                  },
                 ]
             ).map((service) => (
               <label

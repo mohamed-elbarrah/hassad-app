@@ -58,7 +58,10 @@ const typeConfig = {
 export function ActionQueue({ actions, isLoading }: Props) {
   if (isLoading) {
     return (
-      <SurfaceCard className="border-none shadow-md h-full" title="المهام المطلوبة">
+      <SurfaceCard
+        className="border-none shadow-md h-full"
+        title="المهام المطلوبة"
+      >
         <div className="space-y-3 animate-pulse">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-14 bg-badge-gray-bg rounded-xl" />
@@ -93,16 +96,24 @@ export function ActionQueue({ actions, isLoading }: Props) {
                 <Icon className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-natural-100 truncate">{action.title}</p>
+                <p className="text-sm font-medium text-natural-100 truncate">
+                  {action.title}
+                </p>
                 <div className="flex items-center gap-2 text-xs text-portal-note-text">
                   <span>{action.description}</span>
                   {action.amount !== undefined && (
-                    <span className="font-semibold text-natural-100"><CurrencyDisplay amount={action.amount} size="sm" /></span>
+                    <span className="font-semibold text-natural-100">
+                      <CurrencyDisplay amount={action.amount} size="sm" />
+                    </span>
                   )}
                 </div>
               </div>
               <Link href={config.href(action.entityId)}>
-                <ActionButton variant="ghost" size="sm" className="h-8 px-2 text-xs shrink-0">
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs shrink-0"
+                >
                   {config.actionLabel}
                   <ChevronLeft className="w-3 h-3 mr-1" />
                 </ActionButton>

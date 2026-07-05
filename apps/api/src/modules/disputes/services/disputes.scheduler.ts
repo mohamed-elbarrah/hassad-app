@@ -165,7 +165,7 @@ export class DisputesScheduler {
       await this.escalateDispute(
         dispute.id,
         dispute.pmId,
-        "تصعيد تلقائي - عدم استجابة العميل"
+        "تصعيد تلقائي - عدم استجابة العميل",
       );
     }
 

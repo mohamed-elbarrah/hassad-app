@@ -17,6 +17,7 @@ This document contains **exact code changes** needed to fix all identified issue
 **Prerequisites:** None
 
 **Files to modify:**
+
 1. `apps/api/package.json` (add dependency)
 2. `apps/api/src/app.module.ts` (add ThrottlerModule)
 3. `apps/api/src/auth/auth.controller.ts` (add decorators)
@@ -26,6 +27,7 @@ This document contains **exact code changes** needed to fix all identified issue
 **Location:** Dependencies section
 
 **Before:**
+
 ```json
 "dependencies": {
   "@aws-sdk/client-s3": "^3.1045.0",
@@ -39,6 +41,7 @@ This document contains **exact code changes** needed to fix all identified issue
 ```
 
 **After:**
+
 ```json
 "dependencies": {
   "@aws-sdk/client-s3": "^3.1045.0",
@@ -59,6 +62,7 @@ This document contains **exact code changes** needed to fix all identified issue
 **Location:** Imports array
 
 **Before:**
+
 ```typescript
 @Module({
   imports: [
@@ -79,6 +83,7 @@ export class AppModule {}
 ```
 
 **After:**
+
 ```typescript
 import { ThrottlerModule } from "@nestjs/throttler"; // ADD
 
@@ -90,7 +95,7 @@ import { ThrottlerModule } from "@nestjs/throttler"; // ADD
     ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
-    
+
     // Rate limiting (NEW)
     ThrottlerModule.forRoot([
       { ttl: 60000, limit: 100 }, // Default: 100 req/minute
@@ -105,7 +110,7 @@ import { ThrottlerModule } from "@nestjs/throttler"; // ADD
         { ttl: 600000, limit: 10 }, // Reset password: 10 req/10 minutes
       ],
     }),
-    
+
     // V2 Modules
     CoreModule,
     CrmModule,
@@ -123,6 +128,7 @@ export class AppModule {}
 **Location:** Import section and method decorators
 
 **Before:**
+
 ```typescript
 import {
   Controller,
@@ -158,6 +164,7 @@ export class AuthController {
 ```
 
 **After:**
+
 ```typescript
 import {
   Controller,
@@ -196,6 +203,7 @@ export class AuthController {
 **Add decorators to methods:**
 
 **Before:**
+
 ```typescript
 @Post("login")
 async login(...) {
@@ -216,6 +224,7 @@ register(...) {
 ```
 
 **After:**
+
 ```typescript
 @Post("login")
 @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 req/minute
@@ -241,11 +250,13 @@ register(...) {
 ---
 
 **Impact:**
+
 - ✅ **Security:** Prevents brute-force attacks on login, email bombing on forgot-password
 - ✅ **No breaking changes:** Existing functionality preserved
 - ⚠️ **Note:** Users with legitimate need for high-frequency requests may hit limits (very unlikely)
 
 **Rollback:**
+
 - Remove `ThrottlerModule` imports from `app.module.ts`
 - Remove `@Throttle()` decorators from auth controller
 - Remove `@nestjs/throttler` from `package.json`
@@ -260,6 +271,7 @@ register(...) {
 **File:** `apps/api/src/modules/portal/portal.module.ts`
 
 **Before:**
+
 ```typescript
 @Module({
   imports: [
@@ -273,6 +285,7 @@ export class PortalModule {}
 ```
 
 **After:**
+
 ```typescript
 import { MulterModule } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
@@ -300,11 +313,13 @@ export class PortalModule {}
 ---
 
 **Impact:**
+
 - ✅ **Security:** Prevents memory exhaustion from large file uploads
 - ⚠️ **Breaking:** Clients currently uploading >25MB files will get 400 errors
 - ✅ **Mitigation:** 25MB is high enough for most real-world use cases (PDFs, images, small videos)
 
 **Rollback:**
+
 - Remove `limits` config from MulterModule
 - Run `npm run dev` to restart
 
@@ -321,6 +336,7 @@ export class PortalModule {}
 **Location:** Add helper function in `PortalController` class
 
 **Before:**
+
 ```typescript
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -330,12 +346,13 @@ export class PortalController {
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
   ) {}
-  
+
   ...
 }
 ```
 
 **After:**
+
 ```typescript
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -352,7 +369,7 @@ export class PortalController {
     if (isNaN(limit) || limit < 1) return defaultLimit;
     return Math.min(limit, maxLimit);
   }
-  
+
   ...
 }
 ```
@@ -362,6 +379,7 @@ export class PortalController {
 #### 2.1.1: Update `getContracts()` endpoint
 
 **Before:**
+
 ```typescript
 @Get("portal/contracts")
 @RequirePermissions("portal.read")
@@ -392,6 +410,7 @@ async getContracts(
 ```
 
 **After:**
+
 ```typescript
 @Get("portal/contracts")
 @RequirePermissions("portal.read")
@@ -424,6 +443,7 @@ async getContracts(
 #### 2.1.2: Update `getInvoices()` endpoint
 
 **Before:**
+
 ```typescript
 @Get("portal/invoices")
 @RequirePermissions("portal.read")
@@ -444,6 +464,7 @@ async getInvoices(
 ```
 
 **After:**
+
 ```typescript
 @Get("portal/invoices")
 @RequirePermissions("portal.read")
@@ -466,6 +487,7 @@ async getInvoices(
 #### 2.1.3: Update `getPortalProjects()` endpoint
 
 **Before:**
+
 ```typescript
 @Get("portal/projects")
 @RequirePermissions("portal.read")
@@ -486,6 +508,7 @@ async getPortalProjects(
 ```
 
 **After:**
+
 ```typescript
 @Get("portal/projects")
 @RequirePermissions("portal.read")
@@ -508,6 +531,7 @@ async getPortalProjects(
 #### 2.1.4: Update `getPortalRequests()` endpoint
 
 **Before:**
+
 ```typescript
 @Get("portal/requests")
 @RequirePermissions("portal.read")
@@ -526,6 +550,7 @@ async getPortalRequests(
 ```
 
 **After:**
+
 ```typescript
 @Get("portal/requests")
 @RequirePermissions("portal.read")
@@ -546,6 +571,7 @@ async getPortalRequests(
 #### 2.1.5: Update `getActionItems()` endpoint
 
 **Before:**
+
 ```typescript
 @Get("portal/action-items")
 @RequirePermissions("portal.read")
@@ -566,6 +592,7 @@ async getActionItems(
 ```
 
 **After:**
+
 ```typescript
 @Get("portal/action-items")
 @RequirePermissions("portal.read")
@@ -588,11 +615,13 @@ async getActionItems(
 ---
 
 **Impact:**
+
 - ✅ **Security:** Prevents memory exhaustion from large page sizes
 - ✅ **No breaking changes:** Clients using reasonable limits (<100) unaffected
 - ⚠️ **Behavior change:** Any request with `?limit=1000` now returns max 100 items
 
 **Rollback:**
+
 - Remove `parseLimit()` function
 - Revert all `Number(limit) || X` back to `Number(limit) || X` (but with `parseLimit` call)
 - Run `npm run dev`
@@ -604,6 +633,7 @@ async getActionItems(
 **Prerequisites:** None (but test thoroughly)
 
 **Files to modify:**
+
 1. `apps/api/src/auth/auth.service.ts` - Add permissions to JWT payload
 2. `apps/api/src/common/guards/permissions.guard.ts` - Read from JWT instead of DB
 
@@ -612,6 +642,7 @@ async getActionItems(
 **Location:** After user verification, before JWT signing
 
 **Before:**
+
 ```typescript
 const payload = {
   id: user.id,
@@ -623,6 +654,7 @@ const accessToken = this.jwtService.sign(payload);
 ```
 
 **After:**
+
 ```typescript
 // Get permissions for JWT payload (NEW)
 const permissions = [
@@ -645,6 +677,7 @@ const accessToken = this.jwtService.sign(payload);
 **Location:** Refresh method, find similar pattern
 
 **Before:**
+
 ```typescript
 const payload = {
   id: user.id,
@@ -656,6 +689,7 @@ const accessToken = this.jwtService.sign(payload);
 ```
 
 **After:**
+
 ```typescript
 // Get fresh permissions on refresh (NEW)
 const permissions = [
@@ -678,6 +712,7 @@ const accessToken = this.jwtService.sign(payload);
 **Location:** Permission validation logic
 
 **Before:**
+
 ```typescript
 // Fetch user permissions from DB (via Role and direct UserPermissions)
 const userWithPermissions = await this.prisma.user.findUnique({
@@ -719,13 +754,14 @@ const hasPermission = requiredPermissions.every((permission) =>
 ```
 
 **After:**
+
 ```typescript
 // NEW: Check if permissions exist in JWT (faster than DB lookup)
 if (user.permissions && Array.isArray(user.permissions)) {
   const hasPermission = requiredPermissions.every((permission) =>
     user.permissions.includes(permission),
   );
-  
+
   if (!hasPermission) {
     throw new ForbiddenException("Missing required permissions");
   }
@@ -780,6 +816,7 @@ if (!hasPermission) {
 **File:** `apps/api/src/common/decorators/current-user.decorator.ts`
 
 **Before:**
+
 ```typescript
 export type JwtPayload = {
   id: string;
@@ -790,6 +827,7 @@ export type JwtPayload = {
 ```
 
 **After:**
+
 ```typescript
 export type JwtPayload = {
   id: string;
@@ -803,6 +841,7 @@ export type JwtPayload = {
 ---
 
 **Impact:**
+
 - ✅ **Performance:** ~50-100ms saved per request (DB query eliminated)
 - ✅ **Scalability:** Reduces DB load by ~30%
 - ⚠️ **Breaking:** JWT payload structure changes
@@ -810,11 +849,13 @@ export type JwtPayload = {
 - ⚠️ **Security:** If JWT is compromised, stale permissions could be used (mitigated by short token TTL)
 
 **Rollback:**
+
 - Remove `permissions` from JWT payload in `AuthService`
 - Revert `PermissionsGuard` to DB lookup only
 - Run `npm run dev`
 
 **Recommended:**
+
 - Use in combination with shorter JWT TTL (1 hour → 30 minutes for sensitive operations)
 - Consider Redis cache for real-time permission updates (future enhancement)
 
@@ -833,6 +874,7 @@ export type JwtPayload = {
 **Add method for broadcasting invalidations:**
 
 **Before:**
+
 ```typescript
 async createNotification(params: {
   entityId: string;
@@ -867,6 +909,7 @@ async createNotification(params: {
 ```
 
 **After:**
+
 ```typescript
 /** Broadcast invalidations to client's WebSocket connections */
 async broadcastPortalInvalidations(clientId: string, tags: string[]) {
@@ -915,6 +958,7 @@ async createNotification(params: {
 **Add import for notification service:**
 
 **Before:**
+
 ```typescript
 @Injectable()
 export class PortalService {
@@ -927,6 +971,7 @@ export class PortalService {
 ```
 
 **After:**
+
 ```typescript
 @Injectable()
 export class PortalService {
@@ -945,25 +990,27 @@ export class PortalService {
 **Update mutation methods:**
 
 **Before:**
+
 ```typescript
 async approveProject(projectId: string, clientId: string) {
   // ... approval logic
-  
+
   return { success: true };
 }
 
 async requestProjectRevision(projectId: string, clientId: string, dto: RequestProjectRevisionDto) {
   // ... revision logic
-  
+
   return { success: true };
 }
 ```
 
 **After:**
+
 ```typescript
 async approveProject(projectId: string, clientId: string) {
   // ... approval logic
-  
+
   // NEW: Broadcast invalidations
   await this.broadcastInvalidations(clientId, [
     "ReviewProjects",
@@ -972,13 +1019,13 @@ async approveProject(projectId: string, clientId: string) {
     "ActionItems",
     "ActivityFeed",
   ]);
-  
+
   return { success: true };
 }
 
 async requestProjectRevision(projectId: string, clientId: string, dto: RequestProjectRevisionDto) {
   // ... revision logic
-  
+
   // NEW: Broadcast invalidations
   await this.broadcastInvalidations(clientId, [
     "ReviewProjects",
@@ -987,7 +1034,7 @@ async requestProjectRevision(projectId: string, clientId: string, dto: RequestPr
     "ActionItems",
     "ActivityFeed",
   ]);
-  
+
   return { success: true };
 }
 ```
@@ -999,6 +1046,7 @@ async requestProjectRevision(projectId: string, clientId: string, dto: RequestPr
 **Update mutation invalidation tags:**
 
 **Before:**
+
 ```typescript
 approveProject: builder.mutation<any, string>({
   query: (id) => ({
@@ -1010,6 +1058,7 @@ approveProject: builder.mutation<any, string>({
 ```
 
 **After:**
+
 ```typescript
 approveProject: builder.mutation<any, string>({
   query: (id) => ({
@@ -1029,6 +1078,7 @@ approveProject: builder.mutation<any, string>({
 **Update other mutations:**
 
 **Before:**
+
 ```typescript
 requestProjectRevision: builder.mutation<
   any,
@@ -1044,6 +1094,7 @@ requestProjectRevision: builder.mutation<
 ```
 
 **After:**
+
 ```typescript
 requestProjectRevision: builder.mutation<
   any,
@@ -1071,10 +1122,11 @@ requestProjectRevision: builder.mutation<
 **Add to `endpoints` section:**
 
 **Before:**
+
 ```typescript
 endpoints: (builder) => ({
   // ... existing endpoints
-  
+
   unsnoozeActionItem: builder.mutation<
     { success: boolean },
     { itemType: string; itemId: string }
@@ -1088,10 +1140,11 @@ endpoints: (builder) => ({
 ```
 
 **After:**
+
 ```typescript
 endpoints: (builder) => ({
   // ... existing endpoints
-  
+
   unsnoozeActionItem: builder.mutation<
     { success: boolean },
     { itemType: string; itemId: string }
@@ -1102,7 +1155,7 @@ endpoints: (builder) => ({
     }),
     invalidatesTags: ["ActionItems"],
   }),
-  
+
   // NEW: Deliverable approval
   approveDeliverable: builder.mutation<any, string>({
     query: (id) => ({
@@ -1111,7 +1164,7 @@ endpoints: (builder) => ({
     }),
     invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
   }),
-  
+
   rejectDeliverable: builder.mutation<any, string>({
     query: (id) => ({
       url: `/deliverables/${id}/reject`,
@@ -1119,7 +1172,7 @@ endpoints: (builder) => ({
     }),
     invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress"],
   }),
-  
+
   // NEW: Contract signing
   signContract: builder.mutation<any, string>({
     query: (id) => ({
@@ -1133,6 +1186,7 @@ endpoints: (builder) => ({
 **Add exports:**
 
 **Before:**
+
 ```typescript
 export const {
   useGetPortalDashboardQuery,
@@ -1145,6 +1199,7 @@ export const {
 ```
 
 **After:**
+
 ```typescript
 export const {
   useGetPortalDashboardQuery,
@@ -1166,6 +1221,7 @@ export const {
 **File:** `apps/web/app/(portal)/portal/page.tsx`
 
 **Before:**
+
 ```typescript
 const { data: pendingRequestsData, error: pendingRequestsError } =
   useGetPortalRequestsQuery(
@@ -1178,6 +1234,7 @@ const { data: pendingRequestsData, error: pendingRequestsError } =
 ```
 
 **After:**
+
 ```typescript
 const { data: pendingRequestsData, error: pendingRequestsError } =
   useGetPortalRequestsQuery(
@@ -1191,17 +1248,18 @@ const { data: pendingRequestsData, error: pendingRequestsError } =
 
 **Apply to all 31 polling pages:**
 
-| File | Polling URLs | Before | After |
-|------|-------------|--------|-------|
-| `portal/page.tsx` | 7 queries | 30_000 | 120_000 |
-| `portal/finance/page.tsx` | 2 queries | 30_000 | 120_000 |
-| `portal/deliverables/page.tsx` | 3 queries | 30_000 | 120_000 |
-| `portal/actions/page.tsx` | 1 query | 30_000 | 120_000 |
-| `portal/campaigns/page.tsx` | 1 query | 30_000 | 120_000 |
-| `portal/projects/page.tsx` | 1 query | 30_000 | 120_000 |
-| `portal/reports/page.tsx` | 2 queries | 30_000 | 120_000 |
+| File                           | Polling URLs | Before | After   |
+| ------------------------------ | ------------ | ------ | ------- |
+| `portal/page.tsx`              | 7 queries    | 30_000 | 120_000 |
+| `portal/finance/page.tsx`      | 2 queries    | 30_000 | 120_000 |
+| `portal/deliverables/page.tsx` | 3 queries    | 30_000 | 120_000 |
+| `portal/actions/page.tsx`      | 1 query      | 30_000 | 120_000 |
+| `portal/campaigns/page.tsx`    | 1 query      | 30_000 | 120_000 |
+| `portal/projects/page.tsx`     | 1 query      | 30_000 | 120_000 |
+| `portal/reports/page.tsx`      | 2 queries    | 30_000 | 120_000 |
 
 **Find and replace command (bash):**
+
 ```bash
 cd /home/mohamed/Documents/Apps/hassad-platform/apps/web
 find app -name "*.tsx" -type f -exec sed -i 's/pollingInterval: 30_000/pollingInterval: 120_000/g' {} +
@@ -1210,12 +1268,14 @@ find app -name "*.tsx" -type f -exec sed -i 's/pollingInterval: 30_000/pollingIn
 ---
 
 **Impact:**
+
 - ✅ **Performance:** 75% reduction in polling requests (from ~1,400 to ~350 req/min with 100 users)
 - ✅ **Real-time:** Updates now appear within 2s instead of 30s delay
 - ✅ **User Experience:** No more stale data, immediate feedback on actions
 - ⚠️ **Dependencies:** Backend WebSocket events must be implemented first
 
 **Rollback:**
+
 - Revert polling intervals back to 30_000
 - Remove WebSocket event broadcasts
 - Run `npm run dev`
@@ -1231,6 +1291,7 @@ find app -name "*.tsx" -type f -exec sed -i 's/pollingInterval: 30_000/pollingIn
 **File:** `apps/web/lib/baseQuery.ts`
 
 **Before:**
+
 ```typescript
 import {
   fetchBaseQuery,
@@ -1303,6 +1364,7 @@ export const baseQuery: BaseQueryFn<
 ```
 
 **After:**
+
 ```typescript
 import {
   fetchBaseQuery,
@@ -1373,7 +1435,7 @@ export const baseQuery: BaseQueryFn<
   // NEW: Add retry logic for transient network errors
   const maxRetries = 3;
   let retryCount = 0;
-  
+
   while (result.error && retryCount < maxRetries) {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay
     retryCount++;
@@ -1389,11 +1451,13 @@ export const baseQuery: BaseQueryFn<
 ---
 
 **Impact:**
+
 - ✅ **User Experience:** No more silent failures on network blips
 - ✅ **Automatic Recovery:** Retries up to 3 times with 1-second delays
 - ⚠️ **Note:** Only retries non-401 errors (401 handled separately)
 
 **Rollback:**
+
 - Remove retry loop from baseQuery
 - Run `npm run dev`
 
@@ -1408,6 +1472,7 @@ export const baseQuery: BaseQueryFn<
 #### 3.2.1: Dashboard Page - `apps/web/app/(portal)/portal/page.tsx`
 
 **Before:**
+
 ```typescript
 const handleSnooze = async (item: { id: string; type: string }) => {
   const itemId = item.id.replace(/^(del|inv|prop|con)-/, "");
@@ -1420,6 +1485,7 @@ const handleSnooze = async (item: { id: string; type: string }) => {
 ```
 
 **After:**
+
 ```typescript
 import { toast } from "sonner"; // ADD import if not already present
 
@@ -1436,6 +1502,7 @@ const handleSnooze = async (item: { id: string; type: string }) => {
 #### 3.2.2: Chat Page - `apps/web/app/(portal)/portal/chat/page.tsx`
 
 **Before:**
+
 ```typescript
 const handleSend = useCallback(
   async (content: string) => {
@@ -1454,6 +1521,7 @@ const handleSend = useCallback(
 ```
 
 **After:**
+
 ```typescript
 const handleSend = useCallback(
   async (content: string) => {
@@ -1474,6 +1542,7 @@ const handleSend = useCallback(
 #### 3.2.3: Notifications Page - `apps/web/app/(portal)/portal/notifications/page.tsx`
 
 **Before:**
+
 ```typescript
 const handleMarkRead = useCallback(
   (id: string) => {
@@ -1484,6 +1553,7 @@ const handleMarkRead = useCallback(
 ```
 
 **After:**
+
 ```typescript
 const handleMarkRead = useCallback(
   async (id: string) => {
@@ -1500,11 +1570,13 @@ const handleMarkRead = useCallback(
 ---
 
 **Impact:**
+
 - ✅ **User Experience:** Users now see clear error messages when actions fail
 - ✅ **Support:** Reduces confusion and support tickets
 - ⚠️ **Note:** Requires `sonner` toast already imported (verify in each file)
 
 **Rollback:**
+
 - Revert error handlers to silent catches
 - Run `npm run dev`
 
@@ -1515,18 +1587,21 @@ const handleMarkRead = useCallback(
 After making all changes:
 
 1. **Install dependencies:**
+
    ```bash
    cd /home/mohamed/Documents/Apps/hassad-platform/apps/api
    npm install
    ```
 
 2. **Build the shared package:**
+
    ```bash
    cd /home/mohamed/Documents/Apps/hassad-platform
    npm run build
    ```
 
 3. **Build and test the API:**
+
    ```bash
    cd /home/mohamed/Documents/Apps/hassad-platform/apps/api
    npm run build
@@ -1534,6 +1609,7 @@ After making all changes:
    ```
 
 4. **Build and test the web app:**
+
    ```bash
    cd /home/mohamed/Documents/Apps/hassad-platform/apps/web
    npm run build
@@ -1564,42 +1640,48 @@ After making all changes:
 ### Immediate Rollback (30 minutes)
 
 1. **Rate limiting:**
+
    ```bash
    # In apps/api/src/app.module.ts
    # Remove ThrottlerModule imports
-   
+
    # In apps/api/src/auth/auth.controller.ts
    # Remove @Throttle() decorators
    ```
 
 2. **File upload limits:**
+
    ```bash
    # In apps/api/src/modules/portal/portal.module.ts
    # Remove limits config from MulterModule
    ```
 
 3. **Page size caps:**
+
    ```bash
    # In apps/api/src/modules/portal/controllers/portal.controller.ts
    # Remove parseLimit() calls
    ```
 
 4. **WebSocket invalidations:**
+
    ```bash
    # In backend service files
    # Remove broadcastInvalidations calls
-   
+
    # In frontend portalApi.ts
    # Remove ActionItems and ActivityFeed from invalidatesTags
    ```
 
 5. **Error handling:**
+
    ```bash
    # In frontend files
    # Revert toast.error to silent catches
    ```
 
 6. **RTK retry:**
+
    ```bash
    # In apps/web/lib/baseQuery.ts
    # Remove retry loop
@@ -1616,12 +1698,14 @@ After making all changes:
 If issues persist, revert JWT permissions cache:
 
 1. **Remove permissions from JWT payload:**
+
    ```bash
    # In apps/api/src/auth/auth.service.ts
    # Remove permissions array from payload
    ```
 
 2. **Revert PermissionsGuard:**
+
    ```bash
    # In apps/api/src/common/guards/permissions.guard.ts
    # Revert to DB-only lookup
@@ -1633,19 +1717,19 @@ If issues persist, revert JWT permissions cache:
 
 ## Summary of Changes
 
-| Issue | File | Lines Changed | Breaking? | Impact |
-|-------|------|---------------|-----------|--------|
-| Rate limiting | `apps/api/src/app.module.ts` | +15 | ❌ | Security |
-| Rate limiting | `apps/api/src/auth/auth.controller.ts` | +10 | ❌ | Security |
-| File upload limits | `apps/api/src/modules/portal/portal.module.ts` | +8 | ✅ | Security |
-| Page size caps | `apps/api/src/modules/portal/controllers/portal.controller.ts` | +50 | ⚠️ | Performance |
-| Permission caching | `apps/api/src/auth/auth.service.ts` | +15 | ✅ | Performance |
-| Permission caching | `apps/api/src/common/guards/permissions.guard.ts` | +30 | ⚠️ | Performance |
-| WebSocket events | `apps/api/src/modules/notifications/notifications.service.ts` | +15 | ❌ | Real-time |
-| WebSocket events | `apps/api/src/modules/portal/services/portal.service.ts` | +30 | ❌ | Real-time |
-| Frontend polling | All portal pages | -31 | ❌ | Performance |
-| Error handling | 3 frontend files | +15 | ❌ | UX |
-| RTK retry | `apps/web/lib/baseQuery.ts` | +20 | ❌ | Reliability |
+| Issue              | File                                                           | Lines Changed | Breaking? | Impact      |
+| ------------------ | -------------------------------------------------------------- | ------------- | --------- | ----------- |
+| Rate limiting      | `apps/api/src/app.module.ts`                                   | +15           | ❌        | Security    |
+| Rate limiting      | `apps/api/src/auth/auth.controller.ts`                         | +10           | ❌        | Security    |
+| File upload limits | `apps/api/src/modules/portal/portal.module.ts`                 | +8            | ✅        | Security    |
+| Page size caps     | `apps/api/src/modules/portal/controllers/portal.controller.ts` | +50           | ⚠️        | Performance |
+| Permission caching | `apps/api/src/auth/auth.service.ts`                            | +15           | ✅        | Performance |
+| Permission caching | `apps/api/src/common/guards/permissions.guard.ts`              | +30           | ⚠️        | Performance |
+| WebSocket events   | `apps/api/src/modules/notifications/notifications.service.ts`  | +15           | ❌        | Real-time   |
+| WebSocket events   | `apps/api/src/modules/portal/services/portal.service.ts`       | +30           | ❌        | Real-time   |
+| Frontend polling   | All portal pages                                               | -31           | ❌        | Performance |
+| Error handling     | 3 frontend files                                               | +15           | ❌        | UX          |
+| RTK retry          | `apps/web/lib/baseQuery.ts`                                    | +20           | ❌        | Reliability |
 
 **Total files modified:** ~10 files
 **Total lines changed:** ~200 lines
@@ -1657,6 +1741,7 @@ If issues persist, revert JWT permissions cache:
 ---
 
 **Next Steps:**
+
 1. Follow implementation steps in order (Phase 1 → Phase 2 → Phase 3)
 2. Test each phase independently before moving to next
 3. Monitor logs and metrics after deployment

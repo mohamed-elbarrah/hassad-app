@@ -120,10 +120,7 @@ export function formatPortalDate(
  * True if the invoice is in a state where the client can pay it
  * (outstanding balance + not cancelled + not fully paid).
  */
-export function isInvoicePayable(
-  status?: string,
-  remaining?: number,
-): boolean {
+export function isInvoicePayable(status?: string, remaining?: number): boolean {
   if (status === undefined) return false;
   if (status === "CANCELLED" || status === "PAID") return false;
   if (typeof remaining === "number" && remaining <= 0) return false;
@@ -156,9 +153,7 @@ export function formatDateTime(
   }
 }
 
-export function formatRelativeTime(
-  iso: string | null | undefined,
-): string {
+export function formatRelativeTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "—";
@@ -236,7 +231,9 @@ export function formatCompactNumber(n: number): string {
  * Calculate days until a target date from today.
  * Returns positive number for future dates, negative for past dates.
  */
-export function daysUntil(date: string | Date | undefined | null): number | null {
+export function daysUntil(
+  date: string | Date | undefined | null,
+): number | null {
   if (!date) return null;
   const target = typeof date === "string" ? new Date(date) : date;
   const now = new Date();

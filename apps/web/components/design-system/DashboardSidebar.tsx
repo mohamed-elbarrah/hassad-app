@@ -10,7 +10,11 @@ import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
 import { UserRole } from "@hassad/shared";
-import { navSections, adminNavSections, roleNavSections } from "@/lib/navigation";
+import {
+  navSections,
+  adminNavSections,
+  roleNavSections,
+} from "@/lib/navigation";
 import { UserInfoCard } from "./UserAvatar";
 
 function isActiveLink(href: string, pathname: string) {
@@ -48,27 +52,29 @@ export function DashboardSidebar() {
     const sections = isAdmin ? adminNavSections : roleNavSections;
     const seen = new Set<string>();
 
-    return sections.flatMap((section) =>
-      section.items
-        .filter((item) => item.roles.includes(role))
-        .flatMap((item) => {
-          if (item.items && item.items.length > 0) {
-            return item.items.map((sub) => ({
-              title: sub.title,
-              url: sub.url,
-              icon: item.icon,
-            }));
-          }
-          if (item.url) {
-            return [{ title: item.title, url: item.url, icon: item.icon }];
-          }
-          return [];
-        }),
-    ).filter((item) => {
-      if (seen.has(item.url)) return false;
-      seen.add(item.url);
-      return true;
-    });
+    return sections
+      .flatMap((section) =>
+        section.items
+          .filter((item) => item.roles.includes(role))
+          .flatMap((item) => {
+            if (item.items && item.items.length > 0) {
+              return item.items.map((sub) => ({
+                title: sub.title,
+                url: sub.url,
+                icon: item.icon,
+              }));
+            }
+            if (item.url) {
+              return [{ title: item.title, url: item.url, icon: item.icon }];
+            }
+            return [];
+          }),
+      )
+      .filter((item) => {
+        if (seen.has(item.url)) return false;
+        seen.add(item.url);
+        return true;
+      });
   }, [user]);
 
   const settingsUrl =
@@ -133,10 +139,7 @@ export function DashboardSidebar() {
 
       {/* ── Bottom section ─────────────────────────────────────────── */}
       <div className="px-4 pb-6">
-        <div
-          className="my-4"
-          style={{ borderTop: "1.5px solid #ECEEF2" }}
-        />
+        <div className="my-4" style={{ borderTop: "1.5px solid #ECEEF2" }} />
 
         {/* Settings */}
         <Link

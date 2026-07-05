@@ -9,11 +9,7 @@ interface EmptyStateProps {
 }
 
 /** Generic "nothing here yet" panel used by the per-period tabs. */
-export function EmptyState({
-  icon,
-  title,
-  description,
-}: EmptyStateProps) {
+export function EmptyState({ icon, title, description }: EmptyStateProps) {
   return (
     <SurfaceCard>
       <PortalEmptyState icon={icon} title={title} description={description} />

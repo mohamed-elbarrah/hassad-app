@@ -67,7 +67,11 @@ export interface KanbanBoardProps<T extends { id: string }> {
    * Called when a card is dropped on a different stage.
    * The consumer handles API calls, optimistic updates, error toasts, etc.
    */
-  onDragEnd: (itemId: string, fromStage: string, toStage: string) => Promise<void> | void;
+  onDragEnd: (
+    itemId: string,
+    fromStage: string,
+    toStage: string,
+  ) => Promise<void> | void;
 
   // ── Optional state overrides ──────────────────────────────────────────
   isLoading?: boolean;

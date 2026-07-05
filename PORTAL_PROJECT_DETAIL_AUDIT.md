@@ -1,4 +1,5 @@
 # 📋 Full Architectural & Code Review Report
+
 ## Page: `/portal/projects/[id]` and Related Sub-Flows
 
 I traced the page end-to-end (component → RTK Query → API controller → service → Prisma → storage) plus all nested pages, dialogs, auth, and design-system primitives. Below is a single-source-of-truth report of every silent failure surface I found, ordered by severity.
@@ -8,6 +9,7 @@ I traced the page end-to-end (component → RTK Query → API controller → ser
 ## 🔴 CRITICAL — Will bite you in production
 
 ### 1. Silent error swallowing on the page (no `isError` handling)
+
 **File:** `apps/web/app/(portal)/portal/projects/[id]/page.tsx`
 
 The page only checks `isLoading` and `data?.length === 0`. There is **no `isError` branch** for `getPortalProjectDetail` or `getPortalProjectPeriods`. Consequences:
@@ -22,6 +24,7 @@ No toast, no error boundary, no retry button, no 404 page. The `error.tsx` exist
 ---
 
 ### 2. Stale `selectedPeriodId` after client-side navigation between projects
+
 **File:** `apps/web/app/(portal)/portal/projects/[id]/page.tsx` (lines 82-87)
 
 ```ts
@@ -49,7 +52,9 @@ Confirmed by reading every render branch: there is no fallback when `selectedPer
 ---
 
 ### 3. Authorization does NOT validate project ownership for file / report downloads
+
 **Files:**
+
 - `apps/api/src/modules/portal/controllers/portal.controller.ts` lines 708, 719
 - `apps/api/src/modules/portal/services/portal.service.ts` lines 623, 639
 
@@ -79,6 +84,7 @@ It works today only because the frontend hardcodes `_` (see issue #4). Any futur
 ---
 
 ### 4. Frontend/backend URL mismatch hardcoded `_` (works by accident)
+
 **File:** `apps/web/features/portal/portalApi.ts` lines 757-766
 
 ```ts
@@ -98,6 +104,7 @@ The controller accepts `:id` so `_` is technically a valid value. But this is **
 ---
 
 ### 5. Time zone bug: dates displayed in wrong day for KSA users
+
 **File:** `apps/web/components/portal/project-detail/helpers.ts`
 
 ```ts
@@ -105,6 +112,7 @@ new Date(dateStr).toLocaleDateString("ar-SA-u-nu-latn", { ... })
 ```
 
 The backend stores `DateTime` (not `Date`) at `00:00:00.000Z` UTC. When KSA users (UTC+3) view this in `ar-SA` locale:
+
 - `2026-06-26T00:00:00.000Z` (midnight UTC) = `2026-06-26T03:00:00+03:00` → displays "26 يونيو" ✅
 - `2026-06-26T22:00:00.000Z` (PM typed 23:00 local) = `2026-06-27T01:00:00+03:00` → displays "27 يونيو" ❌
 
@@ -115,6 +123,7 @@ This is silent because the displayed value still **looks** like a valid date, ju
 ---
 
 ### 6. Next.js Edge proxy falls back to cookie-existence auth if `JWT_SECRET` is missing
+
 **File:** `apps/web/proxy.ts` lines 13-32
 
 ```ts
@@ -124,6 +133,7 @@ const isAuthenticated = JWT_SECRET_RAW ? !!payload : !!token;
 If `JWT_SECRET` is not configured in production (e.g. ops team set up the API env but forgot the web env, or used a different name), the proxy accepts **any request with a cookie named `token`** — even with garbage value. The role-based redirect (admin → dashboard, client → portal) **also silently disables**.
 
 The API still validates JWT (defense-in-depth), so data is safe. But:
+
 - Anyone can hit `/portal/anything` and the page renders the loading spinner → then the client-side layout check redirects to `/login` after a flash.
 - Bypasses all role-based edge routing.
 
@@ -134,6 +144,7 @@ The API still validates JWT (defense-in-depth), so data is safe. But:
 ## 🟠 HIGH — Will produce visible bugs under normal traffic
 
 ### 7. Silent NaN rendering if `completionPercentage` is ever null/undefined
+
 **Files:** `CircularProgress.tsx`, `ProgressBar.tsx`, `StatCards.tsx`
 
 ```ts
@@ -147,6 +158,7 @@ The schema marks `completionPercentage: Float @default(0)` — default is 0, so 
 ---
 
 ### 8. Campaign tab shows ALL client campaigns regardless of selected period/project
+
 **File:** `apps/web/components/portal/project-detail/CampaignsTab.tsx`
 
 ```ts
@@ -160,14 +172,15 @@ Comment in the file says "period filtering deferred". A client looking at Period
 ---
 
 ### 9. Inconsistent error responses for unauthorized access
+
 **File:** `apps/api/src/modules/portal/services/portal.service.ts`
 
-| Endpoint | Unauthorized response |
-|---|---|
-| `getPortalProjectDetail` | **404** NotFoundException |
+| Endpoint                  | Unauthorized response       |
+| ------------------------- | --------------------------- |
+| `getPortalProjectDetail`  | **404** NotFoundException   |
 | `getPortalProjectPeriods` | **`[]`** silent empty array |
-| `downloadPeriodReport` | **404** NotFoundException |
-| `downloadPeriodFile` | **404** NotFoundException |
+| `downloadPeriodReport`    | **404** NotFoundException   |
+| `downloadPeriodFile`      | **404** NotFoundException   |
 
 A client trying to access another client's project detail gets a clear 404, but trying to access periods of that project gets `[]` (looks like "no periods yet"). This leaks the difference between "not found" and "empty" and lets attackers probe.
 
@@ -176,6 +189,7 @@ A client trying to access another client's project detail gets a clear 404, but 
 ---
 
 ### 10. Dispute dialog form state lost on outside click
+
 **File:** `apps/web/components/disputes/NewDisputeDialog.tsx`
 
 The dialog uses the basic `components/ui/dialog` wrapper which has **no `onInteractOutside` blocker**. While typing a 20+ char description, accidentally clicking outside resets all state. Also no warning on Escape key.
@@ -185,6 +199,7 @@ The dialog uses the basic `components/ui/dialog` wrapper which has **no `onInter
 ---
 
 ### 11. No UUID validation on path parameters
+
 **File:** `apps/api/src/modules/portal/controllers/portal.controller.ts`
 
 No `@Param("id", ParseUUIDPipe)` on any endpoint. Hitting `/portal/projects/not-a-uuid` sends `not-a-uuid` to Prisma which throws on `findUnique({where:{id:"not-a-uuid"}})` → 500 → silently swallowed by frontend (issue #1).
@@ -196,6 +211,7 @@ No `@Param("id", ParseUUIDPipe)` on any endpoint. Hitting `/portal/projects/not-
 ## 🟡 MEDIUM — Will produce confusing behavior, not crashes
 
 ### 12. The `useEffect` dependency on `selectedPeriodId` causes unnecessary re-fires
+
 **File:** `apps/web/app/(portal)/portal/projects/[id]/page.tsx` line 86
 
 ```ts
@@ -211,6 +227,7 @@ Cosmetic — the `!selectedPeriodId` guard prevents infinite loops, but the effe
 ---
 
 ### 13. The `useGetPortalProjectDetailQuery` and `useGetPortalProjectPeriodsQuery` provide the same tag shape as the parent list
+
 **File:** `apps/web/features/portal/portalApi.ts` lines 744, 749
 
 Both provide `[{ type: "PortalProjects", id }]` — the **same** keyed tag as `useGetPortalProjectsQuery`. Mutations like `approveProject` that invalidate `["PortalProjects"]` correctly trigger refetch of all three (list + detail + periods). But if a future mutation only invalidates the bare `["PortalProjects"]` without id and someone refactors to use a different tag, this will silently break consistency.
@@ -220,6 +237,7 @@ Document the tag relationship explicitly.
 ---
 
 ### 14. `getPortalContractById` is typed as `any`
+
 **File:** `apps/web/features/portal/portalApi.ts` line 625
 
 ```ts
@@ -233,6 +251,7 @@ Not used on this page, but lives in the same `portalApi` module. All callers los
 ---
 
 ### 15. XSS surface in `CurrencySymbol` via `dangerouslySetInnerHTML`
+
 **File:** `apps/web/components/design-system/CurrencySymbol.tsx`
 
 ```ts
@@ -246,6 +265,7 @@ If an admin uploads a malicious SVG via currency settings, it executes in any pa
 ---
 
 ### 16. XSS surface in meeting link
+
 **File:** `apps/web/components/portal/project-detail/MeetingsTab.tsx`
 
 ```ts
@@ -259,6 +279,7 @@ No URL validation. A PM could (maliciously or by mistake) set `meetingLink = "ja
 ---
 
 ### 17. Silent broken download if R2 key is missing
+
 **File:** `apps/api/src/common/storage/storage.service.ts` line 273
 
 `getSignedUrl` is a pure client-side URL generator — **it never checks if the file exists in R2**. If `reportFilePath` references a deleted key, the user clicks "Download", browser opens the URL, R2 returns 403 XML. No feedback. The frontend's `window.open(url, "_blank")` opens a blank tab with cryptic XML.
@@ -268,6 +289,7 @@ No URL validation. A PM could (maliciously or by mistake) set `meetingLink = "ja
 ---
 
 ### 18. `MeetingRow.notes` and `Period.summary` displayed with `whitespace-pre-line` — XSS safe but layout-shift risk
+
 **Files:** `MeetingsTab.tsx`, `ReportsTab.tsx`
 
 Long notes without max-height cause the page to scroll-jump when switching tabs. Minor UX issue.
@@ -275,6 +297,7 @@ Long notes without max-height cause the page to scroll-jump when switching tabs.
 ---
 
 ### 19. The `formatFileSize` helper doesn't handle negative numbers
+
 **File:** `apps/web/components/portal/project-detail/helpers.ts`
 
 `bytes = -1` → `Math.log(-1) = NaN`, returns "NaN B". Unlikely but defensive default would be safer.
@@ -282,6 +305,7 @@ Long notes without max-height cause the page to scroll-jump when switching tabs.
 ---
 
 ### 20. Two different `formatDate` implementations exist
+
 **Files:** `lib/utils.ts` line 8, `components/portal/project-detail/helpers.ts` line 12
 
 Both export `formatDate` with different signatures. Mixing imports causes inconsistency.
@@ -289,6 +313,7 @@ Both export `formatDate` with different signatures. Mixing imports causes incons
 ---
 
 ### 21. `useCurrency` is called inside `CampaignCard` (per-card) — N hook instances
+
 **File:** `apps/web/components/portal/project-detail/CampaignsTab.tsx`
 
 RTK Query dedupes the underlying API call, so this is mostly cosmetic. But each `CampaignCard` calls `useCurrency()` which itself calls `useGetDefaultCurrencyQuery`. With 50 campaigns, that's 50 React hook subscriptions to one query. Move the hook to the parent.
@@ -298,11 +323,13 @@ RTK Query dedupes the underlying API call, so this is mostly cosmetic. But each 
 ## 🟢 LOW — Code-smell, future-proofing
 
 ### 22. `PortalPeriodMeeting` includes fields that are never used by the UI
+
 The `MeetingStatus` enum is shown twice — once via the colored icon box and once via `<StatusBadge>`. Redundant.
 
 ---
 
 ### 23. `useGetPortalProjectPeriodsQuery` and the parent projects page poll differently
+
 **Files:** `projects/page.tsx` (pollingInterval: 120_000), `projects/[id]/page.tsx` (no polling)
 
 The detail page never refreshes. If PM updates goals / marks period as ACTIVE → CLOSED, the client must refresh manually. Inconsistent.
@@ -310,6 +337,7 @@ The detail page never refreshes. If PM updates goals / marks period as ACTIVE �
 ---
 
 ### 24. `next.config.ts` has no `images.remotePatterns`
+
 **File:** `apps/web/next.config.ts`
 
 Not used on this page (all `<img>` not Next `<Image>`), but if anyone refactors CurrencySymbol to use `<Image>`, R2 URLs won't load.
@@ -317,11 +345,13 @@ Not used on this page (all `<img>` not Next `<Image>`), but if anyone refactors 
 ---
 
 ### 25. No `not-found.tsx` for `[id]` route
+
 Missing at `apps/web/app/(portal)/portal/projects/[id]/`. Combined with issue #1, 404 cases show silent empty state instead of a clear "project not found" page.
 
 ---
 
 ### 26. Empty `<div>` between `ProjectHeader` and `HeroCard`
+
 **File:** `page.tsx` line 142
 
 There's a stray empty `<div>` (looking at the structure — confirmed in the source):
@@ -330,7 +360,7 @@ There's a stray empty `<div>` (looking at the structure — confirmed in the sou
 <div className="flex items-center gap-3">
   <ActionButton ...>
   </ActionButton>
-  
+
 </div>
 ```
 
@@ -339,6 +369,7 @@ The trailing empty `<div>` from `ProjectHeader.tsx` is a leftover from removed a
 ---
 
 ### 27. `StatCards` icon swap logic is fragile
+
 **File:** `StatCards.tsx` line 62
 
 ```ts
@@ -350,6 +381,7 @@ Two different icon types for the same card slot. If design wants consistency, lo
 ---
 
 ### 28. The `TABS` array uses `LucideIcon` as type but is duplicated in two places
+
 Only used once on this page — fine. But if a sibling page (e.g. project review detail) needs the same tabs, will be duplicated.
 
 ---
@@ -382,4 +414,4 @@ Only used once on this page — fine. But if a sibling page (e.g. project review
 
 ---
 
-*Audit generated without modifying any code. Read-only review.*
+_Audit generated without modifying any code. Read-only review._

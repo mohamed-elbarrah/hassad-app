@@ -156,7 +156,9 @@ export function InlinePaymentCard({
       {loadingGateways ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-          <p className="text-sm text-portal-note-text">جاري تحميل طرق الدفع...</p>
+          <p className="text-sm text-portal-note-text">
+            جاري تحميل طرق الدفع...
+          </p>
         </div>
       ) : (
         <>
@@ -218,7 +220,9 @@ export function CardPaymentForm({
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
         <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-        <p className="text-sm text-portal-note-text">جاري تجهيز نموذج الدفع...</p>
+        <p className="text-sm text-portal-note-text">
+          جاري تجهيز نموذج الدفع...
+        </p>
       </div>
     );
   }
@@ -263,7 +267,13 @@ function StripeElementsWrapper({
   );
 }
 
-function StripePaymentForm({ clientSecret, onComplete }: { clientSecret: string; onComplete?: () => void }) {
+function StripePaymentForm({
+  clientSecret,
+  onComplete,
+}: {
+  clientSecret: string;
+  onComplete?: () => void;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -283,12 +293,10 @@ function StripePaymentForm({ clientSecret, onComplete }: { clientSecret: string;
       return;
     }
 
-    const { error: submitError, paymentIntent } = await stripe.confirmCardPayment(
-      clientSecret,
-      {
+    const { error: submitError, paymentIntent } =
+      await stripe.confirmCardPayment(clientSecret, {
         payment_method: { card: cardElement },
-      },
-    );
+      });
 
     if (submitError) {
       setError(submitError.message ?? "فشل الدفع");
@@ -491,10 +499,8 @@ export function BankTransferForm({
         <p className="font-bold">تعليمات التحويل:</p>
         <p>
           قم بتحويل المبلغ{" "}
-          <span className="font-bold">
-            {fmtAmount(invoice.amount)} ر.س
-          </span>{" "}
-          إلى أحد الحسابات أعلاه. يرجى إرفاق رقم الفاتورة{" "}
+          <span className="font-bold">{fmtAmount(invoice.amount)} ر.س</span> إلى
+          أحد الحسابات أعلاه. يرجى إرفاق رقم الفاتورة{" "}
           <span className="font-bold">{invoice.invoiceNumber}</span> في ملاحظات
           التحويل.
         </p>

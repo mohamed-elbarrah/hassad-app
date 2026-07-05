@@ -57,17 +57,10 @@ export function renderContractRowCells(
 
 // ── Actions cell ─────────────────────────────────────────────────────────────
 
-function ContractActionsCell({
-  contract,
-}: {
-  contract: ContractListItem;
-}) {
+function ContractActionsCell({ contract }: { contract: ContractListItem }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  async function handleCopyLink(
-    token: string | null | undefined,
-    id: string,
-  ) {
+  async function handleCopyLink(token: string | null | undefined, id: string) {
     if (!token) return;
     const url = `${window.location.origin}/contract/${token}`;
     try {
@@ -92,9 +85,7 @@ function ContractActionsCell({
         <ActionButton
           size="sm"
           variant="outline"
-          onClick={() =>
-            handleCopyLink(contract.shareLinkToken, contract.id)
-          }
+          onClick={() => handleCopyLink(contract.shareLinkToken, contract.id)}
           disabled={!contract.shareLinkToken}
           title="نسخ رابط التوقيع للعميل"
         >

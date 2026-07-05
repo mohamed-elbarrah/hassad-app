@@ -6,7 +6,12 @@ export class AdminIntegrationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ── Webhook Logs ─────────────────────────────────────────────────────────────
-  async getWebhookLogs(filters: { status?: string; provider?: string; page?: number; limit?: number }) {
+  async getWebhookLogs(filters: {
+    status?: string;
+    provider?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const where: any = {};
     if (filters.status === "failed") where.processed = false;
     if (filters.status === "success") where.processed = true;
@@ -15,7 +20,12 @@ export class AdminIntegrationsService {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const [items, total] = await Promise.all([
-      this.prisma.webhookLog.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      this.prisma.webhookLog.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
       this.prisma.webhookLog.count({ where }),
     ]);
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -25,7 +35,10 @@ export class AdminIntegrationsService {
     const log = await this.prisma.webhookLog.findUnique({ where: { id } });
     if (!log) throw new NotFoundException("سجل الويب هوك غير موجود");
     if (log.processed) throw new Error("تمت معالجة هذا الويب هوك بالفعل");
-    return this.prisma.webhookLog.update({ where: { id }, data: { processed: true, error: null } });
+    return this.prisma.webhookLog.update({
+      where: { id },
+      data: { processed: true, error: null },
+    });
   }
 
   // ── Ad Platform Connections ──────────────────────────────────────────────────
@@ -39,7 +52,14 @@ export class AdminIntegrationsService {
   // ── Payment Gateways ──────────────────────────────────────────────────────────
   async getGateways() {
     return this.prisma.paymentGateway.findMany({
-      select: { id: true, name: true, type: true, isActive: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 }

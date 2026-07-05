@@ -38,9 +38,7 @@ export function PmDetailBreadcrumb({
         </>
       )}
       <ChevronRight className="w-3 h-3" />
-      <span className="text-natural-100 truncate max-w-[200px]">
-        {title}
-      </span>
+      <span className="text-natural-100 truncate max-w-[200px]">{title}</span>
     </nav>
   );
 }

@@ -803,12 +803,15 @@ export const portalApi = createApi({
      *   - reminderSentAt (Date ISO | null)
      *   - isActive (boolean — true if snooze is still in the future)
      */
-    getSnoozedActionItems: builder.query<SnoozedActionItem[], { activeOnly?: boolean } | void>({
+    getSnoozedActionItems: builder.query<
+      SnoozedActionItem[],
+      { activeOnly?: boolean } | void
+    >({
       query: (params) => {
         // RTK Query passes `void` when called with no args; narrow at runtime.
         const activeOnly =
           typeof params === "object" && params !== null
-            ? params.activeOnly ?? true
+            ? (params.activeOnly ?? true)
             : true;
         return {
           url: "/portal/action-items/snoozed",
@@ -824,7 +827,12 @@ export const portalApi = createApi({
         url: `/deliverables/${id}/approve`,
         method: "POST",
       }),
-      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress", "ReviewProjects"],
+      invalidatesTags: [
+        "ActionItems",
+        "ActivityFeed",
+        "ProjectProgress",
+        "ReviewProjects",
+      ],
     }),
 
     rejectDeliverable: builder.mutation<any, string>({
@@ -832,7 +840,12 @@ export const portalApi = createApi({
         url: `/deliverables/${id}/reject`,
         method: "POST",
       }),
-      invalidatesTags: ["ActionItems", "ActivityFeed", "ProjectProgress", "ReviewProjects"],
+      invalidatesTags: [
+        "ActionItems",
+        "ActivityFeed",
+        "ProjectProgress",
+        "ReviewProjects",
+      ],
     }),
 
     // NEW: Contract signing
@@ -841,7 +854,12 @@ export const portalApi = createApi({
         url: `/portal/contracts/${id}/sign`,
         method: "POST",
       }),
-      invalidatesTags: ["PortalContracts", "PortalInvoices", "ActionItems", "ActivityFeed"],
+      invalidatesTags: [
+        "PortalContracts",
+        "PortalInvoices",
+        "ActionItems",
+        "ActivityFeed",
+      ],
     }),
 
     getPortalReports: builder.query<ReportSummary, void>({
@@ -1092,7 +1110,12 @@ export const portalApi = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["PortalContracts", "PortalInvoices", "ActionItems", "ActivityFeed"],
+      invalidatesTags: [
+        "PortalContracts",
+        "PortalInvoices",
+        "ActionItems",
+        "ActivityFeed",
+      ],
     }),
 
     getPortalProposalByToken: builder.query<any, string>({

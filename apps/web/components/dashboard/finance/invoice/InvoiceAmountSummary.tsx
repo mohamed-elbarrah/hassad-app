@@ -25,7 +25,8 @@ export function InvoiceAmountSummary({
 }: InvoiceAmountSummaryProps) {
   const isPaid = status === "PAID";
   const isLate = status === "LATE";
-  const isOverdue = !isPaid && status !== "CANCELLED" && getDaysRemaining(dueDate) < 0;
+  const isOverdue =
+    !isPaid && status !== "CANCELLED" && getDaysRemaining(dueDate) < 0;
 
   return (
     <div>
@@ -41,7 +42,9 @@ export function InvoiceAmountSummary({
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <div>
               <p className="text-sm font-bold">فاتورة متأخرة</p>
-              <p className="text-xs opacity-90">يرجى متابعة العميل لتحصيل المبلغ المستحق.</p>
+              <p className="text-xs opacity-90">
+                يرجى متابعة العميل لتحصيل المبلغ المستحق.
+              </p>
             </div>
           </div>
         )}
@@ -51,7 +54,9 @@ export function InvoiceAmountSummary({
             <AlertTriangle className="w-5 h-5 shrink-0" />
             <div>
               <p className="text-sm font-bold">تجاوزت تاريخ الاستحقاق</p>
-              <p className="text-xs opacity-90">يرجى تحديث الحالة أو متابعة التحصيل.</p>
+              <p className="text-xs opacity-90">
+                يرجى تحديث الحالة أو متابعة التحصيل.
+              </p>
             </div>
           </div>
         )}
@@ -61,7 +66,9 @@ export function InvoiceAmountSummary({
             <CheckCircle2 className="w-5 h-5 shrink-0" />
             <div>
               <p className="text-sm font-bold">تم الدفع بالكامل</p>
-              <p className="text-xs opacity-90">تم تحصيل كامل قيمة هذه الفاتورة.</p>
+              <p className="text-xs opacity-90">
+                تم تحصيل كامل قيمة هذه الفاتورة.
+              </p>
             </div>
           </div>
         )}
@@ -87,19 +94,55 @@ export function InvoiceAmountSummary({
               <CurrencyDisplay amount={amount} />
             </p>
           </div>
-          <div className={cn("text-center p-3 rounded-xl", isPaid ? "bg-success-100/50" : "bg-badge-gray-bg")}>
-            <p className={cn("text-[10px] mb-0.5", isPaid ? "text-success-600" : "text-portal-note-text")}>
+          <div
+            className={cn(
+              "text-center p-3 rounded-xl",
+              isPaid ? "bg-success-100/50" : "bg-badge-gray-bg",
+            )}
+          >
+            <p
+              className={cn(
+                "text-[10px] mb-0.5",
+                isPaid ? "text-success-600" : "text-portal-note-text",
+              )}
+            >
               المدفوع
             </p>
-            <p className={cn("text-base font-bold", isPaid ? "text-success-600" : "text-natural-100")}>
+            <p
+              className={cn(
+                "text-base font-bold",
+                isPaid ? "text-success-600" : "text-natural-100",
+              )}
+            >
               <CurrencyDisplay amount={paidAmount} />
             </p>
           </div>
-          <div className={cn("text-center p-3 rounded-xl", (isLate || isOverdue) && remainingAmount > 0 ? "bg-danger-100/50" : "bg-badge-gray-bg")}>
-            <p className={cn("text-[10px] mb-0.5", (isLate || isOverdue) && remainingAmount > 0 ? "text-danger-600" : "text-portal-note-text")}>
+          <div
+            className={cn(
+              "text-center p-3 rounded-xl",
+              (isLate || isOverdue) && remainingAmount > 0
+                ? "bg-danger-100/50"
+                : "bg-badge-gray-bg",
+            )}
+          >
+            <p
+              className={cn(
+                "text-[10px] mb-0.5",
+                (isLate || isOverdue) && remainingAmount > 0
+                  ? "text-danger-600"
+                  : "text-portal-note-text",
+              )}
+            >
               المتبقي
             </p>
-            <p className={cn("text-base font-bold", (isLate || isOverdue) && remainingAmount > 0 ? "text-danger-600" : "text-natural-100")}>
+            <p
+              className={cn(
+                "text-base font-bold",
+                (isLate || isOverdue) && remainingAmount > 0
+                  ? "text-danger-600"
+                  : "text-natural-100",
+              )}
+            >
               <CurrencyDisplay amount={remainingAmount} />
             </p>
           </div>

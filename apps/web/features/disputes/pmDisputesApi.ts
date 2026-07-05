@@ -1,6 +1,10 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { DisputeStatus, DisputeCategory, DisputePriority } from "@hassad/shared";
+import type {
+  DisputeStatus,
+  DisputeCategory,
+  DisputePriority,
+} from "@hassad/shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +77,10 @@ export const pmDisputesApi = createApi({
   baseQuery,
   tagTypes: ["PmDisputes", "PmDispute"],
   endpoints: (builder) => ({
-    getPmDisputes: builder.query<PmDisputeListResponse, PmDisputeFilterInput | void>({
+    getPmDisputes: builder.query<
+      PmDisputeListResponse,
+      PmDisputeFilterInput | void
+    >({
       query: (params) => ({
         url: "/pm/disputes",
         params: params || undefined,
@@ -81,7 +88,10 @@ export const pmDisputesApi = createApi({
       providesTags: (result) =>
         result
           ? [
-              ...result.data.map(({ id }) => ({ type: "PmDispute" as const, id })),
+              ...result.data.map(({ id }) => ({
+                type: "PmDispute" as const,
+                id,
+              })),
               "PmDisputes",
             ]
           : ["PmDisputes"],
@@ -103,17 +113,29 @@ export const pmDisputesApi = createApi({
       ],
     }),
 
-    addPmDisputeMessage: builder.mutation<PmDisputeMessage, { disputeId: string; input: PmDisputeMessageInput; files?: File[] }>({
+    addPmDisputeMessage: builder.mutation<
+      PmDisputeMessage,
+      { disputeId: string; input: PmDisputeMessageInput; files?: File[] }
+    >({
       query: ({ disputeId, input, files }) => {
         const formData = new FormData();
         formData.append("content", input.content);
         if (files?.length) files.forEach((f) => formData.append("files", f));
-        return { url: `/pm/disputes/${disputeId}/messages`, method: "POST", body: formData };
+        return {
+          url: `/pm/disputes/${disputeId}/messages`,
+          method: "POST",
+          body: formData,
+        };
       },
-      invalidatesTags: (_result, _error, { disputeId }) => [{ type: "PmDispute", id: disputeId }],
+      invalidatesTags: (_result, _error, { disputeId }) => [
+        { type: "PmDispute", id: disputeId },
+      ],
     }),
 
-    resolveDispute: builder.mutation<PmDisputeDetail, { disputeId: string; input: PmResolveInput }>({
+    resolveDispute: builder.mutation<
+      PmDisputeDetail,
+      { disputeId: string; input: PmResolveInput }
+    >({
       query: ({ disputeId, input }) => ({
         url: `/pm/disputes/${disputeId}/resolve`,
         method: "POST",

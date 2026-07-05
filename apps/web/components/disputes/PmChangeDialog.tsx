@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
-import {
-  useChangePmMutation,
-} from "@/features/disputes/adminDisputesApi";
+import { useChangePmMutation } from "@/features/disputes/adminDisputesApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { UserRole } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
@@ -48,10 +46,12 @@ export function PmChangeDialog({
   // Fetch available PMs
   const { data: pmsData, isLoading: isLoadingPms } = useSearchUsersQuery(
     { role: UserRole.PM, limit: 100 },
-    { skip: !open }
+    { skip: !open },
   );
 
-  const availablePms = (pmsData?.items ?? []).filter((pm) => pm.id !== currentPmId);
+  const availablePms = (pmsData?.items ?? []).filter(
+    (pm) => pm.id !== currentPmId,
+  );
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -68,7 +68,9 @@ export function PmChangeDialog({
     }
 
     if (reason.trim().length < 10) {
-      toast.error("السبب مطلوب", { description: "يجب أن يكون السبب 10 أحرف على الأقل" });
+      toast.error("السبب مطلوب", {
+        description: "يجب أن يكون السبب 10 أحرف على الأقل",
+      });
       return;
     }
 
@@ -86,7 +88,8 @@ export function PmChangeDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء تغيير المدير";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء تغيير المدير";
       toast.error(message);
     }
   };
@@ -99,7 +102,11 @@ export function PmChangeDialog({
       description={`التذكرة: ${disputeTitle}`}
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isChanging}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isChanging}
+          >
             إلغاء
           </Button>
           <Button
@@ -107,7 +114,9 @@ export function PmChangeDialog({
             disabled={isChanging || !newPmId || reason.trim().length < 10}
             className="bg-amber-600 hover:bg-amber-700"
           >
-            {isChanging ? "جارٍ..." : (
+            {isChanging ? (
+              "جارٍ..."
+            ) : (
               <>
                 <ArrowRightLeft className="h-4 w-4 ml-2" />
                 تغيير المدير
@@ -121,12 +130,18 @@ export function PmChangeDialog({
         {/* Current Info */}
         <div className="p-3 bg-neutral-50 rounded-xl space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-portal-note-text">المدير الحالي:</span>
-            <span className="text-sm font-medium text-natural-100">{currentPmName}</span>
+            <span className="text-sm text-portal-note-text">
+              المدير الحالي:
+            </span>
+            <span className="text-sm font-medium text-natural-100">
+              {currentPmName}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-portal-note-text">المشروع:</span>
-            <span className="text-sm font-medium text-natural-100">{projectName}</span>
+            <span className="text-sm font-medium text-natural-100">
+              {projectName}
+            </span>
           </div>
         </div>
 

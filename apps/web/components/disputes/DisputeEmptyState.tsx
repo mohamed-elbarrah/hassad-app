@@ -19,9 +19,17 @@ export function DisputeEmptyState({
       <PortalEmptyState
         icon={Ticket}
         title={hasFilter ? "لا توجد تذاكر تطابق بحثك" : "لا توجد تذاكر نزاع"}
-        description={hasFilter ? "حاول تغيير الفلتر لعرض نتائج أكثر." : "ستظهر هنا جميع تذاكر النزاع الخاصة بك. يمكنك فتح تذكرة جديدة إذا كان لديك مشكلة مع أحد مشاريعك."}
-        actionLabel={canCreate && onCreateNew && !hasFilter ? "فتح تذكرة جديدة" : undefined}
-        onAction={canCreate && onCreateNew && !hasFilter ? onCreateNew : undefined}
+        description={
+          hasFilter
+            ? "حاول تغيير الفلتر لعرض نتائج أكثر."
+            : "ستظهر هنا جميع تذاكر النزاع الخاصة بك. يمكنك فتح تذكرة جديدة إذا كان لديك مشكلة مع أحد مشاريعك."
+        }
+        actionLabel={
+          canCreate && onCreateNew && !hasFilter ? "فتح تذكرة جديدة" : undefined
+        }
+        onAction={
+          canCreate && onCreateNew && !hasFilter ? onCreateNew : undefined
+        }
       />
     </div>
   );

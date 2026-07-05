@@ -3,7 +3,10 @@
 import type { ReactNode } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/design-system/Input";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 
 interface QueueToolbarProps {
   searchValue: string;
@@ -46,7 +49,11 @@ export function QueueToolbar({
         </span>
       </div>
       {filterGroups && activeFilters && onFilterChange && (
-        <FilterBar groups={filterGroups} activeFilters={activeFilters} onFilterChange={onFilterChange} />
+        <FilterBar
+          groups={filterGroups}
+          activeFilters={activeFilters}
+          onFilterChange={onFilterChange}
+        />
       )}
     </div>
   );

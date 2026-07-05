@@ -90,7 +90,10 @@ function CreateMeetingForm({
   };
 
   return (
-    <div className="space-y-3 rounded-xl border border-portal-card-border bg-white p-4" dir="rtl">
+    <div
+      className="space-y-3 rounded-xl border border-portal-card-border bg-white p-4"
+      dir="rtl"
+    >
       <FormInputControl
         placeholder="عنوان الاجتماع"
         value={form.title}
@@ -195,7 +198,11 @@ function MeetingRow({
 
   const setStatus = async (status: MeetingStatus) => {
     try {
-      await updateMeeting({ meetingId: meeting.id, periodId, body: { status } }).unwrap();
+      await updateMeeting({
+        meetingId: meeting.id,
+        periodId,
+        body: { status },
+      }).unwrap();
     } catch (e) {
       console.error("Failed to update meeting status:", e);
     }
@@ -203,7 +210,11 @@ function MeetingRow({
 
   const saveNotes = async () => {
     try {
-      await updateMeeting({ meetingId: meeting.id, periodId, body: { notes } }).unwrap();
+      await updateMeeting({
+        meetingId: meeting.id,
+        periodId,
+        body: { notes },
+      }).unwrap();
       setShowNotes(false);
     } catch (e) {
       console.error("Failed to save notes:", e);
@@ -215,7 +226,10 @@ function MeetingRow({
 
   if (editing) {
     return (
-      <div className="space-y-3 rounded-xl border border-secondary-200 bg-secondary-50/30 p-4" dir="rtl">
+      <div
+        className="space-y-3 rounded-xl border border-secondary-200 bg-secondary-50/30 p-4"
+        dir="rtl"
+      >
         <FormInputControl
           value={editForm.title}
           onChange={(e) => setEdit({ title: e.target.value })}
@@ -253,11 +267,19 @@ function MeetingRow({
           />
         </div>
         <div className="flex justify-end gap-2">
-          <ActionButton variant="outline" size="sm" onClick={() => setEditing(false)}>
+          <ActionButton
+            variant="outline"
+            size="sm"
+            onClick={() => setEditing(false)}
+          >
             إلغاء
           </ActionButton>
           <ActionButton size="sm" onClick={saveEdit} disabled={isLoading}>
-            {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            {isLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Save className="size-4" />
+            )}
             حفظ
           </ActionButton>
         </div>
@@ -287,11 +309,22 @@ function MeetingRow({
                   : "bg-blue-50 text-blue-600",
             )}
           >
-            {done ? <CheckCircle2 className="size-5" /> : cancelled ? <XCircle className="size-5" /> : <Calendar className="size-5" />}
+            {done ? (
+              <CheckCircle2 className="size-5" />
+            ) : cancelled ? (
+              <XCircle className="size-5" />
+            ) : (
+              <Calendar className="size-5" />
+            )}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className={cn("text-sm font-medium text-natural-100", cancelled && "text-portal-note-text line-through")}>
+              <p
+                className={cn(
+                  "text-sm font-medium text-natural-100",
+                  cancelled && "text-portal-note-text line-through",
+                )}
+              >
                 {meeting.title}
               </p>
               <StatusBadge status={meeting.status} />
@@ -332,7 +365,12 @@ function MeetingRow({
       {/* Actions */}
       {!isTerminal(meeting.status) && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-portal-divider pt-3">
-          <ActionButton variant="ghost" size="sm" onClick={() => setEditing(true)} icon={<Edit3 className="size-4" />}>
+          <ActionButton
+            variant="ghost"
+            size="sm"
+            onClick={() => setEditing(true)}
+            icon={<Edit3 className="size-4" />}
+          >
             تعديل
           </ActionButton>
           <ActionButton
@@ -378,7 +416,11 @@ function MeetingRow({
             className="w-full resize-none rounded-lg border border-portal-card-border bg-white p-2 text-sm focus:outline-none focus:border-secondary-500"
           />
           <div className="flex justify-end gap-2">
-            <ActionButton variant="outline" size="sm" onClick={() => setShowNotes(false)}>
+            <ActionButton
+              variant="outline"
+              size="sm"
+              onClick={() => setShowNotes(false)}
+            >
               إغلاق
             </ActionButton>
             <ActionButton size="sm" onClick={saveNotes} disabled={isLoading}>
@@ -400,11 +442,16 @@ interface PMPeriodMeetingsProps {
 }
 
 /** PM management of a period's client meetings: schedule, edit, cancel, mark done. */
-export function PMPeriodMeetings({ periodId, meetings, canEdit }: PMPeriodMeetingsProps) {
+export function PMPeriodMeetings({
+  periodId,
+  meetings,
+  canEdit,
+}: PMPeriodMeetingsProps) {
   const [showForm, setShowForm] = useState(false);
 
   const sorted = [...(meetings ?? [])].sort(
-    (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+    (a, b) =>
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
   );
 
   return (
@@ -430,7 +477,10 @@ export function PMPeriodMeetings({ periodId, meetings, canEdit }: PMPeriodMeetin
       </div>
 
       {showForm && (
-        <CreateMeetingForm periodId={periodId} onDone={() => setShowForm(false)} />
+        <CreateMeetingForm
+          periodId={periodId}
+          onDone={() => setShowForm(false)}
+        />
       )}
 
       {sorted.length === 0 && !showForm ? (
@@ -440,7 +490,11 @@ export function PMPeriodMeetings({ periodId, meetings, canEdit }: PMPeriodMeetin
       ) : (
         <div className="space-y-2">
           {sorted.map((meeting) => (
-            <MeetingRow key={meeting.id} meeting={meeting} periodId={periodId} />
+            <MeetingRow
+              key={meeting.id}
+              meeting={meeting}
+              periodId={periodId}
+            />
           ))}
         </div>
       )}

@@ -29,7 +29,11 @@ interface IdentitySidebarProps {
 /** Map each SidebarField to its render function */
 const FIELD_RENDERERS: Record<
   SidebarField,
-  (identity: IdentityViewModel, decisionMakerValue: string | null, workingHours: string | null) => React.ReactNode
+  (
+    identity: IdentityViewModel,
+    decisionMakerValue: string | null,
+    workingHours: string | null,
+  ) => React.ReactNode
 > = {
   email: (identity) =>
     identity.email ? (
@@ -113,7 +117,8 @@ export function IdentitySidebar({
   decisionMakerPhone,
   workingHours,
 }: IdentitySidebarProps) {
-  const visibility = SIDEBAR_VISIBILITY[role] ?? SIDEBAR_VISIBILITY[UserRole.ADMIN];
+  const visibility =
+    SIDEBAR_VISIBILITY[role] ?? SIDEBAR_VISIBILITY[UserRole.ADMIN];
 
   const decisionMakerValue = decisionMakerName
     ? decisionMakerPhone

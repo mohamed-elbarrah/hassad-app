@@ -96,8 +96,8 @@ export function ReviewModal({
         setLightboxIndex((i) => (i === null ? null : Math.max(0, i - 1)));
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        setLightboxIndex((i) =>
-          i === null ? null : i + 1, // clamped in render
+        setLightboxIndex(
+          (i) => (i === null ? null : i + 1), // clamped in render
         );
       }
     }
@@ -156,10 +156,7 @@ export function ReviewModal({
       ) : selectedProject ? (
         <div className="flex flex-col max-h-[90vh]">
           {/* ── Header ────────────────────────────────────────────── */}
-          <Header
-            project={selectedProject}
-            onClose={handleClose}
-          />
+          <Header project={selectedProject} onClose={handleClose} />
 
           {/* ── Scrollable body ──────────────────────────────────── */}
           <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 space-y-4 bg-natural-0">
@@ -173,9 +170,7 @@ export function ReviewModal({
             />
 
             {selectedProject.revisionRequests?.length > 0 && (
-              <RevisionHistory
-                requests={selectedProject.revisionRequests}
-              />
+              <RevisionHistory requests={selectedProject.revisionRequests} />
             )}
           </div>
 
@@ -314,7 +309,7 @@ function Header({
               <span className="inline-flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-white/55" />
                 <span className="tabular-nums">
-                  {start && end ? `${start} — ${end}` : start ?? end}
+                  {start && end ? `${start} — ${end}` : (start ?? end)}
                 </span>
               </span>
             )}
@@ -661,7 +656,9 @@ function ImageLightbox({
               </button>
               <button
                 type="button"
-                onClick={() => onChange(Math.min(files.length - 1, safeIndex + 1))}
+                onClick={() =>
+                  onChange(Math.min(files.length - 1, safeIndex + 1))
+                }
                 disabled={safeIndex === files.length - 1}
                 aria-label="التالي"
                 className={cn(

@@ -1,9 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HealthIndicatorService, HealthIndicatorResult } from '@nestjs/terminus';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { HealthPersistenceService } from '../services/health-persistence.service';
-import { RobustErrorLoggerService } from '../services/robust-error-logger.service';
-import { ServiceStatus, ErrorCategory, ErrorLevel } from '../dto/health-check.dto';
+import { Injectable, Logger } from "@nestjs/common";
+import {
+  HealthIndicatorService,
+  HealthIndicatorResult,
+} from "@nestjs/terminus";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { HealthPersistenceService } from "../services/health-persistence.service";
+import { RobustErrorLoggerService } from "../services/robust-error-logger.service";
+import {
+  ServiceStatus,
+  ErrorCategory,
+  ErrorLevel,
+} from "../dto/health-check.dto";
 
 @Injectable()
 export class PrismaHealthIndicator {
@@ -16,7 +23,10 @@ export class PrismaHealthIndicator {
     private errorLogger: RobustErrorLoggerService,
   ) {}
 
-  async pingCheck(key: string, options?: { timeout?: number }): Promise<HealthIndicatorResult> {
+  async pingCheck(
+    key: string,
+    options?: { timeout?: number },
+  ): Promise<HealthIndicatorResult> {
     const indicator = this.healthIndicatorService.check(key);
     const startTime = Date.now();
     const timeout = options?.timeout || 3000;
@@ -24,31 +34,35 @@ export class PrismaHealthIndicator {
     try {
       // Use Promise.race to implement timeout
       const result = await Promise.race([
-        this.prisma.$queryRaw<[{ '1': number }]>`SELECT 1`,
+        this.prisma.$queryRaw<[{ "1": number }]>`SELECT 1`,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Database query timeout after ${timeout}ms`)), timeout),
+          setTimeout(
+            () =>
+              reject(new Error(`Database query timeout after ${timeout}ms`)),
+            timeout,
+          ),
         ),
       ]);
 
       const responseTime = Date.now() - startTime;
-      
+
       await this.healthPersistence.updateServiceHealth(
-        'DATABASE',
+        "DATABASE",
         ServiceStatus.UP,
         responseTime,
       );
 
       return indicator.up({
         responseTimeMs: responseTime,
-        query: 'SELECT 1',
+        query: "SELECT 1",
       });
-
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown database error";
+
       await this.healthPersistence.updateServiceHealth(
-        'DATABASE',
+        "DATABASE",
         ServiceStatus.DOWN,
         responseTime,
         errorMessage,
@@ -59,7 +73,7 @@ export class PrismaHealthIndicator {
         category: ErrorCategory.DATABASE,
         message: `Database health check failed: ${errorMessage}`,
         error: error instanceof Error ? error : undefined,
-        service: 'PrismaHealthIndicator',
+        service: "PrismaHealthIndicator",
       });
 
       return indicator.down({

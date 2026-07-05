@@ -109,7 +109,10 @@ export function TaskKanbanCardContent({
       </div>
 
       {/* ── Meta: Assignee & Due Date ──────────────────────────────── */}
-      <div className="mt-2 flex flex-col gap-1 text-[11px]" style={{ color: "#A8ABB2" }}>
+      <div
+        className="mt-2 flex flex-col gap-1 text-[11px]"
+        style={{ color: "#A8ABB2" }}
+      >
         {task.assignee && (
           <div className="flex items-center gap-1.5">
             <User className="w-3.5 h-3.5 shrink-0" />

@@ -28,3 +28,11 @@ export enum SyncStatus {
   ERROR = "ERROR",
   DISCONNECTED = "DISCONNECTED",
 }
+
+export const CAMPAIGN_STATUS_AR: Record<CampaignStatus, string> = {
+  PLANNING: "تخطيط",
+  ACTIVE: "نشط",
+  PAUSED: "متوقف",
+  STOPPED: "متوقف",
+  COMPLETED: "منتهي",
+};

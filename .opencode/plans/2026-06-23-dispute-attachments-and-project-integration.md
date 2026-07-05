@@ -13,6 +13,7 @@
 ### Task 1: Backend — Add DISPUTE_ATTACHMENT storage category
 
 **Files:**
+
 - Modify: `apps/api/src/common/storage/storage.constants.ts`
 
 - [ ] **Add the enum value and config**
@@ -40,6 +41,7 @@ DISPUTE_ATTACHMENT = "dispute_attachment",
 ### Task 2: Backend — Add file interceptors to controllers
 
 **Files:**
+
 - Modify: `apps/api/src/modules/disputes/controllers/portal-disputes.controller.ts`
 - Modify: `apps/api/src/modules/disputes/controllers/pm-disputes.controller.ts`
 
@@ -105,6 +107,7 @@ async addMessage(
 ### Task 3: Backend — Handle file uploads in dispute service
 
 **Files:**
+
 - Modify: `apps/api/src/modules/disputes/services/disputes.service.ts`
 
 - [ ] **Add StorageService imports at top (after existing prisma import)**
@@ -225,6 +228,7 @@ async addMessage(disputeId: string, authorId: string, dto: CreateDisputeMessageD
 ### Task 4: Frontend — Create shared FileDropzone component
 
 **Files:**
+
 - Create: `apps/web/components/shared/FileDropzone.tsx`
 
 Extracted UI layer from `FileUploadZone`. Handles drag-drop, validation, image/file previews, removal. No upload logic — returns `File[]` to parent.
@@ -240,11 +244,13 @@ JSX includes: dashed drop zone with drag states, hidden file input triggered by 
 ### Task 5: Frontend — Refactor FileUploadZone to use FileDropzone
 
 **Files:**
+
 - Modify: `apps/web/components/shared/IntakeFormFields/components/FileUploadZone.tsx`
 
 - [ ] **Rewrite FileUploadZone to wrap FileDropzone internally**
 
 The component keeps the exact same public interface (`onFilesUploaded`, `maxFiles`, `maxSizeMB`, `acceptedTypes`, `uploadedFiles`, `onRemoveFile`). Internally:
+
 - Wraps `FileDropzone` with local `File[]` state
 - On file selection, auto-uploads to `POST /portal/upload-intake-files`
 - Converts server response `UploadedFile[]` back to existing `onFilesUploaded` callback
@@ -257,6 +263,7 @@ The component keeps the exact same public interface (`onFilesUploaded`, `maxFile
 ### Task 6: Frontend — Update NewDisputeDialog with file uploads
 
 **Files:**
+
 - Modify: `apps/web/components/disputes/NewDisputeDialog.tsx`
 - Modify: `apps/web/features/portal/portalApi.ts`
 
@@ -275,7 +282,9 @@ const [files, setFiles] = useState<File[]>([]);
 - [ ] **Add FileDropzone JSX before the footer (after description textarea)**
 
 ```tsx
-{/* File Attachments */}
+{
+  /* File Attachments */
+}
 <div className="space-y-2">
   <label className="text-sm font-medium text-natural-100">
     المرفقات (اختياري)
@@ -286,7 +295,7 @@ const [files, setFiles] = useState<File[]>([]);
     maxFiles={5}
     maxSizeMB={10}
   />
-</div>
+</div>;
 ```
 
 - [ ] **Change `handleSubmit` signature to include files — update the `onSubmit` prop type**
@@ -303,12 +312,15 @@ interface NewDisputeDialogProps {
 
 const handleSubmit = () => {
   if (!validate() || !category || !selectedProjectId) return;
-  onSubmit({
-    projectId: selectedProjectId,
-    category,
-    title: title.trim(),
-    description: description.trim(),
-  }, files.length > 0 ? files : undefined);
+  onSubmit(
+    {
+      projectId: selectedProjectId,
+      category,
+      title: title.trim(),
+      description: description.trim(),
+    },
+    files.length > 0 ? files : undefined,
+  );
 };
 ```
 
@@ -359,7 +371,8 @@ const handleCreateDispute = async (
     setIsNewDisputeOpen(false);
     refetch();
   } catch (error: any) {
-    const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
+    const message =
+      error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
     toast.error("خطأ", { description: message });
   }
 };
@@ -372,6 +385,7 @@ const handleCreateDispute = async (
 ### Task 7: Frontend — Update DisputeMessageThread + message APIs with file uploads
 
 **Files:**
+
 - Modify: `apps/web/components/disputes/DisputeMessageThread.tsx`
 - Modify: `apps/web/features/portal/portalApi.ts` (addMessage mutation)
 - Modify: `apps/web/features/disputes/pmDisputesApi.ts` (addPmDisputeMessage mutation)
@@ -394,6 +408,7 @@ interface DisputeMessageThreadProps {
 ```
 
 Add state inside the component:
+
 ```typescript
 const [attachFiles, setAttachFiles] = useState<File[]>([]);
 const [showAttach, setShowAttach] = useState(false);
@@ -402,60 +417,70 @@ const [showAttach, setShowAttach] = useState(false);
 - [ ] **Replace textarea area with expanded version**
 
 ```tsx
-{/* Input Area */}
-{canSendMessage && (
-  <div className="flex flex-col gap-2">
-    {showAttach && (
-      <div className="rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
-        <FileDropzone
-          files={attachFiles}
-          onFilesChange={setAttachFiles}
-          maxFiles={5}
-          maxSizeMB={10}
+{
+  /* Input Area */
+}
+{
+  canSendMessage && (
+    <div className="flex flex-col gap-2">
+      {showAttach && (
+        <div className="rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
+          <FileDropzone
+            files={attachFiles}
+            onFilesChange={setAttachFiles}
+            maxFiles={5}
+            maxSizeMB={10}
+          />
+        </div>
+      )}
+      <div className="flex items-end gap-2 rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
+        <button
+          type="button"
+          onClick={() => setShowAttach(!showAttach)}
+          className={cn(
+            "h-9 w-9 shrink-0 flex items-center justify-center rounded-full transition-colors",
+            showAttach
+              ? "bg-secondary-100 text-secondary-600"
+              : "text-portal-icon hover:bg-badge-gray-bg",
+          )}
+        >
+          <Paperclip className="h-4 w-4" />
+        </button>
+        <textarea
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="اكتب رسالتك هنا..."
+          className="flex-1 resize-none border-0 bg-transparent text-sm text-natural-100 placeholder:text-portal-placeholder focus:outline-none focus:ring-0 min-h-[40px] max-h-[120px]"
+          rows={1}
+          disabled={isLoading}
         />
+        <Button
+          onClick={() => {
+            handleSend();
+            setAttachFiles([]);
+            setShowAttach(false);
+          }}
+          disabled={(!newMessage.trim() && !attachFiles.length) || isLoading}
+          className="h-9 w-9 shrink-0 rounded-full bg-secondary-500 p-0 hover:bg-secondary-600 disabled:opacity-50"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
       </div>
-    )}
-    <div className="flex items-end gap-2 rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
-      <button
-        type="button"
-        onClick={() => setShowAttach(!showAttach)}
-        className={cn(
-          "h-9 w-9 shrink-0 flex items-center justify-center rounded-full transition-colors",
-          showAttach ? "bg-secondary-100 text-secondary-600" : "text-portal-icon hover:bg-badge-gray-bg"
-        )}
-      >
-        <Paperclip className="h-4 w-4" />
-      </button>
-      <textarea
-        value={newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="اكتب رسالتك هنا..."
-        className="flex-1 resize-none border-0 bg-transparent text-sm text-natural-100 placeholder:text-portal-placeholder focus:outline-none focus:ring-0 min-h-[40px] max-h-[120px]"
-        rows={1}
-        disabled={isLoading}
-      />
-      <Button
-        onClick={() => {
-          handleSend();
-          setAttachFiles([]);
-          setShowAttach(false);
-        }}
-        disabled={(!newMessage.trim() && !attachFiles.length) || isLoading}
-        className="h-9 w-9 shrink-0 rounded-full bg-secondary-500 p-0 hover:bg-secondary-600 disabled:opacity-50"
-      >
-        <Send className="h-4 w-4" />
-      </Button>
     </div>
-  </div>
-)}
+  );
+}
 ```
 
 Also update `handleSend`:
+
 ```typescript
 const handleSend = () => {
   if ((!newMessage.trim() && !attachFiles.length) || isLoading) return;
-  onSendMessage(newMessage.trim(), attachFiles.length > 0 ? attachFiles : undefined);
+  onSendMessage(
+    newMessage.trim(),
+    attachFiles.length > 0 ? attachFiles : undefined,
+  );
   setNewMessage("");
   setAttachFiles([]);
   setShowAttach(false);
@@ -465,22 +490,26 @@ const handleSend = () => {
 - [ ] **Show attachment previews in message bubbles** — add after content in `MessageBubble`:
 
 ```tsx
-{/* Attachments — shown when message has them (passed via extended Message type) */}
-{(message as any).attachments?.length > 0 && (
-  <div className="flex flex-wrap gap-2 mt-2">
-    {(message as any).attachments.map((att: any) => (
-      <a
-        key={att.id}
-        href={att.fileUrl || "#"}
-        target="_blank"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/20 text-xs hover:bg-white/30 transition-colors"
-      >
-        <FileText className="h-3 w-3" />
-        <span className="truncate max-w-[120px]">{att.fileName}</span>
-      </a>
-    ))}
-  </div>
-)}
+{
+  /* Attachments — shown when message has them (passed via extended Message type) */
+}
+{
+  (message as any).attachments?.length > 0 && (
+    <div className="flex flex-wrap gap-2 mt-2">
+      {(message as any).attachments.map((att: any) => (
+        <a
+          key={att.id}
+          href={att.fileUrl || "#"}
+          target="_blank"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/20 text-xs hover:bg-white/30 transition-colors"
+        >
+          <FileText className="h-3 w-3" />
+          <span className="truncate max-w-[120px]">{att.fileName}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
 ```
 
 - [ ] **Update portalApi.ts — change `addDisputeMessage` to queryFn with FormData**
@@ -512,7 +541,8 @@ const handleSendMessage = async (content: string, files?: File[]) => {
     await addMessage({ disputeId: id, content, files }).unwrap();
     refetch();
   } catch (error: any) {
-    const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
+    const message =
+      error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
     toast.error(message);
   }
 };
@@ -547,7 +577,8 @@ const handleSendMessage = async (content: string, files?: File[]) => {
     await addMessage({ disputeId: id, input: { content }, files }).unwrap();
     refetch();
   } catch (error: any) {
-    const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
+    const message =
+      error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
     toast.error(message);
   }
 };
@@ -560,6 +591,7 @@ const handleSendMessage = async (content: string, files?: File[]) => {
 ### Task 8: Frontend — Open dispute dialog inline on project page
 
 **Files:**
+
 - Modify: `apps/web/components/portal/project-detail/ProjectHeader.tsx`
 
 - [ ] **Replace navigation with inline dialog**

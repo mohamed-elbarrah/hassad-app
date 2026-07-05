@@ -93,30 +93,38 @@ export type ProfileSectionKey =
   | "performance"
   | "visual";
 
-export const PROFILE_SECTION_VISIBILITY: Record<UserRole, ProfileSectionKey[]> = {
-  [UserRole.CLIENT]: ["personalInfo", "product", "visual"],
-  [UserRole.SALES]: [
-    "product",
-    "audience",
-    "journey",
-    "campaign",
-    "performance",
-    "visual",
-  ],
-  [UserRole.PM]: ["personalInfo", "product", "visual"],
-  [UserRole.MARKETING]: ["product", "audience", "journey", "campaign", "performance", "visual"],
-  [UserRole.ACCOUNTANT]: [],
-  [UserRole.EMPLOYEE]: ["product", "visual"],
-  [UserRole.ADMIN]: [
-    "personalInfo",
-    "product",
-    "audience",
-    "journey",
-    "campaign",
-    "performance",
-    "visual",
-  ],
-};
+export const PROFILE_SECTION_VISIBILITY: Record<UserRole, ProfileSectionKey[]> =
+  {
+    [UserRole.CLIENT]: ["personalInfo", "product", "visual"],
+    [UserRole.SALES]: [
+      "product",
+      "audience",
+      "journey",
+      "campaign",
+      "performance",
+      "visual",
+    ],
+    [UserRole.PM]: ["personalInfo", "product", "visual"],
+    [UserRole.MARKETING]: [
+      "product",
+      "audience",
+      "journey",
+      "campaign",
+      "performance",
+      "visual",
+    ],
+    [UserRole.ACCOUNTANT]: [],
+    [UserRole.EMPLOYEE]: ["product", "visual"],
+    [UserRole.ADMIN]: [
+      "personalInfo",
+      "product",
+      "audience",
+      "journey",
+      "campaign",
+      "performance",
+      "visual",
+    ],
+  };
 
 // ── KPI visibility ─────────────────────────────────────────────
 
@@ -138,7 +146,12 @@ export const KPI_VISIBILITY: Record<UserRole, KpiKey[]> = {
     "contractValue",
     "totalPaid",
   ],
-  [UserRole.PM]: ["totalProjects", "activeProjects", "completedProjects", "cancelledProjects"],
+  [UserRole.PM]: [
+    "totalProjects",
+    "activeProjects",
+    "completedProjects",
+    "cancelledProjects",
+  ],
   [UserRole.MARKETING]: [],
   [UserRole.ACCOUNTANT]: ["contractValue", "totalPaid"],
   [UserRole.EMPLOYEE]: [],

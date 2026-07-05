@@ -6,19 +6,18 @@ import { useAppSelector } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
-import {
-  Phone,
-  MoreHorizontal,
-  Search,
-  ExternalLink,
-} from "lucide-react";
+import { Phone, MoreHorizontal, Search, ExternalLink } from "lucide-react";
 
 interface ChatHeaderProps {
   conversation: Conversation;
   isTyping?: { userId: string; userName: string } | null;
 }
 
-function getHeaderInfo(conversation: Conversation, currentUserId?: string, currentUserRole?: string) {
+function getHeaderInfo(
+  conversation: Conversation,
+  currentUserId?: string,
+  currentUserRole?: string,
+) {
   if (conversation.type === "GROUP") {
     return {
       name: conversation.title || "مجموعة",

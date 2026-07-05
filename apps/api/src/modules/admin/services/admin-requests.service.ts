@@ -10,7 +10,11 @@ export class AdminRequestsService {
     if (query.search) {
       where.OR = [
         { id: { contains: query.search, mode: "insensitive" } },
-        { client: { companyName: { contains: query.search, mode: "insensitive" } } },
+        {
+          client: {
+            companyName: { contains: query.search, mode: "insensitive" },
+          },
+        },
       ];
     }
     if (query.assigneeId) where.assignedTo = query.assigneeId;
@@ -45,7 +49,9 @@ export class AdminRequestsService {
         assigneeName: r.assignee?.name ?? "—",
         status: r.status,
         servicesCount: r.services.length,
-        ageDays: Math.floor((now.getTime() - r.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
+        ageDays: Math.floor(
+          (now.getTime() - r.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+        ),
         createdAt: r.createdAt.toISOString(),
       })),
       total,
@@ -78,13 +84,19 @@ export class AdminRequestsService {
     if (!user) throw new NotFoundException("User not found");
 
     await this.prisma.$transaction([
-      this.prisma.request.update({ where: { id: requestId }, data: { assignedSalesId: assigneeId } }),
+      this.prisma.request.update({
+        where: { id: requestId },
+        data: { assignedSalesId: assigneeId },
+      }),
       this.prisma.ledger.create({
         data: {
           action: "admin.requests.reassign",
           entity: "request",
           entityId: requestId,
-          after: { previousAssignee: request.assignedSalesId, newAssignee: assigneeId },
+          after: {
+            previousAssignee: request.assignedSalesId,
+            newAssignee: assigneeId,
+          },
         },
       }),
     ]);
@@ -92,13 +104,24 @@ export class AdminRequestsService {
   }
 
   async forceStatus(requestId: string, status: any, reason: string) {
-    const request = await this.prisma.request.findUnique({ where: { id: requestId } });
+    const request = await this.prisma.request.findUnique({
+      where: { id: requestId },
+    });
     if (!request) throw new NotFoundException("Request not found");
 
     await this.prisma.$transaction([
-      this.prisma.request.update({ where: { id: requestId }, data: { status: status as any } }),
+      this.prisma.request.update({
+        where: { id: requestId },
+        data: { status: status as any },
+      }),
       this.prisma.requestStatusHistory.create({
-        data: { requestId, fromStatus: request.status, toStatus: status, changedBy: "admin", note: reason },
+        data: {
+          requestId,
+          fromStatus: request.status,
+          toStatus: status,
+          changedBy: "admin",
+          note: reason,
+        },
       }),
       this.prisma.ledger.create({
         data: {

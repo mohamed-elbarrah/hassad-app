@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { Shield, Plus, Pencil, Info } from "lucide-react";
 import { toast } from "sonner";
-import { useGetRolesQuery, useCreateRoleMutation, useUpdateRoleMutation, useAssignPermissionsMutation } from "@/features/roles/rolesApi";
+import {
+  useGetRolesQuery,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useAssignPermissionsMutation,
+} from "@/features/roles/rolesApi";
 import { useGetPermissionsQuery } from "@/features/permissions/permissionsApi";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -42,7 +47,8 @@ function groupPermissions(permissions: Permission[]) {
 
 export default function RolesPage() {
   const { data: roles, isLoading: rolesLoading } = useGetRolesQuery();
-  const { data: permissions, isLoading: permsLoading } = useGetPermissionsQuery();
+  const { data: permissions, isLoading: permsLoading } =
+    useGetPermissionsQuery();
   const [createRole] = useCreateRoleMutation();
   const [updateRole] = useUpdateRoleMutation();
   const [assignPerms] = useAssignPermissionsMutation();
@@ -139,7 +145,8 @@ export default function RolesPage() {
       />
 
       <StatusBanner variant="warning" icon={Info}>
-        الصلاحيات الممنوحة للدور تنطبق على جميع المستخدمين المنتمين له. يمكنك أيضاً منح صلاحيات إضافية لمستخدم محدد من صفحة إدارة الموظفين.
+        الصلاحيات الممنوحة للدور تنطبق على جميع المستخدمين المنتمين له. يمكنك
+        أيضاً منح صلاحيات إضافية لمستخدم محدد من صفحة إدارة الموظفين.
       </StatusBanner>
 
       <DataTable
@@ -168,7 +175,11 @@ export default function RolesPage() {
             <td className="px-5 py-4">
               <div className="flex flex-wrap gap-1">
                 {role.permissions.slice(0, 4).map((p) => (
-                  <Pill key={p.permissionId} tone="blue" className="text-[10px]">
+                  <Pill
+                    key={p.permissionId}
+                    tone="blue"
+                    className="text-[10px]"
+                  >
                     {p.permission.name}
                   </Pill>
                 ))}
@@ -214,10 +225,15 @@ export default function RolesPage() {
         open={createOpen}
         onOpenChange={(open) => {
           setCreateOpen(open);
-          if (!open) { setEditRole(null); setNewRoleName(""); }
+          if (!open) {
+            setEditRole(null);
+            setNewRoleName("");
+          }
         }}
         title={editRole ? "تعديل اسم الدور" : "إنشاء دور جديد"}
-        description={editRole ? "عدّل اسم الدور الحالي" : "أنشئ دوراً جديداً في النظام"}
+        description={
+          editRole ? "عدّل اسم الدور الحالي" : "أنشئ دوراً جديداً في النظام"
+        }
         contentClassName="sm:max-w-md"
       >
         <div className="space-y-4">
@@ -231,7 +247,14 @@ export default function RolesPage() {
             />
           </div>
           <div className="flex gap-2 justify-end">
-            <ActionButton variant="outline" onClick={() => { setCreateOpen(false); setEditRole(null); setNewRoleName(""); }}>
+            <ActionButton
+              variant="outline"
+              onClick={() => {
+                setCreateOpen(false);
+                setEditRole(null);
+                setNewRoleName("");
+              }}
+            >
               إلغاء
             </ActionButton>
             <ActionButton onClick={editRole ? handleUpdate : handleCreate}>
@@ -250,7 +273,10 @@ export default function RolesPage() {
         contentClassName="sm:max-w-2xl max-h-[80vh] overflow-y-auto"
         footer={
           <div className="flex gap-2 justify-end pt-4 border-t">
-            <ActionButton variant="outline" onClick={() => setPermDialogOpen(false)}>
+            <ActionButton
+              variant="outline"
+              onClick={() => setPermDialogOpen(false)}
+            >
               إلغاء
             </ActionButton>
             <ActionButton onClick={handleSavePermissions}>
@@ -263,7 +289,10 @@ export default function RolesPage() {
           {Object.entries(permissionGroups).map(([module, perms]) => {
             const allSelected = perms.every((p) => selectedPerms.has(p.id));
             return (
-              <div key={module} className="border border-portal-card-border rounded-2xl p-4">
+              <div
+                key={module}
+                className="border border-portal-card-border rounded-2xl p-4"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -271,15 +300,23 @@ export default function RolesPage() {
                       checked={allSelected}
                       onCheckedChange={() => toggleAllModule(perms)}
                     />
-                    <Label htmlFor={`module-${module}`} className="font-bold text-base capitalize cursor-pointer text-natural-100">
+                    <Label
+                      htmlFor={`module-${module}`}
+                      className="font-bold text-base capitalize cursor-pointer text-natural-100"
+                    >
                       {module}
                     </Label>
                   </div>
-                  <span className="text-sm text-portal-note-text">{perms.length}</span>
+                  <span className="text-sm text-portal-note-text">
+                    {perms.length}
+                  </span>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 mr-6">
                   {perms.map((p) => (
-                    <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-badge-gray-bg rounded-lg px-2 py-1">
+                    <label
+                      key={p.id}
+                      className="flex items-center gap-2 text-sm cursor-pointer hover:bg-badge-gray-bg rounded-lg px-2 py-1"
+                    >
                       <Checkbox
                         checked={selectedPerms.has(p.id)}
                         onCheckedChange={() => togglePerm(p.id)}

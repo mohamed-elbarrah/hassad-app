@@ -33,9 +33,7 @@ export default function MessagesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(
     initialConversationId,
   );
-  const [filterType, setFilterType] = useState<"DIRECT" | "GROUP">(
-    "DIRECT",
-  );
+  const [filterType, setFilterType] = useState<"DIRECT" | "GROUP">("DIRECT");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
 

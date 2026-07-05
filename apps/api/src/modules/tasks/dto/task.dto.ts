@@ -7,7 +7,12 @@ import {
   IsBoolean,
   IsNumber,
 } from "class-validator";
-import { TaskPriority, TaskDepartment, TaskStatus, FilePurpose } from "@hassad/shared";
+import {
+  TaskPriority,
+  TaskDepartment,
+  TaskStatus,
+  FilePurpose,
+} from "@hassad/shared";
 
 export class CreateTaskDto {
   @IsUUID()

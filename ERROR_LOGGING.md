@@ -30,6 +30,7 @@ The Hassad Platform now has a **bulletproof error logging system** that guarante
 ### 🚨 **Process-Level Error Capture**
 
 The system catches:
+
 - ✅ HTTP request errors (4xx, 5xx)
 - ✅ Uncaught exceptions
 - ✅ Unhandled promise rejections
@@ -41,6 +42,7 @@ The system catches:
 ### 🔍 **Rich Context for Every Error**
 
 Each error automatically includes:
+
 ```json
 {
   "timestamp": "2024-01-15T10:30:00Z",
@@ -105,17 +107,17 @@ Error Occurs
 
 ### Automatic Categories
 
-| Category | Description | Examples |
-|----------|-------------|----------|
-| DATABASE | PostgreSQL/Prisma errors | Connection timeout, query failed |
-| STORAGE | File storage errors | R2 upload failed, file not found |
-| AUTH | Authentication errors | Login failed, token expired |
-| EMAIL | SMTP/email errors | Email send failed, SMTP down |
-| PAYMENT_GATEWAY | Payment errors | Stripe declined, webhook failed |
-| AI_SERVICE | AI service errors | Gemini API error |
-| NETWORK | Network errors | DNS failure, connection refused |
-| MEMORY | Memory errors | Out of memory, heap exceeded |
-| GENERAL | Uncategorized | Everything else |
+| Category        | Description              | Examples                         |
+| --------------- | ------------------------ | -------------------------------- |
+| DATABASE        | PostgreSQL/Prisma errors | Connection timeout, query failed |
+| STORAGE         | File storage errors      | R2 upload failed, file not found |
+| AUTH            | Authentication errors    | Login failed, token expired      |
+| EMAIL           | SMTP/email errors        | Email send failed, SMTP down     |
+| PAYMENT_GATEWAY | Payment errors           | Stripe declined, webhook failed  |
+| AI_SERVICE      | AI service errors        | Gemini API error                 |
+| NETWORK         | Network errors           | DNS failure, connection refused  |
+| MEMORY          | Memory errors            | Out of memory, heap exceeded     |
+| GENERAL         | Uncategorized            | Everything else                  |
 
 ### Automatic Severity Levels
 
@@ -126,6 +128,7 @@ Error Occurs
 ## File Structure
 
 ### Log File
+
 ```
 project-root/
 └── logs/
@@ -133,12 +136,14 @@ project-root/
 ```
 
 **Sample content:**
+
 ```json
 {"timestamp":"2024-01-15T10:30:00.000Z","level":"ERROR","category":"DATABASE","service":"PAYMENTS","message":"Connection timeout","stack":"Error: Connection timeout\n    at..."}
 {"timestamp":"2024-01-15T10:31:00.000Z","level":"ERROR","category":"STORAGE","service":"UPLOAD","message":"R2 not configured","context":{"userId":"abc123"}}
 ```
 
 ### Database Table
+
 ```
 system_errors:
   - id (UUID)
@@ -161,6 +166,7 @@ system_errors:
 ### No Configuration Required!
 
 The system works out of the box:
+
 - ✅ Log directory created automatically
 - ✅ Database schema already included
 - ✅ Process handlers registered automatically
@@ -187,8 +193,8 @@ ERROR_RETRY_DELAY_MS=5000
 ### In Any Service
 
 ```typescript
-import { RobustErrorLoggerService } from '../health/services/robust-error-logger.service';
-import { ErrorLevel, ErrorCategory } from '../health/dto/health-check.dto';
+import { RobustErrorLoggerService } from "../health/services/robust-error-logger.service";
+import { ErrorLevel, ErrorCategory } from "../health/dto/health-check.dto";
 
 @Injectable()
 export class MyService {
@@ -204,9 +210,9 @@ export class MyService {
         category: ErrorCategory.DATABASE,
         message: `Failed to process user ${userId}`,
         error,
-        context: { userId, action: 'process_payment' },
-        service: 'MyService',
-        endpoint: 'processPayment',
+        context: { userId, action: "process_payment" },
+        service: "MyService",
+        endpoint: "processPayment",
         userId,
       });
     }
@@ -272,6 +278,7 @@ console.log(stats);
 ## Resilience Guarantees
 
 ### Scenario 1: Database Temporarily Down
+
 1. ✅ Error logged to console
 2. ✅ Error written to `logs/errors.log`
 3. ✅ Error queued in memory
@@ -279,18 +286,21 @@ console.log(stats);
 5. ✅ When DB comes back, all queued errors saved
 
 ### Scenario 2: Database Permanently Down
+
 1. ✅ Error logged to console
 2. ✅ Error written to `logs/errors.log`
 3. ✅ After 3 retries, error stays in file
 4. ✅ File persists until manually cleared
 
 ### Scenario 3: Uncaught Exception
+
 1. ✅ Error logged immediately
 2. ✅ Written to file (sync)
 3. ✅ Process exits gracefully after 1 second
 4. ✅ Error preserved in file
 
 ### Scenario 4: Server Crash
+
 1. ✅ All errors before crash in DB
 2. ✅ Errors during crash in file
 3. ✅ On restart, nothing lost
@@ -312,6 +322,7 @@ gzip logs/errors.log
 ### Resolve Errors
 
 Via API:
+
 ```http
 POST /v1/health/errors/:id/resolve
 {
@@ -320,6 +331,7 @@ POST /v1/health/errors/:id/resolve
 ```
 
 Via Admin Dashboard:
+
 1. Go to System Health → Errors
 2. Click "Resolve"
 3. Add resolution note
@@ -330,6 +342,7 @@ Via Admin Dashboard:
 ### Automatic Sanitization
 
 Sensitive fields automatically redacted:
+
 - `password`
 - `token`
 - `secret`
@@ -339,6 +352,7 @@ Sensitive fields automatically redacted:
 - `cvv`
 
 Example:
+
 ```typescript
 // Request body: { password: "secret123", email: "user@test.com" }
 // Logged as: { password: "[REDACTED]", email: "user@test.com" }
@@ -347,11 +361,13 @@ Example:
 ### Request ID Tracking
 
 Every error includes a unique `requestId`:
+
 - HTTP header: `X-Request-ID`
 - Log entry: `context.requestId`
 - Client receives: `response.requestId`
 
 This allows:
+
 1. Client reports error with ID
 2. Find exact error in logs
 3. Debug production issues quickly
@@ -369,6 +385,7 @@ testError() {
 ```
 
 Check:
+
 1. ✅ Console shows error
 2. ✅ `logs/errors.log` has new entry
 3. ✅ Database has new row in `system_errors`
@@ -376,19 +393,19 @@ Check:
 
 ## Summary
 
-| Feature | Status |
-|---------|--------|
-| HTTP errors captured | ✅ Yes |
-| Background job errors | ✅ Yes |
-| Uncaught exceptions | ✅ Yes |
-| Unhandled rejections | ✅ Yes |
-| Process warnings | ✅ Yes |
-| DB persistence | ✅ Yes |
-| File fallback | ✅ Yes |
-| Automatic retry | ✅ Yes |
-| Never loses errors | ✅ Guaranteed |
-| No config required | ✅ Yes |
-| Works offline | ✅ Yes |
+| Feature               | Status        |
+| --------------------- | ------------- |
+| HTTP errors captured  | ✅ Yes        |
+| Background job errors | ✅ Yes        |
+| Uncaught exceptions   | ✅ Yes        |
+| Unhandled rejections  | ✅ Yes        |
+| Process warnings      | ✅ Yes        |
+| DB persistence        | ✅ Yes        |
+| File fallback         | ✅ Yes        |
+| Automatic retry       | ✅ Yes        |
+| Never loses errors    | ✅ Guaranteed |
+| No config required    | ✅ Yes        |
+| Works offline         | ✅ Yes        |
 
 ---
 

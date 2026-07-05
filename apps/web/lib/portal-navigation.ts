@@ -68,8 +68,16 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
     icon: Receipt,
     items: [
       { label: "الفواتير والمدفوعات", href: "/portal/finance", icon: Receipt },
-      { label: "الحملات الإعلانية", href: "/portal/campaigns", icon: TrendingUp },
-      { label: "الدراسات التسويقية", href: "/portal/marketing-strategies", icon: FileText },
+      {
+        label: "الحملات الإعلانية",
+        href: "/portal/campaigns",
+        icon: TrendingUp,
+      },
+      {
+        label: "الدراسات التسويقية",
+        href: "/portal/marketing-strategies",
+        icon: FileText,
+      },
       { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
     ],
   },

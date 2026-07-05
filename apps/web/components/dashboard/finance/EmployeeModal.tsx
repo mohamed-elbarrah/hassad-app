@@ -36,7 +36,9 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
   const isEdit = Boolean(employee);
   const [name, setName] = useState(employee?.name || "");
   const [role, setRole] = useState(employee?.role || "");
-  const [baseSalary, setBaseSalary] = useState(String(employee?.baseSalary || ""));
+  const [baseSalary, setBaseSalary] = useState(
+    String(employee?.baseSalary || ""),
+  );
   const [payType, setPayType] = useState(employee?.payType || "FIXED");
   const [commissionRate, setCommissionRate] = useState(
     employee?.commissionRate ? String(employee.commissionRate * 100) : "",
@@ -45,8 +47,10 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
     employee?.hourlyRate ? String(employee.hourlyRate) : "",
   );
 
-  const [createEmployee, { isLoading: isCreating }] = useCreateEmployeeMutation();
-  const [updateEmployee, { isLoading: isUpdating }] = useUpdateEmployeeMutation();
+  const [createEmployee, { isLoading: isCreating }] =
+    useCreateEmployeeMutation();
+  const [updateEmployee, { isLoading: isUpdating }] =
+    useUpdateEmployeeMutation();
 
   if (!open) return null;
 
@@ -98,7 +102,10 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
                 {isEdit ? "تعديل بيانات الموظف" : "إضافة موظف جديد"}
               </h2>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-badge-gray-bg">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-badge-gray-bg"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -125,7 +132,9 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">الراتب الأساسي</label>
+                <label className="text-sm font-medium mb-1 block">
+                  الراتب الأساسي
+                </label>
                 <FormInputControl
                   type="number"
                   value={baseSalary}
@@ -134,14 +143,18 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">نوع الراتب</label>
+                <label className="text-sm font-medium mb-1 block">
+                  نوع الراتب
+                </label>
                 <select
                   value={payType}
                   onChange={(e) => setPayType(e.target.value)}
                   className="w-full h-10 px-3 rounded-xl border border-portal-card-border bg-natural-0 text-sm"
                 >
                   {PAY_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -149,7 +162,9 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
 
             {(payType === "HYBRID" || payType === "COMMISSION") && (
               <div>
-                <label className="text-sm font-medium mb-1 block">نسبة العمولة (%)</label>
+                <label className="text-sm font-medium mb-1 block">
+                  نسبة العمولة (%)
+                </label>
                 <FormInputControl
                   type="number"
                   value={commissionRate}
@@ -161,7 +176,9 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
 
             {payType === "HOURLY" && (
               <div>
-                <label className="text-sm font-medium mb-1 block">الأجر بالساعة (ر.س)</label>
+                <label className="text-sm font-medium mb-1 block">
+                  الأجر بالساعة (ر.س)
+                </label>
                 <FormInputControl
                   type="number"
                   value={hourlyRate}
@@ -173,7 +190,9 @@ export function EmployeeModal({ open, onClose, employee }: Props) {
           </div>
 
           <div className="px-6 py-4 border-t border-portal-divider flex justify-end gap-2">
-            <ActionButton variant="outline" onClick={onClose}>إلغاء</ActionButton>
+            <ActionButton variant="outline" onClick={onClose}>
+              إلغاء
+            </ActionButton>
             <ActionButton
               variant="primary"
               onClick={handleSubmit}

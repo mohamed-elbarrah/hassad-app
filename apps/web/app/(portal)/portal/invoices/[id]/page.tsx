@@ -66,10 +66,13 @@ export default function PortalInvoiceDetailPage() {
   const id = (params?.id as string) ?? "";
   const { fmtAmount } = useCurrency();
 
-  const { data: invoice, isLoading, isError } =
-    useGetPortalInvoiceDetailQuery(id, {
-      skip: !id,
-    });
+  const {
+    data: invoice,
+    isLoading,
+    isError,
+  } = useGetPortalInvoiceDetailQuery(id, {
+    skip: !id,
+  });
 
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
 
@@ -117,14 +120,16 @@ export default function PortalInvoiceDetailPage() {
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      <DetailBreadcrumb backHref="/portal/finance" backLabel="المالية" title={`فاتورة #${invoice.invoiceNumber}`} />
+      <DetailBreadcrumb
+        backHref="/portal/finance"
+        backLabel="المالية"
+        title={`فاتورة #${invoice.invoiceNumber}`}
+      />
 
       <SurfaceCard
         title={`فاتورة ${invoice.invoiceNumber}`}
         icon={Receipt}
-        action={
-          <StatusBadge status={mapFinanceStatusToUI(invoice.status)} />
-        }
+        action={<StatusBadge status={mapFinanceStatusToUI(invoice.status)} />}
       >
         <div className="space-y-5">
           {invoice.contract?.title && (
@@ -165,7 +170,10 @@ export default function PortalInvoiceDetailPage() {
           </div>
 
           {isPaid && (
-            <StatusBanner variant="success" title="تم سداد هذه الفاتورة بالكامل.">
+            <StatusBanner
+              variant="success"
+              title="تم سداد هذه الفاتورة بالكامل."
+            >
               {invoice.payments?.length
                 ? `آخر دفعة: ${fmtDateTime(invoice.payments[invoice.payments.length - 1]?.createdAt)}`
                 : null}
@@ -180,10 +188,7 @@ export default function PortalInvoiceDetailPage() {
           )}
 
           {invoice.status === InvoiceStatus.LATE && (
-            <StatusBanner
-              variant="danger"
-              title="هذه الفاتورة متأخرة السداد."
-            >
+            <StatusBanner variant="danger" title="هذه الفاتورة متأخرة السداد.">
               يرجى السداد في أقرب وقت لتجنب إيقاف الخدمات.
             </StatusBanner>
           )}
@@ -201,7 +206,9 @@ export default function PortalInvoiceDetailPage() {
                       <th className="px-4 py-3 text-right font-medium">
                         الوصف
                       </th>
-                      <th className="px-4 py-3 text-center font-medium">الكمية</th>
+                      <th className="px-4 py-3 text-center font-medium">
+                        الكمية
+                      </th>
                       <th className="px-4 py-3 text-center font-medium">
                         سعر الوحدة
                       </th>

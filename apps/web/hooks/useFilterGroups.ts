@@ -1,5 +1,8 @@
 import { useMemo } from "react";
-import type { FilterGroup, FilterOption } from "@/components/design-system/FilterBar";
+import type {
+  FilterGroup,
+  FilterOption,
+} from "@/components/design-system/FilterBar";
 
 /**
  * Build a single-key filter group whose options are derived from

@@ -42,7 +42,8 @@ export function KanbanCard({
       ref={setNodeRef}
       className={cn(
         "group bg-white rounded-2xl border-[1.5px] border-portal-card-border p-4 transition-all duration-150",
-        canDrag && "cursor-grab active:cursor-grabbing hover:border-secondary-500/20",
+        canDrag &&
+          "cursor-grab active:cursor-grabbing hover:border-secondary-500/20",
         !canDrag && "cursor-default opacity-80",
         (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
         isOverlay && "shadow-lg",

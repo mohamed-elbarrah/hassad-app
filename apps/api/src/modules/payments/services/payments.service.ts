@@ -276,7 +276,19 @@ export class PaymentsService implements OnModuleInit {
   ) {
     const payment = await this.prisma.payment.findFirst({
       where: { providerPaymentId },
-      include: { invoice: { select: { id: true, contractId: true, paymentPlanId: true, clientId: true, amount: true, createdBy: true, invoiceNumber: true } } },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            contractId: true,
+            paymentPlanId: true,
+            clientId: true,
+            amount: true,
+            createdBy: true,
+            invoiceNumber: true,
+          },
+        },
+      },
     });
 
     if (!payment) return;

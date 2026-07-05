@@ -176,7 +176,12 @@ export class ClientProfileService {
       let result;
 
       // Helper to cast JSON values properly
-      const toJson = (val: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined => {
+      const toJson = (
+        val: unknown,
+      ):
+        | Prisma.InputJsonValue
+        | Prisma.NullableJsonNullValueInput
+        | undefined => {
         if (val === undefined || val === null) return undefined;
         return val as Prisma.InputJsonValue;
       };
@@ -185,15 +190,19 @@ export class ClientProfileService {
         result = await tx.clientProfile.update({
           where: { clientId },
           data: {
-            communicationInfo: toJson(dto.communicationInfo) ?? existing.communicationInfo,
+            communicationInfo:
+              toJson(dto.communicationInfo) ?? existing.communicationInfo,
             productInfo: toJson(dto.productInfo) ?? existing.productInfo,
             audienceInfo: toJson(dto.audienceInfo) ?? existing.audienceInfo,
             brandVoice: toJson(dto.brandVoice) ?? existing.brandVoice,
-            customerJourney: toJson(dto.customerJourney) ?? existing.customerJourney,
+            customerJourney:
+              toJson(dto.customerJourney) ?? existing.customerJourney,
             campaignInfo: toJson(dto.campaignInfo) ?? existing.campaignInfo,
-            pastPerformance: toJson(dto.pastPerformance) ?? existing.pastPerformance,
+            pastPerformance:
+              toJson(dto.pastPerformance) ?? existing.pastPerformance,
             budgetInfo: toJson(dto.budgetInfo) ?? existing.budgetInfo,
-            visualIdentityInfo: toJson(dto.visualIdentityInfo) ?? existing.visualIdentityInfo,
+            visualIdentityInfo:
+              toJson(dto.visualIdentityInfo) ?? existing.visualIdentityInfo,
           },
         });
       } else {
@@ -209,7 +218,8 @@ export class ClientProfileService {
             campaignInfo: toJson(dto.campaignInfo) ?? Prisma.JsonNull,
             pastPerformance: toJson(dto.pastPerformance) ?? Prisma.JsonNull,
             budgetInfo: toJson(dto.budgetInfo) ?? Prisma.JsonNull,
-            visualIdentityInfo: toJson(dto.visualIdentityInfo) ?? Prisma.JsonNull,
+            visualIdentityInfo:
+              toJson(dto.visualIdentityInfo) ?? Prisma.JsonNull,
           } as Prisma.ClientProfileUncheckedCreateInput,
         });
 
@@ -226,7 +236,9 @@ export class ClientProfileService {
       data: {
         clientId,
         userId: user.id,
-        eventType: existing ? "CLIENT_PROFILE_UPDATED" : "CLIENT_PROFILE_CREATED",
+        eventType: existing
+          ? "CLIENT_PROFILE_UPDATED"
+          : "CLIENT_PROFILE_CREATED",
         description: existing
           ? "Client profile updated (V2)"
           : "Client profile created (V2)",

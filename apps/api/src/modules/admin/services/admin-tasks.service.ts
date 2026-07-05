@@ -53,7 +53,10 @@ export class AdminTasksService {
         status: t.status,
         priority: t.priority,
         dueDate: t.dueDate?.toISOString() ?? null,
-        isOverdue: t.dueDate && t.dueDate < new Date() && !["DONE", "REVISION"].includes(t.status),
+        isOverdue:
+          t.dueDate &&
+          t.dueDate < new Date() &&
+          !["DONE", "REVISION"].includes(t.status),
         revisionCount: t.revisionCount,
         createdAt: t.createdAt.toISOString(),
       })),
@@ -73,8 +76,20 @@ export class AdminTasksService {
         creator: { select: { id: true, name: true } },
         department: { select: { name: true } },
         statusHistory: { orderBy: { changedAt: "desc" } },
-        comments: { include: { user: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 20 },
-        files: { select: { id: true, fileName: true, fileType: true, fileSize: true, uploadedAt: true } },
+        comments: {
+          include: { user: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        },
+        files: {
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            uploadedAt: true,
+          },
+        },
       },
     });
     if (!task) throw new NotFoundException("Task not found");
@@ -90,7 +105,10 @@ export class AdminTasksService {
     if (!user) throw new NotFoundException("User not found");
 
     await this.prisma.$transaction([
-      this.prisma.task.update({ where: { id: taskId }, data: { assignedTo: assigneeId } }),
+      this.prisma.task.update({
+        where: { id: taskId },
+        data: { assignedTo: assigneeId },
+      }),
       this.prisma.ledger.create({
         data: {
           action: "admin.tasks.reassign",

@@ -22,7 +22,10 @@ const STATUS_DOT: Record<PeriodGoalStatus, string> = {
 const selectClass =
   "flex h-10 w-full rounded-xl border border-portal-card-border bg-white px-3 py-2 text-sm text-secondary-500 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors text-right";
 
-function defaultProgressFor(status: PeriodGoalStatus, current?: number): number {
+function defaultProgressFor(
+  status: PeriodGoalStatus,
+  current?: number,
+): number {
   if (status === "done") return 100;
   if (status === "pending") return 0;
   return current && current > 0 ? current : 50;
@@ -36,7 +39,11 @@ interface GoalRowEditorProps {
 
 function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
   const handleStatusChange = (status: PeriodGoalStatus) =>
-    onChange({ ...goal, status, progress: defaultProgressFor(status, goal.progress) });
+    onChange({
+      ...goal,
+      status,
+      progress: defaultProgressFor(status, goal.progress),
+    });
 
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-badge-gray-bg p-3">
@@ -67,7 +74,9 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
       <div className="flex items-center gap-2">
         <select
           value={goal.status}
-          onChange={(e) => handleStatusChange(e.target.value as PeriodGoalStatus)}
+          onChange={(e) =>
+            handleStatusChange(e.target.value as PeriodGoalStatus)
+          }
           className={cn(selectClass, "w-40")}
         >
           {STATUS_OPTIONS.map((opt) => (
@@ -87,7 +96,11 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
             onChange={(e) => {
               const progress = Number(e.target.value);
               const status: PeriodGoalStatus =
-                progress >= 100 ? "done" : progress > 0 ? "in_progress" : "pending";
+                progress >= 100
+                  ? "done"
+                  : progress > 0
+                    ? "in_progress"
+                    : "pending";
               onChange({ ...goal, progress, status });
             }}
             className="flex-1 accent-secondary-500"
@@ -114,7 +127,12 @@ interface PMGoalEditorProps {
 }
 
 /** Inline editor for a period's goals (title / description / status / progress). */
-export function PMGoalEditor({ goals, onChange, onSave, isSaving }: PMGoalEditorProps) {
+export function PMGoalEditor({
+  goals,
+  onChange,
+  onSave,
+  isSaving,
+}: PMGoalEditorProps) {
   const [newTitle, setNewTitle] = useState("");
 
   const addGoal = () => {
@@ -213,7 +231,9 @@ export function GoalList({ goals }: { goals: PeriodGoal[] }) {
               {goal.title}
             </p>
             {goal.description && (
-              <p className="mt-0.5 text-xs text-portal-note-text">{goal.description}</p>
+              <p className="mt-0.5 text-xs text-portal-note-text">
+                {goal.description}
+              </p>
             )}
           </div>
           {goal.status === "done" && (

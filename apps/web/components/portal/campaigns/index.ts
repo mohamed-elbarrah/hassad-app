@@ -1,4 +1,2 @@
-export {
-  renderCampaignRowCells,
-} from "./CampaignRow";
+export { renderCampaignRowCells } from "./CampaignRow";
 export { CampaignsToolbar } from "./CampaignsToolbar";

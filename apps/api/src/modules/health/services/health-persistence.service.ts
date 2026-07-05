@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { HealthCheckResult, HealthIndicatorResult } from '@nestjs/terminus';
-import { HealthStatus, ServiceStatus } from '../dto/health-check.dto';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { HealthCheckResult, HealthIndicatorResult } from "@nestjs/terminus";
+import { HealthStatus, ServiceStatus } from "../dto/health-check.dto";
 
 @Injectable()
 export class HealthPersistenceService {
@@ -29,7 +29,7 @@ export class HealthPersistenceService {
       });
     } catch (error) {
       // Don't throw - health check persistence should not break health checks
-      console.error('Failed to save health check:', error);
+      console.error("Failed to save health check:", error);
     }
   }
 
@@ -44,9 +44,10 @@ export class HealthPersistenceService {
         where: { serviceName },
       });
 
-      const consecutiveFailures = status === ServiceStatus.DOWN 
-        ? (existing?.consecutiveFailures || 0) + 1 
-        : 0;
+      const consecutiveFailures =
+        status === ServiceStatus.DOWN
+          ? (existing?.consecutiveFailures || 0) + 1
+          : 0;
 
       await this.prisma.externalServiceHealth.upsert({
         where: { serviceName },
@@ -69,7 +70,10 @@ export class HealthPersistenceService {
         },
       });
     } catch (error) {
-      console.error(`Failed to update service health for ${serviceName}:`, error);
+      console.error(
+        `Failed to update service health for ${serviceName}:`,
+        error,
+      );
     }
   }
 
@@ -78,14 +82,14 @@ export class HealthPersistenceService {
 
     return this.prisma.systemHealthCheck.findMany({
       where: { createdAt: { gte: since } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
   }
 
   async getServiceHealth() {
     return this.prisma.externalServiceHealth.findMany({
-      orderBy: { serviceName: 'asc' },
+      orderBy: { serviceName: "asc" },
     });
   }
 
@@ -102,12 +106,16 @@ export class HealthPersistenceService {
     if (hasErrors) {
       // Check if it's just degraded or fully unhealthy
       const errorKeys = Object.keys(result.error);
-      const criticalServices = ['database'];
-      const hasCriticalFailure = errorKeys.some(key => 
-        criticalServices.some(critical => key.toLowerCase().includes(critical))
+      const criticalServices = ["database"];
+      const hasCriticalFailure = errorKeys.some((key) =>
+        criticalServices.some((critical) =>
+          key.toLowerCase().includes(critical),
+        ),
       );
-      
-      return hasCriticalFailure ? HealthStatus.UNHEALTHY : HealthStatus.DEGRADED;
+
+      return hasCriticalFailure
+        ? HealthStatus.UNHEALTHY
+        : HealthStatus.DEGRADED;
     }
 
     return allHealthy ? HealthStatus.HEALTHY : HealthStatus.DEGRADED;
@@ -116,7 +124,7 @@ export class HealthPersistenceService {
   private calculateHealthScore(result: HealthCheckResult): number {
     const allIndicators = { ...result.info, ...result.error };
     const totalIndicators = Object.keys(allIndicators).length;
-    
+
     if (totalIndicators === 0) return 0;
 
     const healthyIndicators = Object.keys(result.info).length;
@@ -125,13 +133,13 @@ export class HealthPersistenceService {
 
   private extractComponents(result: HealthCheckResult): Record<string, any> {
     const components: Record<string, any> = {};
-    
+
     for (const [key, value] of Object.entries(result.info)) {
-      components[key] = { status: 'up', ...value };
+      components[key] = { status: "up", ...value };
     }
-    
+
     for (const [key, value] of Object.entries(result.error)) {
-      components[key] = { status: 'down', ...value };
+      components[key] = { status: "down", ...value };
     }
 
     return components;

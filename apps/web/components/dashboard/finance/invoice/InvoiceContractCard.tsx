@@ -35,7 +35,9 @@ export function InvoiceContractCard({ contract }: InvoiceContractCardProps) {
   if (!contract) {
     return (
       <div className="rounded-xl border border-dashed border-portal-card-border bg-portal-bg p-4 text-center">
-        <p className="text-sm text-portal-note-text">هذه الفاتورة غير مرتبطة بعقد</p>
+        <p className="text-sm text-portal-note-text">
+          هذه الفاتورة غير مرتبطة بعقد
+        </p>
       </div>
     );
   }
@@ -64,7 +66,9 @@ export function InvoiceContractCard({ contract }: InvoiceContractCardProps) {
       </div>
 
       <div>
-        <p className="text-sm font-bold text-natural-100 truncate">{contract.title}</p>
+        <p className="text-sm font-bold text-natural-100 truncate">
+          {contract.title}
+        </p>
         <div className="flex items-center gap-2 mt-1">
           {contract.type && (
             <span className="text-[10px] text-portal-note-text">

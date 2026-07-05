@@ -126,7 +126,6 @@ export function InvoicePaymentHistory({
               className="font-mono text-[10px] text-portal-note-text cursor-pointer hover:text-secondary-500"
               onClick={() => navigator.clipboard.writeText(p.id)}
               title="انسخ رقم العملية"
-             
             >
               {p.id.substring(0, 8)}...
             </span>

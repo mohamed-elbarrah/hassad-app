@@ -141,7 +141,10 @@ export const healthApi = createApi({
       providesTags: ["Health"],
     }),
 
-    getLiveness: builder.query<{ status: string; timestamp: string; uptime: number }, void>({
+    getLiveness: builder.query<
+      { status: string; timestamp: string; uptime: number },
+      void
+    >({
       query: () => "/health/live",
     }),
 
@@ -159,9 +162,11 @@ export const healthApi = createApi({
       query: (filters) => {
         const params = new URLSearchParams();
         if (filters.level?.length) params.set("level", filters.level.join(","));
-        if (filters.category?.length) params.set("category", filters.category.join(","));
+        if (filters.category?.length)
+          params.set("category", filters.category.join(","));
         if (filters.hours) params.set("hours", String(filters.hours));
-        if (filters.resolved !== undefined) params.set("resolved", String(filters.resolved));
+        if (filters.resolved !== undefined)
+          params.set("resolved", String(filters.resolved));
         if (filters.limit) params.set("limit", String(filters.limit));
         if (filters.page) params.set("page", String(filters.page));
         return `/health/errors?${params.toString()}`;
@@ -195,7 +200,10 @@ export const healthApi = createApi({
     }),
 
     // Health history
-    getHealthHistory: builder.query<HealthHistory[], { hours?: number; limit?: number }>({
+    getHealthHistory: builder.query<
+      HealthHistory[],
+      { hours?: number; limit?: number }
+    >({
       query: ({ hours, limit }) => {
         const params = new URLSearchParams();
         if (hours) params.set("hours", String(hours));

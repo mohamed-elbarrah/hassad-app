@@ -83,7 +83,10 @@ export class AdminLeadsService {
     if (!user) throw new NotFoundException("User not found");
 
     await this.prisma.$transaction([
-      this.prisma.lead.update({ where: { id: leadId }, data: { assignedTo: assigneeId } }),
+      this.prisma.lead.update({
+        where: { id: leadId },
+        data: { assignedTo: assigneeId },
+      }),
       this.prisma.ledger.create({
         data: {
           action: "admin.leads.reassign",
@@ -98,16 +101,28 @@ export class AdminLeadsService {
 
   async getStats() {
     const [byStage, bySource, total, converted] = await Promise.all([
-      this.prisma.lead.groupBy({ by: ["pipelineStage"], _count: true, where: { isActive: true } }),
-      this.prisma.lead.groupBy({ by: ["source"], _count: true, where: { isActive: true } }),
+      this.prisma.lead.groupBy({
+        by: ["pipelineStage"],
+        _count: true,
+        where: { isActive: true },
+      }),
+      this.prisma.lead.groupBy({
+        by: ["source"],
+        _count: true,
+        where: { isActive: true },
+      }),
       this.prisma.lead.count({ where: { isActive: true } }),
       this.prisma.client.count(),
     ]);
 
     return {
-      byStage: byStage.map((s) => ({ stage: s.pipelineStage, count: s._count })),
+      byStage: byStage.map((s) => ({
+        stage: s.pipelineStage,
+        count: s._count,
+      })),
       bySource: bySource.map((s) => ({ source: s.source, count: s._count })),
-      conversionRate: total > 0 ? Math.round((converted / total) * 100 * 10) / 10 : 0,
+      conversionRate:
+        total > 0 ? Math.round((converted / total) * 100 * 10) / 10 : 0,
     };
   }
 }

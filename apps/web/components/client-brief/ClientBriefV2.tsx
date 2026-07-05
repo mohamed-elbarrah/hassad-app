@@ -140,20 +140,31 @@ export function ClientBriefV2({
   // Derive user data from client.user when no explicit user prop is passed.
   // This ensures the sidebar shows the client's contact info (name, email, phone)
   // for roles like SALES that view other people's profiles.
-  const resolvedUser = user ?? (client.user ? {
-    name: client.user.name,
-    email: client.user.email,
-    phoneWhatsapp: client.user.phoneWhatsapp,
-    avatarUrl: client.user.avatarUrl,
-  } : null);
+  const resolvedUser =
+    user ??
+    (client.user
+      ? {
+          name: client.user.name,
+          email: client.user.email,
+          phoneWhatsapp: client.user.phoneWhatsapp,
+          avatarUrl: client.user.avatarUrl,
+        }
+      : null);
 
-  const { identity, kpis, profile: viewProfile, meta } = useClientBrief({
+  const {
+    identity,
+    kpis,
+    profile: viewProfile,
+    meta,
+  } = useClientBrief({
     client,
     profile,
     user: resolvedUser,
   });
 
-  const visibleSections = PROFILE_SECTION_VISIBILITY[role] ?? PROFILE_SECTION_VISIBILITY[UserRole.ADMIN];
+  const visibleSections =
+    PROFILE_SECTION_VISIBILITY[role] ??
+    PROFILE_SECTION_VISIBILITY[UserRole.ADMIN];
 
   // Render visible sections, filtering out those with no data
   const renderedSections = visibleSections
@@ -188,9 +199,7 @@ export function ClientBriefV2({
         <KpiGrid kpis={kpis} role={role} />
 
         {hasAnyRenderedSection ? (
-          <div className="columns-1 xl:columns-2 gap-5">
-            {renderedSections}
-          </div>
+          <div className="columns-1 xl:columns-2 gap-5">{renderedSections}</div>
         ) : (
           <EmptySection message="لم يتم إكمال الملف التعريفي بعد" />
         )}

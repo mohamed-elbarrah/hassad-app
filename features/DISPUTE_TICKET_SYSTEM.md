@@ -17,6 +17,7 @@ A dispute resolution system that allows clients to open tickets ( reclamations �
 ## User Stories
 
 ### Client (Portal)
+
 > As a client, I want to open a dispute ticket against my PM so that my concerns are formally addressed.
 
 > As a client, I want to track my ticket status and communicate with my PM through the ticket.
@@ -24,6 +25,7 @@ A dispute resolution system that allows clients to open tickets ( reclamations �
 > As a client, I want to confirm if my issue was resolved or escalate it if not.
 
 ### Project Manager (Dashboard)
+
 > As a PM, I want to be notified immediately when a dispute is opened against me.
 
 > As a PM, I want to respond to the client's dispute and resolve it within the allowed time.
@@ -31,6 +33,7 @@ A dispute resolution system that allows clients to open tickets ( reclamations �
 > As a PM, I want to see my dispute history and resolution rate.
 
 ### Admin (Dashboard)
+
 > As an admin, I want to review new dispute tickets before notifying the PM.
 
 > As an admin, I want to see escalated tickets with PM dispute history.
@@ -177,7 +180,7 @@ DAY 7
 model DisputeTicket {
   id              String              @id @default(cuid())
   ticketNumber    Int                 @unique // Display: #TKT-001
-  
+
   // ── Parties ────────────────────────────────────────────────
   clientId        String              @map("client_id")
   client          Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -189,16 +192,16 @@ model DisputeTicket {
   reviewer        User?               @relation("DisputeReviewer", fields: [reviewedBy], references: [id])
   resolvedBy      String?             @map("resolved_by") // Admin who resolved escalation
   resolver        User?               @relation("DisputeResolver", fields: [resolvedBy], references: [id])
-  
+
   // ── Content ─────────────────────────────────────────────────
   title           String
   description     String              @db.Text
   category        DisputeCategory
-  
+
   // ── Status & Timeline ───────────────────────────────────────
   status          DisputeStatus       @default(PENDING_APPROVAL)
   priority        DisputePriority     @default(NORMAL)
-  
+
   openedAt        DateTime            @default(now()) @map("opened_at")
   approvedAt      DateTime?           @map("approved_at")
   deadlineAt      DateTime?           @map("deadline_at") // 3 days from approval
@@ -208,19 +211,19 @@ model DisputeTicket {
   escalatedAt     DateTime?           @map("escalated_at")
   resolvedAt      DateTime?           @map("resolved_at")
   closedAt        DateTime?           @map("closed_at")
-  
+
   // ── Resolution ──────────────────────────────────────────────
   resolution      String?             @db.Text // Admin's resolution notes
   pmChanged       Boolean             @default(false) @map("pm_changed")
   newPmId         String?             @map("new_pm_id")
   newPm           User?               @relation("NewPmAssignment", fields: [newPmId], references: [id])
   rejectionReason String?             @map("rejection_reason") // If admin rejected
-  
+
   // ── Relations ───────────────────────────────────────────────
   messages        DisputeMessage[]
   history          DisputeHistory[]
   attachments     DisputeAttachment[]
-  
+
   @@index([clientId])
   @@index([pmId])
   @@index([projectId])
@@ -238,10 +241,10 @@ model DisputeMessage {
   content         String          @db.Text
   isInternal      Boolean         @default(false) @map("is_internal") // Admin-only notes
   createdAt       DateTime        @default(now()) @map("created_at")
-  
+
   ticket          DisputeTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   attachments     DisputeAttachment[]
-  
+
   @@index([ticketId])
   @@index([createdAt])
   @@map("dispute_messages")
@@ -258,11 +261,11 @@ model DisputeAttachment {
   fileSize        Int             @map("file_size")
   mimeType        String          @map("mime_type")
   uploadedAt      DateTime        @default(now()) @map("uploaded_at")
-  
+
   ticket          DisputeTicket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   message         DisputeMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
   uploader        User            @relation(fields: [uploadedBy], references: [id])
-  
+
   @@index([ticketId])
   @@map("dispute_attachments")
 }
@@ -276,10 +279,10 @@ model DisputeHistory {
   changedBy       String          @map("changed_by")
   changedAt       DateTime        @default(now()) @map("changed_at")
   note            String?
-  
+
   ticket          DisputeTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   changer         User           @relation(fields: [changedBy], references: [id])
-  
+
   @@index([ticketId])
   @@index([changedAt])
   @@map("dispute_history")
@@ -295,9 +298,9 @@ model PmDisputeStats {
   pmChangedCount       Int       @default(0) @map("pm_changed_count")
   avgResolutionDays    Float     @default(0) @map("avg_resolution_days")
   lastUpdated          DateTime  @default(now()) @map("last_updated")
-  
+
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@map("pm_dispute_stats")
 }
 
@@ -310,7 +313,7 @@ enum DisputeStatus {
   ESCALATED           // Passed deadline or client confirmed unresolved
   RESOLVED            // Successfully resolved
   CLOSED              // Admin closed (various reasons)
-  
+
   @@map("dispute_statuses")
 }
 
@@ -322,7 +325,7 @@ enum DisputeCategory {
   SCOPE               // Scope creep / feature disagreements
   ATTITUDE            // Unprofessional behavior
   OTHER               // Catch-all
-  
+
   @@map("dispute_categories")
 }
 
@@ -331,7 +334,7 @@ enum DisputePriority {
   NORMAL
   HIGH
   URGENT
-  
+
   @@map("dispute_priorities")
 }
 ```
@@ -342,7 +345,7 @@ enum DisputePriority {
 // Add to User model
 model User {
   // ... existing fields ...
-  
+
   // Dispute relations
   disputesAgainstPm      DisputeTicket[]      @relation("DisputesAgainstPM")
   disputeReviews         DisputeTicket[]      @relation("DisputeReviewer")
@@ -357,7 +360,7 @@ model User {
 // Add to Project model
 model Project {
   // ... existing fields ...
-  
+
   disputeTickets    DisputeTicket[]
 }
 ```
@@ -368,72 +371,74 @@ model Project {
 
 ### Client Portal Endpoints
 
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| POST | `/portal/disputes` | Open new dispute ticket | Client (own project) |
-| GET | `/portal/disputes` | List client's disputes | Client |
-| GET | `/portal/disputes/:id` | Get dispute details | Client (own) |
-| POST | `/portal/disputes/:id/messages` | Add message to ticket | Client (own) |
-| POST | `/portal/disputes/:id/confirm` | Confirm resolution | Client (own) |
-| POST | `/portal/disputes/:id/escalate` | Escalate unresolved issue | Client (own) |
+| Method | Endpoint                        | Description               | Permission           |
+| ------ | ------------------------------- | ------------------------- | -------------------- |
+| POST   | `/portal/disputes`              | Open new dispute ticket   | Client (own project) |
+| GET    | `/portal/disputes`              | List client's disputes    | Client               |
+| GET    | `/portal/disputes/:id`          | Get dispute details       | Client (own)         |
+| POST   | `/portal/disputes/:id/messages` | Add message to ticket     | Client (own)         |
+| POST   | `/portal/disputes/:id/confirm`  | Confirm resolution        | Client (own)         |
+| POST   | `/portal/disputes/:id/escalate` | Escalate unresolved issue | Client (own)         |
 
 ### PM Dashboard Endpoints
 
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/pm/disputes` | List PM's disputes | PM |
-| GET | `/pm/disputes/:id` | Get dispute details | PM (assigned) |
-| POST | `/pm/disputes/:id/messages` | Add message to ticket | PM (assigned) |
-| POST | `/pm/disputes/:id/resolve` | Mark as resolved | PM (assigned) |
+| Method | Endpoint                    | Description           | Permission    |
+| ------ | --------------------------- | --------------------- | ------------- |
+| GET    | `/pm/disputes`              | List PM's disputes    | PM            |
+| GET    | `/pm/disputes/:id`          | Get dispute details   | PM (assigned) |
+| POST   | `/pm/disputes/:id/messages` | Add message to ticket | PM (assigned) |
+| POST   | `/pm/disputes/:id/resolve`  | Mark as resolved      | PM (assigned) |
 
 ### Admin Dashboard Endpoints
 
-| Method | Endpoint | Description | Permission |
-|--------|----------|-------------|------------|
-| GET | `/admin/disputes` | List all disputes (filterable) | Admin |
-| GET | `/admin/disputes/stats` | Dispute statistics | Admin |
-| GET | `/admin/disputes/:id` | Get dispute details | Admin |
-| POST | `/admin/disputes/:id/approve` | Approve ticket | Admin |
-| POST | `/admin/disputes/:id/reject` | Reject ticket | Admin |
-| POST | `/admin/disputes/:id/change-pm` | Change project PM | Admin |
-| POST | `/admin/disputes/:id/close` | Close ticket | Admin |
-| GET | `/admin/disputes/pm/:pmId/stats` | PM dispute statistics | Admin |
+| Method | Endpoint                         | Description                    | Permission |
+| ------ | -------------------------------- | ------------------------------ | ---------- |
+| GET    | `/admin/disputes`                | List all disputes (filterable) | Admin      |
+| GET    | `/admin/disputes/stats`          | Dispute statistics             | Admin      |
+| GET    | `/admin/disputes/:id`            | Get dispute details            | Admin      |
+| POST   | `/admin/disputes/:id/approve`    | Approve ticket                 | Admin      |
+| POST   | `/admin/disputes/:id/reject`     | Reject ticket                  | Admin      |
+| POST   | `/admin/disputes/:id/change-pm`  | Change project PM              | Admin      |
+| POST   | `/admin/disputes/:id/close`      | Close ticket                   | Admin      |
+| GET    | `/admin/disputes/pm/:pmId/stats` | PM dispute statistics          | Admin      |
 
 ---
 
 ## Notification Events
 
-| Event | Trigger | Recipients | Channel |
-|-------|---------|------------|---------|
-| `DISPUTE_OPENED` | Client opens ticket | Admin | In-app, Email |
-| `DISPUTE_APPROVED` | Admin approves | PM | In-app, Email |
-| `DISPUTE_REJECTED` | Admin rejects | Client | In-app, Email |
-| `DISPUTE_NEW_MESSAGE` | New message added | Other party | In-app |
-| `DISPUTE_PM_RESOLVED` | PM marks resolved | Client | In-app, Email |
-| `DISPUTE_CLIENT_CONFIRM` | Client confirms resolved | PM, Admin | In-app |
-| `DISPUTE_CLIENT_ESCALATE` | Client says not resolved | Admin | In-app, Email |
-| `DISPUTE_AUTO_ESCALATED` | 7 days with no client response | Admin | In-app, Email |
-| `DISPUTE_PM_CHANGED` | Admin changes PM | Client, Old PM, New PM | In-app, Email |
-| `DISPUTE_CLOSED` | Admin closes | Client, PM | In-app |
-| `DISPUTE_REMINDER_DAY3` | 3 days after approval | Client | In-app |
-| `DISPUTE_REMINDER_DAY5` | 5 days after approval | Client | In-app |
-| `DISPUTE_REMINDER_DAY7` | 7 days after approval | Client | In-app |
+| Event                     | Trigger                        | Recipients             | Channel       |
+| ------------------------- | ------------------------------ | ---------------------- | ------------- |
+| `DISPUTE_OPENED`          | Client opens ticket            | Admin                  | In-app, Email |
+| `DISPUTE_APPROVED`        | Admin approves                 | PM                     | In-app, Email |
+| `DISPUTE_REJECTED`        | Admin rejects                  | Client                 | In-app, Email |
+| `DISPUTE_NEW_MESSAGE`     | New message added              | Other party            | In-app        |
+| `DISPUTE_PM_RESOLVED`     | PM marks resolved              | Client                 | In-app, Email |
+| `DISPUTE_CLIENT_CONFIRM`  | Client confirms resolved       | PM, Admin              | In-app        |
+| `DISPUTE_CLIENT_ESCALATE` | Client says not resolved       | Admin                  | In-app, Email |
+| `DISPUTE_AUTO_ESCALATED`  | 7 days with no client response | Admin                  | In-app, Email |
+| `DISPUTE_PM_CHANGED`      | Admin changes PM               | Client, Old PM, New PM | In-app, Email |
+| `DISPUTE_CLOSED`          | Admin closes                   | Client, PM             | In-app        |
+| `DISPUTE_REMINDER_DAY3`   | 3 days after approval          | Client                 | In-app        |
+| `DISPUTE_REMINDER_DAY5`   | 5 days after approval          | Client                 | In-app        |
+| `DISPUTE_REMINDER_DAY7`   | 7 days after approval          | Client                 | In-app        |
 
 ---
 
 ## Cron Jobs (Scheduled Tasks)
 
 ### 1. Dispute Reminder Scheduler
+
 **Frequency**: Every hour
 
 ```typescript
 // Check for tickets needing reminders
 // Day 3: Send first reminder to client
-// Day 5: Send second reminder to client  
+// Day 5: Send second reminder to client
 // Day 7: Send final reminder + auto-escalate if no response
 ```
 
 ### 2. Dispute Deadline Checker
+
 **Frequency**: Every 15 minutes
 
 ```typescript
@@ -449,6 +454,7 @@ model Project {
 ### Client Portal
 
 #### Pages
+
 1. **Dispute List** (`/portal/disputes`)
    - Table of client's disputes
    - Status badges
@@ -467,6 +473,7 @@ model Project {
    - File upload
 
 #### Components
+
 - `DisputeStatusBadge`
 - `DisputeMessageThread`
 - `DisputeAttachmentList`
@@ -476,6 +483,7 @@ model Project {
 ### PM Dashboard
 
 #### Pages
+
 1. **Dispute List** (`/pm/disputes`)
    - Table of PM's disputes
    - Status badges
@@ -487,12 +495,14 @@ model Project {
    - Resolve button
 
 #### Components
+
 - `DisputeResolutionTimer` (shows remaining time)
 - `PmDisputeStatsCard`
 
 ### Admin Dashboard
 
 #### Pages
+
 1. **Dispute Overview** (`/admin/disputes`)
    - Tabs: Pending Approval, Active, Escalated, Resolved
    - Statistics cards
@@ -512,6 +522,7 @@ model Project {
    - PM change count
 
 #### Components
+
 - `DisputeApprovalDialog`
 - `PmChangeDialog`
 - `DisputeStatsCard`
@@ -649,28 +660,28 @@ model Project {
 
 ### Status Colors
 
-| Status | Badge Color | CSS Variable |
-|--------|-------------|--------------|
+| Status             | Badge Color  | CSS Variable                    |
+| ------------------ | ------------ | ------------------------------- |
 | `PENDING_APPROVAL` | Yellow/Amber | `bg-yellow-100 text-yellow-800` |
-| `REJECTED` | Gray | `bg-gray-100 text-gray-800` |
-| `APPROVED` | Blue | `bg-blue-100 text-blue-800` |
-| `IN_PROGRESS` | Indigo | `bg-indigo-100 text-indigo-800` |
-| `PENDING_CLIENT` | Cyan | `bg-cyan-100 text-cyan-800` |
-| `ESCALATED` | Red | `bg-red-100 text-red-800` |
-| `RESOLVED` | Green | `bg-green-100 text-green-800` |
-| `CLOSED` | Gray | `bg-gray-100 text-gray-800` |
+| `REJECTED`         | Gray         | `bg-gray-100 text-gray-800`     |
+| `APPROVED`         | Blue         | `bg-blue-100 text-blue-800`     |
+| `IN_PROGRESS`      | Indigo       | `bg-indigo-100 text-indigo-800` |
+| `PENDING_CLIENT`   | Cyan         | `bg-cyan-100 text-cyan-800`     |
+| `ESCALATED`        | Red          | `bg-red-100 text-red-800`       |
+| `RESOLVED`         | Green        | `bg-green-100 text-green-800`   |
+| `CLOSED`           | Gray         | `bg-gray-100 text-gray-800`     |
 
 ### Category Icons
 
-| Category | Icon | Label (AR) | Label (EN) |
-|----------|------|------------|------------|
-| `DELAY` | Clock | تأخير | Delay |
-| `QUALITY` | Star | جودة | Quality |
-| `COMMUNICATION` | MessageCircle | تواصل | Communication |
-| `BUDGET` | DollarSign | ميزانية | Budget |
-| `SCOPE` | FileText | نطاق | Scope |
-| `ATTITUDE` | Frown | تعامل | Attitude |
-| `OTHER` | HelpCircle | أخرى | Other |
+| Category        | Icon          | Label (AR) | Label (EN)    |
+| --------------- | ------------- | ---------- | ------------- |
+| `DELAY`         | Clock         | تأخير      | Delay         |
+| `QUALITY`       | Star          | جودة       | Quality       |
+| `COMMUNICATION` | MessageCircle | تواصل      | Communication |
+| `BUDGET`        | DollarSign    | ميزانية    | Budget        |
+| `SCOPE`         | FileText      | نطاق       | Scope         |
+| `ATTITUDE`      | Frown         | تعامل      | Attitude      |
+| `OTHER`         | HelpCircle    | أخرى       | Other         |
 
 ### UI Components (Use existing shadcn/ui)
 
@@ -740,16 +751,16 @@ model Project {
 
 ## Error Handling
 
-| Error Code | Message (AR) | Message (EN) |
-|------------|--------------|--------------|
-| `DISPUTE_001` | المشروع غير موجود | Project not found |
-| `DISPUTE_002` | ليس لديك صلاحية | Unauthorized |
+| Error Code    | Message (AR)                   | Message (EN)                |
+| ------------- | ------------------------------ | --------------------------- |
+| `DISPUTE_001` | المشروع غير موجود              | Project not found           |
+| `DISPUTE_002` | ليس لديك صلاحية                | Unauthorized                |
 | `DISPUTE_003` | يوجد تذكرة مفتوحة لهذا المشروع | Open dispute already exists |
-| `DISPUTE_004` | التذكرة غير موجودة | Dispute not found |
-| `DISPUTE_005` | لا يمكن تنفيذ هذا الإجراء | Invalid action |
-| `DISPUTE_006` | الوقت غير مسموح | Deadline passed |
-| `DISPUTE_007` | الملفات كبيرة جداً | Files too large |
-| `DISPUTE_008` | لا يوجد مدير متاح | No PM available |
+| `DISPUTE_004` | التذكرة غير موجودة             | Dispute not found           |
+| `DISPUTE_005` | لا يمكن تنفيذ هذا الإجراء      | Invalid action              |
+| `DISPUTE_006` | الوقت غير مسموح                | Deadline passed             |
+| `DISPUTE_007` | الملفات كبيرة جداً             | Files too large             |
+| `DISPUTE_008` | لا يوجد مدير متاح              | No PM available             |
 
 ---
 
@@ -791,15 +802,15 @@ model Project {
 
 ## Timeline Estimate
 
-| Phase | Duration | Dependencies |
-|-------|----------|--------------|
-| Phase 1: Database & Core Backend | 3-4 days | None |
-| Phase 2: Notifications & Cron | 2 days | Phase 1 |
-| Phase 3: PM Change Logic | 1-2 days | Phase 1 |
-| Phase 4: Client Portal UI | 3 days | Phase 1, 2 |
-| Phase 5: PM Dashboard UI | 2 days | Phase 1, 2 |
-| Phase 6: Admin Dashboard UI | 3 days | Phase 1, 2, 3 |
-| Phase 7: Testing & Polish | 2 days | All phases |
+| Phase                            | Duration | Dependencies  |
+| -------------------------------- | -------- | ------------- |
+| Phase 1: Database & Core Backend | 3-4 days | None          |
+| Phase 2: Notifications & Cron    | 2 days   | Phase 1       |
+| Phase 3: PM Change Logic         | 1-2 days | Phase 1       |
+| Phase 4: Client Portal UI        | 3 days   | Phase 1, 2    |
+| Phase 5: PM Dashboard UI         | 2 days   | Phase 1, 2    |
+| Phase 6: Admin Dashboard UI      | 3 days   | Phase 1, 2, 3 |
+| Phase 7: Testing & Polish        | 2 days   | All phases    |
 
 **Total Estimated: 15-17 days**
 

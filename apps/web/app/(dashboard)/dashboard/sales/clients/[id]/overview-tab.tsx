@@ -54,11 +54,7 @@ export function OverviewTab({ client, profile }: OverviewTabProps) {
       </div>
 
       {/* Role-aware client profile */}
-      <ClientBriefV2
-        client={client}
-        profile={profile}
-        role={UserRole.SALES}
-      />
+      <ClientBriefV2 client={client} profile={profile} role={UserRole.SALES} />
     </div>
   );
 }

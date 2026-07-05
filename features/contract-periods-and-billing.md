@@ -27,16 +27,16 @@ recurring monthly invoices, payment schedule, reminders, or suspension for non-p
 
 ## 3. Locked decisions
 
-| # | Decision |
-|---|----------|
-| 1 | End-of-month clamping **keeps the original day**: start 31/01 → 28/29 Feb (last day) → 31/03 (returns to 31). Never drift permanently. |
-| 2 | Indefinite retainers supported (nullable `endDate` → rolling periods). |
-| 3 | Zero down payment allowed → activate immediately on sign. |
-| 4 | Suspension UX: project shows **paused with the reason**; PM keeps **read access**, sees it's on hold, and **decides himself** whether to stop current tasks. We block new task creation + approvals only. |
-| 5 | Legacy contracts marked `FIXED_PROJECT`, left untouched (all new fields nullable). |
-| 6 | Company timezone default `Asia/Riyadh`, **admin-only** to change (stored in `CompanySetting`). |
-| 7 | Auto-cancel unpaid **down payment** after a grace period — **7 days** (admin-configurable via `CompanySetting.down_payment_grace_days`). On cancel, **keep** the auto-created project as `PENDING_ACTIVATION` (do **not** archive) for record-keeping. |
-| 8 | Period invoice issued at **period close** (arrears). No client acceptance gate before billing. |
+| #   | Decision                                                                                                                                                                                                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | End-of-month clamping **keeps the original day**: start 31/01 → 28/29 Feb (last day) → 31/03 (returns to 31). Never drift permanently.                                                                                                                 |
+| 2   | Indefinite retainers supported (nullable `endDate` → rolling periods).                                                                                                                                                                                 |
+| 3   | Zero down payment allowed → activate immediately on sign.                                                                                                                                                                                              |
+| 4   | Suspension UX: project shows **paused with the reason**; PM keeps **read access**, sees it's on hold, and **decides himself** whether to stop current tasks. We block new task creation + approvals only.                                              |
+| 5   | Legacy contracts marked `FIXED_PROJECT`, left untouched (all new fields nullable).                                                                                                                                                                     |
+| 6   | Company timezone default `Asia/Riyadh`, **admin-only** to change (stored in `CompanySetting`).                                                                                                                                                         |
+| 7   | Auto-cancel unpaid **down payment** after a grace period — **7 days** (admin-configurable via `CompanySetting.down_payment_grace_days`). On cancel, **keep** the auto-created project as `PENDING_ACTIVATION` (do **not** archive) for record-keeping. |
+| 8   | Period invoice issued at **period close** (arrears). No client acceptance gate before billing.                                                                                                                                                         |
 
 ## 4. Architecture summary (Option 1 + B1)
 
@@ -166,6 +166,7 @@ Dedup via `reminder_flags` bitmask — never double-send even if cron runs twice
 ### Phase 1 — Payment plan + down-payment activation gate
 
 Schema:
+
 - [x] Add enums `PaymentPlanTriggerType`, `PaymentAmountType`.
 - [x] Add `contract_payment_plans` table.
 - [x] Add `contract_status_history` table.
@@ -175,6 +176,7 @@ Schema:
 - [x] `migrate dev` + commit migration + `prisma generate`.
 
 API (`contracts` + `finance`):
+
 - [x] DTO + endpoints for Sales to define/manage a contract's payment plan
       (`@RequirePermissions('contracts.update')`): create/plan rows, list, update, remove.
 - [x] On `POST /contracts/:id/sign` (and `signByToken`): create the **down-payment invoice**
@@ -193,6 +195,7 @@ API (`contracts` + `finance`):
 ### Phase 2 — Periods lifecycle
 
 Schema:
+
 - [x] Add enum `ProjectPeriodStatus`.
 - [x] Add `project_periods` + `project_period_history` tables.
 - [x] `project_periods.invoice_id` unique FK → `invoices`.
@@ -201,6 +204,7 @@ Schema:
 - [x] `migrate dev` + commit migration + `prisma generate`.
 
 API (`projects`):
+
 - [x] Period generation service: bounded (endDate set → generate all) vs rolling
       (null endDate → current + next; roll forward on close). Anniversary-based dates
       with end-of-month clamping that **returns to the original day** (31→28/29→31).
@@ -219,11 +223,13 @@ API (`projects`):
 ### Phase 3 — Recurring invoicing + reminder/suspend engine
 
 Schema:
+
 - [x] `invoices`: add `reminder_flags` (Int, default 0), `triggered_suspension`
       (Boolean, default false). Migration `20260619003654_phase3_invoice_reminder_flags`
       (additive, applied). `prisma generate` run.
 
 API (`finance` + cron):
+
 - [x] On period `CLOSED`: `ProjectPeriodsService.closePeriod` now calls
       `issuePeriodInvoice` after the transaction: finds the `PERIOD_END` / `is_recurring`
       plan row, resolves amount, calls `financeService.generateScheduledInvoice` with
@@ -287,7 +293,7 @@ API (`finance` + cron):
   false) on Invoice (Migration 20260619003654_phase3_invoice_reminder_flags).
   Code: `ProjectPeriodsService.closePeriod` issues period invoice on close (finds
   PERIOD_END recurring plan row → `generateScheduledInvoice` → links via
-  `period.invoiceId`). `BillingCronService` (@Cron "0 3 * * *") handles reminders
+  `period.invoiceId`). `BillingCronService` (@Cron "0 3 \* \* \*") handles reminders
   (−5/−3/0 bitmask dedup), suspension (project ON_HOLD, period SUSPENDED,
   contract ON_HOLD, history + notify), and down-payment auto-cancel past grace days.
   `ContractsService.handleInvoicePaid` extended for resume-on-payment (period
@@ -328,7 +334,7 @@ API (`finance` + cron):
   ProjectStatus +PENDING_ACTIVATION; new tables contract_payment_plans + contract_status_history;
   contracts +down_payment_type/down_payment_value/number_of_months; invoices +payment_plan_id.
   Migration 20260618225558_contract_payment_plan_and_activation (additive, applied).
-  Resolved legacy migration checksum drift (sync_schema_drift) via _prisma_migrations checksum
+  Resolved legacy migration checksum drift (sync_schema_drift) via \_prisma_migrations checksum
   update (no reset, no data loss).
   Code: ContractPaymentPlanService (plan CRUD + resolveAmount); ContractsService sign flow
   refactored to onContractSigned (project PENDING_ACTIVATION + down-payment invoice, or instant

@@ -12,7 +12,11 @@ interface Props {
   badge?: number | string;
   badgeColor?: "danger" | "alert" | "success" | "secondary";
   description: string;
-  meta?: Array<{ label: string; value: string | number; accent?: "danger" | "alert" | "success" | "neutral" }>;
+  meta?: Array<{
+    label: string;
+    value: string | number;
+    accent?: "danger" | "alert" | "success" | "neutral";
+  }>;
   progress?: number;
   progressLabel?: string;
   tint?: "blue" | "amber" | "rose" | "slate";
@@ -51,8 +55,8 @@ const tintMap = {
 };
 
 const metaAccentMap = {
-  danger:  "text-danger-500",
-  alert:   "text-alert-500",
+  danger: "text-danger-500",
+  alert: "text-alert-500",
   success: "text-success-500",
   neutral: "text-portal-note-text",
 };
@@ -96,7 +100,12 @@ export function ModuleQuickCard({
               <Icon className="w-5 h-5" />
             </div>
             {badge !== undefined && Number(badge) > 0 && (
-              <span className={cn("text-[11px] font-bold px-2 py-0.5 rounded-lg", colors.badge)}>
+              <span
+                className={cn(
+                  "text-[11px] font-bold px-2 py-0.5 rounded-lg",
+                  colors.badge,
+                )}
+              >
                 {badge}
               </span>
             )}
@@ -119,7 +128,12 @@ export function ModuleQuickCard({
           <div className="mt-2.5 flex items-center gap-3 flex-wrap">
             {meta.map((m, i) => (
               <span key={i} className="text-[11px]">
-                <span className={cn("font-bold", metaAccentMap[m.accent || "neutral"])}>
+                <span
+                  className={cn(
+                    "font-bold",
+                    metaAccentMap[m.accent || "neutral"],
+                  )}
+                >
                   {m.value}
                 </span>
                 <span className="text-portal-note-text mr-1">{m.label}</span>
@@ -136,11 +150,21 @@ export function ModuleQuickCard({
           <div className="mt-auto pt-3">
             <div className="flex items-center justify-between text-[10px] mb-1">
               <span className="text-portal-note-text">{progressLabel}</span>
-              <span className="font-bold text-natural-100">{Math.round(progress)}%</span>
+              <span className="font-bold text-natural-100">
+                {Math.round(progress)}%
+              </span>
             </div>
-            <div className={cn("h-1.5 rounded-full overflow-hidden", colors.barTrack)}>
+            <div
+              className={cn(
+                "h-1.5 rounded-full overflow-hidden",
+                colors.barTrack,
+              )}
+            >
               <div
-                className={cn("h-full rounded-full transition-all duration-500", colors.bar)}
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  colors.bar,
+                )}
                 style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
               />
             </div>
