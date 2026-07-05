@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ListChecks, UserCog, Flag } from "lucide-react";
+import { Search, ListChecks, UserCog, Flag, Download, Columns3, Table2 } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FilterBar,
@@ -10,6 +10,7 @@ import {
 } from "@/components/design-system/FilterBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { PageIntro } from "@/components/design-system/PageIntro";
+import { StatCard } from "@/components/design-system/StatCard";
 import { DataTable } from "@/components/design-system/DataTable";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
@@ -23,6 +24,19 @@ import {
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { TASK_STATUS_AR } from "@hassad/shared";
+
+const KANBAN_COLUMNS = [
+  { status: "TODO", label: "قيد الانتظار" },
+  { status: "IN_PROGRESS", label: "قيد التنفيذ" },
+  { status: "IN_REVIEW", label: "قيد المراجعة" },
+  { status: "DONE", label: "مكتمل" },
+];
+
+const PRIORITY_COLORS: Record<string, string> = {
+  HIGH: "bg-danger-500",
+  MEDIUM: "bg-warning-500",
+  LOW: "bg-neutral-300",
+};
 
 const STATUS_OPTIONS = [
   { label: "الكل", value: "" },
@@ -42,12 +56,30 @@ function useDebounce<T>(value: T, delay = 400): T {
   return debounced;
 }
 
+const exportCSV = (data: any[], filename: string) => {
+  if (!data || data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(","),
+    ...data.map((row) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
+  ].join("\n");
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 export default function AdminTasksPage() {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [actionTask, setActionTask] = useState<TaskRow | null>(null);
   const [actionType, setActionType] = useState<"reassign" | "status" | null>(
     null,
@@ -126,7 +158,22 @@ export default function AdminTasksPage() {
         title="المهام"
         description={`إجمالي ${data?.total ?? 0} مهمة`}
         icon={ListChecks}
+        actions={
+          <button
+            onClick={() => exportCSV(tasks, "المهام")}
+            className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
+          >
+            <Download className="size-4" />
+            تصدير CSV
+          </button>
+        }
       />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="إجمالي المهام" value={data?.total ?? 0} icon={ListChecks} />
+        <StatCard title="مكتملة" value={tasks.filter((t) => t.status === "DONE").length} variant="success" />
+        <StatCard title="متأخرة" value={tasks.filter((t) => t.isOverdue).length} variant="danger" />
+        <StatCard title="بدون مسند" value={tasks.filter((t) => !t.assigneeName).length} variant="warning" />
+      </div>
       <div className="flex flex-col sm:flex-row gap-3 items-start">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
@@ -142,9 +189,87 @@ export default function AdminTasksPage() {
           activeFilters={activeFilters}
           onFilterChange={handleFilterChange}
         />
+        <div className="flex gap-1 rounded-xl border border-portal-divider p-0.5">
+          <button
+            onClick={() => setViewMode("table")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "table"
+                ? "bg-secondary-500 text-white"
+                : "text-portal-note-text hover:text-natural-100"
+            }`}
+          >
+            <Table2 className="size-4" />
+            عرض جدول
+          </button>
+          <button
+            onClick={() => setViewMode("kanban")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "kanban"
+                ? "bg-secondary-500 text-white"
+                : "text-portal-note-text hover:text-natural-100"
+            }`}
+          >
+            <Columns3 className="size-4" />
+            عرض كانبان
+          </button>
+        </div>
       </div>
 
-      <DataTable
+      {viewMode === "kanban" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-h-0">
+          {KANBAN_COLUMNS.map((col) => {
+            const columnTasks = tasks.filter(
+              (t: TaskRow) => t.status === col.status,
+            );
+            return (
+              <div
+                key={col.status}
+                className="flex flex-col rounded-2xl border border-portal-divider bg-portal-bg overflow-hidden"
+              >
+                <div className="flex items-center justify-between px-4 py-3 border-b border-portal-divider">
+                  <h3 className="text-sm font-semibold text-natural-100">{col.label}</h3>
+                  <Pill tone="neutral">{columnTasks.length}</Pill>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[600px]">
+                  {columnTasks.length === 0 && (
+                    <p className="text-center text-portal-note-text text-sm py-8">
+                      لا توجد مهام
+                    </p>
+                  )}
+                  {columnTasks.map((t: TaskRow) => (
+                    <button
+                      key={t.id}
+                      onClick={() => router.push(`/dashboard/admin/tasks/${t.id}`)}
+                      className="w-full text-right bg-white rounded-xl border border-portal-divider p-3 hover:shadow-md transition-shadow space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium text-natural-100 line-clamp-2 flex-1">
+                          {t.title}
+                        </p>
+                        <div
+                          className={`mt-1 size-2.5 shrink-0 rounded-full ${
+                            PRIORITY_COLORS[t.priority ?? "LOW"]
+                          }`}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-xs text-portal-note-text">
+                        <span>{t.assigneeName}</span>
+                        {t.dueDate && (
+                          <span dir="ltr">{t.dueDate.slice(0, 10)}</span>
+                        )}
+                      </div>
+                      {t.isOverdue && (
+                        <Pill tone="danger">متأخرة</Pill>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <DataTable
         columns={[
           { id: "title", label: "المهمة" },
           { id: "project", label: "المشروع" },
@@ -241,7 +366,7 @@ export default function AdminTasksPage() {
           </tr>
         )}
       />
-
+      )}
       <Dialog
         open={!!actionTask}
         onOpenChange={(o) => {

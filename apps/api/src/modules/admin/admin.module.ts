@@ -27,6 +27,13 @@ import { AdminAutomationController } from "./controllers/admin-automation.contro
 import { AdminFeatureFlagsController } from "./controllers/admin-feature-flags.controller";
 import { AdminEnvironmentController } from "./controllers/admin-environment.controller";
 import { AdminBackupsController } from "./controllers/admin-backups.controller";
+import { AdminReportsController } from "./controllers/admin-reports.controller";
+import { AdminDashboardController } from "./controllers/admin-dashboard.controller";
+import { AdminNotificationTemplatesController } from "./controllers/admin-notification-templates.controller";
+import { AdminTeamController } from "./controllers/admin-team.controller";
+import { AdminDeliverablesController } from "./controllers/admin-deliverables.controller";
+import { AdminMarketingController } from "./controllers/admin-marketing.controller";
+import { AdminIntakeFormsController } from "./controllers/admin-intake-forms.controller";
 
 import { AdminService } from "./services/admin.service";
 import { AdminAuditService } from "./services/admin-audit.service";
@@ -50,6 +57,12 @@ import { AdminAutomationService } from "./services/admin-automation.service";
 import { AdminFeatureFlagsService } from "./services/admin-feature-flags.service";
 import { AdminEnvironmentService } from "./services/admin-environment.service";
 import { AdminBackupsService } from "./services/admin-backups.service";
+import { AdminTeamService } from "./services/admin-team.service";
+import { AdminDeliverablesService } from "./services/admin-deliverables.service";
+import { AdminReportsService } from "./services/admin-reports.service";
+import { AdminDashboardService } from "./services/admin-dashboard.service";
+import { AdminNotificationTemplatesService } from "./services/admin-notification-templates.service";
+import { AdminMarketingService } from "./services/admin-marketing.service";
 
 import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
@@ -95,6 +108,13 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminFeatureFlagsController,
     AdminEnvironmentController,
     AdminBackupsController,
+    AdminTeamController,
+    AdminDeliverablesController,
+    AdminMarketingController,
+    AdminIntakeFormsController,
+    AdminReportsController,
+    AdminDashboardController,
+    AdminNotificationTemplatesController,
   ],
   providers: [
     AdminService,
@@ -119,6 +139,12 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminFeatureFlagsService,
     AdminEnvironmentService,
     AdminBackupsService,
+    AdminTeamService,
+    AdminDeliverablesService,
+    AdminMarketingService,
+    AdminReportsService,
+    AdminDashboardService,
+    AdminNotificationTemplatesService,
     PrismaHealthIndicator,
     HealthPersistenceService,
     RobustErrorLoggerService,

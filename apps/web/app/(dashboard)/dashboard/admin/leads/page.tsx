@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, TrendingUp, UserCog } from "lucide-react";
+import { Search, TrendingUp, UserCog, Download, Funnel, Table2 } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FilterBar,
@@ -10,6 +10,7 @@ import {
 } from "@/components/design-system/FilterBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { PageIntro } from "@/components/design-system/PageIntro";
+import { StatCard } from "@/components/design-system/StatCard";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Pill } from "@/components/design-system/Pill";
 import { Dialog } from "@/components/design-system/Dialog";
@@ -20,7 +21,7 @@ import {
   type LeadRow,
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { PIPELINE_STAGE_AR } from "@hassad/shared";
+import { PIPELINE_STAGE_AR, PIPELINE_STAGE_ORDER } from "@hassad/shared";
 
 const STAGE_OPTIONS = [
   { label: "الكل", value: "" },
@@ -40,12 +41,30 @@ function useDebounce<T>(value: T, delay = 400): T {
   return debounced;
 }
 
+const exportCSV = (data: any[], filename: string) => {
+  if (!data || data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(","),
+    ...data.map((row) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
+  ].join("\n");
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 export default function AdminLeadsPage() {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
+  const [viewMode, setViewMode] = useState<"table" | "pipeline">("table");
   const [actionLead, setActionLead] = useState<LeadRow | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -98,7 +117,26 @@ export default function AdminLeadsPage() {
         title="العملاء المحتملون"
         description={`إجمالي ${data?.total ?? 0} عميل محتمل`}
         icon={TrendingUp}
+        actions={
+          <button
+            onClick={() => exportCSV(leads, "العملاء-المحتملون")}
+            className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
+          >
+            <Download className="size-4" />
+            تصدير CSV
+          </button>
+        }
       />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="إجمالي" value={data?.total ?? 0} icon={TrendingUp} />
+        <StatCard title="جديد" value={leads.filter((l) => l.pipelineStage === "NEW").length} variant="warning" />
+        <StatCard title="مؤهل" value={leads.filter((l) => l.pipelineStage === "QUALIFIED").length} variant="success" />
+        <StatCard
+          title="معدل التحويل"
+          value={leads.length > 0 ? `${Math.round((leads.filter((l) => l.pipelineStage === "CLOSED").length / leads.length) * 100)}%` : "0%"}
+          variant="default"
+        />
+      </div>
       <div className="flex flex-col sm:flex-row gap-3 items-start">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
@@ -114,9 +152,84 @@ export default function AdminLeadsPage() {
           activeFilters={activeFilters}
           onFilterChange={handleFilterChange}
         />
+        <div className="flex gap-1 rounded-xl border border-portal-divider p-0.5">
+          <button
+            onClick={() => setViewMode("table")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "table"
+                ? "bg-secondary-500 text-white"
+                : "text-portal-note-text hover:text-natural-100"
+            }`}
+          >
+            <Table2 className="size-4" />
+            عرض جدول
+          </button>
+          <button
+            onClick={() => setViewMode("pipeline")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === "pipeline"
+                ? "bg-secondary-500 text-white"
+                : "text-portal-note-text hover:text-natural-100"
+            }`}
+          >
+            <Funnel className="size-4" />
+            عرض القمع
+          </button>
+        </div>
       </div>
 
-      <DataTable
+      {viewMode === "pipeline" ? (
+        <div className="overflow-x-auto pb-4">
+          <div className="flex gap-4 min-w-max">
+            {PIPELINE_STAGE_ORDER.map((stage) => {
+              const stageLeads = leads.filter(
+                (l: LeadRow) => l.pipelineStage === stage,
+              );
+              return (
+                <div
+                  key={stage}
+                  className="flex flex-col w-72 rounded-2xl border border-portal-divider bg-portal-bg overflow-hidden"
+                >
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-portal-divider">
+                    <h3 className="text-sm font-semibold text-natural-100">
+                      {PIPELINE_STAGE_AR[stage] ?? stage}
+                    </h3>
+                    <Pill tone="blue">{stageLeads.length}</Pill>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[600px]">
+                    {stageLeads.length === 0 && (
+                      <p className="text-center text-portal-note-text text-sm py-8">
+                        لا توجد عملاء
+                      </p>
+                    )}
+                    {stageLeads.map((l: LeadRow) => (
+                      <button
+                        key={l.id}
+                        onClick={() => router.push(`/dashboard/admin/leads/${l.id}`)}
+                        className="w-full text-right bg-white rounded-xl border border-portal-divider p-3 hover:shadow-md transition-shadow space-y-2"
+                      >
+                        <p className="text-sm font-medium text-natural-100">
+                          {l.companyName}
+                        </p>
+                        <p className="text-xs text-portal-note-text">
+                          {l.contactName}
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-portal-note-text">
+                          <span>{l.assigneeName}</span>
+                          <Pill tone="neutral">
+                            {PIPELINE_STAGE_AR[l.pipelineStage] ?? l.pipelineStage}
+                          </Pill>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <DataTable
         columns={[
           { id: "company", label: "الشركة" },
           { id: "contact", label: "جهة الاتصال" },
@@ -185,6 +298,7 @@ export default function AdminLeadsPage() {
         )}
       />
 
+      )}
       <Dialog
         open={!!actionLead}
         onOpenChange={(o) => {

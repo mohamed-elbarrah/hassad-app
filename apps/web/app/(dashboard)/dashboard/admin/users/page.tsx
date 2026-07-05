@@ -23,6 +23,7 @@ import { Pill } from "@/components/design-system/Pill";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { DataTable } from "@/components/design-system/DataTable";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { Dialog } from "@/components/design-system/Dialog";
 import { toast } from "sonner";
 import {
   useSearchAdminUsersQuery,
@@ -30,6 +31,7 @@ import {
   useResetUserPasswordMutation,
   useImpersonateUserMutation,
   useRevokeUserSessionsMutation,
+  useCreateAdminUserMutation,
   type AdminUserDetail,
   type AdminUserFilters,
 } from "@/features/admin/adminApi";
@@ -39,16 +41,9 @@ import {
 } from "@/components/dashboard/admin/BulkActionBar";
 import { ImpersonateDialog } from "@/components/dashboard/admin/ImpersonateDialog";
 import { ResetPasswordDialog } from "@/components/dashboard/admin/ResetPasswordDialog";
+import { USER_ROLE_AR } from "@hassad/shared";
 
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "مدير النظام",
-  PM: "مدير مشروع",
-  SALES: "مبيعات",
-  EMPLOYEE: "موظف",
-  MARKETING: "تسويق",
-  ACCOUNTANT: "محاسب",
-  CLIENT: "عميل",
-};
+const ROLE_LABELS = USER_ROLE_AR;
 
 const ROLE_PILL_TONE: Record<
   string,
@@ -91,9 +86,19 @@ export default function AdminUsersPage() {
   const [selectAll, setSelectAll] = useState(false);
 
   // Dialogs
+  const [showCreateUser, setShowCreateUser] = useState(false);
   const [impersonateUser, setImpersonateUser] =
     useState<AdminUserDetail | null>(null);
   const [resetPwUser, setResetPwUser] = useState<AdminUserDetail | null>(null);
+  const [createUserForm, setCreateUserForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "EMPLOYEE",
+    department: "",
+    phoneWhatsapp: "",
+  });
+  const [createUser] = useCreateAdminUserMutation();
 
   const debouncedSearch = useDebounce(searchInput, 400);
   const roleFilter = activeFilters["role"]?.[0];
@@ -233,10 +238,8 @@ export default function AdminUsersPage() {
         title="إدارة المستخدمين"
         description={`إجمالي ${data?.total ?? 0} مستخدم`}
         icon={Users}
-        actions={
-          <ActionButton
-            onClick={() => router.push("/dashboard/admin/users/new")}
-          >
+         actions={
+          <ActionButton onClick={() => setShowCreateUser(true)}>
             <Plus className="size-4 mr-1" />
             مستخدم جديد
           </ActionButton>
@@ -421,6 +424,88 @@ export default function AdminUsersPage() {
           }}
         />
       )}
+
+      {/* Create user dialog */}
+      <Dialog
+        open={showCreateUser}
+        onOpenChange={setShowCreateUser}
+        title="إضافة مستخدم جديد"
+        description="أدخل بيانات المستخدم الجديد"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowCreateUser(false)}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              variant="primary"
+              loading={false}
+              onClick={async () => {
+                if (!createUserForm.name || !createUserForm.email || !createUserForm.password) {
+                  toast.error("يرجى ملء الحقول المطلوبة");
+                  return;
+                }
+                try {
+                  await createUser(createUserForm).unwrap();
+                  toast.success("تم إنشاء المستخدم بنجاح");
+                  setShowCreateUser(false);
+                  setCreateUserForm({ name: "", email: "", password: "", role: "EMPLOYEE", department: "", phoneWhatsapp: "" });
+                } catch {
+                  toast.error("فشل إنشاء المستخدم");
+                }
+              }}
+            >
+              إنشاء
+            </ActionButton>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <FormInputControl
+            placeholder="الاسم الكامل *"
+            value={createUserForm.name}
+            onChange={(e) => setCreateUserForm((f) => ({ ...f, name: e.target.value }))}
+          />
+          <FormInputControl
+            placeholder="البريد الإلكتروني *"
+            type="email"
+            value={createUserForm.email}
+            onChange={(e) => setCreateUserForm((f) => ({ ...f, email: e.target.value }))}
+          />
+          <FormInputControl
+            placeholder="كلمة المرور *"
+            type="password"
+            value={createUserForm.password}
+            onChange={(e) => setCreateUserForm((f) => ({ ...f, password: e.target.value }))}
+          />
+          <FormInputControl
+            placeholder="رقم الواتساب (اختياري)"
+            value={createUserForm.phoneWhatsapp}
+            onChange={(e) => setCreateUserForm((f) => ({ ...f, phoneWhatsapp: e.target.value }))}
+          />
+          <FormInputControl
+            placeholder="القسم (اختياري)"
+            value={createUserForm.department}
+            onChange={(e) => setCreateUserForm((f) => ({ ...f, department: e.target.value }))}
+          />
+          <div className="flex flex-col gap-1">
+            <span className="text-sm text-portal-note-text">الدور</span>
+            <select
+              className="w-full rounded-lg border border-portal-divider bg-white px-3 py-2.5 text-sm"
+              value={createUserForm.role}
+              onChange={(e) => setCreateUserForm((f) => ({ ...f, role: e.target.value }))}
+            >
+              {STAFF_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {ROLE_LABELS[role] ?? role}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

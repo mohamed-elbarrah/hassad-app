@@ -96,6 +96,53 @@ export class AdminTasksService {
     return task;
   }
 
+  async getDelayAlerts(query: { acknowledged?: boolean; page?: number; limit?: number }) {
+    const where: any = {};
+    if (query.acknowledged !== undefined) where.isAcknowledged = query.acknowledged;
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.prisma.taskDelayAlert.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { triggeredAt: "desc" },
+        include: {
+          task: {
+            select: {
+              id: true,
+              title: true,
+              project: { select: { name: true } },
+              assignee: { select: { id: true, name: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.taskDelayAlert.count({ where }),
+    ]);
+
+    return {
+      items: items.map((a) => ({
+        id: a.id,
+        taskId: a.taskId,
+        taskTitle: a.task?.title ?? "—",
+        projectName: a.task?.project?.name ?? "—",
+        assigneeName: a.task?.assignee?.name ?? "—",
+        alertLevel: a.alertLevel,
+        isAcknowledged: a.isAcknowledged,
+        triggeredAt: a.triggeredAt.toISOString(),
+        acknowledgedAt: a.acknowledgedAt?.toISOString() ?? null,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async reassign(taskId: string, assigneeId: string) {
     const [task, user] = await Promise.all([
       this.prisma.task.findUnique({ where: { id: taskId } }),

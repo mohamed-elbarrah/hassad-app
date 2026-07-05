@@ -30,6 +30,8 @@ export class AdminLeadsService {
         take: limit,
         include: {
           assignee: { select: { id: true, name: true } },
+          proposals: { select: { totalPrice: true }, take: 1 },
+          _count: { select: { proposals: true } },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -51,6 +53,14 @@ export class AdminLeadsService {
         contactAttemptCount: l.contactAttemptCount,
         lastContactAt: l.lastContactAt?.toISOString() ?? null,
         createdAt: l.createdAt.toISOString(),
+        potentialValue: l.proposals?.[0]?.totalPrice ?? null,
+        daysSinceLastContact: l.lastContactAt
+          ? Math.floor(
+              (Date.now() - new Date(l.lastContactAt).getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
+          : null,
+        hasProposal: (l._count?.proposals ?? 0) > 0,
       })),
       total,
       page,

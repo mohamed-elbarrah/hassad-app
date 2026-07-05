@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { User, Activity, Monitor, Lock } from "lucide-react";
+import { User, Activity, Monitor, Lock, Briefcase } from "lucide-react";
 import {
   Tabs,
   TabsList,
@@ -30,6 +30,8 @@ interface UserDetailTabsProps {
   securityEvents: SecurityEvent[];
   isSecurityLoading: boolean;
   onRevokeSession: (sessionId: string) => void;
+  workData?: any;
+  isWorkLoading?: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -81,6 +83,8 @@ export function UserDetailTabs({
   securityEvents,
   isSecurityLoading,
   onRevokeSession,
+  workData,
+  isWorkLoading,
 }: UserDetailTabsProps) {
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -110,6 +114,10 @@ export function UserDetailTabs({
           <TabsTrigger value="profile" className="flex items-center gap-1.5">
             <User className="size-4" />
             الملف الشخصي
+          </TabsTrigger>
+          <TabsTrigger value="work" className="flex items-center gap-1.5">
+            <Briefcase className="size-4" />
+            العمل المسند
           </TabsTrigger>
           <TabsTrigger value="activity" className="flex items-center gap-1.5">
             <Activity className="size-4" />
@@ -206,6 +214,108 @@ export function UserDetailTabs({
                 </div>
               </div>
             </div>
+          </TabsContent>
+
+          {/* Work Tab */}
+          <TabsContent value="work">
+            {workData ? (
+              <div className="space-y-6">
+                {/* Projects managed */}
+                <div>
+                  <h4 className="text-sm font-semibold text-natural-100 mb-3">المشاريع المسندة</h4>
+                  <DataTable
+                    columns={[
+                      { id: "name", label: "اسم المشروع" },
+                      { id: "status", label: "الحالة" },
+                      { id: "progress", label: "الإنجاز" },
+                    ]}
+                    data={workData.projects ?? []}
+                    isLoading={isWorkLoading ?? false}
+                    isError={false}
+                    emptyState={{
+                      icon: Briefcase,
+                      message: "لا توجد مشاريع",
+                      hint: "لا توجد مشاريع مسندة لهذا المستخدم",
+                    }}
+                    renderRow={(p: any) => (
+                      <tr key={p.id} className="border-b border-portal-divider">
+                        <td className="px-5 py-3 text-sm font-medium">{p.name}</td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={p.status} label={p.status} />
+                        </td>
+                        <td className="px-5 py-3 text-sm">{p.completionPercentage ?? 0}%</td>
+                      </tr>
+                    )}
+                  />
+                </div>
+
+                {/* Tasks assigned */}
+                <div>
+                  <h4 className="text-sm font-semibold text-natural-100 mb-3">المهام المسندة</h4>
+                  <DataTable
+                    columns={[
+                      { id: "title", label: "المهمة" },
+                      { id: "project", label: "المشروع" },
+                      { id: "status", label: "الحالة" },
+                      { id: "dueDate", label: "تاريخ التسليم", align: "left" },
+                    ]}
+                    data={workData.tasks ?? []}
+                    isLoading={isWorkLoading ?? false}
+                    isError={false}
+                    emptyState={{
+                      icon: Briefcase,
+                      message: "لا توجد مهام",
+                      hint: "لا توجد مهام مسندة لهذا المستخدم",
+                    }}
+                    renderRow={(t: any) => (
+                      <tr key={t.id} className="border-b border-portal-divider">
+                        <td className="px-5 py-3 text-sm font-medium">{t.title}</td>
+                        <td className="px-5 py-3 text-sm text-portal-note-text">{t.projectName ?? "—"}</td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={t.status} label={t.status} />
+                        </td>
+                        <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                          {t.dueDate?.slice(0, 10) ?? "—"}
+                        </td>
+                      </tr>
+                    )}
+                  />
+                </div>
+
+                {/* Disputes assigned */}
+                <div>
+                  <h4 className="text-sm font-semibold text-natural-100 mb-3">النزاعات المسندة</h4>
+                  <DataTable
+                    columns={[
+                      { id: "title", label: "النزاع" },
+                      { id: "status", label: "الحالة" },
+                      { id: "priority", label: "الأولوية" },
+                    ]}
+                    data={workData.disputes ?? []}
+                    isLoading={isWorkLoading ?? false}
+                    isError={false}
+                    emptyState={{
+                      icon: Briefcase,
+                      message: "لا توجد نزاعات",
+                      hint: "لا توجد نزاعات مسندة لهذا المستخدم",
+                    }}
+                    renderRow={(d: any) => (
+                      <tr key={d.id} className="border-b border-portal-divider">
+                        <td className="px-5 py-3 text-sm font-medium">{d.title}</td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={d.status} label={d.status} />
+                        </td>
+                        <td className="px-5 py-3 text-sm">{d.priority ?? "—"}</td>
+                      </tr>
+                    )}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 text-portal-note-text">
+                <p className="text-sm">لا توجد بيانات</p>
+              </div>
+            )}
           </TabsContent>
 
           {/* Activity Tab */}

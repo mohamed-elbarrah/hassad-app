@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Search, Activity, Webhook, RefreshCw } from "lucide-react";
+import { CreditCard, Search, Activity, Webhook, RefreshCw, Ticket, Download } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { StatCard } from "@/components/design-system/StatCard";
 import { Pill } from "@/components/design-system/Pill";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
@@ -26,8 +27,30 @@ import {
   useGetAdminGatewaysHealthQuery,
 } from "@/features/admin/adminApi";
 import { PAYMENT_STATUS_AR } from "@hassad/shared";
+import { useGetPaymentTicketsQuery } from "@/features/finance/financeApi";
+import { useCurrency } from "@/hooks/useCurrency";
+import Link from "next/link";
 
+const exportCSV = (data: any[], filename: string) => {
+  if (!data || data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(","),
+    ...data.map((row) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
+  ].join("\n");
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// الصفحة الموحدة للمدفوعات (تم دمجها من /admin/payments و /admin/finance/payments)
 export default function AdminPaymentsPage() {
+  const { fmtAmount, currency } = useCurrency();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [webhookFilter, setWebhookFilter] = useState("");
@@ -39,6 +62,11 @@ export default function AdminPaymentsPage() {
     useGetAdminWebhookLogsQuery({ status: webhookFilter || undefined });
   const [retryWebhook] = useRetryAdminWebhookMutation();
 
+  const { data: ticketsData } = useGetPaymentTicketsQuery({ page: 1, limit: 1 });
+  const unresolvedTickets =
+    ticketsData?.items?.filter(
+      (t: any) => t.status !== "RESOLVED" && t.status !== "CLOSED",
+    ) ?? [];
   const payments = data?.items ?? [];
   const filtered = search
     ? payments.filter((p: any) =>
@@ -52,7 +80,23 @@ export default function AdminPaymentsPage() {
         title="المدفوعات"
         description="جميع المدفوعات وبوابات الدفع وسجل الويب هوك"
         icon={CreditCard}
+        actions={
+          <button
+            onClick={() => exportCSV(payments, "المدفوعات")}
+            className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
+          >
+            <Download className="size-4" />
+            تصدير CSV
+          </button>
+        }
       />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="إجمالي المدفوعات" value={data?.total ?? 0} icon={CreditCard} />
+        <StatCard title="ناجحة" value={payments.filter((p: any) => p.status === "COMPLETED" || p.status === "SUCCESSFUL").length} variant="success" />
+        <StatCard title="فاشلة" value={payments.filter((p: any) => p.status === "FAILED").length} variant="danger" />
+        <StatCard title="معلقة" value={payments.filter((p: any) => p.status === "PENDING").length} variant="warning" />
+      </div>
 
       <Tabs defaultValue="payments" dir="rtl">
         <TabsList className="w-full justify-start gap-1">
@@ -104,7 +148,7 @@ export default function AdminPaymentsPage() {
                     {p.invoice?.client?.companyName ?? "—"}
                   </td>
                   <td className="px-5 py-3 text-sm">
-                    {p.amount?.toLocaleString()} ر.س
+                    {fmtAmount(p.amount)} {currency.symbol}
                   </td>
                   <td className="px-5 py-3 text-sm">
                     <Pill tone="neutral">{p.method}</Pill>
@@ -268,6 +312,25 @@ export default function AdminPaymentsPage() {
           </SurfaceCard>
         </TabsContent>
       </Tabs>
+
+      {/* تذاكر الدفع */}
+      <SurfaceCard title="تذاكر الدفع" icon={Ticket}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-portal-note-text">
+              التذاكر غير المحلولة
+            </p>
+            <p className="text-2xl font-bold text-danger-500 mt-1">
+              {unresolvedTickets.length}
+            </p>
+          </div>
+          <Link href="/dashboard/admin/finance/payment-tickets">
+            <ActionButton variant="outline" size="sm">
+              عرض التذاكر
+            </ActionButton>
+          </Link>
+        </div>
+      </SurfaceCard>
     </div>
   );
 }

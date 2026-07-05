@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Star, ArrowLeftRight } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -16,6 +16,7 @@ import {
   useUpdateBankAccountMutation,
   useDeleteBankAccountMutation,
 } from "@/features/finance/financeApi";
+import { cn } from "@/lib/utils";
 
 export default function AdminBankAccountsPage() {
   const { data: accounts, isLoading } = useGetBankAccountsQuery();
@@ -30,6 +31,9 @@ export default function AdminBankAccountsPage() {
     accountNumber: "",
     accountName: "",
     iban: "",
+    swift: "",
+    transferInstructions: "",
+    isDefault: false,
     isActive: true,
   });
 
@@ -40,6 +44,9 @@ export default function AdminBankAccountsPage() {
       accountNumber: "",
       accountName: "",
       iban: "",
+      swift: "",
+      transferInstructions: "",
+      isDefault: false,
       isActive: true,
     });
     setShowForm(true);
@@ -51,6 +58,9 @@ export default function AdminBankAccountsPage() {
       accountNumber: a.accountNumber,
       accountName: a.accountName,
       iban: a.iban ?? "",
+      swift: a.swift ?? "",
+      transferInstructions: a.transferInstructions ?? "",
+      isDefault: a.isDefault ?? false,
       isActive: a.isActive,
     });
     setShowForm(true);
@@ -76,7 +86,8 @@ export default function AdminBankAccountsPage() {
             { id: "bankName", label: "اسم البنك" },
             { id: "accountName", label: "اسم الحساب" },
             { id: "accountNumber", label: "رقم الحساب" },
-            { id: "iban", label: "IBAN" },
+            { id: "swift", label: "SWIFT" },
+            { id: "transactions", label: "المعاملات" },
             { id: "status", label: "الحالة" },
             { id: "actions", label: "", align: "left" },
           ]}
@@ -90,13 +101,20 @@ export default function AdminBankAccountsPage() {
           }}
           renderRow={(a: any) => (
             <tr key={a.id} className="border-b border-portal-divider">
-              <td className="px-5 py-3 text-sm font-medium">{a.bankName}</td>
-              <td className="px-5 py-3 text-sm">{a.accountName}</td>
-              <td className="px-5 py-3 text-sm text-portal-note-text" dir="ltr">
-                {a.accountNumber}
+              <td className="px-5 py-3 text-sm font-medium">
+                <div className="flex items-center gap-1.5">
+                  {a.bankName}
+                  {a.isDefault && <Star className="size-3.5 text-warning-500 fill-warning-500" />}
+                </div>
               </td>
-              <td className="px-5 py-3 text-sm text-portal-note-text" dir="ltr">
-                {a.iban ?? "—"}
+              <td className="px-5 py-3 text-sm">{a.accountName}</td>
+              <td className="px-5 py-3 text-sm text-portal-note-text" dir="ltr">{a.accountNumber}</td>
+              <td className="px-5 py-3 text-sm text-portal-note-text" dir="ltr">{a.swift ?? "—"}</td>
+              <td className="px-5 py-3">
+                <div className="flex items-center gap-1.5">
+                  <ArrowLeftRight className="size-3.5 text-portal-note-text" />
+                  <Pill tone="neutral">{a._count?.transactions ?? a._count?.payments ?? 0}</Pill>
+                </div>
               </td>
               <td className="px-5 py-3">
                 <Pill tone={a.isActive ? "success" : "neutral"}>
@@ -105,11 +123,7 @@ export default function AdminBankAccountsPage() {
               </td>
               <td className="px-5 py-3 text-left">
                 <div className="flex gap-1 justify-end">
-                  <ActionButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEdit(a)}
-                  >
+                  <ActionButton variant="ghost" size="sm" onClick={() => openEdit(a)}>
                     <Pencil className="size-4" />
                   </ActionButton>
                   <ActionButton
@@ -120,9 +134,7 @@ export default function AdminBankAccountsPage() {
                         try {
                           await deleteAccount(a.id).unwrap();
                           toast.success("تم حذف الحساب");
-                        } catch {
-                          toast.error("فشل الحذف");
-                        }
+                        } catch { toast.error("فشل الحذف"); }
                       }
                     }}
                   >
@@ -139,85 +151,85 @@ export default function AdminBankAccountsPage() {
         open={showForm}
         onOpenChange={setShowForm}
         title={editing ? "تعديل حساب بنكي" : "إضافة حساب بنكي"}
+        contentClassName="sm:max-w-lg"
         footer={
           <div className="flex gap-2 justify-end">
             <ActionButton variant="outline" onClick={() => setShowForm(false)}>
               إلغاء
             </ActionButton>
-            <ActionButton
-              onClick={async () => {
-                try {
-                  if (editing) {
-                    await updateAccount({
-                      id: editing.id,
-                      body: form,
-                    }).unwrap();
-                    toast.success("تم تحديث الحساب");
-                  } else {
-                    await createAccount(form).unwrap();
-                    toast.success("تم إنشاء الحساب");
-                  }
-                  setShowForm(false);
-                } catch {
-                  toast.error("فشل");
+            <ActionButton onClick={async () => {
+              try {
+                if (editing) {
+                  await updateAccount({ id: editing.id, body: form }).unwrap();
+                  toast.success("تم تحديث الحساب");
+                } else {
+                  await createAccount(form).unwrap();
+                  toast.success("تم إنشاء الحساب");
                 }
-              }}
-            >
+                setShowForm(false);
+              } catch { toast.error("فشل"); }
+            }}>
               {editing ? "تحديث" : "إنشاء"}
             </ActionButton>
           </div>
         }
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-portal-note-text mb-1">
-              اسم البنك
-            </label>
-            <FormInputControl
-              value={form.bankName}
-              onChange={(e) => setForm({ ...form, bankName: e.target.value })}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-portal-note-text mb-1">اسم البنك</label>
+              <FormInputControl value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm text-portal-note-text mb-1">اسم الحساب</label>
+              <FormInputControl value={form.accountName} onChange={(e) => setForm({ ...form, accountName: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-portal-note-text mb-1">رقم الحساب</label>
+              <FormInputControl value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm text-portal-note-text mb-1">IBAN</label>
+              <FormInputControl value={form.iban} onChange={(e) => setForm({ ...form, iban: e.target.value })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-portal-note-text mb-1">SWIFT</label>
+              <FormInputControl value={form.swift} onChange={(e) => setForm({ ...form, swift: e.target.value })} />
+            </div>
           </div>
           <div>
-            <label className="block text-sm text-portal-note-text mb-1">
-              اسم الحساب
-            </label>
-            <FormInputControl
-              value={form.accountName}
-              onChange={(e) =>
-                setForm({ ...form, accountName: e.target.value })
-              }
+            <label className="block text-sm text-portal-note-text mb-1">تعليمات التحويل</label>
+            <textarea
+              value={form.transferInstructions}
+              onChange={(e) => setForm({ ...form, transferInstructions: e.target.value })}
+              className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm min-h-[80px]"
+              placeholder="أي تعليمات إضافية للتحويل البنكي..."
             />
           </div>
-          <div>
-            <label className="block text-sm text-portal-note-text mb-1">
-              رقم الحساب
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                className="rounded border-portal-divider"
+              />
+              <span className="text-sm">نشط</span>
             </label>
-            <FormInputControl
-              value={form.accountNumber}
-              onChange={(e) =>
-                setForm({ ...form, accountNumber: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-portal-note-text mb-1">
-              IBAN
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.isDefault}
+                onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
+                className="rounded border-portal-divider"
+              />
+              <span className="text-sm">الحساب الافتراضي</span>
             </label>
-            <FormInputControl
-              value={form.iban}
-              onChange={(e) => setForm({ ...form, iban: e.target.value })}
-            />
           </div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="rounded border-portal-divider"
-            />
-            <span className="text-sm">نشط</span>
-          </label>
         </div>
       </Dialog>
     </div>

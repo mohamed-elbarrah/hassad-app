@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, ClipboardList } from "lucide-react";
+import { ArrowRight, ClipboardList, FileText, FolderKanban } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -109,6 +109,30 @@ export default function AdminRequestDetailPage() {
                       {req.description ?? "—"}
                     </p>
                   </div>
+                  {req.proposal && (
+                    <div>
+                      <span className="text-sm text-portal-note-text">العرض الفني المرتبط</span>
+                      <button
+                        onClick={() => router.push(`/dashboard/admin/proposals/${req.proposal.id}`)}
+                        className="flex items-center gap-2 text-base font-medium text-secondary-600 hover:text-secondary-700 transition-colors"
+                      >
+                        <FileText className="size-4" />
+                        {req.proposal.title ?? req.proposal.id.slice(0, 8)}
+                      </button>
+                    </div>
+                  )}
+                  {req.project && (
+                    <div>
+                      <span className="text-sm text-portal-note-text">المشروع الناتج</span>
+                      <button
+                        onClick={() => router.push(`/dashboard/admin/projects/${req.project.id}`)}
+                        className="flex items-center gap-2 text-base font-medium text-secondary-600 hover:text-secondary-700 transition-colors"
+                      >
+                        <FolderKanban className="size-4" />
+                        {req.project.name ?? req.project.id.slice(0, 8)}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>

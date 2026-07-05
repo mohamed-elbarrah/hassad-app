@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ClipboardList, UserCog, Flag } from "lucide-react";
+import { Search, ClipboardList, UserCog, Flag, Download } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FilterBar,
@@ -14,6 +14,7 @@ import { DataTable } from "@/components/design-system/DataTable";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
 import { Dialog } from "@/components/design-system/Dialog";
+import { StatCard } from "@/components/design-system/StatCard";
 import { toast } from "sonner";
 import {
   useGetAdminRequestsQuery,
@@ -41,6 +42,23 @@ function useDebounce<T>(value: T, delay = 400): T {
   }, [value, delay]);
   return debounced;
 }
+
+const exportCSV = (data: any[], filename: string) => {
+  if (!data || data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(","),
+    ...data.map((row) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
+  ].join("\n");
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 export default function AdminRequestsPage() {
   const router = useRouter();
@@ -116,7 +134,22 @@ export default function AdminRequestsPage() {
         title="طلبات الخدمة"
         description={`إجمالي ${data?.total ?? 0} طلب`}
         icon={ClipboardList}
+        actions={
+          <button
+            onClick={() => exportCSV(requests, "الطلبات")}
+            className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
+          >
+            <Download className="size-4" />
+            تصدير CSV
+          </button>
+        }
       />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="إجمالي الطلبات" value={data?.total ?? 0} icon={ClipboardList} />
+        <StatCard title="جديد" value={requests.filter((r) => r.status === "SUBMITTED").length} variant="warning" />
+        <StatCard title="قيد التأهيل" value={requests.filter((r) => r.status === "QUALIFYING").length} variant="default" />
+        <StatCard title="موافق عليه" value={requests.filter((r) => r.status === "APPROVED").length} variant="success" />
+      </div>
       <div className="flex flex-col sm:flex-row gap-3 items-start">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />

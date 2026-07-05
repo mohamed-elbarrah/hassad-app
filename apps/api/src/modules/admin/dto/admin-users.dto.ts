@@ -87,6 +87,30 @@ export class ChangeRoleDto {
   role: UserRole;
 }
 
+export class CreateAdminUserDto {
+  @IsString()
+  @MinLength(2)
+  name: string;
+
+  @IsString()
+  email: string;
+
+  @IsString()
+  @MinLength(8)
+  password: string;
+
+  @IsEnum(UserRole)
+  role: UserRole;
+
+  @IsOptional()
+  @IsString()
+  phoneWhatsapp?: string;
+
+  @IsOptional()
+  @IsEnum(TaskDepartment)
+  department?: TaskDepartment;
+}
+
 export class UserDetailResponse {
   id: string;
   name: string;

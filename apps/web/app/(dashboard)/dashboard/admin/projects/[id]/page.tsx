@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, Briefcase, UserCog, Archive, Flag } from "lucide-react";
+import { ArrowRight, Briefcase, UserCog, Archive, Flag, DollarSign, FileCheck } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -137,6 +137,8 @@ export default function AdminProjectDetailPage() {
             <TabsTrigger value="files">الملفات</TabsTrigger>
             <TabsTrigger value="meetings">الاجتماعات</TabsTrigger>
             <TabsTrigger value="periods">الفترات</TabsTrigger>
+            <TabsTrigger value="finance">المالية</TabsTrigger>
+            <TabsTrigger value="deliverables">التسليمات</TabsTrigger>
           </TabsList>
 
           <div className="p-6">
@@ -395,6 +397,138 @@ export default function AdminProjectDetailPage() {
                   </tr>
                 )}
               />
+            </TabsContent>
+
+            <TabsContent value="finance">
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-sm font-semibold text-natural-100 mb-3">الفواتير</h4>
+                  <DataTable
+                    columns={[
+                      { id: "amount", label: "المبلغ" },
+                      { id: "status", label: "الحالة" },
+                      { id: "date", label: "التاريخ", align: "left" },
+                    ]}
+                    data={project.invoices ?? []}
+                    isLoading={false}
+                    isError={false}
+                    emptyState={{
+                      icon: DollarSign,
+                      message: "لا توجد فواتير",
+                      hint: "لم يتم إنشاء فواتير لهذا المشروع بعد",
+                    }}
+                    renderRow={(inv: any) => (
+                      <tr key={inv.id} className="border-b border-portal-divider">
+                        <td className="px-5 py-3 text-sm font-medium">
+                          {inv.amount?.toLocaleString() ?? "—"}
+                        </td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={inv.status} label={inv.status} />
+                        </td>
+                        <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                          {inv.createdAt?.slice(0, 10) ?? "—"}
+                        </td>
+                      </tr>
+                    )}
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-natural-100 mb-3">المدفوعات</h4>
+                  <DataTable
+                    columns={[
+                      { id: "amount", label: "المبلغ" },
+                      { id: "method", label: "طريقة الدفع" },
+                      { id: "status", label: "الحالة" },
+                      { id: "date", label: "التاريخ", align: "left" },
+                    ]}
+                    data={project.payments ?? []}
+                    isLoading={false}
+                    isError={false}
+                    emptyState={{
+                      icon: DollarSign,
+                      message: "لا توجد مدفوعات",
+                      hint: "لم يتم تسجيل مدفوعات لهذا المشروع بعد",
+                    }}
+                    renderRow={(pay: any) => (
+                      <tr key={pay.id} className="border-b border-portal-divider">
+                        <td className="px-5 py-3 text-sm font-medium">
+                          {pay.amount?.toLocaleString() ?? "—"}
+                        </td>
+                        <td className="px-5 py-3 text-sm">{pay.paymentMethod ?? "—"}</td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={pay.status} label={pay.status} />
+                        </td>
+                        <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                          {pay.createdAt?.slice(0, 10) ?? "—"}
+                        </td>
+                      </tr>
+                    )}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="deliverables">
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-sm font-semibold text-natural-100 mb-3">التسليمات</h4>
+                  <DataTable
+                    columns={[
+                      { id: "title", label: "التسليم" },
+                      { id: "status", label: "الحالة" },
+                      { id: "visibility", label: "الرؤية" },
+                      { id: "approver", label: "المراجع" },
+                    ]}
+                    data={project.deliverables ?? []}
+                    isLoading={false}
+                    isError={false}
+                    emptyState={{
+                      icon: FileCheck,
+                      message: "لا توجد تسليمات",
+                      hint: "لم يتم إنشاء تسليمات لهذا المشروع بعد",
+                    }}
+                    renderRow={(d: any) => (
+                      <tr key={d.id} className="border-b border-portal-divider">
+                        <td className="px-5 py-3 text-sm font-medium">{d.title}</td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={d.status} label={d.status} />
+                        </td>
+                        <td className="px-5 py-3 text-sm">{d.visibility ?? "—"}</td>
+                        <td className="px-5 py-3 text-sm">{d.approver?.name ?? d.approvedBy ?? "—"}</td>
+                      </tr>
+                    )}
+                  />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-natural-100 mb-3">طلبات المراجعة</h4>
+                  <DataTable
+                    columns={[
+                      { id: "description", label: "الوصف" },
+                      { id: "status", label: "الحالة" },
+                      { id: "date", label: "التاريخ", align: "left" },
+                    ]}
+                    data={project.revisionRequests ?? []}
+                    isLoading={false}
+                    isError={false}
+                    emptyState={{
+                      icon: FileCheck,
+                      message: "لا توجد طلبات مراجعة",
+                      hint: "لم يتم تقديم طلبات مراجعة لهذا المشروع بعد",
+                    }}
+                    renderRow={(r: any) => (
+                      <tr key={r.id} className="border-b border-portal-divider">
+                        <td className="px-5 py-3 text-sm font-medium">{r.description ?? "—"}</td>
+                        <td className="px-5 py-3">
+                          <StatusBadge status={r.status} label={r.status} />
+                        </td>
+                        <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                          {r.createdAt?.slice(0, 10) ?? "—"}
+                        </td>
+                      </tr>
+                    )}
+                  />
+                </div>
+              </div>
             </TabsContent>
           </div>
         </Tabs>

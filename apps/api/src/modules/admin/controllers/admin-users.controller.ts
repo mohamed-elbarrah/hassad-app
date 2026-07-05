@@ -23,12 +23,19 @@ import {
   ImpersonateDto,
   AssignPermissionsDto,
   ChangeRoleDto,
+  CreateAdminUserDto,
 } from "../dto/admin-users.dto";
 
 @Controller("admin/users")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
+
+  @Post()
+  @RequirePermissions("admin.users.manage")
+  create(@Body() dto: CreateAdminUserDto) {
+    return this.adminUsersService.create(dto);
+  }
 
   @Get()
   @RequirePermissions("admin.users.read")

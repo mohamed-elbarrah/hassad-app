@@ -23,6 +23,7 @@ import {
   Bell,
   Ticket,
   AlertTriangle,
+  Monitor,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -166,17 +167,23 @@ export const adminNavSections: NavSection[] = [
         icon: Building2,
         roles: ["ADMIN"],
       },
-      {
-        title: "العملات",
-        url: "/dashboard/admin/currency",
-        icon: DollarSign,
-        roles: ["ADMIN"],
-      },
     ],
   },
   {
     label: "المراقبة",
     items: [
+      {
+        title: "الجلسات النشطة",
+        url: "/dashboard/admin/sessions",
+        icon: Monitor,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الأمان",
+        url: "/dashboard/admin/security",
+        icon: Shield,
+        roles: ["ADMIN"],
+      },
       {
         title: "سجل النشاطات",
         url: "/dashboard/admin/audit-log",

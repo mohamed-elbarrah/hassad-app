@@ -21,25 +21,11 @@ import {
   type UserSearchFilters,
 } from "@/features/users/usersApi";
 import { EmployeeForm } from "@/components/dashboard/admin/EmployeeForm";
-import { UserRole, TaskDepartment } from "@hassad/shared";
+import { UserRole, TaskDepartment, USER_ROLE_AR, TASK_DEPARTMENT_AR } from "@hassad/shared";
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  [UserRole.ADMIN]: "مدير النظام",
-  [UserRole.PM]: "مدير مشروع",
-  [UserRole.SALES]: "مبيعات",
-  [UserRole.EMPLOYEE]: "موظف",
-  [UserRole.MARKETING]: "تسويق",
-  [UserRole.ACCOUNTANT]: "محاسب",
-  [UserRole.CLIENT]: "عميل",
-};
+const ROLE_LABELS = USER_ROLE_AR;
 
-const DEPARTMENT_LABELS: Record<TaskDepartment, string> = {
-  [TaskDepartment.DESIGN]: "تصميم",
-  [TaskDepartment.MARKETING]: "تسويق",
-  [TaskDepartment.DEVELOPMENT]: "تطوير",
-  [TaskDepartment.CONTENT]: "محتوى",
-  [TaskDepartment.PRODUCTION]: "مونتاج",
-};
+const DEPARTMENT_LABELS = TASK_DEPARTMENT_AR;
 
 const ROLE_PILL_TONE: Record<
   UserRole,

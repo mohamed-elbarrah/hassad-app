@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, FileSignature } from "lucide-react";
+import { ArrowRight, FileSignature, DollarSign } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -63,6 +63,7 @@ export default function AdminContractDetailPage() {
             <TabsTrigger value="versions">الإصدارات</TabsTrigger>
             <TabsTrigger value="alerts">التنبيهات</TabsTrigger>
             <TabsTrigger value="history">سجل الحالة</TabsTrigger>
+            <TabsTrigger value="invoices">الفواتير</TabsTrigger>
           </TabsList>
           <div className="p-6">
             <TabsContent value="overview">
@@ -231,6 +232,36 @@ export default function AdminContractDetailPage() {
                     </td>
                     <td className="px-5 py-3 text-sm text-portal-note-text text-left">
                       {h.changedAt?.slice(0, 10) ?? "—"}
+                    </td>
+                  </tr>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="invoices">
+              <DataTable
+                columns={[
+                  { id: "amount", label: "المبلغ" },
+                  { id: "status", label: "الحالة" },
+                  { id: "date", label: "التاريخ", align: "left" },
+                ]}
+                data={contract.invoices ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: DollarSign,
+                  message: "لا توجد فواتير",
+                  hint: "لم يتم إنشاء فواتير لهذا العقد بعد",
+                }}
+                renderRow={(inv: any) => (
+                  <tr key={inv.id} className="border-b border-portal-divider">
+                    <td className="px-5 py-3 text-sm font-medium">
+                      {inv.amount?.toLocaleString() ?? "—"}
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={inv.status} label={inv.status} />
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {inv.createdAt?.slice(0, 10) ?? "—"}
                     </td>
                   </tr>
                 )}

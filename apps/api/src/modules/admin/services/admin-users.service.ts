@@ -12,6 +12,7 @@ import {
   QueryUsersDto,
   BulkUserActionDto,
   AssignPermissionsDto,
+  CreateAdminUserDto,
   UserDetailResponse,
 } from "../dto/admin-users.dto";
 
@@ -145,6 +146,113 @@ export class AdminUsersService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async getWork(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("المستخدم غير موجود");
+
+    const [projects, tasks, disputes] = await Promise.all([
+      this.prisma.project.findMany({
+        where: { projectManagerId: userId },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          client: { select: { companyName: true } },
+        },
+      }),
+      this.prisma.task.findMany({
+        where: { assignedTo: userId },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          project: { select: { name: true } },
+        },
+      }),
+      this.prisma.disputeTicket.findMany({
+        where: { reviewedBy: userId },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          priority: true,
+        },
+      }),
+    ]);
+
+    return {
+      projects: projects.map((p) => ({
+        id: p.id,
+        name: p.name,
+        status: p.status,
+        clientName: p.client?.companyName ?? "—",
+      })),
+      tasks: tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        projectName: t.project?.name ?? "—",
+      })),
+      disputes: disputes.map((d) => ({
+        id: d.id,
+        title: d.title,
+        status: d.status,
+        priority: d.priority,
+      })),
+    };
+  }
+
+  async create(dto: CreateAdminUserDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    if (existing) {
+      throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
+    }
+
+    const role = await this.prisma.role.findFirst({
+      where: { name: dto.role },
+    });
+    if (!role) {
+      throw new BadRequestException("الدور غير موجود");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+
+    const user = await this.prisma.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        passwordHash,
+        roleId: role.id,
+        phoneWhatsapp: dto.phoneWhatsapp ?? null,
+        isActive: true,
+      },
+    });
+
+    if (dto.department) {
+      const dept = await this.prisma.department.findFirst({
+        where: { name: dto.department },
+      });
+      if (dept) {
+        await this.prisma.userDepartment.create({
+          data: { userId: user.id, departmentId: dept.id },
+        });
+      }
+    }
+
+    await this.prisma.ledger.create({
+      data: {
+        action: "admin.users.create",
+        entity: "user",
+        entityId: user.id,
+        after: { role: dto.role, department: dto.department },
+      },
+    });
+
+    return { id: user.id, name: user.name, email: user.email, role: dto.role };
   }
 
   // ── Mutations ───────────────────────────────────────────────────────────────

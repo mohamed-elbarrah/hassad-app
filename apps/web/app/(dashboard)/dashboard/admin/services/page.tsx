@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { Wrench, Trash2, Pencil, Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { ServiceCategory } from "@hassad/shared";
+import { ServiceCategory, SERVICE_CATEGORY_AR } from "@hassad/shared";
 import {
   useGetServicesQuery,
   useCreateServiceMutation,
@@ -17,8 +17,21 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Dialog } from "@/components/design-system/Dialog";
+import { Pill } from "@/components/design-system/Pill";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+
+const CATEGORY_ORDER: ServiceCategory[] = [
+  ServiceCategory.BRANDING,
+  ServiceCategory.WEB_DEVELOPMENT,
+  ServiceCategory.SOCIAL_MEDIA,
+  ServiceCategory.ADVERTISING,
+  ServiceCategory.CONTENT_CREATION,
+  ServiceCategory.PHOTOGRAPHY,
+  ServiceCategory.VIDEO_PRODUCTION,
+  ServiceCategory.SEO,
+  ServiceCategory.OTHER,
+];
 
 interface ServiceFormData {
   name: string;
@@ -122,6 +135,48 @@ export default function ServicesAdminPage() {
   };
 
   const svcList = services ?? [];
+  const grouped: Record<string, ServiceCatalogItem[]> = {};
+  for (const svc of svcList) {
+    const cat = svc.category || ServiceCategory.OTHER;
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(svc);
+  }
+
+  const renderServiceRow = (svc: ServiceCatalogItem) => (
+    <tr key={svc.id} className="border-b-[1.5px] border-portal-divider">
+      <td className="px-5 py-4 text-base font-semibold text-natural-100">{svc.nameAr}</td>
+      <td className="px-5 py-4 text-base text-natural-100">{svc.name}</td>
+      <td className="px-5 py-4">
+        <Pill tone="neutral">{(svc as any)._count?.requests ?? 0}</Pill>
+      </td>
+      <td className="px-5 py-4">
+        <StatusBadge
+          status={svc.isActive ? "ACTIVE" : "STOPPED"}
+          label={svc.isActive ? "نشط" : "معطل"}
+        />
+      </td>
+      <td className="px-5 py-4">
+        <div className="flex items-center gap-0.5">
+          <ActionButton
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 text-portal-icon hover:text-natural-100"
+            onClick={() => openEdit(svc)}
+          >
+            <Pencil className="size-4" />
+          </ActionButton>
+          <ActionButton
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 text-portal-icon hover:text-danger-500"
+            onClick={() => handleDelete(svc.id)}
+          >
+            <Trash2 className="size-4" />
+          </ActionButton>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -137,56 +192,47 @@ export default function ServicesAdminPage() {
         }
       />
 
-      <DataTable
-        columns={[
-          { id: "nameAr", label: "الاسم (عربي)" },
-          { id: "name", label: "الاسم (EN)" },
-          { id: "status", label: "الحالة" },
-          { id: "actions", label: "", width: "80px" },
-        ]}
-        data={svcList}
-        isLoading={isLoading}
-        isError={false}
-        emptyState={{
-          icon: Wrench,
-          message: "لا توجد خدمات",
-          hint: "أضف أول خدمة إلى الكتالوج",
-        }}
-        renderRow={(svc) => (
-          <tr key={svc.id} className="border-b-[1.5px] border-portal-divider">
-            <td className="px-5 py-4 text-base font-semibold text-natural-100">
-              {svc.nameAr}
-            </td>
-            <td className="px-5 py-4 text-base text-natural-100">{svc.name}</td>
-            <td className="px-5 py-4">
-              <StatusBadge
-                status={svc.isActive ? "ACTIVE" : "STOPPED"}
-                label={svc.isActive ? "نشط" : "معطل"}
-              />
-            </td>
-            <td className="px-5 py-4">
-              <div className="flex items-center gap-0.5">
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 text-portal-icon hover:text-natural-100"
-                  onClick={() => openEdit(svc)}
-                >
-                  <Pencil className="size-4" />
-                </ActionButton>
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 text-portal-icon hover:text-danger-500"
-                  onClick={() => handleDelete(svc.id)}
-                >
-                  <Trash2 className="size-4" />
-                </ActionButton>
+      {isLoading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-32 animate-pulse rounded-2xl bg-neutral-100" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {CATEGORY_ORDER.filter((cat) => grouped[cat]).map((cat) => (
+            <div key={cat}>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-base font-bold text-natural-100">
+                  {SERVICE_CATEGORY_AR[cat as ServiceCategory] ?? cat}
+                </h3>
+                <Pill tone="neutral">{grouped[cat].length}</Pill>
               </div>
-            </td>
-          </tr>
-        )}
-      />
+              <DataTable
+                columns={[
+                  { id: "nameAr", label: "الاسم (عربي)" },
+                  { id: "name", label: "الاسم (EN)" },
+                  { id: "requests", label: "الطلبات" },
+                  { id: "status", label: "الحالة" },
+                  { id: "actions", label: "", width: "80px" },
+                ]}
+                data={grouped[cat]}
+                isLoading={false}
+                isError={false}
+                emptyState={undefined}
+                renderRow={renderServiceRow}
+              />
+            </div>
+          ))}
+          {Object.keys(grouped).length === 0 && (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <Wrench className="size-12 text-portal-note-text" />
+              <p className="text-base font-medium text-natural-100">لا توجد خدمات</p>
+              <p className="text-sm text-portal-note-text">أضف أول خدمة إلى الكتالوج</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <Dialog
         open={dialogOpen}
@@ -208,14 +254,9 @@ export default function ServicesAdminPage() {
               <FormInputControl
                 placeholder="الهوية البصرية"
                 value={form.nameAr}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, nameAr: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, nameAr: e.target.value }))}
                 onBlur={() => setErrors((e) => ({ ...e, nameAr: undefined }))}
-                className={cn(
-                  errors.nameAr &&
-                    "border-danger-500 focus-visible:ring-danger-500",
-                )}
+                className={cn(errors.nameAr && "border-danger-500 focus-visible:ring-danger-500")}
                 required
               />
               {errors.nameAr && (
@@ -232,14 +273,9 @@ export default function ServicesAdminPage() {
               <FormInputControl
                 placeholder="Brand Identity"
                 value={form.name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 onBlur={() => setErrors((e) => ({ ...e, name: undefined }))}
-                className={cn(
-                  errors.name &&
-                    "border-danger-500 focus-visible:ring-danger-500",
-                )}
+                className={cn(errors.name && "border-danger-500 focus-visible:ring-danger-500")}
                 required
               />
               {errors.name && (
@@ -252,27 +288,19 @@ export default function ServicesAdminPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label className="text-sm font-medium text-natural-100">
-              وصف الخدمة (عربي)
-            </Label>
+            <Label className="text-sm font-medium text-natural-100">وصف الخدمة (عربي)</Label>
             <FormInputControl
               placeholder="وصف مختصر للخدمة بالعربية"
               value={form.descriptionAr}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, descriptionAr: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, descriptionAr: e.target.value }))}
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label className="text-sm font-medium text-natural-100">
-              وصف الخدمة (إنجليزي)
-            </Label>
+            <Label className="text-sm font-medium text-natural-100">وصف الخدمة (إنجليزي)</Label>
             <FormInputControl
               placeholder="Brief description in English"
               value={form.description}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, description: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
           </div>
 
@@ -295,25 +323,11 @@ export default function ServicesAdminPage() {
           </label>
 
           <div className="flex gap-2 justify-end mt-1 border-t pt-4">
-            <ActionButton
-              variant="ghost"
-              onClick={() => {
-                setDialogOpen(false);
-                resetForm();
-              }}
-            >
+            <ActionButton variant="ghost" onClick={() => { setDialogOpen(false); resetForm(); }}>
               إلغاء
             </ActionButton>
-            <ActionButton
-              type="submit"
-              disabled={creating || updating}
-              className="min-w-[120px]"
-            >
-              {creating || updating
-                ? "جارٍ الحفظ..."
-                : editingId
-                  ? "حفظ التعديلات"
-                  : "إضافة الخدمة"}
+            <ActionButton type="submit" disabled={creating || updating} className="min-w-[120px]">
+              {creating || updating ? "جارٍ الحفظ..." : editingId ? "حفظ التعديلات" : "إضافة الخدمة"}
             </ActionButton>
           </div>
         </form>

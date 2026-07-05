@@ -20,6 +20,12 @@ import { PageIntro } from "@/components/design-system/PageIntro";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
+import {
   Activity,
   RefreshCw,
   Database,
@@ -37,13 +43,10 @@ import {
   CheckSquare,
   Info,
   AlertCircle,
+  Lightbulb,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -158,10 +161,6 @@ function getErrorLevelColor(level: ErrorLevel): string {
   }
 }
 
-// ============================================================================
-// COMPONENT: OverallHealthCard
-// ============================================================================
-
 function OverallHealthCard({
   health,
   isLoading,
@@ -228,7 +227,6 @@ function OverallHealthCard({
         </div>
       </div>
 
-      {/* Show failing services */}
       {!isHealthy && errorCount > 0 && (
         <div className="mt-4 p-4 bg-white/60 rounded-xl">
           <h4 className="font-semibold text-red-700 mb-2">الخدمات المتوقفة:</h4>
@@ -264,10 +262,6 @@ function OverallHealthCard({
     </div>
   );
 }
-
-// ============================================================================
-// COMPONENT: ComponentHealthCard
-// ============================================================================
 
 function ComponentHealthCard({
   name,
@@ -343,7 +337,6 @@ function ComponentHealthCard({
           </div>
         )}
 
-        {/* Additional details */}
         {Object.entries(detail)
           .filter(([k]) => !["status", "message", "responseTimeMs"].includes(k))
           .map(([key, value]) => (
@@ -362,10 +355,6 @@ function ComponentHealthCard({
     </div>
   );
 }
-
-// ============================================================================
-// COMPONENT: ErrorLogTable
-// ============================================================================
 
 function ErrorLogTable({
   errors,
@@ -470,38 +459,28 @@ function ErrorLogTable({
                     {error.endpoint && ` • ${error.endpoint}`}
                   </p>
 
-                  {/* Expanded details */}
                   {isExpanded && (
                     <div className="mt-3 p-3 bg-slate-100 rounded-lg text-sm">
                       {error.stackTrace && (
                         <div className="mb-2">
-                          <span className="font-semibold text-slate-700">
-                            تتبع الخطأ:
-                          </span>
+                          <span className="font-semibold text-slate-700">تتبع الخطأ:</span>
                           <pre className="mt-1 text-xs text-slate-600 overflow-auto max-h-32">
                             {error.stackTrace}
                           </pre>
                         </div>
                       )}
-                      {error.context &&
-                        Object.keys(error.context).length > 0 && (
-                          <div>
-                            <span className="font-semibold text-slate-700">
-                              سياق:
-                            </span>
-                            <pre className="mt-1 text-xs text-slate-600 overflow-auto max-h-32">
-                              {JSON.stringify(error.context, null, 2)}
-                            </pre>
-                          </div>
-                        )}
+                      {error.context && Object.keys(error.context).length > 0 && (
+                        <div>
+                          <span className="font-semibold text-slate-700">سياق:</span>
+                          <pre className="mt-1 text-xs text-slate-600 overflow-auto max-h-32">
+                            {JSON.stringify(error.context, null, 2)}
+                          </pre>
+                        </div>
+                      )}
                       {error.resolved && (
                         <div className="mt-2 p-2 bg-emerald-100 rounded">
-                          <span className="font-semibold text-emerald-700">
-                            تم الحل:
-                          </span>
-                          <p className="text-emerald-600">
-                            {error.resolutionNote}
-                          </p>
+                          <span className="font-semibold text-emerald-700">تم الحل:</span>
+                          <p className="text-emerald-600">{error.resolutionNote}</p>
                         </div>
                       )}
                     </div>
@@ -513,13 +492,9 @@ function ErrorLogTable({
                       className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
                     >
                       {isExpanded ? (
-                        <>
-                          <ChevronUp className="size-3" /> إخفاء التفاصيل
-                        </>
+                        <><ChevronUp className="size-3" /> إخفاء التفاصيل</>
                       ) : (
-                        <>
-                          <ChevronDown className="size-3" /> عرض التفاصيل
-                        </>
+                        <><ChevronDown className="size-3" /> عرض التفاصيل</>
                       )}
                     </button>
                   </div>
@@ -545,37 +520,25 @@ function ErrorLogTable({
       {selectedError && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              حل الخطأ
-            </h3>
-
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">حل الخطأ</h3>
             <div className="mb-4 p-3 bg-slate-50 rounded-lg">
               <p className="text-sm text-slate-700">{selectedError.message}</p>
             </div>
-
             <textarea
               value={resolutionNote}
               onChange={(e) => setResolutionNote(e.target.value)}
               placeholder="ملاحظات الحل..."
               className="w-full p-3 border border-slate-300 rounded-lg text-sm min-h-[100px]"
             />
-
             <div className="flex justify-end gap-2 mt-4">
               <button
-                onClick={() => {
-                  setSelectedError(null);
-                  setResolutionNote("");
-                }}
+                onClick={() => { setSelectedError(null); setResolutionNote(""); }}
                 className="px-4 py-2 text-slate-600 hover:text-slate-800"
               >
                 إلغاء
               </button>
               <button
-                onClick={() => {
-                  onResolve(selectedError.id, resolutionNote);
-                  setSelectedError(null);
-                  setResolutionNote("");
-                }}
+                onClick={() => { onResolve(selectedError.id, resolutionNote); setSelectedError(null); setResolutionNote(""); }}
                 className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
               >
                 تأكيد الحل
@@ -588,18 +551,11 @@ function ErrorLogTable({
   );
 }
 
-// ============================================================================
-// COMPONENT: ErrorStats
-// ============================================================================
-
 function ErrorStats({
   stats,
   isLoading,
 }: {
-  stats?: {
-    byCategory: Array<{ category: string; count: number }>;
-    total: number;
-  };
+  stats?: { byCategory: Array<{ category: string; count: number }>; total: number };
   isLoading: boolean;
 }) {
   if (isLoading) {
@@ -618,33 +574,22 @@ function ErrorStats({
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
       <h3 className="font-semibold text-slate-900 mb-4">توزيع الأخطاء</h3>
-
       <div className="text-center mb-6">
-        <div className="text-4xl font-bold text-slate-900">
-          {stats?.total || 0}
-        </div>
+        <div className="text-4xl font-bold text-slate-900">{stats?.total || 0}</div>
         <div className="text-sm text-slate-500">خطأ في آخر 24 ساعة</div>
       </div>
-
       <div className="space-y-3">
         {stats?.byCategory?.slice(0, 6).map((item) => (
-          <div
-            key={item.category}
-            className="flex items-center justify-between"
-          >
+          <div key={item.category} className="flex items-center justify-between">
             <span className="text-sm text-slate-600">{item.category}</span>
             <div className="flex items-center gap-2">
               <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-slate-500 rounded-full"
-                  style={{
-                    width: `${stats.total > 0 ? (item.count / stats.total) * 100 : 0}%`,
-                  }}
+                  style={{ width: `${stats.total > 0 ? (item.count / stats.total) * 100 : 0}%` }}
                 />
               </div>
-              <span className="text-sm font-medium text-slate-900 w-8 text-left">
-                {item.count}
-              </span>
+              <span className="text-sm font-medium text-slate-900 w-8 text-left">{item.count}</span>
             </div>
           </div>
         ))}
@@ -653,37 +598,132 @@ function ErrorStats({
   );
 }
 
-// ============================================================================
-// MAIN COMPONENT: HealthPage
-// ============================================================================
+function RecommendationsTab({ health, errors, errorStats, services, healthSummary }: any) {
+  const recommendations: Array<{ type: "warning" | "error" | "info"; title: string; description: string }> = [];
+
+  if (health?.error && Object.keys(health.error).length > 0) {
+    for (const [name, detail] of Object.entries(health.error as Record<string, any>)) {
+      recommendations.push({
+        type: "error",
+        title: `${getComponentDisplayName(name)} معطل`,
+        description: detail.message || `الخدمة ${getComponentDisplayName(name)} غير متصلة. يرجى التحقق من الإعدادات.`,
+      });
+    }
+  }
+
+  if (health?.info?.memory_heap) {
+    const heap = health.info.memory_heap as any;
+    if (heap.usagePercent && heap.usagePercent > 80) {
+      recommendations.push({
+        type: "warning",
+        title: "استخدام الذاكرة مرتفع",
+        description: `استخدام الذاكرة ${heap.usagePercent}%. يوصى بزيادة الذاكرة المخصصة أو مراجعة تسرب الذاكرة.`,
+      });
+    }
+  }
+
+  if (health?.info?.disk) {
+    const disk = health.info.disk as any;
+    if (disk.usagePercent && disk.usagePercent > 80) {
+      recommendations.push({
+        type: "warning",
+        title: "مساحة التخزين على وشك الامتلاء",
+        description: `استخدام التخزين ${disk.usagePercent}%. يوصى بتنظيف الملفات المؤقتة والنسخ الاحتياطية القديمة.`,
+      });
+    }
+  }
+
+  if (errorStats?.total && errorStats.total > 10) {
+    recommendations.push({
+      type: "warning",
+      title: "عدد كبير من الأخطاء",
+      description: `تم تسجيل ${errorStats.total} خطأ في آخر 24 ساعة. يوصى بمراجعة سجل الأخطاء وحل المشكلات العاجلة.`,
+    });
+  }
+
+  if (services?.length) {
+    const downServices = services.filter((s: any) => s.status === "DOWN");
+    const degradedServices = services.filter((s: any) => s.status === "DEGRADED");
+    if (downServices.length > 0) {
+      recommendations.push({
+        type: "error",
+        title: "خدمات خارجية متوقفة",
+        description: `${downServices.length} خدمة خارجية متوقفة: ${downServices.map((s: any) => s.displayName).join("، ")}`,
+      });
+    }
+    if (degradedServices.length > 0) {
+      recommendations.push({
+        type: "warning",
+        title: "خدمات خارجية منخفضة الأداء",
+        description: `${degradedServices.length} خدمة خارجية تعاني من انخفاض الأداء: ${degradedServices.map((s: any) => s.displayName).join("، ")}`,
+      });
+    }
+  }
+
+  if (recommendations.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 text-center">
+        <CheckCircle className="size-12 text-emerald-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-slate-900">لا توجد توصيات</h3>
+        <p className="text-slate-500 mt-2">النظام يعمل بكفاءة ولا توجد مشاكل تستدعي التدخل</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {recommendations.map((rec, i) => {
+        const colors = {
+          error: "bg-red-50 border-red-200 text-red-700",
+          warning: "bg-amber-50 border-amber-200 text-amber-700",
+          info: "bg-blue-50 border-blue-200 text-blue-700",
+        };
+        const icons = {
+          error: XCircle,
+          warning: AlertTriangle,
+          info: Info,
+        };
+        const Icon = icons[rec.type];
+        return (
+          <div key={i} className={`rounded-xl p-4 border ${colors[rec.type]}`}>
+            <div className="flex items-start gap-3">
+              <Icon className="size-5 mt-0.5 shrink-0" />
+              <div>
+                <h4 className="font-semibold">{rec.title}</h4>
+                <p className="text-sm mt-1 opacity-80">{rec.description}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function HealthPage() {
+  const [activeTab, setActiveTab] = useState("overview");
+
   const {
     data: health,
     isLoading: healthLoading,
     refetch: refetchHealth,
   } = useGetHealthQuery();
-  const { data: services, isLoading: servicesLoading } =
-    useGetServiceHealthQuery();
-  const { data: errorStats, isLoading: statsLoading } =
-    useGetErrorStatsQuery(24);
-  const { data: errors, isLoading: errorsLoading } = useGetErrorsQuery({
-    hours: 24,
-    limit: 10,
-  });
+  const { data: healthSummary } = useGetHealthSummaryQuery();
+  const { data: services, isLoading: servicesLoading } = useGetServiceHealthQuery();
+  const { data: errorStats, isLoading: statsLoading } = useGetErrorStatsQuery(24);
+  const { data: errors, isLoading: errorsLoading } = useGetErrorsQuery({ hours: 24, limit: 10 });
   const [resolveError] = useResolveErrorMutation();
 
   const handleResolve = async (id: string, note: string) => {
     await resolveError({ id, note });
   };
 
-  // Combine health check results with services
   const allComponents = health
-    ? {
-        ...health.info,
-        ...health.error,
-      }
+    ? { ...health.info, ...health.error }
     : {};
+
+  const isOverallHealthy = health?.status === "ok" && (!errorStats?.total || errorStats.total === 0);
+  const hasIssues = !isOverallHealthy;
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -698,142 +738,188 @@ export default function HealthPage() {
             onClick={() => refetchHealth()}
             disabled={healthLoading}
           >
-            <RefreshCw
-              className={`size-4 mr-1 ${healthLoading ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`size-4 mr-1 ${healthLoading ? "animate-spin" : ""}`} />
             تحديث
           </ActionButton>
         }
       />
 
-      {/* Overall Health Status */}
-      <OverallHealthCard health={health} isLoading={healthLoading} />
-
-      {/* Component Health Grid - Shows all components from health check */}
-      {healthLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-xl" />
-          ))}
+      {/* Summary Banner */}
+      <div
+        className={`rounded-2xl p-5 shadow-sm border-2 flex items-center gap-4 ${
+          isOverallHealthy
+            ? "bg-emerald-50 border-emerald-200"
+            : "bg-red-50 border-red-200"
+        }`}
+      >
+        <div
+          className={`p-3 rounded-full shrink-0 ${
+            isOverallHealthy ? "bg-emerald-100" : "bg-red-100"
+          }`}
+        >
+          {isOverallHealthy ? (
+            <CheckCircle className="size-7 text-emerald-600" />
+          ) : (
+            <XCircle className="size-7 text-red-600" />
+          )}
         </div>
-      ) : Object.keys(allComponents).length > 0 ? (
-        <>
-          <h3 className="text-lg font-semibold text-slate-900">
-            حالة المكونات
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Object.entries(allComponents).map(([name, detail]) => (
-              <ComponentHealthCard key={name} name={name} detail={detail} />
-            ))}
-          </div>
-        </>
-      ) : null}
-
-      {/* External Services Status */}
-      {(servicesLoading || (services && services.length > 0)) && (
-        <>
-          <h3 className="text-lg font-semibold text-slate-900">
-            الخدمات الخارجية
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {servicesLoading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-40 rounded-xl" />
-                ))
-              : services?.map((service) => (
-                  <div
-                    key={service.serviceName}
-                    className={`rounded-xl p-4 shadow-sm border ${
-                      service.status === "UP"
-                        ? "bg-emerald-50 border-emerald-200"
-                        : service.status === "DEGRADED"
-                          ? "bg-amber-50 border-amber-200"
-                          : "bg-red-50 border-red-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          service.status === "UP"
-                            ? "bg-emerald-100"
-                            : service.status === "DEGRADED"
-                              ? "bg-amber-100"
-                              : "bg-red-100"
-                        }`}
-                      >
-                        <Server
-                          className={`size-5 ${
-                            service.status === "UP"
-                              ? "text-emerald-600"
-                              : service.status === "DEGRADED"
-                                ? "text-amber-600"
-                                : "text-red-600"
-                          }`}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-slate-900">
-                          {service.displayName}
-                        </h4>
-                        <p className="text-xs text-slate-500">
-                          {service.serviceName}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">الحالة:</span>
-                        <span
-                          className={`font-medium ${
-                            service.status === "UP"
-                              ? "text-emerald-600"
-                              : service.status === "DEGRADED"
-                                ? "text-amber-600"
-                                : "text-red-600"
-                          }`}
-                        >
-                          {service.status === "UP"
-                            ? "يعمل"
-                            : service.status === "DEGRADED"
-                              ? "منخفض الأداء"
-                              : "متوقف"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">وقت الاستجابة:</span>
-                        <span className="font-medium">
-                          {service.responseTime}ms
-                        </span>
-                      </div>
-                      {service.lastError && (
-                        <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
-                          آخر خطأ: {service.lastError}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-          </div>
-        </>
-      )}
-
-      {/* Errors Section */}
-      <h3 className="text-lg font-semibold text-slate-900">
-        الأخطاء والإحصائيات
-      </h3>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <ErrorStats stats={errorStats} isLoading={statsLoading} />
-        </div>
-
-        <div className="lg:col-span-2">
-          <ErrorLogTable
-            errors={errors}
-            isLoading={errorsLoading}
-            onResolve={handleResolve}
-          />
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">
+            {isOverallHealthy ? "كل شيء بخير" : "يوجد مشكلة"}
+          </h2>
+          <p className="text-slate-600 text-sm mt-0.5">
+            {isOverallHealthy
+              ? "جميع خدمات النظام تعمل بشكل طبيعي"
+              : `هناك مشاكل تحتاج إلى مراجعة في النظام`}
+          </p>
         </div>
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+        <TabsList className="w-full justify-start gap-1">
+          <TabsTrigger value="overview">
+            <Activity className="size-4 ml-1" />
+            نظرة عامة
+          </TabsTrigger>
+          <TabsTrigger value="recommendations">
+            <Lightbulb className="size-4 ml-1" />
+            التوصيات
+          </TabsTrigger>
+          <TabsTrigger value="advanced">
+            <Server className="size-4 ml-1" />
+            متقدم
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-4 space-y-6">
+          <OverallHealthCard health={health} isLoading={healthLoading} />
+
+          {healthLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-48 rounded-xl" />
+              ))}
+            </div>
+          ) : Object.keys(allComponents).length > 0 ? (
+            <>
+              <h3 className="text-lg font-semibold text-slate-900">حالة المكونات</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Object.entries(allComponents).map(([name, detail]) => (
+                  <ComponentHealthCard key={name} name={name} detail={detail} />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          <h3 className="text-lg font-semibold text-slate-900">الأخطاء والإحصائيات</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <ErrorStats stats={errorStats} isLoading={statsLoading} />
+            </div>
+            <div className="lg:col-span-2">
+              <ErrorLogTable errors={errors} isLoading={errorsLoading} onResolve={handleResolve} />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="recommendations" className="mt-4">
+          <RecommendationsTab
+            health={health}
+            errors={errors}
+            errorStats={errorStats}
+            services={services}
+            healthSummary={healthSummary}
+          />
+        </TabsContent>
+
+        <TabsContent value="advanced" className="mt-4 space-y-6">
+          <OverallHealthCard health={health} isLoading={healthLoading} />
+
+          {healthLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-48 rounded-xl" />
+              ))}
+            </div>
+          ) : Object.keys(allComponents).length > 0 ? (
+            <>
+              <h3 className="text-lg font-semibold text-slate-900">حالة المكونات</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Object.entries(allComponents).map(([name, detail]) => (
+                  <ComponentHealthCard key={name} name={name} detail={detail} />
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {(servicesLoading || (services && services.length > 0)) && (
+            <>
+              <h3 className="text-lg font-semibold text-slate-900">الخدمات الخارجية</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {servicesLoading
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} className="h-40 rounded-xl" />
+                    ))
+                  : services?.map((service) => (
+                      <div
+                        key={service.serviceName}
+                        className={`rounded-xl p-4 shadow-sm border ${
+                          service.status === "UP"
+                            ? "bg-emerald-50 border-emerald-200"
+                            : service.status === "DEGRADED"
+                              ? "bg-amber-50 border-amber-200"
+                              : "bg-red-50 border-red-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`p-2 rounded-lg ${
+                            service.status === "UP" ? "bg-emerald-100" : service.status === "DEGRADED" ? "bg-amber-100" : "bg-red-100"
+                          }`}>
+                            <Server className={`size-5 ${
+                              service.status === "UP" ? "text-emerald-600" : service.status === "DEGRADED" ? "text-amber-600" : "text-red-600"
+                            }`} />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-slate-900">{service.displayName}</h4>
+                            <p className="text-xs text-slate-500">{service.serviceName}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">الحالة:</span>
+                            <span className={`font-medium ${
+                              service.status === "UP" ? "text-emerald-600" : service.status === "DEGRADED" ? "text-amber-600" : "text-red-600"
+                            }`}>
+                              {service.status === "UP" ? "يعمل" : service.status === "DEGRADED" ? "منخفض الأداء" : "متوقف"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">وقت الاستجابة:</span>
+                            <span className="font-medium">{service.responseTime}ms</span>
+                          </div>
+                          {service.lastError && (
+                            <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
+                              آخر خطأ: {service.lastError}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+              </div>
+            </>
+          )}
+
+          <h3 className="text-lg font-semibold text-slate-900">الأخطاء والإحصائيات</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <ErrorStats stats={errorStats} isLoading={statsLoading} />
+            </div>
+            <div className="lg:col-span-2">
+              <ErrorLogTable errors={errors} isLoading={errorsLoading} onResolve={handleResolve} />
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

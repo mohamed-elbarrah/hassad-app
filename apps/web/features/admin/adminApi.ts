@@ -49,6 +49,12 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+export interface AuditStats {
+  total: number;
+  topActions: Array<{ action: string; count: number }>;
+  topUsers: Array<{ userId: string; userName: string; count: number }>;
+}
+
 export interface PaginatedAuditLog {
   items: AuditLogEntry[];
   total: number;
@@ -470,6 +476,8 @@ export const adminApi = createApi({
     "AdminUser",
     "AdminSessions",
     "AdminSecurity",
+    "NotificationTemplates",
+    "MarketingStrategies",
   ],
   endpoints: (builder) => ({
     // ── Existing endpoints ──────────────────────────────────────────────────
@@ -497,6 +505,10 @@ export const adminApi = createApi({
         return `/admin/audit-log?${params.toString()}`;
       },
       providesTags: ["AuditLog"],
+    }),
+
+    getAdminAuditStats: builder.query<AuditStats, void>({
+      query: () => "/admin/audit-log/stats",
     }),
 
     getAuditFilters: builder.query<AuditFilterOptions, void>({
@@ -589,6 +601,25 @@ export const adminApi = createApi({
       invalidatesTags: (_result, _error, { id }) => [{ type: "AdminUser", id }],
     }),
 
+    createAdminUser: builder.mutation<
+      { id: string; name: string; email: string; role: string },
+      {
+        name: string;
+        email: string;
+        password: string;
+        role: string;
+        phoneWhatsapp?: string;
+        department?: string;
+      }
+    >({
+      query: (body) => ({
+        url: "/admin/users",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["AdminStats"],
+    }),
+
     // ── Admin Sessions ──────────────────────────────────────────────────────
 
     getAdminSessions: builder.query<
@@ -657,6 +688,24 @@ export const adminApi = createApi({
 
     getRecentActivity: builder.query<RecentActivityEntry[], void>({
       query: () => "/admin/recent-activity",
+    }),
+
+    // ── Dashboard v2 endpoints ────────────────────────────────────────────
+
+    getAdminDashboardAttention: builder.query<any, void>({
+      query: () => "/admin/dashboard/attention",
+    }),
+
+    getAdminDashboardRecentActivity: builder.query<any, number>({
+      query: (limit) => `/admin/dashboard/recent-activity?limit=${limit}`,
+    }),
+
+    getAdminDashboardTeamWorkload: builder.query<any, void>({
+      query: () => "/admin/dashboard/team-workload",
+    }),
+
+    getAdminUserWork: builder.query<any, string>({
+      query: (id) => `/admin/users/${id}/work`,
     }),
 
     // ── Projects ───────────────────────────────────────────────────────────
@@ -860,6 +909,31 @@ export const adminApi = createApi({
       query: (id) => `/admin/proposals/${id}`,
     }),
 
+    // ── Team Workload ────────────────────────────────────────────────────
+    getAdminTeamWorkload: builder.query<any, void>({
+      query: () => "/admin/team/workload",
+    }),
+
+    // ── Reports ──────────────────────────────────────────────────────────
+    getAdminReportSales: builder.query<any, { from?: string; to?: string }>({
+      query: (params) => ({ url: "/admin/reports/sales", params }),
+    }),
+    getAdminReportRevenue: builder.query<any, { from?: string; to?: string }>({
+      query: (params) => ({ url: "/admin/reports/revenue", params }),
+    }),
+    getAdminReportProjects: builder.query<any, { from?: string; to?: string }>({
+      query: (params) => ({ url: "/admin/reports/projects", params }),
+    }),
+    getAdminReportTeamPerformance: builder.query<any, { from?: string; to?: string }>({
+      query: (params) => ({ url: "/admin/reports/team-performance", params }),
+    }),
+    getAdminReportSatisfaction: builder.query<any, { from?: string; to?: string }>({
+      query: (params) => ({ url: "/admin/reports/satisfaction", params }),
+    }),
+    getAdminReportCampaigns: builder.query<any, { from?: string; to?: string }>({
+      query: (params) => ({ url: "/admin/reports/campaigns", params }),
+    }),
+
     // ── Clients ────────────────────────────────────────────────────────────
     getAdminClients: builder.query<any, any>({
       query: (filters) => ({ url: "/admin/clients", params: filters }),
@@ -975,6 +1049,75 @@ export const adminApi = createApi({
         method: "DELETE",
       }),
     }),
+
+    // ── Notification Templates ──────────────────────────────────────────────
+
+    getAdminNotificationTemplates: builder.query<
+      any,
+      { page?: number; limit?: number }
+    >({
+      query: (params) => ({
+        url: "admin/notification-templates",
+        params,
+      }),
+      providesTags: ["NotificationTemplates"],
+    }),
+
+    getAdminNotificationEventTypes: builder.query<any, void>({
+      query: () => "admin/notification-templates/event-types",
+    }),
+
+    updateAdminNotificationTemplate: builder.mutation<
+      any,
+      { id: string; data: any }
+    >({
+      query: ({ id, data }) => ({
+        url: `admin/notification-templates/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["NotificationTemplates"],
+    }),
+
+    getAdminTemplateLogs: builder.query<any, string>({
+      query: (id) => `admin/notification-templates/${id}/logs`,
+    }),
+
+    broadcastNotification: builder.mutation<
+      any,
+      { title: string; body: string; role?: string; userId?: string }
+    >({
+      query: (body) => ({
+        url: "notifications/broadcast",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    // ── Marketing Strategies ────────────────────────────────────────────────
+
+    getAdminMarketingStrategies: builder.query<
+      any,
+      { page?: number; limit?: number; status?: string }
+    >({
+      query: (params) => ({
+        url: "admin/marketing/strategies",
+        params,
+      }),
+      providesTags: ["MarketingStrategies"],
+    }),
+
+    updateAdminMarketingStrategyStatus: builder.mutation<
+      any,
+      { id: string; status: string; note?: string }
+    >({
+      query: ({ id, status, note }) => ({
+        url: `admin/marketing/strategies/${id}/status`,
+        method: "PATCH",
+        body: { status, note },
+      }),
+      invalidatesTags: ["MarketingStrategies"],
+    }),
   }),
 });
 
@@ -983,6 +1126,7 @@ export const {
   useGetAdminStatsQuery,
   useGetHealthQuery,
   useGetAuditLogQuery,
+  useGetAdminAuditStatsQuery,
   useGetAuditFiltersQuery,
   useGetAdminSettingsQuery,
   useUpdateAdminSettingsMutation,
@@ -995,6 +1139,7 @@ export const {
   useImpersonateUserMutation,
   useRevokeUserSessionsMutation,
   useSetUserPermissionsMutation,
+  useCreateAdminUserMutation,
   // Admin Sessions
   useGetAdminSessionsQuery,
   useRevokeSessionMutation,
@@ -1006,6 +1151,10 @@ export const {
   useGetFunnelDataQuery,
   useGetAlertsDataQuery,
   useGetRecentActivityQuery,
+  useGetAdminDashboardAttentionQuery,
+  useGetAdminDashboardRecentActivityQuery,
+  useGetAdminDashboardTeamWorkloadQuery,
+  useGetAdminUserWorkQuery,
   // Projects
   useGetAdminProjectsQuery,
   useGetAdminProjectQuery,
@@ -1052,6 +1201,15 @@ export const {
   // Clients
   useGetAdminClientsQuery,
   useGetAdminClientQuery,
+  // Team Workload
+  useGetAdminTeamWorkloadQuery,
+  // Reports
+  useGetAdminReportSalesQuery,
+  useGetAdminReportRevenueQuery,
+  useGetAdminReportProjectsQuery,
+  useGetAdminReportTeamPerformanceQuery,
+  useGetAdminReportSatisfactionQuery,
+  useGetAdminReportCampaignsQuery,
   // Finance
   useGetAdminFinanceOverviewQuery,
   useForceAdminInvoiceStatusMutation,
@@ -1070,4 +1228,14 @@ export const {
   useCreateAdminAutomationRuleMutation,
   useUpdateAdminAutomationRuleMutation,
   useDeleteAdminAutomationRuleMutation,
+  // Notification Templates
+  useGetAdminNotificationTemplatesQuery,
+  useGetAdminNotificationEventTypesQuery,
+  useUpdateAdminNotificationTemplateMutation,
+  useGetAdminTemplateLogsQuery,
+  // Marketing Strategies
+  useGetAdminMarketingStrategiesQuery,
+  useUpdateAdminMarketingStrategyStatusMutation,
+  // Notifications
+  useBroadcastNotificationMutation,
 } = adminApi;

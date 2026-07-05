@@ -6,6 +6,7 @@ import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { StatCard } from "@/components/design-system/StatCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { Dialog } from "@/components/design-system/Dialog";
@@ -17,8 +18,10 @@ import {
   useTriggerAdminRefundMutation,
 } from "@/features/admin/adminApi";
 import { INVOICE_STATUS_AR } from "@hassad/shared";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export default function AdminInvoicesPage() {
+  const { fmtAmount, currency } = useCurrency();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -87,6 +90,13 @@ export default function AdminInvoicesPage() {
         }
       />
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="إجمالي الفواتير" value={data?.total ?? 0} icon={FileText} />
+        <StatCard title="مدفوعة" value={invoices.filter((i: any) => i.status === "PAID").length} variant="success" />
+        <StatCard title="معلقة" value={invoices.filter((i: any) => i.status === "PENDING" || i.status === "PARTIAL").length} variant="warning" />
+        <StatCard title="متأخرة" value={invoices.filter((i: any) => i.status === "OVERDUE").length} variant="danger" />
+      </div>
+
       <SurfaceCard>
         <div className="flex items-center gap-3 mb-4">
           <div className="relative flex-1 max-w-sm">
@@ -134,7 +144,7 @@ export default function AdminInvoicesPage() {
                 {inv.client?.companyName ?? "—"}
               </td>
               <td className="px-5 py-3 text-sm">
-                {inv.amount?.toLocaleString()} ر.س
+                {fmtAmount(inv.amount)} {currency.symbol}
               </td>
               <td className="px-5 py-3">
                 <StatusBadge
@@ -254,8 +264,8 @@ export default function AdminInvoicesPage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-portal-note-text">
-            الفاتورة: {selectedInvoice?.client?.companyName} —{" "}
-            {selectedInvoice?.amount?.toLocaleString()} ر.س
+            الفاتورة:             {selectedInvoice?.client?.companyName} —{" "}
+            {fmtAmount(selectedInvoice?.amount)} {currency.symbol}
           </p>
           <select
             value={forceStatusValue}
@@ -316,8 +326,8 @@ export default function AdminInvoicesPage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-portal-note-text">
-            الفاتورة: {selectedInvoice?.client?.companyName} —{" "}
-            {selectedInvoice?.amount?.toLocaleString()} ر.س
+            الفاتورة:             {selectedInvoice?.client?.companyName} —{" "}
+            {fmtAmount(selectedInvoice?.amount)} {currency.symbol}
           </p>
           <div className="rounded-2xl bg-danger-50 p-3 text-sm text-danger-700">
             <Ban className="size-4 inline ml-1" />
@@ -370,8 +380,8 @@ export default function AdminInvoicesPage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-portal-note-text">
-            الفاتورة: {selectedInvoice?.client?.companyName} —{" "}
-            {selectedInvoice?.amount?.toLocaleString()} ر.س
+            الفاتورة:             {selectedInvoice?.client?.companyName} —{" "}
+            {fmtAmount(selectedInvoice?.amount)} {currency.symbol}
           </p>
           <div>
             <label className="block text-sm text-portal-note-text mb-1">

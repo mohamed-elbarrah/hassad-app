@@ -15,24 +15,20 @@ import { StatCard } from "@/components/design-system/StatCard";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Skeleton } from "@/components/design-system/Skeleton";
-import {
-  useGetFinanceMetricsQuery,
-  useGetRevenueTrendQuery,
-  useGetAgingQuery,
-  useGetCashFlowQuery,
-  useGetTopClientsQuery,
-  useGetFinanceAlertsQuery,
-} from "@/features/finance/financeApi";
+import { useGetAdminFinanceOverviewQuery } from "@/features/admin/adminApi";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export default function AdminFinancePage() {
-  const { data: metrics, isLoading: mLoading } = useGetFinanceMetricsQuery({});
-  const { data: revenueTrend } = useGetRevenueTrendQuery({ groupBy: "month" });
-  const { data: aging } = useGetAgingQuery();
-  const { data: cashflow } = useGetCashFlowQuery({});
-  const { data: topClients } = useGetTopClientsQuery({ limit: 5 });
-  const { data: alerts } = useGetFinanceAlertsQuery();
+  const { fmtAmount, fmtNumber } = useCurrency();
+  const { data: overview, isLoading } = useGetAdminFinanceOverviewQuery();
+  const metrics = overview?.metrics;
+  const revenueTrend = overview?.revenueTrend;
+  const aging = overview?.aging;
+  const cashflow = overview?.cashflow;
+  const topClients = overview?.topClients;
+  const alerts = overview?.alerts;
 
-  if (mLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col gap-6" dir="rtl">
         <Skeleton className="h-10 w-48 rounded-lg" />
@@ -71,14 +67,14 @@ export default function AdminFinancePage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
           title="إجمالي الإيرادات"
-          value={`${metrics?.revenue?.toLocaleString() ?? 0} ر.س`}
+          value={`${fmtAmount(metrics?.revenue)} ر.س`}
           icon={DollarSign}
           trend={(metrics?.revenueChange ?? 0) >= 0 ? "up" : "down"}
           trendValue={`${Math.abs(metrics?.revenueChange ?? 0)}%`}
         />
         <StatCard
           title="الفواتير المعلقة"
-          value={`${metrics?.pending?.toLocaleString() ?? 0} ر.س`}
+          value={`${fmtAmount(metrics?.pending)} ر.س`}
           icon={FileText}
           extra={
             <span className="text-xs text-danger-500">

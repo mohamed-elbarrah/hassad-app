@@ -58,6 +58,14 @@ export enum TaskDepartment {
   PRODUCTION = "PRODUCTION",
 }
 
+export const TASK_DEPARTMENT_AR: Record<TaskDepartment, string> = {
+  DESIGN: "تصميم",
+  CONTENT: "محتوى",
+  DEVELOPMENT: "تطوير",
+  MARKETING: "تسويق",
+  PRODUCTION: "مونتاج",
+};
+
 export enum ProjectMemberRole {
   MANAGER = "MANAGER",
   MEMBER = "MEMBER",

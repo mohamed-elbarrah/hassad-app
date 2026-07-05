@@ -50,6 +50,9 @@ export class AdminProjectsService {
             },
             select: { id: true },
           },
+          contract: { select: { totalValue: true } },
+          invoiceItems: { select: { total: true } },
+          periods: { select: { status: true } },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -57,20 +60,42 @@ export class AdminProjectsService {
     ]);
 
     return {
-      items: items.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        clientName: p.client?.companyName ?? "—",
-        pmId: p.manager?.id ?? null,
-        pmName: p.manager?.name ?? "—",
-        status: p.status,
-        completionPercentage: p.completionPercentage,
-        overdueTasksCount: p.tasks?.length ?? 0,
-        priority: p.priority,
-        startDate: p.startDate?.toISOString() ?? null,
-        endDate: p.endDate?.toISOString() ?? null,
-        createdAt: p.createdAt.toISOString(),
-      })),
+      items: items.map((p: any) => {
+        const now = new Date();
+        const isBehindSchedule =
+          p.endDate &&
+          p.endDate < now &&
+          p.status !== "COMPLETED" &&
+          p.status !== "CANCELLED";
+        const completedPeriods = p.periods?.filter(
+          (per: any) => per.status === "COMPLETED",
+        ).length ?? 0;
+        const totalPeriods = p.periods?.length ?? 0;
+        const totalInvoiced = p.invoiceItems?.reduce(
+          (sum: number, item: any) => sum + (item.total ?? 0),
+          0,
+        ) ?? 0;
+        const remainingValue = (p.contract?.totalValue ?? 0) - totalInvoiced;
+
+        return {
+          id: p.id,
+          name: p.name,
+          clientName: p.client?.companyName ?? "—",
+          pmId: p.manager?.id ?? null,
+          pmName: p.manager?.name ?? "—",
+          status: p.status,
+          completionPercentage: p.completionPercentage,
+          overdueTasksCount: p.tasks?.length ?? 0,
+          priority: p.priority,
+          startDate: p.startDate?.toISOString() ?? null,
+          endDate: p.endDate?.toISOString() ?? null,
+          createdAt: p.createdAt.toISOString(),
+          isBehindSchedule,
+          completedPeriods,
+          totalPeriods,
+          remainingValue,
+        };
+      }),
       total,
       page,
       limit,

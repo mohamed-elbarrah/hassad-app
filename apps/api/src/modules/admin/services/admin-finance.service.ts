@@ -46,6 +46,22 @@ export class AdminFinanceService {
       this.financeService.getRevenueTrend({ groupBy: "month" }),
       this.financeService.getAlerts(),
     ]);
+
+    const [totalPayments, refundPayments, paymentMethodSplit] = await Promise.all([
+      this.prisma.payment.count(),
+      this.prisma.payment.count({ where: { status: "REFUNDED" } }),
+      this.prisma.payment.groupBy({
+        by: ["method"],
+        _count: { method: true },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const refundRate =
+      totalPayments > 0
+        ? Math.round((refundPayments / totalPayments) * 100 * 100) / 100
+        : 0;
+
     return {
       summary,
       metrics,
@@ -54,6 +70,12 @@ export class AdminFinanceService {
       topClients,
       revenueTrend,
       alerts,
+      refundRate,
+      paymentMethodSplit: paymentMethodSplit.map((p) => ({
+        method: p.method,
+        count: p._count.method,
+        total: p._sum.amount ?? 0,
+      })),
     };
   }
 

@@ -99,6 +99,56 @@ export class AdminPortalService {
     };
   }
 
+  async getIntakeForms(query: {
+    clientId?: string;
+    isSubmitted?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const where: any = {};
+    if (query.clientId) where.clientId = query.clientId;
+    if (query.isSubmitted === "true") where.isSubmitted = true;
+    if (query.isSubmitted === "false") where.isSubmitted = false;
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const [items, total] = await Promise.all([
+      this.prisma.portalIntakeForm.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          client: {
+            select: {
+              companyName: true,
+              businessName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.portalIntakeForm.count({ where }),
+    ]);
+
+    return {
+      items: items.map((f) => ({
+        id: f.id,
+        clientId: f.clientId,
+        companyName:
+          (f.client as any)?.companyName ?? (f.client as any)?.businessName ?? "—",
+        token: f.token,
+        currentStep: f.currentStep,
+        isSubmitted: f.isSubmitted,
+        submittedAt: f.submittedAt?.toISOString() ?? null,
+        createdAt: f.createdAt.toISOString(),
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async regeneratePortalToken(clientId: string) {
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },

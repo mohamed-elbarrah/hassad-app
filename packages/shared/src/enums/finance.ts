@@ -99,9 +99,38 @@ export const PAYMENT_STATUS_AR: Record<PaymentStatus, string> = {
   REFUNDED: "مسترجع",
 };
 
+export const PAYMENT_METHOD_AR: Record<PaymentMethod, string> = {
+  APPLE_PAY: "أبل باي",
+  MADA: "مدى",
+  VISA_MC: "فيزا/ماستركارد",
+  TABBY: "تابي",
+  TAMARA: "تمارا",
+  BANK_TRANSFER: "تحويل بنكي",
+  CARD: "بطاقة",
+  CASH: "نقدي",
+};
+
+export const PAYMENT_GATEWAY_TYPE_AR: Record<PaymentGatewayType, string> = {
+  ONLINE: "إلكتروني",
+  MANUAL: "يدوي",
+};
+
 export const TICKET_STATUS_AR: Record<TicketStatus, string> = {
   PENDING: "معلق",
   COLLECTION: "تحصيل",
   PAID: "مدفوع",
   LATE: "متأخر",
+};
+
+export const PAY_TYPE_AR: Record<PayType, string> = {
+  FIXED: "ثابت",
+  HOURLY: "ساعي",
+  COMMISSION: "عمولة",
+  HYBRID: "مختلط",
+};
+
+export const SALARY_STATUS_AR: Record<SalaryStatus, string> = {
+  PENDING: "معلق",
+  PAID: "مدفوع",
+  CANCELLED: "ملغي",
 };

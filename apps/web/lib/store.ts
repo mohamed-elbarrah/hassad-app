@@ -16,6 +16,7 @@ import { financeApi } from "@/features/finance/financeApi";
 
 import { deliverablesApi } from "@/features/deliverables/deliverablesApi";
 import { adminApi } from "@/features/admin/adminApi";
+import { adminClientsApi } from "@/features/admin/adminClientsApi";
 import { marketingApi } from "@/features/marketing/marketingApi";
 import { portalApi } from "@/features/portal/portalApi";
 import { portalNotificationsApi } from "@/features/portal-notifications/portalNotificationsApi";
@@ -51,6 +52,7 @@ export const store = configureStore({
 
     [deliverablesApi.reducerPath]: deliverablesApi.reducer,
     [adminApi.reducerPath]: adminApi.reducer,
+    [adminClientsApi.reducerPath]: adminClientsApi.reducer,
     [marketingApi.reducerPath]: marketingApi.reducer,
     [portalApi.reducerPath]: portalApi.reducer,
     [portalNotificationsApi.reducerPath]: portalNotificationsApi.reducer,
@@ -83,6 +85,7 @@ export const store = configureStore({
 
       deliverablesApi.middleware,
       adminApi.middleware,
+      adminClientsApi.middleware,
       marketingApi.middleware,
       portalApi.middleware,
       portalNotificationsApi.middleware,

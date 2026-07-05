@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Area,
   AreaChart,
@@ -17,6 +18,7 @@ import {
   YAxis,
 } from "recharts";
 import { useAppSelector } from "@/lib/hooks";
+import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotificationSocket";
 import {
   useGetAdminStatsQuery,
   useGetTrendDataQuery,
@@ -24,6 +26,9 @@ import {
   useGetAlertsDataQuery,
   useGetHealthQuery,
   useGetRecentActivityQuery,
+  useGetAdminDashboardAttentionQuery,
+  useGetAdminDashboardRecentActivityQuery,
+  useGetAdminDashboardTeamWorkloadQuery,
 } from "@/features/admin/adminApi";
 import { NeedsAttentionCard } from "@/components/dashboard/admin/NeedsAttentionCard";
 import { RecentActivityFeed } from "@/components/dashboard/admin/RecentActivityFeed";
@@ -58,6 +63,8 @@ import {
   ArrowDownRight,
   Minus,
   ChevronLeft,
+  ClipboardList,
+  Scale,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -70,9 +77,245 @@ function TrendArrow({ value }: { value?: number }) {
   return <ArrowDownRight className="w-3.5 h-3.5 text-danger-500" />;
 }
 
+const TIME_RANGES = [
+  { label: "اليوم", value: "today" },
+  { label: "آخر 7 أيام", value: "7d" },
+  { label: "آخر 30 يوم", value: "30d" },
+  { label: "آخر 12 شهر", value: "12m" },
+] as const;
+
+function getDateRange(range: string): { from?: string; to?: string } {
+  const now = new Date();
+  const to = now.toISOString();
+  let from: string;
+  switch (range) {
+    case "today":
+      from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      break;
+    case "7d":
+      from = new Date(now.getTime() - 7 * 86400000).toISOString();
+      break;
+    case "30d":
+      from = new Date(now.getTime() - 30 * 86400000).toISOString();
+      break;
+    case "12m":
+      from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString();
+      break;
+    default:
+      return {};
+  }
+  return { from, to };
+}
+
+// ── Needs Attention Cards ────────────────────────────────────────────────────
+
+function NeedsAttentionCards({ data, isLoading }: { data?: any; isLoading: boolean }) {
+  const router = useRouter();
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
+
+  const items = [
+    {
+      key: "stalledProjects",
+      icon: AlertTriangle,
+      label: "مشاريع متعثرة",
+      color: "bg-danger-100 text-danger-600 border-danger-200",
+      iconBg: "bg-danger-500/10",
+      count: data?.stalledProjects ?? 0,
+      link: "/dashboard/admin/projects?status=STALLED",
+    },
+    {
+      key: "newRequests",
+      icon: ClipboardList,
+      label: "طلبات جديدة",
+      color: "bg-action-blue-soft text-action-blue border-action-blue-soft",
+      iconBg: "bg-action-blue/10",
+      count: data?.newRequests ?? 0,
+      link: "/dashboard/admin/requests?status=NEW",
+    },
+    {
+      key: "openDisputes",
+      icon: Scale,
+      label: "نزاعات مفتوحة",
+      color: "bg-alert-100 text-alert-600 border-alert-200",
+      iconBg: "bg-alert-500/10",
+      count: data?.openDisputes ?? 0,
+      link: "/dashboard/admin/disputes?status=OPEN",
+    },
+    {
+      key: "overdueInvoices",
+      icon: DollarSign,
+      label: "فواتير متأخرة",
+      color: "bg-danger-100 text-danger-600 border-danger-200",
+      iconBg: "bg-danger-500/10",
+      count: data?.overdueInvoices ?? 0,
+      link: "/dashboard/admin/finance?status=OVERDUE",
+    },
+    {
+      key: "delayAlerts",
+      icon: Clock,
+      label: "تنبيهات تأخير",
+      color: "bg-alert-100 text-alert-600 border-alert-200",
+      iconBg: "bg-alert-500/10",
+      count: data?.delayAlerts ?? 0,
+      link: "/dashboard/admin/alerts",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {items.map((item) => (
+        <div
+          key={item.key}
+          onClick={() => router.push(item.link)}
+          className={cn(
+            "rounded-2xl border p-4 flex items-center gap-3 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5",
+            item.color,
+          )}
+        >
+          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", item.iconBg)}>
+            <item.icon className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xl font-bold">{item.count.toLocaleString()}</p>
+            <p className="text-[11px] opacity-80 truncate">{item.label}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Recent Activity List ─────────────────────────────────────────────────────
+
+function RecentActivityList({ data, isLoading }: { data?: any; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <SurfaceCard title="آخر النشاطات" icon={Activity}>
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 rounded-xl" />
+          ))}
+        </div>
+      </SurfaceCard>
+    );
+  }
+
+  const items = Array.isArray(data) ? data : data?.items ?? data?.data ?? [];
+
+  if (items.length === 0) {
+    return (
+      <SurfaceCard title="آخر النشاطات" icon={Activity}>
+        <div className="flex flex-col items-center justify-center py-8 text-portal-note-text">
+          <Activity className="size-8 mb-2 opacity-40" />
+          <p className="text-sm">لا توجد نشاطات حديثة</p>
+        </div>
+      </SurfaceCard>
+    );
+  }
+
+  const dotColors: Record<string, string> = {
+    create: "bg-success-500",
+    update: "bg-action-blue",
+    delete: "bg-danger-500",
+    default: "bg-neutral-400",
+  };
+
+  return (
+    <SurfaceCard title="آخر النشاطات" icon={Activity}>
+      <div className="space-y-1">
+        {items.map((entry: any) => {
+          const dotColor = dotColors[entry.actionType] ?? dotColors.default;
+          return (
+            <div
+              key={entry.id}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-badge-gray-bg/50 transition-colors"
+            >
+              <span className={cn("w-2 h-2 rounded-full shrink-0", dotColor)} />
+              <div className="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-natural-100">
+                  {entry.userName ?? entry.actorName ?? ""}
+                </span>
+                <span className="text-sm text-portal-note-text">
+                  {entry.actionAr ?? entry.action ?? entry.description}
+                </span>
+                {entry.entity && (
+                  <span className="text-sm text-portal-note-text">
+                    {entry.entity}
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-portal-note-text shrink-0">
+                {entry.timestamp ?? entry.occurredAt ?? entry.createdAt ? new Date(entry.timestamp ?? entry.occurredAt ?? entry.createdAt).toLocaleDateString("ar-SA") : ""}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </SurfaceCard>
+  );
+}
+
+// ── Team Workload ────────────────────────────────────────────────────────────
+
+function TeamWorkload({ data, isLoading }: { data?: any; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
+
+  const items = [
+    {
+      label: "متاح",
+      value: data?.available ?? 0,
+      color: "bg-success-100 text-success-600 border-success-200",
+    },
+    {
+      label: "مشغول",
+      value: data?.busy ?? 0,
+      color: "bg-alert-100 text-alert-600 border-alert-200",
+    },
+    {
+      label: "محمل فوق الطاقة",
+      value: data?.overloaded ?? 0,
+      color: "bg-danger-100 text-danger-600 border-danger-200",
+    },
+  ];
+
+  return (
+    <div>
+      <h3 className="text-base font-semibold text-natural-100 mb-3">حالة الفريق</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className={cn("rounded-2xl border p-4 flex items-center justify-between", item.color)}
+          >
+            <span className="text-sm font-medium">{item.label}</span>
+            <span className="text-xl font-bold">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Hero KPIs ───────────────────────────────────────────────────────────────
 
-function HeroKpis({ stats, isLoading }: { stats?: any; isLoading: boolean }) {
+function HeroKpis({ stats, isLoading, router }: { stats?: any; isLoading: boolean; router: any }) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -86,7 +329,10 @@ function HeroKpis({ stats, isLoading }: { stats?: any; isLoading: boolean }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {/* Revenue — brand gold emphasis */}
-      <div className="min-w-[132px] rounded-2xl px-4 py-3 bg-gradient-to-bl from-primary-100 to-primary-200/60 ring-1 ring-inset ring-primary-300/60">
+      <div
+        onClick={() => router.push("/dashboard/admin/finance")}
+        className="min-w-[132px] rounded-2xl px-4 py-3 bg-gradient-to-bl from-primary-100 to-primary-200/60 ring-1 ring-inset ring-primary-300/60 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
+      >
         <div className="flex items-center gap-1.5 text-xs font-medium text-primary-700">
           <DollarSign className="h-3.5 w-3.5" />
           <span>الإيرادات الشهرية</span>
@@ -105,40 +351,55 @@ function HeroKpis({ stats, isLoading }: { stats?: any; isLoading: boolean }) {
         )}
       </div>
 
-      <KpiPill
-        label="المستخدمين"
-        value={
-          <div className="flex items-baseline gap-2">
-            <span className="text-[28px] font-bold text-natural-100">
-              {stats?.totalUsers?.toLocaleString() ?? "—"}
-            </span>
-            <TrendArrow value={stats?.recentUsers} />
-          </div>
-        }
-      />
+      <div
+        onClick={() => router.push("/dashboard/admin/users")}
+        className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
+      >
+        <KpiPill
+          label="المستخدمين"
+          value={
+            <div className="flex items-baseline gap-2">
+              <span className="text-[28px] font-bold text-natural-100">
+                {stats?.totalUsers?.toLocaleString() ?? "—"}
+              </span>
+              <TrendArrow value={stats?.recentUsers} />
+            </div>
+          }
+        />
+      </div>
 
-      <KpiPill
-        label="العملاء النشطين"
-        value={
-          <div className="flex items-baseline gap-2">
-            <span className="text-[28px] font-bold text-natural-100">
-              {stats?.activeClients?.toLocaleString() ?? "—"}
-            </span>
-            <TrendArrow value={stats?.newClientsThisMonth} />
-          </div>
-        }
-      />
+      <div
+        onClick={() => router.push("/dashboard/admin/clients")}
+        className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
+      >
+        <KpiPill
+          label="العملاء النشطين"
+          value={
+            <div className="flex items-baseline gap-2">
+              <span className="text-[28px] font-bold text-natural-100">
+                {stats?.activeClients?.toLocaleString() ?? "—"}
+              </span>
+              <TrendArrow value={stats?.newClientsThisMonth} />
+            </div>
+          }
+        />
+      </div>
 
-      <KpiPill
-        label="المشاريع الجارية"
-        value={
-          <div className="flex items-baseline gap-2">
-            <span className="text-[28px] font-bold text-natural-100">
-              {stats?.activeProjects?.toLocaleString() ?? "—"}
-            </span>
-          </div>
-        }
-      />
+      <div
+        onClick={() => router.push("/dashboard/admin/projects")}
+        className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
+      >
+        <KpiPill
+          label="المشاريع الجارية"
+          value={
+            <div className="flex items-baseline gap-2">
+              <span className="text-[28px] font-bold text-natural-100">
+                {stats?.activeProjects?.toLocaleString() ?? "—"}
+              </span>
+            </div>
+          }
+        />
+      </div>
     </div>
   );
 }
@@ -154,22 +415,10 @@ function RevenueChart({
 }) {
   if (isLoading) {
     return (
-    <SurfaceCard
-      className="h-[360px] flex flex-col"
-      contentClassName="flex-1 min-h-0"
-    >
-      <Skeleton className="h-full w-full rounded-2xl" />
-    </SurfaceCard>
-  );
-
-  return (
-    <SurfaceCard
-      className="h-[360px] flex flex-col"
-      contentClassName="flex-1 min-h-0"
-      title="الإيرادات الشهرية"
-      description="آخر 30 يوم"
-      icon={TrendingUp}
-    >
+      <SurfaceCard
+        className="h-[360px] flex flex-col"
+        contentClassName="flex-1 min-h-0"
+      >
         <Skeleton className="h-full w-full rounded-2xl" />
       </SurfaceCard>
     );
@@ -697,8 +946,14 @@ function PageSkeleton() {
 // ── Main page ───────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const { fmtNumber } = useCurrency();
+  useDashboardNotificationSocket();
+
+  const [timeRange, setTimeRange] = useState("30d");
+
+  const dateRange = useMemo(() => getDateRange(timeRange), [timeRange]);
 
   const { data: stats, isLoading: statsLoading } = useGetAdminStatsQuery();
   const { data: trends, isLoading: trendsLoading } = useGetTrendDataQuery({
@@ -708,6 +963,9 @@ export default function AdminDashboardPage() {
   const { data: alerts, isLoading: alertsLoading } = useGetAlertsDataQuery();
   const { data: health, isLoading: healthLoading } = useGetHealthQuery();
   const { data: recentActivity, isLoading: activityLoading } = useGetRecentActivityQuery();
+  const { data: attention, isLoading: attentionLoading } = useGetAdminDashboardAttentionQuery();
+  const { data: dashboardRecentActivity, isLoading: dashboardRecentLoading } = useGetAdminDashboardRecentActivityQuery(10);
+  const { data: teamWorkload, isLoading: teamWorkloadLoading } = useGetAdminDashboardTeamWorkloadQuery();
 
   const isLoading =
     statsLoading ||
@@ -754,6 +1012,15 @@ export default function AdminDashboardPage() {
         icon={LayoutDashboard}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="h-10 rounded-xl border border-portal-card-border bg-natural-0 px-3 text-sm text-natural-100 focus:outline-none focus:ring-2 focus:ring-secondary-300"
+            >
+              {TIME_RANGES.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
             <ActionButton
               href="/dashboard/admin/users"
               variant="primary"
@@ -790,9 +1057,16 @@ export default function AdminDashboardPage() {
         }
       />
 
+      <div>
+        <h2 className="text-base font-semibold text-natural-100 mb-3">ما يحتاج اهتمامك اليوم</h2>
+        <NeedsAttentionCards data={attention} isLoading={attentionLoading} />
+      </div>
+
       <HealthCards health={health} isLoading={healthLoading} />
 
-      <HeroKpis stats={stats} isLoading={statsLoading} />
+      <HeroKpis stats={stats} isLoading={statsLoading} router={router} />
+
+      <TeamWorkload data={teamWorkload} isLoading={teamWorkloadLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
@@ -846,6 +1120,8 @@ export default function AdminDashboardPage() {
           </div>
         </DashboardCard>
       </div>
+
+      <RecentActivityList data={dashboardRecentActivity} isLoading={dashboardRecentLoading} />
     </div>
   );
 }
