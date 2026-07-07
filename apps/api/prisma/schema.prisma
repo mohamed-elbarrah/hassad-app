@@ -436,6 +436,7 @@ model Request {
   businessType    BusinessType           @map("business_type")
   source          ClientSource
   notes           String?
+  internalNotes   String?                @map("internal_notes")
   status          RequestStatus          @default(SUBMITTED)
   createdAt       DateTime               @default(now()) @map("created_at")
   updatedAt       DateTime               @updatedAt @map("updated_at")

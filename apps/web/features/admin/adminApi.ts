@@ -100,6 +100,7 @@ export interface AdminUserDetail {
   failedLoginAttempts: number;
   lockedUntil: string | null;
   activeRequestsCount: number;
+  activeTasksCount: number;
   activeProjectsCount: number;
   createdAt: string;
   updatedAt: string;
@@ -165,6 +166,13 @@ export interface PaginatedUserActivity {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface UserPerformance {
+  activeTasksCount: number;
+  workloadStatus: "AVAILABLE" | "BUSY" | "OVERLOADED";
+  avgCompletionSpeedDays: number;
+  avgQualityScore: number;
 }
 
 // ── Session types ─────────────────────────────────────────────────────────────
@@ -710,6 +718,10 @@ export const adminApi = createApi({
       query: (id) => `/admin/users/${id}/work`,
     }),
 
+    getAdminUserPerformance: builder.query<UserPerformance, string>({
+      query: (id) => `/admin/users/${id}/performance`,
+    }),
+
     // ── Projects ───────────────────────────────────────────────────────────
 
     getAdminProjects: builder.query<PaginatedProjects, Record<string, any>>({
@@ -799,6 +811,13 @@ export const adminApi = createApi({
         body,
       }),
     }),
+    updateContractStatus: builder.mutation<void, { id: string; status: string; reason?: string }>({
+      query: ({ id, status, reason }) => ({
+        url: `/admin/contracts/${id}/status`,
+        method: "POST",
+        body: { status, reason },
+      }),
+    }),
 
     // ── Leads ──────────────────────────────────────────────────────────────
 
@@ -853,6 +872,16 @@ export const adminApi = createApi({
         body: { status, reason },
       }),
     }),
+    updateRequestNotes: builder.mutation<any, { id: string; notes: string }>({
+      query: ({ id, notes }) => ({
+        url: `/admin/requests/${id}/notes`,
+        method: "PATCH",
+        body: { notes },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminStats", id },
+      ],
+    }),
 
     // ── Campaigns ──────────────────────────────────────────────────────────
 
@@ -861,6 +890,9 @@ export const adminApi = createApi({
     }),
     getAdminCampaign: builder.query<any, string>({
       query: (id) => `/admin/campaigns/${id}`,
+    }),
+    createAdminCampaign: builder.mutation<any, any>({
+      query: (body) => ({ url: "/admin/campaigns", method: "POST", body }),
     }),
     pauseCampaign: builder.mutation<void, string>({
       query: (id) => ({ url: `/admin/campaigns/${id}/pause`, method: "POST" }),
@@ -923,6 +955,13 @@ export const adminApi = createApi({
     }),
     getAdminProposal: builder.query<any, string>({
       query: (id) => `/admin/proposals/${id}`,
+    }),
+    convertProposalToContract: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `/admin/proposals/${id}/convert-to-contract`,
+        method: "POST",
+      }),
+      invalidatesTags: ["AdminStats"],
     }),
 
     // ── Team Workload ────────────────────────────────────────────────────
@@ -1182,6 +1221,7 @@ export const {
   useGetAdminDashboardRecentActivityQuery,
   useGetAdminDashboardTeamWorkloadQuery,
   useGetAdminUserWorkQuery,
+  useGetAdminUserPerformanceQuery,
   // Projects
   useGetAdminProjectsQuery,
   useGetAdminProjectQuery,
@@ -1199,6 +1239,7 @@ export const {
   useCancelContractMutation,
   useTriggerRenewalAlertMutation,
   useConvertContractToProjectMutation,
+  useUpdateContractStatusMutation,
   // Leads
   useGetAdminLeadsQuery,
   useGetAdminLeadQuery,
@@ -1210,9 +1251,11 @@ export const {
   useGetAdminRequestQuery,
   useReassignRequestMutation,
   useForceRequestStatusMutation,
+  useUpdateRequestNotesMutation,
   // Campaigns
   useGetAdminCampaignsQuery,
   useGetAdminCampaignQuery,
+  useCreateAdminCampaignMutation,
   usePauseCampaignMutation,
   useEndCampaignMutation,
   // Chat
@@ -1227,6 +1270,7 @@ export const {
   useGetAdminProposalsQuery,
   useGetAdminProposalStatsQuery,
   useGetAdminProposalQuery,
+  useConvertProposalToContractMutation,
   // Clients
   useGetAdminClientsQuery,
   useGetAdminClientQuery,

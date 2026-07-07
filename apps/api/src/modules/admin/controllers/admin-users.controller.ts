@@ -49,6 +49,12 @@ export class AdminUsersController {
     return this.adminUsersService.findOne(id);
   }
 
+  @Get(":id/performance")
+  @RequirePermissions("admin.users.read")
+  getPerformance(@Param("id") id: string) {
+    return this.adminUsersService.getPerformance(id);
+  }
+
   @Get(":id/activity")
   @RequirePermissions("admin.users.read")
   getActivity(

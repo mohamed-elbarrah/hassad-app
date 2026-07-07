@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, BarChart3, PauseCircle, StopCircle, Download } from "lucide-react";
+import { Search, BarChart3, PauseCircle, StopCircle, Download, Plus, PieChart } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FilterBar,
@@ -15,14 +15,19 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
 import { Dialog } from "@/components/design-system/Dialog";
 import { StatCard } from "@/components/design-system/StatCard";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { SpendDistributionDonutChart } from "@/components/design-system/SpendDistributionDonutChart";
 import { toast } from "sonner";
 import {
   useGetAdminCampaignsQuery,
+  useCreateAdminCampaignMutation,
   usePauseCampaignMutation,
   useEndCampaignMutation,
   type CampaignRow,
 } from "@/features/admin/adminApi";
 import { CAMPAIGN_STATUS_AR } from "@hassad/shared";
+import type { ReportPlatformDistribution } from "@/features/portal/portalApi";
 
 const STATUS_OPTIONS = [
   { label: "الكل", value: "" },
@@ -58,6 +63,13 @@ const exportCSV = (data: any[], filename: string) => {
   URL.revokeObjectURL(url);
 };
 
+const PLATFORM_OPTIONS = [
+  { label: "جوجل", value: "GOOGLE" },
+  { label: "فيسبوك", value: "META" },
+  { label: "تيك توك", value: "TIKTOK" },
+  { label: "سناب شات", value: "SNAPCHAT" },
+];
+
 export default function AdminCampaignsPage() {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
@@ -68,6 +80,15 @@ export default function AdminCampaignsPage() {
     campaign: CampaignRow;
     action: "pause" | "end";
   } | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    platform: "",
+    budgetTotal: 0,
+    startDate: "",
+    endDate: "",
+    clientId: "",
+  });
 
   const debouncedSearch = useDebounce(searchInput, 400);
   const filters: any = {
@@ -78,10 +99,27 @@ export default function AdminCampaignsPage() {
   if (filters.overspentOnly?.[0]) filters.overspentOnly = "true";
 
   const { data, isLoading, isError } = useGetAdminCampaignsQuery(filters);
+  const [createCampaign, { isLoading: isCreating }] = useCreateAdminCampaignMutation();
   const [pause] = usePauseCampaignMutation();
   const [end] = useEndCampaignMutation();
 
   const campaigns = data?.items ?? [];
+
+  const platformDistribution: ReportPlatformDistribution[] = useMemo(() => {
+    const grouped: Record<string, { spend: number }> = {};
+    let totalSpend = 0;
+    for (const c of campaigns) {
+      const platform = c.platform || "أخرى";
+      if (!grouped[platform]) grouped[platform] = { spend: 0 };
+      grouped[platform].spend += c.budgetSpent;
+      totalSpend += c.budgetSpent;
+    }
+    return Object.entries(grouped).map(([platform, { spend }]) => ({
+      platform,
+      spend,
+      percent: totalSpend > 0 ? (spend / totalSpend) * 100 : 0,
+    }));
+  }, [campaigns]);
 
   const handleFilterChange = useCallback(
     (key: string, values: string[]) =>
@@ -105,6 +143,24 @@ export default function AdminCampaignsPage() {
     }
   };
 
+  const handleCreate = async () => {
+    try {
+      await createCampaign({
+        name: createForm.name,
+        platform: createForm.platform,
+        budgetTotal: createForm.budgetTotal,
+        startDate: createForm.startDate,
+        endDate: createForm.endDate || undefined,
+        clientId: createForm.clientId,
+      }).unwrap();
+      toast.success("تم إنشاء الحملة بنجاح");
+      setShowCreate(false);
+      setCreateForm({ name: "", platform: "", budgetTotal: 0, startDate: "", endDate: "", clientId: "" });
+    } catch {
+      toast.error("فشل إنشاء الحملة");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       <PageIntro
@@ -112,13 +168,21 @@ export default function AdminCampaignsPage() {
         description={`إجمالي ${data?.total ?? 0} حملة`}
         icon={BarChart3}
         actions={
-          <button
-            onClick={() => exportCSV(campaigns, "الحملات")}
-            className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
-          >
-            <Download className="size-4" />
-            تصدير CSV
-          </button>
+          <div className="flex gap-2">
+            <ActionButton
+              onClick={() => setShowCreate(true)}
+            >
+              <Plus className="size-4" />
+              إنشاء حملة
+            </ActionButton>
+            <button
+              onClick={() => exportCSV(campaigns, "الحملات")}
+              className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
+            >
+              <Download className="size-4" />
+              تصدير CSV
+            </button>
+          </div>
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -127,6 +191,15 @@ export default function AdminCampaignsPage() {
         <StatCard title="متوقفة" value={campaigns.filter((c) => c.status === "PAUSED").length} variant="warning" />
         <StatCard title="منتهية" value={campaigns.filter((c) => c.status === "ENDED").length} variant="default" />
       </div>
+
+      {platformDistribution.length > 1 && (
+        <SurfaceCard title="توزيع الإنفاق حسب المنصة" icon={PieChart}>
+          <div className="h-64">
+            <SpendDistributionDonutChart data={platformDistribution} />
+          </div>
+        </SurfaceCard>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-3 items-start">
         <div className="relative flex-1">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
@@ -286,6 +359,89 @@ export default function AdminCampaignsPage() {
         }
       >
         <div />
+      </Dialog>
+
+      <Dialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        title="إنشاء حملة جديدة"
+        footer={
+          <div className="flex gap-2 justify-end w-full">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowCreate(false)}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              onClick={handleCreate}
+              loading={isCreating}
+              disabled={!createForm.name || !createForm.platform || !createForm.startDate || !createForm.clientId}
+            >
+              إنشاء
+            </ActionButton>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-natural-100">اسم الحملة *</label>
+            <FormInputControl
+              placeholder="اسم الحملة"
+              value={createForm.name}
+              onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-natural-100">المنصة *</label>
+            <select
+              value={createForm.platform}
+              onChange={(e) => setCreateForm((f) => ({ ...f, platform: e.target.value }))}
+              className="w-full rounded-xl border border-portal-divider bg-natural-0 px-4 py-2.5 text-sm text-natural-100 focus:outline-none focus:ring-2 focus:ring-secondary-500"
+            >
+              <option value="">اختر المنصة</option>
+              {PLATFORM_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-natural-100">الميزانية *</label>
+            <FormInputControl
+              type="number"
+              min={0}
+              placeholder="الميزانية"
+              value={createForm.budgetTotal || ""}
+              onChange={(e) => setCreateForm((f) => ({ ...f, budgetTotal: parseFloat(e.target.value) || 0 }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-natural-100">تاريخ البداية *</label>
+              <FormInputControl
+                type="date"
+                value={createForm.startDate}
+                onChange={(e) => setCreateForm((f) => ({ ...f, startDate: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-natural-100">تاريخ النهاية</label>
+              <FormInputControl
+                type="date"
+                value={createForm.endDate}
+                onChange={(e) => setCreateForm((f) => ({ ...f, endDate: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-natural-100">معرف العميل *</label>
+            <FormInputControl
+              placeholder="معرف العميل"
+              value={createForm.clientId}
+              onChange={(e) => setCreateForm((f) => ({ ...f, clientId: e.target.value }))}
+            />
+          </div>
+        </div>
       </Dialog>
     </div>
   );

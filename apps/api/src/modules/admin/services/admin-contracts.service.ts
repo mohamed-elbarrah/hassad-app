@@ -128,6 +128,41 @@ export class AdminContractsService {
     return { success: true };
   }
 
+  async updateStatus(contractId: string, userId: string, status: string, reason?: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+
+    await this.prisma.$transaction([
+      this.prisma.contract.update({
+        where: { id: contractId },
+        data: { status: status as any },
+      }),
+      this.prisma.contractStatusHistory.create({
+        data: {
+          contractId,
+          fromStatus: contract.status as any,
+          toStatus: status as any,
+          changedBy: userId,
+          reason,
+        },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.contracts.status_change",
+          entity: "contract",
+          entityId: contractId,
+          userId,
+          before: { status: contract.status },
+          after: { status },
+        },
+      }),
+    ]);
+
+    return { success: true };
+  }
+
   async convertToProject(id: string, userId: string, dto: ConvertToProjectDto) {
     const contract = await this.prisma.contract.findUnique({
       where: { id },

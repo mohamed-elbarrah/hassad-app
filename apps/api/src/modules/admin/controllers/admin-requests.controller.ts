@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   Query,
@@ -34,5 +35,10 @@ export class AdminRequestsController {
   @RequirePermissions("admin.requests.intervene")
   forceStatus(@Param("id") id: string, @Body() body: any) {
     return this.service.forceStatus(id, body.status, body.reason);
+  }
+  @Patch(":id/notes")
+  @RequirePermissions("admin.requests.intervene")
+  updateNotes(@Param("id") id: string, @Body("notes") notes: string) {
+    return this.service.updateNotes(id, notes);
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   DollarSign,
   TrendingUp,
@@ -9,6 +9,8 @@ import {
   CreditCard,
   Users,
   AlertTriangle,
+  BarChart3,
+  RotateCcw,
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -18,8 +20,10 @@ import { DataTable } from "@/components/design-system/DataTable";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { EmptyState } from "@/components/design-system/EmptyState";
 import { TimeRangeSelector, getTimeRangeParams, type TimeRange } from "@/components/design-system/TimeRangeSelector";
+import { MonthlyComparisonBarChart } from "@/components/design-system/MonthlyComparisonBarChart";
 import { useGetAdminFinanceOverviewQuery } from "@/features/admin/adminApi";
 import { useCurrency } from "@/hooks/useCurrency";
+import type { ReportTimeline } from "@/features/portal/portalApi";
 
 export default function AdminFinancePage() {
   const { fmtAmount, fmtNumber, currency } = useCurrency();
@@ -32,13 +36,28 @@ export default function AdminFinancePage() {
   const cashflow = overview?.cashflow;
   const topClients = overview?.topClients;
   const alerts = overview?.alerts;
+  const refundRate = overview?.refundRate;
+
+  const timeline: ReportTimeline | undefined = useMemo(() => {
+    if (!revenueTrend || revenueTrend.length === 0) return undefined;
+    return {
+      labels: revenueTrend.map((r) => r.label),
+      datasets: [
+        {
+          label: "الإيرادات",
+          data: revenueTrend.map((r) => r.income),
+          metric: "spend",
+        },
+      ],
+    };
+  }, [revenueTrend]);
 
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6" dir="rtl">
         <Skeleton className="h-10 w-48 rounded-lg" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-2xl" />
           ))}
         </div>
@@ -71,7 +90,7 @@ export default function AdminFinancePage() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="إجمالي الإيرادات"
           value={`${fmtAmount(metrics?.revenue)} ${currency.symbol}`}
@@ -103,33 +122,20 @@ export default function AdminFinancePage() {
           trend={(metrics?.netProfitChange ?? 0) >= 0 ? "up" : "down"}
           trendValue={`${Math.abs(metrics?.netProfitChange ?? 0)}%`}
         />
+        <StatCard
+          title="معدل الاسترداد"
+          value={refundRate != null ? `${refundRate}%` : "—"}
+          icon={RotateCcw}
+          trend={refundRate != null && refundRate > 5 ? "down" : "up"}
+          trendValue={refundRate != null ? `${refundRate}%` : undefined}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend */}
-        <SurfaceCard title="اتجاه الإيرادات الشهرية" icon={TrendingUp}>
-          <div className="space-y-2">
-            {(revenueTrend ?? []).slice(-6).map((r, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between py-1.5 border-b border-portal-divider last:border-0"
-              >
-                <span className="text-sm text-portal-note-text">{r.label}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">
-                    {fmtAmount(r.income)} {currency.symbol}
-                  </span>
-                  {r.income > (revenueTrend?.[i - 1]?.income ?? 0) ? (
-                    <TrendingUp className="size-4 text-success-500" />
-                  ) : (
-                    <TrendingDown className="size-4 text-danger-500" />
-                  )}
-                </div>
-              </div>
-            ))}
-            {(!revenueTrend || revenueTrend.length === 0) && (
-              <EmptyState icon={TrendingDown} title="لا توجد بيانات إيرادات" />
-            )}
+        <SurfaceCard title="اتجاه الإيرادات الشهرية" icon={BarChart3}>
+          <div className="h-64">
+            <MonthlyComparisonBarChart timeline={timeline} />
           </div>
         </SurfaceCard>
 

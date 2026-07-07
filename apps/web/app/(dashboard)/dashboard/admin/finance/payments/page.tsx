@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Search, Activity, Webhook, RefreshCw, Ticket, Download, CheckCircle } from "lucide-react";
+import { CreditCard, Search, Activity, Ticket, Download, CheckCircle } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -22,8 +22,6 @@ import {
   useGetPaymentGatewaysQuery,
 } from "@/features/finance/financeApi";
 import {
-  useGetAdminWebhookLogsQuery,
-  useRetryAdminWebhookMutation,
   useGetAdminGatewaysHealthQuery,
 } from "@/features/admin/adminApi";
 import { PAYMENT_STATUS_AR, TICKET_STATUS_AR } from "@hassad/shared";
@@ -52,7 +50,6 @@ export default function AdminPaymentsPage() {
   const { fmtAmount, currency } = useCurrency();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [webhookFilter, setWebhookFilter] = useState("");
 
   const [ticketPage, setTicketPage] = useState(1);
   const [ticketSearch, setTicketSearch] = useState("");
@@ -60,9 +57,6 @@ export default function AdminPaymentsPage() {
   const { data, isLoading, isError } = useGetPaymentsQuery({ page, limit: 20 });
   const { data: gateways } = useGetPaymentGatewaysQuery();
   const { data: gatewaysHealth } = useGetAdminGatewaysHealthQuery();
-  const { data: webhookData, isLoading: wLoading } =
-    useGetAdminWebhookLogsQuery({ status: webhookFilter || undefined });
-  const [retryWebhook] = useRetryAdminWebhookMutation();
 
   const { data: ticketsData, isLoading: ticketsLoading, isError: ticketsError } = useGetPaymentTicketsQuery({ page: ticketPage, limit: 20 });
   const [resolveTicket] = useResolvePaymentTicketMutation();
@@ -115,10 +109,6 @@ export default function AdminPaymentsPage() {
           <TabsTrigger value="gateways">
             <Activity className="size-4 ml-1" />
             بوابات الدفع
-          </TabsTrigger>
-          <TabsTrigger value="webhooks">
-            <Webhook className="size-4 ml-1" />
-            الويب هوك
           </TabsTrigger>
           <TabsTrigger value="tickets">
             <Ticket className="size-4 ml-1" />
@@ -249,80 +239,6 @@ export default function AdminPaymentsPage() {
           </SurfaceCard>
         </TabsContent>
 
-        <TabsContent value="webhooks" className="mt-4">
-          <SurfaceCard title="سجل الويب هوك">
-            <div className="flex items-center gap-3 mb-4">
-              <select
-                value={webhookFilter}
-                onChange={(e) => setWebhookFilter(e.target.value)}
-                className="rounded-xl border border-portal-divider px-3 py-2 text-sm"
-              >
-                <option value="">كل الحالات</option>
-                <option value="failed">فاشل</option>
-                <option value="success">ناجح</option>
-              </select>
-            </div>
-
-            <DataTable
-              columns={[
-                { id: "provider", label: "المزود" },
-                { id: "eventType", label: "نوع الحدث" },
-                { id: "status", label: "الحالة" },
-                { id: "error", label: "الخطأ" },
-                { id: "date", label: "التاريخ", align: "left" },
-                { id: "actions", label: "", align: "left" },
-              ]}
-              data={webhookData?.items ?? []}
-              isLoading={wLoading}
-              isError={false}
-              emptyState={{
-                icon: Webhook,
-                message: "لا توجد سجلات ويب هوك",
-                hint: "لم يتم استقبال أي أحداث ويب هوك بعد",
-              }}
-              renderRow={(w: any) => (
-                <tr key={w.id} className="border-b border-portal-divider">
-                  <td className="px-5 py-3 text-sm font-medium">
-                    {w.provider}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text">
-                    {w.eventType}
-                  </td>
-                  <td className="px-5 py-3">
-                    <Pill tone={w.processed ? "success" : "danger"}>
-                      {w.processed ? "ناجح" : "فاشل"}
-                    </Pill>
-                  </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text max-w-xs truncate">
-                    {w.error ?? "—"}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-portal-note-text text-left">
-                    {w.createdAt?.slice(0, 10) ?? "—"}
-                  </td>
-                  <td className="px-5 py-3 text-left">
-                    {!w.processed && (
-                      <ActionButton
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            await retryWebhook(w.id).unwrap();
-                            toast.success("تم إعادة محاولة الويب هوك");
-                          } catch {
-                            toast.error("فشلت إعادة المحاولة");
-                          }
-                        }}
-                      >
-                        <RefreshCw className="size-4 ml-1" />
-                        إعادة
-                      </ActionButton>
-                    )}
-                  </td>
-                </tr>
-              )}
-            />
-          </SurfaceCard>
-        </TabsContent>
         <TabsContent value="tickets" className="mt-4">
           <SurfaceCard>
             <div className="relative max-w-sm mb-4">

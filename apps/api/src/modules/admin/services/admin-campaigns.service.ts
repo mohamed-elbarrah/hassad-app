@@ -1,9 +1,26 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { AdminCreateCampaignDto } from "../dto/admin-campaign.dto";
 
 @Injectable()
 export class AdminCampaignsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async create(dto: AdminCreateCampaignDto, userId: string) {
+    const campaign = await this.prisma.campaign.create({
+      data: {
+        name: dto.name,
+        platform: dto.platform,
+        budgetTotal: dto.budgetTotal,
+        startDate: new Date(dto.startDate),
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+        clientId: dto.clientId,
+        managedBy: userId,
+        taskId: dto.taskId ?? null,
+      },
+    });
+    return campaign;
+  }
 
   async findAll(query: any) {
     const where: any = {};

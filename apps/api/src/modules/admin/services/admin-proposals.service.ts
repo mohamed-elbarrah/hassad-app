@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 @Injectable()
@@ -60,6 +60,68 @@ export class AdminProposalsService {
     });
     if (!proposal) throw new Error("العرض غير موجود");
     return proposal;
+  }
+
+  async convertToContract(id: string, userId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id },
+      include: {
+        lead: { include: { client: { select: { id: true } } } },
+      },
+    });
+    if (!proposal) throw new NotFoundException("العرض غير موجود");
+    if (proposal.status !== "APPROVED") {
+      throw new BadRequestException("يمكن تحويل العروض المقبولة فقط إلى عقود");
+    }
+
+    const existingContract = await this.prisma.contract.findUnique({
+      where: { proposalId: id },
+      select: { id: true },
+    });
+    if (existingContract) {
+      throw new BadRequestException("تم تحويل هذا العرض إلى عقد مسبقاً");
+    }
+
+    const clientId = proposal.clientId ?? proposal.lead?.client?.id;
+    if (!clientId) {
+      throw new BadRequestException("يجب أن يكون للعميل عميل مرتبط لتحويل العرض إلى عقد");
+    }
+
+    const contract = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.contract.create({
+        data: {
+          clientId,
+          proposalId: proposal.id,
+          createdBy: userId,
+          title: proposal.title,
+          type: "FIXED_PROJECT" as any,
+          status: "DRAFT" as any,
+          startDate: proposal.startDate ?? new Date(),
+          endDate: new Date(
+            (proposal.startDate ?? new Date()).getTime() +
+              proposal.durationDays * 24 * 60 * 60 * 1000,
+          ),
+          totalValue: proposal.totalPrice,
+          monthlyValue: 0,
+          servicesList: proposal.servicesList,
+          currency: "SAR",
+        },
+      });
+
+      await tx.ledger.create({
+        data: {
+          action: "admin.proposals.convert_to_contract",
+          entity: "proposal",
+          entityId: id,
+          userId,
+          after: { contractId: created.id },
+        },
+      });
+
+      return created;
+    });
+
+    return contract;
   }
 
   async getStats() {

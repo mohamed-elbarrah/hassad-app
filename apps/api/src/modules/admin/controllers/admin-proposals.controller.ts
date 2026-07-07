@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Param, Query, UseGuards } from "@nestjs/common";
 import { AdminProposalsService } from "../services/admin-proposals.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 
 @Controller("admin/proposals")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -25,5 +26,11 @@ export class AdminProposalsController {
   @RequirePermissions("admin.proposals.read")
   findOne(@Param("id") id: string) {
     return this.service.findOne(id);
+  }
+
+  @Post(":id/convert-to-contract")
+  @RequirePermissions("admin.proposals.intervene")
+  convertToContract(@Param("id") id: string, @CurrentUser() user: any) {
+    return this.service.convertToContract(id, user.id);
   }
 }

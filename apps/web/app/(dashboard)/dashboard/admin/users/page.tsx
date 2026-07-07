@@ -292,6 +292,8 @@ export default function AdminUsersPage() {
           { id: "email", label: "البريد الإلكتروني" },
           { id: "role", label: "الدور" },
           { id: "department", label: "القسم" },
+          { id: "tasks", label: "عدد المهام" },
+          { id: "projects", label: "عدد المشاريع" },
           { id: "status", label: "الحالة" },
           { id: "lastLogin", label: "آخر نشاط" },
           { id: "actions", label: "الإجراءات", width: "200px" },
@@ -338,6 +340,12 @@ export default function AdminUsersPage() {
               ) : (
                 <span className="text-sm text-portal-note-text">—</span>
               )}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text text-left">
+              {user.activeTasksCount ?? "—"}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text text-left">
+              {user.activeProjectsCount ?? "—"}
             </td>
             <td className="px-5 py-4">
               <StatusBadge

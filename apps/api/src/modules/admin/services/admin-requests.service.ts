@@ -134,4 +134,16 @@ export class AdminRequestsService {
     ]);
     return { success: true };
   }
+
+  async updateNotes(requestId: string, notes: string) {
+    const request = await this.prisma.request.findUnique({
+      where: { id: requestId },
+    });
+    if (!request) throw new NotFoundException("Request not found");
+
+    return this.prisma.request.update({
+      where: { id: requestId },
+      data: { internalNotes: notes },
+    });
+  }
 }

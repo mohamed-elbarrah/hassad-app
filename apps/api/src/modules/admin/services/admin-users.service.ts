@@ -107,6 +107,9 @@ export class AdminUsersService {
         assignedRequests: {
           where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
         },
+        assignedTasks: {
+          where: { status: { in: ["TODO", "IN_PROGRESS", "IN_REVIEW"] } },
+        },
         managedProjects: {
           where: { status: { in: ["ACTIVE", "PLANNING"] } },
         },
@@ -145,6 +148,22 @@ export class AdminUsersService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getPerformance(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("المستخدم غير موجود");
+
+    const workload = await this.prisma.staffWorkload.findUnique({
+      where: { userId },
+    });
+
+    return {
+      activeTasksCount: workload?.activeTasksCount ?? 0,
+      workloadStatus: workload?.workloadStatus ?? "AVAILABLE",
+      avgCompletionSpeedDays: workload?.avgCompletionSpeedDays ?? 0,
+      avgQualityScore: workload?.avgQualityScore ?? 0,
     };
   }
 
@@ -594,6 +613,7 @@ export class AdminUsersService {
       failedLoginAttempts: user.failedLoginAttempts ?? 0,
       lockedUntil: user.lockedUntil?.toISOString() ?? null,
       activeRequestsCount: user.assignedRequests?.length ?? 0,
+      activeTasksCount: user.assignedTasks?.length ?? 0,
       activeProjectsCount: user.managedProjects?.length ?? 0,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),

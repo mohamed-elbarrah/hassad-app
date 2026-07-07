@@ -14,14 +14,16 @@ import {
   Clock,
   History,
   Package,
+  FileSignature,
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/design-system/Tabs";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { Dialog } from "@/components/design-system/Dialog";
 import { toast } from "sonner";
-import { useGetAdminProposalQuery } from "@/features/admin/adminApi";
+import { useGetAdminProposalQuery, useConvertProposalToContractMutation } from "@/features/admin/adminApi";
 import { PROPOSAL_STATUS_AR } from "@hassad/shared";
 import { EmptyState } from "@/components/design-system/EmptyState";
 import { formatDate, formatCurrency } from "@/lib/format";
@@ -40,6 +42,8 @@ export default function AdminProposalDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
 
   const { data: proposal, isLoading } = useGetAdminProposalQuery(proposalId);
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [convertToContract, { isLoading: isConverting }] = useConvertProposalToContractMutation();
 
   const handleCopyLink = () => {
     if (!proposal?.token) return;
@@ -102,6 +106,12 @@ export default function AdminProposalDetailPage() {
                   رفض
                 </ActionButton>
               </>
+            )}
+            {proposal?.status === "APPROVED" && (
+              <ActionButton variant="primary" size="md" onClick={() => setShowConvertDialog(true)}>
+                <FileSignature className="size-4 ml-1" />
+                تحويل إلى عقد
+              </ActionButton>
             )}
           </div>
         }
@@ -295,6 +305,43 @@ export default function AdminProposalDetailPage() {
           </div>
         </TabsContent>
       </Tabs>
+      <Dialog
+        open={showConvertDialog}
+        onOpenChange={(o) => {
+          if (!o) setShowConvertDialog(false);
+        }}
+        title="تحويل إلى عقد"
+        description="هل أنت متأكد من تحويل هذا العرض إلى عقد؟ سيتم إنشاء عقد جديد مرتبط بهذا العرض."
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowConvertDialog(false)}
+              disabled={isConverting}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              variant="primary"
+              onClick={async () => {
+                try {
+                  const contract = await convertToContract(proposalId).unwrap();
+                  toast.success("تم تحويل العرض إلى عقد بنجاح");
+                  setShowConvertDialog(false);
+                  router.push(`/dashboard/admin/contracts/${contract.id}`);
+                } catch {
+                  toast.error("فشل تحويل العرض إلى عقد");
+                }
+              }}
+              loading={isConverting}
+            >
+              تأكيد التحويل
+            </ActionButton>
+          </div>
+        }
+      >
+        <></>
+      </Dialog>
     </div>
   );
 }

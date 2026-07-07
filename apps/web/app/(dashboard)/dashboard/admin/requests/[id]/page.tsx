@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, ClipboardList, FileText, FolderKanban } from "lucide-react";
+import { ArrowRight, ClipboardList, FileText, FolderKanban, StickyNote } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -14,7 +15,7 @@ import {
   TabsContent,
 } from "@/components/design-system/Tabs";
 import { DataTable } from "@/components/design-system/DataTable";
-import { useGetAdminRequestQuery } from "@/features/admin/adminApi";
+import { useGetAdminRequestQuery, useUpdateRequestNotesMutation } from "@/features/admin/adminApi";
 import { REQUEST_STATUS_AR } from "@hassad/shared";
 
 export default function AdminRequestDetailPage() {
@@ -22,6 +23,8 @@ export default function AdminRequestDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   const { data: req, isLoading } = useGetAdminRequestQuery(id);
+  const [updateNotes, { isLoading: saving }] = useUpdateRequestNotesMutation();
+  const [notes, setNotes] = useState("");
 
   if (isLoading)
     return (
@@ -133,6 +136,31 @@ export default function AdminRequestDetailPage() {
                       </button>
                     </div>
                   )}
+                </div>
+              </div>
+              <hr className="my-6 border-portal-divider" />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-portal-note-text">
+                  <StickyNote className="size-4" />
+                  ملاحظات داخلية
+                </div>
+                <textarea
+                  value={notes || req.internalNotes || ""}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="لا توجد ملاحظات حالياً"
+                  className="w-full min-h-[100px] rounded-xl border border-portal-divider bg-transparent px-4 py-3 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-secondary-500"
+                  dir="rtl"
+                />
+                <div className="flex justify-end">
+                  <ActionButton
+                    size="sm"
+                    onClick={async () => {
+                      await updateNotes({ id, notes: notes || req.internalNotes || "" }).unwrap();
+                    }}
+                    disabled={saving}
+                  >
+                    {saving ? "جاري الحفظ..." : "حفظ الملاحظات"}
+                  </ActionButton>
                 </div>
               </div>
             </TabsContent>

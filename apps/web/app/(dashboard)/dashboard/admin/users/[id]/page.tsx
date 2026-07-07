@@ -15,6 +15,7 @@ import {
   useGetAdminSessionsQuery,
   useGetSecurityEventsQuery,
   useGetAdminUserWorkQuery,
+  useGetAdminUserPerformanceQuery,
   useResetUserPasswordMutation,
   useImpersonateUserMutation,
   useRevokeUserSessionsMutation,
@@ -43,6 +44,8 @@ export default function AdminUserDetailPage() {
     });
   const { data: workData, isLoading: isWorkLoading } =
     useGetAdminUserWorkQuery(userId);
+  const { data: performance, isLoading: isPerformanceLoading } =
+    useGetAdminUserPerformanceQuery(userId);
 
   const [resetPassword] = useResetUserPasswordMutation();
   const [impersonate] = useImpersonateUserMutation();
@@ -128,6 +131,8 @@ export default function AdminUserDetailPage() {
         onRevokeSession={handleRevokeSession}
         workData={workData}
         isWorkLoading={isWorkLoading}
+        performance={performance ?? null}
+        isPerformanceLoading={isPerformanceLoading}
       />
 
       {/* Dialogs */}

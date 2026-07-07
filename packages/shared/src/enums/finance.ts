@@ -82,23 +82,6 @@ export enum PaymentAmountType {
   FIXED = "FIXED",
 }
 
-export const INVOICE_STATUS_AR: Record<InvoiceStatus, string> = {
-  DUE: "مستحقة",
-  SENT: "مرسلة",
-  PAID: "مدفوعة",
-  PARTIAL: "مدفوعة جزئياً",
-  PENDING: "معلقة",
-  LATE: "متأخرة",
-  CANCELLED: "ملغية",
-};
-
-export const PAYMENT_STATUS_AR: Record<PaymentStatus, string> = {
-  PENDING: "معلق",
-  SUCCESS: "ناجح",
-  FAILED: "فاشل",
-  REFUNDED: "مسترجع",
-};
-
 export const PAYMENT_METHOD_AR: Record<PaymentMethod, string> = {
   APPLE_PAY: "أبل باي",
   MADA: "مدى",

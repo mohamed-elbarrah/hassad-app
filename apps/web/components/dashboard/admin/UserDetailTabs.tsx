@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { User, Activity, Monitor, Lock, Briefcase } from "lucide-react";
+import { User, Activity, Monitor, Lock, Briefcase, BarChart3 } from "lucide-react";
 import {
   Tabs,
   TabsList,
@@ -9,6 +9,7 @@ import {
   TabsContent,
 } from "@/components/design-system/Tabs";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatCard } from "@/components/design-system/StatCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -18,6 +19,7 @@ import type {
   AdminUserDetail,
   SecurityEvent,
   AdminSession,
+  UserPerformance,
 } from "@/features/admin/adminApi";
 
 interface UserDetailTabsProps {
@@ -32,6 +34,8 @@ interface UserDetailTabsProps {
   onRevokeSession: (sessionId: string) => void;
   workData?: any;
   isWorkLoading?: boolean;
+  performance?: UserPerformance | null;
+  isPerformanceLoading?: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -85,6 +89,8 @@ export function UserDetailTabs({
   onRevokeSession,
   workData,
   isWorkLoading,
+  performance,
+  isPerformanceLoading,
 }: UserDetailTabsProps) {
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -118,6 +124,10 @@ export function UserDetailTabs({
           <TabsTrigger value="work" className="flex items-center gap-1.5">
             <Briefcase className="size-4" />
             العمل المسند
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="flex items-center gap-1.5">
+            <BarChart3 className="size-4" />
+            الأداء
           </TabsTrigger>
           <TabsTrigger value="activity" className="flex items-center gap-1.5">
             <Activity className="size-4" />
@@ -314,6 +324,66 @@ export function UserDetailTabs({
             ) : (
               <div className="flex items-center justify-center py-8 text-portal-note-text">
                 <p className="text-sm">لا توجد بيانات</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Performance Tab */}
+          <TabsContent value="performance">
+            {isPerformanceLoading ? (
+              <div className="grid grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex flex-col gap-1">
+                    <Skeleton className="h-3 w-20 rounded" />
+                    <Skeleton className="h-5 w-24 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : performance ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <StatCard
+                  title="المهام النشطة"
+                  value={performance.activeTasksCount}
+                  variant={performance.activeTasksCount > 10 ? "warning" : "default"}
+                />
+                <StatCard
+                  title="حالة عبء العمل"
+                  value={
+                    performance.workloadStatus === "AVAILABLE"
+                      ? "متاح"
+                      : performance.workloadStatus === "BUSY"
+                        ? "مشغول"
+                        : performance.workloadStatus === "OVERLOADED"
+                          ? "محمّل"
+                          : performance.workloadStatus
+                  }
+                  variant={
+                    performance.workloadStatus === "OVERLOADED"
+                      ? "danger"
+                      : performance.workloadStatus === "BUSY"
+                        ? "warning"
+                        : "success"
+                  }
+                />
+                <StatCard
+                  title="سرعة الإنجاز"
+                  value={`${performance.avgCompletionSpeedDays} يوم`}
+                />
+                <StatCard
+                  title="جودة العمل"
+                  value={performance.avgQualityScore ? `${performance.avgQualityScore}/10` : "—"}
+                  variant={
+                    performance.avgQualityScore >= 7
+                      ? "success"
+                      : performance.avgQualityScore >= 4
+                        ? "warning"
+                        : "danger"
+                  }
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 text-portal-note-text">
+                <p className="text-sm">لا توجد بيانات أداء</p>
               </div>
             )}
           </TabsContent>

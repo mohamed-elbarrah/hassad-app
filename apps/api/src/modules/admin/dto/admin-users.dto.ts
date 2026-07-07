@@ -125,6 +125,7 @@ export class UserDetailResponse {
   failedLoginAttempts: number;
   lockedUntil: string | null;
   activeRequestsCount: number;
+  activeTasksCount: number;
   activeProjectsCount: number;
   createdAt: string;
   updatedAt: string;

@@ -16,7 +16,7 @@ import {
 } from "@/components/design-system/Tabs";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Dialog } from "@/components/design-system/Dialog";
-import { useGetAdminContractQuery, useConvertContractToProjectMutation } from "@/features/admin/adminApi";
+import { useGetAdminContractQuery, useConvertContractToProjectMutation, useUpdateContractStatusMutation } from "@/features/admin/adminApi";
 import { CONTRACT_STATUS_AR } from "@hassad/shared";
 import { toast } from "sonner";
 
@@ -27,6 +27,9 @@ export default function AdminContractDetailPage() {
   const { data: contract, isLoading } = useGetAdminContractQuery(id);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
   const [convertToProject, { isLoading: isConverting }] = useConvertContractToProjectMutation();
+  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateContractStatusMutation();
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
 
   if (isLoading)
     return (
@@ -102,13 +105,24 @@ export default function AdminContractDetailPage() {
                     <span className="text-sm text-portal-note-text">
                       الحالة
                     </span>
-                    <div className="mt-1">
+                    <div className="mt-1 flex items-center gap-2">
                       <StatusBadge
                         status={contract.status}
                         label={
                           CONTRACT_STATUS_AR[contract.status] ?? contract.status
                         }
                       />
+                      <ActionButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedStatus(contract.status);
+                          setShowStatusDialog(true);
+                        }}
+                        disabled={isUpdatingStatus}
+                      >
+                        تغيير الحالة
+                      </ActionButton>
                     </div>
                   </div>
                 </div>
@@ -324,6 +338,58 @@ export default function AdminContractDetailPage() {
         }
       >
         <></>
+      </Dialog>
+
+      <Dialog
+        open={showStatusDialog}
+        onOpenChange={(o) => {
+          if (!o) setShowStatusDialog(false);
+        }}
+        title="تغيير حالة العقد"
+        description="اختر الحالة الجديدة للعقد"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowStatusDialog(false)}
+              disabled={isUpdatingStatus}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              variant="primary"
+              onClick={async () => {
+                try {
+                  await updateStatus({ id, status: selectedStatus }).unwrap();
+                  toast.success("تم تغيير حالة العقد بنجاح");
+                  setShowStatusDialog(false);
+                } catch {
+                  toast.error("فشل تغيير حالة العقد");
+                }
+              }}
+              loading={isUpdatingStatus}
+              disabled={selectedStatus === contract.status}
+            >
+              تأكيد التغيير
+            </ActionButton>
+          </div>
+        }
+      >
+        <div className="space-y-2">
+          <label className="text-sm text-portal-note-text">الحالة</label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="w-full rounded-lg border border-portal-divider bg-white px-3 py-2 text-sm"
+            dir="rtl"
+          >
+            {Object.entries(CONTRACT_STATUS_AR).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
       </Dialog>
     </div>
   );

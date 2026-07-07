@@ -10,6 +10,9 @@ export * from "./enums/workload";
 export * from "./enums/campaign";
 export * from "./enums/service";
 export * from "./enums/dispute";
+export * from "./enums/invoice";
+export * from "./enums/payment";
+export * from "./enums/lead";
 
 // Schemas
 export * from "./schemas/auth.schema";
