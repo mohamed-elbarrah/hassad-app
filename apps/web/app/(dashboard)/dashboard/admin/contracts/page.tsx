@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, FileSignature, XCircle, Bell, Download } from "lucide-react";
+import { differenceInDays } from "date-fns";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FilterBar,
@@ -150,6 +151,7 @@ export default function AdminContractsPage() {
           { id: "status", label: "الحالة" },
           { id: "value", label: "القيمة" },
           { id: "endDate", label: "تاريخ الانتهاء", align: "left" },
+          { id: "daysToRenewal", label: "أيام حتى التجديد", align: "left" },
           { id: "renewal", label: "التجديد" },
           { id: "actions", label: "الإجراءات", width: "120px" },
         ]}
@@ -190,6 +192,22 @@ export default function AdminContractsPage() {
               dir="ltr"
             >
               {c.endDate?.slice(0, 10) ?? "—"}
+            </td>
+            <td className="px-5 py-4 text-sm">
+              {(() => {
+                if (!c.endDate) return <span className="text-portal-note-text">—</span>;
+                const days = differenceInDays(new Date(c.endDate), new Date());
+                if (days < 0) return <span className="text-[#E10000]">منتهي</span>;
+                if (days <= 7)
+                  return (
+                    <span className="text-[#E10000] animate-pulse font-medium">
+                      {days} يوم
+                    </span>
+                  );
+                if (days <= 30)
+                  return <span className="text-[#E10000]">{days} يوم</span>;
+                return <span className="text-portal-note-text">{days} يوم</span>;
+              })()}
             </td>
             <td className="px-5 py-4">
               {c.pendingRenewalAlerts > 0 ? (

@@ -11,6 +11,8 @@ import { AdminLeadsService } from "../services/admin-leads.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import type { JwtPayload } from "../../../common/decorators/current-user.decorator";
 
 @Controller("admin/leads")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -33,5 +35,14 @@ export class AdminLeadsController {
     @Body("assigneeId") assigneeId: string,
   ) {
     return this.service.reassign(id, assigneeId);
+  }
+  @Post(":id/convert-to-client")
+  @RequirePermissions("admin.leads.read")
+  convertToClient(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body("additionalNotes") additionalNotes?: string,
+  ) {
+    return this.service.convertToClient(id, user.id, additionalNotes);
   }
 }

@@ -1,5 +1,10 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ClientStatus } from "@prisma/client";
 
 @Injectable()
 export class AdminLeadsService {
@@ -78,10 +83,60 @@ export class AdminLeadsService {
         pipelineHistory: { orderBy: { changedAt: "desc" }, take: 20 },
         services: { include: { service: true } },
         automationLogs: { orderBy: { executedAt: "desc" }, take: 20 },
+        client: { select: { id: true } },
       },
     });
     if (!lead) throw new NotFoundException("Lead not found");
     return lead;
+  }
+
+  async convertToClient(leadId: string, userId: string, additionalNotes?: string) {
+    const lead = await this.prisma.lead.findUnique({
+      where: { id: leadId },
+      include: { client: { select: { id: true } } },
+    });
+    if (!lead) throw new NotFoundException("Lead not found");
+    if (lead.client)
+      throw new BadRequestException("Lead already converted to a client");
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const newClient = await tx.client.create({
+        data: {
+          companyName: lead.companyName,
+          businessName: lead.businessName,
+          businessType: lead.businessType,
+          status: ClientStatus.ACTIVE,
+          leadId: lead.id,
+          accountManager: lead.assignedTo,
+        },
+      });
+
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId: newClient.id,
+          userId,
+          eventType: "lead_converted",
+          description: additionalNotes
+            ? `تم تحويل العميل المحتمل إلى عميل - ${additionalNotes}`
+            : "تم تحويل العميل المحتمل إلى عميل",
+          metadata: { leadId: lead.id, companyName: lead.companyName },
+        },
+      });
+
+      await tx.ledger.create({
+        data: {
+          action: "admin.leads.convert-to-client",
+          entity: "lead",
+          entityId: leadId,
+          userId,
+          after: { clientId: newClient.id, companyName: lead.companyName },
+        },
+      });
+
+      return newClient;
+    });
+
+    return result;
   }
 
   async reassign(leadId: string, assigneeId: string) {

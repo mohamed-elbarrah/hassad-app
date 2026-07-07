@@ -32,6 +32,7 @@ import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
 import { adminDisputesApi } from "@/features/disputes/adminDisputesApi";
 import { notificationTemplatesApi } from "@/features/notification-templates/notificationTemplatesApi";
+import { intakeFormApi } from "@/features/intakeForm/intakeFormApi";
 
 export const store = configureStore({
   reducer: {
@@ -67,6 +68,7 @@ export const store = configureStore({
     [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
     [adminDisputesApi.reducerPath]: adminDisputesApi.reducer,
     [notificationTemplatesApi.reducerPath]: notificationTemplatesApi.reducer,
+    [intakeFormApi.reducerPath]: intakeFormApi.reducer,
   },
   middleware: (getDefaultMiddleware) => {
     const middleware = [
@@ -100,6 +102,7 @@ export const store = configureStore({
       pmDisputesApi.middleware,
       adminDisputesApi.middleware,
       notificationTemplatesApi.middleware,
+      intakeFormApi.middleware,
     ];
     return getDefaultMiddleware({
       serializableCheck: false,

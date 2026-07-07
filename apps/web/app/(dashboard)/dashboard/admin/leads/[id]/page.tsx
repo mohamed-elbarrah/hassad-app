@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRight, TrendingUp, UserPlus } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pill } from "@/components/design-system/Pill";
@@ -13,15 +14,24 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/design-system/Tabs";
+import { Dialog } from "@/components/design-system/Dialog";
 import { DataTable } from "@/components/design-system/DataTable";
-import { useGetAdminLeadQuery } from "@/features/admin/adminApi";
+import {
+  useGetAdminLeadQuery,
+  useConvertLeadToClientMutation,
+} from "@/features/admin/adminApi";
 import { PIPELINE_STAGE_AR } from "@hassad/shared";
+import { toast } from "sonner";
 
 export default function AdminLeadDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
   const { data: lead, isLoading } = useGetAdminLeadQuery(id);
+  const [convertToClient, { isLoading: isConverting }] =
+    useConvertLeadToClientMutation();
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [convertNotes, setConvertNotes] = useState("");
 
   if (isLoading)
     return (
@@ -44,14 +54,28 @@ export default function AdminLeadDetailPage() {
         description={lead.contactName}
         icon={TrendingUp}
         actions={
-          <ActionButton
-            variant="outline"
-            size="md"
-            onClick={() => router.back()}
-          >
-            <ArrowRight className="size-4 ml-1" />
-            العودة
-          </ActionButton>
+          <div className="flex gap-2">
+            {!lead.client && (
+              <ActionButton
+                variant="action-purple"
+                size="md"
+                onClick={() => setShowConvertDialog(true)}
+                disabled={isConverting}
+                loading={isConverting}
+              >
+                <UserPlus className="size-4 ml-1" />
+                تحويل إلى عميل
+              </ActionButton>
+            )}
+            <ActionButton
+              variant="outline"
+              size="md"
+              onClick={() => router.back()}
+            >
+              <ArrowRight className="size-4 ml-1" />
+              العودة
+            </ActionButton>
+          </div>
         }
       />
 
@@ -259,6 +283,79 @@ export default function AdminLeadDetailPage() {
           </div>
         </Tabs>
       </SurfaceCard>
+      <Dialog
+        open={showConvertDialog}
+        onOpenChange={setShowConvertDialog}
+        icon={UserPlus}
+        title="تحويل إلى عميل"
+        description={`هل أنت متأكد من تحويل "${lead.companyName}" إلى عميل؟`}
+        footer={
+          <>
+            <ActionButton
+              variant="outline"
+              size="md"
+              onClick={() => setShowConvertDialog(false)}
+              disabled={isConverting}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              variant="action-purple"
+              size="md"
+              onClick={async () => {
+                try {
+                  await convertToClient({
+                    id,
+                    additionalNotes: convertNotes || undefined,
+                  }).unwrap();
+                  toast.success("تم تحويل العميل المحتمل إلى عميل بنجاح");
+                  setShowConvertDialog(false);
+                  router.push(`/dashboard/admin/clients/${id}`);
+                } catch {
+                  toast.error("حدث خطأ أثناء تحويل العميل المحتمل");
+                }
+              }}
+              disabled={isConverting}
+              loading={isConverting}
+            >
+              تأكيد التحويل
+            </ActionButton>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-portal-note-text">اسم الشركة</span>
+              <p className="font-medium">{lead.companyName}</p>
+            </div>
+            <div>
+              <span className="text-portal-note-text">جهة الاتصال</span>
+              <p className="font-medium">{lead.contactName}</p>
+            </div>
+            <div>
+              <span className="text-portal-note-text">البريد</span>
+              <p className="font-medium">{lead.email ?? "—"}</p>
+            </div>
+            <div>
+              <span className="text-portal-note-text">الهاتف</span>
+              <p className="font-medium">{lead.phoneWhatsapp ?? "—"}</p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-portal-note-text mb-1">
+              ملاحظات إضافية
+            </label>
+            <textarea
+              className="w-full rounded-xl border border-portal-card-border bg-natural-0 px-3 py-2 text-sm outline-none focus:border-secondary-500 resize-none"
+              rows={3}
+              value={convertNotes}
+              onChange={(e) => setConvertNotes(e.target.value)}
+              placeholder="اختياري..."
+            />
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

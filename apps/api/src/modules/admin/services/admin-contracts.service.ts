@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ContractStatus, ProjectStatus, ProjectPeriodStatus, TaskPriority } from "@hassad/shared";
+import { ConvertToProjectDto } from "../dto/admin-contracts.dto";
 
 @Injectable()
 export class AdminContractsService {
@@ -124,5 +126,80 @@ export class AdminContractsService {
       },
     });
     return { success: true };
+  }
+
+  async convertToProject(id: string, userId: string, dto: ConvertToProjectDto) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id },
+      include: {
+        client: { select: { id: true, companyName: true, userId: true } },
+      },
+    });
+    if (!contract) throw new NotFoundException("Contract not found");
+    if (contract.status !== ContractStatus.ACTIVE) {
+      throw new BadRequestException("يمكن تحويل العقود النشطة فقط إلى مشاريع");
+    }
+
+    const existingProject = await this.prisma.project.findFirst({
+      where: { contractId: id },
+      select: { id: true },
+    });
+    if (existingProject) {
+      throw new BadRequestException("تم تحويل هذا العقد إلى مشروع مسبقاً");
+    }
+
+    const projectName = dto.name || `${contract.client.companyName} — ${contract.title}`;
+    const pmId = dto.pmId || null;
+
+    const project = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          clientId: contract.clientId,
+          contractId: contract.id,
+          projectManagerId: pmId,
+          name: projectName,
+          status: ProjectStatus.PLANNING,
+          priority: TaskPriority.NORMAL,
+          startDate: contract.startDate,
+          endDate: contract.endDate,
+        },
+      });
+
+      await tx.projectPeriod.create({
+        data: {
+          projectId: created.id,
+          periodNumber: 1,
+          startDate: contract.startDate,
+          endDate: contract.endDate,
+          status: ProjectPeriodStatus.UPCOMING,
+        },
+      });
+
+      await tx.ledger.create({
+        data: {
+          action: "admin.contracts.convert_to_project",
+          entity: "contract",
+          entityId: id,
+          userId,
+          after: { projectId: created.id, projectName },
+        },
+      });
+
+      if (contract.client.userId) {
+        await tx.clientHistoryLog.create({
+          data: {
+            clientId: contract.clientId,
+            userId,
+            eventType: "CONTRACT_CONVERTED_TO_PROJECT",
+            description: `تم تحويل العقد "${contract.title}" إلى مشروع "${projectName}"`,
+            metadata: { contractId: id, projectId: created.id },
+          },
+        });
+      }
+
+      return created;
+    });
+
+    return project;
   }
 }

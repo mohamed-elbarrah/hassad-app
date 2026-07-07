@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   useGetAuditLogQuery,
   useGetAdminAuditStatsQuery,
@@ -12,6 +13,8 @@ import { Pagination } from "@/components/design-system/Pagination";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pill } from "@/components/design-system/Pill";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { TimelineItem } from "@/components/design-system/Timeline";
+import { EmptyState } from "@/components/design-system/EmptyState";
 import {
   Tabs,
   TabsList,
@@ -25,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollText, Filter, RefreshCw, ChevronLeft, BarChart3, Download } from "lucide-react";
+import { ScrollText, Filter, RefreshCw, ChevronLeft, BarChart3, Download, FileText, Users } from "lucide-react";
 import { formatDate } from "@/lib/format";
 
 const ACTION_AR: Record<string, string> = {
@@ -65,6 +68,19 @@ const ACTION_AR: Record<string, string> = {
   TASK_STATUS_CHANGED: "تغيير حالة مهمة",
   INVOICE_CREATED: "إنشاء فاتورة",
   PAYMENT_RECEIVED: "استلام دفعة",
+};
+
+const ENTITY_ROUTE: Record<string, string> = {
+  Project: "/dashboard/admin/projects/",
+  Task: "/dashboard/admin/tasks/",
+  Client: "/dashboard/admin/clients/",
+  Lead: "/dashboard/admin/leads/",
+  Contract: "/dashboard/admin/contracts/",
+  Proposal: "/dashboard/admin/proposals/",
+  Campaign: "/dashboard/admin/campaigns/",
+  Dispute: "/dashboard/admin/disputes/",
+  Invoice: "/dashboard/admin/finance/invoices/",
+  User: "/dashboard/admin/users/",
 };
 
 const ENTITY_AR: Record<string, string> = {
@@ -241,9 +257,7 @@ export default function AuditLogPage() {
                     </div>
                   ))}
                   {stats.topActions.length === 0 && (
-                    <p className="text-portal-note-text text-sm">
-                      لا توجد بيانات
-                    </p>
+                    <EmptyState icon={FileText} title="لا توجد بيانات" />
                   )}
                 </div>
               </SurfaceCard>
@@ -264,9 +278,7 @@ export default function AuditLogPage() {
                     </div>
                   ))}
                   {stats.topUsers.length === 0 && (
-                    <p className="text-portal-note-text text-sm">
-                      لا توجد بيانات
-                    </p>
+                    <EmptyState icon={Users} title="لا توجد بيانات" />
                   )}
                 </div>
               </SurfaceCard>
@@ -391,9 +403,19 @@ export default function AuditLogPage() {
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-base text-natural-100">
-                      {ENTITY_AR[log.entity] ?? log.entity}
-                    </span>
+                    {ENTITY_ROUTE[log.entity] ? (
+                      <Link
+                        href={`${ENTITY_ROUTE[log.entity]}${log.entityId}`}
+                        className="text-base text-secondary-500 hover:text-secondary-600 underline-offset-2 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {ENTITY_AR[log.entity] ?? log.entity}
+                      </Link>
+                    ) : (
+                      <span className="text-base text-natural-100">
+                        {ENTITY_AR[log.entity] ?? log.entity}
+                      </span>
+                    )}
                     <span className="text-xs text-portal-note-text font-mono">
                       {log.entityId?.slice(0, 8)}...
                     </span>
@@ -437,11 +459,8 @@ export default function AuditLogPage() {
               const diffs = renderDiff(log.before, log.after);
 
               return (
-                <SurfaceCard
-                  title="تفاصيل العملية"
-                  className="border-2 border-secondary-100"
-                >
-                  <div className="grid grid-cols-2 gap-4 text-base">
+                <div className="bg-natural-0 rounded-2xl border border-portal-card-border p-6">
+                  <div className="grid grid-cols-2 gap-4 text-base mb-6">
                     <div>
                       <span className="text-portal-note-text">العملية: </span>
                       <span className="font-semibold text-natural-100">
@@ -469,42 +488,28 @@ export default function AuditLogPage() {
                   </div>
 
                   {diffs && diffs.length > 0 && (
-                    <details className="mt-4">
-                      <summary className="text-base text-secondary-500 cursor-pointer font-medium">
-                        تغييرات الحقول ({diffs.length})
-                      </summary>
-                      <div className="mt-3 space-y-2">
-                        {diffs.map((d) => (
-                          <div
-                            key={d.key}
-                            className="bg-portal-bg p-3 rounded-xl text-sm"
-                          >
-                            <span className="font-medium text-natural-100 block mb-1">
-                              {d.key}
+                    <div className="space-y-1">
+                      {diffs.map((d, idx) => (
+                        <TimelineItem
+                          key={d.key}
+                          title={d.key}
+                          description={
+                            <span>
+                              <span className="text-portal-note-text">القيمة القديمة: </span>
+                              <span className="text-danger-500 line-through">{d.oldVal}</span>
+                              <span className="text-portal-note-text mx-2">←</span>
+                              <span className="text-portal-note-text">القيمة الجديدة: </span>
+                              <span className="text-success-600">{d.newVal}</span>
                             </span>
-                            <span className="text-portal-note-text">
-                              القيمة القديمة:{" "}
-                            </span>
-                            <span className="text-danger-500 line-through">
-                              {d.oldVal}
-                            </span>
-                            <span className="text-portal-note-text mx-2">
-                              ←
-                            </span>
-                            <span className="text-portal-note-text">
-                              القيمة الجديدة:{" "}
-                            </span>
-                            <span className="text-success-600">
-                              {d.newVal}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
+                          }
+                          isLast={idx === diffs.length - 1}
+                        />
+                      ))}
+                    </div>
                   )}
 
                   {log.metadata && (
-                    <details className="mt-2">
+                    <details className="mt-4">
                       <summary className="text-base text-secondary-500 cursor-pointer font-medium">
                         بيانات إضافية
                       </summary>
@@ -513,7 +518,7 @@ export default function AuditLogPage() {
                       </pre>
                     </details>
                   )}
-                </SurfaceCard>
+                </div>
               );
             })()}
         </TabsContent>

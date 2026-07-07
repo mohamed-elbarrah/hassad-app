@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Copy,
   RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -30,7 +31,8 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { toast } from "sonner";
 import { useGetAdminClientFullQuery, useGetAdminClientHistoryQuery } from "@/features/admin/adminClientsApi";
 import { useRegeneratePortalTokenMutation } from "@/features/admin/adminApi";
-import { EmptyState } from "@/components/design-system/EmptyState";
+import { EmptyState, ErrorState } from "@/components/design-system/EmptyState";
+import { useGetIntakeFormsQuery, type IntakeFormItem } from "@/features/intakeForm/intakeFormApi";
 import { formatDate, formatCurrency, formatRelativeTime } from "@/lib/format";
 
 const TABS = [
@@ -41,6 +43,7 @@ const TABS = [
   { value: "payments", label: "المدفوعات" },
   { value: "activity", label: "سجل النشاط" },
   { value: "portal", label: "البوابة" },
+  { value: "intakeForms", label: "نماذج الاستقطاب" },
 ];
 
 export default function AdminClientDetailPage() {
@@ -55,6 +58,10 @@ export default function AdminClientDetailPage() {
     { id: clientId, page: historyPage, limit: 20 },
   );
   const [regenerateToken] = useRegeneratePortalTokenMutation();
+
+  const { data: intakeForms, isLoading: isIntakeLoading, isError: isIntakeError } = useGetIntakeFormsQuery(
+    { clientId },
+  );
 
   const handleCopyToken = async (token: string) => {
     try {
@@ -439,7 +446,151 @@ export default function AdminClientDetailPage() {
             </SurfaceCard>
           </div>
         </TabsContent>
+
+        {/* Tab 8: Intake Forms */}
+        <TabsContent value="intakeForms" className="mt-4">
+          {isIntakeLoading ? (
+            <SurfaceCard>
+              <div className="space-y-4">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-32 animate-pulse rounded-xl bg-neutral-100" />
+                ))}
+              </div>
+            </SurfaceCard>
+          ) : isIntakeError ? (
+            <ErrorState onRetry={() => window.location.reload()} />
+          ) : intakeForms?.items?.length > 0 ? (
+            <div className="space-y-4">
+              {intakeForms.items.map((form) => (
+                <IntakeFormCard key={form.id} form={form} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon={FileText} title="لا توجد نماذج استقطاب" hint="لم يقدم العميل أي نماذج استقطاب بعد" />
+          )}
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// ── Intake Form Components ────────────────────────────────────────────────────
+
+const SECTION_LABELS: Record<string, string> = {
+  communicationInfo: "معلومات التواصل",
+  productInfo: "معلومات المنتج",
+  audienceInfo: "معلومات الجمهور",
+  brandVoice: "صوت العلامة التجارية",
+  customerJourney: "رحلة العميل",
+  campaignInfo: "معلومات الحملة",
+  pastPerformance: "الأداء السابق",
+  budgetInfo: "معلومات الميزانية",
+  visualIdentityInfo: "الهوية البصرية",
+};
+
+function renderJsonValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "نعم" : "لا";
+  if (Array.isArray(value)) return value.map(renderJsonValue).join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function JsonSection({ data }: { data: Record<string, unknown> }) {
+  const entries = Object.entries(data).filter(([, v]) => v !== null && v !== undefined);
+  if (entries.length === 0) return <p className="text-sm text-portal-note-text">—</p>;
+
+  return (
+    <div className="space-y-2">
+      {entries.map(([key, val]) => (
+        <div key={key} className="flex justify-between gap-4">
+          <span className="text-sm text-portal-note-text shrink-0">{key}</span>
+          <span className="text-sm font-medium text-left">{renderJsonValue(val)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function IntakeFormCard({ form }: { form: IntakeFormItem }) {
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (key: string) => {
+    setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const jsonFields = [
+    "communicationInfo",
+    "productInfo",
+    "audienceInfo",
+    "brandVoice",
+    "customerJourney",
+    "campaignInfo",
+    "pastPerformance",
+    "budgetInfo",
+    "visualIdentityInfo",
+  ] as const;
+
+  return (
+    <SurfaceCard>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <StatusBadge
+              status={form.isSubmitted ? "COMPLETED" : "PENDING"}
+              label={form.isSubmitted ? "مكتمل" : "قيد التعبئة"}
+            />
+            {form.currentStep != null && (
+              <span className="text-sm text-portal-note-text">
+                الخطوة {form.currentStep}
+              </span>
+            )}
+          </div>
+          {form.submittedAt && (
+            <span className="text-sm text-portal-note-text">
+              {formatDate(form.submittedAt)}
+            </span>
+          )}
+        </div>
+
+        <div className="border-t border-portal-divider" />
+
+        <div className="space-y-3">
+          {jsonFields.map((key) => {
+            const data = form[key];
+            const isExpanded = expandedSections[key];
+            const hasData = data != null && typeof data === "object" && Object.keys(data).length > 0;
+
+            return (
+              <div key={key} className="rounded-xl border border-portal-divider">
+                <button
+                  type="button"
+                  onClick={() => toggleSection(key)}
+                  className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-natural-100"
+                >
+                  <span>{SECTION_LABELS[key]}</span>
+                  <ChevronDown
+                    className={`size-4 text-portal-icon transition-transform ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {isExpanded && (
+                  <div className="border-t border-portal-divider px-4 py-3">
+                    {hasData ? (
+                      <JsonSection data={data as Record<string, unknown>} />
+                    ) : (
+                      <p className="text-sm text-portal-note-text">—</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </SurfaceCard>
   );
 }

@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { useAppSelector } from "@/lib/hooks";
 import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotificationSocket";
+import { EmptyState } from "@/components/design-system/EmptyState";
 import {
   useGetAdminStatsQuery,
   useGetTrendDataQuery,
@@ -37,6 +38,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DashboardCard } from "@/components/design-system/DashboardCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton } from "@/components/design-system/Skeleton";
+import { ActionItemCard } from "@/components/design-system/ActionItemCard";
 import { IconCircle } from "@/components/design-system/IconCircle";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { KpiPill, KpiCurrency } from "@/components/design-system/KpiPill";
@@ -65,6 +67,7 @@ import {
   ChevronLeft,
   ClipboardList,
   Scale,
+  BarChart3,
 } from "lucide-react";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -171,24 +174,18 @@ function NeedsAttentionCards({ data, isLoading }: { data?: any; isLoading: boole
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {items.map((item) => (
-        <div
+        <ActionItemCard
           key={item.key}
-          onClick={() => router.push(item.link)}
-          className={cn(
-            "rounded-2xl border p-4 flex items-center gap-3 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5",
-            item.color,
-          )}
-        >
-          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", item.iconBg)}>
-            <item.icon className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl font-bold">{item.count.toLocaleString()}</p>
-            <p className="text-[11px] opacity-80 truncate">{item.label}</p>
-          </div>
-        </div>
+          title={item.label}
+          subtitle={`${item.count.toLocaleString()} ${item.key === "stalledProjects" ? "مشروع" : item.key === "newRequests" ? "طلب" : ""}`}
+          icon={<item.icon className="w-6 h-6" />}
+          primaryAction="عرض التفاصيل"
+          secondaryAction="تجاهل"
+          onPrimary={() => router.push(item.link)}
+          primaryColor={item.key === "newRequests" ? "blue" : "purple"}
+        />
       ))}
     </div>
   );
@@ -496,9 +493,7 @@ function RevenueChart({
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full flex items-center justify-center text-portal-note-text">
-            لا توجد بيانات
-          </div>
+          <EmptyState icon={BarChart3} title="لا توجد بيانات" />
         )}
       </div>
     </SurfaceCard>
@@ -611,9 +606,7 @@ function UsersBarChart({
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full flex items-center justify-center text-portal-note-text">
-            لا توجد بيانات
-          </div>
+          <EmptyState icon={BarChart3} title="لا توجد بيانات" />
         )}
       </div>
     </SurfaceCard>
@@ -794,9 +787,7 @@ function RoleDistribution({
           </div>
         </div>
       ) : (
-        <div className="h-48 flex items-center justify-center text-portal-note-text">
-          لا توجد بيانات
-        </div>
+        <EmptyState icon={BarChart3} title="لا توجد بيانات" />
       )}
     </DashboardCard>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Search, Activity, Webhook, RefreshCw, Ticket, Download } from "lucide-react";
+import { CreditCard, Search, Activity, Webhook, RefreshCw, Ticket, Download, CheckCircle } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -26,10 +26,9 @@ import {
   useRetryAdminWebhookMutation,
   useGetAdminGatewaysHealthQuery,
 } from "@/features/admin/adminApi";
-import { PAYMENT_STATUS_AR } from "@hassad/shared";
-import { useGetPaymentTicketsQuery } from "@/features/finance/financeApi";
+import { PAYMENT_STATUS_AR, TICKET_STATUS_AR } from "@hassad/shared";
+import { useGetPaymentTicketsQuery, useResolvePaymentTicketMutation } from "@/features/finance/financeApi";
 import { useCurrency } from "@/hooks/useCurrency";
-import Link from "next/link";
 
 const exportCSV = (data: any[], filename: string) => {
   if (!data || data.length === 0) return;
@@ -55,6 +54,9 @@ export default function AdminPaymentsPage() {
   const [search, setSearch] = useState("");
   const [webhookFilter, setWebhookFilter] = useState("");
 
+  const [ticketPage, setTicketPage] = useState(1);
+  const [ticketSearch, setTicketSearch] = useState("");
+
   const { data, isLoading, isError } = useGetPaymentsQuery({ page, limit: 20 });
   const { data: gateways } = useGetPaymentGatewaysQuery();
   const { data: gatewaysHealth } = useGetAdminGatewaysHealthQuery();
@@ -62,17 +64,23 @@ export default function AdminPaymentsPage() {
     useGetAdminWebhookLogsQuery({ status: webhookFilter || undefined });
   const [retryWebhook] = useRetryAdminWebhookMutation();
 
-  const { data: ticketsData } = useGetPaymentTicketsQuery({ page: 1, limit: 1 });
-  const unresolvedTickets =
-    ticketsData?.items?.filter(
-      (t: any) => t.status !== "RESOLVED" && t.status !== "CLOSED",
-    ) ?? [];
+  const { data: ticketsData, isLoading: ticketsLoading, isError: ticketsError } = useGetPaymentTicketsQuery({ page: ticketPage, limit: 20 });
+  const [resolveTicket] = useResolvePaymentTicketMutation();
+
   const payments = data?.items ?? [];
   const filtered = search
     ? payments.filter((p: any) =>
         p.invoice?.client?.companyName?.includes(search),
       )
     : payments;
+
+  const tickets = ticketsData?.items ?? [];
+  const filteredTickets = ticketSearch
+    ? tickets.filter(
+        (t: any) =>
+          t.description?.includes(ticketSearch) || t.invoiceId?.includes(ticketSearch),
+      )
+    : tickets;
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -111,6 +119,10 @@ export default function AdminPaymentsPage() {
           <TabsTrigger value="webhooks">
             <Webhook className="size-4 ml-1" />
             الويب هوك
+          </TabsTrigger>
+          <TabsTrigger value="tickets">
+            <Ticket className="size-4 ml-1" />
+            تذاكر الدفع
           </TabsTrigger>
         </TabsList>
 
@@ -311,26 +323,102 @@ export default function AdminPaymentsPage() {
             />
           </SurfaceCard>
         </TabsContent>
-      </Tabs>
+        <TabsContent value="tickets" className="mt-4">
+          <SurfaceCard>
+            <div className="relative max-w-sm mb-4">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-note-text" />
+              <FormInputControl
+                placeholder="ابحث عن تذكرة..."
+                value={ticketSearch}
+                onChange={(e) => setTicketSearch(e.target.value)}
+                className="pr-10"
+              />
+            </div>
 
-      {/* تذاكر الدفع */}
-      <SurfaceCard title="تذاكر الدفع" icon={Ticket}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-portal-note-text">
-              التذاكر غير المحلولة
-            </p>
-            <p className="text-2xl font-bold text-danger-500 mt-1">
-              {unresolvedTickets.length}
-            </p>
-          </div>
-          <Link href="/dashboard/admin/finance/payment-tickets">
-            <ActionButton variant="outline" size="sm">
-              عرض التذاكر
-            </ActionButton>
-          </Link>
-        </div>
-      </SurfaceCard>
+            <DataTable
+              columns={[
+                { id: "invoice", label: "الفاتورة" },
+                { id: "description", label: "الوصف" },
+                { id: "status", label: "الحالة" },
+                { id: "createdAt", label: "تاريخ الإنشاء", align: "left" },
+                { id: "actions", label: "", align: "left" },
+              ]}
+              data={filteredTickets}
+              isLoading={ticketsLoading}
+              isError={ticketsError}
+              emptyState={{
+                icon: Ticket,
+                message: "لا توجد تذاكر دفع",
+                hint: "لم يتم إنشاء أي تذاكر دفع بعد",
+              }}
+              renderRow={(t: any) => (
+                <tr key={t.id} className="border-b border-portal-divider">
+                  <td className="px-5 py-3 text-sm font-medium">
+                    {t.invoiceId?.slice(0, 8) ?? "—"}
+                  </td>
+                  <td className="px-5 py-3 text-sm text-portal-note-text max-w-xs truncate">
+                    {t.description ?? "—"}
+                  </td>
+                  <td className="px-5 py-3">
+                    <StatusBadge
+                      status={t.status}
+                      label={TICKET_STATUS_AR[t.status] ?? t.status}
+                    />
+                  </td>
+                  <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                    {t.createdAt?.slice(0, 10) ?? "—"}
+                  </td>
+                  <td className="px-5 py-3 text-left">
+                    {t.status !== "RESOLVED" && t.status !== "CLOSED" && (
+                      <ActionButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await resolveTicket(t.id).unwrap();
+                            toast.success("تم حل التذكرة");
+                          } catch {
+                            toast.error("فشل");
+                          }
+                        }}
+                      >
+                        <CheckCircle className="size-4 ml-1" />
+                        حل
+                      </ActionButton>
+                    )}
+                  </td>
+                </tr>
+              )}
+            />
+
+            {ticketsData && ticketsData.total > 20 && (
+              <div className="flex items-center justify-between pt-4 border-t border-portal-divider mt-4">
+                <span className="text-sm text-portal-note-text">
+                  إجمالي {ticketsData.total} تذكرة
+                </span>
+                <div className="flex gap-2">
+                  <ActionButton
+                    variant="outline"
+                    size="sm"
+                    disabled={ticketPage <= 1}
+                    onClick={() => setTicketPage((p) => Math.max(1, p - 1))}
+                  >
+                    السابق
+                  </ActionButton>
+                  <ActionButton
+                    variant="outline"
+                    size="sm"
+                    disabled={ticketsData.items.length < 20}
+                    onClick={() => setTicketPage((p) => p + 1)}
+                  >
+                    التالي
+                  </ActionButton>
+                </div>
+              </div>
+            )}
+          </SurfaceCard>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

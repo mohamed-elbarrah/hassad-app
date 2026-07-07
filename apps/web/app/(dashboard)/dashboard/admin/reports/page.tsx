@@ -25,6 +25,7 @@ import {
   useGetAdminReportCampaignsQuery,
 } from "@/features/admin/adminApi";
 import { EmptyState } from "@/components/design-system/EmptyState";
+import { GaugeChart } from "@/components/design-system/GaugeChart";
 import { formatCurrency, formatNumber } from "@/lib/format";
 
 const REPORT_TABS = [
@@ -236,7 +237,14 @@ export default function AdminReportsPage() {
         {/* ── Satisfaction Tab ───────────────────────────────────────────── */}
         <TabsContent value="satisfaction" className="mt-4 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatCard title="متوسط التقييم" value={satisfactionData?.avgScore != null ? `${satisfactionData.avgScore}/5` : "—"} icon={Star} />
+            <SurfaceCard title="متوسط التقييم" className="flex flex-col items-center justify-center">
+              <GaugeChart
+                value={satisfactionData?.avgScore != null ? Math.round((satisfactionData.avgScore / 5) * 100) : 0}
+              />
+              <p className="text-sm text-portal-note-text text-center mt-1">
+                {satisfactionData?.avgScore != null ? `${satisfactionData.avgScore} / 5` : "—"}
+              </p>
+            </SurfaceCard>
             <StatCard title="إجمالي التقييمات" value={formatNumber(satisfactionData?.totalRatings)} icon={Star} />
             <StatCard title="التقييمات المنخفضة" value={formatNumber(satisfactionData?.lowRatings)} icon={Star} variant="danger" />
           </div>

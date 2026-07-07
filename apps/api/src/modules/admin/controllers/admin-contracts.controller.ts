@@ -11,6 +11,8 @@ import { AdminContractsService } from "../services/admin-contracts.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { ConvertToProjectDto } from "../dto/admin-contracts.dto";
 
 @Controller("admin/contracts")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -35,5 +37,14 @@ export class AdminContractsController {
   @RequirePermissions("admin.contracts.intervene")
   triggerRenewalAlert(@Param("id") id: string) {
     return this.service.triggerRenewalAlert(id);
+  }
+  @Post(":id/convert-to-project")
+  @RequirePermissions("admin.contracts.intervene")
+  convertToProject(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: ConvertToProjectDto,
+  ) {
+    return this.service.convertToProject(id, user.id, dto);
   }
 }

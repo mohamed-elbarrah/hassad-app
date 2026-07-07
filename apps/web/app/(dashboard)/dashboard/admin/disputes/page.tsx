@@ -9,6 +9,7 @@ import {
   CheckCircle,
   Inbox,
   Ban,
+  Timer,
 } from "lucide-react";
 import type { DisputeStatus, DisputePriority } from "@hassad/shared";
 import { DISPUTE_STATUS_AR } from "@hassad/shared";
@@ -119,6 +120,22 @@ export default function AdminDisputesPage() {
     setPage(1);
   };
 
+  // Average resolution time
+  const resolvedDisputes = disputes.filter((d) => d.resolvedAt);
+  const avgResolutionDays =
+    resolvedDisputes.length > 0
+      ? Math.round(
+          (resolvedDisputes.reduce((sum, d) => {
+            const diff =
+              new Date(d.resolvedAt!).getTime() -
+              new Date(d.openedAt).getTime();
+            return sum + diff / (1000 * 60 * 60 * 24);
+          }, 0) /
+            resolvedDisputes.length) *
+            10,
+        ) / 10
+      : 0;
+
   // Filter by search locally
   const filtered = search
     ? disputes.filter(
@@ -139,7 +156,7 @@ export default function AdminDisputesPage() {
       />
 
       {/* ── Stats Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <StatsCard
           icon={Clock}
           label="بانتظار الموافقة"
@@ -169,6 +186,13 @@ export default function AdminDisputesPage() {
           label="مغلقة"
           value={stats?.closed ?? 0}
           color="gray"
+        />
+        <StatsCard
+          icon={Timer}
+          label="متوسط وقت الحل"
+          value={avgResolutionDays}
+          color="blue"
+          suffix=" يوم"
         />
       </div>
 
@@ -262,6 +286,7 @@ interface StatsCardProps {
   label: string;
   value: number;
   color: "yellow" | "blue" | "red" | "green" | "gray";
+  suffix?: string;
 }
 
 const STATS_COLORS = {
@@ -272,7 +297,7 @@ const STATS_COLORS = {
   gray: { bg: "bg-gray-100", icon: "text-gray-600" },
 };
 
-function StatsCard({ icon: Icon, label, value, color }: StatsCardProps) {
+function StatsCard({ icon: Icon, label, value, color, suffix }: StatsCardProps) {
   const colors = STATS_COLORS[color];
   return (
     <SurfaceCard className="p-4">
@@ -283,7 +308,10 @@ function StatsCard({ icon: Icon, label, value, color }: StatsCardProps) {
           <Icon className={`h-5 w-5 ${colors.icon}`} />
         </div>
         <div>
-          <p className="text-2xl font-bold text-natural-100">{value}</p>
+          <p className="text-2xl font-bold text-natural-100">
+            {value}
+            {suffix && <span className="text-base font-normal text-portal-note-text mr-1">{suffix}</span>}
+          </p>
           <p className="text-sm text-portal-note-text">{label}</p>
         </div>
       </div>

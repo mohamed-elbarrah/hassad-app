@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, FileSignature, DollarSign } from "lucide-react";
+import { ArrowRight, FileSignature, DollarSign, FolderKanban } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -14,14 +15,18 @@ import {
   TabsContent,
 } from "@/components/design-system/Tabs";
 import { DataTable } from "@/components/design-system/DataTable";
-import { useGetAdminContractQuery } from "@/features/admin/adminApi";
+import { Dialog } from "@/components/design-system/Dialog";
+import { useGetAdminContractQuery, useConvertContractToProjectMutation } from "@/features/admin/adminApi";
 import { CONTRACT_STATUS_AR } from "@hassad/shared";
+import { toast } from "sonner";
 
 export default function AdminContractDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
   const { data: contract, isLoading } = useGetAdminContractQuery(id);
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [convertToProject, { isLoading: isConverting }] = useConvertContractToProjectMutation();
 
   if (isLoading)
     return (
@@ -44,14 +49,26 @@ export default function AdminContractDetailPage() {
         description={`${contract.client?.companyName ?? "—"} · ${CONTRACT_STATUS_AR[contract.status] ?? contract.status}`}
         icon={FileSignature}
         actions={
-          <ActionButton
-            variant="outline"
-            size="md"
-            onClick={() => router.back()}
-          >
-            <ArrowRight className="size-4 ml-1" />
-            العودة
-          </ActionButton>
+          <div className="flex gap-2">
+            {contract.status === "ACTIVE" && (
+              <ActionButton
+                variant="primary"
+                size="md"
+                onClick={() => setShowConvertDialog(true)}
+              >
+                <FolderKanban className="size-4 ml-1" />
+                تحويل إلى مشروع
+              </ActionButton>
+            )}
+            <ActionButton
+              variant="outline"
+              size="md"
+              onClick={() => router.back()}
+            >
+              <ArrowRight className="size-4 ml-1" />
+              العودة
+            </ActionButton>
+          </div>
         }
       />
 
@@ -270,6 +287,44 @@ export default function AdminContractDetailPage() {
           </div>
         </Tabs>
       </SurfaceCard>
+
+      <Dialog
+        open={showConvertDialog}
+        onOpenChange={(o) => {
+          if (!o) setShowConvertDialog(false);
+        }}
+        title="تحويل إلى مشروع"
+        description="هل أنت متأكد من تحويل هذا العقد إلى مشروع؟ سيتم إنشاء مشروع جديد مرتبط بهذا العقد."
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowConvertDialog(false)}
+              disabled={isConverting}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              variant="primary"
+              onClick={async () => {
+                try {
+                  const project = await convertToProject({ id }).unwrap();
+                  toast.success("تم تحويل العقد إلى مشروع بنجاح");
+                  setShowConvertDialog(false);
+                  router.push(`/dashboard/admin/projects/${project.id}`);
+                } catch {
+                  toast.error("فشل تحويل العقد إلى مشروع");
+                }
+              }}
+              loading={isConverting}
+            >
+              تأكيد التحويل
+            </ActionButton>
+          </div>
+        }
+      >
+        <></>
+      </Dialog>
     </div>
   );
 }

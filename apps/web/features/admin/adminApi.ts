@@ -283,6 +283,8 @@ export interface ProjectRow {
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
+  isBehindSchedule: boolean;
+  remainingValue: number;
 }
 export interface PaginatedProjects {
   items: ProjectRow[];
@@ -790,6 +792,13 @@ export const adminApi = createApi({
         method: "POST",
       }),
     }),
+    convertContractToProject: builder.mutation<any, { id: string; name?: string; pmId?: string }>({
+      query: ({ id, ...body }) => ({
+        url: `/admin/contracts/${id}/convert-to-project`,
+        method: "POST",
+        body,
+      }),
+    }),
 
     // ── Leads ──────────────────────────────────────────────────────────────
 
@@ -807,6 +816,13 @@ export const adminApi = createApi({
         url: `/admin/leads/${id}/reassign`,
         method: "POST",
         body: { assigneeId },
+      }),
+    }),
+    convertLeadToClient: builder.mutation<any, { id: string; additionalNotes?: string }>({
+      query: ({ id, additionalNotes }) => ({
+        url: `/admin/leads/${id}/convert-to-client`,
+        method: "POST",
+        body: { additionalNotes },
       }),
     }),
 
@@ -943,8 +959,19 @@ export const adminApi = createApi({
     }),
 
     // ── Finance ────────────────────────────────────────────────────────────
-    getAdminFinanceOverview: builder.query<any, void>({
-      query: () => "/admin/finance/overview",
+    getAdminFinanceOverview: builder.query<
+      any,
+      { dateFrom?: string; dateTo?: string } | void
+    >({
+      query: (params) => {
+        const url = "/admin/finance/overview";
+        if (!params) return url;
+        const search = new URLSearchParams();
+        if (params.dateFrom) search.set("dateFrom", params.dateFrom);
+        if (params.dateTo) search.set("dateTo", params.dateTo);
+        const qs = search.toString();
+        return qs ? `${url}?${qs}` : url;
+      },
       providesTags: ["AdminStats"],
     }),
     forceAdminInvoiceStatus: builder.mutation<
@@ -1171,11 +1198,13 @@ export const {
   useGetAdminContractQuery,
   useCancelContractMutation,
   useTriggerRenewalAlertMutation,
+  useConvertContractToProjectMutation,
   // Leads
   useGetAdminLeadsQuery,
   useGetAdminLeadQuery,
   useGetAdminLeadStatsQuery,
   useReassignLeadMutation,
+  useConvertLeadToClientMutation,
   // Requests
   useGetAdminRequestsQuery,
   useGetAdminRequestQuery,

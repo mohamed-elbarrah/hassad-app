@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   DollarSign,
   TrendingUp,
@@ -15,12 +16,16 @@ import { StatCard } from "@/components/design-system/StatCard";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Skeleton } from "@/components/design-system/Skeleton";
+import { EmptyState } from "@/components/design-system/EmptyState";
+import { TimeRangeSelector, getTimeRangeParams, type TimeRange } from "@/components/design-system/TimeRangeSelector";
 import { useGetAdminFinanceOverviewQuery } from "@/features/admin/adminApi";
 import { useCurrency } from "@/hooks/useCurrency";
 
 export default function AdminFinancePage() {
-  const { fmtAmount, fmtNumber } = useCurrency();
-  const { data: overview, isLoading } = useGetAdminFinanceOverviewQuery();
+  const { fmtAmount, fmtNumber, currency } = useCurrency();
+  const [timeRange, setTimeRange] = useState<TimeRange>("last12months");
+  const rangeParams = getTimeRangeParams(timeRange);
+  const { data: overview, isLoading } = useGetAdminFinanceOverviewQuery(rangeParams);
   const metrics = overview?.metrics;
   const revenueTrend = overview?.revenueTrend;
   const aging = overview?.aging;
@@ -50,6 +55,8 @@ export default function AdminFinancePage() {
         icon={DollarSign}
       />
 
+      <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+
       {/* Alerts */}
       {alerts && alerts.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -58,7 +65,7 @@ export default function AdminFinancePage() {
               key={a.id}
               variant={a.severity === "HIGH" ? "danger" : "warning"}
               title={a.type}
-            >{`${a.client} · ${a.amount?.toLocaleString()} ر.س`}</StatusBanner>
+            >{`${a.client} · ${fmtAmount(a.amount)} ${currency.symbol}`}</StatusBanner>
           ))}
         </div>
       )}
@@ -67,14 +74,14 @@ export default function AdminFinancePage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
           title="إجمالي الإيرادات"
-          value={`${fmtAmount(metrics?.revenue)} ر.س`}
+          value={`${fmtAmount(metrics?.revenue)} ${currency.symbol}`}
           icon={DollarSign}
           trend={(metrics?.revenueChange ?? 0) >= 0 ? "up" : "down"}
           trendValue={`${Math.abs(metrics?.revenueChange ?? 0)}%`}
         />
         <StatCard
           title="الفواتير المعلقة"
-          value={`${fmtAmount(metrics?.pending)} ر.س`}
+          value={`${fmtAmount(metrics?.pending)} ${currency.symbol}`}
           icon={FileText}
           extra={
             <span className="text-xs text-danger-500">
@@ -91,7 +98,7 @@ export default function AdminFinancePage() {
         />
         <StatCard
           title="صافي الربح"
-          value={`${metrics?.netProfit?.toLocaleString() ?? 0} ر.س`}
+          value={`${fmtAmount(metrics?.netProfit)} ${currency.symbol}`}
           icon={TrendingUp}
           trend={(metrics?.netProfitChange ?? 0) >= 0 ? "up" : "down"}
           trendValue={`${Math.abs(metrics?.netProfitChange ?? 0)}%`}
@@ -110,7 +117,7 @@ export default function AdminFinancePage() {
                 <span className="text-sm text-portal-note-text">{r.label}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">
-                    {r.income?.toLocaleString()} ر.س
+                    {fmtAmount(r.income)} {currency.symbol}
                   </span>
                   {r.income > (revenueTrend?.[i - 1]?.income ?? 0) ? (
                     <TrendingUp className="size-4 text-success-500" />
@@ -121,9 +128,7 @@ export default function AdminFinancePage() {
               </div>
             ))}
             {(!revenueTrend || revenueTrend.length === 0) && (
-              <p className="text-center text-portal-note-text py-8">
-                لا توجد بيانات إيرادات
-              </p>
+              <EmptyState icon={TrendingDown} title="لا توجد بيانات إيرادات" />
             )}
           </div>
         </SurfaceCard>
@@ -139,7 +144,7 @@ export default function AdminFinancePage() {
                 <span className="text-sm text-portal-note-text">{a.label}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">
-                    {a.amount?.toLocaleString()} ر.س
+                    {fmtAmount(a.amount)} {currency.symbol}
                   </span>
                   <span className="text-xs text-portal-note-text">
                     ({a.count} فاتورة)
@@ -168,18 +173,16 @@ export default function AdminFinancePage() {
                 <span className="text-sm text-portal-note-text">{c.label}</span>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-success-600 font-medium">
-                    وارد: {c.income?.toLocaleString()} ر.س
+                    وارد: {fmtAmount(c.income)} {currency.symbol}
                   </span>
                   <span className="text-sm text-danger-600 font-medium">
-                    صادر: {c.expenses?.toLocaleString()} ر.س
+                    صادر: {fmtAmount(c.expenses)} {currency.symbol}
                   </span>
                 </div>
               </div>
             ))}
             {(!cashflow || cashflow.length === 0) && (
-              <p className="text-center text-portal-note-text py-8">
-                لا توجد بيانات تدفق نقدي
-              </p>
+              <EmptyState icon={TrendingUp} title="لا توجد بيانات تدفق نقدي" />
             )}
           </div>
         </SurfaceCard>
@@ -206,7 +209,7 @@ export default function AdminFinancePage() {
                   {c.companyName}
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  {c.revenue?.toLocaleString()} ر.س
+                  {fmtAmount(c.revenue)} {currency.symbol}
                 </td>
                 <td className="px-4 py-3 text-sm">{c.collectionRate}%</td>
               </tr>

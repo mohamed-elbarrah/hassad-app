@@ -1,7 +1,10 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, Briefcase, UserCog, Archive, Flag, DollarSign, FileCheck } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  ArrowRight, Briefcase, UserCog, Archive, Flag, DollarSign, FileCheck, CalendarRange,
+} from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -18,7 +21,6 @@ import { DataTable } from "@/components/design-system/DataTable";
 import { Dialog } from "@/components/design-system/Dialog";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { toast } from "sonner";
-import { useState } from "react";
 import {
   useGetAdminProjectQuery,
   useReassignProjectPmMutation,
@@ -27,6 +29,159 @@ import {
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { PROJECT_STATUS_AR } from "@hassad/shared";
+import { cn } from "@/lib/utils";
+import { format, differenceInDays, startOfMonth, endOfMonth, addMonths, isAfter, isBefore, isToday, isSameDay } from "date-fns";
+
+function GanttChart({ periods }: { periods: any[] }) {
+  const now = new Date();
+
+  const { minDate, maxDate, totalDays, monthTicks } = useMemo(() => {
+    if (!periods || periods.length === 0) return { minDate: now, maxDate: now, totalDays: 1, monthTicks: [] };
+
+    const starts = periods.map((p) => new Date(p.startDate));
+    const ends = periods.map((p) => new Date(p.endDate));
+    const min = new Date(Math.min(...starts.map((d) => d.getTime())));
+    const max = new Date(Math.max(...ends.map((d) => d.getTime())));
+
+    const ticks: Date[] = [];
+    let cursor = startOfMonth(min);
+    while (!isAfter(cursor, max)) {
+      ticks.push(cursor);
+      cursor = addMonths(cursor, 1);
+    }
+    if (ticks.length === 0) ticks.push(min);
+
+    const days = differenceInDays(max, min) || 1;
+    return { minDate: min, maxDate: max, totalDays: days, monthTicks: ticks };
+  }, [periods]);
+
+  const getLeft = (d: Date) => (differenceInDays(d, minDate) / totalDays) * 100;
+  const getWidth = (start: Date, end: Date) =>
+    Math.max((differenceInDays(end, start) / totalDays) * 100, 2);
+
+  const barColors: Record<string, string> = {
+    CLOSED: "bg-green-500",
+    ACTIVE: "bg-blue-500",
+    SUSPENDED: "bg-amber-400",
+    UPCOMING: "bg-gray-300",
+  };
+  const barLabels: Record<string, string> = {
+    CLOSED: "مكتمل",
+    ACTIVE: "قيد التنفيذ",
+    SUSPENDED: "معلق",
+    UPCOMING: "قادم",
+  };
+
+  const todayPos = (() => {
+    const d = differenceInDays(now, minDate);
+    if (d < 0) return -1;
+    if (d > totalDays) return -1;
+    return (d / totalDays) * 100;
+  })();
+
+  return (
+    <div className="overflow-x-auto" dir="ltr">
+      <div className="min-w-[600px]">
+        <div className="relative h-8 mb-2">
+          {monthTicks.map((tick, i) => {
+            const left = getLeft(tick);
+            const nextTick = monthTicks[i + 1] ?? addMonths(tick, 1);
+            const w = getWidth(tick, nextTick);
+            return (
+              <div
+                key={i}
+                className="absolute top-0 text-xs text-portal-note-text font-medium"
+                style={{ left: `${left}%`, width: `${w}%` }}
+              >
+                <span className="inline-block pr-1">{format(tick, "MMM yyyy")}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="relative border-t border-portal-divider">
+          {todayPos >= 0 && (
+            <div
+              className="absolute top-0 bottom-0 w-px bg-red-500 z-10"
+              style={{ left: `${todayPos}%` }}
+            >
+              <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-red-500 font-medium whitespace-nowrap">
+                اليوم
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-rows-[repeat(auto-fit,52px)]">
+            {periods.map((p, idx) => {
+              const start = new Date(p.startDate);
+              const end = new Date(p.endDate);
+              const left = getLeft(start);
+              const w = getWidth(start, end);
+              const color = barColors[p.status] ?? "bg-gray-300";
+              const isComplete = p.status === "CLOSED";
+
+              return (
+                <div key={p.id} className="relative flex items-center border-b border-portal-divider py-2" style={{ minHeight: 52 }}>
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-28 shrink-0 text-left">
+                      <p className="text-sm font-medium text-natural-100 truncate">
+                        الفترة {p.periodNumber}
+                      </p>
+                      <p className="text-[11px] text-portal-note-text">{barLabels[p.status] ?? p.status}</p>
+                    </div>
+
+                    <div className="relative flex-1 h-7">
+                      <div className="absolute inset-0 bg-gray-100 rounded-full" />
+                      <div
+                        className={cn(
+                          "absolute top-0 h-full rounded-full transition-all",
+                          color,
+                          p.status === "UPCOMING" && "bg-gray-200 border border-gray-300",
+                        )}
+                        style={{ left: `${left}%`, width: `${w}%`, minWidth: 4 }}
+                      />
+                      {isComplete && (
+                        <span className="absolute left-1/2 top-1/2 -translate-y-1/2 text-xs text-white font-medium z-10">
+                          {p.completionPercentage}%
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="w-44 shrink-0 text-right flex items-center gap-2 justify-end">
+                      <span className="text-xs text-portal-note-text">
+                        {format(start, "dd/MM/yyyy")} - {format(end, "dd/MM/yyyy")}
+                      </span>
+                      {isComplete && <span className="text-green-600 text-sm">✓</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 mt-4 pt-3 border-t border-portal-divider text-xs text-portal-note-text">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm bg-green-500" />
+            مكتمل
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm bg-blue-500" />
+            قيد التنفيذ
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm bg-gray-300" />
+            قادم
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm bg-amber-400" />
+            معلق
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminProjectDetailPage() {
   const params = useParams();
@@ -137,6 +292,7 @@ export default function AdminProjectDetailPage() {
             <TabsTrigger value="files">الملفات</TabsTrigger>
             <TabsTrigger value="meetings">الاجتماعات</TabsTrigger>
             <TabsTrigger value="periods">الفترات</TabsTrigger>
+            <TabsTrigger value="gantt">المخطط الزمني</TabsTrigger>
             <TabsTrigger value="finance">المالية</TabsTrigger>
             <TabsTrigger value="deliverables">التسليمات</TabsTrigger>
           </TabsList>
@@ -397,6 +553,18 @@ export default function AdminProjectDetailPage() {
                   </tr>
                 )}
               />
+            </TabsContent>
+
+            <TabsContent value="gantt">
+              {!project.periods || project.periods.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-portal-note-text">
+                  <CalendarRange className="size-12 mb-4 opacity-40" />
+                  <p className="text-sm">لا توجد فترات زمنية</p>
+                  <p className="text-xs mt-1">لم يتم إنشاء فترات لهذا المشروع بعد</p>
+                </div>
+              ) : (
+                <GanttChart periods={project.periods} />
+              )}
             </TabsContent>
 
             <TabsContent value="finance">

@@ -160,6 +160,11 @@ export default function AdminCampaignsPage() {
           { id: "status", label: "الحالة" },
           { id: "budget", label: "الميزانية" },
           { id: "spent", label: "المصروف" },
+          { id: "impressions", label: "مرات الظهور" },
+          { id: "clicks", label: "النقرات" },
+          { id: "ctr", label: "CTR" },
+          { id: "conversions", label: "التحويلات" },
+          { id: "roi", label: "ROI" },
           { id: "overspent", label: "تجاوز" },
           { id: "actions", label: "الإجراءات", width: "100px" },
         ]}
@@ -200,6 +205,21 @@ export default function AdminCampaignsPage() {
             </td>
             <td className="px-5 py-4 text-sm">
               {c.budgetSpent.toLocaleString()}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text">
+              {(c as any).impressions?.toLocaleString() ?? "—"}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text">
+              {(c as any).clicks?.toLocaleString() ?? "—"}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text">
+              {(c as any).ctr != null ? `${(c as any).ctr}%` : "—"}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text">
+              {(c as any).conversions?.toLocaleString() ?? "—"}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text">
+              {(c as any).roi != null ? `${(c as any).roi}%` : "—"}
             </td>
             <td className="px-5 py-4">
               {c.isOverspent ? (

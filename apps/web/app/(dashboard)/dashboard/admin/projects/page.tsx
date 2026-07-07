@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Briefcase, Archive, UserCog, Flag, Download } from "lucide-react";
+import { Search, Briefcase, Archive, UserCog, Flag, Download, LayoutGrid, Table } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FilterBar,
@@ -15,6 +15,7 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
 import { Dialog } from "@/components/design-system/Dialog";
 import { StatCard } from "@/components/design-system/StatCard";
+import { EmptyState } from "@/components/design-system/EmptyState";
 import { toast } from "sonner";
 import {
   useGetAdminProjectsQuery,
@@ -25,6 +26,21 @@ import {
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { PROJECT_STATUS_AR } from "@hassad/shared";
+import { cn } from "@/lib/utils";
+
+type ScheduleStatus = "ON_TRACK" | "AT_RISK" | "DELAYED";
+
+const SCHEDULE_STATUS_CONFIG: Record<ScheduleStatus, { label: string; headerClass: string; badgeClass: string }> = {
+  ON_TRACK: { label: "ضمن الجدول", headerClass: "bg-green-50 text-green-700 border-green-200", badgeClass: "bg-green-100 text-green-800" },
+  AT_RISK: { label: "متأخر قليلاً", headerClass: "bg-amber-50 text-amber-700 border-amber-200", badgeClass: "bg-amber-100 text-amber-800" },
+  DELAYED: { label: "متأخر", headerClass: "bg-red-50 text-red-700 border-red-200", badgeClass: "bg-red-100 text-red-800" },
+};
+
+function getScheduleStatus(p: ProjectRow): ScheduleStatus {
+  if (p.isBehindSchedule) return "DELAYED";
+  if (p.overdueTasksCount > 0) return "AT_RISK";
+  return "ON_TRACK";
+}
 
 const STATUS_OPTIONS = [
   { label: "الكل", value: "" },
@@ -67,6 +83,7 @@ export default function AdminProjectsPage() {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
+  const [viewMode, setViewMode] = useState<"table" | "board">("table");
   const [actionProject, setActionProject] = useState<ProjectRow | null>(null);
   const [actionType, setActionType] = useState<
     "reassign" | "archive" | "status" | null
@@ -95,6 +112,18 @@ export default function AdminProjectsPage() {
 
   const projects = data?.items ?? [];
   const pms = pmData?.items ?? [];
+
+  const boardColumns = useMemo(() => {
+    const groups: Record<ScheduleStatus, ProjectRow[]> = {
+      ON_TRACK: [],
+      AT_RISK: [],
+      DELAYED: [],
+    };
+    for (const p of projects) {
+      groups[getScheduleStatus(p)].push(p);
+    }
+    return groups;
+  }, [projects]);
 
   const handleFilterChange = useCallback((key: string, values: string[]) => {
     setActiveFilters((prev) => ({ ...prev, [key]: values }));
@@ -188,110 +217,174 @@ export default function AdminProjectsPage() {
             className="pr-9"
           />
         </div>
-        <FilterBar
-          groups={filterGroups}
-          activeFilters={activeFilters}
-          onFilterChange={handleFilterChange}
-        />
+        <div className="flex gap-2 items-center">
+          <div className="flex rounded-xl border border-portal-divider overflow-hidden">
+            <button
+              onClick={() => setViewMode("table")}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-colors",
+                viewMode === "table"
+                  ? "bg-secondary-50 text-secondary-600"
+                  : "text-portal-note-text hover:text-natural-100",
+              )}
+            >
+              <Table className="size-4" />
+              جدول
+            </button>
+            <button
+              onClick={() => setViewMode("board")}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-colors",
+                viewMode === "board"
+                  ? "bg-secondary-50 text-secondary-600"
+                  : "text-portal-note-text hover:text-natural-100",
+              )}
+            >
+              <LayoutGrid className="size-4" />
+              لوحة
+            </button>
+          </div>
+          <FilterBar
+            groups={filterGroups}
+            activeFilters={activeFilters}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
       </div>
 
-      <DataTable
-        columns={[
-          { id: "name", label: "المشروع" },
-          { id: "client", label: "العميل" },
-          { id: "pm", label: "مدير المشروع" },
-          { id: "status", label: "الحالة" },
-          { id: "completion", label: "الإنجاز" },
-          { id: "overdue", label: "المهام المتأخرة" },
-          { id: "dates", label: "التاريخ" },
-          { id: "actions", label: "الإجراءات", width: "160px" },
-        ]}
-        data={projects}
-        isLoading={isLoading}
-        isError={isError}
-        emptyState={{
-          icon: Briefcase,
-          message: "لا توجد مشاريع",
-          hint: "لم يتم إنشاء أي مشاريع بعد",
-        }}
-        renderRow={(p: ProjectRow) => (
-          <tr
-            key={p.id}
-            className="border-b border-portal-divider cursor-pointer hover:bg-badge-gray-bg/50"
-            onClick={() => router.push(`/dashboard/admin/projects/${p.id}`)}
-          >
-            <td className="px-5 py-4 text-base font-medium text-natural-100">
-              {p.name}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {p.clientName}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {p.pmName}
-            </td>
-            <td className="px-5 py-4">
-              <StatusBadge
-                status={p.status}
-                label={PROJECT_STATUS_AR[p.status] ?? p.status}
-              />
-            </td>
-            <td className="px-5 py-4">
-              <Pill
-                tone={
-                  p.completionPercentage >= 100
-                    ? "success"
-                    : p.completionPercentage >= 50
-                      ? "warning"
-                      : "neutral"
-                }
-              >
-                {p.completionPercentage}%
-              </Pill>
-            </td>
-            <td className="px-5 py-4">
-              {p.overdueTasksCount > 0 ? (
-                <Pill tone="danger">{p.overdueTasksCount}</Pill>
-              ) : (
-                <span className="text-sm text-portal-note-text">0</span>
-              )}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {p.startDate?.slice(0, 10) ?? "—"}
-            </td>
-            <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex gap-1">
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="إعادة تعيين PM"
-                  onClick={() => openAction(p, "reassign")}
+      {viewMode === "table" ? (
+        <DataTable
+          columns={[
+            { id: "name", label: "المشروع" },
+            { id: "client", label: "العميل" },
+            { id: "pm", label: "مدير المشروع" },
+            { id: "status", label: "الحالة" },
+            { id: "completion", label: "الإنجاز" },
+            { id: "overdue", label: "المهام المتأخرة" },
+            { id: "dates", label: "التاريخ" },
+            { id: "actions", label: "الإجراءات", width: "160px" },
+          ]}
+          data={projects}
+          isLoading={isLoading}
+          isError={isError}
+          emptyState={{
+            icon: Briefcase,
+            message: "لا توجد مشاريع",
+            hint: "لم يتم إنشاء أي مشاريع بعد",
+          }}
+          renderRow={(p: ProjectRow) => (
+            <tr
+              key={p.id}
+              className="border-b border-portal-divider cursor-pointer hover:bg-badge-gray-bg/50"
+              onClick={() => router.push(`/dashboard/admin/projects/${p.id}`)}
+            >
+              <td className="px-5 py-4 text-base font-medium text-natural-100">
+                {p.name}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {p.clientName}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {p.pmName}
+              </td>
+              <td className="px-5 py-4">
+                <StatusBadge
+                  status={p.status}
+                  label={PROJECT_STATUS_AR[p.status] ?? p.status}
+                />
+              </td>
+              <td className="px-5 py-4">
+                <Pill
+                  tone={
+                    p.completionPercentage >= 100
+                      ? "success"
+                      : p.completionPercentage >= 50
+                        ? "warning"
+                        : "neutral"
+                  }
                 >
-                  <UserCog className="size-3.5" />
-                </ActionButton>
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="تغيير الحالة"
-                  onClick={() => openAction(p, "status")}
-                >
-                  <Flag className="size-3.5" />
-                </ActionButton>
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="أرشفة"
-                  onClick={() => openAction(p, "archive")}
-                >
-                  <Archive className="size-3.5" />
-                </ActionButton>
+                  {p.completionPercentage}%
+                </Pill>
+              </td>
+              <td className="px-5 py-4">
+                {p.overdueTasksCount > 0 ? (
+                  <Pill tone="danger">{p.overdueTasksCount}</Pill>
+                ) : (
+                  <span className="text-sm text-portal-note-text">0</span>
+                )}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {p.startDate?.slice(0, 10) ?? "—"}
+              </td>
+              <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                <div className="flex gap-1">
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8"
+                    title="إعادة تعيين PM"
+                    onClick={() => openAction(p, "reassign")}
+                  >
+                    <UserCog className="size-3.5" />
+                  </ActionButton>
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8"
+                    title="تغيير الحالة"
+                    onClick={() => openAction(p, "status")}
+                  >
+                    <Flag className="size-3.5" />
+                  </ActionButton>
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8"
+                    title="أرشفة"
+                    onClick={() => openAction(p, "archive")}
+                  >
+                    <Archive className="size-3.5" />
+                  </ActionButton>
+                </div>
+              </td>
+            </tr>
+          )}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {(Object.entries(SCHEDULE_STATUS_CONFIG) as [ScheduleStatus, typeof SCHEDULE_STATUS_CONFIG[ScheduleStatus]][]).map(
+            ([status, config]) => (
+              <div key={status} className="rounded-2xl border border-portal-divider overflow-hidden">
+                <div className={cn("px-4 py-3 border-b flex items-center justify-between", config.headerClass)}>
+                  <span className="font-semibold text-sm">{config.label}</span>
+                  <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", config.badgeClass)}>
+                    {boardColumns[status].length}
+                  </span>
+                </div>
+                <div className="p-3 space-y-3 max-h-[70vh] overflow-y-auto">
+                  {boardColumns[status].length === 0 && (
+                    <EmptyState icon={Briefcase} title="لا توجد مشاريع" />
+                  )}
+                  {boardColumns[status].map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => router.push(`/dashboard/admin/projects/${p.id}`)}
+                      className="rounded-xl border border-portal-divider p-4 cursor-pointer hover:bg-badge-gray-bg/50 transition-colors space-y-2"
+                    >
+                      <p className="font-medium text-natural-100 text-sm leading-tight">{p.name}</p>
+                      <p className="text-xs text-portal-note-text">{p.clientName}</p>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs text-portal-note-text">{p.endDate?.slice(0, 10) ?? "—"}</span>
+                        <span className="text-xs font-medium">{p.remainingValue?.toLocaleString() ?? "—"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </td>
-          </tr>
-        )}
-      />
+            ),
+          )}
+        </div>
+      )}
 
       <Dialog
         open={!!actionProject}
