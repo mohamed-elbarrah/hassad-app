@@ -56,7 +56,6 @@ const ROLE_PILL_TONE: Record<
   EMPLOYEE: "neutral",
   MARKETING: "warning",
   ACCOUNTANT: "warning",
-  CLIENT: "neutral",
 };
 
 const STAFF_ROLES = [
@@ -108,6 +107,7 @@ export default function AdminUsersPage() {
   const filters: AdminUserFilters = {
     search: debouncedSearch || undefined,
     role: roleFilter,
+    excludeRole: "CLIENT",
     status: statusFilter as "active" | "inactive" | undefined,
     limit: 50,
   };
@@ -164,7 +164,6 @@ export default function AdminUsersPage() {
           label: ROLE_LABELS[role],
           value: role,
         })),
-        { label: "عميل", value: "CLIENT" },
       ],
     },
     {

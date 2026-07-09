@@ -17,8 +17,8 @@ export class AdminIntegrationsService {
     if (filters.status === "success") where.processed = true;
     if (filters.provider) where.provider = filters.provider;
 
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
+    const page = Number(filters.page) || 1;
+    const limit = Number(filters.limit) || 20;
     const [items, total] = await Promise.all([
       this.prisma.webhookLog.findMany({
         where,

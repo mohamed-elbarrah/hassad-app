@@ -29,8 +29,8 @@ export class AdminClientsService {
     page?: number;
     limit?: number;
   }) {
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
+    const page = Number(filters.page) || 1;
+    const limit = Number(filters.limit) || 20;
 
     const userWhere: any = {};
     const clientWhere: any = {};

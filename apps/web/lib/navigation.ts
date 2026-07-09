@@ -25,6 +25,7 @@ import {
   Ticket,
   AlertTriangle,
   Monitor,
+  Globe,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -54,7 +55,7 @@ export const adminNavSections: NavSection[] = [
     ],
   },
   {
-    label: "إدارة المستخدمين والوصول",
+    label: "إدارة المستخدمين",
     items: [
       {
         title: "المستخدمون",
@@ -78,6 +79,12 @@ export const adminNavSections: NavSection[] = [
         title: "الأقسام",
         url: "/dashboard/admin/departments",
         icon: Briefcase,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "بوابة العملاء",
+        url: "/dashboard/admin/portal",
+        icon: Globe,
         roles: ["ADMIN"],
       },
     ],
@@ -104,12 +111,6 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
-        title: "العملاء المحتملون",
-        url: "/dashboard/admin/leads",
-        icon: TrendingUp,
-        roles: ["ADMIN"],
-      },
-      {
         title: "العروض الفنية",
         url: "/dashboard/admin/proposals",
         icon: FileText,
@@ -122,6 +123,17 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
+        title: "النزاعات",
+        url: "/dashboard/admin/disputes",
+        icon: AlertTriangle,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "التسويق",
+    items: [
+      {
         title: "الحملات",
         url: "/dashboard/admin/campaigns",
         icon: BarChart3,
@@ -133,16 +145,10 @@ export const adminNavSections: NavSection[] = [
         icon: Megaphone,
         roles: ["ADMIN"],
       },
-      {
-        title: "النزاعات",
-        url: "/dashboard/admin/disputes",
-        icon: AlertTriangle,
-        roles: ["ADMIN"],
-      },
     ],
   },
   {
-    label: "المالية والإيرادات",
+    label: "المالية",
     items: [
       {
         title: "نظرة عامة",
@@ -177,7 +183,7 @@ export const adminNavSections: NavSection[] = [
     ],
   },
   {
-    label: "التقارير",
+    label: "الإعدادات والمراقبة",
     items: [
       {
         title: "التقارير",
@@ -191,40 +197,6 @@ export const adminNavSections: NavSection[] = [
         icon: TrendingUp,
         roles: ["ADMIN"],
       },
-    ],
-  },
-  {
-    label: "المراقبة",
-    items: [
-      {
-        title: "الجلسات النشطة",
-        url: "/dashboard/admin/sessions",
-        icon: Monitor,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "الأمان",
-        url: "/dashboard/admin/security",
-        icon: Shield,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "سجل النشاطات",
-        url: "/dashboard/admin/audit-log",
-        icon: ScrollText,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "صحة النظام",
-        url: "/dashboard/admin/health",
-        icon: Activity,
-        roles: ["ADMIN"],
-      },
-    ],
-  },
-  {
-    label: "الإعدادات",
-    items: [
       {
         title: "إعدادات المنصة",
         url: "/dashboard/admin/settings",
@@ -247,6 +219,36 @@ export const adminNavSections: NavSection[] = [
         title: "قوالب الإشعارات",
         url: "/dashboard/admin/notification-templates",
         icon: Bell,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الأمان",
+        url: "/dashboard/admin/security",
+        icon: Shield,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الجلسات النشطة",
+        url: "/dashboard/admin/sessions",
+        icon: Monitor,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "سجل النشاطات",
+        url: "/dashboard/admin/audit-log",
+        icon: ScrollText,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "صحة النظام",
+        url: "/dashboard/admin/health",
+        icon: Activity,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "المحادثات",
+        url: "/dashboard/admin/chat",
+        icon: MessageSquare,
         roles: ["ADMIN"],
       },
     ],
