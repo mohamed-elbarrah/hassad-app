@@ -20,6 +20,8 @@ import {
 import { useAppSelector } from "@/lib/hooks";
 import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotificationSocket";
 import { EmptyState } from "@/components/design-system/EmptyState";
+import { TimeRangeSelector } from "@/components/design-system/TimeRangeSelector";
+import type { TimeRange } from "@/components/design-system/TimeRangeSelector";
 import {
   useGetAdminStatsQuery,
   useGetTrendDataQuery,
@@ -80,34 +82,21 @@ function TrendArrow({ value }: { value?: number }) {
   return <ArrowDownRight className="w-3.5 h-3.5 text-danger-500" />;
 }
 
-const TIME_RANGES = [
-  { label: "اليوم", value: "today" },
-  { label: "آخر 7 أيام", value: "7d" },
-  { label: "آخر 30 يوم", value: "30d" },
-  { label: "آخر 12 شهر", value: "12m" },
-] as const;
-
-function getDateRange(range: string): { from?: string; to?: string } {
-  const now = new Date();
-  const to = now.toISOString();
-  let from: string;
-  switch (range) {
-    case "today":
-      from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      break;
-    case "7d":
-      from = new Date(now.getTime() - 7 * 86400000).toISOString();
-      break;
-    case "30d":
-      from = new Date(now.getTime() - 30 * 86400000).toISOString();
-      break;
-    case "12m":
-      from = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString();
-      break;
-    default:
-      return {};
-  }
-  return { from, to };
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return "منذ لحظات";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `منذ ${minutes} دقيقة`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `منذ ${hours} ساعة`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `منذ ${days} يوم`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `منذ ${weeks} أسبوع`;
+  return new Date(dateStr).toLocaleDateString("ar-SA");
 }
 
 // ── Needs Attention Cards ────────────────────────────────────────────────────
@@ -251,7 +240,7 @@ function RecentActivityList({ data, isLoading }: { data?: any; isLoading: boolea
                 )}
               </div>
               <span className="text-[11px] text-portal-note-text shrink-0">
-                {entry.timestamp ?? entry.occurredAt ?? entry.createdAt ? new Date(entry.timestamp ?? entry.occurredAt ?? entry.createdAt).toLocaleDateString("ar-SA") : ""}
+                {entry.timestamp ?? entry.occurredAt ?? entry.createdAt ? timeAgo(entry.timestamp ?? entry.occurredAt ?? entry.createdAt) : ""}
               </span>
             </div>
           );
@@ -312,7 +301,7 @@ function TeamWorkload({ data, isLoading }: { data?: any; isLoading: boolean }) {
 
 // ── Hero KPIs ───────────────────────────────────────────────────────────────
 
-function HeroKpis({ stats, isLoading, router }: { stats?: any; isLoading: boolean; router: any }) {
+function HeroKpis({ stats, isLoading }: { stats?: any; isLoading: boolean }) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -326,77 +315,73 @@ function HeroKpis({ stats, isLoading, router }: { stats?: any; isLoading: boolea
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {/* Revenue — brand gold emphasis */}
-      <div
-        onClick={() => router.push("/dashboard/admin/finance")}
-        className="min-w-[132px] rounded-2xl px-4 py-3 bg-gradient-to-bl from-primary-100 to-primary-200/60 ring-1 ring-inset ring-primary-300/60 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
-      >
-        <div className="flex items-center gap-1.5 text-xs font-medium text-primary-700">
-          <DollarSign className="h-3.5 w-3.5" />
-          <span>الإيرادات الشهرية</span>
+      <Link href="/dashboard/admin/finance">
+        <div className="min-w-[132px] rounded-2xl px-4 py-3 bg-gradient-to-bl from-primary-100 to-primary-200/60 ring-1 ring-inset ring-primary-300/60 transition-all hover:shadow-lg hover:-translate-y-0.5">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-primary-700">
+            <DollarSign className="h-3.5 w-3.5" />
+            <span>الإيرادات الشهرية</span>
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <KpiCurrency
+              amount={stats?.monthlyRevenue}
+              className="text-primary-800"
+            />
+            <TrendArrow value={stats?.revenueChange} />
+          </div>
+          {stats?.revenueChange != null && (
+            <p className="text-[11px] text-primary-700/70 mt-1">
+              {Math.abs(stats.revenueChange)}% عن الشهر الماضي
+            </p>
+          )}
         </div>
-        <div className="mt-1 flex items-baseline gap-2">
-          <KpiCurrency
-            amount={stats?.monthlyRevenue}
-            className="text-primary-800"
+      </Link>
+
+      <Link href="/dashboard/admin/users">
+        <div className="transition-all hover:shadow-lg hover:-translate-y-0.5">
+          <KpiPill
+            label="المستخدمين"
+            value={
+              <div className="flex items-baseline gap-2">
+                <span className="text-[28px] font-bold text-natural-100">
+                  {stats?.totalUsers?.toLocaleString() ?? "—"}
+                </span>
+                <TrendArrow value={stats?.recentUsers} />
+              </div>
+            }
           />
-          <TrendArrow value={stats?.revenueChange} />
         </div>
-        {stats?.revenueChange != null && (
-          <p className="text-[11px] text-primary-700/70 mt-1">
-            {Math.abs(stats.revenueChange)}% عن الشهر الماضي
-          </p>
-        )}
-      </div>
+      </Link>
 
-      <div
-        onClick={() => router.push("/dashboard/admin/users")}
-        className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
-      >
-        <KpiPill
-          label="المستخدمين"
-          value={
-            <div className="flex items-baseline gap-2">
-              <span className="text-[28px] font-bold text-natural-100">
-                {stats?.totalUsers?.toLocaleString() ?? "—"}
-              </span>
-              <TrendArrow value={stats?.recentUsers} />
-            </div>
-          }
-        />
-      </div>
+      <Link href="/dashboard/admin/clients">
+        <div className="transition-all hover:shadow-lg hover:-translate-y-0.5">
+          <KpiPill
+            label="العملاء النشطين"
+            value={
+              <div className="flex items-baseline gap-2">
+                <span className="text-[28px] font-bold text-natural-100">
+                  {stats?.activeClients?.toLocaleString() ?? "—"}
+                </span>
+                <TrendArrow value={stats?.newClientsThisMonth} />
+              </div>
+            }
+          />
+        </div>
+      </Link>
 
-      <div
-        onClick={() => router.push("/dashboard/admin/clients")}
-        className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
-      >
-        <KpiPill
-          label="العملاء النشطين"
-          value={
-            <div className="flex items-baseline gap-2">
-              <span className="text-[28px] font-bold text-natural-100">
-                {stats?.activeClients?.toLocaleString() ?? "—"}
-              </span>
-              <TrendArrow value={stats?.newClientsThisMonth} />
-            </div>
-          }
-        />
-      </div>
-
-      <div
-        onClick={() => router.push("/dashboard/admin/projects")}
-        className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5"
-      >
-        <KpiPill
-          label="المشاريع الجارية"
-          value={
-            <div className="flex items-baseline gap-2">
-              <span className="text-[28px] font-bold text-natural-100">
-                {stats?.activeProjects?.toLocaleString() ?? "—"}
-              </span>
-            </div>
-          }
-        />
-      </div>
+      <Link href="/dashboard/admin/projects">
+        <div className="transition-all hover:shadow-lg hover:-translate-y-0.5">
+          <KpiPill
+            label="المشاريع الجارية"
+            value={
+              <div className="flex items-baseline gap-2">
+                <span className="text-[28px] font-bold text-natural-100">
+                  {stats?.activeProjects?.toLocaleString() ?? "—"}
+                </span>
+              </div>
+            }
+          />
+        </div>
+      </Link>
     </div>
   );
 }
@@ -942,13 +927,20 @@ export default function AdminDashboardPage() {
   const { fmtNumber } = useCurrency();
   useDashboardNotificationSocket();
 
-  const [timeRange, setTimeRange] = useState("30d");
+  const [timeRange, setTimeRange] = useState<TimeRange>("last30days");
 
-  const dateRange = useMemo(() => getDateRange(timeRange), [timeRange]);
+  const days = useMemo(() => {
+    switch (timeRange) {
+      case "last7days": return 7;
+      case "last30days": return 30;
+      case "last12months": return 365;
+      default: return 30;
+    }
+  }, [timeRange]);
 
   const { data: stats, isLoading: statsLoading } = useGetAdminStatsQuery();
   const { data: trends, isLoading: trendsLoading } = useGetTrendDataQuery({
-    days: 30,
+    days,
   });
   const { data: funnel, isLoading: funnelLoading } = useGetFunnelDataQuery();
   const { data: alerts, isLoading: alertsLoading } = useGetAlertsDataQuery();
@@ -1003,15 +995,7 @@ export default function AdminDashboardPage() {
         icon={LayoutDashboard}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="h-10 rounded-xl border border-portal-card-border bg-natural-0 px-3 text-sm text-natural-100 focus:outline-none focus:ring-2 focus:ring-secondary-300"
-            >
-              {TIME_RANGES.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
+            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
             <ActionButton
               href="/dashboard/admin/users"
               variant="primary"
@@ -1049,13 +1033,13 @@ export default function AdminDashboardPage() {
       />
 
       <div>
-        <h2 className="text-base font-semibold text-natural-100 mb-3">ما يحتاج اهتمامك اليوم</h2>
+        <h2 className="text-base font-semibold text-natural-100 mb-3">ما يحتاج اهتماماً فورياً</h2>
         <NeedsAttentionCards data={attention} isLoading={attentionLoading} />
       </div>
 
       <HealthCards health={health} isLoading={healthLoading} />
 
-      <HeroKpis stats={stats} isLoading={statsLoading} router={router} />
+      <HeroKpis stats={stats} isLoading={statsLoading} />
 
       <TeamWorkload data={teamWorkload} isLoading={teamWorkloadLoading} />
 

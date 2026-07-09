@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { AdminCreateCampaignDto } from "../dto/admin-campaign.dto";
+import { AdminCreateCampaignDto, AdminUpdateCampaignDto } from "../dto/admin-campaign.dto";
 
 @Injectable()
 export class AdminCampaignsService {
@@ -101,10 +101,54 @@ export class AdminCampaignsService {
         kpiSnapshots: { orderBy: { recordedAt: "desc" }, take: 20 },
         statusHistory: { orderBy: { createdAt: "desc" } },
         platformConnections: true,
+        task: {
+          include: {
+            assignee: { select: { id: true, name: true } },
+            marketingStrategies: {
+              select: {
+                id: true,
+                status: true,
+                fileName: true,
+                filePath: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!campaign) throw new NotFoundException("Campaign not found");
     return campaign;
+  }
+
+  async update(id: string, dto: AdminUpdateCampaignDto, userId: string) {
+    const campaign = await this.prisma.campaign.findUnique({ where: { id } });
+    if (!campaign) throw new NotFoundException("Campaign not found");
+
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.platform !== undefined) data.platform = dto.platform;
+    if (dto.budgetTotal !== undefined) data.budgetTotal = dto.budgetTotal;
+    if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
+    if (dto.endDate !== undefined) data.endDate = dto.endDate ? new Date(dto.endDate) : null;
+
+    const updated = await this.prisma.campaign.update({
+      where: { id },
+      data,
+    });
+
+    await this.prisma.ledger.create({
+      data: {
+        action: "admin.campaigns.update",
+        entity: "campaign",
+        entityId: id,
+        userId,
+        before: { name: campaign.name, platform: campaign.platform, budgetTotal: campaign.budgetTotal },
+        after: data,
+      },
+    });
+
+    return updated;
   }
 
   async pause(campaignId: string) {

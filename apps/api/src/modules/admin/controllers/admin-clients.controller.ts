@@ -15,9 +15,31 @@ export class AdminClientsController {
     return this.service.findAll(q);
   }
 
+  @Get("stats")
+  @RequirePermissions("admin.clients.read")
+  stats() {
+    return this.service.getStats();
+  }
+
   @Get(":id")
   @RequirePermissions("admin.clients.read")
   findOne(@Param("id") id: string) {
     return this.service.findOne(id);
+  }
+
+  @Get(":id/full")
+  @RequirePermissions("admin.clients.read")
+  getFull(@Param("id") id: string) {
+    return this.service.getFull(id);
+  }
+
+  @Get(":id/history")
+  @RequirePermissions("admin.clients.read")
+  getHistory(
+    @Param("id") id: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.service.getHistory(id, page ? Number(page) : 1, limit ? Number(limit) : 20);
   }
 }

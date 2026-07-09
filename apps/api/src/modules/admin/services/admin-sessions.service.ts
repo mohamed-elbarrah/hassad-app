@@ -13,6 +13,15 @@ export class AdminSessionsService {
       where.userId = query.userId;
     }
 
+    if (query.search) {
+      where.user = {
+        OR: [
+          { name: { contains: query.search, mode: "insensitive" } },
+          { email: { contains: query.search, mode: "insensitive" } },
+        ],
+      };
+    }
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;

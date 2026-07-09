@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import {
   useGetAuditLogQuery,
@@ -11,6 +11,7 @@ import { PageIntro } from "@/components/design-system/PageIntro";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Pagination } from "@/components/design-system/Pagination";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { Pill } from "@/components/design-system/Pill";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { TimelineItem } from "@/components/design-system/Timeline";
@@ -28,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollText, Filter, RefreshCw, ChevronLeft, BarChart3, Download, FileText, Users } from "lucide-react";
+import { ScrollText, Search, Filter, RefreshCw, ChevronLeft, BarChart3, Download, FileText, Users, Shield } from "lucide-react";
 import { formatDate } from "@/lib/format";
 
 const ACTION_AR: Record<string, string> = {
@@ -47,27 +48,43 @@ const ACTION_AR: Record<string, string> = {
   "admin.projects.archive": "أرشفة مشروع",
   "admin.projects.force-transition": "تغيير حالة مشروع",
   "admin.finance.force-invoice-status": "تغيير حالة فاتورة",
-  "ADMIN_FORCE_INVOICE_STATUS": "تغيير حالة فاتورة من الإدارة",
-  "ADMIN_TRIGGER_REFUND": "استرداد مبلغ",
-  "ADMIN_RETRY_WEBHOOK": "إعادة محاولة ويب هوك",
+  CREATE_INVOICE: "إنشاء فاتورة",
+  UPDATE_INVOICE: "تعديل فاتورة",
+  ADMIN_FORCE_INVOICE_STATUS: "تغيير حالة فاتورة من الإدارة",
+  ADMIN_TRIGGER_REFUND: "استرداد مبلغ من قبل الإدارة",
+  ADMIN_RETRY_WEBHOOK: "إعادة محاولة ويب هوك",
   "admin.contracts.cancel": "إلغاء عقد",
+  CANCEL_CONTRACT: "إلغاء عقد",
   "admin.contracts.renewal-alert": "تنبيه تجديد عقد",
   "admin.leads.reassign": "إعادة تعيين عميل محتمل",
   "admin.requests.reassign": "إعادة تعيين طلب",
   "admin.requests.force-transition": "تغيير حالة طلب",
   "admin.campaigns.pause": "إيقاف حملة مؤقتاً",
   "admin.campaigns.stop": "إنهاء حملة",
+  "admin.campaigns.update": "تعديل حملة",
   CLIENT_CREATED: "إنشاء عميل",
   CLIENT_UPDATED: "تعديل عميل",
   PROPOSAL_SENT: "إرسال عرض فني",
   PROPOSAL_APPROVED: "قبول عرض فني",
   PROPOSAL_REJECTED: "رفض عرض فني",
+  CREATE_PROPOSAL: "إنشاء عرض فني",
+  APPROVE_PROPOSAL: "موافقة على عرض فني",
   CONTRACT_CREATED: "إنشاء عقد",
   CONTRACT_SIGNED: "توقيع عقد",
+  CREATE_CONTRACT: "إنشاء عقد",
+  CREATE_TASK: "إنشاء مهمة",
+  UPDATE_TASK: "تعديل مهمة",
   TASK_CREATED: "إنشاء مهمة",
   TASK_STATUS_CHANGED: "تغيير حالة مهمة",
+  CREATE_PROJECT: "إنشاء مشروع",
+  UPDATE_PROJECT_STATUS: "تحديث حالة مشروع",
+  CREATE_LEAD: "إنشاء عميل محتمل",
+  UPDATE_LEAD_STAGE: "تحديث مرحلة عميل محتمل",
+  CREATE_PAYMENT: "إنشاء دفعة",
   INVOICE_CREATED: "إنشاء فاتورة",
   PAYMENT_RECEIVED: "استلام دفعة",
+  USER_LOGIN: "تسجيل دخول",
+  USER_LOGOUT: "تسجيل خروج",
 };
 
 const ENTITY_ROUTE: Record<string, string> = {
@@ -102,6 +119,7 @@ const ENTITY_AR: Record<string, string> = {
   Department: "قسم",
   Service: "خدمة",
   NotificationTemplate: "قالب إشعار",
+  campaign: "حملة",
 };
 
 function formatValue(val: unknown): string {
@@ -166,6 +184,7 @@ export default function AuditLogPage() {
   const [actionFilter, setActionFilter] = useState<string>("");
   const [entityFilter, setEntityFilter] = useState<string>("");
   const [userIdFilter, setUserIdFilter] = useState<string>("");
+  const [searchInput, setSearchInput] = useState("");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const { data: filterOptions } = useGetAuditFiltersQuery();
@@ -177,6 +196,7 @@ export default function AuditLogPage() {
     ...(actionFilter && { action: actionFilter }),
     ...(entityFilter && { entity: entityFilter }),
     ...(userIdFilter && { userId: userIdFilter }),
+    ...(searchInput && { search: searchInput }),
     page,
     limit: 25,
   };
@@ -294,6 +314,18 @@ export default function AuditLogPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-3 items-center p-4 bg-natural-0 rounded-2xl border border-portal-card-border">
             <Filter className="size-4 text-portal-icon shrink-0" />
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
+              <FormInputControl
+                placeholder="ابحث في السجل..."
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setPage(1);
+                }}
+                className="pr-9 h-10 text-sm"
+              />
+            </div>
             {filterOptions && (
               <>
                 <Select
@@ -382,10 +414,12 @@ export default function AuditLogPage() {
               message: "لا توجد سجلات",
               hint: "ستظهر العمليات هنا فور حدوثها",
             }}
-            renderRow={(log) => (
+            renderRow={(log) => {
+              const isAdmin = log.userRole === "ADMIN";
+              return (
               <tr
                 key={log.id}
-                className="border-b-[1.5px] border-portal-divider cursor-pointer"
+                className={`border-b-[1.5px] cursor-pointer ${isAdmin ? "bg-amber-50/60 hover:bg-amber-100/40" : "border-portal-divider hover:bg-badge-gray-bg/50"}`}
                 onClick={() =>
                   setExpandedRow(expandedRow === log.id ? null : log.id)
                 }
@@ -397,9 +431,16 @@ export default function AuditLogPage() {
                   {formatDate(log.createdAt)}
                 </td>
                 <td className="px-5 py-4">
-                  <Pill tone="blue" className="text-xs">
-                    {ACTION_AR[log.action] ?? log.action}
-                  </Pill>
+                  <div className="flex items-center gap-2">
+                    <Pill tone="blue" className="text-xs">
+                      {ACTION_AR[log.action] ?? log.action}
+                    </Pill>
+                    {isAdmin && (
+                      <Pill tone="warning" className="text-xs">
+                        إدارة
+                      </Pill>
+                    )}
+                  </div>
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
@@ -422,20 +463,25 @@ export default function AuditLogPage() {
                   </div>
                 </td>
                 <td className="px-5 py-4">
-                  <div className="flex flex-col">
-                    {log.userName ? (
-                      <span className="text-base text-natural-100">
-                        {log.userName}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-portal-note-text">
-                        نظام
-                      </span>
-                    )}
-                    {log.userEmail && (
-                      <span className="text-xs text-portal-note-text">
-                        {log.userEmail}
-                      </span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col">
+                      {log.userName ? (
+                        <span className="text-base text-natural-100">
+                          {log.userName}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-portal-note-text">
+                          نظام
+                        </span>
+                      )}
+                      {log.userEmail && (
+                        <span className="text-xs text-portal-note-text">
+                          {log.userEmail}
+                        </span>
+                      )}
+                    </div>
+                    {isAdmin && (
+                      <Shield className="size-4 text-amber-500 shrink-0" />
                     )}
                   </div>
                 </td>
@@ -445,7 +491,8 @@ export default function AuditLogPage() {
                   />
                 </td>
               </tr>
-            )}
+              );
+            }}
           />
 
           {/* Pagination */}

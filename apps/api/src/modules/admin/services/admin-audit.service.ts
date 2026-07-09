@@ -51,6 +51,7 @@ export class AdminAuditService {
       action,
       entity,
       entityId,
+      search,
       from,
       to,
       page = 1,
@@ -69,6 +70,13 @@ export class AdminAuditService {
       if (from) where.createdAt.gte = new Date(from);
       if (to) where.createdAt.lte = new Date(to);
     }
+    if (search) {
+      where.OR = [
+        { action: { contains: search, mode: "insensitive" } },
+        { entity: { contains: search, mode: "insensitive" } },
+        { entityId: { contains: search, mode: "insensitive" } },
+      ];
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.ledger.findMany({
@@ -78,7 +86,7 @@ export class AdminAuditService {
         orderBy: { createdAt: "desc" },
         include: {
           user: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, role: true },
           },
         },
       }),
@@ -96,6 +104,7 @@ export class AdminAuditService {
         userId: item.userId,
         userName: item.user?.name ?? null,
         userEmail: item.user?.email ?? null,
+        userRole: item.user?.role ?? null,
         before: item.before,
         after: item.after,
         metadata: item.metadata,

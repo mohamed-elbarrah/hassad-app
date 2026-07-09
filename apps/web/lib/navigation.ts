@@ -20,6 +20,7 @@ import {
   MessageSquare,
   BarChart3,
   TrendingUp,
+  Megaphone,
   Bell,
   Ticket,
   AlertTriangle,
@@ -127,6 +128,12 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
+        title: "الاستراتيجيات التسويقية",
+        url: "/dashboard/admin/marketing/strategies",
+        icon: Megaphone,
+        roles: ["ADMIN"],
+      },
+      {
         title: "النزاعات",
         url: "/dashboard/admin/disputes",
         icon: AlertTriangle,
@@ -165,6 +172,23 @@ export const adminNavSections: NavSection[] = [
         title: "الحسابات البنكية",
         url: "/dashboard/admin/finance/bank-accounts",
         icon: Building2,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "التقارير",
+    items: [
+      {
+        title: "التقارير",
+        url: "/dashboard/admin/reports",
+        icon: BarChart3,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "أداء الفريق",
+        url: "/dashboard/admin/team-performance",
+        icon: TrendingUp,
         roles: ["ADMIN"],
       },
     ],
@@ -211,6 +235,12 @@ export const adminNavSections: NavSection[] = [
         title: "الخدمات",
         url: "/dashboard/admin/services",
         icon: Wrench,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العملات",
+        url: "/dashboard/admin/currency",
+        icon: DollarSign,
         roles: ["ADMIN"],
       },
       {

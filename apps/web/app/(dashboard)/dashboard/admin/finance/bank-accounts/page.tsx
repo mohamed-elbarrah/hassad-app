@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, Plus, Pencil, Trash2, Star, ArrowLeftRight } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Star, StarOff, ArrowLeftRight } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -55,11 +55,11 @@ export default function AdminBankAccountsPage() {
     setEditing(a);
     setForm({
       bankName: a.bankName,
-      accountNumber: a.accountNumber,
+      accountNumber: a.accountNumber ?? "",
       accountName: a.accountName,
       iban: a.iban ?? "",
-      swift: a.swift ?? "",
-      transferInstructions: a.transferInstructions ?? "",
+      swift: a.swiftCode ?? "",
+      transferInstructions: a.instructions ?? "",
       isDefault: a.isDefault ?? false,
       isActive: a.isActive,
     });
@@ -86,6 +86,7 @@ export default function AdminBankAccountsPage() {
             { id: "bankName", label: "اسم البنك" },
             { id: "accountName", label: "اسم الحساب" },
             { id: "accountNumber", label: "رقم الحساب" },
+            { id: "balance", label: "الرصيد" },
             { id: "swift", label: "SWIFT" },
             { id: "transactions", label: "المعاملات" },
             { id: "status", label: "الحالة" },
@@ -109,6 +110,7 @@ export default function AdminBankAccountsPage() {
               </td>
               <td className="px-5 py-3 text-sm">{a.accountName}</td>
               <td className="px-5 py-3 text-sm text-portal-note-text" dir="ltr">{a.accountNumber}</td>
+              <td className="px-5 py-3 text-sm text-portal-note-text">غير متاح</td>
               <td className="px-5 py-3 text-sm text-portal-note-text" dir="ltr">{a.swift ?? "—"}</td>
               <td className="px-5 py-3">
                 <div className="flex items-center gap-1.5">
@@ -123,6 +125,19 @@ export default function AdminBankAccountsPage() {
               </td>
               <td className="px-5 py-3 text-left">
                 <div className="flex gap-1 justify-end">
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await updateAccount({ id: a.id, body: { isDefault: !a.isDefault } }).unwrap();
+                        toast.success(a.isDefault ? "تم إلغاء تعيين الحساب الافتراضي" : "تم تعيين الحساب الافتراضي");
+                      } catch { toast.error("فشل التحديث"); }
+                    }}
+                    title={a.isDefault ? "إلغاء الافتراضي" : "تعيين كافتراضي"}
+                  >
+                    {a.isDefault ? <StarOff className="size-4 text-portal-note-text" /> : <Star className="size-4 text-portal-note-text" />}
+                  </ActionButton>
                   <ActionButton variant="ghost" size="sm" onClick={() => openEdit(a)}>
                     <Pencil className="size-4" />
                   </ActionButton>

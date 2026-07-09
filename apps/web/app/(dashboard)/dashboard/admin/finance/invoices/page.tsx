@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { FileText, Search, Ban, Download } from "lucide-react";
+import { useState, useMemo } from "react";
+import { FileText, Search, Ban, Download, Building2, Calendar, DollarSign, User, Phone, Mail, Eye, X } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -16,6 +16,7 @@ import {
   useForceAdminInvoiceStatusMutation,
   useWriteOffAdminInvoiceMutation,
   useTriggerAdminRefundMutation,
+  useGetAdminClientsQuery,
 } from "@/features/admin/adminApi";
 import { INVOICE_STATUS_AR } from "@hassad/shared";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -25,7 +26,9 @@ export default function AdminInvoicesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [showDetail, setShowDetail] = useState(false);
 
   // Dialogs
   const [showForceStatus, setShowForceStatus] = useState(false);
@@ -39,7 +42,12 @@ export default function AdminInvoicesPage() {
   const [refundAmount, setRefundAmount] = useState(0);
   const [refundReason, setRefundReason] = useState("");
 
-  const { data, isLoading, isError } = useGetInvoicesQuery({ page, limit: 20 });
+  const { data: clientsData } = useGetAdminClientsQuery({ limit: 200 });
+  const { data, isLoading, isError } = useGetInvoicesQuery({
+    page,
+    limit: 20,
+    clientId: clientFilter || undefined,
+  });
   const [forceStatus] = useForceAdminInvoiceStatusMutation();
   const [writeOff] = useWriteOffAdminInvoiceMutation();
   const [triggerRefund] = useTriggerAdminRefundMutation();
@@ -50,6 +58,10 @@ export default function AdminInvoicesPage() {
     if (statusFilter && inv.status !== statusFilter) return false;
     return true;
   });
+
+  const totalPaid = useMemo(() => data?.total
+    ? filtered.filter((i: any) => i.status === "PAID").reduce((s: number, i: any) => s + i.amount, 0)
+    : 0, [filtered, data]);
 
   const handleExport = () => {
     const csv = [
@@ -98,8 +110,8 @@ export default function AdminInvoicesPage() {
       </div>
 
       <SurfaceCard>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <div className="relative flex-1 max-w-sm min-w-[200px]">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-note-text" />
             <FormInputControl
               placeholder="ابحث عن فاتورة..."
@@ -120,6 +132,18 @@ export default function AdminInvoicesPage() {
               </option>
             ))}
           </select>
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="rounded-xl border border-portal-divider px-3 py-2 text-sm"
+          >
+            <option value="">كل العملاء</option>
+            {(clientsData?.items ?? []).map((c: any) => (
+              <option key={c.id} value={c.id}>
+                {c.companyName ?? c.contactName ?? "—"}
+              </option>
+            ))}
+          </select>
         </div>
 
         <DataTable
@@ -127,7 +151,9 @@ export default function AdminInvoicesPage() {
             { id: "client", label: "العميل" },
             { id: "amount", label: "المبلغ" },
             { id: "status", label: "الحالة" },
+            { id: "issueDate", label: "تاريخ الإصدار", align: "left" },
             { id: "dueDate", label: "تاريخ الاستحقاق", align: "left" },
+            { id: "remaining", label: "المبلغ المتبقي" },
             { id: "actions", label: "الإجراءات", align: "left" },
           ]}
           data={filtered}
@@ -138,8 +164,16 @@ export default function AdminInvoicesPage() {
             message: "لا توجد فواتير",
             hint: "لم يتم إنشاء أي فواتير بعد",
           }}
-          renderRow={(inv: any) => (
-            <tr key={inv.id} className="border-b border-portal-divider">
+          renderRow={(inv: any) => {
+            const remaining = inv.amount - (inv.payments ?? []).reduce((s: number, p: any) => s + (p.amount ?? 0), 0);
+            return <tr
+              key={inv.id}
+              className="border-b border-portal-divider cursor-pointer hover:bg-badge-gray-bg/50"
+              onClick={() => {
+                setSelectedInvoice(inv);
+                setShowDetail(true);
+              }}
+            >
               <td className="px-5 py-3 text-sm font-medium">
                 {inv.client?.companyName ?? "—"}
               </td>
@@ -153,9 +187,17 @@ export default function AdminInvoicesPage() {
                 />
               </td>
               <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                {inv.issueDate?.slice(0, 10) ?? "—"}
+              </td>
+              <td className="px-5 py-3 text-sm text-portal-note-text text-left">
                 {inv.dueDate?.slice(0, 10) ?? "—"}
               </td>
-              <td className="px-5 py-3 text-left">
+              <td className="px-5 py-3 text-sm">
+                <span className={remaining > 0 ? "text-[#E10000]" : "text-green-600"}>
+                  {remaining > 0 ? fmtAmount(remaining) : "مدفوعة بالكامل"} {remaining > 0 ? currency.symbol : ""}
+                </span>
+              </td>
+              <td className="px-5 py-3 text-left" onClick={(e) => e.stopPropagation()}>
                 <div className="flex gap-1 justify-end">
                   <ActionButton
                     variant="ghost"
@@ -194,8 +236,8 @@ export default function AdminInvoicesPage() {
                   )}
                 </div>
               </td>
-            </tr>
-          )}
+            </tr>;
+          }}
         />
 
         {data && data.totalPages > 1 && (
@@ -224,6 +266,128 @@ export default function AdminInvoicesPage() {
           </div>
         )}
       </SurfaceCard>
+
+      {/* Invoice Detail Dialog */}
+      <Dialog
+        open={showDetail}
+        onOpenChange={(o) => {
+          if (!o) setShowDetail(false);
+        }}
+        title={`فاتورة #${selectedInvoice?.invoiceNumber ?? ""}`}
+        description={selectedInvoice?.client?.companyName ?? ""}
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowDetail(false)}
+            >
+              إغلاق
+            </ActionButton>
+          </div>
+        }
+      >
+        {selectedInvoice && (
+          <div className="space-y-5" dir="rtl">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-xs text-portal-note-text">رقم الفاتورة</span>
+                <p className="text-sm font-medium mt-0.5">
+                  {selectedInvoice.invoiceNumber ?? "—"}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-portal-note-text">الحالة</span>
+                <div className="mt-0.5">
+                  <StatusBadge
+                    status={selectedInvoice.status}
+                    label={INVOICE_STATUS_AR[selectedInvoice.status] ?? selectedInvoice.status}
+                  />
+                </div>
+              </div>
+              <div>
+                <span className="text-xs text-portal-note-text">المبلغ</span>
+                <p className="text-sm font-medium mt-0.5">
+                  {fmtAmount(selectedInvoice.amount)} {currency.symbol}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-portal-note-text">طريقة الدفع</span>
+                <p className="text-sm font-medium mt-0.5">
+                  {selectedInvoice.paymentMethod ?? "—"}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-portal-note-text">تاريخ الإصدار</span>
+                <p className="text-sm font-medium mt-0.5">
+                  {selectedInvoice.issueDate?.slice(0, 10) ?? "—"}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-portal-note-text">تاريخ الاستحقاق</span>
+                <p className="text-sm font-medium mt-0.5">
+                  {selectedInvoice.dueDate?.slice(0, 10) ?? "—"}
+                </p>
+              </div>
+              {selectedInvoice.paidAt && (
+                <div>
+                  <span className="text-xs text-portal-note-text">تاريخ الدفع</span>
+                  <p className="text-sm font-medium mt-0.5">
+                    {selectedInvoice.paidAt?.slice(0, 10) ?? "—"}
+                  </p>
+                </div>
+              )}
+              {selectedInvoice.sentAt && (
+                <div>
+                  <span className="text-xs text-portal-note-text">تاريخ الإرسال</span>
+                  <p className="text-sm font-medium mt-0.5">
+                    {selectedInvoice.sentAt?.slice(0, 10) ?? "—"}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="border-t border-portal-divider pt-4">
+              <h4 className="text-sm font-medium text-portal-note-text mb-3">معلومات العميل</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
+                  <Building2 className="size-3.5 text-portal-icon" />
+                  <div>
+                    <span className="text-xs text-portal-note-text">الشركة</span>
+                    <p className="text-sm">{selectedInvoice.client?.companyName ?? "—"}</p>
+                  </div>
+                </div>
+                {selectedInvoice.client?.user?.name && (
+                  <div className="flex items-center gap-2">
+                    <User className="size-3.5 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">جهة الاتصال</span>
+                      <p className="text-sm">{selectedInvoice.client.user.name}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            {selectedInvoice.notes && (
+              <div className="border-t border-portal-divider pt-4">
+                <span className="text-xs text-portal-note-text">ملاحظات</span>
+                <p className="text-sm mt-1">{selectedInvoice.notes}</p>
+              </div>
+            )}
+            {selectedInvoice.payments?.length > 0 && (
+              <div className="border-t border-portal-divider pt-4">
+                <h4 className="text-sm font-medium text-portal-note-text mb-2">المدفوعات</h4>
+                <div className="space-y-2">
+                  {selectedInvoice.payments.map((p: any) => (
+                    <div key={p.id} className="flex items-center justify-between text-sm">
+                      <span>{p.method ?? "—"}</span>
+                      <span className="font-medium">{fmtAmount(p.amount)} {currency.symbol}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
 
       {/* Force Status Dialog */}
       <Dialog

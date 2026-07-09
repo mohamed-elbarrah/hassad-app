@@ -26,16 +26,20 @@ import {
   useEndCampaignMutation,
   type CampaignRow,
 } from "@/features/admin/adminApi";
-import { CAMPAIGN_STATUS_AR } from "@hassad/shared";
+import { CAMPAIGN_STATUS_AR, CAMPAIGN_PLATFORM_AR } from "@hassad/shared";
 import type { ReportPlatformDistribution } from "@/features/portal/portalApi";
 
 const STATUS_OPTIONS = [
   { label: "الكل", value: "" },
-  { label: "تخطيط", value: "PLANNING" },
-  { label: "نشط", value: "ACTIVE" },
-  { label: "متوقف", value: "PAUSED" },
-  { label: "منتهي", value: "ENDED" },
+  ...Object.entries(CAMPAIGN_STATUS_AR).map(([value, label]) => ({
+    label,
+    value,
+  })),
 ];
+
+const PLATFORM_OPTIONS = Object.entries(CAMPAIGN_PLATFORM_AR).map(
+  ([value, label]) => ({ label, value }),
+);
 
 function useDebounce<T>(value: T, delay = 400): T {
   const [debounced, setDebounced] = useState(value);
@@ -62,13 +66,6 @@ const exportCSV = (data: any[], filename: string) => {
   a.click();
   URL.revokeObjectURL(url);
 };
-
-const PLATFORM_OPTIONS = [
-  { label: "جوجل", value: "GOOGLE" },
-  { label: "فيسبوك", value: "META" },
-  { label: "تيك توك", value: "TIKTOK" },
-  { label: "سناب شات", value: "SNAPCHAT" },
-];
 
 export default function AdminCampaignsPage() {
   const router = useRouter();
@@ -265,7 +262,7 @@ export default function AdminCampaignsPage() {
               {c.managedByName}
             </td>
             <td className="px-5 py-4 text-sm text-portal-note-text">
-              {c.platform ?? "—"}
+              {CAMPAIGN_PLATFORM_AR[c.platform] ?? c.platform ?? "—"}
             </td>
             <td className="px-5 py-4">
               <StatusBadge

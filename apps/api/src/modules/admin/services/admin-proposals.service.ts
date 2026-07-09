@@ -8,11 +8,19 @@ export class AdminProposalsService {
   async findAll(filters: {
     status?: string;
     search?: string;
+    clientId?: string;
+    creatorId?: string;
     page?: number;
     limit?: number;
   }) {
     const where: any = {};
     if (filters.status) where.status = filters.status;
+    if (filters.clientId) {
+      where.clientId = filters.clientId;
+    }
+    if (filters.creatorId) {
+      where.createdBy = filters.creatorId;
+    }
     if (filters.search) {
       where.OR = [
         { title: { contains: filters.search, mode: "insensitive" } },
@@ -32,6 +40,7 @@ export class AdminProposalsService {
         include: {
           lead: { select: { id: true, companyName: true } },
           client: { select: { id: true, companyName: true } },
+          creator: { select: { id: true, name: true } },
         },
       }),
       this.prisma.proposal.count({ where }),
@@ -59,7 +68,13 @@ export class AdminProposalsService {
       },
     });
     if (!proposal) throw new Error("العرض غير موجود");
-    return proposal;
+
+    const contract = await this.prisma.contract.findFirst({
+      where: { proposalId: id },
+      select: { id: true, title: true, status: true },
+    });
+
+    return { ...proposal, contract };
   }
 
   async convertToContract(id: string, userId: string) {

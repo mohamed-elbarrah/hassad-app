@@ -5,60 +5,103 @@ import { PrismaService } from "../../../prisma/prisma.service";
 export class AdminClientsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getStats() {
+    const [totalClients, activeClients, inactiveClients, newThisMonth] = await Promise.all([
+      this.prisma.client.count(),
+      this.prisma.client.count({ where: { status: "ACTIVE" } }),
+      this.prisma.client.count({ where: { status: "STOPPED" } }),
+      this.prisma.client.count({
+        where: { createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } },
+      }),
+    ]);
+
+    return {
+      total: totalClients,
+      active: activeClients,
+      inactive: inactiveClients,
+      newThisMonth,
+    };
+  }
+
   async findAll(filters: {
     search?: string;
     status?: string;
     page?: number;
     limit?: number;
   }) {
-    const where: any = {};
-    if (filters.status === "active") where.isActive = true;
-    if (filters.status === "inactive") where.isActive = false;
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 20;
+
+    const userWhere: any = {};
+    const clientWhere: any = {};
+
+    if (filters.status) {
+      if (filters.status === "active") { clientWhere.status = "ACTIVE"; }
+      else if (filters.status === "stopped" || filters.status === "inactive") { clientWhere.status = "STOPPED"; }
+      else if (filters.status === "lead") { clientWhere.status = "LEAD"; }
+    }
+
     if (filters.search) {
-      where.OR = [
+      userWhere.OR = [
         { name: { contains: filters.search, mode: "insensitive" } },
         { email: { contains: filters.search, mode: "insensitive" } },
       ];
     }
 
-    const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
-    const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where: { ...where },
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          clientProfile: {
-            select: {
-              id: true,
-              companyName: true,
-              businessName: true,
-              portalAccessToken: true,
-              _count: {
-                select: { contracts: true, projects: true, invoices: true },
-              },
-            },
-          },
-        },
-      }),
-      this.prisma.user.count({ where }),
-    ]);
+    const searchFilter: any = {};
+    if (filters.search) {
+      searchFilter.user = {
+        OR: [
+          { name: { contains: filters.search, mode: "insensitive" } },
+          { email: { contains: filters.search, mode: "insensitive" } },
+        ],
+      };
+    }
 
-    const items = users.map((u) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      isActive: u.isActive,
-      createdAt: u.createdAt,
-      companyName:
-        u.clientProfile?.companyName ?? u.clientProfile?.businessName ?? "—",
-      portalAccess: !!u.clientProfile?.portalAccessToken,
-      contractsCount: u.clientProfile?._count.contracts ?? 0,
-      projectsCount: u.clientProfile?._count.projects ?? 0,
-      invoicesCount: u.clientProfile?._count.invoices ?? 0,
-      totalRevenue: 0,
+    const clientRecords = await this.prisma.client.findMany({
+      where: { ...clientWhere, ...searchFilter },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        user: { select: { id: true, name: true, email: true, isActive: true, createdAt: true, lastLoginAt: true } },
+        _count: { select: { contracts: true, projects: true, invoices: true } },
+      },
+    });
+
+    const total = clientRecords.length < limit && page === 1
+      ? clientRecords.length
+      : await this.prisma.client.count({ where: { ...clientWhere, ...searchFilter } });
+
+    const clientIdList = clientRecords.map((c) => c.id);
+
+    const overdueGroups = await this.prisma.invoice.groupBy({
+      by: ["clientId"],
+      where: {
+        clientId: { in: clientIdList },
+        status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] },
+      },
+      _count: { id: true },
+    });
+    const overdueMap = new Map(overdueGroups.map((o) => [o.clientId, o._count.id]));
+
+    const items = clientRecords.map((c) => ({
+      id: c.user?.id ?? c.id,
+      name: c.user?.name ?? c.companyName,
+      email: c.user?.email ?? null,
+      isActive: c.user?.isActive ?? true,
+      status: c.status,
+      createdAt: c.createdAt.toISOString(),
+      companyName: c.companyName ?? c.businessName ?? "—",
+      portalAccess: !!c.portalAccessToken,
+      contractsCount: c._count.contracts ?? 0,
+      projectsCount: c._count.projects ?? 0,
+      invoicesCount: c._count.invoices ?? 0,
+      totalRevenue: c.totalPaid ?? 0,
+      activeProjects: c.activeProjects ?? 0,
+      completedProjects: c.completedProjects ?? 0,
+      totalContractValue: c.totalContractValue ?? 0,
+      overdueInvoicesCount: overdueMap.get(c.id) ?? 0,
     }));
 
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
@@ -128,6 +171,7 @@ export class AdminClientsService {
         manager: { select: { id: true, name: true, email: true } },
         user: { select: { id: true, name: true, email: true, phoneWhatsapp: true, avatarUrl: true, isActive: true, lastLoginAt: true } },
         profile: true,
+        lead: { select: { source: true } },
         _count: {
           select: { contracts: true, projects: true, invoices: true, payments: true, proposals: true, requests: true },
         },
@@ -136,30 +180,45 @@ export class AdminClientsService {
 
     if (!client) throw new NotFoundException("العميل غير موجود");
 
-    const [contracts, projects, invoices, payments, historyLogs, satRatings, avgResult] = await Promise.all([
+    const [contracts, projects, invoices, payments, historyLogs, satRatings, avgResult, overdueInvoicesCount] = await Promise.all([
       this.prisma.contract.findMany({
         where: { clientId },
         orderBy: { createdAt: "desc" },
-        take: 10,
-        select: { id: true, title: true, status: true, totalValue: true, createdAt: true },
+        take: 50,
+        select: {
+          id: true, title: true, status: true, totalValue: true, monthlyValue: true,
+          startDate: true, endDate: true, createdAt: true, type: true, currency: true,
+          _count: { select: { invoices: true } },
+        },
       }),
       this.prisma.project.findMany({
         where: { clientId },
         orderBy: { createdAt: "desc" },
-        take: 10,
-        select: { id: true, name: true, status: true, completionPercentage: true, createdAt: true },
+        take: 50,
+        select: {
+          id: true, name: true, status: true, completionPercentage: true,
+          startDate: true, endDate: true, createdAt: true,
+          manager: { select: { id: true, name: true } },
+        },
       }),
       this.prisma.invoice.findMany({
         where: { clientId },
         orderBy: { createdAt: "desc" },
-        take: 10,
-        select: { id: true, invoiceNumber: true, amount: true, status: true, paidAt: true, createdAt: true },
+        take: 50,
+        select: {
+          id: true, invoiceNumber: true, amount: true,
+          status: true, issueDate: true, dueDate: true, paidAt: true, createdAt: true,
+          payments: { select: { id: true, amount: true, status: true, createdAt: true } },
+        },
       }),
       this.prisma.payment.findMany({
         where: { clientId },
         orderBy: { createdAt: "desc" },
-        take: 10,
-        select: { id: true, amount: true, method: true, status: true, createdAt: true },
+        take: 50,
+        select: {
+          id: true, amount: true, method: true, status: true, createdAt: true,
+          invoice: { select: { id: true, invoiceNumber: true } },
+        },
       }),
       this.prisma.clientHistoryLog.findMany({
         where: { clientId },
@@ -176,31 +235,59 @@ export class AdminClientsService {
         where: { clientId },
         _avg: { score: true },
       }),
+      this.prisma.invoice.count({
+        where: { clientId, status: { in: ["SENT", "DUE", "LATE", "PARTIAL"] } },
+      }),
     ]);
 
     return {
       ...this.formatClientResponse(client),
+      source: client.lead?.source ?? null,
+      portalToken: client.portalAccessToken,
+      portalTokenExpiresAt: client.portalTokenExpiresAt?.toISOString() ?? null,
+      managerName: client.manager?.name ?? null,
+      hasPortalAccess: !!client.portalAccessToken,
+      overdueInvoicesCount,
       contracts: contracts.map((c) => ({
         id: c.id,
         title: c.title,
         status: c.status,
-        value: c.totalValue,
+        totalValue: c.totalValue,
+        monthlyValue: c.monthlyValue,
+        startDate: c.startDate?.toISOString() ?? null,
+        endDate: c.endDate?.toISOString() ?? null,
         createdAt: c.createdAt.toISOString(),
+        type: c.type,
+        currency: c.currency,
+        invoiceCount: c._count.invoices,
       })),
       projects: projects.map((p) => ({
         id: p.id,
         name: p.name,
         status: p.status,
         completionPercentage: p.completionPercentage,
+        pmName: p.manager?.name ?? null,
+        pmId: p.manager?.id ?? null,
+        startDate: p.startDate?.toISOString() ?? null,
+        endDate: p.endDate?.toISOString() ?? null,
         createdAt: p.createdAt.toISOString(),
       })),
       invoices: invoices.map((inv) => ({
         id: inv.id,
         invoiceNumber: inv.invoiceNumber,
         amount: inv.amount,
+        remainingAmount: inv.amount - inv.payments.filter((pm) => pm.status === "SUCCESS").reduce((sum, pm) => sum + pm.amount, 0),
         status: inv.status,
+        issueDate: inv.issueDate?.toISOString() ?? null,
+        dueDate: inv.dueDate?.toISOString() ?? null,
         paidAt: inv.paidAt?.toISOString() ?? null,
         createdAt: inv.createdAt.toISOString(),
+        payments: inv.payments.map((pm) => ({
+          id: pm.id,
+          amount: pm.amount,
+          status: pm.status,
+          createdAt: pm.createdAt.toISOString(),
+        })),
       })),
       payments: payments.map((p) => ({
         id: p.id,
@@ -208,6 +295,8 @@ export class AdminClientsService {
         method: p.method,
         status: p.status,
         createdAt: p.createdAt.toISOString(),
+        invoiceNumber: p.invoice?.invoiceNumber ?? null,
+        invoiceId: p.invoice?.id ?? null,
       })),
       historyLogs: historyLogs.map((h) => ({
         id: h.id,
@@ -285,12 +374,12 @@ export class AdminClientsService {
       manager: client.manager,
       profile: client.profile,
       counters: {
-        contracts: client._count.contracts,
-        projects: client._count.projects,
-        invoices: client._count.invoices,
-        payments: client._count.payments,
-        proposals: client._count.proposals,
-        requests: client._count.requests,
+        contracts: client._count?.contracts ?? 0,
+        projects: client._count?.projects ?? 0,
+        invoices: client._count?.invoices ?? 0,
+        payments: client._count?.payments ?? 0,
+        proposals: client._count?.proposals ?? 0,
+        requests: client._count?.requests ?? 0,
       },
       avgSatisfactionScore: client.avgSatisfactionScore,
       totalContractValue: client.totalContractValue,
@@ -298,6 +387,7 @@ export class AdminClientsService {
       totalPaid: client.totalPaid,
       activeProjects: client.activeProjects,
       completedProjects: client.completedProjects,
+      totalProjects: client.totalProjects,
     };
   }
 }

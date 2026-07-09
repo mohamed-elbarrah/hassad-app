@@ -16,6 +16,8 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { Dialog } from "@/components/design-system/Dialog";
+import { EmptyState } from "@/components/design-system/EmptyState";
+import { TimelineItem } from "@/components/design-system/Timeline";
 import {
   Tabs,
   TabsList,
@@ -485,34 +487,17 @@ export default function RolesPage() {
       >
         <div className="space-y-4">
           {MOCK_HISTORY.length === 0 ? (
-            <p className="text-sm text-portal-note-text">لا توجد تغييرات مسجلة</p>
+            <EmptyState icon={History} title="لا توجد تغييرات مسجلة" />
           ) : (
             MOCK_HISTORY.map((entry, i) => (
-              <div
+              <TimelineItem
                 key={i}
-                className="flex items-start gap-3 p-3 rounded-xl bg-badge-gray-bg"
-              >
-                <div className="p-1.5 rounded-full bg-secondary-100">
-                  <History className="size-3.5 text-secondary-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-natural-100">
-                    {entry.action}
-                  </p>
-                  <p className="text-xs text-portal-note-text mt-0.5">
-                    {entry.details}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-portal-note-text">
-                      {entry.user}
-                    </span>
-                    <span className="text-xs text-portal-note-text">•</span>
-                    <span className="text-xs text-portal-note-text">
-                      {entry.date}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                title={entry.action}
+                description={entry.details}
+                timestamp={`${entry.user} · ${entry.date}`}
+                icon={<History className="size-3.5 text-white" />}
+                isLast={i === MOCK_HISTORY.length - 1}
+              />
             ))
           )}
         </div>

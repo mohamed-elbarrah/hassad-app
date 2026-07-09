@@ -22,4 +22,10 @@ export class AdminPortalController {
   regenerateToken(@Param("id") id: string) {
     return this.service.regeneratePortalToken(id);
   }
+
+  @Post("clients/:id/toggle-access")
+  @RequirePermissions("admin.portal.manage")
+  toggleAccess(@Param("id") id: string) {
+    return this.service.togglePortalAccess(id);
+  }
 }

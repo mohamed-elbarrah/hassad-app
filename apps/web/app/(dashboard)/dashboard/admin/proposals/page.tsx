@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Search, TrendingUp, Eye } from "lucide-react";
+import { FileText, Search, TrendingUp, Eye, User, Building2 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -13,6 +13,7 @@ import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   useGetAdminProposalsQuery,
   useGetAdminProposalStatsQuery,
+  useGetAdminClientsQuery,
 } from "@/features/admin/adminApi";
 import { PROPOSAL_STATUS_AR } from "@hassad/shared";
 
@@ -21,16 +22,33 @@ export default function AdminProposalsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("");
+
+  const { data: clientsData } = useGetAdminClientsQuery({ limit: 200 });
 
   const { data, isLoading, isError } = useGetAdminProposalsQuery({
     page,
     limit: 20,
     search: search || undefined,
     status: statusFilter || undefined,
+    clientId: clientFilter || undefined,
+    creatorId: assigneeFilter || undefined,
   });
   const { data: stats } = useGetAdminProposalStatsQuery();
 
   const proposals = data?.items ?? [];
+
+  const assigneeOptions = useMemo(() => {
+    const names = new Set<string>();
+    proposals.forEach((p: any) => {
+      if (p.creator?.name) names.add(p.creator.name);
+    });
+    return Array.from(names).map((name) => ({
+      id: proposals.find((p: any) => p.creator?.name === name)?.creator?.id,
+      name,
+    })).filter((o): o is { id: string; name: string } => !!o.id);
+  }, [proposals]);
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -71,8 +89,8 @@ export default function AdminProposalsPage() {
       </div>
 
       <SurfaceCard>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <div className="relative flex-1 max-w-sm min-w-[200px]">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-note-text" />
             <FormInputControl
               placeholder="ابحث عن عرض..."
@@ -90,6 +108,30 @@ export default function AdminProposalsPage() {
             {Object.entries(PROPOSAL_STATUS_AR).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
+              </option>
+            ))}
+          </select>
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="rounded-xl border border-portal-divider px-3 py-2 text-sm"
+          >
+            <option value="">كل العملاء</option>
+            {(clientsData?.items ?? []).map((c: any) => (
+              <option key={c.id} value={c.id}>
+                {c.companyName ?? c.contactName ?? "—"}
+              </option>
+            ))}
+          </select>
+          <select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            className="rounded-xl border border-portal-divider px-3 py-2 text-sm"
+          >
+            <option value="">كل المنشئين</option>
+            {assigneeOptions.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
               </option>
             ))}
           </select>

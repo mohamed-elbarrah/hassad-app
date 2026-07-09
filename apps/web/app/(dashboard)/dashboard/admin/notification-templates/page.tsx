@@ -11,6 +11,9 @@ import {
   ListChecks,
   ToggleLeft,
   ToggleRight,
+  ScrollText,
+  Smartphone,
+  Mail,
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -19,14 +22,16 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { Dialog } from "@/components/design-system/Dialog";
 import { Pill } from "@/components/design-system/Pill";
+import { EmptyState } from "@/components/design-system/EmptyState";
 import { toast } from "sonner";
 import {
   useGetAdminNotificationTemplatesQuery,
   useGetAdminNotificationEventTypesQuery,
   useUpdateAdminNotificationTemplateMutation,
+  useGetAdminTemplateLogsQuery,
   useBroadcastNotificationMutation,
 } from "@/features/admin/adminApi";
-import { useGetRolesQuery } from "@/features/roles/rolesApi";
+import { USER_ROLE_AR } from "@hassad/shared";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 
 export default function AdminNotificationTemplatesPage() {
@@ -36,6 +41,12 @@ export default function AdminNotificationTemplatesPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showSendLog, setShowSendLog] = useState(false);
+  const [logTemplateId, setLogTemplateId] = useState<string | null>(null);
+
+  const { data: templateLogs } = useGetAdminTemplateLogsQuery(logTemplateId ?? "", {
+    skip: !logTemplateId,
+  });
   const [userSearch, setUserSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [editForm, setEditForm] = useState({ title: "", body: "", isActive: true });
@@ -53,7 +64,6 @@ export default function AdminNotificationTemplatesPage() {
   const { data: eventTypes } = useGetAdminNotificationEventTypesQuery();
   const [updateTemplate, { isLoading: updating }] = useUpdateAdminNotificationTemplateMutation();
   const [broadcast, { isLoading: sending }] = useBroadcastNotificationMutation();
-  const { data: roles } = useGetRolesQuery();
   const { data: usersData } = useSearchUsersQuery({
     search: userSearch || undefined,
     limit: 20,
@@ -131,7 +141,7 @@ export default function AdminNotificationTemplatesPage() {
         actions={
           <ActionButton size="md" onClick={() => setShowBroadcast(true)}>
             <Send className="size-4 ml-1" />
-            إرسال إشعار
+            إرسال إشعار جماعي
           </ActionButton>
         }
       />
@@ -213,20 +223,46 @@ export default function AdminNotificationTemplatesPage() {
                 {t.updatedAt ? new Date(t.updatedAt).toLocaleDateString("ar-SA") : "—"}
               </td>
               <td className="px-5 py-3 text-left" onClick={(e) => e.stopPropagation()}>
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelected(t);
-                    setEditForm({ title: t.title, body: t.body, isActive: t.isActive });
-                    setShowEdit(true);
-                  }}
-                >
-                  <Pencil className="size-4" />
-                </ActionButton>
+                <div className="flex gap-1 justify-end">
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    title="سجل الإرسال"
+                    onClick={() => {
+                      setLogTemplateId(t.id);
+                      setShowSendLog(true);
+                    }}
+                  >
+                    <ScrollText className="size-4" />
+                  </ActionButton>
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelected(t);
+                      setEditForm({ title: t.title, body: t.body, isActive: t.isActive });
+                      setShowEdit(true);
+                    }}
+                  >
+                    <Pencil className="size-4" />
+                  </ActionButton>
+                </div>
               </td>
             </tr>
           )}
+        />
+      </SurfaceCard>
+
+      {/* Broadcast History */}
+      <SurfaceCard>
+        <div className="flex items-center gap-2 mb-4">
+          <Send className="size-5 text-secondary-500" />
+          <h3 className="font-semibold text-natural-100">سجل البث</h3>
+        </div>
+        <EmptyState
+          icon={Send}
+          title="لم يتم إرسال أي إشعارات جماعية بعد"
+          hint="عند إرسال إشعار جماعي ستظهر سجلات الإرسال هنا"
         />
       </SurfaceCard>
 
@@ -334,9 +370,9 @@ export default function AdminNotificationTemplatesPage() {
                 className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
               >
                 <option value="">اختر الدور...</option>
-                {(roles ?? []).map((r: any) => (
-                  <option key={r.id} value={r.name}>
-                    {r.name}
+                {Object.entries(USER_ROLE_AR).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
                   </option>
                 ))}
               </select>
@@ -388,6 +424,72 @@ export default function AdminNotificationTemplatesPage() {
             />
           </div>
         </div>
+      </Dialog>
+
+      {/* Send Log Dialog */}
+      <Dialog
+        open={showSendLog}
+        onOpenChange={(o) => {
+          if (!o) {
+            setShowSendLog(false);
+            setLogTemplateId(null);
+          }
+        }}
+        title="سجل الإرسال"
+        contentClassName="sm:max-w-2xl"
+        footer={
+          <ActionButton variant="outline" onClick={() => { setShowSendLog(false); setLogTemplateId(null); }}>
+            إغلاق
+          </ActionButton>
+        }
+      >
+        {templateLogs?.items?.length > 0 ? (
+          <div className="space-y-3">
+            {templateLogs.items.map((log: any) => (
+              <div
+                key={log.id}
+                className="flex items-center justify-between rounded-xl border border-portal-divider p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-badge-gray-bg">
+                    <Smartphone className="size-4 text-portal-icon" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-natural-100">
+                      {log.user?.name ?? log.userId ?? "—"}
+                    </p>
+                    <p className="text-xs text-portal-note-text">
+                      {log.user?.email ?? "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Pill
+                    tone={log.isRead ? "success" : "neutral"}
+                  >
+                    {log.isRead ? "مقروء" : "غير مقروء"}
+                  </Pill>
+                  <span className="text-xs text-portal-note-text">
+                    {log.sentAt
+                      ? new Date(log.sentAt).toLocaleString("ar-SA")
+                      : "—"}
+                  </span>
+                  {log.readAt && (
+                    <span className="text-xs text-portal-note-text">
+                      قرئ: {new Date(log.readAt).toLocaleString("ar-SA")}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={ScrollText}
+            title="لا توجد سجلات إرسال"
+            hint="لم يتم إرسال هذا القالب بعد"
+          />
+        )}
       </Dialog>
 
       {/* Preview Dialog */}

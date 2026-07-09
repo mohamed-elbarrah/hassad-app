@@ -6,6 +6,7 @@ import {
   Body,
   Query,
   UseGuards,
+  ValidationPipe,
 } from "@nestjs/common";
 import { AdminLeadsService } from "../services/admin-leads.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
@@ -35,6 +36,16 @@ export class AdminLeadsController {
     @Body("assigneeId") assigneeId: string,
   ) {
     return this.service.reassign(id, assigneeId);
+  }
+  @Post(":id/contact-log")
+  @RequirePermissions("admin.leads.read")
+  addContactLog(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body()
+    body: { type: string; result: string; notes?: string; contactedAt?: string },
+  ) {
+    return this.service.addContactLog(id, user.id, body);
   }
   @Post(":id/convert-to-client")
   @RequirePermissions("admin.leads.read")

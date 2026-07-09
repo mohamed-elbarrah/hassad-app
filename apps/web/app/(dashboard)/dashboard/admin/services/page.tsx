@@ -38,6 +38,7 @@ interface ServiceFormData {
   nameAr: string;
   description: string;
   descriptionAr: string;
+  basePrice: number;
   isActive: boolean;
 }
 
@@ -46,6 +47,7 @@ const DEFAULT_SERVICE_FORM: ServiceFormData = {
   nameAr: "",
   description: "",
   descriptionAr: "",
+  basePrice: 0,
   isActive: true,
 };
 
@@ -80,6 +82,7 @@ export default function ServicesAdminPage() {
       nameAr: svc.nameAr,
       description: svc.description ?? "",
       descriptionAr: svc.descriptionAr ?? "",
+      basePrice: svc.basePrice,
       isActive: svc.isActive,
     });
     setEditingId(svc.id);
@@ -105,7 +108,7 @@ export default function ServicesAdminPage() {
       descriptionAr: form.descriptionAr.trim() || undefined,
       category: ServiceCategory.OTHER,
       estimatedDays: 30,
-      basePrice: 0,
+      basePrice: form.basePrice,
       isActive: form.isActive,
       sortOrder: 0,
     };
@@ -146,6 +149,9 @@ export default function ServicesAdminPage() {
     <tr key={svc.id} className="border-b-[1.5px] border-portal-divider">
       <td className="px-5 py-4 text-base font-semibold text-natural-100">{svc.nameAr}</td>
       <td className="px-5 py-4 text-base text-natural-100">{svc.name}</td>
+      <td className="px-5 py-4">
+        <span className="text-sm font-medium text-natural-100">{svc.basePrice?.toLocaleString() ?? 0} ريال</span>
+      </td>
       <td className="px-5 py-4">
         <Pill tone="neutral">{(svc as any)._count?.requests ?? 0}</Pill>
       </td>
@@ -212,6 +218,7 @@ export default function ServicesAdminPage() {
                 columns={[
                   { id: "nameAr", label: "الاسم (عربي)" },
                   { id: "name", label: "الاسم (EN)" },
+                  { id: "price", label: "السعر" },
                   { id: "requests", label: "الطلبات" },
                   { id: "status", label: "الحالة" },
                   { id: "actions", label: "", width: "80px" },
@@ -301,6 +308,16 @@ export default function ServicesAdminPage() {
               placeholder="Brief description in English"
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm font-medium text-natural-100">السعر الأساسي (ريال)</Label>
+            <FormInputControl
+              type="number"
+              placeholder="0"
+              value={form.basePrice}
+              onChange={(e) => setForm((f) => ({ ...f, basePrice: Number(e.target.value) || 0 }))}
             />
           </div>
 

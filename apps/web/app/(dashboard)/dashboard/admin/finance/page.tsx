@@ -11,6 +11,8 @@ import {
   AlertTriangle,
   BarChart3,
   RotateCcw,
+  PieChart,
+  Clock,
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -19,11 +21,14 @@ import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { EmptyState } from "@/components/design-system/EmptyState";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { TimeRangeSelector, getTimeRangeParams, type TimeRange } from "@/components/design-system/TimeRangeSelector";
 import { MonthlyComparisonBarChart } from "@/components/design-system/MonthlyComparisonBarChart";
+import { SpendDistributionDonutChart } from "@/components/design-system/SpendDistributionDonutChart";
 import { useGetAdminFinanceOverviewQuery } from "@/features/admin/adminApi";
 import { useCurrency } from "@/hooks/useCurrency";
-import type { ReportTimeline } from "@/features/portal/portalApi";
+import { PAYMENT_METHOD_AR } from "@hassad/shared";
+import type { ReportTimeline, ReportPlatformDistribution } from "@/features/portal/portalApi";
 
 export default function AdminFinancePage() {
   const { fmtAmount, fmtNumber, currency } = useCurrency();
@@ -37,6 +42,9 @@ export default function AdminFinancePage() {
   const topClients = overview?.topClients;
   const alerts = overview?.alerts;
   const refundRate = overview?.refundRate;
+  const paymentMethodDistribution = overview?.paymentMethodDistribution;
+  const topOverdueInvoices = overview?.topOverdueInvoices;
+  const paidVsUnpaid = overview?.paidVsUnpaid;
 
   const timeline: ReportTimeline | undefined = useMemo(() => {
     if (!revenueTrend || revenueTrend.length === 0) return undefined;
@@ -51,6 +59,29 @@ export default function AdminFinancePage() {
       ],
     };
   }, [revenueTrend]);
+
+  const paidVsUnpaidTimeline: ReportTimeline | undefined = useMemo(() => {
+    if (!paidVsUnpaid) return undefined;
+    return {
+      labels: ["المدفوع", "غير المدفوع"],
+      datasets: [
+        {
+          label: "المبلغ",
+          data: [paidVsUnpaid.paid.amount, paidVsUnpaid.unpaid.amount],
+          metric: "spend",
+        },
+      ],
+    };
+  }, [paidVsUnpaid]);
+
+  const paymentMethodChart: ReportPlatformDistribution[] | undefined = useMemo(() => {
+    if (!paymentMethodDistribution || paymentMethodDistribution.length === 0) return undefined;
+    return paymentMethodDistribution.map((p: any) => ({
+      platform: PAYMENT_METHOD_AR[p.method] ?? p.method,
+      spend: p.amount,
+      percent: p.percentage,
+    }));
+  }, [paymentMethodDistribution]);
 
   if (isLoading) {
     return (
@@ -159,10 +190,24 @@ export default function AdminFinancePage() {
               </div>
             ))}
             {(!aging || aging.length === 0) && (
-              <p className="text-center text-portal-note-text py-8">
-                لا توجد فواتير مستحقة
-              </p>
+              <EmptyState icon={Clock} title="لا توجد فواتير مستحقة" hint="جميع الفواتير مدفوعة أو في الموعد المحدد" />
             )}
+          </div>
+        </SurfaceCard>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Payment Method Distribution */}
+        <SurfaceCard title="توزيع طرق الدفع" icon={PieChart}>
+          <div className="h-64">
+            <SpendDistributionDonutChart data={paymentMethodChart ?? []} />
+          </div>
+        </SurfaceCard>
+
+        {/* Paid vs Unpaid */}
+        <SurfaceCard title="المدفوع مقابل غير المدفوع" icon={BarChart3}>
+          <div className="h-64">
+            <MonthlyComparisonBarChart timeline={paidVsUnpaidTimeline} />
           </div>
         </SurfaceCard>
       </div>
@@ -193,6 +238,47 @@ export default function AdminFinancePage() {
           </div>
         </SurfaceCard>
 
+        {/* Top Overdue Invoices */}
+        <SurfaceCard title="أكثر 5 فواتير متأخرة" icon={Clock}>
+          <DataTable
+            columns={[
+              { id: "invoice", label: "الفاتورة" },
+              { id: "client", label: "العميل" },
+              { id: "amount", label: "المبلغ" },
+              { id: "days", label: "أيام التأخير" },
+            ]}
+            data={topOverdueInvoices ?? []}
+            isLoading={false}
+            isError={false}
+            emptyState={{
+              icon: Clock,
+              message: "لا توجد فواتير متأخرة",
+              hint: "جميع الفواتير مدفوعة أو في الموعد المحدد",
+            }}
+            renderRow={(inv: any) => (
+              <tr key={inv.id} className="border-b border-portal-divider">
+                <td className="px-4 py-3 text-sm font-medium">
+                  {inv.invoiceNumber}
+                </td>
+                <td className="px-4 py-3 text-sm text-portal-note-text">
+                  {inv.clientName}
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  {fmtAmount(inv.amount)} {currency.symbol}
+                </td>
+                <td className="px-4 py-3">
+                  <StatusBadge
+                    status={inv.daysOverdue > 30 ? "CRITICAL" : "LATE"}
+                    label={`${inv.daysOverdue} يوم`}
+                  />
+                </td>
+              </tr>
+            )}
+          />
+        </SurfaceCard>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Clients */}
         <SurfaceCard title="أفضل 5 عملاء" icon={Users}>
           <DataTable

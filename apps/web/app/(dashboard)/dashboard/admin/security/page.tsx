@@ -33,12 +33,14 @@ import { formatDateTimeTz } from "@/lib/format";
 const EVENT_TYPE_OPTIONS = [
   { label: "كل الأحداث", value: "all" },
   { label: "تسجيل دخول", value: "LOGIN_SUCCESS" },
-  { label: "محاولة فاشلة", value: "LOGIN_FAILED" },
-  { label: "انتحال شخصية", value: "IMPERSONATION" },
-  { label: "إعادة تعيين كلمة مرور", value: "PASSWORD_RESET" },
-  { label: "قفل حساب", value: "ACCOUNT_LOCKED" },
-  { label: "فتح حساب", value: "ACCOUNT_UNLOCKED" },
+  { label: "محاولة دخول فاشلة", value: "LOGIN_FAILED" },
+  { label: "انتحال صلاحيات", value: "IMPERSONATION" },
+  { label: "إعادة تعيين كلمة المرور", value: "PASSWORD_RESET" },
+  { label: "قفل الحساب", value: "ACCOUNT_LOCKED" },
+  { label: "فتح الحساب", value: "ACCOUNT_UNLOCKED" },
   { label: "إلغاء جلسة", value: "SESSION_REVOKED" },
+  { label: "تغيير الدور", value: "ROLE_CHANGED" },
+  { label: "تعطيل التحقق بخطوتين", value: "TWO_FACTOR_DISABLED" },
 ];
 
 const EVENT_TYPE_PILL_TONES: Record<
@@ -46,25 +48,36 @@ const EVENT_TYPE_PILL_TONES: Record<
   "neutral" | "success" | "warning" | "danger" | "purple" | "blue"
 > = {
   LOGIN_SUCCESS: "success",
-  LOGIN_FAILED: "danger",
-  IMPERSONATION: "warning",
+  LOGIN_FAILED: "warning",
+  IMPERSONATION: "danger",
   PASSWORD_RESET: "blue",
   ACCOUNT_LOCKED: "danger",
   ACCOUNT_UNLOCKED: "success",
   SESSION_REVOKED: "warning",
   LOGOUT: "neutral",
+  ROLE_CHANGED: "purple",
+  TWO_FACTOR_DISABLED: "warning",
 };
 
 const EVENT_TYPE_AR: Record<string, string> = {
   LOGIN_SUCCESS: "تسجيل دخول",
-  LOGIN_FAILED: "محاولة فاشلة",
+  LOGIN_FAILED: "محاولة دخول فاشلة",
   LOGOUT: "تسجيل خروج",
-  IMPERSONATION: "انتحال شخصية",
-  PASSWORD_RESET: "إعادة تعيين كلمة مرور",
-  ACCOUNT_LOCKED: "قفل حساب",
-  ACCOUNT_UNLOCKED: "فتح حساب",
+  IMPERSONATION: "انتحال صلاحيات",
+  PASSWORD_RESET: "إعادة تعيين كلمة المرور",
+  ACCOUNT_LOCKED: "قفل الحساب",
+  ACCOUNT_UNLOCKED: "فتح الحساب",
   SESSION_REVOKED: "إلغاء جلسة",
+  ROLE_CHANGED: "تغيير الدور",
+  TWO_FACTOR_DISABLED: "تعطيل التحقق بخطوتين",
 };
+
+const TIME_RANGE_OPTIONS = [
+  { label: "اليوم", days: 0 },
+  { label: "آخر 7 أيام", days: 7 },
+  { label: "آخر 30 يوم", days: 30 },
+  { label: "الكل", days: -1 },
+] as const;
 
 function useDebounce<T>(value: T, delay = 400): T {
   const [debounced, setDebounced] = useState(value);
@@ -81,6 +94,25 @@ export default function AdminSecurityPage() {
   const [userSearchInput, setUserSearchInput] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [timeRange, setTimeRange] = useState<number>(-1);
+
+  const applyTimeRange = (days: number) => {
+    setTimeRange(days);
+    setPage(1);
+    if (days === -1) {
+      setFromDate("");
+      setToDate("");
+    } else if (days === 0) {
+      const today = new Date().toISOString().slice(0, 10);
+      setFromDate(today);
+      setToDate(today);
+    } else {
+      const to = new Date();
+      const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+      setFromDate(from.toISOString().slice(0, 10));
+      setToDate(to.toISOString().slice(0, 10));
+    }
+  };
 
   const debouncedUserSearch = useDebounce(userSearchInput, 400);
 
@@ -127,7 +159,7 @@ export default function AdminSecurityPage() {
           variant="success"
         />
         <StatCard
-          title="انتحال الشخصية"
+          title="انتحال صلاحيات"
           value={stats?.impersonations7d ?? 0}
           icon={UserX}
           variant="warning"
@@ -182,6 +214,22 @@ export default function AdminSecurityPage() {
           }}
           className="h-10 px-3 text-sm rounded-xl border border-portal-card-border bg-transparent text-portal-note-text"
         />
+
+        <div className="flex gap-1.5">
+          {TIME_RANGE_OPTIONS.map((opt) => (
+            <button
+              key={opt.days}
+              onClick={() => applyTimeRange(opt.days)}
+              className={`h-9 px-3 text-xs rounded-xl border transition-colors ${
+                timeRange === opt.days
+                  ? "border-secondary-500 bg-secondary-50 text-secondary-700"
+                  : "border-portal-card-border text-portal-note-text hover:bg-badge-gray-bg"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
         {data && (
           <span className="text-sm text-portal-note-text mr-auto">

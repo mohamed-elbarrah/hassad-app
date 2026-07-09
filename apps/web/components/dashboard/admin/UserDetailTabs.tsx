@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { User, Activity, Monitor, Lock, Briefcase, BarChart3 } from "lucide-react";
+import { User, Activity, Monitor, Lock, Briefcase, BarChart3, Edit3 } from "lucide-react";
 import {
   Tabs,
   TabsList,
@@ -14,6 +14,10 @@ import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Pill } from "@/components/design-system/Pill";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Skeleton } from "@/components/design-system/Skeleton";
+import { Dialog } from "@/components/design-system/Dialog";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { AccountForm } from "@/components/design-system/AccountForm";
+import { toast } from "sonner";
 import { formatDate } from "@/lib/format";
 import type {
   AdminUserDetail,
@@ -21,6 +25,7 @@ import type {
   AdminSession,
   UserPerformance,
 } from "@/features/admin/adminApi";
+import { useUpdateAdminUserMutation } from "@/features/admin/adminApi";
 
 interface UserDetailTabsProps {
   user: AdminUserDetail | null;
@@ -93,6 +98,8 @@ export function UserDetailTabs({
   isPerformanceLoading,
 }: UserDetailTabsProps) {
   const [activeTab, setActiveTab] = useState("profile");
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [updateUser, { isLoading: isUpdating }] = useUpdateAdminUserMutation();
 
   if (isLoading || !user) {
     return (
@@ -146,6 +153,16 @@ export function UserDetailTabs({
         <div className="p-6">
           {/* Profile Tab */}
           <TabsContent value="profile">
+            <div className="flex justify-end mb-4">
+              <ActionButton
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEditDialog(true)}
+              >
+                <Edit3 className="size-3.5 ml-1" />
+                تعديل
+              </ActionButton>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
@@ -529,6 +546,23 @@ export function UserDetailTabs({
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* Edit user dialog */}
+      <Dialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        title="تعديل بيانات المستخدم"
+        description="قم بتحديث بيانات المستخدم"
+      >
+        <AccountForm
+          user={user}
+          isLoading={isUpdating}
+          onUpdate={async ({ id, body }) => {
+            await updateUser({ id, body }).unwrap();
+            setShowEditDialog(false);
+          }}
+        />
+      </Dialog>
     </SurfaceCard>
   );
 }

@@ -12,13 +12,27 @@ export class AdminLeadsService {
 
   async findAll(query: any) {
     const where: any = { isActive: true };
+
+    const searchOr: any[] = [];
     if (query.search) {
-      where.OR = [
+      searchOr.push(
         { companyName: { contains: query.search, mode: "insensitive" } },
         { contactName: { contains: query.search, mode: "insensitive" } },
         { email: { contains: query.search, mode: "insensitive" } },
-      ];
+      );
     }
+    if (query.noContactSince) {
+      const days = parseInt(query.noContactSince, 10);
+      if (!isNaN(days)) {
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        searchOr.push(
+          { lastContactAt: null },
+          { lastContactAt: { lt: since } },
+        );
+      }
+    }
+    if (searchOr.length > 0) where.OR = searchOr;
+
     if (query.assigneeId) where.assignedTo = query.assigneeId;
     if (query.stage) where.pipelineStage = query.stage;
     if (query.source) where.source = query.source;
@@ -84,6 +98,10 @@ export class AdminLeadsService {
         services: { include: { service: true } },
         automationLogs: { orderBy: { executedAt: "desc" }, take: 20 },
         client: { select: { id: true } },
+        proposals: {
+          select: { id: true, title: true, totalPrice: true, status: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
     if (!lead) throw new NotFoundException("Lead not found");
@@ -189,5 +207,22 @@ export class AdminLeadsService {
       conversionRate:
         total > 0 ? Math.round((converted / total) * 100 * 10) / 10 : 0,
     };
+  }
+
+  async addContactLog(
+    leadId: string,
+    userId: string,
+    body: { type: string; result: string; notes?: string; contactedAt?: string },
+  ) {
+    return this.prisma.leadContactLog.create({
+      data: {
+        leadId,
+        userId,
+        type: body.type as any,
+        result: body.result as any,
+        notes: body.notes,
+        contactedAt: body.contactedAt ? new Date(body.contactedAt) : new Date(),
+      },
+    });
   }
 }

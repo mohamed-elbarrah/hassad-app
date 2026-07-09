@@ -87,6 +87,21 @@ export class ChangeRoleDto {
   role: UserRole;
 }
 
+export class UpdateUserDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  phoneWhatsapp?: string;
+}
+
 export class CreateAdminUserDto {
   @IsString()
   @MinLength(2)

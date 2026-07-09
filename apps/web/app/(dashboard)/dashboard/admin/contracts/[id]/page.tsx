@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, FileSignature, DollarSign, FolderKanban } from "lucide-react";
+import { ArrowRight, FileSignature, DollarSign, FolderKanban, Building2, User, Phone, Mail, Upload, FileText, ExternalLink } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -81,9 +81,11 @@ export default function AdminContractDetailPage() {
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="plans">خطة الدفع</TabsTrigger>
             <TabsTrigger value="versions">الإصدارات</TabsTrigger>
+            <TabsTrigger value="documents">مستندات العقد</TabsTrigger>
             <TabsTrigger value="alerts">التنبيهات</TabsTrigger>
             <TabsTrigger value="history">سجل الحالة</TabsTrigger>
             <TabsTrigger value="invoices">الفواتير</TabsTrigger>
+            <TabsTrigger value="project">المشروع المرتبط</TabsTrigger>
           </TabsList>
           <div className="p-6">
             <TabsContent value="overview">
@@ -91,14 +93,8 @@ export default function AdminContractDetailPage() {
                 <div className="space-y-4">
                   <div>
                     <span className="text-sm text-portal-note-text">
-                      العميل
+                      النوع
                     </span>
-                    <p className="text-base font-medium">
-                      {contract.client?.companyName ?? "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-portal-note-text">النوع</span>
                     <p className="text-base font-medium">{contract.type}</p>
                   </div>
                   <div>
@@ -125,6 +121,30 @@ export default function AdminContractDetailPage() {
                       </ActionButton>
                     </div>
                   </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      تاريخ البداية
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.startDate?.slice(0, 10) ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      تاريخ النهاية
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.endDate?.slice(0, 10) ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      التوقيع الإلكتروني
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.eSigned ? "موقّع" : "غير موقّع"}
+                    </p>
+                  </div>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -147,11 +167,61 @@ export default function AdminContractDetailPage() {
                   </div>
                   <div>
                     <span className="text-sm text-portal-note-text">
-                      التوقيع الإلكتروني
+                      عدد الفواتير
                     </span>
                     <p className="text-base font-medium">
-                      {contract.eSigned ? "موقّع" : "غير موقّع"}
+                      {contract.invoices?.length ?? 0}
                     </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">الإصدار</span>
+                    <p className="text-base font-medium">
+                      {"الإصدار " + (contract.versionNumber ?? 1)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      تاريخ الإنشاء
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.createdAt?.slice(0, 10) ?? "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 p-4 rounded-2xl border border-portal-divider bg-badge-gray-bg/30">
+                <h3 className="text-sm font-medium text-portal-note-text mb-3 flex items-center gap-2">
+                  <Building2 className="size-4" />
+                  معلومات العميل
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="size-4 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">الشركة</span>
+                      <p className="text-sm font-medium">{contract.client?.companyName ?? "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <User className="size-4 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">جهة الاتصال</span>
+                      <p className="text-sm font-medium">{contract.client?.user?.name ?? "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="size-4 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">البريد الإلكتروني</span>
+                      <p className="text-sm font-medium">{contract.client?.user?.email ?? "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="size-4 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">الهاتف</span>
+                      <p className="text-sm font-medium">{contract.client?.user?.phoneWhatsapp ?? "—"}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -207,6 +277,48 @@ export default function AdminContractDetailPage() {
                   </tr>
                 )}
               />
+            </TabsContent>
+            <TabsContent value="documents">
+              <div className="space-y-4">
+                <div className="rounded-2xl border-2 border-dashed border-portal-divider p-8 text-center">
+                  <Upload className="size-8 mx-auto text-portal-icon mb-2" />
+                  <p className="text-sm font-medium text-portal-note-text">اسحب وأفلت ملفات العقد هنا</p>
+                  <p className="text-xs text-portal-note-text mt-1">أو انقر لرفع ملف PDF</p>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    id="contract-file-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) toast.success("تم رفع الملف: " + file.name);
+                    }}
+                  />
+                  <label
+                    htmlFor="contract-file-upload"
+                    className="inline-flex items-center gap-2 mt-4 rounded-xl bg-primary text-white px-4 py-2 text-sm font-medium cursor-pointer hover:bg-primary-dark transition-colors"
+                  >
+                    <Upload className="size-4" />
+                    رفع ملف
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-portal-note-text">الملفات المرفوعة</h4>
+                  {contract.filePath ? (
+                    <div className="flex items-center justify-between rounded-xl border border-portal-divider p-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="size-4 text-portal-icon" />
+                        <span className="text-sm font-medium">الملف الحالي</span>
+                      </div>
+                      <ActionButton variant="ghost" size="sm">
+                        <ExternalLink className="size-4" />
+                      </ActionButton>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-portal-note-text">لا توجد ملفات مرفوعة</p>
+                  )}
+                </div>
+              </div>
             </TabsContent>
             <TabsContent value="alerts">
               <DataTable
@@ -297,6 +409,62 @@ export default function AdminContractDetailPage() {
                   </tr>
                 )}
               />
+            </TabsContent>
+            <TabsContent value="project">
+              {contract.project ? (
+                <SurfaceCard>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FolderKanban className="size-5 text-primary" />
+                        <h3 className="text-lg font-medium">{contract.project.name}</h3>
+                      </div>
+                      <ActionButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/dashboard/admin/projects/${contract.project.id}`)}
+                      >
+                        <ExternalLink className="size-4 ml-1" />
+                        عرض المشروع
+                      </ActionButton>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <span className="text-xs text-portal-note-text">الحالة</span>
+                        <p className="text-sm font-medium mt-0.5">
+                          <StatusBadge status={contract.project.status} label={contract.project.status} />
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-portal-note-text">تاريخ البداية</span>
+                        <p className="text-sm font-medium mt-0.5">
+                          {contract.project.startDate?.slice(0, 10) ?? "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-portal-note-text">تاريخ النهاية</span>
+                        <p className="text-sm font-medium mt-0.5">
+                          {contract.project.endDate?.slice(0, 10) ?? "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-portal-note-text">مدير المشروع</span>
+                        <p className="text-sm font-medium mt-0.5">
+                          {contract.project.manager?.name ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </SurfaceCard>
+              ) : (
+                <div className="text-center py-8">
+                  <FolderKanban className="size-12 mx-auto text-portal-icon mb-3" />
+                  <p className="text-sm font-medium text-portal-note-text">لا يوجد مشروع مرتبط</p>
+                  <p className="text-xs text-portal-note-text mt-1">
+                    يمكنك تحويل هذا العقد إلى مشروع من زر "تحويل إلى مشروع" في الأعلى
+                  </p>
+                </div>
+              )}
             </TabsContent>
           </div>
         </Tabs>

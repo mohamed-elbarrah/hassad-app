@@ -1,12 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { Search, Monitor, XCircle, Smartphone, Globe } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Monitor, XCircle, Smartphone, Tablet } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -19,6 +15,7 @@ import {
   useRevokeSessionMutation,
   type AdminSession,
 } from "@/features/admin/adminApi";
+import { formatRelativeTime } from "@/lib/format";
 
 function useDebounce<T>(value: T, delay = 400): T {
   const [debounced, setDebounced] = useState(value);
@@ -27,6 +24,14 @@ function useDebounce<T>(value: T, delay = 400): T {
     return () => clearTimeout(t);
   }, [value, delay]);
   return debounced;
+}
+
+function sessionDeviceIcon(ua: string | null) {
+  if (!ua) return Monitor;
+  const lua = ua.toLowerCase();
+  if (/tablet|ipad/i.test(lua)) return Tablet;
+  if (/mobile|android|iphone|ios/i.test(lua)) return Smartphone;
+  return Monitor;
 }
 
 export default function AdminSessionsPage() {
@@ -42,12 +47,15 @@ export default function AdminSessionsPage() {
   const [revokeSession] = useRevokeSessionMutation();
 
   const sessions = data?.items ?? [];
-  const activeSessions = sessions.filter((s) => s.isActive).length;
+  const today = new Date().toISOString().slice(0, 10);
+  const activeToday = sessions.filter(
+    (s) => s.isActive && s.createdAt.slice(0, 10) === today,
+  ).length;
   const desktopSessions = sessions.filter(
-    (s) => s.userAgent && !/mobile|android|ios|iphone|ipad/i.test(s.userAgent),
+    (s) => s.userAgent && !/mobile|android|ios|iphone|ipad|tablet/i.test(s.userAgent),
   ).length;
   const mobileSessions = sessions.filter(
-    (s) => s.userAgent && /mobile|android|ios|iphone|ipad/i.test(s.userAgent),
+    (s) => s.userAgent && /mobile|android|ios|iphone|ipad|tablet/i.test(s.userAgent),
   ).length;
 
   const handleRevoke = async () => {
@@ -76,21 +84,20 @@ export default function AdminSessionsPage() {
           icon={Monitor}
         />
         <StatCard
-          title="الجلسات النشطة"
-          value={activeSessions}
+          title="نشطة اليوم"
+          value={activeToday}
           icon={Monitor}
           variant="success"
         />
         <StatCard
-          title="الجلسات المنتهية"
-          value={(data?.total ?? 0) - activeSessions}
+          title="سطح المكتب"
+          value={desktopSessions}
           icon={Monitor}
-          variant="warning"
         />
         <StatCard
-          title="المستخدمون"
-          value={new Set(sessions.map((s) => s.userId)).size}
-          icon={Globe}
+          title="الجوال"
+          value={mobileSessions}
+          icon={Smartphone}
         />
       </div>
 
@@ -137,13 +144,12 @@ export default function AdminSessionsPage() {
             </td>
             <td className="px-5 py-4 text-sm text-portal-note-text max-w-[200px] truncate" dir="ltr">
               {s.userAgent ? (
-                <span className="inline-flex items-center gap-1">
-                  {/mobile|android|ios|iphone|ipad/i.test(s.userAgent) ? (
-                    <Smartphone className="size-3.5 shrink-0" />
-                  ) : (
-                    <Monitor className="size-3.5 shrink-0" />
-                  )}
-                  {s.userAgent}
+                <span className="inline-flex items-center gap-1.5">
+                  {(() => {
+                    const Icon = sessionDeviceIcon(s.userAgent);
+                    return <Icon className="size-4 shrink-0" />;
+                  })()}
+                  <span className="truncate">{s.userAgent}</span>
                 </span>
               ) : (
                 "—"
@@ -152,8 +158,8 @@ export default function AdminSessionsPage() {
             <td className="px-5 py-4 text-sm text-portal-note-text font-mono" dir="ltr">
               {s.ip ?? "—"}
             </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text" dir="ltr">
-              {s.createdAt.slice(0, 10)}
+            <td className="px-5 py-4 text-sm text-portal-note-text whitespace-nowrap">
+              {formatRelativeTime(s.createdAt)}
             </td>
             <td className="px-5 py-4">
               {s.isActive ? (

@@ -14,6 +14,22 @@ export enum ClientSource {
   PLATFORM = "PLATFORM",
 }
 
+export const BUSINESS_TYPE_AR: Record<BusinessType, string> = {
+  [BusinessType.RESTAURANT]: "مطعم",
+  [BusinessType.CLINIC]: "عيادة",
+  [BusinessType.STORE]: "متجر",
+  [BusinessType.SERVICE]: "خدمة",
+  [BusinessType.OTHER]: "أخرى",
+};
+
+export const CLIENT_SOURCE_AR: Record<ClientSource, string> = {
+  [ClientSource.AD]: "إعلان",
+  [ClientSource.REFERRAL]: "توصية",
+  [ClientSource.WEBSITE]: "الموقع الإلكتروني",
+  [ClientSource.WHATSAPP]: "واتساب",
+  [ClientSource.PLATFORM]: "المنصة",
+};
+
 export enum PipelineStage {
   NEW = "NEW",
   INTRO_SENT = "INTRO_SENT",

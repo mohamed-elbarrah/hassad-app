@@ -267,7 +267,7 @@ export const financeApi = createApi({
     // Payments
     getPayments: builder.query<
       PaginatedPayments,
-      { page?: number; limit?: number }
+      { page?: number; limit?: number; method?: string; status?: string }
     >({
       query: (params = {}) => ({ url: "/payments", params }),
       providesTags: ["Payment"],

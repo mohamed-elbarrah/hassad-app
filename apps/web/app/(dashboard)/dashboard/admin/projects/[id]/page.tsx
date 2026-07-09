@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import {
   ArrowRight, Briefcase, UserCog, Archive, Flag, DollarSign, FileCheck, CalendarRange,
+  UserPlus, Plus, Clock, History, AlertTriangle, MessageSquare,
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -19,16 +20,30 @@ import {
 } from "@/components/design-system/Tabs";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Dialog } from "@/components/design-system/Dialog";
+import { EmptyState } from "@/components/design-system/EmptyState";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { TimelineItem } from "@/components/design-system/Timeline";
 import { toast } from "sonner";
 import {
   useGetAdminProjectQuery,
+  useAddProjectMemberMutation,
+  useCreateProjectTaskMutation,
   useReassignProjectPmMutation,
   useArchiveProjectMutation,
   useForceProjectStatusMutation,
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { PROJECT_STATUS_AR } from "@hassad/shared";
+import {
+  PROJECT_STATUS_AR,
+  TASK_STATUS_AR,
+  TASK_PRIORITY_AR,
+  INVOICE_STATUS_AR,
+  PAYMENT_METHOD_AR,
+  PAYMENT_STATUS_AR,
+  DISPUTE_STATUS_AR,
+  DISPUTE_PRIORITY_AR,
+  DISPUTE_CATEGORY_AR,
+} from "@hassad/shared";
 import { cn } from "@/lib/utils";
 import { format, differenceInDays, startOfMonth, endOfMonth, addMonths, isAfter, isBefore, isToday, isSameDay } from "date-fns";
 
@@ -192,17 +207,42 @@ export default function AdminProjectDetailPage() {
   const [reassignPm] = useReassignProjectPmMutation();
   const [archiveProject] = useArchiveProjectMutation();
   const [forceStatus] = useForceProjectStatusMutation();
+  const [addMember] = useAddProjectMemberMutation();
+  const [createTask] = useCreateProjectTaskMutation();
 
   const [showReassign, setShowReassign] = useState(false);
   const [showStatus, setShowStatus] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
   const [pmSearch, setPmSearch] = useState("");
   const [selectedPmId, setSelectedPmId] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [reason, setReason] = useState("");
 
+  const [memberSearch, setMemberSearch] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [memberRole, setMemberRole] = useState("MEMBER");
+
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    assigneeId: "",
+    priority: "NORMAL",
+    dueDate: "",
+    status: "TODO",
+  });
+  const [taskAssigneeSearch, setTaskAssigneeSearch] = useState("");
+
   const { data: pmData } = useSearchUsersQuery(
     { role: "PM", limit: 20, search: pmSearch || undefined },
     { skip: !showReassign },
+  );
+  const { data: memberSearchData } = useSearchUsersQuery(
+    { search: memberSearch || undefined, limit: 20 },
+    { skip: !showAddMember },
+  );
+  const { data: taskAssigneeData } = useSearchUsersQuery(
+    { search: taskAssigneeSearch || undefined, limit: 20 },
+    { skip: !showAddTask },
   );
 
   if (isLoading) {
@@ -238,7 +278,15 @@ export default function AdminProjectDetailPage() {
         description={`${project.client?.companyName ?? "—"} · ${PROJECT_STATUS_AR[project.status] ?? project.status}`}
         icon={Briefcase}
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <ActionButton size="md" onClick={() => setShowAddMember(true)}>
+              <UserPlus className="size-4 ml-1" />
+              إضافة عضو
+            </ActionButton>
+            <ActionButton size="md" onClick={() => setShowAddTask(true)}>
+              <Plus className="size-4 ml-1" />
+              إضافة مهمة
+            </ActionButton>
             <ActionButton
               variant="outline"
               size="md"
@@ -295,6 +343,8 @@ export default function AdminProjectDetailPage() {
             <TabsTrigger value="gantt">المخطط الزمني</TabsTrigger>
             <TabsTrigger value="finance">المالية</TabsTrigger>
             <TabsTrigger value="deliverables">التسليمات</TabsTrigger>
+            <TabsTrigger value="history">سجل التغييرات</TabsTrigger>
+            <TabsTrigger value="disputes">النزاعات</TabsTrigger>
           </TabsList>
 
           <div className="p-6">
@@ -698,9 +748,246 @@ export default function AdminProjectDetailPage() {
                 </div>
               </div>
             </TabsContent>
+
+            <TabsContent value="history">
+              <div className="space-y-4">
+                {(!project.history || project.history.length === 0) ? (
+                  <EmptyState icon={History} title="لا يوجد سجل تغييرات" hint="لم يتم تسجيل أي تغييرات لهذا المشروع بعد" />
+                ) : (
+                  project.history.map((h: any, idx: number) => {
+                    const actionMap: Record<string, string> = {
+                      "admin.projects.reassign-pm": "إعادة تعيين PM",
+                      "admin.projects.archive": "أرشفة المشروع",
+                      "admin.projects.force-status": "تغيير الحالة",
+                      "admin.projects.add-member": "إضافة عضو",
+                      "admin.projects.add-task": "إضافة مهمة",
+                      "admin.projects.create": "إنشاء المشروع",
+                    };
+                    const actionLabel = actionMap[h.action] ?? h.action;
+                    const variant =
+                      h.action === "admin.projects.force-status"
+                        ? "warning"
+                        : h.action === "admin.projects.archive"
+                          ? "danger"
+                          : h.action === "admin.projects.create"
+                            ? "success"
+                            : "default";
+                    return (
+                      <TimelineItem
+                        key={h.id}
+                        title={actionLabel}
+                        description={
+                          h.after ? (
+                            <span className="text-xs text-portal-note-text">
+                              {h.after.previousStatus
+                                ? `${PROJECT_STATUS_AR[h.after.previousStatus] ?? h.after.previousStatus} ← ${PROJECT_STATUS_AR[h.after.newStatus] ?? h.after.newStatus}`
+                                : h.after.previousPmId
+                                  ? `PM جديد: ${h.after.newPmId}`
+                                  : h.after.name
+                                    ? `العميل: ${h.after.name}`
+                                    : JSON.stringify(h.after)}
+                              {h.after.reason ? ` — ${h.after.reason}` : ""}
+                            </span>
+                          ) : null
+                        }
+                        timestamp={format(new Date(h.createdAt), "dd/MM/yyyy HH:mm")}
+                        variant={variant as any}
+                        icon={
+                          h.action === "admin.projects.force-status"
+                            ? <Flag className="size-3.5 text-white" />
+                            : h.action === "admin.projects.reassign-pm"
+                              ? <UserCog className="size-3.5 text-white" />
+                              : <Clock className="size-3.5 text-white" />
+                        }
+                        isLast={idx === project.history.length - 1}
+                      />
+                    );
+                  })
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="disputes">
+              <DataTable
+                columns={[
+                  { id: "ticketNumber", label: "رقم التذكرة" },
+                  { id: "title", label: "العنوان" },
+                  { id: "category", label: "التصنيف" },
+                  { id: "status", label: "الحالة" },
+                  { id: "priority", label: "الأولوية" },
+                  { id: "openedAt", label: "تاريخ الإنشاء", align: "left" },
+                ]}
+                data={project.disputeTickets ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: AlertTriangle,
+                  message: "لا توجد نزاعات",
+                  hint: "لم يتم تسجيل أي نزاعات لهذا المشروع بعد",
+                }}
+                renderRow={(d: any) => (
+                  <tr key={d.id} className="border-b border-portal-divider">
+                    <td className="px-5 py-3 text-sm font-medium">#TKT-{String(d.ticketNumber).padStart(3, "0")}</td>
+                    <td className="px-5 py-3 text-sm font-medium text-natural-100">{d.title}</td>
+                    <td className="px-5 py-3 text-sm">{DISPUTE_CATEGORY_AR[d.category] ?? d.category}</td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={d.status} label={DISPUTE_STATUS_AR[d.status] ?? d.status} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <Pill tone={d.priority === "URGENT" ? "danger" : d.priority === "HIGH" ? "warning" : "neutral"}>
+                        {DISPUTE_PRIORITY_AR[d.priority] ?? d.priority}
+                      </Pill>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {d.openedAt?.slice(0, 10) ?? "—"}
+                    </td>
+                  </tr>
+                )}
+              />
+            </TabsContent>
           </div>
         </Tabs>
       </SurfaceCard>
+
+      <Dialog
+        open={showAddMember}
+        onOpenChange={setShowAddMember}
+        title="إضافة عضو للمشروع"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton variant="outline" onClick={() => setShowAddMember(false)}>إلغاء</ActionButton>
+            <ActionButton
+              onClick={async () => {
+                if (!selectedUserId) { toast.error("يرجى اختيار مستخدم"); return; }
+                try {
+                  await addMember({ id, userId: selectedUserId, role: memberRole }).unwrap();
+                  toast.success("تم إضافة العضو");
+                  setShowAddMember(false);
+                  setSelectedUserId("");
+                } catch { toast.error("فشل"); }
+              }}
+            >تأكيد</ActionButton>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-secondary-500 mb-1">الدور</label>
+            <select
+              value={memberRole}
+              onChange={(e) => setMemberRole(e.target.value)}
+              className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
+            >
+              <option value="MEMBER">عضو</option>
+              <option value="MANAGER">مدير</option>
+              <option value="VIEWER">مشاهد</option>
+            </select>
+          </div>
+          <FormInputControl
+            placeholder="ابحث عن مستخدم..."
+            value={memberSearch}
+            onChange={(e) => setMemberSearch(e.target.value)}
+          />
+          <div className="max-h-48 overflow-y-auto space-y-1">
+            {(memberSearchData?.items ?? []).map((u: any) => (
+              <button
+                key={u.id}
+                onClick={() => setSelectedUserId(u.id)}
+                className={`w-full text-right px-3 py-2 rounded-xl text-sm transition-colors ${selectedUserId === u.id ? "bg-secondary-50 text-secondary-600" : "hover:bg-badge-gray-bg"}`}
+              >
+                {u.name} — {u.email}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={showAddTask}
+        onOpenChange={setShowAddTask}
+        title="إضافة مهمة جديدة"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton variant="outline" onClick={() => setShowAddTask(false)}>إلغاء</ActionButton>
+            <ActionButton
+              onClick={async () => {
+                if (!taskForm.title) { toast.error("يرجى إدخال عنوان المهمة"); return; }
+                try {
+                  await createTask({ id, ...taskForm }).unwrap();
+                  toast.success("تم إضافة المهمة");
+                  setShowAddTask(false);
+                  setTaskForm({ title: "", assigneeId: "", priority: "NORMAL", dueDate: "", status: "TODO" });
+                } catch { toast.error("فشل"); }
+              }}
+            >تأكيد</ActionButton>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-secondary-500 mb-1">عنوان المهمة *</label>
+            <FormInputControl
+              placeholder="عنوان المهمة"
+              value={taskForm.title}
+              onChange={(e) => setTaskForm((f) => ({ ...f, title: e.target.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-secondary-500 mb-1">الأولوية</label>
+              <select
+                value={taskForm.priority}
+                onChange={(e) => setTaskForm((f) => ({ ...f, priority: e.target.value }))}
+                className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
+              >
+                {Object.entries(TASK_PRIORITY_AR).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-secondary-500 mb-1">الحالة</label>
+              <select
+                value={taskForm.status}
+                onChange={(e) => setTaskForm((f) => ({ ...f, status: e.target.value }))}
+                className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
+              >
+                {Object.entries(TASK_STATUS_AR).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-secondary-500 mb-1">تاريخ التسليم</label>
+            <FormInputControl
+              type="date"
+              value={taskForm.dueDate}
+              onChange={(e) => setTaskForm((f) => ({ ...f, dueDate: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-secondary-500 mb-1">المسؤول</label>
+            <FormInputControl
+              placeholder="ابحث عن مستخدم..."
+              value={taskAssigneeSearch}
+              onChange={(e) => setTaskAssigneeSearch(e.target.value)}
+            />
+            <div className="max-h-32 overflow-y-auto mt-1 space-y-1">
+              {(taskAssigneeData?.items ?? []).map((u: any) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => setTaskForm((f) => ({ ...f, assigneeId: u.id }))}
+                  className={`w-full text-right px-3 py-2 rounded-xl text-sm transition-colors ${taskForm.assigneeId === u.id ? "bg-secondary-50 text-secondary-600" : "hover:bg-badge-gray-bg"}`}
+                >
+                  {u.name} — {u.email}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Dialog>
 
       <Dialog
         open={showReassign}

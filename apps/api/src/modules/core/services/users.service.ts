@@ -298,6 +298,7 @@ export class UsersService {
       overdueTasks,
       monthlyRevenue,
       unpaidInvoicesCount,
+      satisfactionResult,
     ] = await Promise.all([
       this.prisma.client.count({ where: { status: "ACTIVE" } }),
       this.prisma.project.count({
@@ -319,6 +320,9 @@ export class UsersService {
       this.prisma.invoice.count({
         where: { status: { in: ["DUE", "SENT"] } },
       }),
+      this.prisma.satisfactionRating.aggregate({
+        _avg: { score: true },
+      }),
     ]);
 
     return {
@@ -327,7 +331,9 @@ export class UsersService {
       overdueTasks,
       monthlyRevenue: monthlyRevenue._sum.amount ?? 0,
       unpaidInvoicesCount,
-      satisfactionRate: 92,
+      satisfactionRate: satisfactionResult._avg.score
+        ? Math.round(satisfactionResult._avg.score * 20)
+        : null,
     };
   }
 }

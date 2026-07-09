@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   Query,
@@ -10,7 +11,7 @@ import {
 
 import { AdminCampaignsService } from "../services/admin-campaigns.service";
 
-import { AdminCreateCampaignDto } from "../dto/admin-campaign.dto";
+import { AdminCreateCampaignDto, AdminUpdateCampaignDto } from "../dto/admin-campaign.dto";
 
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -35,6 +36,13 @@ export class AdminCampaignsController {
     @Param("id") id: string,
   ) {
     return this.service.findOne(id);
+  }
+  @Patch(":id") @RequirePermissions("admin.campaigns.read") update(
+    @Param("id") id: string,
+    @Body() dto: AdminUpdateCampaignDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.service.update(id, dto, user.id);
   }
   @Post(":id/pause") @RequirePermissions("admin.campaigns.read") pause(
     @Param("id") id: string,

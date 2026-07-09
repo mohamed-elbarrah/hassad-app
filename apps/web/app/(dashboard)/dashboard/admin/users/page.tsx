@@ -23,6 +23,7 @@ import { Pill } from "@/components/design-system/Pill";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { DataTable } from "@/components/design-system/DataTable";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { StatCard } from "@/components/design-system/StatCard";
 import { Dialog } from "@/components/design-system/Dialog";
 import { toast } from "sonner";
 import {
@@ -118,6 +119,15 @@ export default function AdminUsersPage() {
   const [revokeSessions] = useRevokeUserSessionsMutation();
 
   const users = data?.items ?? [];
+
+  const totalUsers = data?.total ?? 0;
+  const activeUsers = users.filter((u) => u.isActive).length;
+  const inactiveUsers = totalUsers - activeUsers;
+  const newThisMonth = users.filter((u) => {
+    const d = new Date(u.createdAt);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
 
   // Handle select all
   useEffect(() => {
@@ -275,6 +285,14 @@ export default function AdminUsersPage() {
         </div>
       )}
 
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard title="إجمالي المستخدمين" value={totalUsers} variant="default" />
+        <StatCard title="نشط" value={activeUsers} variant="success" />
+        <StatCard title="معطل" value={inactiveUsers} variant="danger" />
+        <StatCard title="جديد هذا الشهر" value={newThisMonth} variant="warning" />
+      </div>
+
       {/* Bulk action bar */}
       <BulkActionBar
         selectedIds={selectedIds}
@@ -359,41 +377,62 @@ export default function AdminUsersPage() {
                 : "—"}
             </td>
             <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-1">
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="إعادة تعيين كلمة المرور"
-                  onClick={() => setResetPwUser(user)}
-                >
-                  <KeyRound className="size-3.5" />
-                </ActionButton>
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="الدخول كـ"
-                  onClick={() => setImpersonateUser(user)}
-                >
-                  <UserCheck className="size-3.5" />
-                </ActionButton>
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="إنهاء الجلسات"
-                  onClick={async () => {
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8"
+                    title="إعادة تعيين كلمة المرور"
+                    onClick={() => setResetPwUser(user)}
+                  >
+                    <KeyRound className="size-3.5" />
+                  </ActionButton>
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8"
+                    title="الدخول كـ"
+                    onClick={() => setImpersonateUser(user)}
+                  >
+                    <UserCheck className="size-3.5" />
+                  </ActionButton>
+                  <ActionButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8"
+                    title="إنهاء الجلسات"
+                    onClick={async () => {
+                      try {
+                        await revokeSessions(user.id).unwrap();
+                        toast.success("تم إنهاء جميع جلسات المستخدم");
+                      } catch {
+                        toast.error("فشل إنهاء الجلسات");
+                      }
+                    }}
+                  >
+                    <Monitor className="size-3.5" />
+                  </ActionButton>
+                </div>
+                <select
+                  className="text-xs rounded-md border border-portal-divider bg-white px-1.5 py-1 text-natural-100"
+                  value={user.role}
+                  onChange={async (e) => {
+                    const newRole = e.target.value;
                     try {
-                      await revokeSessions(user.id).unwrap();
-                      toast.success("تم إنهاء جميع جلسات المستخدم");
+                      await bulkAction({ userIds: [user.id], action: "changeRole", value: newRole }).unwrap();
+                      toast.success(`تم تغيير الدور إلى ${ROLE_LABELS[newRole] ?? newRole}`);
                     } catch {
-                      toast.error("فشل إنهاء الجلسات");
+                      toast.error("فشل تغيير الدور");
                     }
                   }}
                 >
-                  <Monitor className="size-3.5" />
-                </ActionButton>
+                  {STAFF_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role] ?? role}
+                    </option>
+                  ))}
+                </select>
               </div>
             </td>
           </tr>

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Param,
   Body,
   Query,
@@ -24,6 +25,7 @@ import {
   AssignPermissionsDto,
   ChangeRoleDto,
   CreateAdminUserDto,
+  UpdateUserDto,
 } from "../dto/admin-users.dto";
 
 @Controller("admin/users")
@@ -104,6 +106,12 @@ export class AdminUsersController {
   @RequirePermissions("admin.users.manage")
   revokeSessions(@Param("id") id: string) {
     return this.adminUsersService.revokeSessions(id);
+  }
+
+  @Patch(":id")
+  @RequirePermissions("admin.users.manage")
+  update(@Param("id") id: string, @Body() dto: UpdateUserDto) {
+    return this.adminUsersService.update(id, dto);
   }
 
   @Post(":id/permissions")

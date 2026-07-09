@@ -43,6 +43,7 @@ export interface AuditLogEntry {
   userId: string | null;
   userName: string | null;
   userEmail: string | null;
+  userRole: string | null;
   before: any;
   after: any;
   metadata: any;
@@ -68,6 +69,7 @@ export interface AuditLogFilters {
   action?: string;
   entity?: string;
   entityId?: string;
+  search?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -288,6 +290,7 @@ export interface ProjectRow {
   completionPercentage: number;
   overdueTasksCount: number;
   priority: string | null;
+  totalValue: number;
   startDate: string | null;
   endDate: string | null;
   createdAt: string;
@@ -338,6 +341,7 @@ export interface ContractRow {
   versionNumber: number;
   eSigned: boolean;
   pendingRenewalAlerts: number;
+  invoiceCount: number;
   createdAt: string;
 }
 export interface PaginatedContracts {
@@ -362,6 +366,9 @@ export interface LeadRow {
   contactAttemptCount: number;
   lastContactAt: string | null;
   createdAt: string;
+  potentialValue: number | null;
+  daysSinceLastContact: number | null;
+  hasProposal: boolean;
 }
 export interface PaginatedLeads {
   items: LeadRow[];
@@ -508,6 +515,7 @@ export const adminApi = createApi({
         if (filters.action) params.set("action", filters.action);
         if (filters.entity) params.set("entity", filters.entity);
         if (filters.entityId) params.set("entityId", filters.entityId);
+        if (filters.search) params.set("search", filters.search);
         if (filters.from) params.set("from", filters.from);
         if (filters.to) params.set("to", filters.to);
         if (filters.page) params.set("page", String(filters.page));
@@ -628,6 +636,21 @@ export const adminApi = createApi({
         body,
       }),
       invalidatesTags: ["AdminStats"],
+    }),
+
+    updateAdminUser: builder.mutation<
+      AdminUserDetail,
+      { id: string; body: { name?: string; email?: string; phoneWhatsapp?: string; password?: string } }
+    >({
+      query: ({ id, body }) => ({
+        url: `/admin/users/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminUser", id },
+        "AdminUsers",
+      ],
     }),
 
     // ── Admin Sessions ──────────────────────────────────────────────────────
@@ -756,6 +779,36 @@ export const adminApi = createApi({
       }),
       invalidatesTags: ["AdminStats"],
     }),
+    createAdminProject: builder.mutation<any, Record<string, any>>({
+      query: (body) => ({
+        url: "/admin/projects",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["AdminStats"],
+    }),
+    addProjectMember: builder.mutation<
+      void,
+      { id: string; userId: string; role: string }
+    >({
+      query: ({ id, userId, role }) => ({
+        url: `/admin/projects/${id}/members`,
+        method: "POST",
+        body: { userId, role },
+      }),
+      invalidatesTags: ["AdminStats"],
+    }),
+    createProjectTask: builder.mutation<
+      void,
+      { id: string; title: string; assigneeId?: string; priority?: string; dueDate?: string; status?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/admin/projects/${id}/tasks`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["AdminStats"],
+    }),
 
     // ── Tasks ──────────────────────────────────────────────────────────────
 
@@ -844,6 +897,13 @@ export const adminApi = createApi({
         body: { additionalNotes },
       }),
     }),
+    addContactLog: builder.mutation<any, { id: string; type: string; result: string; notes?: string; contactedAt?: string }>({
+      query: ({ id, ...body }) => ({
+        url: `/admin/leads/${id}/contact-log`,
+        method: "POST",
+        body,
+      }),
+    }),
 
     // ── Requests ───────────────────────────────────────────────────────────
 
@@ -900,6 +960,16 @@ export const adminApi = createApi({
     endCampaign: builder.mutation<void, string>({
       query: (id) => ({ url: `/admin/campaigns/${id}/end`, method: "POST" }),
     }),
+    updateAdminCampaign: builder.mutation<any, { id: string; data: any }>({
+      query: ({ id, data }) => ({
+        url: `/admin/campaigns/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminStats" },
+      ],
+    }),
 
     // ── Chat ───────────────────────────────────────────────────────────────
 
@@ -942,6 +1012,15 @@ export const adminApi = createApi({
     >({
       query: (id) => ({
         url: `/admin/portal/clients/${id}/regenerate-token`,
+        method: "POST",
+      }),
+    }),
+    togglePortalAccess: builder.mutation<
+      { enabled: boolean; token?: string; expiresAt?: string },
+      string
+    >({
+      query: (id) => ({
+        url: `/admin/portal/clients/${id}/toggle-access`,
         method: "POST",
       }),
     }),
@@ -995,6 +1074,9 @@ export const adminApi = createApi({
     }),
     getAdminClient: builder.query<any, string>({
       query: (id) => `/admin/clients/${id}`,
+    }),
+    getAdminClientsStats: builder.query<any, void>({
+      query: () => "/admin/clients/stats",
     }),
 
     // ── Finance ────────────────────────────────────────────────────────────
@@ -1065,55 +1147,6 @@ export const adminApi = createApi({
     }),
     getAdminGatewaysHealth: builder.query<any, void>({
       query: () => "/admin/finance/gateways-health",
-    }),
-
-    // ── System Administration ──────────────────────────────────────────────
-    getAdminEnvironment: builder.query<any, void>({
-      query: () => "/admin/environment",
-    }),
-    getAdminFeatureFlags: builder.query<any, void>({
-      query: () => "/admin/feature-flags",
-    }),
-    updateAdminFeatureFlag: builder.mutation<
-      any,
-      { key: string; enabled: boolean }
-    >({
-      query: ({ key, ...body }) => ({
-        url: `/admin/feature-flags/${key}`,
-        method: "POST",
-        body,
-      }),
-    }),
-    getAdminAutomationRules: builder.query<any, void>({
-      query: () => "/admin/automation/rules",
-    }),
-    getAdminAutomationLogs: builder.query<any, string | void>({
-      query: (ruleId) => ({
-        url: "/admin/automation/logs",
-        params: ruleId ? { ruleId } : {},
-      }),
-    }),
-    createAdminAutomationRule: builder.mutation<any, any>({
-      query: (body) => ({
-        url: "/admin/automation/rules",
-        method: "POST",
-        body,
-      }),
-    }),
-    updateAdminAutomationRule: builder.mutation<any, { id: string; body: any }>(
-      {
-        query: ({ id, body }) => ({
-          url: `/admin/automation/rules/${id}`,
-          method: "PATCH",
-          body,
-        }),
-      },
-    ),
-    deleteAdminAutomationRule: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/admin/automation/rules/${id}`,
-        method: "DELETE",
-      }),
     }),
 
     // ── Notification Templates ──────────────────────────────────────────────
@@ -1206,6 +1239,7 @@ export const {
   useRevokeUserSessionsMutation,
   useSetUserPermissionsMutation,
   useCreateAdminUserMutation,
+  useUpdateAdminUserMutation,
   // Admin Sessions
   useGetAdminSessionsQuery,
   useRevokeSessionMutation,
@@ -1228,6 +1262,9 @@ export const {
   useReassignProjectPmMutation,
   useArchiveProjectMutation,
   useForceProjectStatusMutation,
+  useCreateAdminProjectMutation,
+  useAddProjectMemberMutation,
+  useCreateProjectTaskMutation,
   // Tasks
   useGetAdminTasksQuery,
   useGetAdminTaskQuery,
@@ -1246,6 +1283,7 @@ export const {
   useGetAdminLeadStatsQuery,
   useReassignLeadMutation,
   useConvertLeadToClientMutation,
+  useAddContactLogMutation,
   // Requests
   useGetAdminRequestsQuery,
   useGetAdminRequestQuery,
@@ -1258,6 +1296,7 @@ export const {
   useCreateAdminCampaignMutation,
   usePauseCampaignMutation,
   useEndCampaignMutation,
+  useUpdateAdminCampaignMutation,
   // Chat
   useGetAdminConversationsQuery,
   useGetAdminConversationMessagesQuery,
@@ -1266,6 +1305,7 @@ export const {
   useGetPortalOverviewQuery,
   useGetPortalClientsQuery,
   useRegeneratePortalTokenMutation,
+  useTogglePortalAccessMutation,
   // Proposals
   useGetAdminProposalsQuery,
   useGetAdminProposalStatsQuery,
@@ -1274,6 +1314,7 @@ export const {
   // Clients
   useGetAdminClientsQuery,
   useGetAdminClientQuery,
+  useGetAdminClientsStatsQuery,
   // Team Workload
   useGetAdminTeamWorkloadQuery,
   // Reports
@@ -1292,15 +1333,6 @@ export const {
   useGetAdminWebhookLogsQuery,
   useRetryAdminWebhookMutation,
   useGetAdminGatewaysHealthQuery,
-  // System Administration
-  useGetAdminEnvironmentQuery,
-  useGetAdminFeatureFlagsQuery,
-  useUpdateAdminFeatureFlagMutation,
-  useGetAdminAutomationRulesQuery,
-  useGetAdminAutomationLogsQuery,
-  useCreateAdminAutomationRuleMutation,
-  useUpdateAdminAutomationRuleMutation,
-  useDeleteAdminAutomationRuleMutation,
   // Notification Templates
   useGetAdminNotificationTemplatesQuery,
   useGetAdminNotificationEventTypesQuery,

@@ -702,6 +702,7 @@ function RecommendationsTab({ health, errors, errorStats, services, healthSummar
 
 export default function HealthPage() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   const {
     data: health,
@@ -775,6 +776,15 @@ export default function HealthPage() {
         </div>
       </div>
 
+      <button
+        onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+        className="flex items-center gap-2 text-sm font-medium text-secondary-500 hover:text-secondary-700 transition-colors self-start"
+      >
+        {showTechnicalDetails ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+        {showTechnicalDetails ? "إخفاء التفاصيل التقنية" : "عرض التفاصيل التقنية"}
+      </button>
+
+      {showTechnicalDetails && (
       <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
         <TabsList className="w-full justify-start gap-1">
           <TabsTrigger value="overview">
@@ -920,6 +930,7 @@ export default function HealthPage() {
           </div>
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   BulkUserActionDto,
   AssignPermissionsDto,
   CreateAdminUserDto,
+  UpdateUserDto,
   UserDetailResponse,
 } from "../dto/admin-users.dto";
 
@@ -74,6 +75,9 @@ export class AdminUsersService {
           departments: { include: { department: true } },
           assignedRequests: {
             where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
+          },
+          assignedTasks: {
+            where: { status: { in: ["TODO", "IN_PROGRESS", "IN_REVIEW"] } },
           },
           managedProjects: {
             where: { status: { in: ["ACTIVE", "PLANNING"] } },
@@ -272,6 +276,45 @@ export class AdminUsersService {
     });
 
     return { id: user.id, name: user.name, email: user.email, role: dto.role };
+  }
+
+  async update(id: string, dto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException("المستخدم غير موجود");
+
+    if (dto.email && dto.email !== user.email) {
+      const existing = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+      if (existing) throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
+    }
+
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.email !== undefined) data.email = dto.email;
+    if (dto.phoneWhatsapp !== undefined) data.phoneWhatsapp = dto.phoneWhatsapp;
+
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data,
+      include: {
+        role: true,
+        departments: { include: { department: true } },
+      },
+    });
+
+    await this.prisma.ledger.create({
+      data: {
+        action: "admin.users.update",
+        entity: "user",
+        entityId: id,
+        userId: user.id,
+        before: { name: user.name, email: user.email },
+        after: { name: dto.name, email: dto.email, phoneWhatsapp: dto.phoneWhatsapp },
+      },
+    });
+
+    return this.toResponse(updated);
   }
 
   // ── Mutations ───────────────────────────────────────────────────────────────

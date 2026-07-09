@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { CreditCard, Search, Activity, Ticket, Download, CheckCircle } from "lucide-react";
+import { useState, useMemo } from "react";
+import { CreditCard, Search, Activity, Ticket, Download, CheckCircle, Eye, Filter, Receipt, FileText, X } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -10,6 +10,8 @@ import { StatCard } from "@/components/design-system/StatCard";
 import { Pill } from "@/components/design-system/Pill";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { Dialog } from "@/components/design-system/Dialog";
+import { EmptyState } from "@/components/design-system/EmptyState";
 import {
   Tabs,
   TabsList,
@@ -24,9 +26,10 @@ import {
 import {
   useGetAdminGatewaysHealthQuery,
 } from "@/features/admin/adminApi";
-import { PAYMENT_STATUS_AR, TICKET_STATUS_AR } from "@hassad/shared";
+import { PAYMENT_STATUS_AR, PAYMENT_METHOD_AR, TICKET_STATUS_AR } from "@hassad/shared";
 import { useGetPaymentTicketsQuery, useResolvePaymentTicketMutation } from "@/features/finance/financeApi";
 import { useCurrency } from "@/hooks/useCurrency";
+import Link from "next/link";
 
 const exportCSV = (data: any[], filename: string) => {
   if (!data || data.length === 0) return;
@@ -45,16 +48,28 @@ const exportCSV = (data: any[], filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-// الصفحة الموحدة للمدفوعات (تم دمجها من /admin/payments و /admin/finance/payments)
+const PAYMENT_STATUS_KEYS = ["COMPLETED", "FAILED", "PENDING", "REFUNDED"];
+const PAYMENT_METHOD_KEYS = Object.keys(PAYMENT_METHOD_AR);
+
 export default function AdminPaymentsPage() {
   const { fmtAmount, currency } = useCurrency();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [methodFilter, setMethodFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
 
   const [ticketPage, setTicketPage] = useState(1);
   const [ticketSearch, setTicketSearch] = useState("");
 
-  const { data, isLoading, isError } = useGetPaymentsQuery({ page, limit: 20 });
+  const queryParams = useMemo(() => {
+    const params: any = { page, limit: 20 };
+    if (methodFilter) params.method = methodFilter;
+    if (statusFilter) params.status = statusFilter;
+    return params;
+  }, [page, methodFilter, statusFilter]);
+
+  const { data, isLoading, isError } = useGetPaymentsQuery(queryParams);
   const { data: gateways } = useGetPaymentGatewaysQuery();
   const { data: gatewaysHealth } = useGetAdminGatewaysHealthQuery();
 
@@ -68,6 +83,16 @@ export default function AdminPaymentsPage() {
       )
     : payments;
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayPayments = payments.filter((p: any) =>
+    p.createdAt?.startsWith(todayStr),
+  );
+  const todaySuccessful = todayPayments.filter(
+    (p: any) => p.status === "COMPLETED" || p.status === "SUCCESS" || p.status === "SUCCESSFUL",
+  );
+  const todayFailed = todayPayments.filter((p: any) => p.status === "FAILED");
+  const todayPending = todayPayments.filter((p: any) => p.status === "PENDING");
+
   const tickets = ticketsData?.items ?? [];
   const filteredTickets = ticketSearch
     ? tickets.filter(
@@ -80,7 +105,7 @@ export default function AdminPaymentsPage() {
     <div className="flex flex-col gap-6" dir="rtl">
       <PageIntro
         title="المدفوعات"
-        description="جميع المدفوعات وبوابات الدفع وسجل الويب هوك"
+        description="جميع المدفوعات وبوابات الدفع وتذاكر الدفع"
         icon={CreditCard}
         actions={
           <button
@@ -94,10 +119,10 @@ export default function AdminPaymentsPage() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="إجمالي المدفوعات" value={data?.total ?? 0} icon={CreditCard} />
-        <StatCard title="ناجحة" value={payments.filter((p: any) => p.status === "COMPLETED" || p.status === "SUCCESSFUL").length} variant="success" />
-        <StatCard title="فاشلة" value={payments.filter((p: any) => p.status === "FAILED").length} variant="danger" />
-        <StatCard title="معلقة" value={payments.filter((p: any) => p.status === "PENDING").length} variant="warning" />
+        <StatCard title="إجمالي اليوم" value={todayPayments.length} icon={CreditCard} />
+        <StatCard title="ناجح اليوم" value={todaySuccessful.length} variant="success" />
+        <StatCard title="فاشل اليوم" value={todayFailed.length} variant="danger" />
+        <StatCard title="معلق اليوم" value={todayPending.length} variant="warning" />
       </div>
 
       <Tabs defaultValue="payments" dir="rtl">
@@ -118,14 +143,39 @@ export default function AdminPaymentsPage() {
 
         <TabsContent value="payments" className="mt-4">
           <SurfaceCard>
-            <div className="relative max-w-sm mb-4">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-note-text" />
-              <FormInputControl
-                placeholder="ابحث عن عميل..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pr-10"
-              />
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <div className="relative max-w-sm flex-1 min-w-[200px]">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-note-text" />
+                <FormInputControl
+                  placeholder="ابحث عن عميل..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Filter className="size-4 text-portal-note-text" />
+                <select
+                  value={methodFilter}
+                  onChange={(e) => { setMethodFilter(e.target.value); setPage(1); }}
+                  className="rounded-xl border border-portal-divider px-3 py-2.5 text-sm"
+                >
+                  <option value="">كل الطرق</option>
+                  {PAYMENT_METHOD_KEYS.map((key) => (
+                    <option key={key} value={key}>{PAYMENT_METHOD_AR[key]}</option>
+                  ))}
+                </select>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                  className="rounded-xl border border-portal-divider px-3 py-2.5 text-sm"
+                >
+                  <option value="">كل الحالات</option>
+                  {PAYMENT_STATUS_KEYS.map((key) => (
+                    <option key={key} value={key}>{PAYMENT_STATUS_AR[key]}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <DataTable
@@ -134,7 +184,9 @@ export default function AdminPaymentsPage() {
                 { id: "amount", label: "المبلغ" },
                 { id: "method", label: "طريقة الدفع" },
                 { id: "status", label: "الحالة" },
+                { id: "invoice", label: "الفاتورة" },
                 { id: "date", label: "التاريخ", align: "left" },
+                { id: "actions", label: "", align: "left" },
               ]}
               data={filtered}
               isLoading={isLoading}
@@ -153,7 +205,7 @@ export default function AdminPaymentsPage() {
                     {fmtAmount(p.amount)} {currency.symbol}
                   </td>
                   <td className="px-5 py-3 text-sm">
-                    <Pill tone="neutral">{p.method}</Pill>
+                    <Pill tone="neutral">{PAYMENT_METHOD_AR[p.method] ?? p.method}</Pill>
                   </td>
                   <td className="px-5 py-3">
                     <StatusBadge
@@ -161,8 +213,27 @@ export default function AdminPaymentsPage() {
                       label={PAYMENT_STATUS_AR[p.status] ?? p.status}
                     />
                   </td>
+                  <td className="px-5 py-3 text-sm">
+                    {p.invoiceId ? (
+                      <Link
+                        href={`/dashboard/admin/finance/invoices/${p.invoiceId}`}
+                        className="text-secondary-500 hover:underline font-medium"
+                      >
+                        {p.invoice?.invoiceNumber ?? p.invoiceId.slice(0, 8)}
+                      </Link>
+                    ) : "—"}
+                  </td>
                   <td className="px-5 py-3 text-sm text-portal-note-text text-left">
                     {p.createdAt?.slice(0, 10) ?? "—"}
+                  </td>
+                  <td className="px-5 py-3 text-left">
+                    <ActionButton
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedPayment(p)}
+                    >
+                      <Eye className="size-4" />
+                    </ActionButton>
                   </td>
                 </tr>
               )}
@@ -231,9 +302,7 @@ export default function AdminPaymentsPage() {
               ))}
               {(!gateways || gateways.length === 0) &&
                 (!gatewaysHealth || gatewaysHealth.length === 0) && (
-                  <p className="text-center text-portal-note-text py-8">
-                    لا توجد بوابات دفع مكونة
-                  </p>
+                  <EmptyState icon={Activity} title="لا توجد بوابات دفع مكونة" hint="لم يتم إضافة أي بوابة دفع بعد" />
                 )}
             </div>
           </SurfaceCard>
@@ -335,6 +404,63 @@ export default function AdminPaymentsPage() {
           </SurfaceCard>
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={!!selectedPayment}
+        onOpenChange={(open) => { if (!open) setSelectedPayment(null); }}
+        title="تفاصيل الدفع"
+        icon={Receipt}
+      >
+        {selectedPayment && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-portal-note-text mb-1">المبلغ</p>
+                <p className="text-lg font-bold">{fmtAmount(selectedPayment.amount)} {currency.symbol}</p>
+              </div>
+              <div>
+                <p className="text-xs text-portal-note-text mb-1">الحالة</p>
+                <StatusBadge
+                  status={selectedPayment.status}
+                  label={PAYMENT_STATUS_AR[selectedPayment.status] ?? selectedPayment.status}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-portal-note-text mb-1">طريقة الدفع</p>
+                <Pill tone="neutral">{PAYMENT_METHOD_AR[selectedPayment.method] ?? selectedPayment.method}</Pill>
+              </div>
+              <div>
+                <p className="text-xs text-portal-note-text mb-1">العميل</p>
+                <p className="text-sm font-medium">{selectedPayment.invoice?.client?.companyName ?? "—"}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-portal-note-text mb-1">الفاتورة</p>
+                <p className="text-sm">{selectedPayment.invoice?.invoiceNumber ?? selectedPayment.invoiceId?.slice(0, 8) ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-portal-note-text mb-1">التاريخ</p>
+                <p className="text-sm">{selectedPayment.createdAt?.slice(0, 10) ?? "—"}</p>
+              </div>
+            </div>
+            {selectedPayment.providerPaymentId && (
+              <div>
+                <p className="text-xs text-portal-note-text mb-1">رقم عملية المزود</p>
+                <p className="text-sm font-mono text-left" dir="ltr">{selectedPayment.providerPaymentId}</p>
+              </div>
+            )}
+            {selectedPayment.notes && (
+              <div>
+                <p className="text-xs text-portal-note-text mb-1">ملاحظات</p>
+                <p className="text-sm">{selectedPayment.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }

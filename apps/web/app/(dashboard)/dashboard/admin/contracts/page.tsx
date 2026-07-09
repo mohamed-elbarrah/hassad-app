@@ -27,10 +27,10 @@ import { CONTRACT_STATUS_AR } from "@hassad/shared";
 
 const STATUS_OPTIONS = [
   { label: "الكل", value: "" },
-  { label: "مسودة", value: "DRAFT" },
-  { label: "نشط", value: "ACTIVE" },
-  { label: "مكتمل", value: "COMPLETED" },
-  { label: "ملغي", value: "CANCELLED" },
+  ...Object.entries(CONTRACT_STATUS_AR).map(([value, label]) => ({
+    label,
+    value,
+  })),
 ];
 
 function useDebounce<T>(value: T, delay = 400): T {
@@ -73,9 +73,10 @@ export default function AdminContractsPage() {
   const debouncedSearch = useDebounce(searchInput, 400);
   const filters: any = {
     search: debouncedSearch || undefined,
-    ...activeFilters,
+    ...Object.fromEntries(
+      Object.entries(activeFilters).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]),
+    ),
   };
-  if (filters.status?.[0]) filters.status = filters.status[0];
 
   const { data, isLoading, isError } = useGetAdminContractsQuery(filters);
   const [cancel] = useCancelContractMutation();
@@ -137,7 +138,10 @@ export default function AdminContractsPage() {
           />
         </div>
         <FilterBar
-          groups={[{ key: "status", label: "الحالة", options: STATUS_OPTIONS }]}
+          groups={[
+            { key: "status", label: "الحالة", options: STATUS_OPTIONS },
+            { key: "expiringDays", label: "تاريخ الانتهاء", options: [{ label: "ينتهي قريباً", value: "30" }] },
+          ]}
           activeFilters={activeFilters}
           onFilterChange={handleFilterChange}
         />
@@ -150,7 +154,10 @@ export default function AdminContractsPage() {
           { id: "type", label: "النوع" },
           { id: "status", label: "الحالة" },
           { id: "value", label: "القيمة" },
-          { id: "endDate", label: "تاريخ الانتهاء", align: "left" },
+          { id: "startDate", label: "تاريخ البداية", align: "left" },
+          { id: "endDate", label: "تاريخ النهاية", align: "left" },
+          { id: "invoiceCount", label: "عدد الفواتير" },
+          { id: "eSigned", label: "توقيع إلكتروني" },
           { id: "daysToRenewal", label: "أيام حتى التجديد", align: "left" },
           { id: "renewal", label: "التجديد" },
           { id: "actions", label: "الإجراءات", width: "120px" },
@@ -191,7 +198,25 @@ export default function AdminContractsPage() {
               className="px-5 py-4 text-sm text-portal-note-text text-left"
               dir="ltr"
             >
+              {c.startDate?.slice(0, 10) ?? "—"}
+            </td>
+            <td
+              className="px-5 py-4 text-sm text-portal-note-text text-left"
+              dir="ltr"
+            >
               {c.endDate?.slice(0, 10) ?? "—"}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text">
+              {c.invoiceCount ?? 0}
+            </td>
+            <td className="px-5 py-4 text-sm">
+              <span
+                className={
+                  c.eSigned ? "text-green-600 font-medium" : "text-portal-note-text"
+                }
+              >
+                {c.eSigned ? "موقّع" : "غير موقّع"}
+              </span>
             </td>
             <td className="px-5 py-4 text-sm">
               {(() => {

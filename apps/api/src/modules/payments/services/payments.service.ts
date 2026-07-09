@@ -464,12 +464,25 @@ export class PaymentsService implements OnModuleInit {
     return gateways.map((g) => g.name);
   }
 
+  private mapBankAccountDto(dto: any) {
+    const mapped: any = { ...dto };
+    if (dto.swift !== undefined) {
+      mapped.swiftCode = dto.swift;
+      delete mapped.swift;
+    }
+    if (dto.transferInstructions !== undefined) {
+      mapped.instructions = dto.transferInstructions;
+      delete mapped.transferInstructions;
+    }
+    return mapped;
+  }
+
   async createBankAccount(dto: any) {
-    return this.prisma.bankAccount.create({ data: dto });
+    return this.prisma.bankAccount.create({ data: this.mapBankAccountDto(dto) });
   }
 
   async updateBankAccount(id: string, dto: any) {
-    return this.prisma.bankAccount.update({ where: { id }, data: dto });
+    return this.prisma.bankAccount.update({ where: { id }, data: this.mapBankAccountDto(dto) });
   }
 
   async deleteBankAccount(id: string) {

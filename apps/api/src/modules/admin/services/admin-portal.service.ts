@@ -177,4 +177,30 @@ export class AdminPortalService {
 
     return { token, expiresAt: expiresAt.toISOString() };
   }
+
+  async togglePortalAccess(clientId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, portalAccessToken: true },
+    });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+
+    if (client.portalAccessToken) {
+      await this.prisma.client.update({
+        where: { id: clientId },
+        data: { portalAccessToken: null, portalTokenExpiresAt: null },
+      });
+      return { enabled: false };
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+    await this.prisma.client.update({
+      where: { id: clientId },
+      data: { portalAccessToken: token, portalTokenExpiresAt: expiresAt },
+    });
+
+    return { enabled: true, token, expiresAt: expiresAt.toISOString() };
+  }
 }

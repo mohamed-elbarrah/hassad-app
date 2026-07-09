@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Kanban, Search, DollarSign, History, CreditCard, TrendingUp } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Kanban, Search, DollarSign, History, CreditCard, TrendingUp, CheckCircle2, AlertCircle } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { DataTable } from "@/components/design-system/DataTable";
@@ -19,6 +19,7 @@ import {
 } from "@/components/design-system/Tabs";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/useCurrency";
+import { PAY_TYPE_AR, SALARY_STATUS_AR } from "@hassad/shared";
 import {
   useGetEmployeesQuery,
   useRunPayrollMutation,
@@ -26,37 +27,29 @@ import {
   usePaySalaryMutation,
   usePreviewPayrollQuery,
 } from "@/features/finance/financeApi";
+import {
+  useGetAdminFinanceOverviewQuery,
+} from "@/features/admin/adminApi";
 
 const MONTHS_AR = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
 ];
 
-const PAY_TYPE_MAP: Record<string, string> = {
-  MONTHLY: "شهري",
-  COMMISSION: "عمولة",
-  HOURLY: "ساعي",
-};
-
-// Mock salary history for display
-const MOCK_SALARY_HISTORY = [
-  { month: 6, year: 2026, totalCost: 85000, paidCount: 12, pendingCount: 2 },
-  { month: 5, year: 2026, totalCost: 82000, paidCount: 13, pendingCount: 1 },
-  { month: 4, year: 2026, totalCost: 80000, paidCount: 14, pendingCount: 0 },
-  { month: 3, year: 2026, totalCost: 78000, paidCount: 12, pendingCount: 2 },
-  { month: 2, year: 2026, totalCost: 75000, paidCount: 13, pendingCount: 1 },
-  { month: 1, year: 2026, totalCost: 72000, paidCount: 14, pendingCount: 0 },
-];
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
 export default function AdminPayrollPage() {
   const { fmtAmount, currency } = useCurrency();
   const [search, setSearch] = useState("");
   const [showRunPayroll, setShowRunPayroll] = useState(false);
   const [payrollMonth, setPayrollMonth] = useState(new Date().getMonth() + 1);
-  const [payrollYear, setPayrollYear] = useState(new Date().getFullYear());
+  const [payrollYear, setPayrollYear] = useState(CURRENT_YEAR);
   const [activeTab, setActiveTab] = useState("employees");
   const [historyMonth, setHistoryMonth] = useState(new Date().getMonth() + 1);
-  const [historyYear, setHistoryYear] = useState(new Date().getFullYear());
+  const [historyYear, setHistoryYear] = useState(CURRENT_YEAR);
+  const [employeeMonth, setEmployeeMonth] = useState(new Date().getMonth() + 1);
+  const [employeeYear, setEmployeeYear] = useState(CURRENT_YEAR);
 
   const { data: employees, isLoading } = useGetEmployeesQuery();
   const [runPayroll] = useRunPayrollMutation();
@@ -67,9 +60,21 @@ export default function AdminPayrollPage() {
     { skip: !showRunPayroll },
   );
 
-  const filtered = (employees ?? []).filter(
-    (e: any) => e.name?.includes(search) || e.role?.includes(search),
-  );
+  const filtered = useMemo(() => {
+    return (employees ?? []).filter(
+      (e: any) => e.name?.includes(search) || e.role?.includes(search),
+    ).map((e: any) => {
+      const latestSalary = e.salaries?.[0];
+      const salaryStatus = latestSalary?.status;
+      return {
+        ...e,
+        latestSalaryStatus: salaryStatus,
+        latestSalary: latestSalary,
+        latestCommission: latestSalary?.bonuses,
+        latestDeduction: latestSalary?.deductions,
+      };
+    });
+  }, [employees, search]);
 
   const totalSalaries = (employees ?? []).reduce(
     (sum: number, e: any) => sum + (e.baseSalary ?? 0),
@@ -77,6 +82,13 @@ export default function AdminPayrollPage() {
   );
   const activeCount = (employees ?? []).filter(
     (e: any) => e.isActive !== false,
+  ).length;
+
+  const paidCount = filtered.filter(
+    (e: any) => e.latestSalaryStatus === "PAID",
+  ).length;
+  const pendingSalaryCount = filtered.filter(
+    (e: any) => e.latestSalaryStatus === "PENDING",
   ).length;
 
   const handlePayEmployee = async (id: string, name: string) => {
@@ -89,7 +101,12 @@ export default function AdminPayrollPage() {
     }
   };
 
-  const maxHistoryCost = Math.max(1, ...MOCK_SALARY_HISTORY.map((h) => h.totalCost));
+  const maxHistoryCost = 1;
+
+  const getSalaryStatusLabel = (status: string | undefined) => {
+    if (!status) return "—";
+    return SALARY_STATUS_AR[status as keyof typeof SALARY_STATUS_AR] ?? status;
+  };
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -125,14 +142,36 @@ export default function AdminPayrollPage() {
 
         <TabsContent value="employees" className="mt-4">
           <SurfaceCard>
-            <div className="relative max-w-sm mb-4">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-note-text" />
-              <FormInputControl
-                placeholder="ابحث عن موظف..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pr-10"
-              />
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <div className="relative max-w-sm flex-1 min-w-[200px]">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-note-text" />
+                <FormInputControl
+                  placeholder="ابحث عن موظف..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={employeeMonth}
+                  onChange={(e) => setEmployeeMonth(Number(e.target.value))}
+                  className="w-32 rounded-xl border border-portal-divider px-3 py-2.5 text-sm"
+                >
+                  {MONTHS_AR.map((m, i) => (
+                    <option key={i + 1} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={employeeYear}
+                  onChange={(e) => setEmployeeYear(Number(e.target.value))}
+                  className="w-28 rounded-xl border border-portal-divider px-3 py-2.5 text-sm"
+                >
+                  {YEAR_OPTIONS.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <DataTable
@@ -141,6 +180,9 @@ export default function AdminPayrollPage() {
                 { id: "role", label: "الدور" },
                 { id: "payType", label: "نوع الراتب" },
                 { id: "baseSalary", label: "الراتب الأساسي" },
+                { id: "commissions", label: "العمولات" },
+                { id: "deductions", label: "الخصومات" },
+                { id: "salaryStatus", label: "حالة الراتب" },
                 { id: "status", label: "الحالة" },
                 { id: "actions", label: "", align: "left" },
               ]}
@@ -157,9 +199,29 @@ export default function AdminPayrollPage() {
                   <td className="px-5 py-3 text-sm font-medium">{e.name}</td>
                   <td className="px-5 py-3 text-sm text-portal-note-text">{e.role}</td>
                   <td className="px-5 py-3 text-sm">
-                    <Pill tone="neutral">{PAY_TYPE_MAP[e.payType] ?? e.payType}</Pill>
+                    <Pill tone="neutral">{PAY_TYPE_AR[e.payType] ?? e.payType}</Pill>
                   </td>
                   <td className="px-5 py-3 text-sm">{fmtAmount(e.baseSalary)} {currency.symbol}</td>
+                  <td className="px-5 py-3 text-sm">
+                    {e.latestCommission != null ? (
+                      <span className="text-success-600">{fmtAmount(e.latestCommission)} {currency.symbol}</span>
+                    ) : "—"}
+                  </td>
+                  <td className="px-5 py-3 text-sm">
+                    {e.latestDeduction != null ? (
+                      <span className="text-danger-600">{fmtAmount(e.latestDeduction)} {currency.symbol}</span>
+                    ) : "—"}
+                  </td>
+                  <td className="px-5 py-3">
+                    {e.latestSalaryStatus ? (
+                      <StatusBadge
+                        status={e.latestSalaryStatus}
+                        label={getSalaryStatusLabel(e.latestSalaryStatus)}
+                      />
+                    ) : (
+                      <span className="text-xs text-portal-note-text">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3">
                     <StatusBadge status={e.isActive ? "ACTIVE" : "INACTIVE"} label={e.isActive ? "نشط" : "غير نشط"} />
                   </td>
@@ -168,10 +230,10 @@ export default function AdminPayrollPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() => handlePayEmployee(e.id, e.name)}
-                      disabled={payingSalary}
+                      disabled={payingSalary || e.latestSalaryStatus === "PAID"}
                     >
                       <CreditCard className="size-4 ml-1" />
-                      دفع الراتب
+                      {e.latestSalaryStatus === "PAID" ? "مدفوع" : "دفع الراتب"}
                     </ActionButton>
                   </td>
                 </tr>
@@ -202,37 +264,46 @@ export default function AdminPayrollPage() {
                 onChange={(e) => setHistoryYear(Number(e.target.value))}
                 className="w-32 rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
               >
-                {[2024, 2025, 2026, 2027].map((y) => (
+                {YEAR_OPTIONS.map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
             </div>
           </div>
 
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard title="مدفوع" value={`${paidCount}`} icon={CheckCircle2} variant="success" />
+            <StatCard title="معلق" value={`${pendingSalaryCount}`} icon={AlertCircle} variant="warning" />
+            <StatCard title="إجمالي" value={`${filtered.length}`} icon={Kanban} />
+          </div>
+
           {/* Bar chart comparison */}
           <SurfaceCard>
             <div className="flex items-center gap-2 mb-5">
               <TrendingUp className="size-5 text-secondary-500" />
-              <h3 className="font-semibold text-natural-100">مقارنة الرواتب الشهرية</h3>
+              <h3 className="font-semibold text-natural-100">حالة رواتب الموظفين</h3>
             </div>
             <div className="flex items-end gap-3 h-44 px-2">
-              {MOCK_SALARY_HISTORY.slice(-6).map((h) => {
-                const heightPct = (h.totalCost / maxHistoryCost) * 100;
+              {filtered.slice(0, 8).map((e: any) => {
+                const maxBase = Math.max(1, ...filtered.map((f: any) => f.baseSalary));
+                const heightPct = (e.baseSalary / maxBase) * 100;
+                const isPaid = e.latestSalaryStatus === "PAID";
                 return (
-                  <div key={`${h.month}-${h.year}`} className="flex-1 flex flex-col items-center gap-1.5">
+                  <div key={e.id} className="flex-1 flex flex-col items-center gap-1.5">
                     <span className="text-xs text-portal-note-text">
-                      {fmtAmount(h.totalCost)} {currency.symbol}
+                      {fmtAmount(e.baseSalary)}
                     </span>
                     <div
                       className="w-full rounded-t-lg transition-all duration-500"
                       style={{
                         height: `${heightPct}%`,
-                        backgroundColor: h.pendingCount > 0 ? "#f59e0b" : "#22c55e",
+                        backgroundColor: isPaid ? "#22c55e" : e.latestSalaryStatus === "PENDING" ? "#f59e0b" : "#e5e7eb",
                         minHeight: "8px",
                       }}
                     />
-                    <span className="text-xs text-portal-note-text">
-                      {MONTHS_AR[h.month - 1]}
+                    <span className="text-xs text-portal-note-text truncate max-w-[60px]">
+                      {e.name?.slice(0, 4)}
                     </span>
                   </div>
                 );
@@ -242,38 +313,42 @@ export default function AdminPayrollPage() {
 
           {/* History table */}
           <SurfaceCard>
-            <h3 className="font-semibold text-natural-100 mb-4">تفاصيل الرواتب السابقة</h3>
+            <h3 className="font-semibold text-natural-100 mb-4">تفاصيل الرواتب</h3>
             <DataTable
               columns={[
-                { id: "month", label: "الشهر" },
-                { id: "totalCost", label: "التكلفة الإجمالية" },
-                { id: "paidCount", label: "المدفوع" },
-                { id: "pendingCount", label: "المعلق" },
-                { id: "status", label: "الحالة" },
+                { id: "name", label: "الاسم" },
+                { id: "baseSalary", label: "الراتب الأساسي" },
+                { id: "commissions", label: "العمولات" },
+                { id: "deductions", label: "الخصومات" },
+                { id: "salaryStatus", label: "الحالة" },
               ]}
-              data={MOCK_SALARY_HISTORY}
+              data={filtered}
               isLoading={false}
               isError={false}
               emptyState={undefined}
-              renderRow={(h: any) => (
-                <tr key={`${h.month}-${h.year}`} className="border-b border-portal-divider">
-                  <td className="px-5 py-3 text-sm font-medium">
-                    {MONTHS_AR[h.month - 1]} {h.year}
+              renderRow={(e: any) => (
+                <tr key={e.id} className="border-b border-portal-divider">
+                  <td className="px-5 py-3 text-sm font-medium">{e.name}</td>
+                  <td className="px-5 py-3 text-sm">{fmtAmount(e.baseSalary)} {currency.symbol}</td>
+                  <td className="px-5 py-3 text-sm">
+                    {e.latestCommission != null ? (
+                      <span className="text-success-600">{fmtAmount(e.latestCommission)} {currency.symbol}</span>
+                    ) : "—"}
                   </td>
-                  <td className="px-5 py-3 text-sm">{fmtAmount(h.totalCost)} {currency.symbol}</td>
-                  <td className="px-5 py-3">
-                    <Pill tone="success">{h.paidCount}</Pill>
+                  <td className="px-5 py-3 text-sm">
+                    {e.latestDeduction != null ? (
+                      <span className="text-danger-600">{fmtAmount(e.latestDeduction)} {currency.symbol}</span>
+                    ) : "—"}
                   </td>
                   <td className="px-5 py-3">
-                    <Pill tone={h.pendingCount > 0 ? "warning" : "success"}>
-                      {h.pendingCount}
-                    </Pill>
-                  </td>
-                  <td className="px-5 py-3">
-                    <StatusBadge
-                      status={h.pendingCount === 0 ? "ACTIVE" : "PENDING"}
-                      label={h.pendingCount === 0 ? "مكتمل" : "معلق"}
-                    />
+                    {e.latestSalaryStatus ? (
+                      <StatusBadge
+                        status={e.latestSalaryStatus}
+                        label={getSalaryStatusLabel(e.latestSalaryStatus)}
+                      />
+                    ) : (
+                      <span className="text-xs text-portal-note-text">لم يصدر بعد</span>
+                    )}
                   </td>
                 </tr>
               )}
@@ -333,7 +408,7 @@ export default function AdminPayrollPage() {
                 onChange={(e) => setPayrollYear(Number(e.target.value))}
                 className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
               >
-                {[2024, 2025, 2026, 2027].map((y) => (
+                {YEAR_OPTIONS.map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>

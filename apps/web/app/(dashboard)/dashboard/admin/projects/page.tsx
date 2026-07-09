@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Briefcase, Archive, UserCog, Flag, Download, LayoutGrid, Table } from "lucide-react";
+import { Search, Briefcase, Archive, UserCog, Flag, Download, LayoutGrid, Table, Plus, Clock, CheckCircle2, PauseCircle, AlertTriangle, Users } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FilterBar,
@@ -19,13 +19,15 @@ import { EmptyState } from "@/components/design-system/EmptyState";
 import { toast } from "sonner";
 import {
   useGetAdminProjectsQuery,
+  useCreateAdminProjectMutation,
   useReassignProjectPmMutation,
   useArchiveProjectMutation,
   useForceProjectStatusMutation,
   type ProjectRow,
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { PROJECT_STATUS_AR } from "@hassad/shared";
+import { useGetAdminClientsQuery } from "@/features/admin/adminApi";
+import { PROJECT_STATUS_AR, ProjectStatus } from "@hassad/shared";
 import { cn } from "@/lib/utils";
 
 type ScheduleStatus = "ON_TRACK" | "AT_RISK" | "DELAYED";
@@ -42,13 +44,12 @@ function getScheduleStatus(p: ProjectRow): ScheduleStatus {
   return "ON_TRACK";
 }
 
-const STATUS_OPTIONS = [
+const FILTER_STATUS_OPTIONS = [
   { label: "الكل", value: "" },
-  { label: "نشط", value: "ACTIVE" },
-  { label: "تخطيط", value: "PLANNING" },
-  { label: "مكتمل", value: "COMPLETED" },
-  { label: "معلق", value: "ON_HOLD" },
-  { label: "ملغي", value: "CANCELLED" },
+  ...Object.entries(PROJECT_STATUS_AR).map(([value, label]) => ({
+    label,
+    value,
+  })),
 ];
 
 function useDebounce<T>(value: T, delay = 400): T {
@@ -110,6 +111,24 @@ export default function AdminProjectsPage() {
     search: pmSearch || undefined,
   });
 
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    clientId: "",
+    projectManagerId: "",
+    status: "PLANNING",
+    startDate: "",
+    endDate: "",
+    description: "",
+  });
+  const [clientSearch, setClientSearch] = useState("");
+  const { data: clientsData } = useGetAdminClientsQuery({
+    search: clientSearch || undefined,
+    limit: 20,
+  });
+  const [createProject] = useCreateAdminProjectMutation();
+  const clients = clientsData?.items ?? [];
+
   const projects = data?.items ?? [];
   const pms = pmData?.items ?? [];
 
@@ -130,7 +149,7 @@ export default function AdminProjectsPage() {
   }, []);
 
   const filterGroups: FilterGroup[] = [
-    { key: "status", label: "الحالة", options: STATUS_OPTIONS },
+    { key: "status", label: "الحالة", options: FILTER_STATUS_OPTIONS },
     {
       key: "overdueOnly",
       label: "المتأخرة فقط",
@@ -190,21 +209,27 @@ export default function AdminProjectsPage() {
         description={`إجمالي ${data?.total ?? 0} مشروع`}
         icon={Briefcase}
         actions={
-          <button
-            onClick={() => exportCSV(projects, "المشاريع")}
-            className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
-          >
-            <Download className="size-4" />
-            تصدير CSV
-          </button>
+          <div className="flex gap-2">
+            <ActionButton size="md" onClick={() => setShowCreate(true)}>
+              <Plus className="size-4 ml-1" />
+              إنشاء مشروع جديد
+            </ActionButton>
+            <button
+              onClick={() => exportCSV(projects, "المشاريع")}
+              className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
+            >
+              <Download className="size-4" />
+              تصدير CSV
+            </button>
+          </div>
         }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="إجمالي المشاريع" value={data?.total ?? 0} icon={Briefcase} />
-        <StatCard title="نشطة" value={projects.filter((p) => p.status === "ACTIVE").length} variant="success" />
-        <StatCard title="مكتملة" value={projects.filter((p) => p.status === "COMPLETED").length} variant="default" />
-        <StatCard title="متأخرة" value={projects.filter((p) => p.overdueTasksCount > 0).length} variant="danger" />
+        <StatCard title="نشط" value={projects.filter((p) => p.status === "ACTIVE").length} icon={Briefcase} variant="success" />
+        <StatCard title="مكتمل" value={projects.filter((p) => p.status === "COMPLETED").length} icon={CheckCircle2} variant="default" />
+        <StatCard title="متأخر" value={projects.filter((p) => p.isBehindSchedule).length} icon={AlertTriangle} variant="danger" />
+        <StatCard title="متوقف" value={projects.filter((p) => p.status === "ON_HOLD").length} icon={PauseCircle} variant="warning" />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 items-start">
@@ -259,9 +284,12 @@ export default function AdminProjectsPage() {
             { id: "client", label: "العميل" },
             { id: "pm", label: "مدير المشروع" },
             { id: "status", label: "الحالة" },
+            { id: "totalValue", label: "قيمة المشروع" },
+            { id: "remainingValue", label: "المبلغ المتبقي" },
             { id: "completion", label: "الإنجاز" },
-            { id: "overdue", label: "المهام المتأخرة" },
-            { id: "dates", label: "التاريخ" },
+            { id: "overdueTasks", label: "المهام المتأخرة" },
+            { id: "isOverdue", label: "متأخر" },
+            { id: "dates", label: "تاريخ البداية" },
             { id: "actions", label: "الإجراءات", width: "160px" },
           ]}
           data={projects}
@@ -293,6 +321,12 @@ export default function AdminProjectsPage() {
                   label={PROJECT_STATUS_AR[p.status] ?? p.status}
                 />
               </td>
+              <td className="px-5 py-4 text-sm font-medium text-natural-100" dir="ltr">
+                {p.totalValue > 0 ? `${p.totalValue.toLocaleString()} ر.س` : "—"}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text" dir="ltr">
+                {p.remainingValue > 0 ? `${p.remainingValue.toLocaleString()} ر.س` : "—"}
+              </td>
               <td className="px-5 py-4">
                 <Pill
                   tone={
@@ -312,6 +346,11 @@ export default function AdminProjectsPage() {
                 ) : (
                   <span className="text-sm text-portal-note-text">0</span>
                 )}
+              </td>
+              <td className="px-5 py-4">
+                <Pill tone={p.isBehindSchedule ? "danger" : "neutral"}>
+                  {p.isBehindSchedule ? "نعم" : "لا"}
+                </Pill>
               </td>
               <td className="px-5 py-4 text-sm text-portal-note-text">
                 {p.startDate?.slice(0, 10) ?? "—"}
@@ -449,9 +488,9 @@ export default function AdminProjectsPage() {
               className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
             >
               <option value="">اختر الحالة...</option>
-              {STATUS_OPTIONS.filter((o) => o.value).map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
+              {Object.entries(PROJECT_STATUS_AR).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
                 </option>
               ))}
             </select>
@@ -462,6 +501,121 @@ export default function AdminProjectsPage() {
             />
           </div>
         )}
+      </Dialog>
+
+      <Dialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        title="إنشاء مشروع جديد"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton variant="outline" onClick={() => setShowCreate(false)}>
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              onClick={async () => {
+                if (!createForm.name || !createForm.clientId || !createForm.startDate || !createForm.endDate) {
+                  toast.error("يرجى ملء الحقول المطلوبة");
+                  return;
+                }
+                try {
+                  await createProject(createForm).unwrap();
+                  toast.success("تم إنشاء المشروع");
+                  setShowCreate(false);
+                  setCreateForm({ name: "", clientId: "", projectManagerId: "", status: "PLANNING", startDate: "", endDate: "", description: "" });
+                } catch {
+                  toast.error("فشل إنشاء المشروع");
+                }
+              }}
+            >
+              إنشاء
+            </ActionButton>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-secondary-500 mb-1">اسم المشروع *</label>
+            <FormInputControl
+              placeholder="اسم المشروع"
+              value={createForm.name}
+              onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-secondary-500 mb-1">العميل *</label>
+            <FormInputControl
+              placeholder="ابحث عن عميل..."
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+            />
+            <div className="max-h-32 overflow-y-auto mt-1 space-y-1">
+              {clients.map((c: any) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    setCreateForm((f) => ({ ...f, clientId: c.id }));
+                    setClientSearch(c.companyName ?? c.name ?? "");
+                  }}
+                  className={`w-full text-right px-3 py-2 rounded-xl text-sm transition-colors ${createForm.clientId === c.id ? "bg-secondary-50 text-secondary-600" : "hover:bg-badge-gray-bg"}`}
+                >
+                  {c.companyName ?? c.name ?? "—"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-secondary-500 mb-1">مدير المشروع</label>
+            <FormInputControl
+              placeholder="ابحث عن PM..."
+              value={pmSearch}
+              onChange={(e) => setPmSearch(e.target.value)}
+            />
+            <div className="max-h-32 overflow-y-auto mt-1 space-y-1">
+              {pms.map((u: any) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => setCreateForm((f) => ({ ...f, projectManagerId: u.id }))}
+                  className={`w-full text-right px-3 py-2 rounded-xl text-sm transition-colors ${createForm.projectManagerId === u.id ? "bg-secondary-50 text-secondary-600" : "hover:bg-badge-gray-bg"}`}
+                >
+                  {u.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-secondary-500 mb-1">الحالة</label>
+            <select
+              value={createForm.status}
+              onChange={(e) => setCreateForm((f) => ({ ...f, status: e.target.value }))}
+              className="w-full rounded-xl border border-portal-divider px-4 py-2.5 text-sm"
+            >
+              {Object.entries(PROJECT_STATUS_AR).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-secondary-500 mb-1">تاريخ البداية *</label>
+              <FormInputControl
+                type="date"
+                value={createForm.startDate}
+                onChange={(e) => setCreateForm((f) => ({ ...f, startDate: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-secondary-500 mb-1">تاريخ النهاية *</label>
+              <FormInputControl
+                type="date"
+                value={createForm.endDate}
+                onChange={(e) => setCreateForm((f) => ({ ...f, endDate: e.target.value }))}
+              />
+            </div>
+          </div>
+        </div>
       </Dialog>
     </div>
   );

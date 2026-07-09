@@ -27,6 +27,7 @@ import {
   Shield,
   Brain,
   Bell,
+  AlertCircle,
 } from "lucide-react";
 
 const TABS = [
@@ -103,7 +104,7 @@ const BOOLEAN_SELECT_KEYS = [
 ];
 
 export default function AdminSettingsPage() {
-  const { data: serverSettings, isLoading } = useGetAdminSettingsQuery();
+  const { data: serverSettings, isLoading, isError } = useGetAdminSettingsQuery();
   const [updateSettings, { isLoading: isSaving }] =
     useUpdateAdminSettingsMutation();
   const [form, setForm] = useState<Record<string, string>>({});
@@ -154,7 +155,20 @@ export default function AdminSettingsPage() {
     return payload;
   };
 
+  const validateTab = (tab: string): boolean => {
+    const defs = FIELD_DEFS[tab] ?? [];
+    for (const def of defs) {
+      const val = form[def.key] ?? "";
+      if (def.type === "email" && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        toast.error(`صيغة البريد الإلكتروني غير صحيحة لـ "${def.label}"`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSaveTab = async (tab: string) => {
+    if (!validateTab(tab)) return;
     setSavingTab(tab);
     try {
       const payload = buildTabPayload(tab);
@@ -305,6 +319,12 @@ export default function AdminSettingsPage() {
                 <Skeleton className="h-10 w-full rounded-xl" />
               </div>
             ))}
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <AlertCircle className="size-10 text-danger-500" />
+            <p className="text-base font-medium text-natural-100">فشل تحميل الإعدادات</p>
+            <p className="text-sm text-portal-note-text">يرجى تحديث الصفحة أو المحاولة مرة أخرى</p>
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">

@@ -11,6 +11,7 @@ import { AdminProjectsService } from "../services/admin-projects.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 
 @Controller("admin/projects")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -39,5 +40,31 @@ export class AdminProjectsController {
   @RequirePermissions("admin.projects.intervene")
   forceStatus(@Param("id") id: string, @Body() body: any) {
     return this.service.forceStatus(id, body.status, body.reason);
+  }
+
+  @Post()
+  @RequirePermissions("admin.projects.create")
+  create(@Body() body: any) {
+    return this.service.create(body);
+  }
+
+  @Post(":id/members")
+  @RequirePermissions("admin.projects.intervene")
+  addMember(
+    @Param("id") id: string,
+    @Body("userId") userId: string,
+    @Body("role") role: string,
+  ) {
+    return this.service.addMember(id, userId, role);
+  }
+
+  @Post(":id/tasks")
+  @RequirePermissions("admin.projects.intervene")
+  addTask(
+    @Param("id") id: string,
+    @Body() body: any,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.addTask(id, body, adminId);
   }
 }

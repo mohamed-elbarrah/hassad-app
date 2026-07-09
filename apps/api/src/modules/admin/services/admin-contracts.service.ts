@@ -43,6 +43,7 @@ export class AdminContractsService {
         include: {
           client: { select: { companyName: true } },
           renewalAlerts: { where: { isSent: false }, select: { id: true } },
+          _count: { select: { invoices: true } },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -64,6 +65,7 @@ export class AdminContractsService {
         versionNumber: c.versionNumber,
         eSigned: c.eSigned,
         pendingRenewalAlerts: c.renewalAlerts.length,
+        invoiceCount: c._count.invoices,
         createdAt: c.createdAt.toISOString(),
       })),
       total,
@@ -82,10 +84,27 @@ export class AdminContractsService {
         paymentPlans: { include: { invoices: true } },
         renewalAlerts: { orderBy: { scheduledAt: "desc" } },
         statusHistory: { orderBy: { changedAt: "desc" } },
+        invoices: {
+          include: { items: true, payments: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
     if (!contract) throw new NotFoundException("Contract not found");
-    return contract;
+
+    const project = await this.prisma.project.findFirst({
+      where: { contractId: id },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        manager: { select: { id: true, name: true } },
+      },
+    });
+
+    return { ...contract, project };
   }
 
   async cancel(contractId: string, reason: string) {

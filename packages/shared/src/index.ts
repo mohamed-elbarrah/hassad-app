@@ -474,11 +474,14 @@ export interface PaymentGateway {
 export interface BankAccount {
   id: string;
   accountName: string;
+  accountNumber?: string | null;
   iban: string;
   bankName: string;
   swiftCode?: string | null;
   instructions?: string | null;
+  isDefault?: boolean;
   isActive: boolean;
+  balance?: number | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

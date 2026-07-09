@@ -47,7 +47,7 @@ export class AdminFinanceService {
       this.financeService.getAlerts(),
     ]);
 
-    const [totalPayments, refundPayments, paymentMethodSplit] = await Promise.all([
+    const [totalPayments, refundPayments, paymentMethodSplit, overdueInvoices] = await Promise.all([
       this.prisma.payment.count(),
       this.prisma.payment.count({ where: { status: "REFUNDED" } }),
       this.prisma.payment.groupBy({
@@ -55,7 +55,29 @@ export class AdminFinanceService {
         _count: { method: true },
         _sum: { amount: true },
       }),
+      this.prisma.invoice.findMany({
+        where: { status: "LATE" },
+        include: { client: { select: { id: true, companyName: true } } },
+        orderBy: { dueDate: "asc" },
+        take: 5,
+      }),
     ]);
+
+    const totalMethodAmount = paymentMethodSplit.reduce(
+      (sum, p) => sum + (p._sum.amount ?? 0),
+      0,
+    );
+
+    const paidVsUnpaidResult = await this.prisma.invoice.aggregate({
+      _sum: { amount: true },
+      _count: true,
+      where: { status: { in: ["PAID", "PARTIAL"] } },
+    });
+    const unpaidResult = await this.prisma.invoice.aggregate({
+      _sum: { amount: true },
+      _count: true,
+      where: { status: { in: ["DUE", "SENT", "LATE", "PENDING"] } },
+    });
 
     const refundRate =
       totalPayments > 0
@@ -74,8 +96,37 @@ export class AdminFinanceService {
       paymentMethodSplit: paymentMethodSplit.map((p) => ({
         method: p.method,
         count: p._count.method,
-        total: p._sum.amount ?? 0,
+        amount: p._sum.amount ?? 0,
       })),
+      paymentMethodDistribution: paymentMethodSplit.map((p) => ({
+        method: p.method,
+        count: p._count.method,
+        amount: p._sum.amount ?? 0,
+        percentage:
+          totalMethodAmount > 0
+            ? Math.round(((p._sum.amount ?? 0) / totalMethodAmount) * 100)
+            : 0,
+      })),
+      topOverdueInvoices: overdueInvoices.map((inv) => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        clientName: (inv.client as any)?.companyName ?? "—",
+        amount: inv.amount,
+        dueDate: inv.dueDate,
+        daysOverdue: Math.floor(
+          (Date.now() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+        ),
+      })),
+      paidVsUnpaid: {
+        paid: {
+          count: paidVsUnpaidResult._count,
+          amount: paidVsUnpaidResult._sum.amount ?? 0,
+        },
+        unpaid: {
+          count: unpaidResult._count,
+          amount: unpaidResult._sum.amount ?? 0,
+        },
+      },
     };
   }
 

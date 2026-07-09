@@ -2,11 +2,10 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, TrendingUp, UserCog, Download, Funnel, Table2 } from "lucide-react";
+import { Search, TrendingUp, UserCog, Download, Funnel, Table2, CircleDollarSign, Clock } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FilterBar,
-  type FilterGroup,
 } from "@/components/design-system/FilterBar";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { PageIntro } from "@/components/design-system/PageIntro";
@@ -17,19 +16,19 @@ import { Dialog } from "@/components/design-system/Dialog";
 import { toast } from "sonner";
 import {
   useGetAdminLeadsQuery,
+  useGetAdminLeadStatsQuery,
   useReassignLeadMutation,
   type LeadRow,
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { PIPELINE_STAGE_AR, PIPELINE_STAGE_ORDER } from "@hassad/shared";
+import { LEAD_STAGE_AR, LEAD_STAGE_ORDER } from "@hassad/shared";
+import { cn } from "@/lib/utils";
 
-const STAGE_OPTIONS = [
+const NO_CONTACT_OPTIONS = [
   { label: "الكل", value: "" },
-  { label: "جديد", value: "NEW" },
-  { label: "مؤهل", value: "QUALIFIED" },
-  { label: "عرض", value: "PROPOSAL" },
-  { label: "تفاوض", value: "NEGOTIATION" },
-  { label: "مغلق", value: "CLOSED" },
+  { label: "7 أيام", value: "7" },
+  { label: "30 يوماً", value: "30" },
+  { label: "60 يوماً", value: "60" },
 ];
 
 function useDebounce<T>(value: T, delay = 400): T {
@@ -39,6 +38,22 @@ function useDebounce<T>(value: T, delay = 400): T {
     return () => clearTimeout(t);
   }, [value, delay]);
   return debounced;
+}
+
+function relativeTime(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days === 0) return "اليوم";
+  if (days === 1) return "أمس";
+  if (days < 7) return `منذ ${days} أيام`;
+  if (days < 30) return `منذ ${Math.floor(days / 7)} أسابيع`;
+  return `منذ ${Math.floor(days / 30)} أشهر`;
+}
+
+function formatCurrency(value: number | null): string {
+  if (value === null || value === undefined) return "—";
+  return `${value.toLocaleString()} ر.س`;
 }
 
 const exportCSV = (data: any[], filename: string) => {
@@ -61,9 +76,7 @@ const exportCSV = (data: any[], filename: string) => {
 export default function AdminLeadsPage() {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [viewMode, setViewMode] = useState<"table" | "pipeline">("table");
   const [actionLead, setActionLead] = useState<LeadRow | null>(null);
   const [userSearch, setUserSearch] = useState("");
@@ -75,8 +88,10 @@ export default function AdminLeadsPage() {
     ...activeFilters,
   };
   if (filters.stage?.[0]) filters.stage = filters.stage[0];
+  if (filters.noContactSince?.[0]) filters.noContactSince = filters.noContactSince[0];
 
   const { data, isLoading, isError } = useGetAdminLeadsQuery(filters);
+  const { data: statsData } = useGetAdminLeadStatsQuery();
   const [reassign] = useReassignLeadMutation();
   const { data: usersData } = useSearchUsersQuery({
     role: "SALES",
@@ -86,6 +101,11 @@ export default function AdminLeadsPage() {
 
   const leads = data?.items ?? [];
   const salesUsers = usersData?.items ?? [];
+  const totalLeads = statsData?.byStage?.reduce((a: number, b: any) => a + b.count, 0) ?? 0;
+  const newLeads = leads.filter((l) => l.pipelineStage === "NEW").length;
+  const qualifiedLeads = leads.filter((l) => l.pipelineStage === "QUALIFIED").length;
+  const closedLeads = leads.filter((l) => l.pipelineStage === "WON" || l.pipelineStage === "LOST").length;
+  const conversionRate = statsData?.conversionRate ?? 0;
 
   const handleFilterChange = useCallback(
     (key: string, values: string[]) =>
@@ -111,6 +131,11 @@ export default function AdminLeadsPage() {
     }
   };
 
+  const stageFilterOptions = [
+    { label: "الكل", value: "" },
+    ...LEAD_STAGE_ORDER.map((s) => ({ label: LEAD_STAGE_AR[s] ?? s, value: s })),
+  ];
+
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       <PageIntro
@@ -128,14 +153,13 @@ export default function AdminLeadsPage() {
         }
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="إجمالي" value={data?.total ?? 0} icon={TrendingUp} />
-        <StatCard title="جديد" value={leads.filter((l) => l.pipelineStage === "NEW").length} variant="warning" />
-        <StatCard title="مؤهل" value={leads.filter((l) => l.pipelineStage === "QUALIFIED").length} variant="success" />
-        <StatCard
-          title="معدل التحويل"
-          value={leads.length > 0 ? `${Math.round((leads.filter((l) => l.pipelineStage === "CLOSED").length / leads.length) * 100)}%` : "0%"}
-          variant="default"
-        />
+        <StatCard title="إجمالي" value={totalLeads} icon={TrendingUp} />
+        <StatCard title="جديد" value={newLeads} variant="warning" />
+        <StatCard title="مؤهل" value={qualifiedLeads} variant="success" />
+        <StatCard title="محوّل/مغلق" value={closedLeads} variant="default" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="معدل التحويل" value={`${conversionRate}%`} icon={CircleDollarSign} variant="default" />
       </div>
       <div className="flex flex-col sm:flex-row gap-3 items-start">
         <div className="relative flex-1">
@@ -148,32 +172,37 @@ export default function AdminLeadsPage() {
           />
         </div>
         <FilterBar
-          groups={[{ key: "stage", label: "المرحلة", options: STAGE_OPTIONS }]}
+          groups={[
+            { key: "stage", label: "المرحلة", options: stageFilterOptions },
+            { key: "noContactSince", label: "بلا تواصل منذ", options: NO_CONTACT_OPTIONS },
+          ]}
           activeFilters={activeFilters}
           onFilterChange={handleFilterChange}
         />
         <div className="flex gap-1 rounded-xl border border-portal-divider p-0.5">
           <button
             onClick={() => setViewMode("table")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
               viewMode === "table"
                 ? "bg-secondary-500 text-white"
-                : "text-portal-note-text hover:text-natural-100"
-            }`}
+                : "text-portal-note-text hover:text-natural-100",
+            )}
           >
             <Table2 className="size-4" />
-            عرض جدول
+            جدول
           </button>
           <button
             onClick={() => setViewMode("pipeline")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
               viewMode === "pipeline"
                 ? "bg-secondary-500 text-white"
-                : "text-portal-note-text hover:text-natural-100"
-            }`}
+                : "text-portal-note-text hover:text-natural-100",
+            )}
           >
             <Funnel className="size-4" />
-            عرض القمع
+            قمع مبيعات
           </button>
         </div>
       </div>
@@ -181,7 +210,7 @@ export default function AdminLeadsPage() {
       {viewMode === "pipeline" ? (
         <div className="overflow-x-auto pb-4">
           <div className="flex gap-4 min-w-max">
-            {PIPELINE_STAGE_ORDER.map((stage) => {
+            {LEAD_STAGE_ORDER.map((stage) => {
               const stageLeads = leads.filter(
                 (l: LeadRow) => l.pipelineStage === stage,
               );
@@ -192,7 +221,7 @@ export default function AdminLeadsPage() {
                 >
                   <div className="flex items-center justify-between px-4 py-3 border-b border-portal-divider">
                     <h3 className="text-sm font-semibold text-natural-100">
-                      {PIPELINE_STAGE_AR[stage] ?? stage}
+                      {LEAD_STAGE_AR[stage] ?? stage}
                     </h3>
                     <Pill tone="blue">{stageLeads.length}</Pill>
                   </div>
@@ -202,26 +231,42 @@ export default function AdminLeadsPage() {
                         لا توجد عملاء
                       </p>
                     )}
-                    {stageLeads.map((l: LeadRow) => (
-                      <button
-                        key={l.id}
-                        onClick={() => router.push(`/dashboard/admin/leads/${l.id}`)}
-                        className="w-full text-right bg-white rounded-xl border border-portal-divider p-3 hover:shadow-md transition-shadow space-y-2"
-                      >
-                        <p className="text-sm font-medium text-natural-100">
-                          {l.companyName}
-                        </p>
-                        <p className="text-xs text-portal-note-text">
-                          {l.contactName}
-                        </p>
-                        <div className="flex items-center justify-between text-xs text-portal-note-text">
-                          <span>{l.assigneeName}</span>
-                          <Pill tone="neutral">
-                            {PIPELINE_STAGE_AR[l.pipelineStage] ?? l.pipelineStage}
-                          </Pill>
-                        </div>
-                      </button>
-                    ))}
+                    {stageLeads.map((l: LeadRow) => {
+                      const daysInStage = l.createdAt
+                        ? Math.floor(
+                            (Date.now() - new Date(l.createdAt).getTime()) /
+                              (1000 * 60 * 60 * 24),
+                          )
+                        : null;
+                      return (
+                        <button
+                          key={l.id}
+                          onClick={() => router.push(`/dashboard/admin/leads/${l.id}`)}
+                          className="w-full text-right bg-white rounded-xl border border-portal-divider p-3 hover:shadow-md transition-shadow space-y-2"
+                        >
+                          <p className="text-sm font-medium text-natural-100">
+                            {l.companyName}
+                          </p>
+                          <p className="text-xs text-portal-note-text">
+                            {l.contactName}
+                          </p>
+                          {l.potentialValue != null && (
+                            <p className="text-xs font-semibold text-secondary-600">
+                              {formatCurrency(l.potentialValue)}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between text-xs text-portal-note-text">
+                            <span>{l.assigneeName}</span>
+                            {daysInStage != null && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="size-3" />
+                                {daysInStage} يوم
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -230,74 +275,80 @@ export default function AdminLeadsPage() {
         </div>
       ) : (
         <DataTable
-        columns={[
-          { id: "company", label: "الشركة" },
-          { id: "contact", label: "جهة الاتصال" },
-          { id: "assignee", label: "المسؤول" },
-          { id: "stage", label: "المرحلة" },
-          { id: "source", label: "المصدر" },
-          { id: "attempts", label: "محاولات التواصل" },
-          { id: "lastContact", label: "آخر تواصل", align: "left" },
-          { id: "actions", label: "الإجراءات", width: "60px" },
-        ]}
-        data={leads}
-        isLoading={isLoading}
-        isError={isError}
-        emptyState={{
-          icon: TrendingUp,
-          message: "لا توجد عملاء محتملين",
-          hint: "لم يتم إضافة أي عملاء محتملين بعد",
-        }}
-        renderRow={(l: LeadRow) => (
-          <tr
-            key={l.id}
-            className="border-b border-portal-divider cursor-pointer hover:bg-badge-gray-bg/50"
-            onClick={() => router.push(`/dashboard/admin/leads/${l.id}`)}
-          >
-            <td className="px-5 py-4 text-base font-medium text-natural-100">
-              {l.companyName}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {l.contactName}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {l.assigneeName}
-            </td>
-            <td className="px-5 py-4">
-              <Pill tone="blue">
-                {PIPELINE_STAGE_AR[l.pipelineStage] ?? l.pipelineStage}
-              </Pill>
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {l.source ?? "—"}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {l.contactAttemptCount}
-            </td>
-            <td
-              className="px-5 py-4 text-sm text-portal-note-text text-left"
-              dir="ltr"
+          columns={[
+            { id: "company", label: "الشركة" },
+            { id: "contact", label: "جهة الاتصال" },
+            { id: "assignee", label: "المسؤول" },
+            { id: "stage", label: "المرحلة" },
+            { id: "potentialValue", label: "القيمة المحتملة" },
+            { id: "source", label: "المصدر" },
+            { id: "attempts", label: "محاولات التواصل" },
+            { id: "lastContact", label: "آخر تواصل", align: "left" },
+            { id: "daysSince", label: "أيام منذ آخر تواصل", align: "left" },
+            { id: "actions", label: "الإجراءات", width: "60px" },
+          ]}
+          data={leads}
+          isLoading={isLoading}
+          isError={isError}
+          emptyState={{
+            icon: TrendingUp,
+            message: "لا توجد عملاء محتملين",
+            hint: "لم يتم إضافة أي عملاء محتملين بعد",
+          }}
+          renderRow={(l: LeadRow) => (
+            <tr
+              key={l.id}
+              className="border-b border-portal-divider cursor-pointer hover:bg-badge-gray-bg/50"
+              onClick={() => router.push(`/dashboard/admin/leads/${l.id}`)}
             >
-              {l.lastContactAt?.slice(0, 10) ?? "—"}
-            </td>
-            <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-              <ActionButton
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8"
-                title="إعادة تعيين"
-                onClick={() => {
-                  setActionLead(l);
-                  setSelectedUserId("");
-                }}
-              >
-                <UserCog className="size-3.5" />
-              </ActionButton>
-            </td>
-          </tr>
-        )}
-      />
-
+              <td className="px-5 py-4 text-base font-medium text-natural-100">
+                {l.companyName}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {l.contactName}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {l.assigneeName}
+              </td>
+              <td className="px-5 py-4">
+                <Pill tone="blue">
+                  {LEAD_STAGE_AR[l.pipelineStage] ?? l.pipelineStage}
+                </Pill>
+              </td>
+              <td className="px-5 py-4 text-sm font-medium text-secondary-600">
+                {formatCurrency(l.potentialValue)}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {l.source ?? "—"}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text">
+                {l.contactAttemptCount}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text text-left" dir="ltr">
+                {relativeTime(l.lastContactAt)}
+              </td>
+              <td className="px-5 py-4 text-sm text-portal-note-text text-left">
+                {l.daysSinceLastContact != null
+                  ? `${l.daysSinceLastContact} يوم`
+                  : "—"}
+              </td>
+              <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8"
+                  title="إعادة تعيين"
+                  onClick={() => {
+                    setActionLead(l);
+                    setSelectedUserId("");
+                  }}
+                >
+                  <UserCog className="size-3.5" />
+                </ActionButton>
+              </td>
+            </tr>
+          )}
+        />
       )}
       <Dialog
         open={!!actionLead}

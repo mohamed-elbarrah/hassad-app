@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ListChecks, UserCog, Flag, Download, Columns3, Table2 } from "lucide-react";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
@@ -23,29 +23,15 @@ import {
   type TaskRow,
 } from "@/features/admin/adminApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { TASK_STATUS_AR } from "@hassad/shared";
-
-const KANBAN_COLUMNS = [
-  { status: "TODO", label: "قيد الانتظار" },
-  { status: "IN_PROGRESS", label: "قيد التنفيذ" },
-  { status: "IN_REVIEW", label: "قيد المراجعة" },
-  { status: "DONE", label: "مكتمل" },
-];
+import { TASK_STATUS_AR, TASK_PRIORITY_AR } from "@hassad/shared";
 
 const PRIORITY_COLORS: Record<string, string> = {
   HIGH: "bg-danger-500",
   MEDIUM: "bg-warning-500",
+  NORMAL: "bg-primary-500",
   LOW: "bg-neutral-300",
+  URGENT: "bg-danger-700",
 };
-
-const STATUS_OPTIONS = [
-  { label: "الكل", value: "" },
-  { label: "قيد الانتظار", value: "TODO" },
-  { label: "قيد التنفيذ", value: "IN_PROGRESS" },
-  { label: "قيد المراجعة", value: "IN_REVIEW" },
-  { label: "مكتمل", value: "DONE" },
-  { label: "مراجعة", value: "REVISION" },
-];
 
 function useDebounce<T>(value: T, delay = 400): T {
   const [debounced, setDebounced] = useState(value);
@@ -95,6 +81,7 @@ export default function AdminTasksPage() {
   };
   if (filters.status?.[0]) filters.status = filters.status[0];
   if (filters.overdueOnly?.[0]) filters.overdueOnly = "true";
+  if (filters.unassignedOnly?.[0]) filters.unassignedOnly = "true";
 
   const { data, isLoading, isError } = useGetAdminTasksQuery(filters);
   const [reassign] = useReassignTaskMutation();
@@ -108,6 +95,25 @@ export default function AdminTasksPage() {
   const tasks = data?.items ?? [];
   const users = usersData?.items ?? [];
 
+  const STATUS_OPTIONS = useMemo(
+    () => [
+      { label: "الكل", value: "" },
+      ...Object.entries(TASK_STATUS_AR).map(([value, label]) => ({
+        label,
+        value,
+      })),
+    ],
+    [],
+  );
+
+  const KANBAN_COLUMNS = useMemo(
+    () =>
+      Object.entries(TASK_STATUS_AR)
+        .filter(([status]) => status !== "REVISION")
+        .map(([status, label]) => ({ status, label })),
+    [],
+  );
+
   const handleFilterChange = useCallback(
     (key: string, values: string[]) =>
       setActiveFilters((prev) => ({ ...prev, [key]: values })),
@@ -120,6 +126,11 @@ export default function AdminTasksPage() {
       key: "overdueOnly",
       label: "المتأخرة فقط",
       options: [{ label: "مهام متأخرة", value: "true" }],
+    },
+    {
+      key: "unassignedOnly",
+      label: "بدون مسند",
+      options: [{ label: "مهام غير مسندة", value: "true" }],
     },
   ];
 
@@ -253,9 +264,15 @@ export default function AdminTasksPage() {
                         />
                       </div>
                       <div className="flex items-center justify-between gap-2 text-xs text-portal-note-text">
-                        <span>{t.assigneeName}</span>
+                        <span>{t.assigneeName || "غير مسند"}</span>
+                        <span>{TASK_PRIORITY_AR[t.priority ?? "LOW"]}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-xs text-portal-note-text">
                         {t.dueDate && (
                           <span dir="ltr">{t.dueDate.slice(0, 10)}</span>
+                        )}
+                        {t.revisionCount > 0 && (
+                          <span>مراجعات: {t.revisionCount}</span>
                         )}
                       </div>
                       {t.isOverdue && (
@@ -277,7 +294,8 @@ export default function AdminTasksPage() {
           { id: "status", label: "الحالة" },
           { id: "priority", label: "الأولوية" },
           { id: "dueDate", label: "تاريخ التسليم", align: "left" },
-          { id: "overdue", label: "متأخرة" },
+          { id: "overdueDays", label: "أيام التأخر", align: "left" },
+          { id: "revisionCount", label: "عدد المراجعات", align: "left" },
           { id: "actions", label: "الإجراءات", width: "100px" },
         ]}
         data={tasks}
@@ -312,14 +330,14 @@ export default function AdminTasksPage() {
             <td className="px-5 py-4">
               <Pill
                 tone={
-                  t.priority === "HIGH"
+                  t.priority === "HIGH" || t.priority === "URGENT"
                     ? "danger"
-                    : t.priority === "MEDIUM"
+                    : t.priority === "MEDIUM" || t.priority === "NORMAL"
                       ? "warning"
                       : "neutral"
                 }
               >
-                {t.priority}
+                {TASK_PRIORITY_AR[t.priority ?? "LOW"] ?? t.priority}
               </Pill>
             </td>
             <td
@@ -328,12 +346,13 @@ export default function AdminTasksPage() {
             >
               {t.dueDate?.slice(0, 10) ?? "—"}
             </td>
-            <td className="px-5 py-4">
-              {t.isOverdue ? (
-                <Pill tone="danger">متأخرة</Pill>
-              ) : (
-                <span className="text-sm text-portal-note-text">—</span>
-              )}
+            <td className="px-5 py-4 text-sm text-portal-note-text text-left" dir="ltr">
+              {t.isOverdue && t.dueDate
+                ? `${Math.max(0, Math.ceil((Date.now() - new Date(t.dueDate).getTime()) / (1000 * 60 * 60 * 24)))} يوم`
+                : "—"}
+            </td>
+            <td className="px-5 py-4 text-sm text-portal-note-text text-center">
+              {t.revisionCount ?? 0}
             </td>
             <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex gap-1">
