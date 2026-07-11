@@ -218,7 +218,9 @@ export class CanonicalClientService {
 
     if (accountManagerId && client.userId) {
       this.directConversationService
-        .getOrCreate(client.userId, accountManagerId, db, { clientId: client.id })
+        .getOrCreate(client.userId, accountManagerId, db, {
+          clientId: client.id,
+        })
         .catch(() => undefined);
     }
 

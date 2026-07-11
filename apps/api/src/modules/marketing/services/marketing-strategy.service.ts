@@ -8,10 +8,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
-import {
-  MarketingStrategyStatus,
-  TaskDepartment,
-} from "@hassad/shared";
+import { MarketingStrategyStatus, TaskDepartment } from "@hassad/shared";
 
 const STRATEGY_STATUS_AR: Record<string, string> = {
   DRAFT: "مسودة",
@@ -168,10 +165,7 @@ export class MarketingStrategyService {
           body: `تم إرسال الدراسة التسويقية للمهمة "${strategy.task.title}" إلى العميل`,
         })
         .catch((err) =>
-          this.logger.error(
-            `Failed to notify PM about strategy ${id}`,
-            err,
-          ),
+          this.logger.error(`Failed to notify PM about strategy ${id}`, err),
         );
     }
 

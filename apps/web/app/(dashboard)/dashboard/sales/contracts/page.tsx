@@ -1,38 +1,130 @@
 "use client";
 
-import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
-import { ContractsTable } from "@/components/dashboard/sales/ContractsTable";
+import { useState, useCallback } from "react";
+import { FileText } from "lucide-react";
 import { useGetContractsQuery } from "@/features/contracts/contractsApi";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { StatusBanner } from "@/components/design-system/StatusBanner";
+import { DataTable } from "@/components/design-system/DataTable";
+import { Pagination } from "@/components/design-system/Pagination";
+import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
+import { renderContractRowCells } from "@/components/dashboard/sales/ContractRow";
+import { SalesPageHeader } from "@/components/dashboard/sales/shared/SalesPageHeader";
+import { SalesListToolbar } from "@/components/dashboard/sales/shared/SalesListToolbar";
+import type { FilterGroup } from "@/components/design-system/FilterBar";
+import { ContractStatus } from "@hassad/shared";
+
+const PAGE_SIZE = 20;
+
+const STATUS_FILTERS: FilterGroup[] = [
+  {
+    key: "status",
+    label: "الحالة",
+    options: [
+      { label: "الكل", value: "" },
+      { label: "مسودة", value: ContractStatus.DRAFT },
+      { label: "مرسل", value: ContractStatus.SENT },
+      { label: "موقع", value: ContractStatus.SIGNED },
+      { label: "نشط", value: ContractStatus.ACTIVE },
+      { label: "معلق", value: ContractStatus.ON_HOLD },
+      { label: "مكتمل", value: ContractStatus.COMPLETED },
+      { label: "منتهي", value: ContractStatus.EXPIRED },
+      { label: "ملغى", value: ContractStatus.CANCELLED },
+    ],
+  },
+];
 
 export default function ContractsPage() {
+  const [search, setSearch] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
+  const [page, setPage] = useState(1);
+
+  const statusFilter = activeFilters["status"]?.[0] ?? "";
+
   const { data, isLoading, isError } = useGetContractsQuery({
-    page: 1,
-    limit: 20,
+    search: search || undefined,
+    status: (statusFilter as ContractStatus) || undefined,
+    page,
+    limit: PAGE_SIZE,
   });
 
+  const contracts = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
+
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+
+  const handleSearchChange = useCallback((v: string) => {
+    setSearch(v);
+    setPage(1);
+  }, []);
+
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setPage(1);
+    },
+    [],
+  );
+
+  const hasActiveFilter = search || statusFilter;
+
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">العقود</h1>
-        <CreateContractDialog />
-      </div>
+    <div className="flex flex-col gap-5" dir="rtl">
+      <SalesPageHeader
+        title="العقود"
+        description="إدارة العقود، تتبع حالتها، ومشاركة روابط التوقيع مع العملاء."
+        icon={FileText}
+        actions={
+          <CreateContractDialog
+            open={contractDialogOpen}
+            onOpenChange={setContractDialogOpen}
+          />
+        }
+      />
 
-      {isLoading && (
-        <div className="space-y-3">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </div>
-      )}
+      <SalesListToolbar
+        searchValue={search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="ابحث عن عقد..."
+        filterGroups={STATUS_FILTERS}
+        activeFilters={activeFilters}
+        onFilterChange={handleFilterChange}
+        countLabel="عقد"
+        count={contracts.length}
+      />
 
-      {isError && (
-        <StatusBanner variant="danger">فشل تحميل العقود.</StatusBanner>
-      )}
+      <DataTable
+        columns={[
+          { id: "client", label: "العميل" },
+          { id: "totalValue", label: "القيمة" },
+          { id: "period", label: "الفترة" },
+          { id: "status", label: "الحالة" },
+          { id: "actions", label: "إجراءات", align: "left" },
+        ]}
+        data={contracts}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage="حدث خطأ أثناء تحميل العقود."
+        skeletonRows={8}
+        emptyState={{
+          icon: FileText,
+          message: hasActiveFilter
+            ? "لا توجد عقود تطابق البحث"
+            : "لا توجد عقود بعد.",
+          hint: hasActiveFilter
+            ? "جرّب كلمات بحث مختلفة أو امسح عوامل التصفية."
+            : "أنشئ عقداً جديداً من صفحة العروض بعد اعتمادها.",
+        }}
+        renderCells={(contract) => renderContractRowCells(contract)}
+      />
 
-      {!isLoading && !isError && (
-        <ContractsTable contracts={data?.items ?? []} />
+      {!isLoading && !isError && totalPages > 1 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );

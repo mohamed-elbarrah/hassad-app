@@ -5,12 +5,18 @@ import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Ticket, Search, Plus, Filter, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useGetClientDisputesQuery, useCreateDisputeMutation } from "@/features/portal/portalApi";
+import {
+  useGetClientDisputesQuery,
+  useCreateDisputeMutation,
+} from "@/features/portal/portalApi";
 import { DISPUTE_STATUS_AR, DisputeStatus } from "@hassad/shared";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pagination } from "@/components/design-system/Pagination";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { Input } from "@/components/design-system/Input";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton } from "@/components/design-system/Skeleton";
@@ -43,7 +49,9 @@ export default function PortalDisputesPage() {
   const searchParams = useSearchParams();
   const projectIdFromUrl = searchParams.get("projectId") || undefined;
 
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [isNewDisputeOpen, setIsNewDisputeOpen] = useState(!!projectIdFromUrl);
@@ -56,7 +64,7 @@ export default function PortalDisputesPage() {
       page,
       limit: PAGE_SIZE,
     },
-    { pollingInterval: PORTAL_POLLING_INTERVAL_MS }
+    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
   );
 
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
@@ -65,16 +73,20 @@ export default function PortalDisputesPage() {
   const total = data?.meta?.total ?? 0;
   const totalPages = data?.meta?.totalPages ?? 1;
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    setPage(1);
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setPage(1);
+    },
+    [],
+  );
 
   // Filter by search locally
   const filtered = search
-    ? disputes.filter((d) =>
-        d.title.toLowerCase().includes(search.toLowerCase()) ||
-        d.project.name.toLowerCase().includes(search.toLowerCase())
+    ? disputes.filter(
+        (d) =>
+          d.title.toLowerCase().includes(search.toLowerCase()) ||
+          d.project.name.toLowerCase().includes(search.toLowerCase()),
       )
     : disputes;
 
@@ -90,7 +102,8 @@ export default function PortalDisputesPage() {
       setIsNewDisputeOpen(false);
       refetch();
     } catch (error) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
       toast.error("خطأ", {
         description: message,
       });
@@ -142,8 +155,12 @@ export default function PortalDisputesPage() {
         <SurfaceCard>
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <AlertCircle className="w-12 h-12 text-danger-500 mb-4" />
-            <p className="text-lg font-medium text-natural-100 mb-2">تعذر تحميل التذاكر</p>
-            <ActionButton variant="primary" onClick={() => refetch()}>إعادة المحاولة</ActionButton>
+            <p className="text-lg font-medium text-natural-100 mb-2">
+              تعذر تحميل التذاكر
+            </p>
+            <ActionButton variant="primary" onClick={() => refetch()}>
+              إعادة المحاولة
+            </ActionButton>
           </div>
         </SurfaceCard>
       ) : isLoading ? (

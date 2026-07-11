@@ -50,9 +50,9 @@ import { DisputesModule } from "./modules/disputes/disputes.module";
     // Rate limiting (NEW)
     ThrottlerModule.forRoot([
       { ttl: 60000, limit: 100 }, // Default: 100 req/minute
-      { ttl: 60000, limit: 5 },   // Login: 5 req/minute
-      { ttl: 60000, limit: 3 },   // Register: 3 req/minute
-      { ttl: 300000, limit: 2 },  // Forgot password: 2 req/5 minutes
+      { ttl: 60000, limit: 5 }, // Login: 5 req/minute
+      { ttl: 60000, limit: 3 }, // Register: 3 req/minute
+      { ttl: 300000, limit: 2 }, // Forgot password: 2 req/5 minutes
       { ttl: 600000, limit: 10 }, // Reset password: 10 req/10 minutes
     ]),
 
@@ -82,7 +82,7 @@ import { DisputesModule } from "./modules/disputes/disputes.module";
   providers: [
     RobustErrorLoggerService,
     {
-      provide: 'APP_FILTER',
+      provide: "APP_FILTER",
       useClass: HttpExceptionFilter,
     },
   ],

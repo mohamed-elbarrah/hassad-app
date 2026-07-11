@@ -17,8 +17,10 @@ import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
 import { MessageInput } from "@/components/chat/MessageInput";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, Info, X } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function MessagesPage() {
   const searchParams = useSearchParams();
@@ -31,10 +33,9 @@ export default function MessagesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(
     initialConversationId,
   );
-  const [filterType, setFilterType] = useState<"DIRECT" | "GROUP">(
-    "DIRECT",
-  );
+  const [filterType, setFilterType] = useState<"DIRECT" | "GROUP">("DIRECT");
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
 
   const { data: conversationsData, isLoading: convLoading } =
     useGetConversationsQuery({
@@ -77,6 +78,7 @@ export default function MessagesPage() {
   useEffect(() => {
     setLocalMessages([]);
     setTypingUser(null);
+    setShowInfoPanel(false);
   }, [selectedId]);
 
   const displayedMessages = useMemo(() => {
@@ -123,11 +125,16 @@ export default function MessagesPage() {
 
   return (
     <div
-      className="flex h-[calc(100vh-7rem)] gap-0 overflow-hidden rounded-xl border"
+      className="flex h-[calc(100vh-7rem)] gap-0 overflow-hidden rounded-xl border border-portal-card-border bg-natural-0 shadow-sm"
       dir="rtl"
     >
       {/* Desktop sidebar */}
-      <div className="hidden w-80 shrink-0 border-l md:block">
+      <div
+        className={cn(
+          "hidden md:flex flex-col shrink-0 border-l border-portal-divider transition-all duration-300",
+          selectedConversation ? "w-80" : "w-80",
+        )}
+      >
         {sidebarContent}
       </div>
 
@@ -138,7 +145,7 @@ export default function MessagesPage() {
             <ActionButton
               variant="ghost"
               size="sm"
-              className="absolute top-2 right-2 z-10 md:hidden"
+              className="absolute top-3 right-3 z-10 md:hidden"
             >
               <Menu className="h-5 w-5" />
             </ActionButton>
@@ -150,7 +157,7 @@ export default function MessagesPage() {
       </div>
 
       {/* Main chat area */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col">
         {selectedConversation ? (
           <>
             <ChatHeader
@@ -160,6 +167,7 @@ export default function MessagesPage() {
             <ChatWindow
               messages={displayedMessages}
               isLoading={msgLoading}
+              typingUser={typingUser}
             />
             <MessageInput
               onSend={handleSend}
@@ -170,7 +178,104 @@ export default function MessagesPage() {
         ) : (
           <ChatEmptyState />
         )}
+
+        {/* Info toggle button (when panel is hidden) */}
+        {selectedConversation && !showInfoPanel && (
+          <button
+            onClick={() => setShowInfoPanel(true)}
+            className="hidden lg:flex absolute top-20 left-3 p-2 rounded-xl text-portal-note-text hover:text-secondary-500 hover:bg-secondary-500/10 transition-all z-10"
+            title="معلومات المحادثة"
+          >
+            <Info className="w-4 h-4" />
+          </button>
+        )}
       </div>
+
+      {/* Info panel (desktop) */}
+      {selectedConversation && showInfoPanel && (
+        <div className="hidden lg:flex flex-col w-72 shrink-0 border-r border-portal-divider bg-badge-gray-bg/30">
+          <div className="flex items-center justify-between p-4 border-b border-portal-divider">
+            <h3 className="text-sm font-medium text-natural-100">معلومات</h3>
+            <button
+              onClick={() => setShowInfoPanel(false)}
+              className="p-1 rounded-lg text-portal-note-text hover:text-natural-100 hover:bg-badge-gray-bg transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Participants */}
+            <div>
+              <h4 className="text-xs font-medium text-portal-note-text mb-3 uppercase tracking-wider">
+                المشاركون
+              </h4>
+              <div className="space-y-2">
+                {selectedConversation.participants.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-badge-gray-bg transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-secondary-500/10 flex items-center justify-center text-xs font-medium text-secondary-500 shrink-0">
+                      {p.user?.name?.charAt(0) || "?"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-natural-100 truncate">
+                        {p.user?.name || "مستخدم"}
+                      </p>
+                      <p className="text-[10px] text-portal-note-text">
+                        {p.user?.role === "PM"
+                          ? "مدير مشروع"
+                          : p.user?.role === "CLIENT"
+                            ? "عميل"
+                            : p.user?.role === "SALES"
+                              ? "مبيعات"
+                              : p.user?.role === "ACCOUNTANT"
+                                ? "محاسب"
+                                : p.user?.role === "MARKETING"
+                                  ? "تسويق"
+                                  : p.user?.role === "ADMIN"
+                                    ? "مدير"
+                                    : p.user?.role || ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Project info */}
+            {selectedConversation.project && (
+              <div>
+                <h4 className="text-xs font-medium text-portal-note-text mb-3 uppercase tracking-wider">
+                  المشروع
+                </h4>
+                <div className="p-3 rounded-xl bg-badge-gray-bg">
+                  <p className="text-sm font-medium text-natural-100">
+                    {selectedConversation.project.name}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Client info */}
+            {selectedConversation.client && (
+              <div>
+                <h4 className="text-xs font-medium text-portal-note-text mb-3 uppercase tracking-wider">
+                  العميل
+                </h4>
+                <div className="p-3 rounded-xl bg-badge-gray-bg">
+                  <p className="text-sm font-medium text-natural-100">
+                    {selectedConversation.client.companyName}
+                  </p>
+                  <p className="text-xs text-portal-note-text mt-0.5">
+                    {selectedConversation.client.contactName}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

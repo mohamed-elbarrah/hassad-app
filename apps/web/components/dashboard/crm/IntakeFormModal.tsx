@@ -24,10 +24,8 @@ export function IntakeFormModal({
     if (!open) onClose?.();
   }
 
-  const title = mandatory 
-    ? "مرحباً بك في حصاد! 👋" 
-    : "طلب خدمة جديد";
-    
+  const title = mandatory ? "مرحباً بك في حصاد! 👋" : "طلب خدمة جديد";
+
   const description = mandatory
     ? "نحن متحمسون للعمل معك! أخبرنا قليلاً عن مشروعك حتى نتمكن من مساعدتك بشكل أفضل."
     : "املأ البيانات التالية لبدء مشروعك معنا. فريق المبيعات سيتواصل معك خلال 24 ساعة.";

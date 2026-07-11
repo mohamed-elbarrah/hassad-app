@@ -169,7 +169,8 @@ function ContractSharePageInner({ token }: { token: string }) {
                   القيمة الشهرية
                 </p>
                 <p className="font-semibold">
-                  {data.monthlyValue?.toLocaleString("ar-SA-u-nu-latn") ?? "—"} ر.س
+                  {data.monthlyValue?.toLocaleString("ar-SA-u-nu-latn") ?? "—"}{" "}
+                  ر.س
                 </p>
               </div>
               <div className="rounded-lg bg-neutral-50 p-3">
@@ -201,7 +202,12 @@ function ContractSharePageInner({ token }: { token: string }) {
                         : `${data.downPaymentValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`}
                       {data.downPaymentType === "PERCENT" && (
                         <span className="text-neutral-300 font-normal mr-1">
-                          ({(data.totalValue * (data.downPaymentValue / 100)).toLocaleString("ar-SA-u-nu-latn")} ر.س)
+                          (
+                          {(
+                            data.totalValue *
+                            (data.downPaymentValue / 100)
+                          ).toLocaleString("ar-SA-u-nu-latn")}{" "}
+                          ر.س)
                         </span>
                       )}
                     </span>
@@ -210,7 +216,8 @@ function ContractSharePageInner({ token }: { token: string }) {
                     <div className="flex items-center justify-between">
                       <span className="text-neutral-300">الدفعة الشهرية</span>
                       <span className="font-semibold">
-                        {data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س
+                        {data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")}{" "}
+                        ر.س
                         {data.numberOfMonths ? (
                           <span className="text-neutral-300 font-normal mr-1">
                             × {data.numberOfMonths} أشهر

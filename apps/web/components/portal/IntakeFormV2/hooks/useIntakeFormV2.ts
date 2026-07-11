@@ -21,9 +21,11 @@ export const STEP_SECTION_MAP: [string, ...string[]][] = [
 const TOTAL_STEPS = STEP_SECTION_MAP.length;
 
 export function useIntakeFormV2(onSuccess?: () => void) {
-  const { data: draft, isLoading: isDraftLoading } = useGetIntakeFormDraftQuery();
+  const { data: draft, isLoading: isDraftLoading } =
+    useGetIntakeFormDraftQuery();
   const [saveDraft, { isLoading: isSaving }] = useSaveIntakeFormDraftMutation();
-  const [submitForm, { isLoading: isSubmitting }] = useSubmitIntakeFormMutation();
+  const [submitForm, { isLoading: isSubmitting }] =
+    useSubmitIntakeFormMutation();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [sectionData, setSectionData] = useState<Record<string, any>>({});
@@ -121,14 +123,11 @@ export function useIntakeFormV2(onSuccess?: () => void) {
     setIsDirty(true);
   }, []);
 
-  const markStepCompleted = useCallback(
-    (stepIdx: number) => {
-      setCompletedSteps((prev) =>
-        prev.includes(stepIdx) ? prev : [...prev, stepIdx],
-      );
-    },
-    [],
-  );
+  const markStepCompleted = useCallback((stepIdx: number) => {
+    setCompletedSteps((prev) =>
+      prev.includes(stepIdx) ? prev : [...prev, stepIdx],
+    );
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     try {

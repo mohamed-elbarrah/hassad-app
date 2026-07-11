@@ -88,7 +88,13 @@ export function PmResolveDialog({
             disabled={isLoading}
           />
           <div className="flex items-center justify-between text-xs">
-            <span className={message.trim().length >= 10 ? "text-green-600" : "text-portal-note-text"}>
+            <span
+              className={
+                message.trim().length >= 10
+                  ? "text-green-600"
+                  : "text-portal-note-text"
+              }
+            >
               {message.trim().length}/10 أحرف على الأقل
             </span>
             <span className="text-portal-note-text">الحد الأقصى 1000 حرف</span>

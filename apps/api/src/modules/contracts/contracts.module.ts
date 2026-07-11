@@ -23,7 +23,13 @@ import { ChatModule } from "../chat/chat.module";
     MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [ContractsController],
-  providers: [ContractsService, ContractCronService, BillingCronService, PmAssignmentService, ContractPaymentPlanService],
+  providers: [
+    ContractsService,
+    ContractCronService,
+    BillingCronService,
+    PmAssignmentService,
+    ContractPaymentPlanService,
+  ],
   exports: [ContractsService],
 })
 export class ContractsModule {}

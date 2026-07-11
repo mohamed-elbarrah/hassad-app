@@ -26,7 +26,12 @@ import {
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
 } from "@/lib/utils/task-status";
-import { TaskStatus, TaskPriority, CampaignPlatform, CampaignStatus } from "@hassad/shared";
+import {
+  TaskStatus,
+  TaskPriority,
+  CampaignPlatform,
+  CampaignStatus,
+} from "@hassad/shared";
 import Link from "next/link";
 import {
   ClipboardList,
@@ -86,7 +91,8 @@ export default function MarketingDashboardPage() {
     { deptName: "MARKETING", includeCampaigns: true },
     { pollingInterval: 30000 },
   );
-  const { data: taskStats, isLoading: taskStatsLoading } = useGetMyTaskStatsQuery();
+  const { data: taskStats, isLoading: taskStatsLoading } =
+    useGetMyTaskStatsQuery();
   const { data: campaignStats, isLoading: statsLoading } =
     useGetMyCampaignStatsQuery(undefined, { pollingInterval: 30000 });
   const { data: notificationsData, isLoading: notifsLoading } =
@@ -136,20 +142,33 @@ export default function MarketingDashboardPage() {
       : 0;
 
   // ── Platform distribution ──────────────────────────────────────────────
-  const platformDistribution = Object.values(CampaignPlatform).map((platform) => {
-    const platformCampaigns = allCampaigns.filter((c) => c.platform === platform);
-    const spend = platformCampaigns.reduce((sum, c) => sum + (c.budgetSpent || 0), 0);
-    const total = platformCampaigns.reduce((sum, c) => sum + (c.budgetTotal || 0), 0);
-    return {
-      platform,
-      label: PLATFORM_LABELS[platform] || platform,
-      spend,
-      total,
-      count: platformCampaigns.length,
-    };
-  }).filter((p) => p.count > 0);
+  const platformDistribution = Object.values(CampaignPlatform)
+    .map((platform) => {
+      const platformCampaigns = allCampaigns.filter(
+        (c) => c.platform === platform,
+      );
+      const spend = platformCampaigns.reduce(
+        (sum, c) => sum + (c.budgetSpent || 0),
+        0,
+      );
+      const total = platformCampaigns.reduce(
+        (sum, c) => sum + (c.budgetTotal || 0),
+        0,
+      );
+      return {
+        platform,
+        label: PLATFORM_LABELS[platform] || platform,
+        spend,
+        total,
+        count: platformCampaigns.length,
+      };
+    })
+    .filter((p) => p.count > 0);
 
-  const platformTotalSpend = platformDistribution.reduce((s, p) => s + p.spend, 0);
+  const platformTotalSpend = platformDistribution.reduce(
+    (s, p) => s + p.spend,
+    0,
+  );
 
   // ── Task breakdown ───────────────────────────────────────────────────────
   const overdueTasks = tasks.filter((t: any) => {
@@ -159,11 +178,13 @@ export default function MarketingDashboardPage() {
 
   const urgentTasks = tasks.filter(
     (t: any) =>
-      (t.priority === TaskPriority.HIGH || t.priority === TaskPriority.URGENT) &&
+      (t.priority === TaskPriority.HIGH ||
+        t.priority === TaskPriority.URGENT) &&
       t.status !== TaskStatus.DONE,
   );
 
-  const isLoading = tasksLoading || statsLoading || taskStatsLoading || notifsLoading;
+  const isLoading =
+    tasksLoading || statsLoading || taskStatsLoading || notifsLoading;
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -239,7 +260,9 @@ export default function MarketingDashboardPage() {
           icon={AlertTriangle}
           variant={(taskStats?.overdue ?? 0) > 0 ? "danger" : "default"}
           trend={(taskStats?.overdue ?? 0) > 0 ? "down" : "neutral"}
-          trendValue={(taskStats?.overdue ?? 0) > 0 ? "تحتاج متابعة" : "لا يوجد"}
+          trendValue={
+            (taskStats?.overdue ?? 0) > 0 ? "تحتاج متابعة" : "لا يوجد"
+          }
         />
       </div>
 
@@ -404,8 +427,8 @@ export default function MarketingDashboardPage() {
                 {activeCampaigns
                   .sort(
                     (a, b) =>
-                      (b.budgetSpent / Math.max(b.budgetTotal, 1)) -
-                      (a.budgetSpent / Math.max(a.budgetTotal, 1)),
+                      b.budgetSpent / Math.max(b.budgetTotal, 1) -
+                      a.budgetSpent / Math.max(a.budgetTotal, 1),
                   )
                   .slice(0, 5)
                   .map((c) => {
@@ -464,9 +487,7 @@ export default function MarketingDashboardPage() {
             {notifications.length === 0 ? (
               <div className="py-8 text-center">
                 <Bell className="w-8 h-8 text-neutral-300 mx-auto mb-3" />
-                <p className="text-sm text-neutral-300">
-                  لا توجد نشاطات حديثة
-                </p>
+                <p className="text-sm text-neutral-300">لا توجد نشاطات حديثة</p>
               </div>
             ) : (
               <div className="space-y-4">

@@ -106,6 +106,64 @@ Both apps have `predev`/`prebuild` scripts that build shared automatically. When
 
 ---
 
+## Parallel execution workflow
+
+### Phase flow
+
+- Phases run sequentially (Phase 0 → Phase 1 → ...)
+- Within a phase, tasks are grouped by package, not by phase number
+- Tasks touching `packages/shared` execute first (api + web depend on it)
+- Remaining tasks dispatch in parallel — one subagent per package
+
+### Per-task build (each subagent)
+
+- `turbo build --filter=<package>` (cached, fast)
+- NOT `turbo build` (full rebuild — wasted)
+
+### Integration (after all subagents return)
+
+- One `turbo build` (full) to catch cross-package issues
+- If it fails: fix only the broken package, preserve other packages' work
+- If it passes: phase complete
+
+### Before execution
+
+- I infer each task's package from its description and present a grouped plan
+- You approve or adjust before I start
+
+## Background process hygiene (CRITICAL)
+
+**Problem this solves:** leaked `nest start --watch` / `next dev` processes that pile up and freeze the dev machine.
+
+Past agent sessions started the API in the background with `nohup npx nest start --watch > /tmp/api.log 2>&1 &` (then `sleep; curl` to test an endpoint) and **never killed them**. Because `nohup ... &` detaches from the terminal, those processes get reparented to `systemd --user` when the session ends and **run forever** — each one holds a full NestJS container + Prisma client, watches `apps/api/src`, and recompiles on every file change. Three of these were once found running simultaneously, burning ~1–2 GB RAM and saturating 4 CPU cores, directly causing the PC to swap-thrash and freeze.
+
+**Rules for agents (and humans) when starting the app to test something:**
+
+1. **Never** use `nohup ... &` to start `nest start --watch` or `next dev` for a quick test. That combination is the leak.
+2. If you background **any** dev server (api or web), you **MUST kill it before your task ends**. Track the PID you started and `kill` it (and its children) when done.
+3. Prefer **one-shot, non-watch** runs for tests so they can't leak:
+   ```bash
+   # API — build once, run the compiled output, kill after
+   cd apps/api && npm run build && node dist/main &         # note the PID, kill it when done
+   # or with a hard timeout so it cannot leak:
+   cd apps/api && timeout 60 node dist/main &
+   ```
+   Avoid `--watch` for throwaway tests — it is for long-running dev sessions only.
+4. **Before** starting a dev server, check for and kill any existing instance so you never stack duplicates:
+   ```bash
+   pkill -f "nest start" ; pkill -f "next dev" ; pkill -f "next-server"
+   ```
+5. At the **end of your task**, run the same cleanup as a safety net:
+   ```bash
+   pkill -f "nest start" ; pkill -f "next dev" ; pkill -f "next-server"
+   ```
+   Do **not** kill `node dist/main` (the production-style compiled server) unless you started it.
+6. Do not run `turbo dev` (which starts **both** api and web in parallel) just to test one endpoint — it doubles memory pressure. Use `npx turbo run dev --filter=api` or `--filter=web` to start only the side you need.
+
+**Why it matters:** this dev machine has 7.6 GB RAM and 4 cores. Every leaked watcher brings the whole desktop closer to swap-thrash. Clean up after yourself.
+
+---
+
 ## Environment setup
 
 Copy `.env.example` → `.env` in `apps/api` and `apps/web`.

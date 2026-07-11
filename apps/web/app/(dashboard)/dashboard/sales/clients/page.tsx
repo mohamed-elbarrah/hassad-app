@@ -1,64 +1,134 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Users } from "lucide-react";
 import {
   useGetClientsQuery,
   type ClientFilters,
 } from "@/features/clients/clientsApi";
-import { ClientsTable } from "@/components/dashboard/crm/ClientsTable";
-import { ClientFiltersBar } from "@/components/dashboard/crm/ClientFiltersBar";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { Users } from "lucide-react";
+import { DataTable } from "@/components/design-system/DataTable";
+import { Pagination } from "@/components/design-system/Pagination";
+import { renderClientRowCells } from "@/components/dashboard/sales/ClientRow";
+import { SalesPageHeader } from "@/components/dashboard/sales/shared/SalesPageHeader";
+import { SalesListToolbar } from "@/components/dashboard/sales/shared/SalesListToolbar";
+import type { FilterGroup } from "@/components/design-system/FilterBar";
+import { ClientStatus } from "@hassad/shared";
+
+const PAGE_SIZE = 20;
+
+const STATUS_FILTERS: FilterGroup[] = [
+  {
+    key: "status",
+    label: "الحالة",
+    options: [
+      { label: "الكل", value: "" },
+      { label: "نشط", value: ClientStatus.ACTIVE },
+      { label: "متوقف", value: ClientStatus.STOPPED },
+      { label: "عميل محتمل", value: ClientStatus.LEAD },
+    ],
+  },
+];
 
 export default function SalesClientsPage() {
   const router = useRouter();
-  const [filters, setFilters] = useState<ClientFilters>({
-    page: 1,
-    limit: 20,
+  const [search, setSearch] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
+  const [page, setPage] = useState(1);
+
+  const statusFilter = activeFilters["status"]?.[0] ?? "";
+
+  const { data, isLoading, isError } = useGetClientsQuery({
+    search: search || undefined,
+    status: (statusFilter as ClientStatus) || undefined,
+    page,
+    limit: PAGE_SIZE,
   });
 
-  const { data, isLoading, isError } = useGetClientsQuery(filters);
+  const clients = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6" dir="rtl">
-        <Skeleton className="h-8 w-48 rounded" />
-        <Skeleton className="h-10 w-full rounded" />
-        <Skeleton className="h-96 rounded-[30px]" />
-      </div>
-    );
-  }
+  const handleSearchChange = useCallback((v: string) => {
+    setSearch(v);
+    setPage(1);
+  }, []);
 
-  if (isError || !data) {
-    return (
-      <div className="text-center py-12" dir="rtl">
-        <p className="text-neutral-300">تعذر تحميل قائمة العملاء</p>
-      </div>
-    );
-  }
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setPage(1);
+    },
+    [],
+  );
+
+  const handleRowActivate = useCallback(
+    (client: (typeof clients)[number]) => {
+      router.push(`/dashboard/sales/clients/${client.id}`);
+    },
+    [router],
+  );
+
+  const hasActiveFilter = search || statusFilter;
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center gap-3">
-        <Users className="h-6 w-6 text-neutral-300" />
-        <h1 className="text-2xl font-semibold">العملاء</h1>
-        <span className="text-sm text-neutral-300">({data.total} عميل)</span>
-      </div>
-
-      <ClientFiltersBar filters={filters} onChange={setFilters} />
-
-      <ClientsTable
-        clients={data.items}
-        page={data.page}
-        totalPages={data.totalPages}
-        total={data.total}
-        limit={data.limit}
-        onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
-        onRowClick={(client) =>
-          router.push(`/dashboard/sales/clients/${client.id}`)
-        }
+    <div className="flex flex-col gap-5" dir="rtl">
+      <SalesPageHeader
+        title="العملاء"
+        description={`إدارة العملاء — إجمالي ${total} عميل`}
+        icon={Users}
       />
+
+      <SalesListToolbar
+        searchValue={search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="ابحث باسم العميل..."
+        filterGroups={STATUS_FILTERS}
+        activeFilters={activeFilters}
+        onFilterChange={handleFilterChange}
+        countLabel="عميل"
+        count={clients.length}
+      />
+
+      <DataTable
+        columns={[
+          { id: "companyName", label: "الشركة" },
+          { id: "contactName", label: "المسؤول" },
+          { id: "phone", label: "الجوّال / واتساب" },
+          { id: "email", label: "البريد الإلكتروني" },
+          { id: "status", label: "الحالة" },
+          { id: "projects", label: "المشاريع" },
+          { id: "manager", label: "مدير الحساب" },
+          { id: "lastActivity", label: "آخر نشاط" },
+          { id: "createdAt", label: "تاريخ الإضافة" },
+        ]}
+        data={clients}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage="حدث خطأ أثناء تحميل العملاء."
+        skeletonRows={8}
+        emptyState={{
+          icon: Users,
+          message: hasActiveFilter
+            ? "لا توجد نتائج مطابقة"
+            : "لا يوجد عملاء بعد.",
+          hint: hasActiveFilter
+            ? "جرّب كلمات بحث مختلفة أو امسح عوامل التصفية."
+            : "سيظهر هنا جميع العملاء المسجلين.",
+        }}
+        renderCells={(client) => renderClientRowCells(client)}
+        onRowActivate={handleRowActivate}
+      />
+
+      {!isLoading && !isError && totalPages > 1 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

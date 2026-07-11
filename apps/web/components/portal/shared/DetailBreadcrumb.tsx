@@ -9,7 +9,11 @@ interface DetailBreadcrumbProps {
   title: string;
 }
 
-export function DetailBreadcrumb({ backHref, backLabel, title }: DetailBreadcrumbProps) {
+export function DetailBreadcrumb({
+  backHref,
+  backLabel,
+  title,
+}: DetailBreadcrumbProps) {
   return (
     <div className="flex items-center gap-2 text-sm text-portal-note-text">
       <Link

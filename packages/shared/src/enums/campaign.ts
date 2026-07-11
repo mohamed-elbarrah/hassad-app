@@ -28,3 +28,18 @@ export enum SyncStatus {
   ERROR = "ERROR",
   DISCONNECTED = "DISCONNECTED",
 }
+
+export const CAMPAIGN_STATUS_AR: Record<CampaignStatus, string> = {
+  PLANNING: "تخطيط",
+  ACTIVE: "نشط",
+  PAUSED: "متوقف",
+  STOPPED: "متوقف",
+  COMPLETED: "منتهي",
+};
+
+export const CAMPAIGN_PLATFORM_AR: Record<CampaignPlatform, string> = {
+  GOOGLE: "جوجل",
+  META: "فيسبوك",
+  TIKTOK: "تيك توك",
+  SNAPCHAT: "سناب شات",
+};

@@ -26,7 +26,9 @@ export function StepProgressBar({
   return (
     <div className="space-y-4" dir="rtl">
       <div className="flex items-center justify-between text-xs text-portal-icon">
-        <span>الخطوة {currentStep + 1} من {STEP_LABELS.length}</span>
+        <span>
+          الخطوة {currentStep + 1} من {STEP_LABELS.length}
+        </span>
       </div>
 
       <div className="hidden md:flex items-center justify-between">
@@ -76,7 +78,9 @@ export function StepProgressBar({
               "w-2.5 h-2.5 rounded-full transition-colors",
               i === currentStep && "bg-secondary-500 w-4",
               completedSteps.includes(i) && "bg-secondary-300",
-              i > currentStep && !completedSteps.includes(i) && "bg-portal-divider",
+              i > currentStep &&
+                !completedSteps.includes(i) &&
+                "bg-portal-divider",
             )}
           />
         ))}

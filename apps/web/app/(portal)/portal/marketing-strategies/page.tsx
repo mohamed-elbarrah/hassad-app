@@ -6,7 +6,10 @@ import {
   useApproveStrategyMutation,
   useRequestStrategyRevisionMutation,
 } from "@/features/portal/portalApi";
-import { MARKETING_STRATEGY_STATUS_AR, MarketingStrategyStatus } from "@hassad/shared";
+import {
+  MARKETING_STRATEGY_STATUS_AR,
+  MarketingStrategyStatus,
+} from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -29,7 +32,10 @@ const STATUS_ICON: Record<string, LucideIcon> = {
   REJECTED: XCircle,
 };
 
-const STATUS_COLOR: Record<string, "blue" | "amber" | "green" | "red" | "gray"> = {
+const STATUS_COLOR: Record<
+  string,
+  "blue" | "amber" | "green" | "red" | "gray"
+> = {
   DRAFT: "gray",
   SENT: "amber",
   APPROVED: "green",
@@ -68,8 +74,9 @@ export default function MarketingStrategiesPage() {
         <div className="space-y-4">
           {strategies.map((strategy) => {
             const statusLabel =
-              MARKETING_STRATEGY_STATUS_AR[strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR] ??
-              strategy.status;
+              MARKETING_STRATEGY_STATUS_AR[
+                strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR
+              ] ?? strategy.status;
             const color = STATUS_COLOR[strategy.status] ?? "gray";
 
             return (
@@ -91,7 +98,10 @@ export default function MarketingStrategiesPage() {
                         {strategy.task?.title ?? "—"}
                       </p>
                     </div>
-                    <StatusBadge status={strategy.status ?? MarketingStrategyStatus.DRAFT} label={statusLabel} />
+                    <StatusBadge
+                      status={strategy.status ?? MarketingStrategyStatus.DRAFT}
+                      label={statusLabel}
+                    />
                   </div>
                 </SurfaceCard>
               </Link>

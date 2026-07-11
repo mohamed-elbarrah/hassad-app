@@ -61,7 +61,9 @@ export default function PortalChatPage() {
           .then((conv) => {
             setSelectedId(conv.id);
             dispatch(
-              chatApi.util.invalidateTags([{ type: "Conversation", id: "LIST" }]),
+              chatApi.util.invalidateTags([
+                { type: "Conversation", id: "LIST" },
+              ]),
             );
           })
           .catch(() => {});
@@ -83,7 +85,9 @@ export default function PortalChatPage() {
           .then((conv) => {
             setSelectedId(conv.id);
             dispatch(
-              chatApi.util.invalidateTags([{ type: "Conversation", id: "LIST" }]),
+              chatApi.util.invalidateTags([
+                { type: "Conversation", id: "LIST" },
+              ]),
             );
           })
           .catch(() => {});

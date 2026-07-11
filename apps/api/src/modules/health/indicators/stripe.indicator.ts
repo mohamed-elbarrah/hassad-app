@@ -1,9 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HealthIndicatorService, HealthIndicatorResult } from '@nestjs/terminus';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { HealthPersistenceService } from '../services/health-persistence.service';
-import { RobustErrorLoggerService } from '../services/robust-error-logger.service';
-import { ServiceStatus, ErrorCategory, ErrorLevel } from '../dto/health-check.dto';
+import { Injectable, Logger } from "@nestjs/common";
+import {
+  HealthIndicatorService,
+  HealthIndicatorResult,
+} from "@nestjs/terminus";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { HealthPersistenceService } from "../services/health-persistence.service";
+import { RobustErrorLoggerService } from "../services/robust-error-logger.service";
+import {
+  ServiceStatus,
+  ErrorCategory,
+  ErrorLevel,
+} from "../dto/health-check.dto";
 
 @Injectable()
 export class StripeHealthIndicator {
@@ -23,20 +30,24 @@ export class StripeHealthIndicator {
     try {
       // Check if Stripe gateway is configured
       const gateway = await this.prisma.paymentGateway.findUnique({
-        where: { name: 'stripe' },
+        where: { name: "stripe" },
       });
 
       if (!gateway || !gateway.isActive) {
         const responseTime = Date.now() - startTime;
         await this.healthPersistence.updateServiceHealth(
-          'STRIPE',
+          "STRIPE",
           ServiceStatus.DOWN,
           responseTime,
-          gateway ? 'Stripe gateway is disabled' : 'Stripe gateway not configured',
+          gateway
+            ? "Stripe gateway is disabled"
+            : "Stripe gateway not configured",
         );
 
         return indicator.down({
-          message: gateway ? 'Stripe gateway is disabled' : 'Stripe gateway not configured',
+          message: gateway
+            ? "Stripe gateway is disabled"
+            : "Stripe gateway not configured",
           configured: !!gateway,
           active: gateway?.isActive || false,
           responseTimeMs: responseTime,
@@ -45,20 +56,20 @@ export class StripeHealthIndicator {
 
       // Check if config exists and is valid
       let config: any = gateway.configJson;
-      if (typeof config === 'string') {
+      if (typeof config === "string") {
         try {
           config = JSON.parse(config);
         } catch {
           const responseTime = Date.now() - startTime;
           await this.healthPersistence.updateServiceHealth(
-            'STRIPE',
+            "STRIPE",
             ServiceStatus.DOWN,
             responseTime,
-            'Invalid Stripe configuration format',
+            "Invalid Stripe configuration format",
           );
 
           return indicator.down({
-            message: 'Invalid Stripe configuration format',
+            message: "Invalid Stripe configuration format",
             configured: true,
             active: true,
             responseTimeMs: responseTime,
@@ -69,14 +80,14 @@ export class StripeHealthIndicator {
       if (!config?.secretKey) {
         const responseTime = Date.now() - startTime;
         await this.healthPersistence.updateServiceHealth(
-          'STRIPE',
+          "STRIPE",
           ServiceStatus.DOWN,
           responseTime,
-          'Stripe secret key not configured',
+          "Stripe secret key not configured",
         );
 
         return indicator.down({
-          message: 'Stripe secret key not configured',
+          message: "Stripe secret key not configured",
           configured: true,
           active: true,
           responseTimeMs: responseTime,
@@ -89,9 +100,9 @@ export class StripeHealthIndicator {
       });
 
       const responseTime = Date.now() - startTime;
-      
+
       await this.healthPersistence.updateServiceHealth(
-        'STRIPE',
+        "STRIPE",
         ServiceStatus.UP,
         responseTime,
       );
@@ -102,13 +113,13 @@ export class StripeHealthIndicator {
         responseTimeMs: responseTime,
         pendingWebhooks,
       });
-
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
       await this.healthPersistence.updateServiceHealth(
-        'STRIPE',
+        "STRIPE",
         ServiceStatus.DOWN,
         responseTime,
         errorMessage,
@@ -119,7 +130,7 @@ export class StripeHealthIndicator {
         category: ErrorCategory.PAYMENT_GATEWAY,
         message: `Stripe health check failed: ${errorMessage}`,
         error: error instanceof Error ? error : undefined,
-        service: 'StripeHealthIndicator',
+        service: "StripeHealthIndicator",
       });
 
       return indicator.down({

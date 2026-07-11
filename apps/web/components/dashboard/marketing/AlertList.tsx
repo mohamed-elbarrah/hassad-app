@@ -38,10 +38,7 @@ export function AlertList({ tasks }: { tasks: any[] }) {
         if (c.needsOptimization) {
           reason = "تم تحديدها يدوياً كـ 'تحتاج تحسين'";
           type = "WARNING";
-        } else if (
-          metrics.roas < 1 &&
-          campaignWithMetrics.budgetSpent > 500
-        ) {
+        } else if (metrics.roas < 1 && campaignWithMetrics.budgetSpent > 500) {
           reason = "عائد منخفض جداً (ROAS < 1.0)";
           type = "CRITICAL";
         } else if (
@@ -105,7 +102,8 @@ export function AlertList({ tasks }: { tasks: any[] }) {
                 </p>
                 <div className="flex items-center gap-3 mt-2">
                   <span className="text-[10px] text-neutral-300 flex items-center gap-1">
-                    <Target className="w-3 h-3" /> ROAS: {alert.metrics.roas.toFixed(1)}x
+                    <Target className="w-3 h-3" /> ROAS:{" "}
+                    {alert.metrics.roas.toFixed(1)}x
                   </span>
                   <span className="text-[10px] text-neutral-300 flex items-center gap-1">
                     <MousePointerClick className="w-3 h-3" /> CTR:{" "}

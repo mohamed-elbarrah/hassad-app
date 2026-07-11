@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  ArrowLeft,
-  CircleUserRound,
-  Clock,
-  Paperclip,
-} from "lucide-react";
+import { ArrowLeft, CircleUserRound, Clock, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import type { ReviewProject } from "@/features/portal/portalApi";
@@ -38,11 +33,7 @@ export function renderProjectRowCells(
       hasFiles={project.deliverableCount > 0}
     />,
     <ManagerCell key="manager" project={project} />,
-    <DateCell
-      key="dates"
-      start={project.startDate}
-      end={project.endDate}
-    />,
+    <DateCell key="dates" start={project.startDate} end={project.endDate} />,
     <td key="status" className="px-5 py-3.5 align-middle">
       <DomainStatusPill domain="project" status={project.status} />
     </td>,
@@ -63,8 +54,7 @@ function NameCell({ project }: { project: ReviewProject }) {
           <span className="inline-flex items-center gap-1.5">
             <Clock className="h-3 w-3" />
             <span>
-              آخر تحديث{" "}
-              {formatRelative(project.updatedAt ?? project.createdAt)}
+              آخر تحديث {formatRelative(project.updatedAt ?? project.createdAt)}
             </span>
           </span>
         </span>
@@ -137,7 +127,8 @@ function CtaCell({ onActivate }: { onActivate?: () => void }) {
           "bg-primary-100 text-primary-700",
           "ring-1 ring-inset ring-primary-200",
           "transition-colors",
-          onActivate && "group-hover:bg-primary-500 group-hover:text-secondary-500 group-hover:ring-primary-500",
+          onActivate &&
+            "group-hover:bg-primary-500 group-hover:text-secondary-500 group-hover:ring-primary-500",
         )}
       >
         <span>مراجعة</span>

@@ -14,15 +14,18 @@ const STATUS_OPTIONS: { value: PeriodGoalStatus; label: string }[] = [
 ];
 
 const STATUS_DOT: Record<PeriodGoalStatus, string> = {
-  pending: "bg-neutral-300",
+  pending: "bg-portal-note-text",
   in_progress: "bg-secondary-500",
   done: "bg-emerald-500",
 };
 
 const selectClass =
-  "flex h-10 w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-secondary-500 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors text-right";
+  "flex h-10 w-full rounded-xl border border-portal-card-border bg-white px-3 py-2 text-sm text-secondary-500 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors text-right";
 
-function defaultProgressFor(status: PeriodGoalStatus, current?: number): number {
+function defaultProgressFor(
+  status: PeriodGoalStatus,
+  current?: number,
+): number {
   if (status === "done") return 100;
   if (status === "pending") return 0;
   return current && current > 0 ? current : 50;
@@ -36,10 +39,14 @@ interface GoalRowEditorProps {
 
 function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
   const handleStatusChange = (status: PeriodGoalStatus) =>
-    onChange({ ...goal, status, progress: defaultProgressFor(status, goal.progress) });
+    onChange({
+      ...goal,
+      status,
+      progress: defaultProgressFor(status, goal.progress),
+    });
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-neutral-50 p-3">
+    <div className="flex flex-col gap-2 rounded-xl bg-badge-gray-bg p-3">
       <div className="flex items-start gap-2">
         <FormInputControl
           placeholder="عنوان الهدف"
@@ -49,7 +56,7 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
         />
         <button
           onClick={onRemove}
-          className="mt-1.5 text-neutral-400 transition-colors hover:text-danger-500"
+          className="mt-1.5 text-portal-note-text transition-colors hover:text-danger-500"
           aria-label="حذف الهدف"
         >
           <X className="size-4" />
@@ -67,7 +74,9 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
       <div className="flex items-center gap-2">
         <select
           value={goal.status}
-          onChange={(e) => handleStatusChange(e.target.value as PeriodGoalStatus)}
+          onChange={(e) =>
+            handleStatusChange(e.target.value as PeriodGoalStatus)
+          }
           className={cn(selectClass, "w-40")}
         >
           {STATUS_OPTIONS.map((opt) => (
@@ -87,18 +96,22 @@ function GoalRowEditor({ goal, onChange, onRemove }: GoalRowEditorProps) {
             onChange={(e) => {
               const progress = Number(e.target.value);
               const status: PeriodGoalStatus =
-                progress >= 100 ? "done" : progress > 0 ? "in_progress" : "pending";
+                progress >= 100
+                  ? "done"
+                  : progress > 0
+                    ? "in_progress"
+                    : "pending";
               onChange({ ...goal, progress, status });
             }}
             className="flex-1 accent-secondary-500"
           />
-          <span className="w-10 text-xs font-medium text-neutral-500">
+          <span className="w-10 text-xs font-medium text-portal-note-text">
             {goal.progress}%
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+      <div className="flex items-center gap-1.5 text-xs text-portal-note-text">
         <span className={cn("size-2 rounded-full", STATUS_DOT[goal.status])} />
         الحالة: {STATUS_OPTIONS.find((o) => o.value === goal.status)?.label}
       </div>
@@ -114,7 +127,12 @@ interface PMGoalEditorProps {
 }
 
 /** Inline editor for a period's goals (title / description / status / progress). */
-export function PMGoalEditor({ goals, onChange, onSave, isSaving }: PMGoalEditorProps) {
+export function PMGoalEditor({
+  goals,
+  onChange,
+  onSave,
+  isSaving,
+}: PMGoalEditorProps) {
   const [newTitle, setNewTitle] = useState("");
 
   const addGoal = () => {
@@ -182,15 +200,15 @@ export function PMGoalEditor({ goals, onChange, onSave, isSaving }: PMGoalEditor
 export function GoalList({ goals }: { goals: PeriodGoal[] }) {
   if (!goals || goals.length === 0) {
     return (
-      <div className="rounded-xl bg-neutral-50 py-3 text-center text-sm text-neutral-400">
+      <div className="rounded-xl bg-badge-gray-bg py-3 text-center text-sm text-portal-note-text">
         لم يتم تحديد أهداف لهذه الفترة
       </div>
     );
   }
   const completed = goals.filter((g) => g.status === "done").length;
   return (
-    <div className="space-y-1 rounded-xl bg-neutral-50 p-3">
-      <div className="mb-2 text-xs text-neutral-400">
+    <div className="space-y-1 rounded-xl bg-badge-gray-bg p-3">
+      <div className="mb-2 text-xs text-portal-note-text">
         {completed}/{goals.length} مكتمل
       </div>
       {goals.map((goal, idx) => (
@@ -206,14 +224,16 @@ export function GoalList({ goals }: { goals: PeriodGoal[] }) {
               className={cn(
                 "text-sm",
                 goal.status === "done"
-                  ? "text-neutral-400 line-through"
-                  : "text-neutral-800",
+                  ? "text-portal-note-text line-through"
+                  : "text-natural-100",
               )}
             >
               {goal.title}
             </p>
             {goal.description && (
-              <p className="mt-0.5 text-xs text-neutral-400">{goal.description}</p>
+              <p className="mt-0.5 text-xs text-portal-note-text">
+                {goal.description}
+              </p>
             )}
           </div>
           {goal.status === "done" && (

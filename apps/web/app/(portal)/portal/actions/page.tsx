@@ -17,7 +17,10 @@ import {
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pagination } from "@/components/design-system/Pagination";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { Pill } from "@/components/design-system/Pill";
 import { DataTable } from "@/components/design-system/DataTable";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -50,16 +53,14 @@ const FILTER_GROUPS: FilterGroup[] = [
   },
 ];
 
-const TYPE_CONFIG: Record<
-  string,
-  { label: string; color: "purple" | "blue" }
-> = {
-  DELIVERABLE_APPROVAL: { label: "مراجعة تسليم", color: "purple" },
-  INVOICE_PAYMENT: { label: "دفع فاتورة", color: "blue" },
-  PROPOSAL_REVIEW: { label: "مراجعة عرض", color: "purple" },
-  CONTRACT_SIGN: { label: "توقيع عقد", color: "blue" },
-  STRATEGY_REVIEW: { label: "مراجعة دراسة تسويقية", color: "purple" },
-};
+const TYPE_CONFIG: Record<string, { label: string; color: "purple" | "blue" }> =
+  {
+    DELIVERABLE_APPROVAL: { label: "مراجعة تسليم", color: "purple" },
+    INVOICE_PAYMENT: { label: "دفع فاتورة", color: "blue" },
+    PROPOSAL_REVIEW: { label: "مراجعة عرض", color: "purple" },
+    CONTRACT_SIGN: { label: "توقيع عقد", color: "blue" },
+    STRATEGY_REVIEW: { label: "مراجعة دراسة تسويقية", color: "purple" },
+  };
 
 const PRIORITY_PILL: Record<
   string,
@@ -98,7 +99,9 @@ function formatReminderTime(iso: string): string {
 export default function PortalActionsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"now" | "snoozed">("now");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [page, setPage] = useState(1);
   // Per-row busy state so only one row shows the spinner at a time.
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -108,18 +111,16 @@ export default function PortalActionsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = useGetActionItemsQuery(
+  const { data, isLoading, isError, refetch } = useGetActionItemsQuery(
     {
       type: typeFilter || undefined,
       page,
       limit: PAGE_SIZE,
     },
-    { skip: !clientId || activeTab !== "now", pollingInterval: PORTAL_POLLING_INTERVAL_MS },
+    {
+      skip: !clientId || activeTab !== "now",
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+    },
   );
 
   const {
@@ -128,7 +129,10 @@ export default function PortalActionsPage() {
     isError: snoozedError,
   } = useGetSnoozedActionItemsQuery(
     { activeOnly: true },
-    { skip: !clientId || activeTab !== "snoozed", pollingInterval: PORTAL_POLLING_INTERVAL_MS },
+    {
+      skip: !clientId || activeTab !== "snoozed",
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+    },
   );
 
   const { snoozeItem, unsnoozeItem } = useSnoozeActionItem();
@@ -138,10 +142,13 @@ export default function PortalActionsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const snoozedItems = snoozedData ?? [];
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    setPage(1);
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+      setPage(1);
+    },
+    [],
+  );
 
   /** Snooze an item from the "الآن" tab. */
   const handleSnooze = async (item: {
@@ -200,122 +207,126 @@ export default function PortalActionsPage() {
           <SurfaceCard>
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="w-12 h-12 text-danger-500 mb-4" />
-              <p className="text-lg font-medium text-natural-100 mb-2">تعذر تحميل الإجراءات</p>
-              <ActionButton variant="primary" onClick={() => refetch()}>إعادة المحاولة</ActionButton>
+              <p className="text-lg font-medium text-natural-100 mb-2">
+                تعذر تحميل الإجراءات
+              </p>
+              <ActionButton variant="primary" onClick={() => refetch()}>
+                إعادة المحاولة
+              </ActionButton>
             </div>
           </SurfaceCard>
         ) : (
-        <TabsContent value="now" className="mt-4">
-          <SurfaceCard
-            title="الإجراءات المعلقة"
-            description="راجع ما يتطلب تدخلك واتخذ الإجراء المناسب"
-            icon={Settings}
-            action={
-              <FilterBar
-                groups={FILTER_GROUPS}
-                activeFilters={activeFilters}
-                onFilterChange={handleFilterChange}
-              />
-            }
-          >
-            <DataTable
-              columns={[
-                { id: "title", label: "الإجراء" },
-                { id: "subtitle", label: "التفاصيل" },
-                { id: "priority", label: "الأولوية" },
-                { id: "type", label: "النوع" },
-                { id: "dueDate", label: "تاريخ الاستحقاق" },
-                { id: "action", label: "الإجراء" },
-              ]}
-              data={items}
-              isLoading={isLoading}
-              isError={isError}
-              errorMessage="حدث خطأ أثناء تحميل الإجراءات."
-              emptyState={{
-                icon: CheckCircle2,
-                message: "لا توجد إجراءات معلقة.",
-                hint: "ستظهر هنا جميع الإجراءات التي تتطلب مراجعتك وموافقتك.",
-              }}
-              renderRow={(item) => {
-                const config =
-                  TYPE_CONFIG[item.type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
-                const priorityCfg =
-                  PRIORITY_PILL[item.priority] ?? PRIORITY_PILL.normal;
-                const isBusy = busyId === item.id;
-                return (
-                  <tr
-                    key={item.id}
-                    className="border-b-[1.5px] border-portal-divider transition-colors hover:bg-portal-bg/40"
-                  >
-                    <td className="px-5 py-4 font-medium text-sm text-natural-100">
-                      {item.title}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-portal-note-text truncate max-w-[200px]">
-                      {item.subtitle}
-                    </td>
-                    <td className="px-5 py-4">
-                      <Pill tone={priorityCfg.tone}>{priorityCfg.label}</Pill>
-                    </td>
-                    <td className="px-5 py-4">
-                      <Pill
-                        tone={config.color === "purple" ? "purple" : "blue"}
-                      >
-                        {config.label}
-                      </Pill>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-portal-note-text">
-                      {item.dueDate ? (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>
-                            {new Date(item.dueDate).toLocaleDateString(
-                              "ar-SA-u-nu-latn",
-                            )}
-                          </span>
-                        </div>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <ActionButton
-                          variant="outline"
-                          size="md"
-                          onClick={() => handleSnooze(item)}
-                          disabled={isBusy}
-                          title="تأجيل التذكير 24 ساعة"
-                          className="gap-1.5 border-[1.5px] border-portal-card-border bg-natural-0 text-portal-note-text hover:bg-badge-gray-bg hover:text-secondary-500"
-                        >
-                          <BellOff className="h-3.5 w-3.5" />
-                          {isBusy ? "جاري التأجيل..." : "ذكرني لاحقاً"}
-                        </ActionButton>
-                        <ActionButton
-                          variant="primary"
-                          size="md"
-                          onClick={() => router.push(item.actionUrl)}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                          اتخاذ إجراء
-                        </ActionButton>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }}
-            />
-
-            {!isLoading && !isError && items.length > 0 && (
-              <div className="mt-6">
-                <Pagination
-                  page={page}
-                  totalPages={totalPages}
-                  onPageChange={setPage}
+          <TabsContent value="now" className="mt-4">
+            <SurfaceCard
+              title="الإجراءات المعلقة"
+              description="راجع ما يتطلب تدخلك واتخذ الإجراء المناسب"
+              icon={Settings}
+              action={
+                <FilterBar
+                  groups={FILTER_GROUPS}
+                  activeFilters={activeFilters}
+                  onFilterChange={handleFilterChange}
                 />
-              </div>
-            )}
-          </SurfaceCard>
-        </TabsContent>
+              }
+            >
+              <DataTable
+                columns={[
+                  { id: "title", label: "الإجراء" },
+                  { id: "subtitle", label: "التفاصيل" },
+                  { id: "priority", label: "الأولوية" },
+                  { id: "type", label: "النوع" },
+                  { id: "dueDate", label: "تاريخ الاستحقاق" },
+                  { id: "action", label: "الإجراء" },
+                ]}
+                data={items}
+                isLoading={isLoading}
+                isError={isError}
+                errorMessage="حدث خطأ أثناء تحميل الإجراءات."
+                emptyState={{
+                  icon: CheckCircle2,
+                  message: "لا توجد إجراءات معلقة.",
+                  hint: "ستظهر هنا جميع الإجراءات التي تتطلب مراجعتك وموافقتك.",
+                }}
+                renderRow={(item) => {
+                  const config =
+                    TYPE_CONFIG[item.type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
+                  const priorityCfg =
+                    PRIORITY_PILL[item.priority] ?? PRIORITY_PILL.normal;
+                  const isBusy = busyId === item.id;
+                  return (
+                    <tr
+                      key={item.id}
+                      className="border-b-[1.5px] border-portal-divider transition-colors hover:bg-portal-bg/40"
+                    >
+                      <td className="px-5 py-4 font-medium text-sm text-natural-100">
+                        {item.title}
+                      </td>
+                      <td className="px-5 py-4 text-sm text-portal-note-text truncate max-w-[200px]">
+                        {item.subtitle}
+                      </td>
+                      <td className="px-5 py-4">
+                        <Pill tone={priorityCfg.tone}>{priorityCfg.label}</Pill>
+                      </td>
+                      <td className="px-5 py-4">
+                        <Pill
+                          tone={config.color === "purple" ? "purple" : "blue"}
+                        >
+                          {config.label}
+                        </Pill>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-portal-note-text">
+                        {item.dueDate ? (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>
+                              {new Date(item.dueDate).toLocaleDateString(
+                                "ar-SA-u-nu-latn",
+                              )}
+                            </span>
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <ActionButton
+                            variant="outline"
+                            size="md"
+                            onClick={() => handleSnooze(item)}
+                            disabled={isBusy}
+                            title="تأجيل التذكير 24 ساعة"
+                            className="gap-1.5 border-[1.5px] border-portal-card-border bg-natural-0 text-portal-note-text hover:bg-badge-gray-bg hover:text-secondary-500"
+                          >
+                            <BellOff className="h-3.5 w-3.5" />
+                            {isBusy ? "جاري التأجيل..." : "ذكرني لاحقاً"}
+                          </ActionButton>
+                          <ActionButton
+                            variant="primary"
+                            size="md"
+                            onClick={() => router.push(item.actionUrl)}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                            اتخاذ إجراء
+                          </ActionButton>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }}
+              />
+
+              {!isLoading && !isError && items.length > 0 && (
+                <div className="mt-6">
+                  <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                  />
+                </div>
+              )}
+            </SurfaceCard>
+          </TabsContent>
         )}
 
         {/* ── Tab: المؤجلة ────────────────────────────────────────────── */}

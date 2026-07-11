@@ -29,7 +29,7 @@ const STATUS_CONFIG: Record<
     color: "text-alert-600",
   },
   LATE: { label: "متأخر", icon: AlertCircle, color: "text-danger-600" },
-  CANCELLED: { label: "ملغي", icon: Ban, color: "text-neutral-600" },
+  CANCELLED: { label: "ملغي", icon: Ban, color: "text-natural-100" },
 };
 
 const PAYABLE_STATUSES = new Set(["PENDING", "SENT", "DUE", "PARTIAL", "LATE"]);
@@ -67,7 +67,7 @@ export function ContractPaymentSummary({
 
   return (
     <div className="rounded-xl border bg-card" dir="rtl">
-      <div className="p-4 border-b bg-neutral-50/20">
+      <div className="p-4 border-b bg-badge-gray-bg/20">
         <h3 className="text-sm font-bold flex items-center gap-2">
           <FileText className="w-4 h-4 text-secondary-500" />
           ملخص العقد والدفع
@@ -77,7 +77,7 @@ export function ContractPaymentSummary({
       <div className="p-4 space-y-4">
         {/* Services */}
         <div className="space-y-2">
-          <p className="text-xs text-neutral-300 font-medium">
+          <p className="text-xs text-portal-note-text font-medium">
             الخدمات المشمولة
           </p>
           <div className="rounded-lg border divide-y">
@@ -87,12 +87,12 @@ export function ContractPaymentSummary({
                 className="flex items-center justify-between px-3 py-2 text-sm"
               >
                 <span className="text-natural-100">{service.name}</span>
-                <span className="text-neutral-300 font-medium tabular-nums">
+                <span className="text-portal-note-text font-medium tabular-nums">
                   {service.price.toLocaleString("en-US")} ر.س
                 </span>
               </div>
             ))}
-            <div className="flex items-center justify-between px-3 py-2.5 text-sm font-bold bg-neutral-50/20">
+            <div className="flex items-center justify-between px-3 py-2.5 text-sm font-bold bg-badge-gray-bg/20">
               <span>الإجمالي</span>
               <span className="tabular-nums">
                 {totalValue.toLocaleString("en-US")} ر.س
@@ -103,14 +103,14 @@ export function ContractPaymentSummary({
 
         {/* Invoices list with inline forms inside each row */}
         <div className="space-y-2">
-          <p className="text-xs text-neutral-300 font-medium">الفواتير</p>
+          <p className="text-xs text-portal-note-text font-medium">الفواتير</p>
 
           <div className="rounded-lg border">
             {invoices.map((invoice) => {
               const config = STATUS_CONFIG[invoice.status] ?? {
                 label: invoice.status,
                 icon: Clock,
-                color: "text-neutral-300",
+                color: "text-portal-note-text",
               };
               const Icon = config.icon;
               const isPaid = invoice.status === "PAID";

@@ -55,7 +55,10 @@ export function CountChip({
       )}
     >
       {icon && (
-        <span className="shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5" aria-hidden="true">
+        <span
+          className="shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5"
+          aria-hidden="true"
+        >
           {icon}
         </span>
       )}

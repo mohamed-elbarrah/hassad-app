@@ -256,7 +256,9 @@ export class FinanceService {
     });
     if (!contract) throw new NotFoundException("Contract not found");
     if (params.amount <= 0) {
-      throw new BadRequestException("Scheduled invoice amount must be greater than zero");
+      throw new BadRequestException(
+        "Scheduled invoice amount must be greater than zero",
+      );
     }
 
     const invoiceNumber = this.generateInvoiceNumber();
@@ -319,11 +321,40 @@ export class FinanceService {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {
-        client: true,
-        contract: true,
+        client: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneWhatsapp: true,
+                avatarUrl: true,
+              },
+            },
+            manager: { select: { id: true, name: true } },
+          },
+        },
+        contract: {
+          include: {
+            invoices: {
+              select: {
+                amount: true,
+                status: true,
+                payments: { select: { amount: true } },
+              },
+            },
+          },
+        },
         tickets: true,
-        payments: true,
-        items: { include: { project: true, task: true } },
+        payments: { orderBy: { date: "desc" } },
+        items: {
+          include: {
+            project: { select: { id: true, name: true } },
+            task: { select: { id: true, title: true } },
+          },
+        },
+        creator: { select: { id: true, name: true } },
       },
     });
 
@@ -333,6 +364,7 @@ export class FinanceService {
 
     const history = await this.prisma.ledger.findMany({
       where: { entityId: id },
+      include: { user: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     });
 
@@ -342,37 +374,40 @@ export class FinanceService {
   async registerPayment(userId: string, dto: RegisterPaymentDto) {
     const invoice = await this.findInvoice(dto.invoiceId);
 
-    const { payment, becameFullyPaid } = await this.prisma.$transaction(async (tx) => {
-      const p = await tx.payment.create({
-        data: {
-          invoiceId: dto.invoiceId,
-          amount: dto.amount,
-          method: dto.method,
-          status: PaymentStatus.SUCCESS,
-          notes: dto.notes,
-          date: dto.date ? new Date(dto.date) : new Date(),
-        },
-      });
+    const { payment, becameFullyPaid } = await this.prisma.$transaction(
+      async (tx) => {
+        const p = await tx.payment.create({
+          data: {
+            invoiceId: dto.invoiceId,
+            amount: dto.amount,
+            method: dto.method,
+            status: PaymentStatus.SUCCESS,
+            notes: dto.notes,
+            date: dto.date ? new Date(dto.date) : new Date(),
+          },
+        });
 
-      const totalPaid =
-        invoice.payments.reduce((sum, pay) => sum + pay.amount, 0) + dto.amount;
-      let newStatus: InvoiceStatus = InvoiceStatus.PARTIAL;
-      let fullyPaid = false;
-      if (totalPaid >= invoice.amount) {
-        newStatus = InvoiceStatus.PAID;
-        fullyPaid = true;
-      }
+        const totalPaid =
+          invoice.payments.reduce((sum, pay) => sum + pay.amount, 0) +
+          dto.amount;
+        let newStatus: InvoiceStatus = InvoiceStatus.PARTIAL;
+        let fullyPaid = false;
+        if (totalPaid >= invoice.amount) {
+          newStatus = InvoiceStatus.PAID;
+          fullyPaid = true;
+        }
 
-      await tx.invoice.update({
-        where: { id: dto.invoiceId },
-        data: {
-          status: newStatus,
-          paidAt: fullyPaid ? new Date() : undefined,
-        },
-      });
+        await tx.invoice.update({
+          where: { id: dto.invoiceId },
+          data: {
+            status: newStatus,
+            paidAt: fullyPaid ? new Date() : undefined,
+          },
+        });
 
-      return { payment: p, becameFullyPaid: fullyPaid };
-    });
+        return { payment: p, becameFullyPaid: fullyPaid };
+      },
+    );
 
     await this.logToLedger({
       action: "REGISTER_PAYMENT",
@@ -436,7 +471,11 @@ export class FinanceService {
         });
 
         if (!existing) {
-          const amount = await this.calculateEmployeePay(emp, dto.month, dto.year);
+          const amount = await this.calculateEmployeePay(
+            emp,
+            dto.month,
+            dto.year,
+          );
 
           const s = await tx.salary.create({
             data: {
@@ -465,7 +504,11 @@ export class FinanceService {
     return { generated: results.length };
   }
 
-  private async calculateEmployeePay(employee: any, month: number, year: number) {
+  private async calculateEmployeePay(
+    employee: any,
+    month: number,
+    year: number,
+  ) {
     const base = employee.baseSalary || 0;
 
     let commission = 0;
@@ -484,7 +527,11 @@ export class FinanceService {
     return base + commission + hoursPay;
   }
 
-  private async getMonthlySales(userId: string | null, month: number, year: number) {
+  private async getMonthlySales(
+    userId: string | null,
+    month: number,
+    year: number,
+  ) {
     if (!userId) return 0;
     const from = new Date(year, month - 1, 1);
     const to = new Date(year, month, 0, 23, 59, 59);
@@ -509,7 +556,8 @@ export class FinanceService {
         salaries: { orderBy: { createdAt: "desc" } },
       },
     });
-    if (!employee) throw new NotFoundException(`Employee with ID ${id} not found`);
+    if (!employee)
+      throw new NotFoundException(`Employee with ID ${id} not found`);
     return employee;
   }
 
@@ -654,9 +702,18 @@ export class FinanceService {
 
     const totalCost = previews.reduce((s, p) => s + p.amount, 0);
     const pendingCount = previews.filter((p) => p.status === "PENDING").length;
-    const notGenerated = previews.filter((p) => p.status === "NOT_GENERATED").length;
+    const notGenerated = previews.filter(
+      (p) => p.status === "NOT_GENERATED",
+    ).length;
 
-    return { month: dto.month, year: dto.year, totalCost, pendingCount, notGenerated, employees: previews };
+    return {
+      month: dto.month,
+      year: dto.year,
+      totalCost,
+      pendingCount,
+      notGenerated,
+      employees: previews,
+    };
   }
 
   async createEmployee(dto: CreateEmployeeDto) {
@@ -712,7 +769,10 @@ export class FinanceService {
     return { from, to };
   }
 
-  private getPreviousPeriod(from: Date, to: Date): { prevFrom: Date; prevTo: Date } {
+  private getPreviousPeriod(
+    from: Date,
+    to: Date,
+  ): { prevFrom: Date; prevTo: Date } {
     const duration = to.getTime() - from.getTime();
     const prevTo = new Date(from.getTime() - 1);
     const prevFrom = new Date(prevTo.getTime() - duration);
@@ -743,7 +803,14 @@ export class FinanceService {
         }),
         this.prisma.invoice.aggregate({
           where: {
-            status: { in: [InvoiceStatus.DUE, InvoiceStatus.PARTIAL, InvoiceStatus.SENT, InvoiceStatus.LATE] },
+            status: {
+              in: [
+                InvoiceStatus.DUE,
+                InvoiceStatus.PARTIAL,
+                InvoiceStatus.SENT,
+                InvoiceStatus.LATE,
+              ],
+            },
           },
           _sum: { amount: true },
         }),
@@ -818,7 +885,9 @@ export class FinanceService {
     ]);
     const collectionRate =
       (allTimeInvoiced._sum.amount || 0) > 0
-        ? ((allTimePaid._sum.amount || 0) / (allTimeInvoiced._sum.amount || 0)) * 100
+        ? ((allTimePaid._sum.amount || 0) /
+            (allTimeInvoiced._sum.amount || 0)) *
+          100
         : 0;
 
     // Active clients (unique clients with invoices in range)
@@ -834,7 +903,11 @@ export class FinanceService {
     });
 
     const pctChange = (curr: number, prev: number) =>
-      prev > 0 ? Number((((curr - prev) / prev) * 100).toFixed(1)) : curr > 0 ? 100 : 0;
+      prev > 0
+        ? Number((((curr - prev) / prev) * 100).toFixed(1))
+        : curr > 0
+          ? 100
+          : 0;
 
     return {
       revenue,
@@ -852,8 +925,12 @@ export class FinanceService {
       activeClients: activeClients.length,
       // Net "profit" placeholder: revenue - salaries (until expense tracking is built)
       netProfit: revenue - salaryTotal,
-      netProfitChange: pctChange(revenue - salaryTotal, prevRevenue - prevSalaryTotal),
-      averageInvoice: invoiceCount > 0 ? Math.round(invoiceTotal / invoiceCount) : 0,
+      netProfitChange: pctChange(
+        revenue - salaryTotal,
+        prevRevenue - prevSalaryTotal,
+      ),
+      averageInvoice:
+        invoiceCount > 0 ? Math.round(invoiceTotal / invoiceCount) : 0,
       period: { from: from.toISOString(), to: to.toISOString() },
     };
   }
@@ -869,7 +946,15 @@ export class FinanceService {
 
     while (cursor <= end) {
       const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-      const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59, 999);
+      const monthEnd = new Date(
+        cursor.getFullYear(),
+        cursor.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
 
       const [incomeAgg, expenseAgg] = await Promise.all([
         this.prisma.payment.aggregate({
@@ -889,8 +974,18 @@ export class FinanceService {
       ]);
 
       const monthNames = [
-        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+        "يناير",
+        "فبراير",
+        "مارس",
+        "أبريل",
+        "مايو",
+        "يونيو",
+        "يوليو",
+        "أغسطس",
+        "سبتمبر",
+        "أكتوبر",
+        "نوفمبر",
+        "ديسمبر",
       ];
 
       months.push({
@@ -912,7 +1007,14 @@ export class FinanceService {
 
     const unpaid = await this.prisma.invoice.findMany({
       where: {
-        status: { in: [InvoiceStatus.DUE, InvoiceStatus.PARTIAL, InvoiceStatus.SENT, InvoiceStatus.LATE] },
+        status: {
+          in: [
+            InvoiceStatus.DUE,
+            InvoiceStatus.PARTIAL,
+            InvoiceStatus.SENT,
+            InvoiceStatus.LATE,
+          ],
+        },
       },
       include: {
         payments: true,
@@ -933,7 +1035,8 @@ export class FinanceService {
       if (remaining <= 0) continue;
 
       const days = Math.floor(
-        (now.getTime() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+        (now.getTime() - new Date(inv.dueDate).getTime()) /
+          (1000 * 60 * 60 * 24),
       );
 
       if (days <= 30) {
@@ -975,7 +1078,9 @@ export class FinanceService {
         }),
         this.prisma.payment.findMany({
           where: { status: PaymentStatus.FAILED },
-          include: { invoice: { include: { client: { select: { companyName: true } } } } },
+          include: {
+            invoice: { include: { client: { select: { companyName: true } } } },
+          },
           take: 5,
           orderBy: { createdAt: "desc" },
         }),
@@ -989,7 +1094,11 @@ export class FinanceService {
 
     const actions: Array<{
       id: string;
-      type: "LATE_INVOICE" | "UNSENT_INVOICE" | "FAILED_PAYMENT" | "PENDING_SALARY";
+      type:
+        | "LATE_INVOICE"
+        | "UNSENT_INVOICE"
+        | "FAILED_PAYMENT"
+        | "PENDING_SALARY";
       title: string;
       description: string;
       amount?: number;
@@ -1070,7 +1179,12 @@ export class FinanceService {
 
     const map = new Map<
       string,
-      { clientId: string; companyName: string; revenue: number; paymentCount: number }
+      {
+        clientId: string;
+        companyName: string;
+        revenue: number;
+        paymentCount: number;
+      }
     >();
 
     for (const p of payments) {
@@ -1110,7 +1224,9 @@ export class FinanceService {
           ...c,
           invoiceCount: invoices.length,
           collectionRate:
-            totalInvoiced > 0 ? Number(((totalPaid / totalInvoiced) * 100).toFixed(1)) : 0,
+            totalInvoiced > 0
+              ? Number(((totalPaid / totalInvoiced) * 100).toFixed(1))
+              : 0,
         };
       }),
     );
@@ -1125,15 +1241,28 @@ export class FinanceService {
     const groupBy = dto.groupBy || "month";
 
     // ── 1. Generate all date buckets in range (0-padded) ────────────────────
-    const allBuckets = new Map<string, { label: string; income: number; invoiced: number }>();
+    const allBuckets = new Map<
+      string,
+      { label: string; income: number; invoiced: number }
+    >();
 
     const monthNames = [
-      "يناير","فبراير","مارس","أبريل","مايو","يونيو",
-      "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+      "يناير",
+      "فبراير",
+      "مارس",
+      "أبريل",
+      "مايو",
+      "يونيو",
+      "يوليو",
+      "أغسطس",
+      "سبتمبر",
+      "أكتوبر",
+      "نوفمبر",
+      "ديسمبر",
     ];
 
     let cursor = new Date(from);
-    cursor.setHours(0,0,0,0);
+    cursor.setHours(0, 0, 0, 0);
 
     while (cursor <= to) {
       let key: string;
@@ -1148,7 +1277,7 @@ export class FinanceService {
         key = weekStart.toISOString().split("T")[0];
         label = `${weekStart.getDate()} ${monthNames[weekStart.getMonth()]}`;
       } else {
-        key = `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,"0")}`;
+        key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
         label = `${monthNames[cursor.getMonth()]} ${cursor.getFullYear()}`;
       }
 
@@ -1192,7 +1321,7 @@ export class FinanceService {
         start.setDate(d.getDate() - d.getDay());
         return start.toISOString().split("T")[0];
       }
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     };
 
     for (const p of payments) {
@@ -1246,7 +1375,10 @@ export class FinanceService {
       label: methodLabels[p.method] || p.method,
       amount: p._sum.amount || 0,
       count: p._count.id || 0,
-      percentage: total > 0 ? Number((((p._sum.amount || 0) / total) * 100).toFixed(1)) : 0,
+      percentage:
+        total > 0
+          ? Number((((p._sum.amount || 0) / total) * 100).toFixed(1))
+          : 0,
     }));
   }
 
@@ -1304,17 +1436,26 @@ export class FinanceService {
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async findAllPayments(filters: { page?: number; limit?: number }) {
+  async findAllPayments(filters: {
+    page?: number;
+    limit?: number;
+    method?: string;
+    status?: string;
+  }) {
     const page = Number(filters.page) || 1;
     const limit = Number(filters.limit) || 20;
+    const where: any = {};
+    if (filters.method) where.method = filters.method;
+    if (filters.status) where.status = filters.status;
     const [items, total] = await Promise.all([
       this.prisma.payment.findMany({
+        where,
         include: { invoice: { include: { client: true } } },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.payment.count(),
+      this.prisma.payment.count({ where }),
     ]);
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
@@ -1442,6 +1583,68 @@ export class FinanceService {
     return updated;
   }
 
+  async updateInvoice(
+    id: string,
+    dto: { notes?: string; status?: InvoiceStatus; userId: string },
+  ) {
+    const invoice = await this.findInvoice(id);
+
+    const updateData: any = {};
+    if (dto.notes !== undefined) updateData.notes = dto.notes;
+    if (dto.status !== undefined) updateData.status = dto.status;
+
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: updateData,
+    });
+
+    await this.logToLedger({
+      action: "UPDATE_INVOICE",
+      entity: "INVOICE",
+      entityId: id,
+      userId: dto.userId,
+      before: { status: invoice.status, notes: invoice.notes },
+      after: { status: updated.status, notes: updated.notes },
+    });
+
+    return updated;
+  }
+
+  async sendReminder(id: string) {
+    const invoice = await this.findInvoice(id);
+
+    const clientUser = await this.prisma.client.findUnique({
+      where: { id: invoice.clientId },
+      select: { userId: true },
+    });
+
+    if (clientUser?.userId) {
+      await this.notificationsService.createNotification({
+        entityId: invoice.id,
+        entityType: "invoice",
+        eventType: "INVOICE_REMINDER",
+        userId: clientUser.userId,
+        title: "تذكير بدفع الفاتورة",
+        body: `تذكير: الفاتورة "${invoice.invoiceNumber}" بمبلغ ${invoice.amount} ر.س مستحقة الدفع`,
+      });
+    }
+
+    // Increment reminder flags
+    const updated = await this.prisma.invoice.update({
+      where: { id },
+      data: { reminderFlags: { increment: 1 } },
+    });
+
+    await this.logToLedger({
+      action: "SEND_REMINDER",
+      entity: "INVOICE",
+      entityId: id,
+      after: { reminderCount: updated.reminderFlags },
+    });
+
+    return { sent: true, reminderCount: updated.reminderFlags };
+  }
+
   async findAllTickets(filters: {
     status?: string;
     page?: number;
@@ -1516,7 +1719,9 @@ export class FinanceService {
   async getOverdueInvoices() {
     return this.prisma.invoice.findMany({
       where: {
-        status: { in: [InvoiceStatus.DUE, InvoiceStatus.LATE, InvoiceStatus.PENDING] },
+        status: {
+          in: [InvoiceStatus.DUE, InvoiceStatus.LATE, InvoiceStatus.PENDING],
+        },
         period: { isNot: null },
       },
       include: {
@@ -1526,7 +1731,14 @@ export class FinanceService {
             periodNumber: true,
             status: true,
             suspendedAt: true,
-            project: { select: { id: true, name: true, status: true, projectManagerId: true } },
+            project: {
+              select: {
+                id: true,
+                name: true,
+                status: true,
+                projectManagerId: true,
+              },
+            },
           },
         },
         contract: { select: { id: true, title: true } },
@@ -1547,7 +1759,11 @@ export class FinanceService {
       include: {
         client: { select: { companyName: true } },
         invoices: {
-          select: { amount: true, status: true, paymentPlan: { select: { triggerType: true } } },
+          select: {
+            amount: true,
+            status: true,
+            paymentPlan: { select: { triggerType: true } },
+          },
         },
         paymentPlans: {
           where: { isRecurring: true, isActive: true },
@@ -1567,11 +1783,15 @@ export class FinanceService {
       scheduledAmount:
         c.paymentPlans[0]?.amountType === "PERCENT"
           ? (c.totalValue * c.paymentPlans[0].amountValue) / 100
-          : c.paymentPlans[0]?.amountValue ?? c.monthlyValue,
+          : (c.paymentPlans[0]?.amountValue ?? c.monthlyValue),
       issuedCount: c.invoices.length,
       issuedTotal: c.invoices.reduce((s: number, i: any) => s + i.amount, 0),
-      paidTotal: c.invoices.filter((i: any) => i.status === "PAID").reduce((s: number, i: any) => s + i.amount, 0),
-      overdueCount: c.invoices.filter((i: any) => i.status === "LATE" || i.status === "DUE").length,
+      paidTotal: c.invoices
+        .filter((i: any) => i.status === "PAID")
+        .reduce((s: number, i: any) => s + i.amount, 0),
+      overdueCount: c.invoices.filter(
+        (i: any) => i.status === "LATE" || i.status === "DUE",
+      ).length,
     }));
   }
 }

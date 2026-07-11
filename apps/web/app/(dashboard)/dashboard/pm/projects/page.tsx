@@ -5,22 +5,21 @@ import { Search, LayoutGrid, Columns3 } from "lucide-react";
 import { Input } from "@/components/design-system/Input";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { Pagination } from "@/components/design-system/Pagination";
-import { EmptyState } from "@/components/common/EmptyState";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import { ProjectCard } from "@/components/dashboard/pm/ProjectCard";
 import { ProjectKanbanBoard } from "@/components/dashboard/pm/ProjectKanbanBoard";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { useGetProjectsQuery } from "@/features/projects/projectsApi";
 import { useAppSelector } from "@/lib/hooks";
-import {
-  PROJECT_STATUS_LABELS,
-} from "@/lib/utils/project-status";
+import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
 import { ProjectStatus } from "@hassad/shared";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/design-system/Tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
+import { FolderKanban } from "lucide-react";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -46,7 +45,9 @@ export default function ProjectsPage() {
 
   const statusFilters = activeFilters.status ?? [];
   const effectiveStatus =
-    statusFilters.length === 1 ? (statusFilters[0] as ProjectStatus) : undefined;
+    statusFilters.length === 1
+      ? (statusFilters[0] as ProjectStatus)
+      : undefined;
 
   const { data, isLoading, isError } = useGetProjectsQuery(
     {
@@ -86,12 +87,13 @@ export default function ProjectsPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">المشاريع</h1>
-        <ProjectForm currentUserId={user.id} />
-      </div>
+    <div className="flex flex-col gap-5" dir="rtl">
+      <PageIntro
+        title="المشاريع"
+        description="إدارة ومتابعة جميع المشاريع تحت إدارتك"
+        icon={FolderKanban}
+        actions={<ProjectForm currentUserId={user.id} />}
+      />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -103,7 +105,7 @@ export default function ProjectsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            icon={<Search className="size-4 text-neutral-300" />}
+            icon={<Search className="size-4 text-portal-note-text" />}
           />
         </div>
 
@@ -155,7 +157,8 @@ export default function ProjectsPage() {
       )}
 
       {view === "cards" && isError && (
-        <EmptyState
+        <PmEmptyState
+          icon={FolderKanban}
           title="حدث خطأ أثناء تحميل المشاريع"
           description="يرجى تحديث الصفحة والمحاولة مرة أخرى."
         />
@@ -164,7 +167,8 @@ export default function ProjectsPage() {
       {view === "cards" && !isLoading && !isError && data && (
         <>
           {data.items.length === 0 ? (
-            <EmptyState
+            <PmEmptyState
+              icon={FolderKanban}
               title="لا توجد مشاريع"
               description="ابدأ بإنشاء مشروع جديد من خلال زر مشروع جديد"
             />

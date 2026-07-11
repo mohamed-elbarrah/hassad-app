@@ -56,7 +56,7 @@ export function FileDropzone({
       }
       return null;
     },
-    [acceptedTypes, maxSizeMB]
+    [acceptedTypes, maxSizeMB],
   );
 
   const addFiles = useCallback(
@@ -78,7 +78,7 @@ export function FileDropzone({
       }
       onFilesChange(combined);
     },
-    [files, maxFiles, onFilesChange, validateFile]
+    [files, maxFiles, onFilesChange, validateFile],
   );
 
   const handleDrop = useCallback(
@@ -87,7 +87,7 @@ export function FileDropzone({
       setIsDragging(false);
       addFiles(Array.from(e.dataTransfer.files));
     },
-    [addFiles]
+    [addFiles],
   );
 
   const handleFileInput = useCallback(
@@ -96,7 +96,7 @@ export function FileDropzone({
       addFiles(selected);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [addFiles]
+    [addFiles],
   );
 
   const removeFile = useCallback(
@@ -110,7 +110,7 @@ export function FileDropzone({
       }
       onFilesChange(files.filter((_, i) => i !== index));
     },
-    [files, onFilesChange]
+    [files, onFilesChange],
   );
 
   const isImage = (file: File) => file.type.startsWith("image/");
@@ -141,7 +141,7 @@ export function FileDropzone({
           "hover:border-secondary-400 hover:bg-secondary-50/30",
           isDragging
             ? "border-secondary-500 bg-secondary-50/50"
-            : "border-neutral-300 bg-neutral-50"
+            : "border-neutral-300 bg-neutral-50",
         )}
       >
         <input
@@ -159,7 +159,7 @@ export function FileDropzone({
               "w-14 h-14 rounded-full flex items-center justify-center",
               isDragging
                 ? "bg-secondary-100 text-secondary-600"
-                : "bg-neutral-200 text-neutral-500"
+                : "bg-neutral-200 text-neutral-500",
             )}
           >
             <Upload className="w-7 h-7" />

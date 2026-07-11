@@ -145,9 +145,7 @@ export default function MarketingTasksListPage() {
       }
       if (sortBy === "priority") {
         const prioOrder = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
-        return (
-          (prioOrder as any)[a.priority] - (prioOrder as any)[b.priority]
-        );
+        return (prioOrder as any)[a.priority] - (prioOrder as any)[b.priority];
       }
       if (sortBy === "status") {
         const statusOrder = {
@@ -157,9 +155,7 @@ export default function MarketingTasksListPage() {
           REVISION: 3,
           DONE: 4,
         };
-        return (
-          (statusOrder as any)[a.status] - (statusOrder as any)[b.status]
-        );
+        return (statusOrder as any)[a.status] - (statusOrder as any)[b.status];
       }
       return 0;
     });
@@ -205,8 +201,7 @@ export default function MarketingTasksListPage() {
   ];
 
   const hasFilters =
-    search ||
-    Object.values(activeFilters).some((v) => v.length > 0);
+    search || Object.values(activeFilters).some((v) => v.length > 0);
 
   const emptyState = hasFilters
     ? {
@@ -423,7 +418,8 @@ function TaskCard({ task }: { task: any }) {
   const [changeTaskStatus, { isLoading: isChanging }] =
     useChangeTaskStatusMutation();
   const days = daysUntil(task.dueDate);
-  const isOverdue = days !== null && days < 0 && task.status !== TaskStatus.DONE;
+  const isOverdue =
+    days !== null && days < 0 && task.status !== TaskStatus.DONE;
   const campaignCount = task.campaigns?.length || 0;
 
   const handleStatusChange = (newStatus: string) => {
@@ -443,7 +439,9 @@ function TaskCard({ task }: { task: any }) {
           <div className="flex items-center gap-2 flex-wrap">
             <StatusBadge
               status={TASK_STATUS_BADGE[task.status] || "PENDING"}
-              label={TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
+              label={
+                TASK_STATUS_LABELS[task.status as TaskStatus] || task.status
+              }
               className="text-[10px]"
             />
             {task.priority !== TaskPriority.LOW &&
@@ -451,7 +449,8 @@ function TaskCard({ task }: { task: any }) {
                 <StatusBadge
                   status={PRIORITY_STATUS_BADGE[task.priority] || "WARNING"}
                   label={
-                    TASK_PRIORITY_LABELS[task.priority as TaskPriority] || task.priority
+                    TASK_PRIORITY_LABELS[task.priority as TaskPriority] ||
+                    task.priority
                   }
                   className="text-[10px]"
                 />
@@ -507,7 +506,11 @@ function TaskCard({ task }: { task: any }) {
             <Calendar className="w-3.5 h-3.5 text-neutral-300" />
             <span
               className={`text-xs font-medium ${
-                isOverdue ? "text-danger-600" : days !== null && days <= 3 ? "text-alert-600" : "text-neutral-300"
+                isOverdue
+                  ? "text-danger-600"
+                  : days !== null && days <= 3
+                    ? "text-alert-600"
+                    : "text-neutral-300"
               }`}
             >
               {isOverdue
@@ -518,7 +521,11 @@ function TaskCard({ task }: { task: any }) {
             </span>
           </div>
           <Link href={`/dashboard/marketing/tasks/${task.id}`}>
-            <ActionButton size="sm" className="gap-2" icon={<ArrowUpRight className="w-3.5 h-3.5" />}>
+            <ActionButton
+              size="sm"
+              className="gap-2"
+              icon={<ArrowUpRight className="w-3.5 h-3.5" />}
+            >
               التفاصيل
             </ActionButton>
           </Link>
@@ -534,7 +541,8 @@ function TaskListRow({ task }: { task: any }) {
   const [changeTaskStatus, { isLoading: isChanging }] =
     useChangeTaskStatusMutation();
   const days = daysUntil(task.dueDate);
-  const isOverdue = days !== null && days < 0 && task.status !== TaskStatus.DONE;
+  const isOverdue =
+    days !== null && days < 0 && task.status !== TaskStatus.DONE;
   const campaignCount = task.campaigns?.length || 0;
 
   const handleStatusChange = (newStatus: string) => {
@@ -555,7 +563,9 @@ function TaskListRow({ task }: { task: any }) {
             <div className="flex items-center gap-2 flex-wrap">
               <StatusBadge
                 status={TASK_STATUS_BADGE[task.status] || "PENDING"}
-                label={TASK_STATUS_LABELS[task.status as TaskStatus] || task.status}
+                label={
+                  TASK_STATUS_LABELS[task.status as TaskStatus] || task.status
+                }
                 className="text-[10px]"
               />
               {task.priority !== TaskPriority.LOW &&
@@ -563,7 +573,8 @@ function TaskListRow({ task }: { task: any }) {
                   <StatusBadge
                     status={PRIORITY_STATUS_BADGE[task.priority] || "WARNING"}
                     label={
-                      TASK_PRIORITY_LABELS[task.priority as TaskPriority] || task.priority
+                      TASK_PRIORITY_LABELS[task.priority as TaskPriority] ||
+                      task.priority
                     }
                     className="text-[10px]"
                   />

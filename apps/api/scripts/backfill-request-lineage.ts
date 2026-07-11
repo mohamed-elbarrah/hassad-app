@@ -132,7 +132,7 @@ async function ensureClientForLead(
           leadId: true,
           userId: true,
           companyName: true,
-          
+
           businessName: true,
           businessType: true,
           accountManager: true,
@@ -149,7 +149,7 @@ async function ensureClientForLead(
         leadId: true,
         userId: true,
         companyName: true,
-        
+
         businessName: true,
         businessType: true,
         accountManager: true,
@@ -168,7 +168,7 @@ async function ensureClientForLead(
         leadId: true,
         userId: true,
         companyName: true,
-        
+
         businessName: true,
         businessType: true,
         accountManager: true,
@@ -207,7 +207,7 @@ async function ensureClientForLead(
           leadId: true,
           userId: true,
           companyName: true,
-          
+
           businessName: true,
           businessType: true,
           accountManager: true,
@@ -234,7 +234,7 @@ async function ensureClientForLead(
       leadId: true,
       userId: true,
       companyName: true,
-      
+
       businessName: true,
       businessType: true,
       accountManager: true,

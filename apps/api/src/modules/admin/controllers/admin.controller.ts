@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import { AdminService } from "../services/admin.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -26,12 +26,36 @@ export class AdminController {
     return this.adminService.getStats();
   }
 
+  @Get("stats/trends")
+  @RequirePermissions("admin.stats.trends")
+  getTrends(@Query("days") days?: string) {
+    return this.adminService.getTrends(days ? parseInt(days, 10) : 30);
+  }
+
+  @Get("funnel")
+  @RequirePermissions("admin.funnel")
+  getFunnel() {
+    return this.adminService.getFunnel();
+  }
+
+  @Get("alerts")
+  @RequirePermissions("admin.alerts")
+  getAlerts() {
+    return this.adminService.getAlerts();
+  }
+
+  @Get("recent-activity")
+  @RequirePermissions("admin.stats")
+  getRecentActivity() {
+    return this.adminService.getRecentActivity();
+  }
+
   @Get("health")
   @RequirePermissions("admin.stats")
   async getHealth() {
     // Use the new health check system
     const startTime = Date.now();
-    
+
     const result = await this.health.check([
       () => this.prismaIndicator.pingCheck("database", { timeout: 3000 }),
       () => this.memoryIndicator.checkHeap("memory_heap", 512 * 1024 * 1024),
@@ -54,7 +78,7 @@ export class AdminController {
       timestamp: new Date().toISOString(),
       // Additional new fields
       overallScore: this.calculateHealthScore(result),
-      services: services.map(s => ({
+      services: services.map((s) => ({
         name: s.serviceName,
         status: s.status.toLowerCase(),
         responseTime: s.responseTime,
@@ -66,7 +90,7 @@ export class AdminController {
   private calculateHealthScore(result: any): number {
     const allIndicators = { ...result.info, ...result.error };
     const totalIndicators = Object.keys(allIndicators).length;
-    
+
     if (totalIndicators === 0) return 0;
 
     const healthyIndicators = Object.keys(result.info).length;

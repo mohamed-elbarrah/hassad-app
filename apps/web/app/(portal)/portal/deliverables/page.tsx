@@ -202,7 +202,11 @@ export default function PortalDeliverablesPage() {
             }}
             onRowActivate={(p: ReviewProject) => handleSelect(p.id)}
             renderCells={(p: ReviewProject, { onActivate }) =>
-              renderProjectRowCells(p, { project: p, onSelect: handleSelect }, { onActivate })
+              renderProjectRowCells(
+                p,
+                { project: p, onSelect: handleSelect },
+                { onActivate },
+              )
             }
           />
         </>

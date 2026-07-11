@@ -29,7 +29,9 @@ export function DisputeConfirmationDialog({
   pmName,
 }: DisputeConfirmationDialogProps) {
   const [feedback, setFeedback] = useState("");
-  const [showFeedback, setShowFeedback] = useState<"confirm" | "escalate" | null>(null);
+  const [showFeedback, setShowFeedback] = useState<
+    "confirm" | "escalate" | null
+  >(null);
 
   const handleConfirm = () => {
     onConfirm(feedback);
@@ -76,7 +78,9 @@ export function DisputeConfirmationDialog({
               >
                 <XCircle className="h-6 w-6 text-danger-500" />
                 <span className="text-sm font-medium">لم يتم الحل</span>
-                <span className="text-xs text-portal-note-text">سيتم تصعيد التذكرة للإدارة</span>
+                <span className="text-xs text-portal-note-text">
+                  سيتم تصعيد التذكرة للإدارة
+                </span>
               </Button>
 
               <Button
@@ -86,7 +90,9 @@ export function DisputeConfirmationDialog({
               >
                 <CheckCircle2 className="h-6 w-6 text-white" />
                 <span className="text-sm font-medium">نعم، تم الحل</span>
-                <span className="text-xs text-success-100">سيتم إغلاق التذكرة</span>
+                <span className="text-xs text-success-100">
+                  سيتم إغلاق التذكرة
+                </span>
               </Button>
             </div>
           ) : (
@@ -121,7 +127,9 @@ export function DisputeConfirmationDialog({
                   رجوع
                 </Button>
                 <Button
-                  onClick={showFeedback === "confirm" ? handleConfirm : handleEscalate}
+                  onClick={
+                    showFeedback === "confirm" ? handleConfirm : handleEscalate
+                  }
                   disabled={isLoading}
                   className={
                     showFeedback === "confirm"

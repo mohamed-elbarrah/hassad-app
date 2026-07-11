@@ -234,6 +234,27 @@ export const financeApi = createApi({
         { type: "Invoice", id: "LIST" },
       ],
     }),
+    updateInvoice: builder.mutation<
+      Invoice,
+      { id: string; notes?: string; status?: InvoiceStatus }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/invoices/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Invoice", id },
+        { type: "Invoice", id: "LIST" },
+      ],
+    }),
+    sendInvoiceReminder: builder.mutation<
+      { sent: boolean; reminderCount: number },
+      string
+    >({
+      query: (id) => ({ url: `/invoices/${id}/remind`, method: "POST" }),
+      invalidatesTags: (_r, _e, id) => [{ type: "Invoice", id }],
+    }),
     getInvoicesByClient: builder.query<Invoice[], string>({
       query: (clientId) => `/invoices/client/${clientId}`,
       providesTags: ["Invoice"],
@@ -246,7 +267,7 @@ export const financeApi = createApi({
     // Payments
     getPayments: builder.query<
       PaginatedPayments,
-      { page?: number; limit?: number }
+      { page?: number; limit?: number; method?: string; status?: string }
     >({
       query: (params = {}) => ({ url: "/payments", params }),
       providesTags: ["Payment"],
@@ -287,10 +308,7 @@ export const financeApi = createApi({
       query: (id) => `/payroll/${id}`,
       providesTags: (_r, _e, id) => [{ type: "Employee", id }],
     }),
-    paySalary: builder.mutation<
-      Salary,
-      { id: string; notes?: string }
-    >({
+    paySalary: builder.mutation<Salary, { id: string; notes?: string }>({
       query: ({ id, notes }) => ({
         url: `/payroll/salaries/${id}/pay`,
         method: "POST",
@@ -366,10 +384,26 @@ export const financeApi = createApi({
     }),
     updateEmployee: builder.mutation<
       Employee,
-      { id: string; name?: string; role?: string; baseSalary?: number; payType?: string; commissionRate?: number; hourlyRate?: number; isActive?: boolean }
+      {
+        id: string;
+        name?: string;
+        role?: string;
+        baseSalary?: number;
+        payType?: string;
+        commissionRate?: number;
+        hourlyRate?: number;
+        isActive?: boolean;
+      }
     >({
-      query: ({ id, ...body }) => ({ url: `/employees/${id}`, method: "PATCH", body }),
-      invalidatesTags: (_r, _e, { id }) => [{ type: "Employee", id }, "Employee"],
+      query: ({ id, ...body }) => ({
+        url: `/employees/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Employee", id },
+        "Employee",
+      ],
     }),
     deleteEmployee: builder.mutation<Employee, string>({
       query: (id) => ({ url: `/employees/${id}`, method: "DELETE" }),
@@ -533,6 +567,8 @@ export const {
   useGetInvoiceByIdQuery,
   useCreateInvoiceMutation,
   useSendInvoiceMutation,
+  useUpdateInvoiceMutation,
+  useSendInvoiceReminderMutation,
   useGetPaymentsQuery,
   useRegisterPaymentMutation,
   usePayInvoiceMutation,

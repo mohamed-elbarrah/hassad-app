@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, Calendar, ArrowLeft, User, AlertTriangle } from "lucide-react";
+import {
+  MessageSquare,
+  Calendar,
+  ArrowLeft,
+  User,
+  AlertTriangle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdminDisputeSummary } from "@/features/disputes/adminDisputesApi";
 import { DISPUTE_PRIORITY_AR } from "@hassad/shared";
@@ -50,7 +56,7 @@ export function AdminDisputeCard({ dispute }: AdminDisputeCardProps) {
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border",
-              PRIORITY_COLORS[dispute.priority]
+              PRIORITY_COLORS[dispute.priority],
             )}
           >
             {DISPUTE_PRIORITY_AR[dispute.priority]}
@@ -80,7 +86,10 @@ export function AdminDisputeCard({ dispute }: AdminDisputeCardProps) {
       {dispute.status === "ESCALATED" && dispute.escalatedAt && (
         <div className="mt-2 flex items-center gap-1 text-xs text-red-600">
           <AlertTriangle className="h-3 w-3" />
-          <span>تم التصعيد: {new Date(dispute.escalatedAt).toLocaleDateString("ar-SA")}</span>
+          <span>
+            تم التصعيد:{" "}
+            {new Date(dispute.escalatedAt).toLocaleDateString("ar-SA")}
+          </span>
         </div>
       )}
 

@@ -511,9 +511,7 @@ function BrandAssetsForm({
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div className="space-y-2">
-          <span className="text-xs font-medium text-natural-100">
-            الشعار
-          </span>
+          <span className="text-xs font-medium text-natural-100">الشعار</span>
           <FileDropzone
             files={logoFiles}
             onFilesChange={onLogoFilesChange}
@@ -564,9 +562,7 @@ function BrandAssetsForm({
         </div>
 
         <div className="space-y-2">
-          <span className="text-xs font-medium text-natural-100">
-            الخطوط
-          </span>
+          <span className="text-xs font-medium text-natural-100">الخطوط</span>
           <FormInputControl
             placeholder="أسماء الخطوط المستخدمة"
             value={fontInput}

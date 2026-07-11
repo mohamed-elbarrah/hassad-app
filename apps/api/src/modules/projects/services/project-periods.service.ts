@@ -9,7 +9,11 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { FinanceService } from "../../finance/services/finance.service";
 import { StorageService } from "../../../common/storage/storage.service";
-import { ProjectPeriodStatus, ContractType, PaymentPlanTriggerType } from "@hassad/shared";
+import {
+  ProjectPeriodStatus,
+  ContractType,
+  PaymentPlanTriggerType,
+} from "@hassad/shared";
 import type { Prisma } from "@prisma/client";
 
 /**
@@ -46,7 +50,11 @@ export class ProjectPeriodsService {
    * enough days, otherwise clamping to the last day of the target month. The
    * original day is always retried on subsequent calls (no permanent drift).
    */
-  private addAnniversaryMonths(base: Date, months: number, originalDay: number): Date {
+  private addAnniversaryMonths(
+    base: Date,
+    months: number,
+    originalDay: number,
+  ): Date {
     const total = base.getMonth() + months;
     const year = base.getFullYear() + Math.floor(total / 12);
     const month = ((total % 12) + 12) % 12;
@@ -71,7 +79,17 @@ export class ProjectPeriodsService {
   async generatePeriods(projectId: string, actorId: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      include: { contract: { select: { id: true, type: true, startDate: true, endDate: true, numberOfMonths: true } } },
+      include: {
+        contract: {
+          select: {
+            id: true,
+            type: true,
+            startDate: true,
+            endDate: true,
+            numberOfMonths: true,
+          },
+        },
+      },
     });
     if (!project) throw new NotFoundException("Project not found");
     if (project.contract?.type !== ContractType.MONTHLY_RETAINER) {
@@ -87,15 +105,28 @@ export class ProjectPeriodsService {
 
     const startDate = project.contract?.startDate ?? project.startDate;
     const originalDay = startDate.getDate();
-    const count = this.resolvePeriodCount(project.contract?.numberOfMonths ?? null, startDate, project.contract?.endDate ?? null);
+    const count = this.resolvePeriodCount(
+      project.contract?.numberOfMonths ?? null,
+      startDate,
+      project.contract?.endDate ?? null,
+    );
 
     const now = new Date();
-    const periods: { id: string; periodNumber: number; startDate: Date; endDate: Date }[] = [];
+    const periods: {
+      id: string;
+      periodNumber: number;
+      startDate: Date;
+      endDate: Date;
+    }[] = [];
 
     await this.prisma.$transaction(async (tx) => {
       for (let i = 0; i < count; i++) {
         const start = this.addAnniversaryMonths(startDate, i, originalDay);
-        const nextStart = this.addAnniversaryMonths(startDate, i + 1, originalDay);
+        const nextStart = this.addAnniversaryMonths(
+          startDate,
+          i + 1,
+          originalDay,
+        );
         const end = this.endOfPreviousDay(nextStart);
 
         const created = await tx.projectPeriod.create({
@@ -107,7 +138,12 @@ export class ProjectPeriodsService {
             status: ProjectPeriodStatus.UPCOMING,
           },
         });
-        periods.push({ id: created.id, periodNumber: created.periodNumber, startDate: start, endDate: end });
+        periods.push({
+          id: created.id,
+          periodNumber: created.periodNumber,
+          startDate: start,
+          endDate: end,
+        });
       }
 
       // Open the first period if its start date has arrived (project just activated).
@@ -145,7 +181,11 @@ export class ProjectPeriodsService {
   }
 
   /** Bounded → numberOfMonths (or months between start and end); rolling → 2. */
-  private resolvePeriodCount(numberOfMonths: number | null, startDate: Date, endDate: Date | null): number {
+  private resolvePeriodCount(
+    numberOfMonths: number | null,
+    startDate: Date,
+    endDate: Date | null,
+  ): number {
     if (numberOfMonths && numberOfMonths > 0) return numberOfMonths;
     if (endDate) {
       const months =
@@ -202,22 +242,70 @@ export class ProjectPeriodsService {
     const period = await this.prisma.projectPeriod.findUnique({
       where: { id: periodId },
       include: {
-        tasks: { select: { id: true, title: true, status: true, assignedTo: true, dueDate: true }, orderBy: { createdAt: "desc" } },
-        deliverables: { select: { id: true, title: true, status: true, isVisibleToClient: true }, orderBy: { createdAt: "desc" } },
-        files: { select: { id: true, fileName: true, fileType: true, fileSize: true, uploadedAt: true }, orderBy: { uploadedAt: "desc" } },
-        campaigns: { select: { id: true, name: true, platform: true, status: true } },
-        kpiSnapshots: { select: { id: true, impressions: true, clicks: true, conversions: true, revenue: true, roas: true, recordedAt: true }, orderBy: { recordedAt: "desc" } },
-        statusHistory: { orderBy: { changedAt: "desc" }, take: 20, include: { changedByUser: { select: { id: true, name: true } } } },
-        invoice: { select: { id: true, invoiceNumber: true, amount: true, status: true } },
+        tasks: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            assignedTo: true,
+            dueDate: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        deliverables: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            isVisibleToClient: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        files: {
+          select: {
+            id: true,
+            fileName: true,
+            fileType: true,
+            fileSize: true,
+            uploadedAt: true,
+          },
+          orderBy: { uploadedAt: "desc" },
+        },
+        campaigns: {
+          select: { id: true, name: true, platform: true, status: true },
+        },
+        kpiSnapshots: {
+          select: {
+            id: true,
+            impressions: true,
+            clicks: true,
+            conversions: true,
+            revenue: true,
+            roas: true,
+            recordedAt: true,
+          },
+          orderBy: { recordedAt: "desc" },
+        },
+        statusHistory: {
+          orderBy: { changedAt: "desc" },
+          take: 20,
+          include: { changedByUser: { select: { id: true, name: true } } },
+        },
+        invoice: {
+          select: { id: true, invoiceNumber: true, amount: true, status: true },
+        },
         project: { select: { id: true, clientId: true } },
       },
     });
     if (!period) throw new NotFoundException("Period not found");
 
-    const tasksByStatus = period.tasks.reduce<Record<string, number>>((acc, t) => {
-      acc[t.status] = (acc[t.status] ?? 0) + 1;
-      return acc;
-    }, {});
+    const tasksByStatus = period.tasks.reduce<Record<string, number>>(
+      (acc, t) => {
+        acc[t.status] = (acc[t.status] ?? 0) + 1;
+        return acc;
+      },
+      {},
+    );
 
     // Latest satisfaction rating for the project.
     const latestRating = period.project?.clientId
@@ -244,18 +332,29 @@ export class ProjectPeriodsService {
 
   /** UPCOMING → ACTIVE. */
   async openPeriod(periodId: string, actorId: string, reason?: string) {
-    const period = await this.prisma.projectPeriod.findUnique({ where: { id: periodId } });
+    const period = await this.prisma.projectPeriod.findUnique({
+      where: { id: periodId },
+    });
     if (!period) throw new NotFoundException("Period not found");
     if (period.status === ProjectPeriodStatus.ACTIVE) return period;
     if (period.status !== ProjectPeriodStatus.UPCOMING) {
-      throw new BadRequestException(`Period must be UPCOMING to open (current: ${period.status})`);
+      throw new BadRequestException(
+        `Period must be UPCOMING to open (current: ${period.status})`,
+      );
     }
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.projectPeriod.update({
         where: { id: periodId },
         data: { status: ProjectPeriodStatus.ACTIVE },
       });
-      await this.recordPeriodStatusHistory(tx, periodId, ProjectPeriodStatus.UPCOMING, ProjectPeriodStatus.ACTIVE, actorId, reason ?? "Period opened");
+      await this.recordPeriodStatusHistory(
+        tx,
+        periodId,
+        ProjectPeriodStatus.UPCOMING,
+        ProjectPeriodStatus.ACTIVE,
+        actorId,
+        reason ?? "Period opened",
+      );
       return updated;
     });
   }
@@ -268,12 +367,19 @@ export class ProjectPeriodsService {
   async closePeriod(periodId: string, actorId: string, reason?: string) {
     const period = await this.prisma.projectPeriod.findUnique({
       where: { id: periodId },
-      include: { project: { select: { id: true, contractId: true, name: true } } },
+      include: {
+        project: { select: { id: true, contractId: true, name: true } },
+      },
     });
     if (!period) throw new NotFoundException("Period not found");
     if (period.status === ProjectPeriodStatus.CLOSED) return period;
-    if (period.status !== ProjectPeriodStatus.ACTIVE && period.status !== ProjectPeriodStatus.SUSPENDED) {
-      throw new BadRequestException(`Period must be ACTIVE or SUSPENDED to close (current: ${period.status})`);
+    if (
+      period.status !== ProjectPeriodStatus.ACTIVE &&
+      period.status !== ProjectPeriodStatus.SUSPENDED
+    ) {
+      throw new BadRequestException(
+        `Period must be ACTIVE or SUSPENDED to close (current: ${period.status})`,
+      );
     }
 
     const now = new Date();
@@ -282,15 +388,39 @@ export class ProjectPeriodsService {
         where: { id: periodId },
         data: { status: ProjectPeriodStatus.CLOSED, closedAt: now },
       });
-      await this.recordPeriodStatusHistory(tx, periodId, period.status, ProjectPeriodStatus.CLOSED, actorId, reason ?? "Period closed");
+      await this.recordPeriodStatusHistory(
+        tx,
+        periodId,
+        period.status,
+        ProjectPeriodStatus.CLOSED,
+        actorId,
+        reason ?? "Period closed",
+      );
 
       // Open the next period if its start date has arrived.
       const next = await tx.projectPeriod.findFirst({
-        where: { projectId: period.project.id, periodNumber: period.periodNumber + 1 },
+        where: {
+          projectId: period.project.id,
+          periodNumber: period.periodNumber + 1,
+        },
       });
-      if (next && next.status === ProjectPeriodStatus.UPCOMING && next.startDate.getTime() <= now.getTime()) {
-        await tx.projectPeriod.update({ where: { id: next.id }, data: { status: ProjectPeriodStatus.ACTIVE } });
-        await this.recordPeriodStatusHistory(tx, next.id, ProjectPeriodStatus.UPCOMING, ProjectPeriodStatus.ACTIVE, actorId, "Auto-opened after previous period closed");
+      if (
+        next &&
+        next.status === ProjectPeriodStatus.UPCOMING &&
+        next.startDate.getTime() <= now.getTime()
+      ) {
+        await tx.projectPeriod.update({
+          where: { id: next.id },
+          data: { status: ProjectPeriodStatus.ACTIVE },
+        });
+        await this.recordPeriodStatusHistory(
+          tx,
+          next.id,
+          ProjectPeriodStatus.UPCOMING,
+          ProjectPeriodStatus.ACTIVE,
+          actorId,
+          "Auto-opened after previous period closed",
+        );
       }
       return updated;
     });
@@ -298,7 +428,9 @@ export class ProjectPeriodsService {
     // Phase 3: issue period invoice from the recurring PERIOD_END plan row.
     if (period.project.contractId) {
       await this.issuePeriodInvoice(period, now, actorId).catch((err) => {
-        this.logger.error(`Failed to issue period invoice for ${periodId}: ${err?.message}`);
+        this.logger.error(
+          `Failed to issue period invoice for ${periodId}: ${err?.message}`,
+        );
       });
     }
 
@@ -328,11 +460,7 @@ export class ProjectPeriodsService {
   }
 
   /** Issue the monthly recurring invoice for a closed period. */
-  private async issuePeriodInvoice(
-    period: any,
-    now: Date,
-    actorId: string,
-  ) {
+  private async issuePeriodInvoice(period: any, now: Date, actorId: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: period.project.contractId },
       select: { id: true, totalValue: true, title: true },
@@ -355,10 +483,15 @@ export class ProjectPeriodsService {
         : planRow.amountValue;
 
     const nextPeriod = await this.prisma.projectPeriod.findFirst({
-      where: { projectId: period.project.id, periodNumber: period.periodNumber + 1 },
+      where: {
+        projectId: period.project.id,
+        periodNumber: period.periodNumber + 1,
+      },
       orderBy: { periodNumber: "asc" },
     });
-    const dueDate = nextPeriod?.startDate ?? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const dueDate =
+      nextPeriod?.startDate ??
+      new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     const invoice = await this.financeService.generateScheduledInvoice({
       contractId: contract.id,
@@ -402,12 +535,16 @@ export class ProjectPeriodsService {
 
   /** Push a period's end date later (PM extend). Must be after the current end. */
   async extendPeriod(periodId: string, newEndDate: string, actorId: string) {
-    const period = await this.prisma.projectPeriod.findUnique({ where: { id: periodId } });
+    const period = await this.prisma.projectPeriod.findUnique({
+      where: { id: periodId },
+    });
     if (!period) throw new NotFoundException("Period not found");
     const end = new Date(newEndDate);
     end.setHours(23, 59, 59, 999);
     if (end.getTime() <= period.endDate.getTime()) {
-      throw new BadRequestException("New end date must be after the current end date");
+      throw new BadRequestException(
+        "New end date must be after the current end date",
+      );
     }
     return this.prisma.projectPeriod.update({
       where: { id: periodId },
@@ -422,7 +559,8 @@ export class ProjectPeriodsService {
       where: { projectId },
       orderBy: { periodNumber: "desc" },
     });
-    if (!last) throw new BadRequestException("No periods exist yet for this project");
+    if (!last)
+      throw new BadRequestException("No periods exist yet for this project");
 
     const contract = await this.prisma.contract.findUnique({
       where: { id: project.contractId ?? undefined },
@@ -432,8 +570,16 @@ export class ProjectPeriodsService {
     const originalDay = baseStart.getDate();
 
     // Start = day after the last period's end; preserve the anniversary day-of-month.
-    const nextStart = this.addAnniversaryMonths(baseStart, last.periodNumber, originalDay);
-    const nextNextStart = this.addAnniversaryMonths(baseStart, last.periodNumber + 1, originalDay);
+    const nextStart = this.addAnniversaryMonths(
+      baseStart,
+      last.periodNumber,
+      originalDay,
+    );
+    const nextNextStart = this.addAnniversaryMonths(
+      baseStart,
+      last.periodNumber + 1,
+      originalDay,
+    );
     const end = this.endOfPreviousDay(nextNextStart);
 
     return this.prisma.projectPeriod.create({
@@ -487,7 +633,15 @@ export class ProjectPeriodsService {
   }
 
   /** Save PM-defined goals for this period (visible to client). */
-  async saveGoals(periodId: string, goals: Array<{ title: string; description?: string; progress: number; status: string }>) {
+  async saveGoals(
+    periodId: string,
+    goals: Array<{
+      title: string;
+      description?: string;
+      progress: number;
+      status: string;
+    }>,
+  ) {
     await this.findPeriodOrThrow(periodId);
     const normalized = goals.map((g) => ({
       title: g.title,
@@ -522,7 +676,14 @@ export class ProjectPeriodsService {
   ) {
     const period = await this.prisma.projectPeriod.findUnique({
       where: { id: periodId },
-      select: { id: true, projectId: true, periodNumber: true, project: { select: { name: true, client: { select: { userId: true } } } } },
+      select: {
+        id: true,
+        projectId: true,
+        periodNumber: true,
+        project: {
+          select: { name: true, client: { select: { userId: true } } },
+        },
+      },
     });
     if (!period) throw new NotFoundException("Period not found");
 
@@ -574,7 +735,14 @@ export class ProjectPeriodsService {
     const existing = await this.prisma.projectMeeting.findUnique({
       where: { id: meetingId },
       include: {
-        period: { select: { periodNumber: true, project: { select: { name: true, client: { select: { userId: true } } } } } },
+        period: {
+          select: {
+            periodNumber: true,
+            project: {
+              select: { name: true, client: { select: { userId: true } } },
+            },
+          },
+        },
       },
     });
     if (!existing) throw new NotFoundException("Meeting not found");
@@ -585,7 +753,8 @@ export class ProjectPeriodsService {
 
     const data: any = {};
     if (dto.title !== undefined) data.title = dto.title;
-    if (dto.scheduledAt !== undefined) data.scheduledAt = new Date(dto.scheduledAt);
+    if (dto.scheduledAt !== undefined)
+      data.scheduledAt = new Date(dto.scheduledAt);
     if (dto.durationMin !== undefined) data.durationMin = dto.durationMin;
     if (dto.location !== undefined) data.location = dto.location;
     if (dto.meetingLink !== undefined) data.meetingLink = dto.meetingLink;
@@ -653,22 +822,37 @@ export class ProjectPeriodsService {
       if (!project) return;
       payload.projectId = project.id;
     }
-    const actorId = payload.userId || (await this.prisma.contract.findUnique({ where: { id: payload.contractId }, select: { createdBy: true } }))?.createdBy || "system";
+    const actorId =
+      payload.userId ||
+      (
+        await this.prisma.contract.findUnique({
+          where: { id: payload.contractId },
+          select: { createdBy: true },
+        })
+      )?.createdBy ||
+      "system";
     await this.generatePeriods(payload.projectId, actorId).catch((err) => {
-      this.logger.error(`Failed to generate periods for project ${payload.projectId}: ${err?.message}`);
+      this.logger.error(
+        `Failed to generate periods for project ${payload.projectId}: ${err?.message}`,
+      );
     });
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   private async assertProjectExists(projectId: string) {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true, contractId: true, startDate: true, name: true } });
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, contractId: true, startDate: true, name: true },
+    });
     if (!project) throw new NotFoundException("Project not found");
     return project;
   }
 
   private async findPeriodOrThrow(periodId: string) {
-    const period = await this.prisma.projectPeriod.findUnique({ where: { id: periodId } });
+    const period = await this.prisma.projectPeriod.findUnique({
+      where: { id: periodId },
+    });
     if (!period) throw new NotFoundException("Period not found");
     return period;
   }

@@ -45,7 +45,9 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
     isLoading,
     isError,
     refetch,
-  } = useGetPortalCampaignQuery(id, { pollingInterval: PORTAL_POLLING_INTERVAL_MS });
+  } = useGetPortalCampaignQuery(id, {
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
 
   if (isLoading) {
     return <DetailSkeleton variant="campaign" />;
@@ -68,7 +70,11 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      <DetailBreadcrumb backHref="/portal/campaigns" backLabel="الحملات" title={campaignData.name} />
+      <DetailBreadcrumb
+        backHref="/portal/campaigns"
+        backLabel="الحملات"
+        title={campaignData.name}
+      />
 
       {/* Main card */}
       <SurfaceCard

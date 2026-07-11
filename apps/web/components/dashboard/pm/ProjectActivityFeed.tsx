@@ -21,7 +21,13 @@ import type { Task } from "@hassad/shared";
 
 interface ActivityItem {
   id: string;
-  type: "status_change" | "file_upload" | "task_created" | "task_completed" | "milestone" | "comment";
+  type:
+    | "status_change"
+    | "file_upload"
+    | "task_created"
+    | "task_completed"
+    | "milestone"
+    | "comment";
   title: string;
   description?: string;
   user?: string;
@@ -55,8 +61,12 @@ export function ProjectActivityFeed({
       id: "project-created",
       type: "milestone",
       title: "تم إنشاء المشروع",
-      description: projectManagerName ? `بواسطة ${projectManagerName}` : undefined,
-      timestamp: String(files[0]?.uploadedAt ?? tasks[0]?.createdAt ?? new Date().toISOString()),
+      description: projectManagerName
+        ? `بواسطة ${projectManagerName}`
+        : undefined,
+      timestamp: String(
+        files[0]?.uploadedAt ?? tasks[0]?.createdAt ?? new Date().toISOString(),
+      ),
     });
 
     // Status changes (simulated)
@@ -104,7 +114,10 @@ export function ProjectActivityFeed({
 
     // Sort by timestamp (newest first)
     return items
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )
       .slice(0, 10);
   }, [projectStatus, projectStatusChangedAt, files, tasks, projectManagerName]);
 
@@ -115,7 +128,7 @@ export function ProjectActivityFeed({
       case "file_upload":
         return <Upload className="w-4 h-4 text-primary-500" />;
       case "task_created":
-        return <FolderKanban className="w-4 h-4 text-neutral-400" />;
+        return <FolderKanban className="w-4 h-4 text-portal-note-text" />;
       case "task_completed":
         return <CheckCircle2 className="w-4 h-4 text-success-500" />;
       case "milestone":
@@ -123,7 +136,7 @@ export function ProjectActivityFeed({
       case "comment":
         return <AlertCircle className="w-4 h-4 text-info-500" />;
       default:
-        return <FileText className="w-4 h-4 text-neutral-400" />;
+        return <FileText className="w-4 h-4 text-portal-note-text" />;
     }
   };
 
@@ -134,23 +147,23 @@ export function ProjectActivityFeed({
       case "file_upload":
         return "bg-primary-50";
       case "task_created":
-        return "bg-neutral-50";
+        return "bg-badge-gray-bg";
       case "task_completed":
-        return "bg-success-50";
+        return "bg-success-100/50";
       case "milestone":
-        return "bg-warning-50";
+        return "bg-alert-100/50";
       case "comment":
-        return "bg-info-50";
+        return "bg-action-blue-soft";
       default:
-        return "bg-neutral-50";
+        return "bg-badge-gray-bg";
     }
   };
 
   if (activities.length === 0) {
     return (
       <div className="text-center py-8">
-        <Clock className="w-8 h-8 text-neutral-300 mx-auto mb-3" />
-        <p className="text-sm text-neutral-400">لا توجد نشاطات حديثة</p>
+        <Clock className="w-8 h-8 text-portal-note-text mx-auto mb-3" />
+        <p className="text-sm text-portal-note-text">لا توجد نشاطات حديثة</p>
       </div>
     );
   }
@@ -161,13 +174,13 @@ export function ProjectActivityFeed({
         <div key={activity.id} className="flex gap-3 relative">
           {/* Timeline line */}
           {index < activities.length - 1 && (
-            <div className="absolute start-[19px] top-10 bottom-0 w-px bg-neutral-200" />
+            <div className="absolute start-[19px] top-10 bottom-0 w-px bg-portal-divider" />
           )}
 
           {/* Icon */}
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${getActivityBg(
-              activity.type
+              activity.type,
             )}`}
           >
             {getActivityIcon(activity.type)}
@@ -179,11 +192,11 @@ export function ProjectActivityFeed({
               {activity.title}
             </p>
             {activity.description && (
-              <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">
+              <p className="text-xs text-portal-note-text mt-0.5 line-clamp-1">
                 {activity.description}
               </p>
             )}
-            <p className="text-[11px] text-neutral-400 mt-1">
+            <p className="text-[11px] text-portal-note-text mt-1">
               {formatRelativeTime(activity.timestamp)}
             </p>
           </div>

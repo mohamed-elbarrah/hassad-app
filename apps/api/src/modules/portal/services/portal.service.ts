@@ -607,11 +607,11 @@ export class PortalService {
         updatedAt: true,
         manager: { select: { id: true, name: true, isActive: true } },
         client: {
-          // Personal identity (name) now on the linked User.
-          include: {
+          select: {
+            id: true,
+            companyName: true,
             user: { select: { name: true, email: true, phoneWhatsapp: true } },
           },
-          select: { id: true, companyName: true },
         },
       },
     });
@@ -1016,7 +1016,7 @@ export class PortalService {
   }
 
   /**
- * Resolve a `deliverableId` (the value embedded in `actionUrl` for
+   * Resolve a `deliverableId` (the value embedded in `actionUrl` for
    * DELIVERABLE_APPROVAL items) back to its owning project, so the client
    * portal can deep-link into the right review surface.
    *
@@ -1081,11 +1081,7 @@ export class PortalService {
     const enriched: any[] = [];
     for (const s of snoozed) {
       enriched.push({
-        ...(await this.resolveActionItemShape(
-          clientId,
-          s.itemType,
-          s.itemId,
-        )),
+        ...(await this.resolveActionItemShape(clientId, s.itemType, s.itemId)),
         snoozedUntil: s.snoozedUntil,
         reminderSentAt: s.reminderSentAt,
         isActive: s.snoozedUntil > now,

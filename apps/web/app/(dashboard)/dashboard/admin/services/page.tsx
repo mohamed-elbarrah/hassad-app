@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { Wrench, Trash2, Pencil, Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { ServiceCategory } from "@hassad/shared";
+import { ServiceCategory, SERVICE_CATEGORY_AR } from "@hassad/shared";
 import {
   useGetServicesQuery,
   useCreateServiceMutation,
@@ -17,23 +17,44 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { Dialog } from "@/components/design-system/Dialog";
+import { Pill } from "@/components/design-system/Pill";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+
+const CATEGORY_ORDER: ServiceCategory[] = [
+  ServiceCategory.BRANDING,
+  ServiceCategory.WEB_DEVELOPMENT,
+  ServiceCategory.SOCIAL_MEDIA,
+  ServiceCategory.ADVERTISING,
+  ServiceCategory.CONTENT_CREATION,
+  ServiceCategory.PHOTOGRAPHY,
+  ServiceCategory.VIDEO_PRODUCTION,
+  ServiceCategory.SEO,
+  ServiceCategory.OTHER,
+];
 
 interface ServiceFormData {
   name: string;
   nameAr: string;
   description: string;
   descriptionAr: string;
+  basePrice: number;
   isActive: boolean;
 }
 
 const DEFAULT_SERVICE_FORM: ServiceFormData = {
-  name: "", nameAr: "", description: "", descriptionAr: "", isActive: true,
+  name: "",
+  nameAr: "",
+  description: "",
+  descriptionAr: "",
+  basePrice: 0,
+  isActive: true,
 };
 
 export default function ServicesAdminPage() {
-  const { data: services, isLoading } = useGetServicesQuery({ includeInactive: true });
+  const { data: services, isLoading } = useGetServicesQuery({
+    includeInactive: true,
+  });
   const [createService, { isLoading: creating }] = useCreateServiceMutation();
   const [updateService, { isLoading: updating }] = useUpdateServiceMutation();
   const [deleteService] = useDeleteServiceMutation();
@@ -41,7 +62,9 @@ export default function ServicesAdminPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ServiceFormData>(DEFAULT_SERVICE_FORM);
-  const [errors, setErrors] = useState<Partial<Record<keyof ServiceFormData, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof ServiceFormData, string>>
+  >({});
 
   const resetForm = useCallback(() => {
     setForm(DEFAULT_SERVICE_FORM);
@@ -49,11 +72,17 @@ export default function ServicesAdminPage() {
     setErrors({});
   }, []);
 
-  const openCreate = () => { resetForm(); setDialogOpen(true); };
+  const openCreate = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
   const openEdit = (svc: ServiceCatalogItem) => {
     setForm({
-      name: svc.name, nameAr: svc.nameAr,
-      description: svc.description ?? "", descriptionAr: svc.descriptionAr ?? "",
+      name: svc.name,
+      nameAr: svc.nameAr,
+      description: svc.description ?? "",
+      descriptionAr: svc.descriptionAr ?? "",
+      basePrice: svc.basePrice,
       isActive: svc.isActive,
     });
     setEditingId(svc.id);
@@ -73,11 +102,15 @@ export default function ServicesAdminPage() {
     e.preventDefault();
     if (!validate()) return;
     const payload: any = {
-      name: form.name.trim(), nameAr: form.nameAr.trim(),
+      name: form.name.trim(),
+      nameAr: form.nameAr.trim(),
       description: form.description.trim() || undefined,
       descriptionAr: form.descriptionAr.trim() || undefined,
-      category: ServiceCategory.OTHER, estimatedDays: 30, basePrice: 0,
-      isActive: form.isActive, sortOrder: 0,
+      category: ServiceCategory.OTHER,
+      estimatedDays: 30,
+      basePrice: form.basePrice,
+      isActive: form.isActive,
+      sortOrder: 0,
     };
     try {
       if (editingId) {
@@ -99,10 +132,57 @@ export default function ServicesAdminPage() {
     try {
       await deleteService(id).unwrap();
       toast.success("تم تعطيل الخدمة");
-    } catch { toast.error("تعذر حذف الخدمة"); }
+    } catch {
+      toast.error("تعذر حذف الخدمة");
+    }
   };
 
   const svcList = services ?? [];
+  const grouped: Record<string, ServiceCatalogItem[]> = {};
+  for (const svc of svcList) {
+    const cat = svc.category || ServiceCategory.OTHER;
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(svc);
+  }
+
+  const renderServiceRow = (svc: ServiceCatalogItem) => (
+    <tr key={svc.id} className="border-b-[1.5px] border-portal-divider">
+      <td className="px-5 py-4 text-base font-semibold text-natural-100">{svc.nameAr}</td>
+      <td className="px-5 py-4 text-base text-natural-100">{svc.name}</td>
+      <td className="px-5 py-4">
+        <span className="text-sm font-medium text-natural-100">{svc.basePrice?.toLocaleString() ?? 0} ريال</span>
+      </td>
+      <td className="px-5 py-4">
+        <Pill tone="neutral">{(svc as any)._count?.requests ?? 0}</Pill>
+      </td>
+      <td className="px-5 py-4">
+        <StatusBadge
+          status={svc.isActive ? "ACTIVE" : "STOPPED"}
+          label={svc.isActive ? "نشط" : "معطل"}
+        />
+      </td>
+      <td className="px-5 py-4">
+        <div className="flex items-center gap-0.5">
+          <ActionButton
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 text-portal-icon hover:text-natural-100"
+            onClick={() => openEdit(svc)}
+          >
+            <Pencil className="size-4" />
+          </ActionButton>
+          <ActionButton
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 text-portal-icon hover:text-danger-500"
+            onClick={() => handleDelete(svc.id)}
+          >
+            <Trash2 className="size-4" />
+          </ActionButton>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -118,47 +198,58 @@ export default function ServicesAdminPage() {
         }
       />
 
-      <DataTable
-        columns={[
-          { id: "nameAr", label: "الاسم (عربي)" },
-          { id: "name", label: "الاسم (EN)" },
-          { id: "status", label: "الحالة" },
-          { id: "actions", label: "", width: "80px" },
-        ]}
-        data={svcList}
-        isLoading={isLoading}
-        isError={false}
-        emptyState={{
-          icon: Wrench,
-          message: "لا توجد خدمات",
-          hint: "أضف أول خدمة إلى الكتالوج",
-        }}
-        renderRow={(svc) => (
-          <tr key={svc.id} className="border-b-[1.5px] border-portal-divider">
-            <td className="px-5 py-4 text-base font-semibold text-natural-100">{svc.nameAr}</td>
-            <td className="px-5 py-4 text-base text-natural-100">{svc.name}</td>
-            <td className="px-5 py-4">
-              <StatusBadge status={svc.isActive ? "ACTIVE" : "STOPPED"} label={svc.isActive ? "نشط" : "معطل"} />
-            </td>
-            <td className="px-5 py-4">
-              <div className="flex items-center gap-0.5">
-                <ActionButton variant="ghost" size="sm" className="h-8 w-8 text-portal-icon hover:text-natural-100" onClick={() => openEdit(svc)}>
-                  <Pencil className="size-4" />
-                </ActionButton>
-                <ActionButton variant="ghost" size="sm" className="h-8 w-8 text-portal-icon hover:text-danger-500" onClick={() => handleDelete(svc.id)}>
-                  <Trash2 className="size-4" />
-                </ActionButton>
+      {isLoading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-32 animate-pulse rounded-2xl bg-neutral-100" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {CATEGORY_ORDER.filter((cat) => grouped[cat]).map((cat) => (
+            <div key={cat}>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-base font-bold text-natural-100">
+                  {SERVICE_CATEGORY_AR[cat as ServiceCategory] ?? cat}
+                </h3>
+                <Pill tone="neutral">{grouped[cat].length}</Pill>
               </div>
-            </td>
-          </tr>
-        )}
-      />
+              <DataTable
+                columns={[
+                  { id: "nameAr", label: "الاسم (عربي)" },
+                  { id: "name", label: "الاسم (EN)" },
+                  { id: "price", label: "السعر" },
+                  { id: "requests", label: "الطلبات" },
+                  { id: "status", label: "الحالة" },
+                  { id: "actions", label: "", width: "80px" },
+                ]}
+                data={grouped[cat]}
+                isLoading={false}
+                isError={false}
+                emptyState={undefined}
+                renderRow={renderServiceRow}
+              />
+            </div>
+          ))}
+          {Object.keys(grouped).length === 0 && (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <Wrench className="size-12 text-portal-note-text" />
+              <p className="text-base font-medium text-natural-100">لا توجد خدمات</p>
+              <p className="text-sm text-portal-note-text">أضف أول خدمة إلى الكتالوج</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <Dialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         title={editingId ? "تعديل الخدمة" : "إضافة خدمة جديدة"}
-        description={editingId ? "عدّل بيانات الخدمة الحالية." : "أضف خدمة جديدة إلى كتالوج الخدمات."}
+        description={
+          editingId
+            ? "عدّل بيانات الخدمة الحالية."
+            : "أضف خدمة جديدة إلى كتالوج الخدمات."
+        }
         contentClassName="sm:max-w-xl"
       >
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -177,7 +268,8 @@ export default function ServicesAdminPage() {
               />
               {errors.nameAr && (
                 <span className="text-xs text-danger-500 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />{errors.nameAr}
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.nameAr}
                 </span>
               )}
             </div>
@@ -195,7 +287,8 @@ export default function ServicesAdminPage() {
               />
               {errors.name && (
                 <span className="text-xs text-danger-500 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />{errors.name}
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.name}
                 </span>
               )}
             </div>
@@ -218,12 +311,30 @@ export default function ServicesAdminPage() {
             />
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm font-medium text-natural-100">السعر الأساسي (ريال)</Label>
+            <FormInputControl
+              type="number"
+              placeholder="0"
+              value={form.basePrice}
+              onChange={(e) => setForm((f) => ({ ...f, basePrice: Number(e.target.value) || 0 }))}
+            />
+          </div>
+
           <label className="flex items-center gap-2.5 cursor-pointer select-none group">
             <div
-              className={cn("w-11 h-6 rounded-full relative transition-colors", form.isActive ? "bg-success-500" : "bg-neutral-200")}
+              className={cn(
+                "w-11 h-6 rounded-full relative transition-colors",
+                form.isActive ? "bg-success-500" : "bg-neutral-200",
+              )}
               onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
             >
-              <div className={cn("absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200", form.isActive ? "translate-x-5" : "")} />
+              <div
+                className={cn(
+                  "absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full shadow-sm transition-transform duration-200",
+                  form.isActive ? "translate-x-5" : "",
+                )}
+              />
             </div>
             <span className="text-sm font-medium text-natural-100">نشطة</span>
           </label>

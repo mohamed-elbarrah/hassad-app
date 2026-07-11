@@ -14,6 +14,22 @@ export enum ClientSource {
   PLATFORM = "PLATFORM",
 }
 
+export const BUSINESS_TYPE_AR: Record<BusinessType, string> = {
+  [BusinessType.RESTAURANT]: "مطعم",
+  [BusinessType.CLINIC]: "عيادة",
+  [BusinessType.STORE]: "متجر",
+  [BusinessType.SERVICE]: "خدمة",
+  [BusinessType.OTHER]: "أخرى",
+};
+
+export const CLIENT_SOURCE_AR: Record<ClientSource, string> = {
+  [ClientSource.AD]: "إعلان",
+  [ClientSource.REFERRAL]: "توصية",
+  [ClientSource.WEBSITE]: "الموقع الإلكتروني",
+  [ClientSource.WHATSAPP]: "واتساب",
+  [ClientSource.PLATFORM]: "المنصة",
+};
+
 export enum PipelineStage {
   NEW = "NEW",
   INTRO_SENT = "INTRO_SENT",
@@ -39,6 +55,19 @@ export enum RequestStatus {
   CANCELLED = "CANCELLED",
 }
 
+export const REQUEST_STATUS_AR: Record<RequestStatus, string> = {
+  [RequestStatus.SUBMITTED]: "مقدم",
+  [RequestStatus.QUALIFYING]: "قيد التأهيل",
+  [RequestStatus.PROPOSAL_IN_PROGRESS]: "إعداد العرض",
+  [RequestStatus.PROPOSAL_SENT]: "أرسل العرض",
+  [RequestStatus.NEGOTIATION]: "تفاوض",
+  [RequestStatus.CONTRACT_PREPARATION]: "إعداد العقد",
+  [RequestStatus.CONTRACT_SENT]: "أرسل العقد",
+  [RequestStatus.SIGNED]: "موقّع",
+  [RequestStatus.PROJECT_CREATED]: "تم إنشاء المشروع",
+  [RequestStatus.CANCELLED]: "ملغي",
+};
+
 export const PIPELINE_UI_MAP = {
   [PipelineStage.NEW]: "New Lead",
   [PipelineStage.INTRO_SENT]: "Contacted",
@@ -63,11 +92,29 @@ export const PIPELINE_STAGE_ORDER: PipelineStage[] = [
   PipelineStage.CONTRACT_SIGNED,
 ];
 
+export const PIPELINE_STAGE_AR: Record<PipelineStage, string> = {
+  [PipelineStage.NEW]: "جديد",
+  [PipelineStage.INTRO_SENT]: "أُرسل التعريف",
+  [PipelineStage.CALL_ATTEMPT]: "محاولة اتصال",
+  [PipelineStage.MEETING_SCHEDULED]: "موعد محدد",
+  [PipelineStage.MEETING_DONE]: "تم الاجتماع",
+  [PipelineStage.PROPOSAL_SENT]: "أُرسل العرض",
+  [PipelineStage.FOLLOW_UP]: "متابعة",
+  [PipelineStage.APPROVED]: "تمت الموافقة",
+  [PipelineStage.CONTRACT_SIGNED]: "تم التوقيع",
+};
+
 export enum ClientStatus {
   LEAD = "LEAD",
   ACTIVE = "ACTIVE",
   STOPPED = "STOPPED",
 }
+
+export const CLIENT_STATUS_AR: Record<ClientStatus, string> = {
+  [ClientStatus.LEAD]: "عميل محتمل",
+  [ClientStatus.ACTIVE]: "نشط",
+  [ClientStatus.STOPPED]: "متوقف",
+};
 
 export enum DurationUnit {
   DAYS = "DAYS",
@@ -83,6 +130,14 @@ export enum ProposalStatus {
   REJECTED = "REJECTED",
 }
 
+export const PROPOSAL_STATUS_AR: Record<ProposalStatus, string> = {
+  [ProposalStatus.DRAFT]: "مسودة",
+  [ProposalStatus.SENT]: "مرسل",
+  [ProposalStatus.APPROVED]: "مقبول",
+  [ProposalStatus.REVISION_REQUESTED]: "طلب مراجعة",
+  [ProposalStatus.REJECTED]: "مرفوض",
+};
+
 export enum ContractStatus {
   DRAFT = "DRAFT",
   SENT = "SENT",
@@ -93,6 +148,17 @@ export enum ContractStatus {
   EXPIRED = "EXPIRED",
   CANCELLED = "CANCELLED",
 }
+
+export const CONTRACT_STATUS_AR: Record<ContractStatus, string> = {
+  [ContractStatus.DRAFT]: "مسودة",
+  [ContractStatus.SENT]: "مرسل",
+  [ContractStatus.SIGNED]: "موقّع",
+  [ContractStatus.ACTIVE]: "نشط",
+  [ContractStatus.ON_HOLD]: "معلق",
+  [ContractStatus.COMPLETED]: "مكتمل",
+  [ContractStatus.EXPIRED]: "منتهي",
+  [ContractStatus.CANCELLED]: "ملغي",
+};
 
 export enum ContactLogType {
   CALL = "CALL",

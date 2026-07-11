@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorFallback } from "@/components/common/ErrorFallback";
+import { FinancePageError } from "@/components/dashboard/finance/shared/FinancePageError";
 
 export default function FinanceError({
   error,
@@ -10,11 +10,11 @@ export default function FinanceError({
   reset: () => void;
 }) {
   return (
-    <ErrorFallback
+    <FinancePageError
       error={error}
       reset={reset}
-      backHref="/dashboard/finance"
-      backLabel="العودة للوحة المالية"
+      message="حدث خطأ في لوحة التحكم المالية"
+      hint="يرجى المحاولة مرة أخرى أو العودة لاحقاً."
     />
   );
 }

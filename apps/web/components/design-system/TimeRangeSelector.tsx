@@ -1,6 +1,7 @@
 "use client";
 
-import { ActionButton } from "./ActionButton";
+import { Select, SelectItem } from "./Select";
+import { CalendarDays } from "lucide-react";
 
 export type TimeRange = "last7days" | "last30days" | "last12months";
 
@@ -58,18 +59,19 @@ interface TimeRangeSelectorProps {
 }
 
 export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
+  const currentLabel = RANGES.find((r) => r.key === value)?.label ?? RANGES[1].label;
+
   return (
-    <div className="flex gap-1" dir="rtl">
+    <Select
+      value={value}
+      onValueChange={(v) => onChange(v as TimeRange)}
+      triggerClassName="w-[150px] h-10 rounded-xl border border-portal-card-border bg-natural-0 text-sm text-natural-100 font-medium"
+    >
       {RANGES.map((r) => (
-        <ActionButton
-          key={r.key}
-          variant={value === r.key ? "toggle-active" : "toggle-inactive"}
-          size="sm"
-          onClick={() => onChange(r.key)}
-        >
+        <SelectItem key={r.key} value={r.key}>
           {r.label}
-        </ActionButton>
+        </SelectItem>
       ))}
-    </div>
+    </Select>
   );
 }

@@ -23,6 +23,16 @@ model User {
   providerId           String?                   @unique @map("provider_id")
   resetToken           String?                   @unique @map("reset_token")
   resetTokenExpiresAt  DateTime?                 @map("reset_token_expires_at")
+
+  // ── Security & session fields ──────────────────────────────────────────────
+  lastLoginAt          DateTime?                 @map("last_login_at")
+  twoFactorEnabled     Boolean                   @default(false) @map("two_factor_enabled")
+  failedLoginAttempts  Int                       @default(0) @map("failed_login_attempts")
+  lockedUntil          DateTime?                 @map("locked_until")
+
+  securityEvents       SecurityEvent[]
+  sessions             Session[]
+
   triggeredAiLogs      AiAnalysisLog[]
   actionedAiSuggs      AiSuggestion[]
   kpiAuditLogs         CampaignKpiAuditLog[]     @relation("KpiAuditChanger")
@@ -426,6 +436,7 @@ model Request {
   businessType    BusinessType           @map("business_type")
   source          ClientSource
   notes           String?
+  internalNotes   String?                @map("internal_notes")
   status          RequestStatus          @default(SUBMITTED)
   createdAt       DateTime               @default(now()) @map("created_at")
   updatedAt       DateTime               @updatedAt @map("updated_at")
@@ -1274,15 +1285,18 @@ model PaymentGateway {
 }
 
 model BankAccount {
-  id           String   @id @default(uuid())
-  accountName  String   @map("account_name")
-  iban         String   @unique
-  bankName     String   @map("bank_name")
-  swiftCode    String?  @map("swift_code")
-  instructions String?
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  accountName     String   @map("account_name")
+  accountNumber   String?  @map("account_number")
+  iban            String   @unique
+  bankName        String   @map("bank_name")
+  swiftCode       String?  @map("swift_code")
+  instructions    String?
+  isDefault       Boolean  @default(false) @map("is_default")
+  isActive        Boolean  @default(true) @map("is_active")
+  balance         Decimal? @default(0)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@map("bank_accounts")
 }
@@ -1456,6 +1470,61 @@ model Ledger {
   @@map("ledger")
 }
 
+// ── Security & Sessions ─────────────────────────────────────────────────────────
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  PASSWORD_RESET
+  PASSWORD_RESET_REQUESTED
+  IMPERSONATION
+  TWO_FACTOR_ENABLED
+  TWO_FACTOR_DISABLED
+  SESSION_REVOKED
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+  ROLE_CHANGED
+  PERMISSION_GRANTED
+  PERMISSION_REVOKED
+
+  @@map("security_event_types")
+}
+
+model SecurityEvent {
+  id        String            @id @default(uuid())
+  userId    String?           @map("user_id")
+  type      SecurityEventType
+  ip        String?           @map("ip")
+  userAgent String?           @map("user_agent")
+  metadata  Json?             @map("metadata")
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("security_events")
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  refreshTokenHash String    @map("refresh_token_hash")
+  userAgent        String?   @map("user_agent")
+  ip               String?   @map("ip")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshTokenHash])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
 model PaymentTicket {
   id         String       @id @default(uuid())
   invoiceId  String       @map("invoice_id")
@@ -1575,6 +1644,18 @@ model MessageAttachment {
 
   @@index([messageId])
   @@map("message_attachments")
+}
+
+model NotificationTemplate {
+  id        String   @id @default(uuid())
+  eventType String   @unique @map("event_type")
+  title     String
+  body      String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
 }
 
 model NotificationEvent {

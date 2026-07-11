@@ -22,7 +22,9 @@ const PRIORITY_COLORS = {
 
 export function PmDisputeCard({ dispute }: PmDisputeCardProps) {
   const hasMessages = dispute._count && dispute._count.messages > 0;
-  const showTimer = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(dispute.status);
+  const showTimer = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(
+    dispute.status,
+  );
 
   return (
     <Link
@@ -39,7 +41,7 @@ export function PmDisputeCard({ dispute }: PmDisputeCardProps) {
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-              PRIORITY_COLORS[dispute.priority]
+              PRIORITY_COLORS[dispute.priority],
             )}
           >
             {DISPUTE_PRIORITY_AR[dispute.priority]}
@@ -66,7 +68,10 @@ export function PmDisputeCard({ dispute }: PmDisputeCardProps) {
       {/* Timer for active disputes */}
       {showTimer && (
         <div className="mt-3">
-          <CompactTimer deadlineAt={dispute.deadlineAt} status={dispute.status} />
+          <CompactTimer
+            deadlineAt={dispute.deadlineAt}
+            status={dispute.status}
+          />
         </div>
       )}
 

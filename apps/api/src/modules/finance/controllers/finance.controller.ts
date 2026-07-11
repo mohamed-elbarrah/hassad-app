@@ -16,6 +16,7 @@ import {
   TopClientsDto,
   RevenueTrendDto,
   CreateInvoiceDto,
+  UpdateInvoiceDto,
   CreateTicketDto,
   RegisterPaymentDto,
   RunPayrollDto,
@@ -109,6 +110,22 @@ export class FinanceController {
   @RequirePermissions("finance.update_invoice")
   sendInvoice(@Param("id") id: string) {
     return this.financeService.sendInvoice(id);
+  }
+
+  @Patch("invoices/:id")
+  @RequirePermissions("finance.update_invoice")
+  updateInvoice(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Body() dto: UpdateInvoiceDto,
+  ) {
+    return this.financeService.updateInvoice(id, { ...dto, userId: user.id });
+  }
+
+  @Post("invoices/:id/remind")
+  @RequirePermissions("finance.update_invoice")
+  sendReminder(@Param("id") id: string) {
+    return this.financeService.sendReminder(id);
   }
 
   @Patch("invoices/:id/pay")

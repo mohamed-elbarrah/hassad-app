@@ -20,6 +20,10 @@ export class AuditLogQueryDto {
 
   @IsOptional()
   @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
   from?: string;
 
   @IsOptional()

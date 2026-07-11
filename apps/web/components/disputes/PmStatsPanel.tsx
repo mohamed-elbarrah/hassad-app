@@ -13,7 +13,12 @@ interface PmStatsPanelProps {
   showLink?: boolean;
 }
 
-export function PmStatsPanel({ stats, isLoading, pmId, showLink = true }: PmStatsPanelProps) {
+export function PmStatsPanel({
+  stats,
+  isLoading,
+  pmId,
+  showLink = true,
+}: PmStatsPanelProps) {
   if (isLoading) {
     return <PmStatsPanelSkeleton />;
   }
@@ -22,19 +27,25 @@ export function PmStatsPanel({ stats, isLoading, pmId, showLink = true }: PmStat
     return null;
   }
 
-  const resolutionRate = stats.totalDisputes > 0
-    ? Math.round((stats.resolvedDisputes / stats.totalDisputes) * 100)
-    : 0;
+  const resolutionRate =
+    stats.totalDisputes > 0
+      ? Math.round((stats.resolvedDisputes / stats.totalDisputes) * 100)
+      : 0;
 
   return (
-    <div className="rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5" dir="rtl">
+    <div
+      className="rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5"
+      dir="rtl"
+    >
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-100">
           <User className="h-4 w-4 text-secondary-600" />
         </div>
         <div>
-          <p className="text-sm font-medium text-natural-100">إحصائيات المدير</p>
+          <p className="text-sm font-medium text-natural-100">
+            إحصائيات المدير
+          </p>
           <p className="text-xs text-portal-note-text">{stats.userName}</p>
         </div>
       </div>
@@ -102,9 +113,17 @@ interface StatItemProps {
 
 const COLOR_STYLES = {
   blue: { bg: "bg-blue-50", iconBg: "bg-blue-100", iconColor: "text-blue-600" },
-  green: { bg: "bg-green-50", iconBg: "bg-green-100", iconColor: "text-green-600" },
+  green: {
+    bg: "bg-green-50",
+    iconBg: "bg-green-100",
+    iconColor: "text-green-600",
+  },
   red: { bg: "bg-red-50", iconBg: "bg-red-100", iconColor: "text-red-600" },
-  purple: { bg: "bg-purple-50", iconBg: "bg-purple-100", iconColor: "text-purple-600" },
+  purple: {
+    bg: "bg-purple-50",
+    iconBg: "bg-purple-100",
+    iconColor: "text-purple-600",
+  },
 };
 
 function StatItem({ icon, label, value, suffix, color }: StatItemProps) {
@@ -119,7 +138,11 @@ function StatItem({ icon, label, value, suffix, color }: StatItemProps) {
       </div>
       <p className="text-lg font-bold text-natural-100">
         {value}
-        {suffix && <span className="text-sm font-normal text-portal-note-text mr-1">{suffix}</span>}
+        {suffix && (
+          <span className="text-sm font-normal text-portal-note-text mr-1">
+            {suffix}
+          </span>
+        )}
       </p>
       <p className="text-xs text-portal-note-text">{label}</p>
     </div>
@@ -128,7 +151,10 @@ function StatItem({ icon, label, value, suffix, color }: StatItemProps) {
 
 function PmStatsPanelSkeleton() {
   return (
-    <div className="rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5" dir="rtl">
+    <div
+      className="rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5"
+      dir="rtl"
+    >
       <div className="flex items-center gap-2 mb-4">
         <Skeleton className="h-8 w-8 rounded-full" />
         <div className="space-y-1">

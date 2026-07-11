@@ -92,7 +92,10 @@ function AssigneeDropdown({
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
     }
@@ -133,7 +136,7 @@ function AssigneeDropdown({
       {/* Trigger */}
       {selected ? (
         <div
-          className="flex items-center gap-2 rounded-xl border border-portal-card-border bg-neutral-50 px-3 py-2 cursor-pointer"
+          className="flex items-center gap-2 rounded-xl border border-portal-card-border bg-badge-gray-bg px-3 py-2 cursor-pointer"
           onClick={() => setOpen(true)}
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-100 text-secondary-600 text-sm font-semibold shrink-0">
@@ -143,7 +146,9 @@ function AssigneeDropdown({
             <div className="text-sm font-medium text-natural-100 truncate">
               {selected.name}
             </div>
-            <div className="text-[11px] text-neutral-400">{selected.role}</div>
+            <div className="text-[11px] text-portal-note-text">
+              {selected.role}
+            </div>
           </div>
           <button
             type="button"
@@ -151,7 +156,7 @@ function AssigneeDropdown({
               e.stopPropagation();
               onChange("");
             }}
-            className="rounded-full p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-600 transition-colors"
+            className="rounded-full p-1 text-portal-note-text hover:bg-badge-gray-bg hover:text-natural-100 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -164,14 +169,14 @@ function AssigneeDropdown({
           className={cn(
             "flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm transition-colors",
             !dept
-              ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
+              ? "border-portal-card-border bg-badge-gray-bg text-portal-note-text cursor-not-allowed"
               : "border-portal-card-border bg-white text-natural-100 hover:border-secondary-300 cursor-pointer",
           )}
         >
-          <span className={cn(!dept && "text-neutral-400")}>
+          <span className={cn(!dept && "text-portal-note-text")}>
             {!dept ? "اختر القسم أولاً" : "اختر المسند إليه"}
           </span>
-          <ChevronDown className="h-4 w-4 text-neutral-400" />
+          <ChevronDown className="h-4 w-4 text-portal-note-text" />
         </button>
       )}
 
@@ -181,13 +186,13 @@ function AssigneeDropdown({
           {/* Search box inside dropdown */}
           <div className="border-b border-portal-divider p-2">
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-portal-note-text" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="ابحث بالاسم أو الدور..."
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2 pr-9 pl-3 text-sm text-natural-100 placeholder:text-neutral-400 focus:border-secondary-500 focus:outline-none focus:ring-1 focus:ring-secondary-500/20"
+                className="w-full rounded-lg border border-portal-card-border bg-badge-gray-bg py-2 pr-9 pl-3 text-sm text-natural-100 placeholder:text-portal-note-text focus:border-secondary-500 focus:outline-none focus:ring-1 focus:ring-secondary-500/20"
                 autoFocus
               />
             </div>
@@ -196,11 +201,11 @@ function AssigneeDropdown({
           {/* List */}
           <div className="max-h-60 overflow-y-auto">
             {isFetching ? (
-              <div className="px-3 py-4 text-sm text-neutral-400 text-center">
+              <div className="px-3 py-4 text-sm text-portal-note-text text-center">
                 جارٍ التحميل...
               </div>
             ) : filtered.length === 0 ? (
-              <div className="px-3 py-4 text-sm text-neutral-400 text-center">
+              <div className="px-3 py-4 text-sm text-portal-note-text text-center">
                 {users.length === 0
                   ? "لا يوجد مستخدمون في هذا القسم"
                   : "لا توجد نتائج مطابقة"}
@@ -216,18 +221,18 @@ function AssigneeDropdown({
                       setOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center gap-3 px-3 py-2.5 text-right transition-colors hover:bg-neutral-50",
+                      "flex w-full items-center gap-3 px-3 py-2.5 text-right transition-colors hover:bg-badge-gray-bg",
                       user.id === value && "bg-secondary-50",
                     )}
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 text-sm font-semibold shrink-0">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-badge-gray-bg text-natural-100 text-sm font-semibold shrink-0">
                       {user.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0 text-right">
                       <div className="text-sm font-medium text-natural-100">
                         {user.name}
                       </div>
-                      <div className="text-[11px] text-neutral-400 flex items-center gap-1">
+                      <div className="text-[11px] text-portal-note-text flex items-center gap-1">
                         <User className="h-3 w-3" />
                         {user.role}
                         {user.department && (
@@ -251,7 +256,11 @@ function AssigneeDropdown({
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function TaskForm({ projectId, open: openProp, onOpenChange }: TaskFormProps) {
+export function TaskForm({
+  projectId,
+  open: openProp,
+  onOpenChange,
+}: TaskFormProps) {
   const [openInternal, setOpenInternal] = useState(false);
   const open = openProp ?? openInternal;
   const setOpen = (value: boolean) => {
@@ -315,42 +324,83 @@ export function TaskForm({ projectId, open: openProp, onOpenChange }: TaskFormPr
         contentClassName="sm:max-w-md"
       >
         <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>عنوان المهمة</FormLabel>
-                <FormControl>
-                  <FormInputControl
-                    placeholder="أدخل عنوان المهمة"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="dept"
+              name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>القسم</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    placeholder="اختر القسم"
-                  >
-                    {Object.values(TaskDepartment).map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {DEPT_LABELS[d]}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                  <FormLabel>عنوان المهمة</FormLabel>
+                  <FormControl>
+                    <FormInputControl
+                      placeholder="أدخل عنوان المهمة"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="dept"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>القسم</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      placeholder="اختر القسم"
+                    >
+                      {Object.values(TaskDepartment).map((d) => (
+                        <SelectItem key={d} value={d}>
+                          {DEPT_LABELS[d]}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>الأولوية</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      placeholder="عادي"
+                    >
+                      {Object.values(TaskPriority).map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {PRIORITY_LABELS[p]}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="assignedTo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>المسند إليه</FormLabel>
+                  <FormControl>
+                    <AssigneeDropdown
+                      value={field.value}
+                      onChange={field.onChange}
+                      dept={watchedDept}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -358,92 +408,51 @@ export function TaskForm({ projectId, open: openProp, onOpenChange }: TaskFormPr
 
             <FormField
               control={form.control}
-              name="priority"
+              name="dueDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الأولوية</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    placeholder="عادي"
-                  >
-                    {Object.values(TaskPriority).map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {PRIORITY_LABELS[p]}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                  <FormLabel>تاريخ الاستحقاق</FormLabel>
+                  <FormControl>
+                    <FormInputControl type="date" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </div>
 
-          <FormField
-            control={form.control}
-            name="assignedTo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>المسند إليه</FormLabel>
-                <FormControl>
-                  <AssigneeDropdown
-                    value={field.value}
-                    onChange={field.onChange}
-                    dept={watchedDept}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الوصف (اختياري)</FormLabel>
+                  <FormControl>
+                    <FormTextareaControl
+                      placeholder="وصف المهمة"
+                      rows={3}
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="dueDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>تاريخ الاستحقاق</FormLabel>
-                <FormControl>
-                  <FormInputControl type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>الوصف (اختياري)</FormLabel>
-                <FormControl>
-                  <FormTextareaControl
-                    placeholder="وصف المهمة"
-                    rows={3}
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <ActionButton
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              إلغاء
-            </ActionButton>
-            <ActionButton type="submit" disabled={isLoading}>
-              {isLoading ? "جارٍ الإنشاء..." : "إنشاء المهمة"}
-            </ActionButton>
-          </div>
-        </form>
-      </Form>
+            <div className="flex justify-end gap-3 pt-2">
+              <ActionButton
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                إلغاء
+              </ActionButton>
+              <ActionButton type="submit" disabled={isLoading}>
+                {isLoading ? "جارٍ الإنشاء..." : "إنشاء المهمة"}
+              </ActionButton>
+            </div>
+          </form>
+        </Form>
       </Dialog>
     </>
   );

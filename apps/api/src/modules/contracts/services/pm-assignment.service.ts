@@ -71,11 +71,16 @@ export class PmAssignmentService {
     const pmProfiles = activePms.map((pm) => {
       const currentLoad = pm.managedProjects.length;
       // Last assigned = most recent project creation date, or epoch if none
-      const lastAssignedAt = pm.managedProjects.length > 0
-        ? new Date(
-            Math.max(...pm.managedProjects.map((p) => new Date(p.createdAt).getTime())),
-          ).toISOString()
-        : new Date(0).toISOString();
+      const lastAssignedAt =
+        pm.managedProjects.length > 0
+          ? new Date(
+              Math.max(
+                ...pm.managedProjects.map((p) =>
+                  new Date(p.createdAt).getTime(),
+                ),
+              ),
+            ).toISOString()
+          : new Date(0).toISOString();
 
       return {
         id: pm.id,
@@ -131,9 +136,7 @@ export class PmAssignmentService {
     const candidates = pmProfiles.filter((p) => p.currentLoad === minLoad);
 
     // Tiebreaker: least recently assigned
-    candidates.sort((a, b) =>
-      a.lastAssignedAt.localeCompare(b.lastAssignedAt),
-    );
+    candidates.sort((a, b) => a.lastAssignedAt.localeCompare(b.lastAssignedAt));
 
     const chosen = candidates[0];
     const isFallback = preferredPmIds.length === 0;

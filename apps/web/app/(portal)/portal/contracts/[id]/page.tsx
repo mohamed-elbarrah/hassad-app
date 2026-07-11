@@ -4,12 +4,7 @@ import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useState, use, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
-import {
-  FileText,
-  Download,
-  CheckCircle,
-  PenLine,
-} from "lucide-react";
+import { FileText, Download, CheckCircle, PenLine } from "lucide-react";
 import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
@@ -45,9 +40,7 @@ const TYPE_LABELS: Record<string, string> = {
 export default function PortalContractDetailPage({ params }: PageProps) {
   const { id } = use(params);
   return (
-    <Suspense
-      fallback={<DetailSkeleton variant="contract" />}
-    >
+    <Suspense fallback={<DetailSkeleton variant="contract" />}>
       <PortalContractDetailInner id={id} />
     </Suspense>
   );
@@ -93,7 +86,8 @@ function PortalContractDetailInner({ id }: { id: string }) {
   const invoices = data.invoices ?? [];
 
   const allInvoicesPaid =
-    invoices.length > 0 && invoices.every((inv) => inv.status === InvoiceStatus.PAID);
+    invoices.length > 0 &&
+    invoices.every((inv) => inv.status === InvoiceStatus.PAID);
   const canSignNow =
     canSign && allInvoicesPaid && signedByName.trim() && signedByEmail.trim();
   const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
@@ -120,7 +114,11 @@ function PortalContractDetailInner({ id }: { id: string }) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      <DetailBreadcrumb backHref="/portal/contracts" backLabel="العقود" title={data.title} />
+      <DetailBreadcrumb
+        backHref="/portal/contracts"
+        backLabel="العقود"
+        title={data.title}
+      />
 
       {/* Main contract card */}
       <SurfaceCard

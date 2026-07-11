@@ -19,7 +19,11 @@ export class ProjectGroupChatService {
 
     if (!project) return null;
 
-    const participantIds = await this.resolveParticipantIds(projectId, project.projectManagerId, db);
+    const participantIds = await this.resolveParticipantIds(
+      projectId,
+      project.projectManagerId,
+      db,
+    );
     if (participantIds.length === 0) return null;
 
     return (db ?? this.prisma).conversation.create({
@@ -68,9 +72,15 @@ export class ProjectGroupChatService {
     const conversation = await this.ensure(projectId, db);
     if (!conversation) return null;
 
-    const expectedIds = await this.resolveParticipantIds(projectId, project.projectManagerId, db);
+    const expectedIds = await this.resolveParticipantIds(
+      projectId,
+      project.projectManagerId,
+      db,
+    );
 
-    const currentParticipants = await (db ?? this.prisma).conversationParticipant.findMany({
+    const currentParticipants = await (
+      db ?? this.prisma
+    ).conversationParticipant.findMany({
       where: { conversationId: conversation.id },
       select: { id: true, userId: true },
     });

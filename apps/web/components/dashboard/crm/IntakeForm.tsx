@@ -123,7 +123,7 @@ export function IntakeForm({
     async (values: IntakeFormValues) => {
       try {
         const selectedServices = services.filter((s) =>
-          values.services.includes(s.id)
+          values.services.includes(s.id),
         );
 
         const notes = JSON.stringify({
@@ -147,7 +147,7 @@ export function IntakeForm({
 
         toast.success(
           "تم إرسال بياناتك بنجاح! سيتواصل معك فريق المبيعات قريباً.",
-          { duration: 5000 }
+          { duration: 5000 },
         );
         onSuccess();
       } catch (err: unknown) {
@@ -156,11 +156,11 @@ export function IntakeForm({
         toast.error(
           Array.isArray(msg)
             ? msg.join("; ")
-            : msg || "حدث خطأ. يرجى المحاولة مرة أخرى."
+            : msg || "حدث خطأ. يرجى المحاولة مرة أخرى.",
         );
       }
     },
-    [createRequest, onSuccess, services]
+    [createRequest, onSuccess, services],
   );
 
   // Memoized service items
@@ -173,10 +173,7 @@ export function IntakeForm({
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
         {/* ── Progress Stepper ─────────────────────────────────────────── */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -190,8 +187,8 @@ export function IntakeForm({
                       step === s
                         ? "bg-secondary-500 text-white shadow-lg shadow-secondary-500/25"
                         : step > s
-                        ? "bg-success-500 text-white"
-                        : "bg-neutral-100 text-neutral-400"
+                          ? "bg-success-500 text-white"
+                          : "bg-neutral-100 text-neutral-400",
                     )}
                   >
                     {step > s ? <CheckCircle2 className="w-5 h-5" /> : s}
@@ -199,7 +196,7 @@ export function IntakeForm({
                   <span
                     className={cn(
                       "text-xs font-medium transition-colors whitespace-nowrap",
-                      step >= s ? "text-natural-100" : "text-neutral-300"
+                      step >= s ? "text-natural-100" : "text-neutral-300",
                     )}
                   >
                     {s === 1 ? "بيانات التواصل" : "تفاصيل المشروع"}
@@ -212,7 +209,7 @@ export function IntakeForm({
                     <div
                       className={cn(
                         "h-1.5 rounded-full transition-all duration-500 flex-1",
-                        step > s ? "bg-success-400" : "bg-neutral-100"
+                        step > s ? "bg-success-400" : "bg-neutral-100",
                       )}
                     />
                   </div>
@@ -401,7 +398,7 @@ export function IntakeForm({
                               "flex flex-row items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all duration-200",
                               isSelected
                                 ? "border-secondary-500 bg-secondary-50/50 shadow-sm"
-                                : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/40"
+                                : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50/40",
                             )}
                           >
                             {/* Purely-visual checkmark — no Radix primitive */}
@@ -410,7 +407,7 @@ export function IntakeForm({
                                 "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-[1.5px] transition-colors",
                                 isSelected
                                   ? "border-secondary-500 bg-secondary-500 text-white"
-                                  : "border-portal-card-border bg-white"
+                                  : "border-portal-card-border bg-white",
                               )}
                             >
                               {isSelected && <Check className="h-3 w-3" />}

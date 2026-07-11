@@ -66,10 +66,7 @@ export class PortalDisputesController {
   }
 
   @Get(":id")
-  async getDisputeById(
-    @CurrentUser() user: any,
-    @Param("id") id: string,
-  ) {
+  async getDisputeById(@CurrentUser() user: any, @Param("id") id: string) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new NotFoundException("التذكرة غير موجودة");
     return this.disputesService.getClientDisputeById(clientId, id);

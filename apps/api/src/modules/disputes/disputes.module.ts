@@ -26,7 +26,11 @@ import { ProjectsModule } from "../projects/projects.module";
     NotificationsModule,
     ProjectsModule,
   ],
-  controllers: [PortalDisputesController, PmDisputesController, AdminDisputesController],
+  controllers: [
+    PortalDisputesController,
+    PmDisputesController,
+    AdminDisputesController,
+  ],
   providers: [DisputesService, DisputesNotificationsService, DisputesScheduler],
   exports: [DisputesService],
 })

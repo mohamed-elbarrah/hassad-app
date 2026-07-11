@@ -45,15 +45,78 @@ interface Step8Props {
 }
 
 const SECTIONS: ReviewSection[] = [
-  { key: "communicationInfo", stepIndex: 0, title: "الملخص التواصلي", icon: User, data: undefined, isOptional: false },
-  { key: "productInfo", stepIndex: 1, title: "معلومات المنتج / الخدمة", icon: Building2, data: undefined, isOptional: true },
-  { key: "audienceInfo", stepIndex: 2, title: "الجمهور والرسائل", icon: Target, data: undefined, isOptional: true },
-  { key: "brandVoice", stepIndex: 2, title: "الرسائل والهوية", icon: FileText, data: undefined, isOptional: true },
-  { key: "customerJourney", stepIndex: 3, title: "رحلة العميل", icon: ShoppingCart, data: undefined, isOptional: true },
-  { key: "campaignInfo", stepIndex: 4, title: "الحملة الإعلانية", icon: Megaphone, data: undefined, isOptional: true },
-  { key: "pastPerformance", stepIndex: 5, title: "الأداء السابق", icon: TrendingUp, data: undefined, isOptional: true },
-  { key: "budgetInfo", stepIndex: 5, title: "الميزانية", icon: TrendingUp, data: undefined, isOptional: true },
-  { key: "visualIdentityInfo", stepIndex: 6, title: "الهوية البصرية", icon: Palette, data: undefined, isOptional: true },
+  {
+    key: "communicationInfo",
+    stepIndex: 0,
+    title: "الملخص التواصلي",
+    icon: User,
+    data: undefined,
+    isOptional: false,
+  },
+  {
+    key: "productInfo",
+    stepIndex: 1,
+    title: "معلومات المنتج / الخدمة",
+    icon: Building2,
+    data: undefined,
+    isOptional: true,
+  },
+  {
+    key: "audienceInfo",
+    stepIndex: 2,
+    title: "الجمهور والرسائل",
+    icon: Target,
+    data: undefined,
+    isOptional: true,
+  },
+  {
+    key: "brandVoice",
+    stepIndex: 2,
+    title: "الرسائل والهوية",
+    icon: FileText,
+    data: undefined,
+    isOptional: true,
+  },
+  {
+    key: "customerJourney",
+    stepIndex: 3,
+    title: "رحلة العميل",
+    icon: ShoppingCart,
+    data: undefined,
+    isOptional: true,
+  },
+  {
+    key: "campaignInfo",
+    stepIndex: 4,
+    title: "الحملة الإعلانية",
+    icon: Megaphone,
+    data: undefined,
+    isOptional: true,
+  },
+  {
+    key: "pastPerformance",
+    stepIndex: 5,
+    title: "الأداء السابق",
+    icon: TrendingUp,
+    data: undefined,
+    isOptional: true,
+  },
+  {
+    key: "budgetInfo",
+    stepIndex: 5,
+    title: "الميزانية",
+    icon: TrendingUp,
+    data: undefined,
+    isOptional: true,
+  },
+  {
+    key: "visualIdentityInfo",
+    stepIndex: 6,
+    title: "الهوية البصرية",
+    icon: Palette,
+    data: undefined,
+    isOptional: true,
+  },
 ];
 
 const FIELD_LABELS: Record<string, string> = {
@@ -132,7 +195,10 @@ function renderFieldValue(key: string, value: unknown): ReactNode {
     return (
       <div className="space-y-2">
         {value.map((pair: Record<string, unknown>, i) => (
-          <div key={i} className="text-xs bg-secondary-50 rounded-lg p-2 space-y-1">
+          <div
+            key={i}
+            className="text-xs bg-secondary-50 rounded-lg p-2 space-y-1"
+          >
             <p>
               <span className="font-medium text-natural-100">س: </span>
               {String(pair.question ?? "")}
@@ -157,7 +223,10 @@ function renderFieldValue(key: string, value: unknown): ReactNode {
       return (
         <div className="space-y-1">
           {value.map((name, i) => (
-            <p key={i} className="text-xs flex items-center gap-1.5 text-portal-note-text">
+            <p
+              key={i}
+              className="text-xs flex items-center gap-1.5 text-portal-note-text"
+            >
               <FileText className="w-3 h-3 text-portal-icon shrink-0" />
               {name}
             </p>
@@ -226,10 +295,7 @@ export function Step8_Review({
   }).length;
 
   return (
-    <SurfaceCard
-      className="shadow-none"
-      contentClassName="p-6"
-    >
+    <SurfaceCard className="shadow-none" contentClassName="p-6">
       <div className="space-y-6">
         <div>
           <p className="text-sm font-medium text-portal-icon mb-1">الخطوة 8</p>

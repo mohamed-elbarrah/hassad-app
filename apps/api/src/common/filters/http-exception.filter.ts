@@ -9,7 +9,10 @@ import {
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { RobustErrorLoggerService } from "../../modules/health/services/robust-error-logger.service";
-import { ErrorCategory, ErrorLevel } from "../../modules/health/dto/health-check.dto";
+import {
+  ErrorCategory,
+  ErrorLevel,
+} from "../../modules/health/dto/health-check.dto";
 
 @Injectable()
 @Catch()
@@ -56,16 +59,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
       path,
       method,
       userId,
-      userAgent: request.get('user-agent'),
+      userAgent: request.get("user-agent"),
       ip: request.ip,
       query: queryParams,
       timestamp: new Date().toISOString(),
       // Include request ID for tracing
-      requestId: request.headers['x-request-id'] || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      requestId:
+        request.headers["x-request-id"] ||
+        `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     };
 
     // Include sanitized body for non-GET requests
-    if (method !== 'GET' && requestBody) {
+    if (method !== "GET" && requestBody) {
       context.requestBody = requestBody;
     }
 
@@ -74,15 +79,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const category = this.categorizeError(path, exception);
 
     // Create error summary
-    const summary = exception instanceof Error
-      ? `${exception.name}: ${exception.message}`
-      : String(normalizedMessage);
+    const summary =
+      exception instanceof Error
+        ? `${exception.name}: ${exception.message}`
+        : String(normalizedMessage);
 
     // Log to console immediately
     if (level === ErrorLevel.ERROR) {
       this.logger.error(
         `${method} ${path} -> ${status} ${summary}`,
-        exception instanceof Error ? exception.stack : undefined
+        exception instanceof Error ? exception.stack : undefined,
       );
     }
 
@@ -100,7 +106,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       metadata: {
         httpStatus: status,
         isHttpException: exception instanceof HttpException,
-        exceptionName: exception instanceof Error ? exception.name : 'Unknown',
+        exceptionName: exception instanceof Error ? exception.name : "Unknown",
       },
     });
 
@@ -134,63 +140,101 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   private categorizeError(path: string, exception: unknown): ErrorCategory {
     // Map paths to error categories
-    if (path.includes('/payments') || path.includes('/invoices') || path.includes('/stripe')) {
+    if (
+      path.includes("/payments") ||
+      path.includes("/invoices") ||
+      path.includes("/stripe")
+    ) {
       return ErrorCategory.PAYMENT_GATEWAY;
     }
-    if (path.includes('/storage') || path.includes('/files') || path.includes('/upload')) {
+    if (
+      path.includes("/storage") ||
+      path.includes("/files") ||
+      path.includes("/upload")
+    ) {
       return ErrorCategory.STORAGE;
     }
-    if (path.includes('/auth') || path.includes('/login') || path.includes('/register') || path.includes('/password')) {
+    if (
+      path.includes("/auth") ||
+      path.includes("/login") ||
+      path.includes("/register") ||
+      path.includes("/password")
+    ) {
       return ErrorCategory.AUTH;
     }
-    if (path.includes('/ai/') || path.includes('/analyze')) {
+    if (path.includes("/ai/") || path.includes("/analyze")) {
       return ErrorCategory.AI_SERVICE;
     }
-    if (path.includes('/email') || path.includes('/notifications') || path.includes('/smtp')) {
+    if (
+      path.includes("/email") ||
+      path.includes("/notifications") ||
+      path.includes("/smtp")
+    ) {
       return ErrorCategory.EMAIL;
     }
-    if (path.includes('/health') || path.includes('/admin/health')) {
+    if (path.includes("/health") || path.includes("/admin/health")) {
       return ErrorCategory.DATABASE; // Health checks monitor DB
     }
-    
+
     // Check exception type for database errors
     if (exception instanceof Error) {
       const msg = exception.message.toLowerCase();
-      if (msg.includes('prisma') || msg.includes('database') || msg.includes('connection') || msg.includes('timeout')) {
+      if (
+        msg.includes("prisma") ||
+        msg.includes("database") ||
+        msg.includes("connection") ||
+        msg.includes("timeout")
+      ) {
         return ErrorCategory.DATABASE;
       }
-      if (msg.includes('memory') || msg.includes('heap') || msg.includes('out of memory')) {
+      if (
+        msg.includes("memory") ||
+        msg.includes("heap") ||
+        msg.includes("out of memory")
+      ) {
         return ErrorCategory.MEMORY;
       }
-      if (msg.includes('network') || msg.includes('econnrefused') || msg.includes('enotfound')) {
+      if (
+        msg.includes("network") ||
+        msg.includes("econnrefused") ||
+        msg.includes("enotfound")
+      ) {
         return ErrorCategory.NETWORK;
       }
     }
-    
+
     return ErrorCategory.GENERAL;
   }
 
   private getServiceName(path: string): string {
-    const segments = path.split('/').filter(Boolean);
+    const segments = path.split("/").filter(Boolean);
     if (segments.length >= 2) {
       return segments[1].toUpperCase();
     }
-    return 'API';
+    return "API";
   }
 
   private sanitizeRequestBody(body: any): any {
-    if (!body || typeof body !== 'object') return body;
-    
-    const sensitiveFields = ['password', 'token', 'secret', 'authorization', 'cookie', 'credit_card', 'cvv'];
+    if (!body || typeof body !== "object") return body;
+
+    const sensitiveFields = [
+      "password",
+      "token",
+      "secret",
+      "authorization",
+      "cookie",
+      "credit_card",
+      "cvv",
+    ];
     const sanitized = { ...body };
-    
+
     for (const key of Object.keys(sanitized)) {
       const lowerKey = key.toLowerCase();
-      if (sensitiveFields.some(field => lowerKey.includes(field))) {
-        sanitized[key] = '[REDACTED]';
+      if (sensitiveFields.some((field) => lowerKey.includes(field))) {
+        sanitized[key] = "[REDACTED]";
       }
     }
-    
+
     return sanitized;
   }
 }

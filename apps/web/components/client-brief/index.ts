@@ -9,6 +9,15 @@ export { ClientBriefSidebar } from "./ClientBriefSidebar";
 export { ClientBrief, type ClientBriefView } from "./ClientBrief";
 export { ClientBriefCompact } from "./ClientBriefCompact";
 export { ClientBriefV2 } from "./ClientBriefV2";
+export {
+  SIDEBAR_VISIBILITY,
+  PROFILE_SECTION_VISIBILITY,
+  KPI_VISIBILITY,
+  type SidebarField,
+  type SidebarVisibility,
+  type ProfileSectionKey,
+  type KpiKey,
+} from "./profile-visibility";
 export { IdentitySidebar } from "./IdentitySidebar";
 export { KpiGrid } from "./KpiGrid";
 export { EmptySection } from "./EmptySection";

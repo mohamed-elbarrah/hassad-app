@@ -1,25 +1,25 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 const CLIENT_PERMISSIONS = [
-  'clients.read',
-  'clients.create',
-  'clients.update',
-  'clients.read_activity',
-  'clients.handover',
+  "clients.read",
+  "clients.create",
+  "clients.update",
+  "clients.read_activity",
+  "clients.handover",
 ];
 
 const ROLE_ASSIGNMENTS: Record<string, string[]> = {
   ADMIN: CLIENT_PERMISSIONS,
   SALES: [
-    'clients.read',
-    'clients.create',
-    'clients.update',
-    'clients.read_activity',
+    "clients.read",
+    "clients.create",
+    "clients.update",
+    "clients.read_activity",
   ],
-  PM: ['clients.read'],
-  CLIENT: ['clients.read'],
+  PM: ["clients.read"],
+  CLIENT: ["clients.read"],
 };
 
 async function main() {
@@ -68,7 +68,7 @@ async function main() {
     }
   }
 
-  console.log('Done.');
+  console.log("Done.");
 }
 
 main()

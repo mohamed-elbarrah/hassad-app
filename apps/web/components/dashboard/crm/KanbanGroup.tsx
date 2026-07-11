@@ -9,11 +9,7 @@ interface KanbanGroupProps {
   children: React.ReactNode;
 }
 
-export function KanbanGroup({
-  label,
-  totalCount,
-  children,
-}: KanbanGroupProps) {
+export function KanbanGroup({ label, totalCount, children }: KanbanGroupProps) {
   return (
     <div
       className={cn(

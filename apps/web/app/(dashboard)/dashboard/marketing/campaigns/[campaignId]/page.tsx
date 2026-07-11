@@ -75,12 +75,18 @@ export default function CampaignDetailPage() {
 
   const { data: campaign, isLoading } = useGetCampaignQuery(campaignId);
 
-  const [updateMetrics, { isLoading: isSaving }] = useUpdateCampaignMetricsMutation();
-  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateCampaignStatusMutation();
-  const [flagOptimization, { isLoading: isFlagging }] = useFlagOptimizationMutation();
-  const [duplicate, { isLoading: isDuplicating }] = useDuplicateCampaignMutation();
-  const [archiveCampaign, { isLoading: isArchiving }] = useArchiveCampaignMutation();
-  const [unarchiveCampaign, { isLoading: isUnarchiving }] = useUnarchiveCampaignMutation();
+  const [updateMetrics, { isLoading: isSaving }] =
+    useUpdateCampaignMetricsMutation();
+  const [updateStatus, { isLoading: isUpdatingStatus }] =
+    useUpdateCampaignStatusMutation();
+  const [flagOptimization, { isLoading: isFlagging }] =
+    useFlagOptimizationMutation();
+  const [duplicate, { isLoading: isDuplicating }] =
+    useDuplicateCampaignMutation();
+  const [archiveCampaign, { isLoading: isArchiving }] =
+    useArchiveCampaignMutation();
+  const [unarchiveCampaign, { isLoading: isUnarchiving }] =
+    useUnarchiveCampaignMutation();
 
   // Form state (controlled — batch save)
   const [form, setForm] = useState<Record<string, number>>({});
@@ -128,7 +134,10 @@ export default function CampaignDetailPage() {
       revenue: form.revenue ?? campaign.analytics?.revenue ?? 0,
     },
   });
-  const budgetPct = campaign.budgetTotal > 0 ? Math.min(100, (m.budgetSpent / campaign.budgetTotal) * 100) : 0;
+  const budgetPct =
+    campaign.budgetTotal > 0
+      ? Math.min(100, (m.budgetSpent / campaign.budgetTotal) * 100)
+      : 0;
 
   const isProfitable = m.profit > 0;
   const isRoasGood = m.roas >= 2;
@@ -137,7 +146,8 @@ export default function CampaignDetailPage() {
   const canStart = campaign.status === "PLANNING";
   const canPause = campaign.status === "ACTIVE";
   const canStop = campaign.status === "ACTIVE" || campaign.status === "PAUSED";
-  const canComplete = campaign.status === "ACTIVE" || campaign.status === "PAUSED";
+  const canComplete =
+    campaign.status === "ACTIVE" || campaign.status === "PAUSED";
 
   const backHref = campaign.taskId
     ? `/dashboard/marketing/tasks/${campaign.taskId}`
@@ -145,7 +155,9 @@ export default function CampaignDetailPage() {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  const handleStatusAction = async (action: "start" | "pause" | "stop" | "end") => {
+  const handleStatusAction = async (
+    action: "start" | "pause" | "stop" | "end",
+  ) => {
     try {
       await updateStatus({ id: campaign.id, action }).unwrap();
       toast.success("تم تحديث حالة الحملة");
@@ -156,7 +168,10 @@ export default function CampaignDetailPage() {
 
   const handleFlagOptimization = async () => {
     try {
-      await flagOptimization({ id: campaign.id, needsOptimization: !campaign.needsOptimization }).unwrap();
+      await flagOptimization({
+        id: campaign.id,
+        needsOptimization: !campaign.needsOptimization,
+      }).unwrap();
       toast.success("تم تحديث حالة التحسين");
     } catch {
       toast.error("فشل التحديث");
@@ -221,8 +236,16 @@ export default function CampaignDetailPage() {
       title: "الأداء المالي والربحية",
       icon: <DollarSign className="w-4 h-4" />,
       metrics: [
-        { label: "الربح الصافي", value: formatCurrency(m.profit), tone: isProfitable ? "success" : m.profit < 0 ? "danger" : "neutral" },
-        { label: "الـ ROAS", value: m.roas > 0 ? `${m.roas.toFixed(2)}x` : "—", tone: isRoasGood ? "success" : isRoasBad ? "danger" : "neutral" },
+        {
+          label: "الربح الصافي",
+          value: formatCurrency(m.profit),
+          tone: isProfitable ? "success" : m.profit < 0 ? "danger" : "neutral",
+        },
+        {
+          label: "الـ ROAS",
+          value: m.roas > 0 ? `${m.roas.toFixed(2)}x` : "—",
+          tone: isRoasGood ? "success" : isRoasBad ? "danger" : "neutral",
+        },
         { label: "الإنفاق الكلي", value: formatCurrency(m.budgetSpent) },
         { label: "إجمالي العائد", value: formatCurrency(m.revenue) },
       ],
@@ -232,9 +255,21 @@ export default function CampaignDetailPage() {
       icon: <Target className="w-4 h-4" />,
       metrics: [
         { label: "التحويلات", value: formatNumber(m.conversions) },
-        { label: "الـ CPA", value: m.cpa > 0 ? formatCurrency(m.cpa) : "—", tone: m.cpa > 0 && m.cpa < 50 ? "success" : "neutral" },
-        { label: "معدل التحويل", value: m.convRate > 0 ? `${m.convRate.toFixed(2)}%` : "—", tone: m.convRate > 1 ? "success" : m.convRate > 0 ? "danger" : "neutral" },
-        { label: "تكلفة العميل", value: m.cpa > 0 ? formatCurrency(m.cpa) : "—" },
+        {
+          label: "الـ CPA",
+          value: m.cpa > 0 ? formatCurrency(m.cpa) : "—",
+          tone: m.cpa > 0 && m.cpa < 50 ? "success" : "neutral",
+        },
+        {
+          label: "معدل التحويل",
+          value: m.convRate > 0 ? `${m.convRate.toFixed(2)}%` : "—",
+          tone:
+            m.convRate > 1 ? "success" : m.convRate > 0 ? "danger" : "neutral",
+        },
+        {
+          label: "تكلفة العميل",
+          value: m.cpa > 0 ? formatCurrency(m.cpa) : "—",
+        },
       ],
     },
     {
@@ -243,7 +278,11 @@ export default function CampaignDetailPage() {
       metrics: [
         { label: "الظهور", value: formatNumber(m.impressions) },
         { label: "النقرات", value: formatNumber(m.clicks) },
-        { label: "الـ CTR", value: m.ctr > 0 ? `${m.ctr.toFixed(2)}%` : "—", tone: m.ctr > 0.8 ? "success" : m.ctr > 0 ? "danger" : "neutral" },
+        {
+          label: "الـ CTR",
+          value: m.ctr > 0 ? `${m.ctr.toFixed(2)}%` : "—",
+          tone: m.ctr > 0.8 ? "success" : m.ctr > 0 ? "danger" : "neutral",
+        },
         { label: "الـ CPM", value: m.cpm > 0 ? formatCurrency(m.cpm) : "—" },
       ],
     },
@@ -288,18 +327,32 @@ export default function CampaignDetailPage() {
         <div className="flex flex-col items-start lg:items-end gap-3 shrink-0">
           <div className="flex items-center gap-5 text-right">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-portal-note-text">الميزانية</p>
-              <p className="text-sm font-semibold text-natural-100">{formatCurrency(campaign.budgetTotal)}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-portal-note-text">
+                الميزانية
+              </p>
+              <p className="text-sm font-semibold text-natural-100">
+                {formatCurrency(campaign.budgetTotal)}
+              </p>
             </div>
             <div className="h-8 w-px bg-portal-divider" />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-portal-note-text">الإنفاق</p>
-              <p className="text-sm font-semibold text-natural-100">{formatCurrency(m.budgetSpent)}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-portal-note-text">
+                الإنفاق
+              </p>
+              <p className="text-sm font-semibold text-natural-100">
+                {formatCurrency(m.budgetSpent)}
+              </p>
             </div>
             <div className="h-8 w-px bg-portal-divider" />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-portal-note-text">المتبقي</p>
-              <p className="text-sm font-semibold text-natural-100">{formatCurrency(Math.max(0, campaign.budgetTotal - m.budgetSpent))}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-portal-note-text">
+                المتبقي
+              </p>
+              <p className="text-sm font-semibold text-natural-100">
+                {formatCurrency(
+                  Math.max(0, campaign.budgetTotal - m.budgetSpent),
+                )}
+              </p>
             </div>
           </div>
         </div>
@@ -311,24 +364,31 @@ export default function CampaignDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-portal-note-text">نسبة الاستهلاك</p>
-              <p className="text-3xl font-bold text-natural-100">{budgetPct.toFixed(1)}%</p>
+              <p className="text-3xl font-bold text-natural-100">
+                {budgetPct.toFixed(1)}%
+              </p>
             </div>
             <div className="text-left">
               <p className="text-sm text-portal-note-text">المتبقي</p>
               <p className="text-xl font-semibold text-natural-100">
-                {formatCurrency(Math.max(0, campaign.budgetTotal - m.budgetSpent))}
+                {formatCurrency(
+                  Math.max(0, campaign.budgetTotal - m.budgetSpent),
+                )}
               </p>
             </div>
           </div>
           <ProgressBar
             value={budgetPct}
             max={100}
-            variant={budgetPct > 90 ? "danger" : budgetPct > 70 ? "warning" : "default"}
+            variant={
+              budgetPct > 90 ? "danger" : budgetPct > 70 ? "warning" : "default"
+            }
             size="md"
             showLabel
           />
           <p className="text-xs text-portal-note-text">
-            {formatCurrency(m.budgetSpent)} من {formatCurrency(campaign.budgetTotal)}
+            {formatCurrency(m.budgetSpent)} من{" "}
+            {formatCurrency(campaign.budgetTotal)}
           </p>
         </div>
       </SurfaceCard>
@@ -433,7 +493,9 @@ export default function CampaignDetailPage() {
         <div className="flex items-center gap-3 p-4 rounded-xl bg-danger-50 border border-danger-200 text-danger-700">
           <AlertTriangle className="w-5 h-5 shrink-0" />
           <div>
-            <p className="font-semibold">تم وضع علامة "تحتاج تحسين" على هذه الحملة.</p>
+            <p className="font-semibold">
+              تم وضع علامة "تحتاج تحسين" على هذه الحملة.
+            </p>
             <p className="text-sm mt-0.5">
               مراجعة الأداء مطلوبة. تحقق من المقاييس وقم بتحديث البيانات.
             </p>
@@ -447,7 +509,9 @@ export default function CampaignDetailPage() {
           title="الربح الصافي"
           value={formatCurrency(m.profit)}
           icon={DollarSign}
-          variant={m.profit > 0 ? "success" : m.profit < 0 ? "danger" : "default"}
+          variant={
+            m.profit > 0 ? "success" : m.profit < 0 ? "danger" : "default"
+          }
         />
         <StatCard
           title="الـ ROAS"
@@ -472,24 +536,29 @@ export default function CampaignDetailPage() {
       {/* ── Metrics Sections ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {metricSections.map((section) => (
-          <SurfaceCard key={section.title} title={section.title} icon={BarChart3}>
+          <SurfaceCard
+            key={section.title}
+            title={section.title}
+            icon={BarChart3}
+          >
             <div className="grid grid-cols-2 gap-3">
               {section.metrics.map((metric) => (
                 <KpiPill
                   key={metric.label}
                   label={metric.label}
-                  value={<span
-                    className={cn(
-                      "text-lg font-bold",
-                      metric.tone === "success"
-                        ? "text-success-600"
-                        : metric.tone === "danger"
-                          ? "text-danger-600"
-                          : "text-natural-100"
-                    )}
-                  >
-                    {metric.value}
-                  </span>
+                  value={
+                    <span
+                      className={cn(
+                        "text-lg font-bold",
+                        metric.tone === "success"
+                          ? "text-success-600"
+                          : metric.tone === "danger"
+                            ? "text-danger-600"
+                            : "text-natural-100",
+                      )}
+                    >
+                      {metric.value}
+                    </span>
                   }
                 />
               ))}
@@ -570,7 +639,13 @@ export default function CampaignDetailPage() {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function ProfitabilityBadge({ profit, roas }: { profit: number; roas: number }) {
+function ProfitabilityBadge({
+  profit,
+  roas,
+}: {
+  profit: number;
+  roas: number;
+}) {
   if (profit > 0)
     return (
       <span className="inline-flex items-center gap-1.5 text-sm font-medium text-success-600 bg-success-50 px-3 py-1 rounded-full">

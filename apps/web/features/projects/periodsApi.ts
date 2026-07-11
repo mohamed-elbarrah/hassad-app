@@ -115,7 +115,9 @@ export const periodsApi = createApi({
     /** GET /v1/projects/periods/:periodId — single period detail */
     getPeriodDetail: builder.query<ProjectPeriod, string>({
       query: (periodId) => `/projects/periods/${periodId}`,
-      providesTags: (_, __, periodId) => [{ type: "ProjectPeriod", id: periodId }],
+      providesTags: (_, __, periodId) => [
+        { type: "ProjectPeriod", id: periodId },
+      ],
     }),
 
     /** POST /v1/projects/periods/:periodId/close */

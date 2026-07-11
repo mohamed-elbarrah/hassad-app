@@ -7,7 +7,13 @@ import { UserRole } from "@hassad/shared";
 import { IntakeFormV2 } from "@/components/portal/IntakeFormV2";
 import { updateUser } from "@/features/auth/authSlice";
 import Image from "next/image";
-import { Building2, Sparkles, MessageCircle, Target, Clock } from "lucide-react";
+import {
+  Building2,
+  Sparkles,
+  MessageCircle,
+  Target,
+  Clock,
+} from "lucide-react";
 
 export default function ProfileSetupPage() {
   const { user, isAuthenticated, isInitialized } = useAppSelector(
@@ -96,7 +102,9 @@ export default function ProfileSetupPage() {
                   <Target className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">نضمن توجيهك للفريق المناسب</p>
+                  <p className="font-medium text-sm">
+                    نضمن توجيهك للفريق المناسب
+                  </p>
                   <p className="text-sm text-white/60 mt-0.5">
                     نخصص لك مدير حساب يفهم احتياجاتك ومجالك
                   </p>

@@ -20,9 +20,12 @@ import {
   MessageSquare,
   BarChart3,
   TrendingUp,
+  Megaphone,
   Bell,
   Ticket,
   AlertTriangle,
+  Monitor,
+  Globe,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -55,8 +58,8 @@ export const adminNavSections: NavSection[] = [
     label: "إدارة المستخدمين",
     items: [
       {
-        title: "الموظفون",
-        url: "/dashboard/admin/employees",
+        title: "المستخدمون",
+        url: "/dashboard/admin/users",
         icon: Users,
         roles: ["ADMIN"],
       },
@@ -67,7 +70,7 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
-        title: "الأدوار والصلاحيات",
+        title: "الأدوار",
         url: "/dashboard/admin/roles",
         icon: Shield,
         roles: ["ADMIN"],
@@ -78,34 +81,122 @@ export const adminNavSections: NavSection[] = [
         icon: Briefcase,
         roles: ["ADMIN"],
       },
+      {
+        title: "بوابة العملاء",
+        url: "/dashboard/admin/portal",
+        icon: Globe,
+        roles: ["ADMIN"],
+      },
     ],
   },
   {
-    label: "المراقبة",
+    label: "العمليات",
     items: [
+      {
+        title: "المشاريع",
+        url: "/dashboard/admin/projects",
+        icon: Briefcase,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "المهام",
+        url: "/dashboard/admin/tasks",
+        icon: ListChecks,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العقود",
+        url: "/dashboard/admin/contracts",
+        icon: FileSignature,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العروض الفنية",
+        url: "/dashboard/admin/proposals",
+        icon: FileText,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "طلبات الخدمة",
+        url: "/dashboard/admin/requests",
+        icon: ClipboardList,
+        roles: ["ADMIN"],
+      },
       {
         title: "النزاعات",
         url: "/dashboard/admin/disputes",
         icon: AlertTriangle,
         roles: ["ADMIN"],
       },
+    ],
+  },
+  {
+    label: "التسويق",
+    items: [
       {
-        title: "سجل النشاطات",
-        url: "/dashboard/admin/audit-log",
-        icon: ScrollText,
+        title: "الحملات",
+        url: "/dashboard/admin/campaigns",
+        icon: BarChart3,
         roles: ["ADMIN"],
       },
       {
-        title: "صحة النظام",
-        url: "/dashboard/admin/health",
-        icon: Activity,
+        title: "الاستراتيجيات التسويقية",
+        url: "/dashboard/admin/marketing/strategies",
+        icon: Megaphone,
         roles: ["ADMIN"],
       },
     ],
   },
   {
-    label: "الإعدادات",
+    label: "المالية",
     items: [
+      {
+        title: "نظرة عامة",
+        url: "/dashboard/admin/finance",
+        icon: DollarSign,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الفواتير",
+        url: "/dashboard/admin/finance/invoices",
+        icon: FileText,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "المدفوعات",
+        url: "/dashboard/admin/finance/payments",
+        icon: CreditCard,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الرواتب",
+        url: "/dashboard/admin/finance/payroll",
+        icon: Kanban,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الحسابات البنكية",
+        url: "/dashboard/admin/finance/bank-accounts",
+        icon: Building2,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "الإعدادات والمراقبة",
+    items: [
+      {
+        title: "التقارير",
+        url: "/dashboard/admin/reports",
+        icon: BarChart3,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "أداء الفريق",
+        url: "/dashboard/admin/team-performance",
+        icon: TrendingUp,
+        roles: ["ADMIN"],
+      },
       {
         title: "إعدادات المنصة",
         url: "/dashboard/admin/settings",
@@ -125,9 +216,39 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
-        title: "بوابات الدفع",
-        url: "/dashboard/admin/payments",
-        icon: CreditCard,
+        title: "قوالب الإشعارات",
+        url: "/dashboard/admin/notification-templates",
+        icon: Bell,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الأمان",
+        url: "/dashboard/admin/security",
+        icon: Shield,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الجلسات النشطة",
+        url: "/dashboard/admin/sessions",
+        icon: Monitor,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "سجل النشاطات",
+        url: "/dashboard/admin/audit-log",
+        icon: ScrollText,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "صحة النظام",
+        url: "/dashboard/admin/health",
+        icon: Activity,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "المحادثات",
+        url: "/dashboard/admin/chat",
+        icon: MessageSquare,
         roles: ["ADMIN"],
       },
     ],

@@ -65,7 +65,11 @@ export function renderProposalRowCells(
     </td>,
     <td key="action" className="px-5 py-3.5 align-middle text-start w-[150px]">
       {href ? (
-        <Link href={href} onClick={(e) => e.stopPropagation()} className="inline-block">
+        <Link
+          href={href}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-block"
+        >
           <ActionButton
             variant={isActionable ? "primary" : "outline"}
             size="md"

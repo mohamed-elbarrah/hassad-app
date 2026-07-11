@@ -163,10 +163,10 @@ Client fills IntakeFormV2
 
 ### 2.1 Data Types
 
-| Category | Source | Mutability | Examples |
-|----------|--------|------------|----------|
-| **User-Editable Data** | Client inputs via forms | Client can modify anytime | Contact info, business details, preferences, brand assets |
-| **System-Generated Data** | Computed from system records | System-only updates | Project counts, financial totals, ratings, activity history |
+| Category                  | Source                       | Mutability                | Examples                                                    |
+| ------------------------- | ---------------------------- | ------------------------- | ----------------------------------------------------------- |
+| **User-Editable Data**    | Client inputs via forms      | Client can modify anytime | Contact info, business details, preferences, brand assets   |
+| **System-Generated Data** | Computed from system records | System-only updates       | Project counts, financial totals, ratings, activity history |
 
 ### 2.2 User Journeys
 
@@ -199,13 +199,13 @@ Client fills IntakeFormV2
 
 ### 2.3 Current vs Desired State
 
-| Aspect | Current State | Desired State |
-|--------|---------------|---------------|
-| Source of Truth | Multiple (PortalIntakeForm + ClientProfile legacy) | Single (ClientProfile with V2 fields) |
-| Intake → Profile | Partial sync, different structures | Full sync, same structure |
-| View Component | Reads legacy fields (incomplete) | Reads V2 fields (complete) |
-| Edit Component | Different from IntakeForm | Same shared components as IntakeForm |
-| System Data | Mixed in ClientProfile | Separate (Client table or metrics) |
+| Aspect           | Current State                                      | Desired State                         |
+| ---------------- | -------------------------------------------------- | ------------------------------------- |
+| Source of Truth  | Multiple (PortalIntakeForm + ClientProfile legacy) | Single (ClientProfile with V2 fields) |
+| Intake → Profile | Partial sync, different structures                 | Full sync, same structure             |
+| View Component   | Reads legacy fields (incomplete)                   | Reads V2 fields (complete)            |
+| Edit Component   | Different from IntakeForm                          | Same shared components as IntakeForm  |
+| System Data      | Mixed in ClientProfile                             | Separate (Client table or metrics)    |
 
 ---
 
@@ -309,7 +309,7 @@ Fields:
 ```
 Purpose: Temporary storage for multi-step form progress
 Owner: System (autosave mechanism)
-Lifecycle: 
+Lifecycle:
   - Created when client starts intake
   - Updated on each step (autosave)
   - Marked isSubmitted=true on completion
@@ -551,15 +551,15 @@ Fields: Same V2 JSON structure as ClientProfile
 
 ### 5.1 Endpoints
 
-| Endpoint | Method | Purpose | Auth |
-|----------|--------|---------|------|
-| `/portal/intake-form` | GET | Get draft or submitted form | Client (own) |
-| `/portal/intake-form/draft` | PATCH | Autosave draft | Client (own) |
-| `/portal/intake-form` | POST | Submit final form | Client (own) |
-| `/clients/:id/profile` | GET | Get client profile | Client (own) / Admin / Sales |
-| `/clients/:id/profile` | PUT | Update profile | Client (own) / Admin / Sales |
-| `/clients/:id/team-view` | GET | Get filtered view for team | PM / Employee |
-| `/clients/:id/metrics` | GET | Get computed metrics | Admin / Sales / PM |
+| Endpoint                    | Method | Purpose                     | Auth                         |
+| --------------------------- | ------ | --------------------------- | ---------------------------- |
+| `/portal/intake-form`       | GET    | Get draft or submitted form | Client (own)                 |
+| `/portal/intake-form/draft` | PATCH  | Autosave draft              | Client (own)                 |
+| `/portal/intake-form`       | POST   | Submit final form           | Client (own)                 |
+| `/clients/:id/profile`      | GET    | Get client profile          | Client (own) / Admin / Sales |
+| `/clients/:id/profile`      | PUT    | Update profile              | Client (own) / Admin / Sales |
+| `/clients/:id/team-view`    | GET    | Get filtered view for team  | PM / Employee                |
+| `/clients/:id/metrics`      | GET    | Get computed metrics        | Admin / Sales / PM           |
 
 ### 5.2 Response Shapes
 
@@ -568,7 +568,7 @@ Fields: Same V2 JSON structure as ClientProfile
 interface ClientProfileResponse {
   id: string;
   clientId: string;
-  
+
   // V2 Sections (nullable)
   communicationInfo: CommunicationInfo | null;
   productInfo: ProductInfo | null;
@@ -579,7 +579,7 @@ interface ClientProfileResponse {
   pastPerformance: PastPerformance | null;
   budgetInfo: BudgetInfo | null;
   visualIdentityInfo: VisualIdentityInfo | null;
-  
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -593,10 +593,10 @@ interface ClientWithProfileResponse {
   contactName: string;
   email: string;
   status: ClientStatus;
-  
+
   // From ClientProfile (user input)
   profile: ClientProfileResponse | null;
-  
+
   // From ClientMetrics (system data)
   metrics: {
     totalProjects: number;
@@ -613,67 +613,72 @@ interface ClientWithProfileResponse {
 ## 6. Implementation Phases
 
 ### Phase 1: Data Migration & Cleanup
+
 **Goal**: Ensure data integrity and single source of truth
 
-| Task | Description | Status |
-|------|-------------|--------|
-| 1.1 | Verify V2 fields exist in ClientProfile (Prisma schema) | ✅ Done |
-| 1.2 | Create migration to sync PortalIntakeForm → ClientProfile | ✅ Done (migration 20260626_add_v2_fields_to_client_profile) |
-| 1.3 | Update intake submission to sync ALL V2 fields | ✅ Done |
-| 1.4 | Remove legacy field references from ClientBrief | ✅ Done |
-| 1.5 | Test data integrity across all flows | ✅ Done |
+| Task | Description                                               | Status                                                       |
+| ---- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| 1.1  | Verify V2 fields exist in ClientProfile (Prisma schema)   | ✅ Done                                                      |
+| 1.2  | Create migration to sync PortalIntakeForm → ClientProfile | ✅ Done (migration 20260626_add_v2_fields_to_client_profile) |
+| 1.3  | Update intake submission to sync ALL V2 fields            | ✅ Done                                                      |
+| 1.4  | Remove legacy field references from ClientBrief           | ✅ Done                                                      |
+| 1.5  | Test data integrity across all flows                      | ✅ Done                                                      |
 
 ### Phase 2: Extract Shared Components
+
 **Goal**: Create reusable section components
 
-| Task | Description | Status |
-|------|-------------|--------|
-| 2.1 | Create `components/shared/ProfileSections/` directory | ✅ Done |
-| 2.2 | Define `types.ts` with all section data types | ✅ Done |
-| 2.3 | Extract each step from IntakeFormV2 to shared section | ✅ Done |
-| 2.4 | Add `mode` prop ('wizard' \| 'edit' \| 'view') to each section | ✅ Done |
-| 2.5 | Create `useProfileSection` hook for shared logic | ✅ Done |
-| 2.6 | Update IntakeFormV2 to use shared sections | ✅ Done |
-| 2.7 | Create all 7 section components | ✅ Done |
+| Task | Description                                                    | Status  |
+| ---- | -------------------------------------------------------------- | ------- |
+| 2.1  | Create `components/shared/ProfileSections/` directory          | ✅ Done |
+| 2.2  | Define `types.ts` with all section data types                  | ✅ Done |
+| 2.3  | Extract each step from IntakeFormV2 to shared section          | ✅ Done |
+| 2.4  | Add `mode` prop ('wizard' \| 'edit' \| 'view') to each section | ✅ Done |
+| 2.5  | Create `useProfileSection` hook for shared logic               | ✅ Done |
+| 2.6  | Update IntakeFormV2 to use shared sections                     | ✅ Done |
+| 2.7  | Create all 7 section components                                | ✅ Done |
 
 ### Phase 3: Profile Edit Component
+
 **Goal**: Create unified edit experience
 
-| Task | Description | Status |
-|------|-------------|--------|
-| 3.1 | Create ProfileEditV2 using shared sections | ✅ Done |
-| 3.2 | Implement mode="edit" for all sections | ✅ Done |
-| 3.3 | Add single save button at bottom | ✅ Done |
-| 3.4 | Wire to PUT /clients/:id/profile/v2 | ✅ Done |
-| 3.5 | Update portal profile page to use ProfileEditV2 | ✅ Done |
-| 3.6 | Use GET /clients/:id/profile/v2 endpoint | ✅ Done |
-| 3.7 | Hide navigation in edit mode | ✅ Done |
+| Task | Description                                     | Status  |
+| ---- | ----------------------------------------------- | ------- |
+| 3.1  | Create ProfileEditV2 using shared sections      | ✅ Done |
+| 3.2  | Implement mode="edit" for all sections          | ✅ Done |
+| 3.3  | Add single save button at bottom                | ✅ Done |
+| 3.4  | Wire to PUT /clients/:id/profile/v2             | ✅ Done |
+| 3.5  | Update portal profile page to use ProfileEditV2 | ✅ Done |
+| 3.6  | Use GET /clients/:id/profile/v2 endpoint        | ✅ Done |
+| 3.7  | Hide navigation in edit mode                    | ✅ Done |
 
 ### Phase 4: View Component Update
+
 **Goal**: Display profile data correctly
 
-| Task | Description | Status |
-|------|-------------|--------|
-| 4.1 | Create ClientBriefV2 using shared sections with mode="view" | ✅ Done |
-| 4.2 | Implement mode="view" for all sections | ✅ Done |
-| 4.3 | Add formatted display for each section | ✅ Done |
-| 4.4 | Ensure system metrics display correctly | ✅ Done |
-| 4.5 | Use V2 endpoint in portal profile page | ✅ Done |
-| 4.6 | Update Sales dashboard profile-edit-tab to use shared sections | ✅ Done |
+| Task | Description                                                    | Status  |
+| ---- | -------------------------------------------------------------- | ------- |
+| 4.1  | Create ClientBriefV2 using shared sections with mode="view"    | ✅ Done |
+| 4.2  | Implement mode="view" for all sections                         | ✅ Done |
+| 4.3  | Add formatted display for each section                         | ✅ Done |
+| 4.4  | Ensure system metrics display correctly                        | ✅ Done |
+| 4.5  | Use V2 endpoint in portal profile page                         | ✅ Done |
+| 4.6  | Update Sales dashboard profile-edit-tab to use shared sections | ✅ Done |
 
 ### Phase 5: Cleanup & Documentation
+
 **Goal**: Remove legacy code and document
 
-| Task | Description | Status |
-|------|-------------|--------|
-| 5.1 | Remove old PortalProfileEditForm | ✅ Done |
-| 5.2 | Remove old IntakeFormFields components | ✅ Done |
-| 5.3 | Remove old IntakeForm (V1) directory | ✅ Done |
-| 5.4 | Remove old ProfileSetupForm | ✅ Done |
-| 5.5 | Update Sales dashboard profile-edit-tab | ✅ Done |
-| 5.6 | Remove unused legacy fields from ClientProfile (optional) | ⏸️ Deferred |
-| 5.7 | Update API documentation | ✅ Done |
-| 5.8 | Add inline code comments | ✅ Done |
+| Task | Description                                               | Status      |
+| ---- | --------------------------------------------------------- | ----------- |
+| 5.1  | Remove old PortalProfileEditForm                          | ✅ Done     |
+| 5.2  | Remove old IntakeFormFields components                    | ✅ Done     |
+| 5.3  | Remove old IntakeForm (V1) directory                      | ✅ Done     |
+| 5.4  | Remove old ProfileSetupForm                               | ✅ Done     |
+| 5.5  | Update Sales dashboard profile-edit-tab                   | ✅ Done     |
+| 5.6  | Remove unused legacy fields from ClientProfile (optional) | ⏸️ Deferred |
+| 5.7  | Update API documentation                                  | ✅ Done     |
+| 5.8  | Add inline code comments                                  | ✅ Done     |
 
 ---
 
@@ -685,13 +690,13 @@ interface ClientWithProfileResponse {
 
 ## 7. Decision Log
 
-| Decision | Rationale | Alternatives Considered |
-|----------|-----------|------------------------|
-| Use JSON columns for V2 fields | Flexible schema, easy to extend, matches intake form structure | Flat columns (rejected: too many fields, hard to maintain) |
-| Single source of truth | Eliminates sync issues, simpler queries, consistent data | Multiple sources (rejected: leads to data divergence) |
-| Shared components with mode prop | DRY principle, consistent UX, single point of change | Separate components for each mode (rejected: duplication) |
-| Keep PortalIntakeForm for drafts | Autosave mechanism, audit trail, separation of concerns | Direct writes to ClientProfile (rejected: loses draft state) |
-| Separate ClientMetrics | Clear ownership, different update patterns, security | Mixed in ClientProfile (rejected: user could modify system data) |
+| Decision                         | Rationale                                                      | Alternatives Considered                                          |
+| -------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Use JSON columns for V2 fields   | Flexible schema, easy to extend, matches intake form structure | Flat columns (rejected: too many fields, hard to maintain)       |
+| Single source of truth           | Eliminates sync issues, simpler queries, consistent data       | Multiple sources (rejected: leads to data divergence)            |
+| Shared components with mode prop | DRY principle, consistent UX, single point of change           | Separate components for each mode (rejected: duplication)        |
+| Keep PortalIntakeForm for drafts | Autosave mechanism, audit trail, separation of concerns        | Direct writes to ClientProfile (rejected: loses draft state)     |
+| Separate ClientMetrics           | Clear ownership, different update patterns, security           | Mixed in ClientProfile (rejected: user could modify system data) |
 
 ---
 
@@ -715,6 +720,7 @@ interface ClientWithProfileResponse {
 ```
 
 **Rationale**:
+
 - JSON stays queryable and lightweight
 - Files are handled by object storage service
 - Presigned URLs for secure access
@@ -743,6 +749,7 @@ async updateProfile(@Body() dto: UpsertClientProfileV2Dto) {
 ```
 
 **Rationale**:
+
 - Frontend: Better UX with immediate validation feedback
 - Backend: Never trust client input, always validate server-side
 - Keep schemas in sync via `@hassad/shared` package
@@ -751,24 +758,24 @@ async updateProfile(@Body() dto: UpsertClientProfileV2Dto) {
 
 ## 10. Success Metrics
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Data Consistency | 100% | ClientProfile contains all IntakeFormV2 data after submission |
-| Code Reuse | 100% | IntakeFormV2 and ProfileEditV2 use same section components |
-| View Accuracy | 100% | ClientBrief displays all V2 fields correctly |
-| API Efficiency | Minimal | Single GET for profile view, single PUT for update |
-| No Regressions | 0 | All existing features continue to work |
+| Metric           | Target  | Measurement                                                   |
+| ---------------- | ------- | ------------------------------------------------------------- |
+| Data Consistency | 100%    | ClientProfile contains all IntakeFormV2 data after submission |
+| Code Reuse       | 100%    | IntakeFormV2 and ProfileEditV2 use same section components    |
+| View Accuracy    | 100%    | ClientBrief displays all V2 fields correctly                  |
+| API Efficiency   | Minimal | Single GET for profile view, single PUT for update            |
+| No Regressions   | 0       | All existing features continue to work                        |
 
 ---
 
 ## 11. Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Data loss during migration | High | Create backup before migration, test on staging |
-| Breaking existing views | Medium | Keep legacy fields during transition, gradual rollout |
-| Performance with JSON queries | Low | PostgreSQL JSONB is well-optimized, add indexes if needed |
-| User confusion with new UI | Low | Keep similar UX between intake and edit modes |
+| Risk                          | Impact | Mitigation                                                |
+| ----------------------------- | ------ | --------------------------------------------------------- |
+| Data loss during migration    | High   | Create backup before migration, test on staging           |
+| Breaking existing views       | Medium | Keep legacy fields during transition, gradual rollout     |
+| Performance with JSON queries | Low    | PostgreSQL JSONB is well-optimized, add indexes if needed |
+| User confusion with new UI    | Low    | Keep similar UX between intake and edit modes             |
 
 ---
 
@@ -779,7 +786,7 @@ async updateProfile(@Body() dto: UpsertClientProfileV2Dto) {
 ```typescript
 // types.ts
 
-export type ProfileMode = 'wizard' | 'edit' | 'view';
+export type ProfileMode = "wizard" | "edit" | "view";
 
 // Section 1
 export interface CommunicationInfo {
@@ -922,7 +929,7 @@ export function CommunicationSection({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(() => onNext?.())}>
         {/* Form fields */}
-        
+
         {mode === 'wizard' && (
           <div className="flex justify-between">
             {onBack && <Button onClick={onBack}>Back</Button>}

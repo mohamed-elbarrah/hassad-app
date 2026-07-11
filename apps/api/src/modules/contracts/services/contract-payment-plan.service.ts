@@ -4,12 +4,12 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
-import {
-  PaymentPlanTriggerType,
-  PaymentAmountType,
-} from "@hassad/shared";
+import { PaymentPlanTriggerType, PaymentAmountType } from "@hassad/shared";
 import type { ContractPaymentPlan } from "@prisma/client";
-import { DefinePaymentPlanDto, PaymentPlanRowDto } from "../dto/payment-plan.dto";
+import {
+  DefinePaymentPlanDto,
+  PaymentPlanRowDto,
+} from "../dto/payment-plan.dto";
 
 /**
  * ContractPaymentPlanService
@@ -198,7 +198,9 @@ export class ContractPaymentPlanService {
 
   private normalizeSequences(rows: PaymentPlanRowDto[]) {
     // If any sequence is missing, auto-assign 0..n; otherwise keep provided order.
-    const needsAuto = rows.some((r) => r.sequence === undefined || r.sequence === null);
+    const needsAuto = rows.some(
+      (r) => r.sequence === undefined || r.sequence === null,
+    );
     if (!needsAuto) return rows;
     return rows.map((r, i) => ({ ...r, sequence: r.sequence ?? i }));
   }

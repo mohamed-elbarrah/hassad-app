@@ -55,7 +55,7 @@ export function ProjectKanbanCard({
         <p className="text-sm font-semibold leading-tight line-clamp-2 flex-1 min-w-0 text-natural-100">
           {project.name}
         </p>
-        <GripVertical className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity text-neutral-300" />
+        <GripVertical className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity text-portal-note-text" />
       </div>
 
       {project.client?.companyName && (
@@ -64,8 +64,8 @@ export function ProjectKanbanCard({
           className="flex items-center gap-1 mt-2 group/client"
           onClick={(e) => e.stopPropagation()}
         >
-          <Building2 className="w-3.5 h-3.5 shrink-0 text-neutral-300" />
-          <span className="text-xs truncate text-neutral-300 group-hover/client:text-primary group-hover/client:underline">
+          <Building2 className="w-3.5 h-3.5 shrink-0 text-portal-note-text" />
+          <span className="text-xs truncate text-portal-note-text group-hover/client:text-primary group-hover/client:underline">
             {project.client.companyName}
           </span>
         </Link>
@@ -73,12 +73,12 @@ export function ProjectKanbanCard({
 
       <div className="mt-3">
         <div className="flex items-center justify-between text-xs mb-1">
-          <span className="text-neutral-300">التقدم</span>
+          <span className="text-portal-note-text">التقدم</span>
           <span className="text-natural-100 font-semibold">
             {progressValue}%
           </span>
         </div>
-        <div className="h-1.5 rounded-full overflow-hidden bg-neutral-50">
+        <div className="h-1.5 rounded-full overflow-hidden bg-badge-gray-bg">
           <div
             className="h-full rounded-full transition-all"
             style={{
@@ -89,7 +89,7 @@ export function ProjectKanbanCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 mt-3 text-xs text-neutral-300">
+      <div className="flex items-center gap-1 mt-3 text-xs text-portal-note-text">
         <Calendar className="w-3.5 h-3.5 shrink-0" />
         <span>
           {startDate} - {endDate}

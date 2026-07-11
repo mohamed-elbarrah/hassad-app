@@ -29,7 +29,7 @@ const STATUS_CONFIG: Record<
     color: "text-alert-600",
   },
   LATE: { label: "متأخر", icon: AlertCircle, color: "text-danger-600" },
-  CANCELLED: { label: "ملغي", icon: Ban, color: "text-neutral-600" },
+  CANCELLED: { label: "ملغي", icon: Ban, color: "text-natural-100" },
 };
 
 const PAYABLE_STATUSES = new Set(["PENDING", "SENT", "DUE", "PARTIAL", "LATE"]);
@@ -83,7 +83,7 @@ export function ContractInvoicesList({
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Icon className={`w-4 h-4 shrink-0 ${config.color}`} />
-                <span className="text-neutral-300 truncate">
+                <span className="text-portal-note-text truncate">
                   {invoice.invoiceNumber}
                 </span>
                 <span className={`text-xs font-medium ${config.color}`}>
@@ -91,7 +91,7 @@ export function ContractInvoicesList({
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <span className="text-neutral-300 text-xs">
+                <span className="text-portal-note-text text-xs">
                   {new Date(invoice.dueDate).toLocaleDateString("en-GB", {
                     day: "2-digit",
                     month: "short",

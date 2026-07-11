@@ -2,21 +2,20 @@
 
 import { useState, useMemo } from "react";
 import { useGetLedgerQuery } from "@/features/finance/financeApi";
+import { FinancePageHeader } from "@/components/dashboard/finance/shared/FinancePageHeader";
+import { FinanceListToolbar } from "@/components/dashboard/finance/shared/FinanceListToolbar";
 import { DataTable } from "@/components/design-system/DataTable";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatCard } from "@/components/design-system/StatCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
+import { Pagination } from "@/components/design-system/Pagination";
+import { Popover } from "@/components/design-system/Popover";
 import {
   Search,
   ShieldCheck,
   Download,
   Filter,
-  Calendar,
-  ArrowRightLeft,
   ChevronDown,
   X,
-  ArrowLeft,
-  ArrowRight,
   FileText,
   Clock,
   AlertTriangle,
@@ -35,8 +34,18 @@ const ENTITY_OPTIONS = [
 ];
 
 const MONTHS = [
-  "يناير","فبراير","مارس","أبريل","مايو","يونيو",
-  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر",
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
 function formatDateTime(d: string | Date) {
@@ -60,7 +69,6 @@ export default function LedgerPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [entityFilter, setEntityFilter] = useState("all");
-  const [filterOpen, setFilterOpen] = useState(false);
 
   const { data, isLoading } = useGetLedgerQuery({ page });
 
@@ -90,8 +98,12 @@ export default function LedgerPage() {
     const today = new Date().toDateString();
     return {
       total,
-      todayCount: ledger.filter((l) => new Date(l.createdAt).toDateString() === today).length,
-      sensitive: ledger.filter((l) => l.action.includes("PAY") || l.action.includes("SALARY")).length,
+      todayCount: ledger.filter(
+        (l) => new Date(l.createdAt).toDateString() === today,
+      ).length,
+      sensitive: ledger.filter(
+        (l) => l.action.includes("PAY") || l.action.includes("SALARY"),
+      ).length,
     };
   }, [ledger, total]);
 
@@ -108,136 +120,111 @@ export default function LedgerPage() {
           hint: "ستظهر العمليات المالية هنا فور حدوثها.",
         };
 
-  const hasFilters = search || entityFilter !== "all";
+  const hasFilters = !!(search || entityFilter !== "all");
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">سجل التدقيق المالي</h1>
-          <p className="text-neutral-400 mt-1">
-            تتبع جميع التغييرات والعمليات المالية بدقة.
-          </p>
-        </div>
-        <ActionButton
-          variant="outline"
-          icon={<Download className="w-4 h-4" />}
-          onClick={() => alert("سيتم تصدير السجل قريباً")}
-        >
-          تصدير السجل
-        </ActionButton>
-      </div>
+      <FinancePageHeader
+        title="سجل التدقيق المالي"
+        description="تتبع جميع التغييرات والعمليات المالية بدقة."
+        icon={ShieldCheck}
+        actions={
+          <ActionButton
+            variant="outline"
+            icon={<Download className="w-4 h-4" />}
+            onClick={() => alert("سيتم تصدير السجل قريباً")}
+          >
+            تصدير السجل
+          </ActionButton>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SurfaceCard className="border-none shadow-sm" contentClassName="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary-50">
-              <FileText className="w-4 h-4 text-secondary-600" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-400">إجمالي العمليات</p>
-              <p className="text-xl font-bold">{stats.total.toLocaleString()}</p>
-            </div>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success-50">
-              <Clock className="w-4 h-4 text-success-600" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-400">عمليات اليوم</p>
-              <p className="text-xl font-bold text-success-600">{stats.todayCount}</p>
-            </div>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-alert-50">
-              <AlertTriangle className="w-4 h-4 text-alert-600" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-400">تعديلات حساسة</p>
-              <p className="text-xl font-bold text-alert-600">{stats.sensitive}</p>
-            </div>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success-50">
-              <CheckCircle2 className="w-4 h-4 text-success-600" />
-            </div>
-            <div>
-              <p className="text-xs text-neutral-400">نظام التدقيق</p>
-              <p className="text-xl font-bold text-success-600">نشط</p>
-            </div>
-          </div>
-        </SurfaceCard>
+        <StatCard
+          title="إجمالي العمليات"
+          value={stats.total.toLocaleString()}
+          icon={FileText}
+          variant="default"
+        />
+        <StatCard
+          title="عمليات اليوم"
+          value={stats.todayCount}
+          icon={Clock}
+          variant="success"
+        />
+        <StatCard
+          title="تعديلات حساسة"
+          value={stats.sensitive}
+          icon={AlertTriangle}
+          variant={stats.sensitive > 0 ? "warning" : "default"}
+        />
+        <StatCard
+          title="نظام التدقيق"
+          value="نشط"
+          icon={CheckCircle2}
+          variant="success"
+        />
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-col lg:flex-row lg:items-center gap-3">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-          <FormInputControl
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-portal-note-text pointer-events-none" />
+          <input
             placeholder="بحث في السجلات..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pr-10 h-11"
+            className="w-full h-11 pr-10 rounded-xl border border-portal-card-border bg-natural-0 px-3 text-sm focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-natural-100"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-portal-note-text hover:text-natural-100"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Entity Filter */}
-        <div className="relative">
-          <button
-            onClick={() => setFilterOpen(!filterOpen)}
-            className={cn(
-              "flex items-center gap-2 h-11 px-3 rounded-xl border text-sm font-medium transition-all",
-              "bg-natural-0 border-portal-card-border hover:border-secondary-500/40",
-              filterOpen && "border-secondary-500 ring-2 ring-secondary-500/10",
-              entityFilter !== "all" && "border-secondary-400/60 bg-secondary-50/50",
-            )}
-          >
-            <Filter className="w-4 h-4" />
-            <span>{ENTITY_OPTIONS.find((o) => o.value === entityFilter)?.label}</span>
-            <ChevronDown
-              className={cn("w-3.5 h-3.5 text-neutral-400 transition-transform", filterOpen && "rotate-180")}
-            />
-          </button>
-          {filterOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
-              <div className="absolute top-full right-0 mt-2 z-50 w-48 rounded-xl border border-portal-card-border bg-natural-0 shadow-lg overflow-hidden">
-                {ENTITY_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setEntityFilter(opt.value);
-                      setFilterOpen(false);
-                    }}
-                    className={cn(
-                      "w-full text-right px-4 py-2.5 text-sm transition-colors hover:bg-neutral-50",
-                      entityFilter === opt.value && "bg-secondary-50 text-secondary-600 font-semibold",
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        {/* Entity Filter using Popover */}
+        <Popover
+          trigger={
+            <button
+              className={cn(
+                "flex items-center gap-2 h-11 px-3 rounded-xl border text-sm font-medium transition-all",
+                "bg-natural-0 border-portal-card-border hover:border-secondary-500/40",
+                entityFilter !== "all" &&
+                  "border-secondary-400/60 bg-secondary-50/50",
+              )}
+            >
+              <Filter className="w-4 h-4" />
+              <span>
+                {ENTITY_OPTIONS.find((o) => o.value === entityFilter)?.label}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-portal-note-text" />
+            </button>
+          }
+          align="start"
+          contentClassName="p-2 min-w-[180px]"
+        >
+          <div className="flex flex-col gap-1">
+            {ENTITY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setEntityFilter(opt.value)}
+                className={cn(
+                  "w-full text-right px-3 py-2 text-sm rounded-lg transition-colors hover:bg-badge-gray-bg",
+                  entityFilter === opt.value &&
+                    "bg-secondary-50 text-secondary-600 font-semibold",
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </Popover>
 
         {/* Clear */}
         {hasFilters && (
@@ -278,21 +265,25 @@ export default function LedgerPage() {
               </div>
             </td>
             <td className="px-5 py-4">
-              <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-mono font-medium uppercase bg-neutral-100 text-neutral-600">
+              <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-mono font-medium uppercase bg-badge-gray-bg text-natural-100">
                 {log.entity}
               </span>
-              <span className="block text-[10px] text-neutral-400 mt-0.5 font-mono">{log.entityId?.slice(0, 8)}...</span>
+              <span className="block text-[10px] text-portal-note-text mt-0.5 font-mono">
+                {log.entityId?.slice(0, 8)}...
+              </span>
             </td>
             <td className="px-5 py-4">
-              <span className="text-sm text-neutral-500">{log.userId || "System"}</span>
+              <span className="text-sm text-portal-note-text">
+                {log.userId || "System"}
+              </span>
             </td>
-            <td className="px-5 py-4 text-xs text-neutral-400 font-mono max-w-[120px] truncate">
+            <td className="px-5 py-4 text-xs text-portal-note-text font-mono max-w-[120px] truncate">
               {formatJson(log.before)}
             </td>
             <td className="px-5 py-4 text-xs text-secondary-600 font-mono max-w-[120px] truncate">
               {formatJson(log.after)}
             </td>
-            <td className="px-5 py-4 text-left text-xs text-neutral-400 font-mono whitespace-nowrap">
+            <td className="px-5 py-4 text-left text-xs text-portal-note-text font-mono whitespace-nowrap">
               {formatDateTime(log.createdAt)}
             </td>
           </tr>
@@ -301,54 +292,11 @@ export default function LedgerPage() {
 
       {/* Pagination */}
       {totalPages > 1 && filtered.length > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-neutral-400">
-            عرض {(page - 1) * (data?.limit || 20) + 1}–
-            {Math.min(page * (data?.limit || 20), total)} من {total} سجل
-          </p>
-          <div className="flex items-center gap-2">
-            <ActionButton
-              variant="outline"
-              size="sm"
-              icon={<ArrowRight className="w-4 h-4" />}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-            >
-              السابق
-            </ActionButton>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                let pg: number;
-                if (totalPages <= 5) pg = i + 1;
-                else if (page <= 3) pg = i + 1;
-                else if (page >= totalPages - 2) pg = totalPages - 4 + i;
-                else pg = page - 2 + i;
-                return (
-                  <button
-                    key={pg}
-                    onClick={() => setPage(pg)}
-                    className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
-                      page === pg
-                        ? "bg-secondary-500 text-white"
-                        : "bg-natural-0 border border-portal-card-border hover:bg-neutral-50"
-                    }`}
-                  >
-                    {pg}
-                  </button>
-                );
-              })}
-            </div>
-            <ActionButton
-              variant="outline"
-              size="sm"
-              icon={<ArrowLeft className="w-4 h-4" />}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-            >
-              التالي
-            </ActionButton>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );

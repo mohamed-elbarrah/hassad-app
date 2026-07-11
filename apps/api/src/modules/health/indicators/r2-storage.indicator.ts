@@ -1,9 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HealthIndicatorService, HealthIndicatorResult } from '@nestjs/terminus';
-import { StorageService } from '../../../common/storage/storage.service';
-import { HealthPersistenceService } from '../services/health-persistence.service';
-import { RobustErrorLoggerService } from '../services/robust-error-logger.service';
-import { ServiceStatus, ErrorCategory, ErrorLevel } from '../dto/health-check.dto';
+import { Injectable, Logger } from "@nestjs/common";
+import {
+  HealthIndicatorService,
+  HealthIndicatorResult,
+} from "@nestjs/terminus";
+import { StorageService } from "../../../common/storage/storage.service";
+import { HealthPersistenceService } from "../services/health-persistence.service";
+import { RobustErrorLoggerService } from "../services/robust-error-logger.service";
+import {
+  ServiceStatus,
+  ErrorCategory,
+  ErrorLevel,
+} from "../dto/health-check.dto";
 
 @Injectable()
 export class R2StorageHealthIndicator {
@@ -25,29 +32,31 @@ export class R2StorageHealthIndicator {
       if (!this.storageService.isConfigured()) {
         const responseTime = Date.now() - startTime;
         await this.healthPersistence.updateServiceHealth(
-          'R2_STORAGE',
+          "R2_STORAGE",
           ServiceStatus.DOWN,
           responseTime,
-          'R2 not configured - check CLOUDFLARE_R2_* environment variables',
+          "R2 not configured - check CLOUDFLARE_R2_* environment variables",
         );
 
         return indicator.down({
-          message: 'R2 not configured - check CLOUDFLARE_R2_* environment variables',
+          message:
+            "R2 not configured - check CLOUDFLARE_R2_* environment variables",
           configured: false,
           responseTimeMs: responseTime,
         });
       }
 
       // Try to get a presigned URL for a test key (lightweight check)
-      await this.storageService.getPresignedUrl('health-check-test', 1);
-      
+      await this.storageService.getPresignedUrl("health-check-test", 1);
+
       const responseTime = Date.now() - startTime;
-      
+
       // Determine status based on response time
-      const status = responseTime > 2000 ? ServiceStatus.DEGRADED : ServiceStatus.UP;
-      
+      const status =
+        responseTime > 2000 ? ServiceStatus.DEGRADED : ServiceStatus.UP;
+
       await this.healthPersistence.updateServiceHealth(
-        'R2_STORAGE',
+        "R2_STORAGE",
         status,
         responseTime,
       );
@@ -64,13 +73,13 @@ export class R2StorageHealthIndicator {
         configured: true,
         responseTimeMs: responseTime,
       });
-
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
       await this.healthPersistence.updateServiceHealth(
-        'R2_STORAGE',
+        "R2_STORAGE",
         ServiceStatus.DOWN,
         responseTime,
         errorMessage,
@@ -81,7 +90,7 @@ export class R2StorageHealthIndicator {
         category: ErrorCategory.STORAGE,
         message: `R2 Storage health check failed: ${errorMessage}`,
         error: error instanceof Error ? error : undefined,
-        service: 'R2StorageHealthIndicator',
+        service: "R2StorageHealthIndicator",
       });
 
       return indicator.down({

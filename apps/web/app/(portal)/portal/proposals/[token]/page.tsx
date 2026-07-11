@@ -91,7 +91,11 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
-      <DetailBreadcrumb backHref="/portal/proposals" backLabel="الطلبات" title={data.title} />
+      <DetailBreadcrumb
+        backHref="/portal/proposals"
+        backLabel="الطلبات"
+        title={data.title}
+      />
 
       <SurfaceCard
         title={data.title}

@@ -92,7 +92,8 @@ function PeriodCard({
     useSavePeriodSummaryMutation();
   const [setCompletionPct, { isLoading: isSettingCompletion }] =
     useSetPeriodCompletionMutation();
-  const [saveGoals, { isLoading: isSavingGoals }] = useSavePeriodGoalsMutation();
+  const [saveGoals, { isLoading: isSavingGoals }] =
+    useSavePeriodGoalsMutation();
   const [uploadReport, { isLoading: isUploadingReport }] =
     useUploadPeriodReportMutation();
   const [triggerReportDownload, { isFetching: isDownloadingReport }] =
@@ -199,9 +200,11 @@ function PeriodCard({
           className={cn(
             "cursor-pointer transition-all rounded-2xl border-[1.5px] bg-white dark:bg-gray-900 hover:shadow-md",
             isSuspended && "border-amber-300 dark:border-amber-700",
-            period.status === "ACTIVE" && "border-emerald-300 dark:border-emerald-700",
+            period.status === "ACTIVE" &&
+              "border-emerald-300 dark:border-emerald-700",
             isClosed && "border-blue-300 dark:border-blue-700",
-            period.status === "UPCOMING" && "border-gray-200 dark:border-gray-700",
+            period.status === "UPCOMING" &&
+              "border-gray-200 dark:border-gray-700",
           )}
         >
           {/* Header */}
@@ -222,11 +225,19 @@ function PeriodCard({
                 )}
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span>{new Date(period.startDate).toLocaleDateString("ar-SA")}</span>
+                <span>
+                  {new Date(period.startDate).toLocaleDateString("ar-SA")}
+                </span>
                 <span>→</span>
-                <span>{new Date(period.endDate).toLocaleDateString("ar-SA")}</span>
+                <span>
+                  {new Date(period.endDate).toLocaleDateString("ar-SA")}
+                </span>
                 <div className="mr-2">
-                  {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                  {isExpanded ? (
+                    <ChevronUp className="size-4" />
+                  ) : (
+                    <ChevronDown className="size-4" />
+                  )}
                 </div>
               </div>
             </div>
@@ -340,7 +351,9 @@ function PeriodCard({
                       min={0}
                       max={100}
                       value={completion}
-                      onChange={(e) => handleCompletionChange(Number(e.target.value))}
+                      onChange={(e) =>
+                        handleCompletionChange(Number(e.target.value))
+                      }
                       disabled={isSettingCompletion}
                       className="w-16 rounded-lg border border-gray-200 bg-white px-2 py-1 text-center text-sm dark:border-gray-700 dark:bg-gray-800"
                     />
@@ -418,7 +431,8 @@ function PeriodCard({
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) handleUploadReport(file);
-                    if (reportInputRef.current) reportInputRef.current.value = "";
+                    if (reportInputRef.current)
+                      reportInputRef.current.value = "";
                   }}
                 />
                 {!period.reportFilePath && (
@@ -442,12 +456,19 @@ function PeriodCard({
                 <div className="mt-4 rounded-xl bg-gray-50 p-3 dark:bg-gray-800/50">
                   <div className="flex items-center gap-2 text-sm">
                     <FileText className="size-4 text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-400">الفاتورة:</span>
-                    <span className="font-medium">{period.invoice.invoiceNumber}</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      الفاتورة:
+                    </span>
+                    <span className="font-medium">
+                      {period.invoice.invoiceNumber}
+                    </span>
                     <span className="font-bold mx-1">
                       {period.invoice.amount.toLocaleString()} ر.س
                     </span>
-                    <StatusBadge status={period.invoice.status} label={period.invoice.status} />
+                    <StatusBadge
+                      status={period.invoice.status}
+                      label={period.invoice.status}
+                    />
                   </div>
                 </div>
               )}
@@ -458,18 +479,25 @@ function PeriodCard({
 
       {/* Close Period Dialog */}
       {showCloseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" dir="rtl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          dir="rtl"
+        >
           <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <h3 className="mb-2 text-lg font-semibold">إغلاق الفترة</h3>
             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-              هل أنت متأكد من إغلاق هذه الفترة؟ سيتم إصدار فاتورة الفترة تلقائياً.
+              هل أنت متأكد من إغلاق هذه الفترة؟ سيتم إصدار فاتورة الفترة
+              تلقائياً.
             </p>
             <p className="mb-6 text-sm text-gray-500">
-              سيتم تحويل الفترة إلى حالة &quot;مغلقة&quot; وفتح الفترة التالية تلقائياً إذا كان تاريخ
-              البدء قد حان.
+              سيتم تحويل الفترة إلى حالة &quot;مغلقة&quot; وفتح الفترة التالية
+              تلقائياً إذا كان تاريخ البدء قد حان.
             </p>
             <div className="flex justify-end gap-2">
-              <ActionButton variant="outline" onClick={() => setShowCloseModal(false)}>
+              <ActionButton
+                variant="outline"
+                onClick={() => setShowCloseModal(false)}
+              >
                 إلغاء
               </ActionButton>
               <ActionButton onClick={handleClosePeriod} loading={isClosing}>
@@ -482,7 +510,10 @@ function PeriodCard({
 
       {/* Extend Period Dialog */}
       {showExtendModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" dir="rtl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          dir="rtl"
+        >
           <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <h3 className="mb-2 text-lg font-semibold">تمديد الفترة</h3>
             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
@@ -500,10 +531,17 @@ function PeriodCard({
               />
             </div>
             <div className="flex justify-end gap-2">
-              <ActionButton variant="outline" onClick={() => setShowExtendModal(false)}>
+              <ActionButton
+                variant="outline"
+                onClick={() => setShowExtendModal(false)}
+              >
                 إلغاء
               </ActionButton>
-              <ActionButton onClick={handleExtendPeriod} loading={isExtending} disabled={!extendDate}>
+              <ActionButton
+                onClick={handleExtendPeriod}
+                loading={isExtending}
+                disabled={!extendDate}
+              >
                 تمديد
               </ActionButton>
             </div>
@@ -520,10 +558,19 @@ interface PMPeriodsManagementProps {
   contractType?: string;
 }
 
-export function PMPeriodsManagement({ projectId, contractType }: PMPeriodsManagementProps) {
-  const { data: periods, isLoading, refetch } = useGetProjectPeriodsQuery(projectId);
-  const [createExtraPeriod, { isLoading: isCreating }] = useCreateExtraPeriodMutation();
-  const [generatePeriods, { isLoading: isGenerating }] = useGeneratePeriodsMutation();
+export function PMPeriodsManagement({
+  projectId,
+  contractType,
+}: PMPeriodsManagementProps) {
+  const {
+    data: periods,
+    isLoading,
+    refetch,
+  } = useGetProjectPeriodsQuery(projectId);
+  const [createExtraPeriod, { isLoading: isCreating }] =
+    useCreateExtraPeriodMutation();
+  const [generatePeriods, { isLoading: isGenerating }] =
+    useGeneratePeriodsMutation();
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const isRetainer = contractType === ContractType.MONTHLY_RETAINER;
@@ -560,11 +607,13 @@ export function PMPeriodsManagement({ projectId, contractType }: PMPeriodsManage
     return (
       <SurfaceCard>
         <div className="flex flex-col items-center gap-4 py-12 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-badge-gray-bg text-portal-note-text">
             <Calendar className="size-7" />
           </div>
           <div>
-            <p className="text-lg font-medium text-gray-700">لا توجد فترات بعد</p>
+            <p className="text-lg font-medium text-gray-700">
+              لا توجد فترات بعد
+            </p>
             <p className="mt-1 text-sm text-gray-400">
               {isRetainer
                 ? "يمكنك توليد الفترات الشهرية لهذا المشروع الآن، أو سيتم توليدها تلقائياً عند تفعيل العقد."
@@ -612,7 +661,9 @@ export function PMPeriodsManagement({ projectId, contractType }: PMPeriodsManage
               key={period.id}
               period={period}
               isExpanded={expanded === period.id}
-              onToggle={() => setExpanded(expanded === period.id ? null : period.id)}
+              onToggle={() =>
+                setExpanded(expanded === period.id ? null : period.id)
+              }
               onRefresh={() => refetch()}
             />
           ))}

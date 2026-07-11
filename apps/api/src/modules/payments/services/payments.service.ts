@@ -276,7 +276,19 @@ export class PaymentsService implements OnModuleInit {
   ) {
     const payment = await this.prisma.payment.findFirst({
       where: { providerPaymentId },
-      include: { invoice: { select: { id: true, contractId: true, paymentPlanId: true, clientId: true, amount: true, createdBy: true, invoiceNumber: true } } },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            contractId: true,
+            paymentPlanId: true,
+            clientId: true,
+            amount: true,
+            createdBy: true,
+            invoiceNumber: true,
+          },
+        },
+      },
     });
 
     if (!payment) return;
@@ -452,12 +464,25 @@ export class PaymentsService implements OnModuleInit {
     return gateways.map((g) => g.name);
   }
 
+  private mapBankAccountDto(dto: any) {
+    const mapped: any = { ...dto };
+    if (dto.swift !== undefined) {
+      mapped.swiftCode = dto.swift;
+      delete mapped.swift;
+    }
+    if (dto.transferInstructions !== undefined) {
+      mapped.instructions = dto.transferInstructions;
+      delete mapped.transferInstructions;
+    }
+    return mapped;
+  }
+
   async createBankAccount(dto: any) {
-    return this.prisma.bankAccount.create({ data: dto });
+    return this.prisma.bankAccount.create({ data: this.mapBankAccountDto(dto) });
   }
 
   async updateBankAccount(id: string, dto: any) {
-    return this.prisma.bankAccount.update({ where: { id }, data: dto });
+    return this.prisma.bankAccount.update({ where: { id }, data: this.mapBankAccountDto(dto) });
   }
 
   async deleteBankAccount(id: string) {

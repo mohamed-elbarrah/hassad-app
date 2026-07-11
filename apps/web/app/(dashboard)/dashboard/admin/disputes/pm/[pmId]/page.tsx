@@ -2,8 +2,20 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowRight, User, BarChart3, Clock, AlertTriangle, CheckCircle, XCircle, TrendingUp } from "lucide-react";
-import { useGetPmDisputeStatsQuery, useGetAdminDisputesQuery } from "@/features/disputes/adminDisputesApi";
+import {
+  ArrowRight,
+  User,
+  BarChart3,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+} from "lucide-react";
+import {
+  useGetPmDisputeStatsQuery,
+  useGetAdminDisputesQuery,
+} from "@/features/disputes/adminDisputesApi";
 import { useGetUserByIdQuery } from "@/features/users/usersApi";
 import type { DisputeStatus } from "@hassad/shared";
 import { DISPUTE_STATUS_AR } from "@hassad/shared";
@@ -25,26 +37,30 @@ export default function PmStatsPage({ params }: PmStatsPageProps) {
   const { data: pmUser, isLoading: isLoadingUser } = useGetUserByIdQuery(pmId);
 
   // Fetch PM dispute stats
-  const { data: stats, isLoading: isLoadingStats } = useGetPmDisputeStatsQuery(pmId);
+  const { data: stats, isLoading: isLoadingStats } =
+    useGetPmDisputeStatsQuery(pmId);
 
   // Fetch disputes for this PM
-  const { data: disputesData, isLoading: isLoadingDisputes } = useGetAdminDisputesQuery({
-    pmId,
-    limit: 50,
-  });
+  const { data: disputesData, isLoading: isLoadingDisputes } =
+    useGetAdminDisputesQuery({
+      pmId,
+      limit: 50,
+    });
 
   const isLoading = isLoadingUser || isLoadingStats || isLoadingDisputes;
   const disputes = disputesData?.data ?? [];
 
   // Calculate resolution rate
-  const resolutionRate = stats && stats.totalDisputes > 0
-    ? Math.round((stats.resolvedDisputes / stats.totalDisputes) * 100)
-    : 0;
+  const resolutionRate =
+    stats && stats.totalDisputes > 0
+      ? Math.round((stats.resolvedDisputes / stats.totalDisputes) * 100)
+      : 0;
 
   // Calculate escalation rate
-  const escalationRate = stats && stats.totalDisputes > 0
-    ? Math.round((stats.escalatedDisputes / stats.totalDisputes) * 100)
-    : 0;
+  const escalationRate =
+    stats && stats.totalDisputes > 0
+      ? Math.round((stats.escalatedDisputes / stats.totalDisputes) * 100)
+      : 0;
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -64,9 +80,15 @@ export default function PmStatsPage({ params }: PmStatsPageProps) {
           </div>
           <div>
             <h1 className="text-2xl font-semibold text-natural-100">
-              {isLoading ? <Skeleton className="h-8 w-48" /> : `إحصائيات ${pmUser?.name ?? "المدير"}`}
+              {isLoading ? (
+                <Skeleton className="h-8 w-48" />
+              ) : (
+                `إحصائيات ${pmUser?.name ?? "المدير"}`
+              )}
             </h1>
-            <p className="text-sm text-portal-note-text">سجل النزاعات والأداء</p>
+            <p className="text-sm text-portal-note-text">
+              سجل النزاعات والأداء
+            </p>
           </div>
         </div>
       </div>
@@ -118,7 +140,9 @@ export default function PmStatsPage({ params }: PmStatsPageProps) {
         <SurfaceCard className="p-5">
           <div className="flex items-center gap-3 mb-4">
             <TrendingUp className="h-5 w-5 text-secondary-500" />
-            <h2 className="text-lg font-semibold text-natural-100">معدل الحل</h2>
+            <h2 className="text-lg font-semibold text-natural-100">
+              معدل الحل
+            </h2>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex-1">
@@ -129,7 +153,9 @@ export default function PmStatsPage({ params }: PmStatsPageProps) {
                 />
               </div>
             </div>
-            <span className="text-2xl font-bold text-natural-100">{resolutionRate}%</span>
+            <span className="text-2xl font-bold text-natural-100">
+              {resolutionRate}%
+            </span>
           </div>
           <p className="text-sm text-portal-note-text mt-2">
             {stats.resolvedDisputes} من {stats.totalDisputes} نزاع تم حله بنجاح
@@ -141,7 +167,9 @@ export default function PmStatsPage({ params }: PmStatsPageProps) {
       <SurfaceCard className="p-5">
         <div className="flex items-center gap-3 mb-4">
           <BarChart3 className="h-5 w-5 text-secondary-500" />
-          <h2 className="text-lg font-semibold text-natural-100">سجل النزاعات</h2>
+          <h2 className="text-lg font-semibold text-natural-100">
+            سجل النزاعات
+          </h2>
         </div>
 
         <DataTable
@@ -162,7 +190,10 @@ export default function PmStatsPage({ params }: PmStatsPageProps) {
             hint: "لم يسجل هذا المدير أي نزاعات بعد",
           }}
           renderRow={(dispute) => (
-            <tr key={dispute.id} className="border-b-[1.5px] border-portal-divider">
+            <tr
+              key={dispute.id}
+              className="border-b-[1.5px] border-portal-divider"
+            >
               <td className="px-5 py-4">
                 <Link
                   href={`/dashboard/admin/disputes/${dispute.id}`}
@@ -180,10 +211,16 @@ export default function PmStatsPage({ params }: PmStatsPageProps) {
               <td className="px-5 py-4">
                 <DisputeStatusBadge status={dispute.status} />
               </td>
-              <td className="px-5 py-4 text-sm text-portal-note-text text-left" dir="ltr">
+              <td
+                className="px-5 py-4 text-sm text-portal-note-text text-left"
+                dir="ltr"
+              >
                 {formatDate(dispute.openedAt)}
               </td>
-              <td className="px-5 py-4 text-sm text-portal-note-text text-left" dir="ltr">
+              <td
+                className="px-5 py-4 text-sm text-portal-note-text text-left"
+                dir="ltr"
+              >
                 {dispute.resolvedAt ? formatDate(dispute.resolvedAt) : "—"}
               </td>
             </tr>
@@ -213,7 +250,14 @@ const STATS_COLORS = {
   purple: { bg: "bg-purple-100", icon: "text-purple-600" },
 };
 
-function StatsCard({ icon, label, value, suffix, color, isLoading }: StatsCardProps) {
+function StatsCard({
+  icon,
+  label,
+  value,
+  suffix,
+  color,
+  isLoading,
+}: StatsCardProps) {
   const colors = STATS_COLORS[color];
 
   if (isLoading) {
@@ -233,13 +277,19 @@ function StatsCard({ icon, label, value, suffix, color, isLoading }: StatsCardPr
   return (
     <SurfaceCard className="p-4">
       <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${colors.bg}`}>
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-full ${colors.bg}`}
+        >
           <span className={colors.icon}>{icon}</span>
         </div>
         <div>
           <p className="text-xl font-bold text-natural-100">
             {value}
-            {suffix && <span className="text-sm font-normal text-portal-note-text mr-1">{suffix}</span>}
+            {suffix && (
+              <span className="text-sm font-normal text-portal-note-text mr-1">
+                {suffix}
+              </span>
+            )}
           </p>
           <p className="text-sm text-portal-note-text">{label}</p>
         </div>

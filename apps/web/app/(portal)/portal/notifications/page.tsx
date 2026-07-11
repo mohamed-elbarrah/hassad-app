@@ -19,7 +19,10 @@ import { toast } from "sonner"; // NEW
 import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
+import {
+  FilterBar,
+  type FilterGroup,
+} from "@/components/design-system/FilterBar";
 import {
   useGetMyNotificationsQuery,
   useMarkAsReadMutation,
@@ -162,28 +165,38 @@ function isActionRequired(
     NotificationEventType.DELIVERABLE_READY,
     NotificationEventType.ACTION_REQUIRED,
   ];
-  if (eventType && actionTypes.includes(eventType as NotificationEventType)) return true;
+  if (eventType && actionTypes.includes(eventType as NotificationEventType))
+    return true;
   if (entityType === "proposal") {
     const actionEvents = [NotificationEventType.PROPOSAL_SENT];
-    return eventType ? actionEvents.includes(eventType as NotificationEventType) : true;
+    return eventType
+      ? actionEvents.includes(eventType as NotificationEventType)
+      : true;
   }
   if (entityType === "contract") {
     const actionEvents = ["CONTRACT_SENT"];
-    return eventType ? actionEvents.includes(eventType as NotificationEventType) : true;
+    return eventType
+      ? actionEvents.includes(eventType as NotificationEventType)
+      : true;
   }
   return false;
 }
 
 export default function PortalNotificationsPage() {
   const router = useRouter();
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filter = (activeFilters["filter"]?.[0] ?? "all") as FilterTab;
 
-  const handleFilterChange = useCallback((groupKey: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-  }, []);
+  const handleFilterChange = useCallback(
+    (groupKey: string, values: string[]) => {
+      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+    },
+    [],
+  );
 
   const isReadFilter =
     filter === "action" ? false : filter === "info" ? true : undefined;
@@ -292,8 +305,14 @@ export default function PortalNotificationsPage() {
         ) : filteredNotifications.length === 0 ? (
           <PortalEmptyState
             icon={Bell}
-            title={filter === "action" ? "لا توجد إجراءات مطلوبة" : "لا توجد إشعارات"}
-            description={filter === "all" ? "ستظهر هنا جميع الإشعارات المتعلقة بمشاريعك" : undefined}
+            title={
+              filter === "action" ? "لا توجد إجراءات مطلوبة" : "لا توجد إشعارات"
+            }
+            description={
+              filter === "all"
+                ? "ستظهر هنا جميع الإشعارات المتعلقة بمشاريعك"
+                : undefined
+            }
           />
         ) : (
           <div className="divide-y-[1.5px] border-portal-divider">

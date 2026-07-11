@@ -1,5 +1,5 @@
 import { Kanban } from "lucide-react";
-import { KanbanBoard } from "@/components/dashboard/crm/KanbanBoard";
+import { SalesPipelineKanban } from "@/components/dashboard/sales/SalesPipelineKanban";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { ActionButton } from "@/components/design-system/ActionButton";
 
@@ -37,7 +37,7 @@ export default function PipelinePage() {
         }
       />
 
-      <KanbanBoard />
+      <SalesPipelineKanban />
     </div>
   );
 }

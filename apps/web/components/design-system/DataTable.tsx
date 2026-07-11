@@ -57,7 +57,8 @@ function QueueRow({ onActivate, cells, className }: QueueRowProps) {
         "outline-none transition-colors",
         onActivate && "cursor-pointer",
         onActivate && "hover:bg-primary-100/50",
-        onActivate && "focus-visible:bg-primary-100/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500",
+        onActivate &&
+          "focus-visible:bg-primary-100/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500",
         className,
       )}
     >
@@ -82,7 +83,10 @@ interface DataTableProps<T> {
    * look and behave identically. `onActivate` is optional —
    * pass it to make the row clickable + keyboard-activatable.
    */
-  renderCells?: (row: T, helpers: { onActivate?: () => void }) => React.ReactNode[];
+  renderCells?: (
+    row: T,
+    helpers: { onActivate?: () => void },
+  ) => React.ReactNode[];
   /**
    * Legacy: full custom <tr>. Use only when the row needs
    * structural variation beyond what `renderCells` supports
@@ -143,7 +147,9 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-gry", className)}>
+    <div
+      className={cn("overflow-hidden rounded-xl border border-gry", className)}
+    >
       <Table className={cn(minWidth ?? "min-w-full")}>
         <TableHeader className="[tr]:border-b-[1.5px] [tr]:border-portal-divider">
           <TableRow className="hover:bg-transparent">
@@ -181,18 +187,18 @@ export function DataTable<T>({
           ) : renderCells ? (
             data.map((row, idx) => {
               const key = String((row as any).id ?? `row-${idx}`);
-              const onActivate = onRowActivate ? () => onRowActivate(row) : undefined;
+              const onActivate = onRowActivate
+                ? () => onRowActivate(row)
+                : undefined;
               const cells = renderCells(row, { onActivate });
-              return <QueueRow key={key} cells={cells} onActivate={onActivate} />;
+              return (
+                <QueueRow key={key} cells={cells} onActivate={onActivate} />
+              );
             })
           ) : renderRow ? (
             data.map((row, idx) => {
               const key = String((row as any).id ?? `row-${idx}`);
-              return (
-                <Fragment key={key}>
-                  {renderRow(row, idx)}
-                </Fragment>
-              );
+              return <Fragment key={key}>{renderRow(row, idx)}</Fragment>;
             })
           ) : (
             <TableRow className="border-b-[1.5px] border-portal-divider">

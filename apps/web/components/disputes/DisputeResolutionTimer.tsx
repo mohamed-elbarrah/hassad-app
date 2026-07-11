@@ -25,7 +25,9 @@ function calculateTimeRemaining(deadline: Date): TimeRemaining {
 
   const absDiff = Math.abs(diff);
   const days = Math.floor(absDiff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const hours = Math.floor(
+    (absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+  );
   const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60));
 
   return {
@@ -42,7 +44,9 @@ export function DisputeResolutionTimer({
   status,
   className,
 }: DisputeResolutionTimerProps) {
-  const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(
+    null,
+  );
 
   // Only show timer for relevant statuses
   const showTimer = ["APPROVED", "IN_PROGRESS"].includes(status);
@@ -77,7 +81,7 @@ export function DisputeResolutionTimer({
       <div
         className={cn(
           "flex items-center gap-2 rounded-full bg-red-100 px-3 py-1.5 text-red-700",
-          className
+          className,
         )}
         dir="rtl"
       >
@@ -145,7 +149,7 @@ export function DisputeResolutionTimer({
         style.bg,
         style.text,
         style.border,
-        className
+        className,
       )}
       dir="rtl"
     >
@@ -167,8 +171,13 @@ interface CompactTimerProps {
 }
 
 export function CompactTimer({ deadlineAt, status }: CompactTimerProps) {
-  const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null);
-  const deadline = useMemo(() => (deadlineAt ? new Date(deadlineAt) : null), [deadlineAt]);
+  const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(
+    null,
+  );
+  const deadline = useMemo(
+    () => (deadlineAt ? new Date(deadlineAt) : null),
+    [deadlineAt],
+  );
   const showTimer = ["APPROVED", "IN_PROGRESS"].includes(status);
 
   useEffect(() => {

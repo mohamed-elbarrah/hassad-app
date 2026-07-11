@@ -89,6 +89,9 @@ export class AdminDisputesController {
     @Param("id") id: string,
     @Body() dto: CreateDisputeMessageDto,
   ) {
-    return this.disputesService.addMessage(id, adminId, { ...dto, isInternal: dto.isInternal ?? true });
+    return this.disputesService.addMessage(id, adminId, {
+      ...dto,
+      isInternal: dto.isInternal ?? true,
+    });
   }
 }

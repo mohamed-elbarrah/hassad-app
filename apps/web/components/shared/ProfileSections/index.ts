@@ -1,13 +1,13 @@
 /**
  * ProfileSections - Shared Profile Section Components
- * 
+ *
  * These components support three modes as per the architecture:
  * - wizard: Step-by-step intake form with navigation
  * - edit: Profile editing with all sections visible
  * - view: Read-only profile display
- * 
+ *
  * Usage:
- * 
+ *
  * // Wizard mode (IntakeFormV2)
  * <CommunicationSection
  *   mode="wizard"
@@ -16,14 +16,14 @@
  *   onValid={handleValid}
  *   onNext={goToNextStep}
  * />
- * 
+ *
  * // Edit mode (ProfileEditV2)
  * <CommunicationSection
  *   mode="edit"
  *   initialData={profile.communicationInfo}
  *   onDataChange={handleUpdate}
  * />
- * 
+ *
  * // View mode (ClientBrief)
  * <CommunicationSection
  *   mode="view"

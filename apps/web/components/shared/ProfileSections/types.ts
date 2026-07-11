@@ -144,7 +144,10 @@ export interface AudienceSectionProps {
     audienceInfo?: AudienceInfo;
     brandVoice?: BrandVoice;
   };
-  onDataChange?: (data: { audienceInfo: AudienceInfo; brandVoice: BrandVoice }) => void;
+  onDataChange?: (data: {
+    audienceInfo: AudienceInfo;
+    brandVoice: BrandVoice;
+  }) => void;
   onValid?: (isValid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;
@@ -186,7 +189,10 @@ export interface PerformanceSectionProps {
     pastPerformance?: PastPerformance;
     budgetInfo?: BudgetInfo;
   };
-  onDataChange?: (data: { pastPerformance: PastPerformance; budgetInfo: BudgetInfo }) => void;
+  onDataChange?: (data: {
+    pastPerformance: PastPerformance;
+    budgetInfo: BudgetInfo;
+  }) => void;
   onValid?: (isValid: boolean) => void;
   onNext?: () => void;
   onBack?: () => void;

@@ -5,10 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  PORTAL_MORE_ITEMS,
-  isPortalActiveLink,
-} from "@/lib/portal-navigation";
+import { PORTAL_MORE_ITEMS, isPortalActiveLink } from "@/lib/portal-navigation";
 
 interface MoreMenuProps {
   isOpen: boolean;

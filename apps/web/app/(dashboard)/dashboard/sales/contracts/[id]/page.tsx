@@ -1,34 +1,33 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
-  Loader2,
   FileText,
   Download,
-  DollarSign,
-  Calendar,
+  Copy,
+  CheckCheck,
+  Building2,
+  User,
+  Phone,
+  Mail,
+  ExternalLink,
   Receipt,
 } from "lucide-react";
 import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
 import { ContractServicesTable } from "@/components/shared/ContractServicesTable";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { StatusBanner } from "@/components/design-system/StatusBanner";
-import { Pill } from "@/components/design-system/Pill";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/design-system/DataTable";
+import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { InfoPanel } from "@/components/design-system/InfoPanel";
+import { SalesStatusBadge } from "@/components/dashboard/sales/shared/SalesStatusBadge";
+import { SalesDetailBreadcrumb } from "@/components/dashboard/sales/shared/SalesDetailBreadcrumb";
+import { SalesDetailError } from "@/components/dashboard/sales/shared/SalesDetailError";
+import { SalesDetailSkeleton } from "@/components/dashboard/sales/shared/SalesDetailSkeleton";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import { formatShortDate } from "@/lib/format";
-import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
-import { ContractStatus } from "@hassad/shared";
+import { toast } from "sonner";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -40,313 +39,315 @@ const TYPE_LABELS: Record<string, string> = {
   ONE_TIME_SERVICE: "خدمة مرة واحدة",
 };
 
-const STATUS_META: Record<
-  ContractStatus,
-  { label: string; tone: import("@/components/design-system/Pill").PillTone }
-> = {
-  [ContractStatus.DRAFT]: { label: "مسودة", tone: "neutral" },
-  [ContractStatus.SENT]: { label: "مرسل", tone: "warning" },
-  [ContractStatus.SIGNED]: { label: "موقع", tone: "blue" },
-  [ContractStatus.ACTIVE]: { label: "نشط", tone: "success" },
-  [ContractStatus.ON_HOLD]: { label: "معلق", tone: "neutral" },
-  [ContractStatus.COMPLETED]: { label: "مكتمل", tone: "success" },
-  [ContractStatus.EXPIRED]: { label: "منتهي", tone: "danger" },
-  [ContractStatus.CANCELLED]: { label: "ملغى", tone: "danger" },
-};
-
 export default function SalesContractDetailPage({ params }: PageProps) {
   const { id } = use(params);
-  const { data, isLoading, isError } = useGetContractByIdQuery(id);
+  const { data, isLoading, isError, refetch } = useGetContractByIdQuery(id);
+  const [copied, setCopied] = useState(false);
 
-  if (isLoading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-      </div>
-    );
-  }
+  if (isLoading) return <SalesDetailSkeleton variant="contract" />;
 
   if (isError || !data) {
     return (
-      <div className="flex flex-col gap-4" dir="rtl">
-        <Link href="/dashboard/sales/contracts">
-          <ActionButton variant="ghost" size="sm" className="gap-2">
-            <ArrowRight className="h-4 w-4" />
-            العقود
-          </ActionButton>
-        </Link>
-        <SurfaceCard className="shadow-sm">
-          <div className="pt-6 text-center text-danger-500 text-sm">
-            العقد غير موجود.
-          </div>
-        </SurfaceCard>
-      </div>
+      <SalesDetailError
+        title="العقد غير موجود"
+        onRetry={refetch}
+        backHref="/dashboard/sales/contracts"
+        backLabel="العقود"
+      />
     );
   }
 
   const fileUrl = data.filePath ? buildPortalFileUrl(data.filePath) : null;
-  const invoiceCount = data.invoices?.length ?? 0;
+  const invoices = data.invoices ?? [];
+  const client = data.client;
+
+  async function handleCopyLink() {
+    if (!data.shareLinkToken) return;
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/contract/${data.shareLinkToken}`,
+      );
+      setCopied(true);
+      toast.success("تم نسخ رابط التوقيع");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("تعذر نسخ الرابط");
+    }
+  }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500" dir="rtl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2">
-        <Link href="/dashboard/sales/contracts">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-neutral-300 hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العقود
-          </ActionButton>
-        </Link>
-        <span className="text-neutral-300">/</span>
-        <span className="text-sm font-medium truncate max-w-xs">
-          {data.title}
-        </span>
-      </div>
+    <div className="flex flex-col gap-5" dir="rtl">
+      <SalesDetailBreadcrumb
+        backHref="/dashboard/sales/contracts"
+        backLabel="العقود"
+        title={data.title}
+      />
 
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{data.title}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Pill tone={STATUS_META[data.status].tone} className="text-xs h-6 px-2">
-              {STATUS_META[data.status].label}
-            </Pill>
-            <span className="text-xs text-neutral-300">
-              {TYPE_LABELS[data.type] ?? data.type}
-            </span>
-          </div>
-        </div>
-        <p className="text-sm text-neutral-300">
-          {data.client?.companyName}
-          {data.client?.user?.name ? ` — ${data.client.user.name}` : ""}
-        </p>
-      </div>
-
-      {/* Stats cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0"
-        >
-          <div>
-            <p className="text-portal-note-text text-sm">القيمة الإجمالية</p>
-            <h3 className="text-2xl font-bold mt-1">
-              <CurrencyDisplay amount={data.totalValue} size="lg" />
-            </h3>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <DollarSign className="w-3 h-3 ml-1" />
-            <span>{invoiceCount} فاتورة</span>
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0"
-        >
-          <div>
-            <p className="text-portal-note-text text-sm">الفترة</p>
-            <h3 className="text-lg font-bold mt-1">
-              {formatShortDate(data.startDate)} —{" "}
-              {formatShortDate(data.endDate)}
-            </h3>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <Calendar className="w-3 h-3 ml-1" />
-            <span>مدة العقد</span>
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0"
-        >
-          <div>
-            <p className="text-portal-note-text text-sm">رابط التوقيع</p>
-            <div className="mt-1">
-              {data.shareLinkToken ? (
-                <ActionButton
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const url = `${window.location.origin}/contract/${data.shareLinkToken}`;
-                    navigator.clipboard.writeText(url);
-                  }}
-                >
-                  نسخ الرابط
-                </ActionButton>
-              ) : (
-                <span className="text-sm text-neutral-300">غير متاح</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <span>لإرساله للعميل</span>
-          </div>
-        </SurfaceCard>
-      </div>
-
-      {/* Billing breakdown */}
-      {data.downPaymentType && data.downPaymentValue != null && (
-        <SurfaceCard
-          title="خطة الدفع"
-          description="تفاصيل الدفعة الأولى والأقساط الشهرية"
-          className="border-none shadow-sm"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm text-neutral-300">الدفعة الأولى</p>
-              <p className="text-lg font-bold mt-1">
-                {data.downPaymentType === "PERCENT"
-                  ? `${data.downPaymentValue}%`
-                  : `${data.downPaymentValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`}
-                {data.downPaymentType === "PERCENT" && (
-                  <span className="text-sm text-neutral-300 font-normal mr-2">
-                    ({(data.totalValue * (data.downPaymentValue / 100)).toLocaleString("ar-SA-u-nu-latn")} ر.س)
+      {/* ── Main card — everything inside ─────────────────────────────── */}
+      <SurfaceCard
+        title={data.title}
+        icon={FileText}
+        action={<SalesStatusBadge domain="contract" status={data.status} />}
+      >
+        <div className="space-y-6">
+          {/* ── Client info ──────────────────────────────────────────── */}
+          {client && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs font-medium text-portal-note-text">
+                {TYPE_LABELS[data.type] ?? data.type}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                <span className="flex items-center gap-1.5 text-natural-100">
+                  <Building2 className="w-4 h-4 text-portal-note-text" />
+                  {client.companyName ?? "—"}
+                </span>
+                {client.user?.name && (
+                  <span className="flex items-center gap-1.5 text-natural-100">
+                    <User className="w-4 h-4 text-portal-note-text" />
+                    {client.user.name}
                   </span>
                 )}
-              </p>
+                {client.user?.phoneWhatsapp && (
+                  <span
+                    className="flex items-center gap-1.5 text-natural-100 font-mono"
+                    dir="ltr"
+                  >
+                    <Phone className="w-4 h-4 text-portal-note-text" />
+                    {client.user.phoneWhatsapp}
+                  </span>
+                )}
+                {client.user?.email && (
+                  <span
+                    className="flex items-center gap-1.5 text-portal-note-text font-mono"
+                    dir="ltr"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {client.user.email}
+                  </span>
+                )}
+                <Link
+                  href={`/dashboard/sales/clients/${client.id}`}
+                  className="flex items-center gap-1 text-secondary-500 hover:underline"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  ملف العميل
+                </Link>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-neutral-300">الدفعة الشهرية</p>
-              <p className="text-lg font-bold mt-1">
+          )}
+
+          {/* ── Quick actions ────────────────────────────────────────── */}
+          {data.shareLinkToken && (
+            <div className="flex items-center gap-2">
+              <ActionButton
+                size="sm"
+                variant={copied ? "primary" : "outline"}
+                onClick={handleCopyLink}
+                icon={
+                  copied ? (
+                    <CheckCheck className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )
+                }
+              >
+                {copied ? "تم النسخ" : "نسخ رابط التوقيع"}
+              </ActionButton>
+            </div>
+          )}
+
+          {/* ── Financial metrics ────────────────────────────────────── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <InfoPanel variant="default" title="القيمة الإجمالية">
+              <p className="text-lg font-bold text-natural-100">
+                <CurrencyDisplay amount={data.totalValue} />
+              </p>
+            </InfoPanel>
+            <InfoPanel variant="default" title="الدفعة الشهرية">
+              <p className="text-lg font-bold text-natural-100">
                 {data.monthlyValue > 0
                   ? `${data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`
                   : "—"}
               </p>
-            </div>
-            <div>
-              <p className="text-sm text-neutral-300">عدد الأشهر</p>
-              <p className="text-lg font-bold mt-1">
-                {data.numberOfMonths ?? "—"}
+            </InfoPanel>
+            <InfoPanel variant="default" title="تاريخ البداية">
+              <p className="text-base font-semibold text-natural-100">
+                {formatShortDate(data.startDate)}
               </p>
-            </div>
+            </InfoPanel>
+            <InfoPanel variant="default" title="تاريخ النهاية">
+              <p className="text-base font-semibold text-natural-100">
+                {formatShortDate(data.endDate)}
+              </p>
+            </InfoPanel>
           </div>
-        </SurfaceCard>
-      )}
 
-      {/* Services + Invoices */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ContractServicesTable
-          services={data.servicesList ?? []}
-          totalValue={data.totalValue}
-        />
-
-        {/* Invoices */}
-        <SurfaceCard
-          title="الفواتير"
-          description="الفواتير المرتبطة بهذا العقد"
-          className="border-none shadow-sm"
-        >
-          {invoiceCount === 0 ? (
-            <div className="text-center py-8 text-neutral-300 text-sm">
-              لا توجد فواتير بعد.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>رقم الفاتورة</TableHead>
-                  <TableHead>المبلغ</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.invoices?.map((inv) => (
-                  <TableRow key={inv.id}>
-                    <TableCell className="font-mono text-xs">
-                      {inv.invoiceNumber}
-                    </TableCell>
-                    <TableCell className="font-medium text-success-600">
-                      <CurrencyDisplay amount={inv.amount} />
-                    </TableCell>
-                    <TableCell>
-                      <Pill
-                        tone={
-                          inv.status === "PAID"
-                            ? "success"
-                            : inv.status === "LATE"
-                              ? "danger"
-                              : "warning"
-                        }
-                        className="text-[10px] h-5 px-2"
-                      >
-                        {inv.status === "PAID"
-                          ? "مدفوعة"
-                          : inv.status === "LATE"
-                            ? "متأخرة"
-                            : inv.status === "PENDING"
-                              ? "معلقة"
-                              : inv.status}
-                      </Pill>
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <Link href={`/dashboard/finance/invoices/${inv.id}`}>
-                        <ActionButton size="sm" variant="ghost">
-                          <Receipt className="w-4 h-4" />
-                        </ActionButton>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </SurfaceCard>
-      </div>
-
-      {/* PDF Download */}
-      {fileUrl && (
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-6"
-        >
-          <div className="flex items-center gap-3 rounded-xl border bg-neutral-50/30 p-4"
-          >
-            <FileText className="w-8 h-8 text-action-blue shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">ملف العقد</p>
-              <p className="text-xs text-neutral-300">
-                تحميل ملف العقد بصيغة PDF
-              </p>
-            </div>
-            <a
-              href={fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
+          {/* ── Payment plan ────────────────────────────────────────── */}
+          {data.downPaymentType && data.downPaymentValue != null && (
+            <InfoPanel
+              variant="bordered"
+              title="خطة الدفع"
+              description="الدفعة الأولى والأقساط الشهرية"
             >
-              <ActionButton
-                variant="outline"
-                size="sm"
-                icon={<Download className="w-4 h-4" />}
-              >
-                تحميل العقد
-              </ActionButton>
-            </a>
-          </div>
-        </SurfaceCard>
-      )}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-portal-note-text">الدفعة الأولى</p>
+                  <p className="text-sm font-bold text-natural-100 mt-0.5">
+                    {data.downPaymentType === "PERCENT"
+                      ? `${data.downPaymentValue}%`
+                      : `${data.downPaymentValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`}
+                    {data.downPaymentType === "PERCENT" && (
+                      <span className="text-xs text-portal-note-text font-normal mr-1">
+                        (
+                        {(
+                          data.totalValue *
+                          (data.downPaymentValue / 100)
+                        ).toLocaleString("ar-SA-u-nu-latn")}{" "}
+                        ر.س)
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-portal-note-text">
+                    الدفعة الشهرية
+                  </p>
+                  <p className="text-sm font-bold text-natural-100 mt-0.5">
+                    {data.monthlyValue > 0
+                      ? `${data.monthlyValue.toLocaleString("ar-SA-u-nu-latn")} ر.س`
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-portal-note-text">عدد الأشهر</p>
+                  <p className="text-sm font-bold text-natural-100 mt-0.5">
+                    {data.numberOfMonths ?? "—"}
+                  </p>
+                </div>
+              </div>
+            </InfoPanel>
+          )}
 
-      {/* Linked proposal */}
-      {data.proposal && (
-        <SurfaceCard
-          title="العرض الفني الأصلي"
-          className="border-none shadow-sm"
-        >
-          <div className="flex items-center justify-between"
-          >
-            <div>
-              <p className="text-sm font-medium">{data.proposal.title}</p>
-              <p className="text-xs text-neutral-300">
-                <CurrencyDisplay amount={data.proposal.totalPrice ?? 0} />
-              </p>
-            </div>
-            <Link href={`/dashboard/sales/proposals`}>
-              <ActionButton variant="outline" size="sm">
-                عرض العروض
-              </ActionButton>
-            </Link>
+          {/* ── Services ─────────────────────────────────────────────── */}
+          <ContractServicesTable
+            services={data.servicesList ?? []}
+            totalValue={data.totalValue}
+          />
+
+          {/* ── Invoices ────────────────────────────────────────────── */}
+          <div>
+            <p className="text-base font-medium text-natural-100 mb-3">
+              الفواتير
+            </p>
+            <DataTable
+              columns={[
+                { id: "invoiceNumber", label: "رقم الفاتورة" },
+                { id: "amount", label: "المبلغ" },
+                { id: "status", label: "الحالة" },
+                { id: "dueDate", label: "تاريخ الاستحقاق" },
+                { id: "action", label: "", align: "left", width: "60px" },
+              ]}
+              data={invoices}
+              isLoading={false}
+              isError={false}
+              skeletonRows={3}
+              emptyState={{
+                icon: Receipt,
+                message: "لا توجد فواتير بعد",
+                hint: "سيتم إنشاء الفواتير تلقائياً حسب خطة الدفع.",
+              }}
+              renderCells={(inv) => [
+                <td key="num" className="px-5 py-3.5 align-middle">
+                  <span
+                    className="text-sm font-mono text-natural-100"
+                    dir="ltr"
+                  >
+                    {inv.invoiceNumber}
+                  </span>
+                </td>,
+                <td key="amount" className="px-5 py-3.5 align-middle">
+                  <CurrencyDisplay
+                    amount={inv.amount}
+                    size="sm"
+                    className="text-sm font-semibold text-natural-100"
+                  />
+                </td>,
+                <td key="status" className="px-5 py-3.5 align-middle">
+                  <SalesStatusBadge domain="invoice" status={inv.status} />
+                </td>,
+                <td key="due" className="px-5 py-3.5 align-middle">
+                  <span className="text-sm text-portal-note-text">
+                    {formatShortDate(inv.dueDate)}
+                  </span>
+                </td>,
+                <td
+                  key="action"
+                  className="px-5 py-3.5 align-middle text-start"
+                >
+                  <Link
+                    href={`/dashboard/finance/invoices/${inv.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ActionButton size="sm" variant="ghost">
+                      <Receipt className="w-4 h-4" />
+                    </ActionButton>
+                  </Link>
+                </td>,
+              ]}
+            />
           </div>
-        </SurfaceCard>
-      )}
+
+          {/* ── Contract file ─────────────────────────────────────────── */}
+          {fileUrl && (
+            <InfoPanel variant="bordered" title="ملف العقد">
+              <div className="flex items-center gap-3">
+                <FileText className="h-8 w-8 shrink-0 text-action-blue" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-natural-100">العقد بصيغة PDF</p>
+                </div>
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                >
+                  <ActionButton
+                    variant="outline"
+                    icon={<Download className="h-4 w-4" />}
+                  >
+                    تحميل
+                  </ActionButton>
+                </a>
+              </div>
+            </InfoPanel>
+          )}
+
+          {/* ── Linked proposal ──────────────────────────────────────── */}
+          {data.proposal && (
+            <InfoPanel
+              variant="bordered"
+              title="العرض الفني الأصلي"
+              description="العرض المعتمد الذي تم بناء هذا العقد عليه"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-natural-100">
+                    {data.proposal.title}
+                  </p>
+                  <p className="text-xs text-portal-note-text mt-0.5">
+                    <CurrencyDisplay amount={data.proposal.totalPrice ?? 0} />
+                  </p>
+                </div>
+                <Link href="/dashboard/sales/proposals">
+                  <ActionButton variant="outline" size="sm">
+                    عرض العروض
+                  </ActionButton>
+                </Link>
+              </div>
+            </InfoPanel>
+          )}
+        </div>
+      </SurfaceCard>
     </div>
   );
 }

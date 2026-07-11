@@ -10,6 +10,9 @@ export * from "./enums/workload";
 export * from "./enums/campaign";
 export * from "./enums/service";
 export * from "./enums/dispute";
+export * from "./enums/invoice";
+export * from "./enums/payment";
+export * from "./enums/lead";
 
 // Schemas
 export * from "./schemas/auth.schema";
@@ -28,6 +31,7 @@ import type { ServiceItem } from "./schemas/proposal.schema";
 import { UserRole } from "./enums/roles";
 import {
   ClientStatus,
+  CLIENT_STATUS_AR,
   BusinessType,
   ClientSource,
   ProposalStatus,
@@ -470,11 +474,14 @@ export interface PaymentGateway {
 export interface BankAccount {
   id: string;
   accountName: string;
+  accountNumber?: string | null;
   iban: string;
   bankName: string;
   swiftCode?: string | null;
   instructions?: string | null;
+  isDefault?: boolean;
   isActive: boolean;
+  balance?: number | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }

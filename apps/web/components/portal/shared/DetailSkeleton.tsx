@@ -2,7 +2,12 @@
 
 import { Skeleton } from "@/components/design-system/Skeleton";
 
-type DetailVariant = "contract" | "invoice" | "proposal" | "project" | "campaign";
+type DetailVariant =
+  | "contract"
+  | "invoice"
+  | "proposal"
+  | "project"
+  | "campaign";
 
 interface DetailSkeletonProps {
   variant: DetailVariant;

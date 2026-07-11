@@ -1,7 +1,10 @@
 "use client";
 import { cn } from "@/lib/utils";
 
-const STATUS_MAP: Record<string, { bg: string; text: string; border: string; label: string }> = {
+const STATUS_MAP: Record<
+  string,
+  { bg: string; text: string; border: string; label: string }
+> = {
   // Finance statuses
   PAID: {
     bg: "bg-success-100",
@@ -33,7 +36,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-danger-200",
     label: "متأخر",
   },
-  
+
   // Blue/Purple statuses - "Under Review" states (distinct from gray)
   AWAITING_REVIEW: {
     bg: "bg-action-blue-soft",
@@ -53,7 +56,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-action-blue-soft",
     label: "مرسل",
   },
-  
+
   // Orange/Yellow - "Warning/Attention" states
   PENDING: {
     bg: "bg-alert-100",
@@ -85,7 +88,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-alert-200",
     label: "متوقف مؤقتاً",
   },
-  
+
   // Green - "Success/Active" states
   ACTIVE: {
     bg: "bg-success-100",
@@ -123,7 +126,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-primary-200",
     label: "قيد التنفيذ",
   },
-  
+
   // Red - "Danger/Error" states
   CANCELLED: {
     bg: "bg-danger-100",
@@ -161,7 +164,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-danger-200",
     label: "متوقف",
   },
-  
+
   // Gray - "Neutral/Info" states
   PLANNING: {
     bg: "bg-neutral-100",
@@ -187,7 +190,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-neutral-200",
     label: "جديد",
   },
-  
+
   // Proposal statuses - Additional uppercase
   REVISION_REQUESTED: {
     bg: "bg-orange-100",
@@ -207,7 +210,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-alert-200",
     label: "مؤجل",
   },
-  
+
   // Lowercase - Blue/Purple (Review states)
   "awaiting-review": {
     bg: "bg-action-blue-soft",
@@ -239,7 +242,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-action-purple-soft",
     label: "قيد المراجعة",
   },
-  
+
   // Lowercase - Orange (Warning/Attention states)
   "needs-revision": {
     bg: "bg-orange-100",
@@ -289,7 +292,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-alert-200",
     label: "معلق",
   },
-  
+
   // Lowercase - Green (Success states)
   completed: {
     bg: "bg-success-100",
@@ -339,7 +342,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-primary-200",
     label: "قيد التنفيذ",
   },
-  
+
   // Lowercase - Red (Danger/Error states)
   cancelled: {
     bg: "bg-danger-100",
@@ -383,7 +386,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string; border: string; lab
     border: "border-danger-200",
     label: "غير مدفوع",
   },
-  
+
   // Lowercase - Gray (Neutral states)
   planning: {
     bg: "bg-neutral-100",
@@ -427,10 +430,10 @@ export interface StatusBadgeProps {
 
 export function StatusBadge({ status, label, className }: StatusBadgeProps) {
   // Debug: Log unknown statuses in development
-  if (process.env.NODE_ENV === 'development' && !STATUS_MAP[status]) {
+  if (process.env.NODE_ENV === "development" && !STATUS_MAP[status]) {
     console.warn(`[StatusBadge] Unknown status: "${status}"`);
   }
-  
+
   const style = STATUS_MAP[status] ?? STATUS_MAP.DRAFT;
   return (
     <span

@@ -45,7 +45,9 @@ export function ProfileEditV2({
   const [updateUser] = useUpdateUserMutation();
 
   const [formData, setFormData] = useState<FormData>({});
-  const [personalInfo, setPersonalInfo] = useState<Record<string, any> | null>(null);
+  const [personalInfo, setPersonalInfo] = useState<Record<string, any> | null>(
+    null,
+  );
   const [isDirty, setIsDirty] = useState(false);
 
   // Initialize form data when profile loads

@@ -1,4 +1,10 @@
-import { IsString, IsEnum, MinLength, MaxLength, IsOptional } from "class-validator";
+import {
+  IsString,
+  IsEnum,
+  MinLength,
+  MaxLength,
+  IsOptional,
+} from "class-validator";
 import { DisputeCategory } from "@hassad/shared";
 
 export class CreateDisputeDto {

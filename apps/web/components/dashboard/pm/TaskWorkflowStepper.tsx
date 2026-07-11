@@ -16,15 +16,26 @@ interface TaskWorkflowStepperProps {
 
 const WORKFLOW_STEPS: { status: TaskStatus; label: string }[] = [
   { status: TaskStatus.TODO, label: TASK_STATUS_LABELS[TaskStatus.TODO] },
-  { status: TaskStatus.IN_PROGRESS, label: TASK_STATUS_LABELS[TaskStatus.IN_PROGRESS] },
-  { status: TaskStatus.IN_REVIEW, label: TASK_STATUS_LABELS[TaskStatus.IN_REVIEW] },
+  {
+    status: TaskStatus.IN_PROGRESS,
+    label: TASK_STATUS_LABELS[TaskStatus.IN_PROGRESS],
+  },
+  {
+    status: TaskStatus.IN_REVIEW,
+    label: TASK_STATUS_LABELS[TaskStatus.IN_REVIEW],
+  },
   { status: TaskStatus.DONE, label: TASK_STATUS_LABELS[TaskStatus.DONE] },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function TaskWorkflowStepper({ currentStatus, revisionCount = 0 }: TaskWorkflowStepperProps) {
-  const currentIndex = WORKFLOW_STEPS.findIndex((s) => s.status === currentStatus);
+export function TaskWorkflowStepper({
+  currentStatus,
+  revisionCount = 0,
+}: TaskWorkflowStepperProps) {
+  const currentIndex = WORKFLOW_STEPS.findIndex(
+    (s) => s.status === currentStatus,
+  );
   // If in REVISION, visually show we're at IN_REVIEW with a warning
   const isRevision = currentStatus === TaskStatus.REVISION;
   const effectiveIndex = isRevision ? 2 : currentIndex;
@@ -39,16 +50,25 @@ export function TaskWorkflowStepper({ currentStatus, revisionCount = 0 }: TaskWo
           const isPending = effectiveIndex < index;
 
           return (
-            <div key={step.status} className="flex items-center flex-1 last:flex-none">
+            <div
+              key={step.status}
+              className="flex items-center flex-1 last:flex-none"
+            >
               {/* Step circle */}
               <div className="flex flex-col items-center gap-2">
                 <div
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2",
-                    isCompleted && "bg-emerald-500 border-emerald-500 text-white",
-                    isCurrent && !isRevision && "bg-blue-500 border-blue-500 text-white shadow-md shadow-blue-200",
-                    isCurrent && isRevision && "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200",
-                    isPending && "bg-white border-neutral-200 text-neutral-400",
+                    isCompleted &&
+                      "bg-emerald-500 border-emerald-500 text-white",
+                    isCurrent &&
+                      !isRevision &&
+                      "bg-blue-500 border-blue-500 text-white shadow-md shadow-blue-200",
+                    isCurrent &&
+                      isRevision &&
+                      "bg-amber-500 border-amber-500 text-white shadow-md shadow-amber-200",
+                    isPending &&
+                      "bg-white border-portal-card-border text-portal-note-text",
                   )}
                 >
                   {isCompleted ? (
@@ -65,7 +85,7 @@ export function TaskWorkflowStepper({ currentStatus, revisionCount = 0 }: TaskWo
                     isCompleted && "text-emerald-700",
                     isCurrent && !isRevision && "text-blue-700",
                     isCurrent && isRevision && "text-amber-700",
-                    isPending && "text-neutral-400",
+                    isPending && "text-portal-note-text",
                   )}
                 >
                   {step.label}
@@ -75,7 +95,12 @@ export function TaskWorkflowStepper({ currentStatus, revisionCount = 0 }: TaskWo
               {/* Connector line */}
               {index < WORKFLOW_STEPS.length - 1 && (
                 <div className="flex-1 h-0.5 mx-2 relative">
-                  <div className={cn("absolute inset-0 rounded-full", isCompleted ? "bg-emerald-300" : "bg-neutral-200")} />
+                  <div
+                    className={cn(
+                      "absolute inset-0 rounded-full",
+                      isCompleted ? "bg-emerald-300" : "bg-portal-divider",
+                    )}
+                  />
                 </div>
               )}
             </div>
@@ -96,19 +121,28 @@ export function TaskWorkflowStepper({ currentStatus, revisionCount = 0 }: TaskWo
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2",
                   isCompleted && "bg-emerald-500 border-emerald-500 text-white",
-                  isCurrent && !isRevision && "bg-blue-500 border-blue-500 text-white",
-                  isCurrent && isRevision && "bg-amber-500 border-amber-500 text-white",
-                  isPending && "bg-white border-neutral-200 text-neutral-400",
+                  isCurrent &&
+                    !isRevision &&
+                    "bg-blue-500 border-blue-500 text-white",
+                  isCurrent &&
+                    isRevision &&
+                    "bg-amber-500 border-amber-500 text-white",
+                  isPending &&
+                    "bg-white border-portal-card-border text-portal-note-text",
                 )}
               >
-                {isCompleted ? <Check className="w-4 h-4" /> : <span className="text-xs font-bold">{index + 1}</span>}
+                {isCompleted ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <span className="text-xs font-bold">{index + 1}</span>
+                )}
               </div>
               <span
                 className={cn(
                   "text-sm font-medium",
                   isCompleted && "text-emerald-700",
                   isCurrent && "text-natural-100",
-                  isPending && "text-neutral-400",
+                  isPending && "text-portal-note-text",
                 )}
               >
                 {step.label}
@@ -128,7 +162,9 @@ export function TaskWorkflowStepper({ currentStatus, revisionCount = 0 }: TaskWo
         <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-sm">
           <RotateCcw className="w-4 h-4 text-amber-600 shrink-0" />
           <span className="text-amber-800">
-            تم طلب تعديل {revisionCount > 1 ? `${revisionCount} مرات` : "مرة واحدة"} — يرجى إعادة العمل على المهمة
+            تم طلب تعديل{" "}
+            {revisionCount > 1 ? `${revisionCount} مرات` : "مرة واحدة"} — يرجى
+            إعادة العمل على المهمة
           </span>
         </div>
       )}

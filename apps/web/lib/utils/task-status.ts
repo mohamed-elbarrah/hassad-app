@@ -15,11 +15,11 @@ export interface TaskWithMeta extends Task {
 // Each status has a unique color for clear visual differentiation.
 
 export const TASK_STATUS_COLOR: Record<TaskStatus, string> = {
-  [TaskStatus.TODO]: "#6B7280",        // Grey - not started
+  [TaskStatus.TODO]: "#6B7280", // Grey - not started
   [TaskStatus.IN_PROGRESS]: "#3B82F6", // Blue - active
-  [TaskStatus.IN_REVIEW]: "#8B5CF6",    // Purple - waiting review
-  [TaskStatus.REVISION]: "#F97316",     // Orange - needs fix
-  [TaskStatus.DONE]: "#10B981",         // Emerald - completed
+  [TaskStatus.IN_REVIEW]: "#8B5CF6", // Purple - waiting review
+  [TaskStatus.REVISION]: "#F97316", // Orange - needs fix
+  [TaskStatus.DONE]: "#10B981", // Emerald - completed
 };
 
 // ── Task status Arabic labels ──────────────────────────────────────────────

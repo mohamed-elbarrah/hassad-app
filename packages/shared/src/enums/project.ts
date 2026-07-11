@@ -28,6 +28,14 @@ export enum TaskStatus {
   REVISION = "REVISION",
 }
 
+export const TASK_STATUS_AR: Record<TaskStatus, string> = {
+  TODO: "قيد الانتظار",
+  IN_PROGRESS: "قيد التنفيذ",
+  IN_REVIEW: "قيد المراجعة",
+  DONE: "مكتمل",
+  REVISION: "مراجعة",
+};
+
 export enum TaskPriority {
   LOW = "LOW",
   NORMAL = "NORMAL",
@@ -49,6 +57,14 @@ export enum TaskDepartment {
   MARKETING = "MARKETING",
   PRODUCTION = "PRODUCTION",
 }
+
+export const TASK_DEPARTMENT_AR: Record<TaskDepartment, string> = {
+  DESIGN: "تصميم",
+  CONTENT: "محتوى",
+  DEVELOPMENT: "تطوير",
+  MARKETING: "تسويق",
+  PRODUCTION: "مونتاج",
+};
 
 export enum ProjectMemberRole {
   MANAGER = "MANAGER",
@@ -124,7 +140,10 @@ export enum MarketingStrategyStatus {
   REJECTED = "REJECTED",
 }
 
-export const MARKETING_STRATEGY_STATUS_AR: Record<MarketingStrategyStatus, string> = {
+export const MARKETING_STRATEGY_STATUS_AR: Record<
+  MarketingStrategyStatus,
+  string
+> = {
   DRAFT: "مسودة",
   SENT: "تم الإرسال",
   APPROVED: "تمت الموافقة",

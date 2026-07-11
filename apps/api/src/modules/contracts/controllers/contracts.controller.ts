@@ -189,7 +189,10 @@ export class ContractsController {
   @Put(":id/payment-plan")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("contracts.manage_payment_plan")
-  definePaymentPlan(@Param("id") id: string, @Body() dto: DefinePaymentPlanDto) {
+  definePaymentPlan(
+    @Param("id") id: string,
+    @Body() dto: DefinePaymentPlanDto,
+  ) {
     return this.contractsService.definePaymentPlan(id, dto);
   }
 

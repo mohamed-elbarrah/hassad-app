@@ -1,9 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
   Building2,
   Phone,
   Mail,
@@ -14,46 +13,26 @@ import {
   FileSignature,
   FileText,
   FolderKanban,
+  Copy,
+  CheckCheck,
+  ExternalLink,
+  Clock,
+  UserCheck,
+  ArrowLeft,
 } from "lucide-react";
 import { RequestStatus } from "@hassad/shared";
 import {
   useGetRequestByIdQuery,
   type RequestDetail,
 } from "@/features/requests/requestsApi";
-import { Pill } from "@/components/design-system/Pill";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBanner } from "@/components/design-system/StatusBanner";
-import { cn } from "@/lib/utils";
-
-const STATUS_LABELS: Record<RequestStatus, string> = {
-  [RequestStatus.SUBMITTED]: "طلب جديد",
-  [RequestStatus.QUALIFYING]: "مراجعة المبيعات",
-  [RequestStatus.PROPOSAL_IN_PROGRESS]: "إعداد العرض",
-  [RequestStatus.PROPOSAL_SENT]: "تم إرسال العرض",
-  [RequestStatus.NEGOTIATION]: "تفاوض",
-  [RequestStatus.CONTRACT_PREPARATION]: "إعداد العقد",
-  [RequestStatus.CONTRACT_SENT]: "العقد مرسل",
-  [RequestStatus.SIGNED]: "تم التوقيع",
-  [RequestStatus.PROJECT_CREATED]: "تحول إلى مشروع",
-  [RequestStatus.CANCELLED]: "ملغي",
-};
-
-const STATUS_TONE: Record<
-  RequestStatus,
-  import("@/components/design-system/Pill").PillTone
-> = {
-  [RequestStatus.SUBMITTED]: "neutral",
-  [RequestStatus.QUALIFYING]: "blue",
-  [RequestStatus.PROPOSAL_IN_PROGRESS]: "purple",
-  [RequestStatus.PROPOSAL_SENT]: "warning",
-  [RequestStatus.NEGOTIATION]: "warning",
-  [RequestStatus.CONTRACT_PREPARATION]: "warning",
-  [RequestStatus.CONTRACT_SENT]: "success",
-  [RequestStatus.SIGNED]: "success",
-  [RequestStatus.PROJECT_CREATED]: "success",
-  [RequestStatus.CANCELLED]: "danger",
-};
+import { InfoPanel } from "@/components/design-system/InfoPanel";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { SalesDetailBreadcrumb } from "@/components/dashboard/sales/shared/SalesDetailBreadcrumb";
+import { SalesDetailError } from "@/components/dashboard/sales/shared/SalesDetailError";
+import { SalesDetailSkeleton } from "@/components/dashboard/sales/shared/SalesDetailSkeleton";
+import { SalesStatusBadge } from "@/components/dashboard/sales/shared/SalesStatusBadge";
+import { toast } from "sonner";
 
 const BUSINESS_TYPE_LABELS: Record<string, string> = {
   RESTAURANT: "مطعم",
@@ -67,6 +46,28 @@ const BUSINESS_TYPE_LABELS: Record<string, string> = {
   MEDICAL: "طبي",
   EDUCATION: "تعليم",
   OTHER: "أخرى",
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  WEBSITE: "الموقع الإلكتروني",
+  REFERRAL: "توصية",
+  SOCIAL_MEDIA: "تواصل اجتماعي",
+  CALL: "اتصال هاتفي",
+  WALK_IN: "زيارة",
+  OTHER: "أخرى",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  [RequestStatus.SUBMITTED]: "طلب جديد",
+  [RequestStatus.QUALIFYING]: "مراجعة المبيعات",
+  [RequestStatus.PROPOSAL_IN_PROGRESS]: "إعداد العرض",
+  [RequestStatus.PROPOSAL_SENT]: "تم إرسال العرض",
+  [RequestStatus.NEGOTIATION]: "تفاوض",
+  [RequestStatus.CONTRACT_PREPARATION]: "إعداد العقد",
+  [RequestStatus.CONTRACT_SENT]: "العقد مرسل",
+  [RequestStatus.SIGNED]: "تم التوقيع",
+  [RequestStatus.PROJECT_CREATED]: "تحول إلى مشروع",
+  [RequestStatus.CANCELLED]: "ملغي",
 };
 
 function parseNotes(notes?: string | null): {
@@ -98,51 +99,41 @@ function formatDate(dateStr: string): string {
   }).format(new Date(dateStr));
 }
 
-function InfoRow({
-  icon,
-  label,
-  value,
-  dir,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | null | undefined;
-  dir?: "ltr" | "rtl";
-}) {
-  if (!value) return null;
-  return (
-    <div className="flex items-start gap-3">
-      <span className="mt-0.5 text-neutral-300 shrink-0">{icon}</span>
-      <div className="min-w-0">
-        <p className="text-xs text-neutral-300">{label}</p>
-        <p
-          className={cn(
-            "text-sm font-medium break-all",
-            dir === "ltr" && "font-mono",
-          )}
-          dir={dir}
-        >
-          {value}
-        </p>
-      </div>
-    </div>
-  );
+function formatShortDate(dateStr: string): string {
+  return new Intl.DateTimeFormat("ar-SA-u-nu-latn", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(dateStr));
 }
 
-function DetailSkeleton() {
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      toast.success(`تم نسخ ${label}`);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("تعذر النسخ");
+    }
+  }
+
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-8 w-8 rounded" />
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-6 w-24 rounded-full mr-auto" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Skeleton className="h-44" />
-        <Skeleton className="h-44" />
-      </div>
-      <Skeleton className="h-36" />
-    </div>
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1 text-xs text-portal-note-text hover:text-secondary-500 transition-colors"
+      title={`نسخ ${label}`}
+    >
+      {copied ? (
+        <CheckCheck className="w-3 h-3 text-success-600" />
+      ) : (
+        <Copy className="w-3 h-3" />
+      )}
+    </button>
   );
 }
 
@@ -150,59 +141,83 @@ function RelatedRecords({ request }: { request: RequestDetail }) {
   const hasProposals = request.proposals.length > 0;
   const hasContracts = request.contracts.length > 0;
 
-  if (!hasProposals && !hasContracts && !request.project) {
-    return null;
-  }
+  if (!hasProposals && !hasContracts && !request.project) return null;
 
   return (
-    <SurfaceCard title="السجل المرتبط بالطلب" icon={FolderKanban}>
+    <div>
+      <p className="text-base font-medium text-natural-100 mb-3">
+        السجل المرتبط
+      </p>
       <div className="space-y-3">
         {request.proposals.map((proposal) => (
-          <div
+          <Link
             key={proposal.id}
-            className="flex items-start gap-3 rounded-lg border p-3"
+            href={`/dashboard/sales/proposals`}
+            className="flex items-center gap-3 rounded-xl border-[1.5px] border-portal-card-border bg-portal-bg p-3 hover:bg-badge-gray-bg transition-colors group"
           >
-            <FileText className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-action-blue-soft">
+              <FileText className="h-5 w-5 text-action-blue" />
+            </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{proposal.title}</p>
-              <p className="text-xs text-neutral-300">
-                عرض فني • {formatDate(proposal.createdAt)}
+              <p className="text-sm font-medium text-natural-100 truncate group-hover:text-secondary-500 transition-colors">
+                {proposal.title}
+              </p>
+              <p className="text-xs text-portal-note-text">
+                {formatShortDate(proposal.createdAt)}
               </p>
             </div>
-            <Pill tone="neutral">{proposal.status}</Pill>
-          </div>
+            <SalesStatusBadge domain="proposal" status={proposal.status} />
+            <ArrowLeft className="w-4 h-4 text-portal-note-text shrink-0 group-hover:-translate-x-1 transition-transform" />
+          </Link>
         ))}
 
         {request.contracts.map((contract) => (
-          <div
+          <Link
             key={contract.id}
-            className="flex items-start gap-3 rounded-lg border p-3"
+            href={`/dashboard/sales/contracts/${contract.id}`}
+            className="flex items-center gap-3 rounded-xl border-[1.5px] border-portal-card-border bg-portal-bg p-3 hover:bg-badge-gray-bg transition-colors group"
           >
-            <FileSignature className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success-100">
+              <FileSignature className="h-5 w-5 text-success-600" />
+            </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{contract.title}</p>
-              <p className="text-xs text-neutral-300">
-                عقد • {formatDate(contract.createdAt)}
+              <p className="text-sm font-medium text-natural-100 truncate group-hover:text-secondary-500 transition-colors">
+                {contract.title}
+              </p>
+              <p className="text-xs text-portal-note-text">
+                {formatShortDate(contract.createdAt)}
               </p>
             </div>
-            <Pill tone="neutral">{contract.status}</Pill>
-          </div>
+            <SalesStatusBadge domain="contract" status={contract.status} />
+            <ArrowLeft className="w-4 h-4 text-portal-note-text shrink-0 group-hover:-translate-x-1 transition-transform" />
+          </Link>
         ))}
 
         {request.project && (
-          <div className="flex items-start gap-3 rounded-lg border p-3">
-            <FolderKanban className="w-4 h-4 text-neutral-300 mt-0.5 shrink-0" />
+          <Link
+            href={`/dashboard/pm/projects/${request.project.id}`}
+            className="flex items-center gap-3 rounded-xl border-[1.5px] border-portal-card-border bg-portal-bg p-3 hover:bg-badge-gray-bg transition-colors group"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-action-purple-soft">
+              <FolderKanban className="h-5 w-5 text-action-purple" />
+            </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{request.project.name}</p>
-              <p className="text-xs text-neutral-300">
-                مشروع • {formatDate(request.project.createdAt)}
+              <p className="text-sm font-medium text-natural-100 truncate group-hover:text-secondary-500 transition-colors">
+                {request.project.name}
+              </p>
+              <p className="text-xs text-portal-note-text">
+                {formatShortDate(request.project.createdAt)}
               </p>
             </div>
-            <Pill tone="neutral">{request.project.status}</Pill>
-          </div>
+            <SalesStatusBadge
+              domain="project"
+              status={request.project.status}
+            />
+            <ArrowLeft className="w-4 h-4 text-portal-note-text shrink-0 group-hover:-translate-x-1 transition-transform" />
+          </Link>
         )}
       </div>
-    </SurfaceCard>
+    </div>
   );
 }
 
@@ -217,31 +232,26 @@ export default function RequestDetailPage({
     isLoading,
     isError,
     error,
+    refetch,
   } = useGetRequestByIdQuery(id);
 
-  if (isLoading) return <DetailSkeleton />;
+  if (isLoading) return <SalesDetailSkeleton variant="request" />;
 
   if (isError) {
     const status = (error as { status?: number })?.status;
-    const message =
+    const title =
       status === 404
         ? "لم يتم العثور على هذا الطلب."
         : status === 403
           ? "لا تملك صلاحية عرض هذا الطلب."
           : "حدث خطأ أثناء تحميل بيانات الطلب.";
     return (
-      <div
-        className="flex flex-col items-center justify-center py-24 gap-4"
-        dir="rtl"
-      >
-        <StatusBanner variant="danger" title={message} />
-        <Link
-          href="/dashboard/sales/pipeline"
-          className="text-sm text-primary underline underline-offset-2"
-        >
-          العودة إلى لوحة المبيعات
-        </Link>
-      </div>
+      <SalesDetailError
+        title={title}
+        onRetry={refetch}
+        backHref="/dashboard/sales/pipeline"
+        backLabel="لوحة المبيعات"
+      />
     );
   }
 
@@ -255,195 +265,229 @@ export default function RequestDetailPage({
   const businessName = client?.businessName || request.businessName;
   const businessType = client?.businessType || request.businessType;
 
-  const { description, services } = parseNotes(request.notes);
+  const { description } = parseNotes(request.notes);
   const selectedServices =
     request.services.length > 0
       ? request.services.map(
           (service) => service.service.nameAr || service.service.name,
         )
-      : services;
-  const statusLabel = STATUS_LABELS[request.status] ?? request.status;
+      : [];
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href="/dashboard/sales/pipeline"
-            className="p-1.5 rounded-md hover:bg-neutral-50 transition-colors shrink-0"
-            title="العودة إلى لوحة المبيعات"
-          >
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold truncate">
-              {contactName}
-            </h1>
+    <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
+      <SalesDetailBreadcrumb
+        backHref="/dashboard/sales/pipeline"
+        backLabel="لوحة المبيعات"
+        title={contactName || companyName || "طلب"}
+      />
+
+      {/* ── Main card — everything inside ─────────────────────────────── */}
+      <SurfaceCard
+        title={contactName || "طلب"}
+        icon={User}
+        action={<SalesStatusBadge domain="request" status={request.status} />}
+      >
+        <div className="space-y-6">
+          {/* ── 1. Client Identity ──────────────────────────────────── */}
+          <div className="flex flex-col gap-3">
             {companyName && (
-              <p className="text-sm text-neutral-300">{companyName}</p>
-            )}
-            {client && (
-              <Link
-                href={`/dashboard/sales/clients/${client.id}`}
-                className="text-xs text-primary hover:underline"
-              >
-                عرض ملف العميل
-              </Link>
-            )}
-          </div>
-        </div>
-        <div className="shrink-0">
-          <Pill tone={STATUS_TONE[request.status]} className="text-xs h-6 px-2">
-            {statusLabel}
-          </Pill>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SurfaceCard title="بيانات التواصل" icon={User}>
-          <div className="space-y-4">
-            <InfoRow
-              icon={<User className="w-4 h-4" />}
-              label="الاسم"
-              value={contactName}
-            />
-            <InfoRow
-              icon={<Building2 className="w-4 h-4" />}
-              label="اسم الشركة"
-              value={companyName}
-            />
-            <InfoRow
-              icon={<Phone className="w-4 h-4" />}
-              label="الجوال / واتساب"
-              value={phoneWhatsapp}
-              dir="ltr"
-            />
-            <InfoRow
-              icon={<Mail className="w-4 h-4" />}
-              label="البريد الإلكتروني"
-              value={email}
-              dir="ltr"
-            />
-            <InfoRow
-              icon={<User className="w-4 h-4" />}
-              label="مسؤول المبيعات"
-              value={request.assignee?.name}
-            />
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard title="بيانات النشاط" icon={Tag}>
-          <div className="space-y-4">
-            <InfoRow
-              icon={<Building2 className="w-4 h-4" />}
-              label="اسم النشاط التجاري"
-              value={businessName}
-            />
-            <InfoRow
-              icon={<Tag className="w-4 h-4" />}
-              label="نوع النشاط"
-              value={
-                businessType
-                  ? (BUSINESS_TYPE_LABELS[businessType] ??
-                    businessType)
-                  : null
-              }
-            />
-            {description && (
-              <div className="flex items-start gap-3">
-                <MessageSquare className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-neutral-300">الوصف</p>
-                  <p className="text-sm leading-relaxed">{description}</p>
-                </div>
-              </div>
-            )}
-            {selectedServices.length > 0 && (
-              <div className="flex items-start gap-3">
-                <Tag className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs text-neutral-300 mb-1.5">
-                    الخدمات المطلوبة
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedServices.map((service) => (
-                      <Pill
-                        key={service}
-                        tone="neutral"
-                        className="text-xs h-6 px-2"
-                      >
-                        {service}
-                      </Pill>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-            <InfoRow
-              icon={<Calendar className="w-4 h-4" />}
-              label="تاريخ إنشاء الطلب"
-              value={formatDate(request.createdAt)}
-            />
-          </div>
-        </SurfaceCard>
-      </div>
-
-      <SurfaceCard title="مسار حالة الطلب" icon={Calendar}>
-        <ol className="relative border-r border-muted mr-2 space-y-4">
-          <li className="mr-4">
-            <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-natural-0 bg-neutral-400" />
-            <div className="flex flex-wrap items-center gap-2 mb-0.5">
-              <Pill tone="neutral" className="text-xs h-6 px-2">
-                تم استلام الطلب
-              </Pill>
-            </div>
-            <p className="text-xs text-neutral-300">
-              {formatDate(request.createdAt)}
-            </p>
-          </li>
-
-          {[...request.statusHistory]
-            .sort(
-              (a, b) =>
-                new Date(a.changedAt).getTime() -
-                new Date(b.changedAt).getTime(),
-            )
-            .map((entry) => (
-              <li key={entry.id} className="mr-4">
-                <span className="absolute -right-1.5 mt-1.5 w-3 h-3 rounded-full border-2 border-background bg-secondary-500" />
-                <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                  {entry.fromStatus && (
-                    <Pill
-                      tone={STATUS_TONE[entry.fromStatus]}
-                      className="text-xs h-6 px-2"
-                    >
-                      {STATUS_LABELS[entry.fromStatus] ?? entry.fromStatus}
-                    </Pill>
-                  )}
-                  {entry.fromStatus && (
-                    <ArrowRight className="w-3 h-3 text-neutral-300 rotate-180" />
-                  )}
-                  <Pill
-                    tone={STATUS_TONE[entry.toStatus]}
-                    className="text-xs h-6 px-2"
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-portal-note-text shrink-0" />
+                <span className="text-sm font-medium text-natural-100">
+                  {companyName}
+                </span>
+                {client && (
+                  <Link
+                    href={`/dashboard/sales/clients/${client.id}`}
+                    className="inline-flex items-center gap-1 text-xs text-secondary-500 hover:underline mr-auto"
                   >
-                    {STATUS_LABELS[entry.toStatus] ?? entry.toStatus}
-                  </Pill>
-                </div>
-                {entry.note && (
-                  <p className="text-sm text-neutral-300 leading-relaxed mb-1">
-                    {entry.note}
-                  </p>
+                    <ExternalLink className="w-3 h-3" />
+                    ملف العميل
+                  </Link>
                 )}
-                <p className="text-xs text-neutral-300">
-                  {formatDate(entry.changedAt)}
-                </p>
-              </li>
-            ))}
-        </ol>
-      </SurfaceCard>
+              </div>
+            )}
 
-      <RelatedRecords request={request} />
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {phoneWhatsapp && (
+                <div className="flex items-center gap-1.5 text-sm" dir="ltr">
+                  <Phone className="w-4 h-4 text-portal-note-text shrink-0" />
+                  <span className="font-mono text-natural-100">
+                    {phoneWhatsapp}
+                  </span>
+                  <CopyButton value={phoneWhatsapp} label="رقم الهاتف" />
+                </div>
+              )}
+              {email && (
+                <div className="flex items-center gap-1.5 text-sm" dir="ltr">
+                  <Mail className="w-4 h-4 text-portal-note-text shrink-0" />
+                  <span className="font-mono text-portal-note-text">
+                    {email}
+                  </span>
+                  <CopyButton value={email} label="البريد الإلكتروني" />
+                </div>
+              )}
+            </div>
+
+            {(businessName || businessType) && (
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-portal-note-text">
+                {businessName && (
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5" />
+                    {businessName}
+                  </span>
+                )}
+                {businessType && (
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5" />
+                    {BUSINESS_TYPE_LABELS[businessType] ?? businessType}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── 2. Key Metrics ──────────────────────────────────────── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <InfoPanel variant="default" title="الحالة الحالية">
+              <p className="text-sm font-semibold text-natural-100">
+                {STATUS_LABELS[request.status] ?? request.status}
+              </p>
+            </InfoPanel>
+            <InfoPanel variant="default" title="مسؤول المبيعات">
+              <p className="text-sm font-semibold text-natural-100">
+                {request.assignee?.name ?? "غير معين"}
+              </p>
+            </InfoPanel>
+            <InfoPanel variant="default" title="تاريخ الطلب">
+              <p className="text-sm font-semibold text-natural-100">
+                {formatShortDate(request.createdAt)}
+              </p>
+            </InfoPanel>
+            <InfoPanel variant="default" title="المصدر">
+              <p className="text-sm font-semibold text-natural-100">
+                {SOURCE_LABELS[request.source] ?? request.source}
+              </p>
+            </InfoPanel>
+          </div>
+
+          {/* ── 3. Services Requested ────────────────────────────────── */}
+          {selectedServices.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-natural-100 mb-3">
+                الخدمات المطلوبة
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {selectedServices.map((service) => (
+                  <span
+                    key={service}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-badge-gray-bg px-3 py-1.5 text-xs font-medium text-natural-100"
+                  >
+                    <Tag className="w-3 h-3 text-portal-note-text" />
+                    {service}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── 4. Description ────────────────────────────────────────── */}
+          {description && (
+            <InfoPanel
+              variant="bordered"
+              title="وصف الطلب"
+              description="ملاحظات العميل حول احتياجه"
+            >
+              <p className="text-sm text-natural-100 leading-relaxed">
+                {description}
+              </p>
+            </InfoPanel>
+          )}
+
+          {/* ── 5. Status Timeline ───────────────────────────────────── */}
+          <div>
+            <p className="text-sm font-medium text-natural-100 mb-4">
+              مسار حالة الطلب
+            </p>
+            <div className="space-y-0">
+              {/* First step — request creation */}
+              <div className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="w-3 h-3 rounded-full border-2 border-portal-card-border bg-natural-0 shrink-0 mt-1" />
+                  <div className="w-0.5 flex-1 bg-portal-divider min-h-[24px]" />
+                </div>
+                <div className="pb-6 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-flex items-center rounded-full bg-badge-gray-bg px-2.5 py-0.5 text-xs font-medium text-portal-note-text">
+                      تم استلام الطلب
+                    </span>
+                  </div>
+                  <p className="text-xs text-portal-note-text">
+                    {formatDate(request.createdAt)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Status history steps */}
+              {[...request.statusHistory]
+                .sort(
+                  (a, b) =>
+                    new Date(a.changedAt).getTime() -
+                    new Date(b.changedAt).getTime(),
+                )
+                .map((entry, idx) => {
+                  const isLast = idx === request.statusHistory.length - 1;
+                  return (
+                    <div key={entry.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className="w-3 h-3 rounded-full bg-secondary-500 shrink-0 mt-1" />
+                        {!isLast && (
+                          <div className="w-0.5 flex-1 bg-portal-divider min-h-[24px]" />
+                        )}
+                      </div>
+                      <div className={`${isLast ? "" : "pb-6"} flex-1 min-w-0`}>
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          {entry.fromStatus && (
+                            <>
+                              <SalesStatusBadge
+                                domain="request"
+                                status={entry.fromStatus}
+                              />
+                              <ArrowLeft className="w-3 h-3 text-portal-note-text shrink-0" />
+                            </>
+                          )}
+                          <SalesStatusBadge
+                            domain="request"
+                            status={entry.toStatus}
+                          />
+                        </div>
+                        {entry.note && (
+                          <p className="text-sm text-portal-note-text leading-relaxed mb-1">
+                            {entry.note}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-portal-note-text">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDate(entry.changedAt)}</span>
+                          {entry.changer?.name && (
+                            <>
+                              <span>•</span>
+                              <UserCheck className="w-3 h-3" />
+                              <span>{entry.changer.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* ── 6. Related Records ────────────────────────────────────── */}
+          <RelatedRecords request={request} />
+        </div>
+      </SurfaceCard>
     </div>
   );
 }

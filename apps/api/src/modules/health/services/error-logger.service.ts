@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { ErrorLevel, ErrorCategory } from '../dto/health-check.dto';
-import { Prisma } from '@prisma/client';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { ErrorLevel, ErrorCategory } from "../dto/health-check.dto";
+import { Prisma } from "@prisma/client";
 
 export interface LogErrorParams {
   level: ErrorLevel;
@@ -48,7 +48,7 @@ export class ErrorLoggerService {
       // Also log to console for immediate visibility
       const serviceLogger = new Logger(params.service);
       const logMessage = `[${params.category}] ${params.message}`;
-      
+
       if (params.level === ErrorLevel.ERROR) {
         serviceLogger.error(logMessage, params.error?.stack);
       } else if (params.level === ErrorLevel.WARN) {
@@ -58,8 +58,11 @@ export class ErrorLoggerService {
       }
     } catch (dbError) {
       // If we can't log to DB, at least log to console
-      this.logger.error('Failed to persist error to database:', dbError);
-      this.logger.error(`Original error [${params.level}] ${params.category}: ${params.message}`, params.error?.stack);
+      this.logger.error("Failed to persist error to database:", dbError);
+      this.logger.error(
+        `Original error [${params.level}] ${params.category}: ${params.message}`,
+        params.error?.stack,
+      );
     }
   }
 
@@ -84,13 +87,14 @@ export class ErrorLoggerService {
       where.resolved = filters.resolved;
     }
 
-    const skip = filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0;
+    const skip =
+      filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0;
     const take = filters.limit || 50;
 
     const [items, total] = await Promise.all([
       this.prisma.systemError.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip,
         take,
       }),
@@ -116,12 +120,12 @@ export class ErrorLoggerService {
 
     const [byLevelRaw, byCategoryRaw, total] = await Promise.all([
       this.prisma.systemError.groupBy({
-        by: ['level'],
+        by: ["level"],
         where: { createdAt: { gte: since } },
         _count: { level: true },
       }),
       this.prisma.systemError.groupBy({
-        by: ['category'],
+        by: ["category"],
         where: { createdAt: { gte: since } },
         _count: { category: true },
       }),
@@ -131,14 +135,24 @@ export class ErrorLoggerService {
     ]);
 
     return {
-      byLevel: byLevelRaw.map((item) => ({ level: item.level, count: item._count.level })),
-      byCategory: byCategoryRaw.map((item) => ({ category: item.category, count: item._count.category })),
+      byLevel: byLevelRaw.map((item) => ({
+        level: item.level,
+        count: item._count.level,
+      })),
+      byCategory: byCategoryRaw.map((item) => ({
+        category: item.category,
+        count: item._count.category,
+      })),
       total,
       period: `${hours}h`,
     };
   }
 
-  async resolveError(errorId: string, userId: string, note: string): Promise<void> {
+  async resolveError(
+    errorId: string,
+    userId: string,
+    note: string,
+  ): Promise<void> {
     await this.prisma.systemError.update({
       where: { id: errorId },
       data: {
@@ -162,7 +176,7 @@ export class ErrorLoggerService {
         category,
         createdAt: { gte: new Date(Date.now() - hours * 60 * 60 * 1000) },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 10,
     });
   }

@@ -41,9 +41,7 @@ import {
   useGetTaskCommentsQuery,
   useAddTaskCommentMutation,
 } from "@/features/tasks/tasksApi";
-import {
-  useGetClientTeamViewQuery,
-} from "@/features/clients/clientsApi";
+import { useGetClientTeamViewQuery } from "@/features/clients/clientsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { formatRelativeTime, formatShortDate, daysUntil } from "@/lib/format";
 import {
@@ -67,7 +65,12 @@ interface TaskDetailPageProps {
 }
 
 interface TaskWithMeta {
-  project?: { id: string; name: string; clientId?: string; client?: { id: string; companyName: string } };
+  project?: {
+    id: string;
+    name: string;
+    clientId?: string;
+    client?: { id: string; companyName: string };
+  };
   assignee?: { id: string; name: string };
   statusHistory?: Array<{
     id: string;
@@ -110,13 +113,14 @@ function getAllowedTransitions(
   if (role === UserRole.ADMIN) {
     return Object.values(TaskStatus).filter((s) => s !== currentStatus);
   }
-  const transitions: Partial<Record<TaskStatus, Partial<Record<UserRole | string, TaskStatus[]>>>> =
-    {
-      [TaskStatus.TODO]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
-      [TaskStatus.IN_PROGRESS]: { EMPLOYEE: [TaskStatus.IN_REVIEW] },
-      [TaskStatus.IN_REVIEW]: { PM: [TaskStatus.DONE, TaskStatus.REVISION] },
-      [TaskStatus.REVISION]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
-    };
+  const transitions: Partial<
+    Record<TaskStatus, Partial<Record<UserRole | string, TaskStatus[]>>>
+  > = {
+    [TaskStatus.TODO]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
+    [TaskStatus.IN_PROGRESS]: { EMPLOYEE: [TaskStatus.IN_REVIEW] },
+    [TaskStatus.IN_REVIEW]: { PM: [TaskStatus.DONE, TaskStatus.REVISION] },
+    [TaskStatus.REVISION]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
+  };
   return transitions[currentStatus]?.[role as string] ?? [];
 }
 
@@ -134,7 +138,9 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
     useGetTaskCommentsQuery(id);
 
   const clientId =
-    (task as any)?.project?.client?.id ?? (task as any)?.project?.clientId ?? "";
+    (task as any)?.project?.client?.id ??
+    (task as any)?.project?.clientId ??
+    "";
   const { data: teamView } = useGetClientTeamViewQuery(clientId, {
     skip: !clientId,
   });
@@ -555,10 +561,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                             new Date(a.createdAt).getTime(),
                         )
                         .map((comment) => (
-                          <CommentItem
-                            key={comment.id}
-                            comment={comment}
-                          />
+                          <CommentItem key={comment.id} comment={comment} />
                         ))}
                     </div>
                   )}
@@ -582,14 +585,10 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                           <ActionButton
                             size="sm"
                             onClick={handleAddComment}
-                            disabled={
-                              isAddingComment || !commentText.trim()
-                            }
+                            disabled={isAddingComment || !commentText.trim()}
                             icon={<Send className="w-4 h-4" />}
                           >
-                            {isAddingComment
-                              ? "جارٍ الإرسال..."
-                              : "إرسال"}
+                            {isAddingComment ? "جارٍ الإرسال..." : "إرسال"}
                           </ActionButton>
                         </div>
                       </div>
@@ -655,9 +654,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                   {isUpdatingStatus ? "جارٍ التحديث..." : actionLabel}
                 </ActionButton>
               ) : (
-                <p className="text-sm text-neutral-400">
-                  لا يوجد إجراء متاح
-                </p>
+                <p className="text-sm text-neutral-400">لا يوجد إجراء متاح</p>
               )}
             </div>
           </SurfaceCard>
@@ -704,7 +701,8 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
                   </span>
                   {overdueDays != null && overdueDays < 0 && (
                     <span className="text-[11px] text-danger-500 font-medium">
-                      متأخرة {Math.abs(overdueDays)} {Math.abs(overdueDays) === 1 ? "يوم" : "أيام"}
+                      متأخرة {Math.abs(overdueDays)}{" "}
+                      {Math.abs(overdueDays) === 1 ? "يوم" : "أيام"}
                     </span>
                   )}
                 </div>
@@ -713,9 +711,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-neutral-400">القسم</span>
                 <span className="text-sm font-medium text-natural-100">
-                  {DEPARTMENT_LABELS[
-                    task.department?.name as TaskDepartment
-                  ] ??
+                  {DEPARTMENT_LABELS[task.department?.name as TaskDepartment] ??
                     task.department?.name ??
                     "—"}
                 </span>

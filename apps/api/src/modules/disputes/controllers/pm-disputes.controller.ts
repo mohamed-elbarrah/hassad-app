@@ -15,7 +15,11 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
-import { CreateDisputeMessageDto, DisputeFilterDto, PmResolveDto } from "../dto";
+import {
+  CreateDisputeMessageDto,
+  DisputeFilterDto,
+  PmResolveDto,
+} from "../dto";
 
 @Controller("pm/disputes")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -57,7 +61,12 @@ export class PmDisputesController {
     @Body() dto: CreateDisputeMessageDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.disputesService.addMessage(id, pmId, { ...dto, isInternal: false }, files);
+    return this.disputesService.addMessage(
+      id,
+      pmId,
+      { ...dto, isInternal: false },
+      files,
+    );
   }
 
   @Post(":id/resolve")

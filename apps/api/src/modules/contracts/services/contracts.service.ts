@@ -16,7 +16,10 @@ import {
   SignByTokenDto,
   CreateVersionDto,
 } from "../dto/contract.dto";
-import { DefinePaymentPlanDto, PaymentPlanRowDto } from "../dto/payment-plan.dto";
+import {
+  DefinePaymentPlanDto,
+  PaymentPlanRowDto,
+} from "../dto/payment-plan.dto";
 import {
   ContractStatus,
   ProjectStatus,
@@ -334,9 +337,15 @@ export class ContractsService {
         contractId,
         ProjectStatus.ACTIVE,
       ).catch((err) => {
-        this.logger.error(`Failed to create project for contract ${contractId}: ${err?.message}`);
+        this.logger.error(
+          `Failed to create project for contract ${contractId}: ${err?.message}`,
+        );
       });
-      await this.activateContract(contractId, contract.createdBy, "No down payment — activated on sign");
+      await this.activateContract(
+        contractId,
+        contract.createdBy,
+        "No down payment — activated on sign",
+      );
       return;
     }
 
@@ -345,7 +354,9 @@ export class ContractsService {
       contractId,
       ProjectStatus.PENDING_ACTIVATION,
     ).catch((err) => {
-      this.logger.error(`Failed to create project for contract ${contractId}: ${err?.message}`);
+      this.logger.error(
+        `Failed to create project for contract ${contractId}: ${err?.message}`,
+      );
     });
 
     // Check if a down-payment invoice was already created at contract creation.
@@ -358,14 +369,23 @@ export class ContractsService {
 
     if (existingInvoice && existingInvoice.status === InvoiceStatus.PAID) {
       // Already paid — activate immediately.
-      await this.activateContract(contractId, contract.createdBy, "Down payment already paid — activated on sign");
+      await this.activateContract(
+        contractId,
+        contract.createdBy,
+        "Down payment already paid — activated on sign",
+      );
     } else if (!existingInvoice) {
       // No invoice yet (legacy contract created before this change) — create one now.
-      await this.issueDownPaymentInvoice(contractId, contract.createdBy, onSignRow, downPaymentAmount).catch(
-        (err) => {
-          this.logger.error(`Failed to issue down-payment invoice for contract ${contractId}: ${err?.message}`);
-        },
-      );
+      await this.issueDownPaymentInvoice(
+        contractId,
+        contract.createdBy,
+        onSignRow,
+        downPaymentAmount,
+      ).catch((err) => {
+        this.logger.error(
+          `Failed to issue down-payment invoice for contract ${contractId}: ${err?.message}`,
+        );
+      });
     }
     // If invoice exists and is PENDING, do nothing — client pays it, then handleInvoicePaid activates the contract.
   }
@@ -378,7 +398,10 @@ export class ContractsService {
   }): number {
     if (!contract.downPaymentType || !contract.downPaymentValue) return 0;
     return this.paymentPlanService.resolveAmount(
-      { amountType: contract.downPaymentType, amountValue: contract.downPaymentValue },
+      {
+        amountType: contract.downPaymentType,
+        amountValue: contract.downPaymentValue,
+      },
       contract.totalValue,
     );
   }
@@ -410,7 +433,13 @@ export class ContractsService {
   async activateContract(contractId: string, userId: string, reason?: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
-      select: { id: true, status: true, title: true, clientId: true, createdBy: true },
+      select: {
+        id: true,
+        status: true,
+        title: true,
+        clientId: true,
+        createdBy: true,
+      },
     });
     if (!contract) throw new NotFoundException("Contract not found");
     if (contract.status === ContractStatus.ACTIVE) return contract;
@@ -517,14 +546,21 @@ export class ContractsService {
         payload.userId || contract.createdBy,
         "Down payment received",
       ).catch((err) => {
-        this.logger.error(`Failed to activate contract ${contract.id} after down-payment: ${err?.message}`);
+        this.logger.error(
+          `Failed to activate contract ${contract.id} after down-payment: ${err?.message}`,
+        );
       });
       return;
     }
 
     // Phase 3: period invoice paid → resume suspended project/period.
-    await this.resumeFromPeriodPayment(payload.invoiceId, payload.userId || "system").catch((err) => {
-      this.logger.error(`Failed to resume after period invoice payment ${payload.invoiceId}: ${err?.message}`);
+    await this.resumeFromPeriodPayment(
+      payload.invoiceId,
+      payload.userId || "system",
+    ).catch((err) => {
+      this.logger.error(
+        `Failed to resume after period invoice payment ${payload.invoiceId}: ${err?.message}`,
+      );
     });
   }
 
@@ -532,7 +568,20 @@ export class ContractsService {
   private async resumeFromPeriodPayment(invoiceId: string, userId: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, triggeredSuspension: true, contractId: true, period: { select: { id: true, periodNumber: true, status: true, endDate: true, projectId: true } } },
+      select: {
+        id: true,
+        triggeredSuspension: true,
+        contractId: true,
+        period: {
+          select: {
+            id: true,
+            periodNumber: true,
+            status: true,
+            endDate: true,
+            projectId: true,
+          },
+        },
+      },
     });
     if (!invoice || !invoice.period || !invoice.triggeredSuspension) return;
 
@@ -544,9 +593,10 @@ export class ContractsService {
     if (period.status !== ProjectPeriodStatus.SUSPENDED) return;
 
     const now = new Date();
-    const targetStatus = period.endDate.getTime() <= now.getTime()
-      ? ProjectPeriodStatus.CLOSED
-      : ProjectPeriodStatus.ACTIVE;
+    const targetStatus =
+      period.endDate.getTime() <= now.getTime()
+        ? ProjectPeriodStatus.CLOSED
+        : ProjectPeriodStatus.ACTIVE;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.projectPeriod.update({
@@ -792,7 +842,9 @@ export class ContractsService {
     });
 
     // Create down-payment invoice so the client sees it immediately.
-    const onSignRow = await this.paymentPlanService.getOnSignRow(created.contract.id);
+    const onSignRow = await this.paymentPlanService.getOnSignRow(
+      created.contract.id,
+    );
     if (onSignRow) {
       const downPaymentAmount = this.paymentPlanService.resolveAmount(
         onSignRow,
@@ -1113,9 +1165,7 @@ export class ContractsService {
         .catch(() => undefined);
     });
 
-    this.clientCounterService
-      .onContractSigned(id)
-      .catch(() => undefined);
+    this.clientCounterService.onContractSigned(id).catch(() => undefined);
 
     await this.notificationsService.notifyUsers({
       userIds: [contract.createdBy, contract.client.accountManager].filter(
@@ -1235,7 +1285,7 @@ export class ContractsService {
       },
       include: {
         client: {
-          select: { id: true, companyName: true,  },
+          select: { id: true, companyName: true },
         },
         request: { select: { id: true, status: true } },
       },

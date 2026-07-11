@@ -29,13 +29,15 @@ export function ProjectKanbanColumn({
       className={cn(
         "w-72 shrink-0 flex flex-col rounded-xl border transition-all duration-150",
         isOver && "ring-2 ring-offset-2",
-        isOver && "ring-[var(--status-color)]"
+        isOver && "ring-[var(--status-color)]",
       )}
-      style={{
-        "--status-color": color,
-        backgroundColor: tintColor,
-        borderColor: `${color}33`, // 20% opacity border
-      } as React.CSSProperties}
+      style={
+        {
+          "--status-color": color,
+          backgroundColor: tintColor,
+          borderColor: `${color}33`, // 20% opacity border
+        } as React.CSSProperties
+      }
     >
       {/* Column Header */}
       <div
@@ -46,7 +48,7 @@ export function ProjectKanbanColumn({
           className="w-2.5 h-2.5 rounded-full shrink-0"
           style={{ backgroundColor: color }}
         />
-        <span className="text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+        <span className="text-xs font-semibold text-natural-100 uppercase tracking-wide">
           {PROJECT_STATUS_LABELS[status]}
         </span>
         <span
@@ -69,7 +71,7 @@ export function ProjectKanbanColumn({
 
         {projects.length === 0 && (
           <div className="flex items-center justify-center py-8">
-            <p className="text-xs text-neutral-400 text-center">
+            <p className="text-xs text-portal-note-text text-center">
               لا يوجد مشاريع
             </p>
           </div>

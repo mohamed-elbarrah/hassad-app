@@ -36,7 +36,11 @@ function getVisiblePages(current: number, total: number): (number | "...")[] {
   }
 
   // Add middle range
-  for (let i = Math.max(2, rangeStart); i <= Math.min(total - 1, rangeEnd); i++) {
+  for (
+    let i = Math.max(2, rangeStart);
+    i <= Math.min(total - 1, rangeEnd);
+    i++
+  ) {
     if (!pages.includes(i)) {
       pages.push(i);
     }
@@ -80,7 +84,7 @@ export function Pagination({
           "border-portal-card-border bg-natural-0 text-portal-icon",
           "hover:border-secondary-500 hover:text-secondary-500 hover:bg-secondary-50",
           "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-portal-card-border disabled:hover:text-portal-icon disabled:hover:bg-natural-0",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500/20"
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500/20",
         )}
         aria-label="الصفحة السابقة"
       >
@@ -115,7 +119,7 @@ export function Pagination({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500/20",
                 isActive
                   ? "bg-secondary-500 text-white border border-secondary-500 shadow-sm"
-                  : "border border-portal-card-border bg-natural-0 text-portal-icon hover:border-secondary-500 hover:text-secondary-500 hover:bg-secondary-50"
+                  : "border border-portal-card-border bg-natural-0 text-portal-icon hover:border-secondary-500 hover:text-secondary-500 hover:bg-secondary-50",
               )}
               aria-label={`الصفحة ${item}`}
               aria-current={isActive ? "page" : undefined}
@@ -136,7 +140,7 @@ export function Pagination({
           "border-portal-card-border bg-natural-0 text-portal-icon",
           "hover:border-secondary-500 hover:text-secondary-500 hover:bg-secondary-50",
           "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-portal-card-border disabled:hover:text-portal-icon disabled:hover:bg-natural-0",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500/20"
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500/20",
         )}
         aria-label="الصفحة التالية"
       >

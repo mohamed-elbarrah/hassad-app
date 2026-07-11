@@ -46,18 +46,14 @@ export default function PortalCampaignsPage() {
       if (statusFilter && c.status !== statusFilter) return false;
       if (!q) return true;
       return (
-        c.name.toLowerCase().includes(q) ||
-        c.platform.toLowerCase().includes(q)
+        c.name.toLowerCase().includes(q) || c.platform.toLowerCase().includes(q)
       );
     });
   }, [campaigns, search, statusFilter]);
 
-  const handleFilterChange = useCallback(
-    (key: string, values: string[]) => {
-      setActiveFilters((prev) => ({ ...prev, [key]: values }));
-    },
-    [],
-  );
+  const handleFilterChange = useCallback((key: string, values: string[]) => {
+    setActiveFilters((prev) => ({ ...prev, [key]: values }));
+  }, []);
 
   const handleRowActivate = useCallback(
     (c: PortalCampaign) => {

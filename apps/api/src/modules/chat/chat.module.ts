@@ -19,7 +19,12 @@ import { NotificationsModule } from "../notifications/notifications.module";
     MulterModule.register({ storage: memoryStorage() }),
   ],
   controllers: [ChatController],
-  providers: [ChatService, DirectConversationService, ProjectGroupChatService, ChatGateway],
+  providers: [
+    ChatService,
+    DirectConversationService,
+    ProjectGroupChatService,
+    ChatGateway,
+  ],
   exports: [ChatService, DirectConversationService, ProjectGroupChatService],
 })
 export class ChatModule {}

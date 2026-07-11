@@ -210,9 +210,7 @@ export class ProjectsService {
       },
     });
 
-    this.projectGroupChatService
-      .syncParticipants(id)
-      .catch(() => undefined);
+    this.projectGroupChatService.syncParticipants(id).catch(() => undefined);
 
     return result;
   }
@@ -461,15 +459,13 @@ export class ProjectsService {
 
     if (!newPm) {
       throw new NotFoundException(
-        "مدير المشروع الجديد غير موجود أو غير نشط أو ليس لديه صلاحية مدير مشروع"
+        "مدير المشروع الجديد غير موجود أو غير نشط أو ليس لديه صلاحية مدير مشروع",
       );
     }
 
     // Check if PM is already the same
     if (project.projectManagerId === newPmId) {
-      throw new BadRequestException(
-        "المدير المحدد هو بالفعل مدير هذا المشروع"
-      );
+      throw new BadRequestException("المدير المحدد هو بالفعل مدير هذا المشروع");
     }
 
     const oldPmId = project.projectManagerId;
@@ -508,7 +504,10 @@ export class ProjectsService {
 
     // Remove old PM from chat if not keeping
     if (oldPmId && !keepOldPmInChat) {
-      const conversation = await this.projectGroupChatService.find(projectId, db);
+      const conversation = await this.projectGroupChatService.find(
+        projectId,
+        db,
+      );
       if (conversation) {
         await client.conversationParticipant.deleteMany({
           where: {

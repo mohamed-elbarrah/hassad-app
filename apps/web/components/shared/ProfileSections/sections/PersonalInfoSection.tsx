@@ -49,7 +49,11 @@ import type { ProfileMode } from "../types";
 // display name). Phone is optional.
 const PersonalInfoSchema = z.object({
   name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
-  email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
+  email: z
+    .string()
+    .email("البريد الإلكتروني غير صحيح")
+    .optional()
+    .or(z.literal("")),
   phoneWhatsapp: z.string().optional().or(z.literal("")),
 });
 
@@ -118,7 +122,12 @@ export function PersonalInfoSection({
   if (mode === "view") {
     const fields = [
       { icon: User, label: "الاسم", value: user?.name },
-      { icon: Mail, label: "البريد الإلكتروني", value: user?.email, dir: "ltr" as const },
+      {
+        icon: Mail,
+        label: "البريد الإلكتروني",
+        value: user?.email,
+        dir: "ltr" as const,
+      },
       {
         icon: Phone,
         label: "رقم التواصل",
@@ -148,7 +157,10 @@ export function PersonalInfoSection({
           {user?.email && (
             <p className="text-xs text-portal-note-text pt-2">
               لتعديل بياناتك الشخصية، انتقل إلى{" "}
-              <a href="/portal/account" className="text-secondary-500 underline">
+              <a
+                href="/portal/account"
+                className="text-secondary-500 underline"
+              >
                 الحساب الشخصي
               </a>
               .
@@ -236,19 +248,12 @@ export function PersonalInfoSection({
 
           {!hideNavigation && mode === "wizard" && (
             <div className="flex items-center justify-between pt-2">
-              <NavigationButtons
-                onBack={onBack}
-                submitLabel="التالي"
-              />
+              <NavigationButtons onBack={onBack} submitLabel="التالي" />
             </div>
           )}
 
           {hideNavigation && (
-            <ActionButton
-              type="submit"
-              variant="primary"
-              className="w-full"
-            >
+            <ActionButton type="submit" variant="primary" className="w-full">
               حفظ البيانات الشخصية
             </ActionButton>
           )}

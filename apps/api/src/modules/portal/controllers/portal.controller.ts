@@ -521,7 +521,8 @@ export class PortalController {
   @RequirePermissions("portal.read")
   async getPortalCampaigns(
     @CurrentUser() user: any,
-    @Query("projectId", new ParseUUIDPipe({ optional: true })) projectId?: string,
+    @Query("projectId", new ParseUUIDPipe({ optional: true }))
+    projectId?: string,
     @Query("periodId", new ParseUUIDPipe({ optional: true })) periodId?: string,
   ) {
     const clientId = await this.resolveClientId(user);

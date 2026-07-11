@@ -2,18 +2,14 @@
 
 import { useGetFinanceContractsQuery } from "@/features/finance/financeApi";
 import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatusBadge";
+import { FinancePageHeader } from "@/components/dashboard/finance/shared/FinancePageHeader";
 import { DataTable } from "@/components/design-system/DataTable";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
+import { StatCard } from "@/components/design-system/StatCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  Search,
-  TrendingUp,
-  DollarSign,
-  PieChart,
-} from "lucide-react";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { TrendingUp, DollarSign, PieChart, FileText } from "lucide-react";
 import Link from "next/link";
 
 export default function ContractsFinancePage() {
@@ -26,78 +22,49 @@ export default function ContractsFinancePage() {
     totalValue > 0 ? (totalPaid / totalValue) * 100 : 0;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          الوضع المالي للعقود
-        </h1>
-        <p className="text-neutral-300">
-          متابعة تحصيل الدفعات مقارنة بالقيمة الإجمالية للعقود.
-        </p>
+    <div className="space-y-5 animate-in fade-in duration-500">
+      <FinancePageHeader
+        title="الوضع المالي للعقود"
+        description="متابعة تحصيل الدفعات مقارنة بالقيمة الإجمالية للعقود."
+        icon={FileText}
+      />
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard
+          title="إجمالي قيمة العقود"
+          value={<CurrencyDisplay amount={totalValue} />}
+          icon={TrendingUp}
+          variant="default"
+          trend="up"
+          trendValue="+5% عن الشهر الماضي"
+        />
+        <StatCard
+          title="المبالغ المحصلة"
+          value={<CurrencyDisplay amount={totalPaid} />}
+          icon={DollarSign}
+          variant="success"
+          trend="neutral"
+          trendValue={`${averageCollectionRate.toFixed(1)}% من الإجمالي`}
+        />
+        <StatCard
+          title="المبالغ المتبقية"
+          value={<CurrencyDisplay amount={totalRemaining} />}
+          icon={DollarSign}
+          variant="danger"
+          trend="neutral"
+          trendValue="بانتظار الفواتير القادمة"
+        />
+        <StatCard
+          title="عقود نشطة"
+          value={contracts.length}
+          icon={PieChart}
+          variant="default"
+          trend="neutral"
+          trendValue="إجمالي العقود المسجلة"
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
-          <div>
-            <p className="text-portal-note-text text-sm">إجمالي قيمة العقود</p>
-            <h3 className="text-2xl font-bold mt-1">
-              \u003cCurrencyDisplay amount={totalValue} /\u003e
-            </h3>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <TrendingUp className="w-3 h-3 ml-1 text-success-500" />
-            <span>+5% عن الشهر الماضي</span>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
-          <div>
-            <p className="text-portal-note-text text-sm">المبالغ المحصلة</p>
-            <h3 className="text-2xl font-bold text-success-600 mt-1">
-              \u003cCurrencyDisplay amount={totalPaid} /\u003e
-            </h3>
-          </div>
-          <div className="mt-3 space-y-1">
-            <ProgressBar value={averageCollectionRate} size="sm" />
-            <p className="text-[10px] text-neutral-300">
-              {averageCollectionRate.toFixed(1)}% من إجمالي القيمة
-            </p>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
-          <div>
-            <p className="text-portal-note-text text-sm">المبالغ المتبقية</p>
-            <h3 className="text-2xl font-bold text-danger-600 mt-1">
-              \u003cCurrencyDisplay amount={totalRemaining} /\u003e
-            </h3>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <DollarSign className="w-3 h-3 ml-1" />
-            <span>بانتظار الفواتير القادمة</span>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="border-none shadow-sm" contentClassName="pt-0">
-          <div>
-            <p className="text-portal-note-text text-sm">عقود نشطة</p>
-            <h3 className="text-2xl font-bold mt-1">{contracts.length} عقد</h3>
-          </div>
-          <div className="flex items-center text-xs text-neutral-300 mt-3">
-            <PieChart className="w-3 h-3 ml-1 text-action-blue" />
-            <span>إجمالي العقود المسجلة</span>
-          </div>
-        </SurfaceCard>
-      </div>
-
-      <div className="rounded-xl border border-portal-card-border bg-natural-0 shadow-sm">
-        <div className="px-5 py-4 border-b border-portal-divider">
-          <div className="relative max-w-sm">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
-            <FormInputControl
-              placeholder="البحث عن عقد أو عميل..."
-              className="pr-10"
-            />
-          </div>
-        </div>
-
+      <SurfaceCard className="border-none shadow-sm" contentClassName="p-0">
         <DataTable
           columns={[
             { id: "contract", label: "العقد" },
@@ -121,7 +88,7 @@ export default function ContractsFinancePage() {
             <tr className="border-b-[1.5px] border-portal-divider">
               <td className="px-5 py-4 font-medium">
                 <div>{contract.title}</div>
-                <div className="text-[10px] text-neutral-400 font-mono">
+                <div className="text-[10px] text-portal-note-text font-mono">
                   {contract.id.substring(0, 8)}...
                 </div>
               </td>
@@ -129,18 +96,18 @@ export default function ContractsFinancePage() {
                 {contract.client?.companyName || "N/A"}
               </td>
               <td className="px-5 py-4 font-bold">
-                \u003cCurrencyDisplay amount={contract.totalValue} /\u003e
+                <CurrencyDisplay amount={contract.totalValue} />
               </td>
               <td className="px-5 py-4 text-success-600 font-medium">
-                \u003cCurrencyDisplay amount={contract.paid} /\u003e
+                <CurrencyDisplay amount={contract.paid} />
               </td>
               <td className="px-5 py-4 text-danger-600 font-medium">
-                \u003cCurrencyDisplay amount={contract.remaining} /\u003e
+                <CurrencyDisplay amount={contract.remaining} />
               </td>
               <td className="px-5 py-4">
                 <div className="space-y-1">
                   <ProgressBar value={contract.collectionRate} size="sm" />
-                  <span className="text-[10px] text-neutral-400">
+                  <span className="text-[10px] text-portal-note-text">
                     {contract.collectionRate.toFixed(1)}%
                   </span>
                 </div>
@@ -158,7 +125,7 @@ export default function ContractsFinancePage() {
             </tr>
           )}
         />
-      </div>
+      </SurfaceCard>
     </div>
   );
 }

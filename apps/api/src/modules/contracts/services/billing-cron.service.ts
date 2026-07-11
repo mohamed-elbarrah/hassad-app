@@ -41,7 +41,9 @@ export class BillingCronService {
     try {
       await this.cancelUnpaidDownPayments();
     } catch (err) {
-      this.logger.error(`Down-payment auto-cancel failed: ${(err as Error).message}`);
+      this.logger.error(
+        `Down-payment auto-cancel failed: ${(err as Error).message}`,
+      );
     }
     this.logger.log("Billing cycle complete");
   }
@@ -55,14 +57,18 @@ export class BillingCronService {
     today.setHours(0, 0, 0, 0);
 
     for (const offsetDay of days) {
-      const targetDate = new Date(today.getTime() + offsetDay * 24 * 60 * 60 * 1000);
+      const targetDate = new Date(
+        today.getTime() + offsetDay * 24 * 60 * 60 * 1000,
+      );
       targetDate.setHours(0, 0, 0, 0);
       const bitIndex = this.offsetToBitIndex(offsetDay, days);
       if (bitIndex < 0) continue;
 
       const invoices = await this.prisma.invoice.findMany({
         where: {
-          status: { in: [InvoiceStatus.DUE, InvoiceStatus.PENDING, InvoiceStatus.SENT] },
+          status: {
+            in: [InvoiceStatus.DUE, InvoiceStatus.PENDING, InvoiceStatus.SENT],
+          },
           dueDate: {
             gte: targetDate,
             lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
@@ -117,7 +123,9 @@ export class BillingCronService {
 
     const overdueInvoices = await this.prisma.invoice.findMany({
       where: {
-        status: { in: [InvoiceStatus.DUE, InvoiceStatus.LATE, InvoiceStatus.PENDING] },
+        status: {
+          in: [InvoiceStatus.DUE, InvoiceStatus.LATE, InvoiceStatus.PENDING],
+        },
         dueDate: { lt: today },
         triggeredSuspension: false,
         contractId: { not: null },
@@ -126,7 +134,9 @@ export class BillingCronService {
       include: {
         contract: {
           select: { id: true, title: true, createdBy: true },
-          include: { client: { select: { userId: true, accountManager: true } } },
+          include: {
+            client: { select: { userId: true, accountManager: true } },
+          },
         },
         period: {
           select: { id: true, projectId: true },
@@ -144,7 +154,10 @@ export class BillingCronService {
         await this.prisma.$transaction(async (tx) => {
           await tx.projectPeriod.update({
             where: { id: invoice.period!.id },
-            data: { status: ProjectPeriodStatus.SUSPENDED, suspendedAt: new Date() },
+            data: {
+              status: ProjectPeriodStatus.SUSPENDED,
+              suspendedAt: new Date(),
+            },
           });
           await tx.projectPeriodHistory.create({
             data: {
@@ -216,7 +229,9 @@ export class BillingCronService {
           .onProjectStatusChange(project.id)
           .catch(() => undefined);
       } catch (err) {
-        this.logger.error(`Failed to suspend for invoice ${invoice.id}: ${(err as Error).message}`);
+        this.logger.error(
+          `Failed to suspend for invoice ${invoice.id}: ${(err as Error).message}`,
+        );
       }
     }
   }
@@ -232,14 +247,22 @@ export class BillingCronService {
 
     const pendingInvoices = await this.prisma.invoice.findMany({
       where: {
-        status: { in: [InvoiceStatus.PENDING, InvoiceStatus.DUE, InvoiceStatus.SENT] },
+        status: {
+          in: [InvoiceStatus.PENDING, InvoiceStatus.DUE, InvoiceStatus.SENT],
+        },
         issueDate: { lt: cutoff },
         contractId: { not: null },
         paymentPlan: { triggerType: PaymentPlanTriggerType.ON_SIGN },
       },
       include: {
         contract: {
-          select: { id: true, status: true, title: true, createdBy: true, client: { select: { userId: true, accountManager: true } } },
+          select: {
+            id: true,
+            status: true,
+            title: true,
+            createdBy: true,
+            client: { select: { userId: true, accountManager: true } },
+          },
         },
       },
     });
@@ -285,7 +308,9 @@ export class BillingCronService {
           });
         }
       } catch (err) {
-        this.logger.error(`Failed to auto-cancel down payment for invoice ${invoice.id}: ${(err as Error).message}`);
+        this.logger.error(
+          `Failed to auto-cancel down payment for invoice ${invoice.id}: ${(err as Error).message}`,
+        );
       }
     }
   }
@@ -293,7 +318,9 @@ export class BillingCronService {
   // ── Company settings ─────────────────────────────────────────────────────────
 
   private async getCompanySetting(key: string): Promise<any> {
-    const setting = await this.prisma.companySetting.findUnique({ where: { key } });
+    const setting = await this.prisma.companySetting.findUnique({
+      where: { key },
+    });
     return setting?.value ?? null;
   }
 

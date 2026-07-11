@@ -3,9 +3,7 @@
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  useGetDeliverableRedirectQuery,
-} from "@/features/portal/portalApi";
+import { useGetDeliverableRedirectQuery } from "@/features/portal/portalApi";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -64,8 +62,8 @@ export default function PortalDeliverableDetailPage() {
         </Link>
         <SurfaceCard title="تعذر العثور على التسليم" icon={AlertCircle}>
           <p className="text-sm text-portal-note-text">
-            ربما تمت الموافقة على هذا التسليم أو إخفاؤه بالفعل. ارجع إلى
-            قائمة المراجعة للاطلاع على المشاريع بانتظار مراجعتك.
+            ربما تمت الموافقة على هذا التسليم أو إخفاؤه بالفعل. ارجع إلى قائمة
+            المراجعة للاطلاع على المشاريع بانتظار مراجعتك.
           </p>
           <div className="mt-4">
             <Link href="/portal/deliverables">

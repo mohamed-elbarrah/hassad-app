@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { ErrorLevel, ErrorCategory } from '../dto/health-check.dto';
-import { Prisma } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { PrismaService } from "../../../prisma/prisma.service";
+import { ErrorLevel, ErrorCategory } from "../dto/health-check.dto";
+import { Prisma } from "@prisma/client";
+import * as fs from "fs";
+import * as path from "path";
 
 export interface LogErrorParams {
   level: ErrorLevel;
@@ -48,18 +48,18 @@ export class RobustErrorLoggerService implements OnModuleInit {
 
   constructor(private prisma: PrismaService) {
     // Create logs directory in project root
-    this.LOG_FILE_PATH = path.join(process.cwd(), 'logs', 'errors.log');
+    this.LOG_FILE_PATH = path.join(process.cwd(), "logs", "errors.log");
     this.ensureLogDirectory();
   }
 
   onModuleInit() {
     // Start queue processor
     this.startQueueProcessor();
-    
+
     // Setup process-level error handlers
     this.setupProcessErrorHandlers();
-    
-    this.logger.log('Robust error logger initialized');
+
+    this.logger.log("Robust error logger initialized");
     this.logger.log(`Fallback log file: ${this.LOG_FILE_PATH}`);
   }
 
@@ -68,10 +68,10 @@ export class RobustErrorLoggerService implements OnModuleInit {
    */
   async logError(params: LogErrorParams): Promise<void> {
     const timestamp = new Date().toISOString();
-    
+
     // ALWAYS log to console first (immediate visibility)
     this.logToConsole(params, timestamp);
-    
+
     // Try to save to database
     try {
       await this.saveToDatabase(params);
@@ -79,35 +79,42 @@ export class RobustErrorLoggerService implements OnModuleInit {
       this.consecutiveDbFailures = 0;
     } catch (dbError) {
       this.consecutiveDbFailures++;
-      
+
       // If DB is failing consistently, mark as unavailable
       if (this.consecutiveDbFailures >= this.DB_FAILURE_THRESHOLD) {
         this.dbAvailable = false;
-        this.logger.error(`Database marked unavailable after ${this.consecutiveDbFailures} consecutive failures`);
+        this.logger.error(
+          `Database marked unavailable after ${this.consecutiveDbFailures} consecutive failures`,
+        );
       }
-      
+
       // CRITICAL: Save to file as fallback
       this.saveToFile(params, timestamp);
-      
+
       // Queue for later retry
       this.queueError(params, timestamp);
-      
-      this.logger.warn(`Error queued for retry due to DB failure: ${params.message}`);
+
+      this.logger.warn(
+        `Error queued for retry due to DB failure: ${params.message}`,
+      );
     }
   }
 
   /**
    * Log process-level errors (uncaught exceptions, unhandled rejections)
    */
-  logProcessError(error: Error, type: 'uncaught' | 'unhandled' | 'warning'): void {
+  logProcessError(
+    error: Error,
+    type: "uncaught" | "unhandled" | "warning",
+  ): void {
     const timestamp = new Date().toISOString();
-    
+
     const params: LogErrorParams = {
-      level: type === 'warning' ? ErrorLevel.WARN : ErrorLevel.ERROR,
+      level: type === "warning" ? ErrorLevel.WARN : ErrorLevel.ERROR,
       category: ErrorCategory.GENERAL,
       message: `[${type.toUpperCase()}] ${error.message}`,
       error,
-      service: 'PROCESS',
+      service: "PROCESS",
       context: {
         type,
         stack: error.stack,
@@ -117,10 +124,10 @@ export class RobustErrorLoggerService implements OnModuleInit {
 
     // Log immediately to console
     this.logToConsole(params, timestamp);
-    
+
     // Try to save to file (sync for process errors)
     this.saveToFile(params, timestamp);
-    
+
     // Try async DB save (non-blocking)
     this.saveToDatabase(params).catch(() => {
       this.queueError(params, timestamp);
@@ -152,14 +159,15 @@ export class RobustErrorLoggerService implements OnModuleInit {
       where.service = filters.service;
     }
 
-    const skip = filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0;
+    const skip =
+      filters.page && filters.limit ? (filters.page - 1) * filters.limit : 0;
     const take = filters.limit || 50;
 
     try {
       const [items, total] = await Promise.all([
         this.prisma.systemError.findMany({
           where,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           skip,
           take,
         }),
@@ -174,7 +182,7 @@ export class RobustErrorLoggerService implements OnModuleInit {
         totalPages: Math.ceil(total / take),
       };
     } catch (error) {
-      this.logger.error('Failed to fetch errors from database:', error);
+      this.logger.error("Failed to fetch errors from database:", error);
       // Return empty result but don't throw
       return {
         items: [],
@@ -197,40 +205,50 @@ export class RobustErrorLoggerService implements OnModuleInit {
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
 
     try {
-      const [byLevelRaw, byCategoryRaw, byServiceRaw, total, unresolved] = await Promise.all([
-        this.prisma.systemError.groupBy({
-          by: ['level'],
-          where: { createdAt: { gte: since } },
-          _count: { level: true },
-        }),
-        this.prisma.systemError.groupBy({
-          by: ['category'],
-          where: { createdAt: { gte: since } },
-          _count: { category: true },
-        }),
-        this.prisma.systemError.groupBy({
-          by: ['service'],
-          where: { createdAt: { gte: since } },
-          _count: { service: true },
-        }),
-        this.prisma.systemError.count({
-          where: { createdAt: { gte: since } },
-        }),
-        this.prisma.systemError.count({
-          where: { createdAt: { gte: since }, resolved: false },
-        }),
-      ]);
+      const [byLevelRaw, byCategoryRaw, byServiceRaw, total, unresolved] =
+        await Promise.all([
+          this.prisma.systemError.groupBy({
+            by: ["level"],
+            where: { createdAt: { gte: since } },
+            _count: { level: true },
+          }),
+          this.prisma.systemError.groupBy({
+            by: ["category"],
+            where: { createdAt: { gte: since } },
+            _count: { category: true },
+          }),
+          this.prisma.systemError.groupBy({
+            by: ["service"],
+            where: { createdAt: { gte: since } },
+            _count: { service: true },
+          }),
+          this.prisma.systemError.count({
+            where: { createdAt: { gte: since } },
+          }),
+          this.prisma.systemError.count({
+            where: { createdAt: { gte: since }, resolved: false },
+          }),
+        ]);
 
       return {
-        byLevel: byLevelRaw.map((item) => ({ level: item.level, count: item._count.level })),
-        byCategory: byCategoryRaw.map((item) => ({ category: item.category, count: item._count.category })),
-        byService: byServiceRaw.map((item) => ({ service: item.service, count: item._count.service })),
+        byLevel: byLevelRaw.map((item) => ({
+          level: item.level,
+          count: item._count.level,
+        })),
+        byCategory: byCategoryRaw.map((item) => ({
+          category: item.category,
+          count: item._count.category,
+        })),
+        byService: byServiceRaw.map((item) => ({
+          service: item.service,
+          count: item._count.service,
+        })),
         total,
         unresolved,
         period: `${hours}h`,
       };
     } catch (error) {
-      this.logger.error('Failed to get error stats:', error);
+      this.logger.error("Failed to get error stats:", error);
       return {
         byLevel: [],
         byCategory: [],
@@ -242,7 +260,11 @@ export class RobustErrorLoggerService implements OnModuleInit {
     }
   }
 
-  async resolveError(errorId: string, userId: string, note: string): Promise<void> {
+  async resolveError(
+    errorId: string,
+    userId: string,
+    note: string,
+  ): Promise<void> {
     try {
       await this.prisma.systemError.update({
         where: { id: errorId },
@@ -265,7 +287,7 @@ export class RobustErrorLoggerService implements OnModuleInit {
         where: { resolved: false },
       });
     } catch (error) {
-      this.logger.error('Failed to get unresolved count:', error);
+      this.logger.error("Failed to get unresolved count:", error);
       return 0;
     }
   }
@@ -285,10 +307,10 @@ export class RobustErrorLoggerService implements OnModuleInit {
    */
   async retryQueuedErrors(): Promise<number> {
     if (this.errorQueue.length === 0) return 0;
-    
+
     const retryCount = this.errorQueue.length;
     this.logger.log(`Retrying ${retryCount} queued errors...`);
-    
+
     await this.processQueue();
     return retryCount;
   }
@@ -299,7 +321,7 @@ export class RobustErrorLoggerService implements OnModuleInit {
 
   private logToConsole(params: LogErrorParams, timestamp: string): void {
     const logMessage = `[${timestamp}] [${params.level}] [${params.category}] ${params.service}: ${params.message}`;
-    
+
     if (params.level === ErrorLevel.ERROR) {
       this.logger.error(logMessage);
       if (params.error?.stack) {
@@ -340,13 +362,13 @@ export class RobustErrorLoggerService implements OnModuleInit {
         endpoint: params.endpoint,
       };
 
-      const logLine = JSON.stringify(logEntry) + '\n';
-      
+      const logLine = JSON.stringify(logEntry) + "\n";
+
       // Append to file (create if doesn't exist)
-      fs.appendFileSync(this.LOG_FILE_PATH, logLine, { encoding: 'utf8' });
+      fs.appendFileSync(this.LOG_FILE_PATH, logLine, { encoding: "utf8" });
     } catch (fileError) {
       // Last resort - just console
-      this.logger.error('CRITICAL: Failed to write to log file:', fileError);
+      this.logger.error("CRITICAL: Failed to write to log file:", fileError);
     }
   }
 
@@ -368,31 +390,35 @@ export class RobustErrorLoggerService implements OnModuleInit {
 
   private async processQueue(): Promise<void> {
     if (this.isProcessingQueue || this.errorQueue.length === 0) return;
-    
+
     this.isProcessingQueue = true;
-    
+
     const failedItems: QueuedError[] = [];
-    
+
     for (const item of this.errorQueue) {
       try {
         await this.saveToDatabase(item.params);
-        this.logger.log(`Successfully replayed queued error: ${item.params.message}`);
+        this.logger.log(
+          `Successfully replayed queued error: ${item.params.message}`,
+        );
       } catch (error) {
         item.retryCount++;
-        
+
         if (item.retryCount < this.MAX_RETRIES) {
           failedItems.push(item);
         } else {
           // Max retries reached - ensure it's in file
           this.saveToFile(item.params, item.timestamp);
-          this.logger.error(`Dropped error after ${this.MAX_RETRIES} retries: ${item.params.message}`);
+          this.logger.error(
+            `Dropped error after ${this.MAX_RETRIES} retries: ${item.params.message}`,
+          );
         }
       }
     }
-    
+
     this.errorQueue = failedItems;
     this.isProcessingQueue = false;
-    
+
     if (failedItems.length > 0) {
       this.logger.warn(`${failedItems.length} errors still queued for retry`);
     }
@@ -405,35 +431,36 @@ export class RobustErrorLoggerService implements OnModuleInit {
         fs.mkdirSync(dir, { recursive: true });
       }
     } catch (error) {
-      this.logger.error('Failed to create logs directory:', error);
+      this.logger.error("Failed to create logs directory:", error);
     }
   }
 
   private setupProcessErrorHandlers(): void {
     // Uncaught exceptions
-    process.on('uncaughtException', (error) => {
-      this.logProcessError(error, 'uncaught');
+    process.on("uncaughtException", (error) => {
+      this.logProcessError(error, "uncaught");
       // Give time for logging before exit
       setTimeout(() => process.exit(1), 1000);
     });
 
     // Unhandled promise rejections
-    process.on('unhandledRejection', (reason) => {
-      const error = reason instanceof Error ? reason : new Error(String(reason));
-      this.logProcessError(error, 'unhandled');
+    process.on("unhandledRejection", (reason) => {
+      const error =
+        reason instanceof Error ? reason : new Error(String(reason));
+      this.logProcessError(error, "unhandled");
     });
 
     // Warnings
-    process.on('warning', (warning) => {
-      this.logProcessError(warning, 'warning');
+    process.on("warning", (warning) => {
+      this.logProcessError(warning, "warning");
     });
 
     // SIGTERM handler for graceful shutdown
-    process.on('SIGTERM', () => {
-      this.logger.log('SIGTERM received, flushing error queue...');
+    process.on("SIGTERM", () => {
+      this.logger.log("SIGTERM received, flushing error queue...");
       this.processQueue().then(() => process.exit(0));
     });
 
-    this.logger.log('Process error handlers registered');
+    this.logger.log("Process error handlers registered");
   }
 }

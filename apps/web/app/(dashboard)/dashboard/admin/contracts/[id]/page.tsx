@@ -1,0 +1,564 @@
+"use client";
+
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowRight, FileSignature, DollarSign, FolderKanban, Building2, User, Phone, Mail, Upload, FileText, ExternalLink } from "lucide-react";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/design-system/Tabs";
+import { DataTable } from "@/components/design-system/DataTable";
+import { Dialog } from "@/components/design-system/Dialog";
+import { useGetAdminContractQuery, useConvertContractToProjectMutation, useUpdateContractStatusMutation } from "@/features/admin/adminApi";
+import { CONTRACT_STATUS_AR } from "@hassad/shared";
+import { toast } from "sonner";
+
+export default function AdminContractDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params.id as string;
+  const { data: contract, isLoading } = useGetAdminContractQuery(id);
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [convertToProject, { isLoading: isConverting }] = useConvertContractToProjectMutation();
+  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateContractStatusMutation();
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+
+  if (isLoading)
+    return (
+      <div className="flex flex-col gap-6 p-6" dir="rtl">
+        <Skeleton className="h-8 w-48 rounded-lg" />
+        <Skeleton className="h-96 w-full rounded-2xl" />
+      </div>
+    );
+  if (!contract)
+    return (
+      <div className="p-6 text-center text-portal-note-text" dir="rtl">
+        العقد غير موجود
+      </div>
+    );
+
+  return (
+    <div className="flex flex-col gap-6" dir="rtl">
+      <PageIntro
+        title={contract.title}
+        description={`${contract.client?.companyName ?? "—"} · ${CONTRACT_STATUS_AR[contract.status] ?? contract.status}`}
+        icon={FileSignature}
+        actions={
+          <div className="flex gap-2">
+            {contract.status === "ACTIVE" && (
+              <ActionButton
+                variant="primary"
+                size="md"
+                onClick={() => setShowConvertDialog(true)}
+              >
+                <FolderKanban className="size-4 ml-1" />
+                تحويل إلى مشروع
+              </ActionButton>
+            )}
+            <ActionButton
+              variant="outline"
+              size="md"
+              onClick={() => router.back()}
+            >
+              <ArrowRight className="size-4 ml-1" />
+              العودة
+            </ActionButton>
+          </div>
+        }
+      />
+
+      <SurfaceCard>
+        <Tabs defaultValue="overview" dir="rtl">
+          <TabsList className="w-full justify-start gap-1 px-4 pt-4">
+            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
+            <TabsTrigger value="plans">خطة الدفع</TabsTrigger>
+            <TabsTrigger value="versions">الإصدارات</TabsTrigger>
+            <TabsTrigger value="documents">مستندات العقد</TabsTrigger>
+            <TabsTrigger value="alerts">التنبيهات</TabsTrigger>
+            <TabsTrigger value="history">سجل الحالة</TabsTrigger>
+            <TabsTrigger value="invoices">الفواتير</TabsTrigger>
+            <TabsTrigger value="project">المشروع المرتبط</TabsTrigger>
+          </TabsList>
+          <div className="p-6">
+            <TabsContent value="overview">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      النوع
+                    </span>
+                    <p className="text-base font-medium">{contract.type}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      الحالة
+                    </span>
+                    <div className="mt-1 flex items-center gap-2">
+                      <StatusBadge
+                        status={contract.status}
+                        label={
+                          CONTRACT_STATUS_AR[contract.status] ?? contract.status
+                        }
+                      />
+                      <ActionButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedStatus(contract.status);
+                          setShowStatusDialog(true);
+                        }}
+                        disabled={isUpdatingStatus}
+                      >
+                        تغيير الحالة
+                      </ActionButton>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      تاريخ البداية
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.startDate?.slice(0, 10) ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      تاريخ النهاية
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.endDate?.slice(0, 10) ?? "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      التوقيع الإلكتروني
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.eSigned ? "موقّع" : "غير موقّع"}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      القيمة الشهرية
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.monthlyValue?.toLocaleString()}{" "}
+                      {contract.currency}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      القيمة الإجمالية
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.totalValue?.toLocaleString()}{" "}
+                      {contract.currency}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      عدد الفواتير
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.invoices?.length ?? 0}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">الإصدار</span>
+                    <p className="text-base font-medium">
+                      {"الإصدار " + (contract.versionNumber ?? 1)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-portal-note-text">
+                      تاريخ الإنشاء
+                    </span>
+                    <p className="text-base font-medium">
+                      {contract.createdAt?.slice(0, 10) ?? "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 p-4 rounded-2xl border border-portal-divider bg-badge-gray-bg/30">
+                <h3 className="text-sm font-medium text-portal-note-text mb-3 flex items-center gap-2">
+                  <Building2 className="size-4" />
+                  معلومات العميل
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="size-4 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">الشركة</span>
+                      <p className="text-sm font-medium">{contract.client?.companyName ?? "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <User className="size-4 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">جهة الاتصال</span>
+                      <p className="text-sm font-medium">{contract.client?.user?.name ?? "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="size-4 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">البريد الإلكتروني</span>
+                      <p className="text-sm font-medium">{contract.client?.user?.email ?? "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="size-4 text-portal-icon" />
+                    <div>
+                      <span className="text-xs text-portal-note-text">الهاتف</span>
+                      <p className="text-sm font-medium">{contract.client?.user?.phoneWhatsapp ?? "—"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="plans">
+              <DataTable
+                columns={[
+                  { id: "label", label: "الاسم" },
+                  { id: "amount", label: "المبلغ" },
+                  { id: "type", label: "النوع" },
+                ]}
+                data={contract.paymentPlans ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: FileSignature,
+                  message: "لا توجد خطط دفع",
+                  hint: "لم يتم إضافة خطط دفع لهذا العقد",
+                }}
+                renderRow={(p: any) => (
+                  <tr key={p.id} className="border-b border-portal-divider">
+                    <td className="px-5 py-3 text-sm font-medium">{p.label}</td>
+                    <td className="px-5 py-3 text-sm">
+                      {p.amountValue?.toLocaleString()}
+                    </td>
+                    <td className="px-5 py-3 text-sm">{p.amountType}</td>
+                  </tr>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="versions">
+              <DataTable
+                columns={[
+                  { id: "version", label: "الإصدار" },
+                  { id: "createdAt", label: "تاريخ الإنشاء", align: "left" },
+                ]}
+                data={contract.versions ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: FileSignature,
+                  message: "لا توجد إصدارات",
+                  hint: "لم يتم إنشاء إصدارات لهذا العقد",
+                }}
+                renderRow={(v: any) => (
+                  <tr key={v.id} className="border-b border-portal-divider">
+                    <td className="px-5 py-3 text-sm font-medium">
+                      الإصدار {v.versionNumber}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {v.createdAt?.slice(0, 10) ?? "—"}
+                    </td>
+                  </tr>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="documents">
+              <div className="space-y-4">
+                <div className="rounded-2xl border-2 border-dashed border-portal-divider p-8 text-center">
+                  <Upload className="size-8 mx-auto text-portal-icon mb-2" />
+                  <p className="text-sm font-medium text-portal-note-text">اسحب وأفلت ملفات العقد هنا</p>
+                  <p className="text-xs text-portal-note-text mt-1">أو انقر لرفع ملف PDF</p>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    id="contract-file-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) toast.success("تم رفع الملف: " + file.name);
+                    }}
+                  />
+                  <label
+                    htmlFor="contract-file-upload"
+                    className="inline-flex items-center gap-2 mt-4 rounded-xl bg-primary text-white px-4 py-2 text-sm font-medium cursor-pointer hover:bg-primary-dark transition-colors"
+                  >
+                    <Upload className="size-4" />
+                    رفع ملف
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-portal-note-text">الملفات المرفوعة</h4>
+                  {contract.filePath ? (
+                    <div className="flex items-center justify-between rounded-xl border border-portal-divider p-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="size-4 text-portal-icon" />
+                        <span className="text-sm font-medium">الملف الحالي</span>
+                      </div>
+                      <ActionButton variant="ghost" size="sm">
+                        <ExternalLink className="size-4" />
+                      </ActionButton>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-portal-note-text">لا توجد ملفات مرفوعة</p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="alerts">
+              <DataTable
+                columns={[
+                  { id: "type", label: "النوع" },
+                  { id: "scheduledAt", label: "مجدول في", align: "left" },
+                  { id: "sent", label: "تم الإرسال" },
+                ]}
+                data={contract.renewalAlerts ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: FileSignature,
+                  message: "لا توجد تنبيهات",
+                  hint: "لم يتم إنشاء تنبيهات تجديد لهذا العقد",
+                }}
+                renderRow={(a: any) => (
+                  <tr key={a.id} className="border-b border-portal-divider">
+                    <td className="px-5 py-3 text-sm font-medium">
+                      {a.alertType}
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {a.scheduledAt?.slice(0, 10) ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-sm">
+                      {a.isSent ? "نعم" : "لا"}
+                    </td>
+                  </tr>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="history">
+              <DataTable
+                columns={[
+                  { id: "from", label: "من" },
+                  { id: "to", label: "إلى" },
+                  { id: "at", label: "التاريخ", align: "left" },
+                ]}
+                data={contract.statusHistory ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: FileSignature,
+                  message: "لا يوجد سجل",
+                  hint: "لم يتم تسجيل تغييرات في الحالة",
+                }}
+                renderRow={(h: any) => (
+                  <tr key={h.id} className="border-b border-portal-divider">
+                    <td className="px-5 py-3 text-sm">
+                      <StatusBadge status={h.fromStatus} label={h.fromStatus} />
+                    </td>
+                    <td className="px-5 py-3 text-sm">
+                      <StatusBadge status={h.toStatus} label={h.toStatus} />
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {h.changedAt?.slice(0, 10) ?? "—"}
+                    </td>
+                  </tr>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="invoices">
+              <DataTable
+                columns={[
+                  { id: "amount", label: "المبلغ" },
+                  { id: "status", label: "الحالة" },
+                  { id: "date", label: "التاريخ", align: "left" },
+                ]}
+                data={contract.invoices ?? []}
+                isLoading={false}
+                isError={false}
+                emptyState={{
+                  icon: DollarSign,
+                  message: "لا توجد فواتير",
+                  hint: "لم يتم إنشاء فواتير لهذا العقد بعد",
+                }}
+                renderRow={(inv: any) => (
+                  <tr key={inv.id} className="border-b border-portal-divider">
+                    <td className="px-5 py-3 text-sm font-medium">
+                      {inv.amount?.toLocaleString() ?? "—"}
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={inv.status} label={inv.status} />
+                    </td>
+                    <td className="px-5 py-3 text-sm text-portal-note-text text-left">
+                      {inv.createdAt?.slice(0, 10) ?? "—"}
+                    </td>
+                  </tr>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="project">
+              {contract.project ? (
+                <SurfaceCard>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FolderKanban className="size-5 text-primary" />
+                        <h3 className="text-lg font-medium">{contract.project.name}</h3>
+                      </div>
+                      <ActionButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/dashboard/admin/projects/${contract.project.id}`)}
+                      >
+                        <ExternalLink className="size-4 ml-1" />
+                        عرض المشروع
+                      </ActionButton>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <span className="text-xs text-portal-note-text">الحالة</span>
+                        <p className="text-sm font-medium mt-0.5">
+                          <StatusBadge status={contract.project.status} label={contract.project.status} />
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-portal-note-text">تاريخ البداية</span>
+                        <p className="text-sm font-medium mt-0.5">
+                          {contract.project.startDate?.slice(0, 10) ?? "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-portal-note-text">تاريخ النهاية</span>
+                        <p className="text-sm font-medium mt-0.5">
+                          {contract.project.endDate?.slice(0, 10) ?? "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-portal-note-text">مدير المشروع</span>
+                        <p className="text-sm font-medium mt-0.5">
+                          {contract.project.manager?.name ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </SurfaceCard>
+              ) : (
+                <div className="text-center py-8">
+                  <FolderKanban className="size-12 mx-auto text-portal-icon mb-3" />
+                  <p className="text-sm font-medium text-portal-note-text">لا يوجد مشروع مرتبط</p>
+                  <p className="text-xs text-portal-note-text mt-1">
+                    يمكنك تحويل هذا العقد إلى مشروع من زر "تحويل إلى مشروع" في الأعلى
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
+      </SurfaceCard>
+
+      <Dialog
+        open={showConvertDialog}
+        onOpenChange={(o) => {
+          if (!o) setShowConvertDialog(false);
+        }}
+        title="تحويل إلى مشروع"
+        description="هل أنت متأكد من تحويل هذا العقد إلى مشروع؟ سيتم إنشاء مشروع جديد مرتبط بهذا العقد."
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowConvertDialog(false)}
+              disabled={isConverting}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              variant="primary"
+              onClick={async () => {
+                try {
+                  const project = await convertToProject({ id }).unwrap();
+                  toast.success("تم تحويل العقد إلى مشروع بنجاح");
+                  setShowConvertDialog(false);
+                  router.push(`/dashboard/admin/projects/${project.id}`);
+                } catch {
+                  toast.error("فشل تحويل العقد إلى مشروع");
+                }
+              }}
+              loading={isConverting}
+            >
+              تأكيد التحويل
+            </ActionButton>
+          </div>
+        }
+      >
+        <></>
+      </Dialog>
+
+      <Dialog
+        open={showStatusDialog}
+        onOpenChange={(o) => {
+          if (!o) setShowStatusDialog(false);
+        }}
+        title="تغيير حالة العقد"
+        description="اختر الحالة الجديدة للعقد"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <ActionButton
+              variant="outline"
+              onClick={() => setShowStatusDialog(false)}
+              disabled={isUpdatingStatus}
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              variant="primary"
+              onClick={async () => {
+                try {
+                  await updateStatus({ id, status: selectedStatus }).unwrap();
+                  toast.success("تم تغيير حالة العقد بنجاح");
+                  setShowStatusDialog(false);
+                } catch {
+                  toast.error("فشل تغيير حالة العقد");
+                }
+              }}
+              loading={isUpdatingStatus}
+              disabled={selectedStatus === contract.status}
+            >
+              تأكيد التغيير
+            </ActionButton>
+          </div>
+        }
+      >
+        <div className="space-y-2">
+          <label className="text-sm text-portal-note-text">الحالة</label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="w-full rounded-lg border border-portal-divider bg-white px-3 py-2 text-sm"
+            dir="rtl"
+          >
+            {Object.entries(CONTRACT_STATUS_AR).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Dialog>
+    </div>
+  );
+}

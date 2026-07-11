@@ -49,7 +49,10 @@ export function DisputeMessageThread({
 
   const handleSend = () => {
     if ((!newMessage.trim() && !attachFiles.length) || isLoading) return;
-    onSendMessage(newMessage.trim(), attachFiles.length > 0 ? attachFiles : undefined);
+    onSendMessage(
+      newMessage.trim(),
+      attachFiles.length > 0 ? attachFiles : undefined,
+    );
     setNewMessage("");
     setAttachFiles([]);
     setShowAttach(false);
@@ -77,9 +80,9 @@ export function DisputeMessageThread({
           </div>
         ) : (
           messages.map((message) => (
-            <MessageBubble 
-              key={message.id} 
-              message={message} 
+            <MessageBubble
+              key={message.id}
+              message={message}
               showInternalBadge={showInternalBadge}
             />
           ))
@@ -107,7 +110,7 @@ export function DisputeMessageThread({
                 "h-9 w-9 shrink-0 flex items-center justify-center rounded-full transition-colors",
                 showAttach
                   ? "bg-secondary-100 text-secondary-600"
-                  : "text-portal-icon hover:bg-badge-gray-bg"
+                  : "text-portal-icon hover:bg-badge-gray-bg",
               )}
             >
               <Paperclip className="h-4 w-4" />
@@ -123,7 +126,9 @@ export function DisputeMessageThread({
             />
             <Button
               onClick={handleSend}
-              disabled={(!newMessage.trim() && !attachFiles.length) || isLoading}
+              disabled={
+                (!newMessage.trim() && !attachFiles.length) || isLoading
+              }
               className="h-9 w-9 shrink-0 rounded-full bg-secondary-500 p-0 hover:bg-secondary-600 disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
@@ -140,7 +145,10 @@ interface MessageBubbleProps {
   showInternalBadge?: boolean;
 }
 
-function MessageBubble({ message, showInternalBadge = false }: MessageBubbleProps) {
+function MessageBubble({
+  message,
+  showInternalBadge = false,
+}: MessageBubbleProps) {
   // For now, we assume the current user is the client
   // In a real implementation, you'd check against the current user ID
   const isClient = message.author.name !== "مدير المشروع"; // Simple heuristic for demo
@@ -150,7 +158,7 @@ function MessageBubble({ message, showInternalBadge = false }: MessageBubbleProp
     <div
       className={cn(
         "flex w-full gap-3",
-        isClient ? "flex-row" : "flex-row-reverse"
+        isClient ? "flex-row" : "flex-row-reverse",
       )}
     >
       <Avatar className="h-8 w-8 shrink-0">
@@ -167,7 +175,7 @@ function MessageBubble({ message, showInternalBadge = false }: MessageBubbleProp
             ? "rounded-tl-none bg-gray-100 border border-gray-300 text-gray-800"
             : isClient
               ? "rounded-tr-none bg-secondary-500 text-white"
-              : "rounded-tl-none bg-natural-100/10 border border-portal-divider text-natural-100"
+              : "rounded-tl-none bg-natural-100/10 border border-portal-divider text-natural-100",
         )}
       >
         <div className="flex items-center gap-2 text-xs opacity-80">
@@ -181,9 +189,16 @@ function MessageBubble({ message, showInternalBadge = false }: MessageBubbleProp
             </>
           )}
           <span>•</span>
-          <span>{new Date(message.createdAt).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}</span>
+          <span>
+            {new Date(message.createdAt).toLocaleTimeString("ar-SA", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
         </div>
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+          {message.content}
+        </p>
       </div>
     </div>
   );

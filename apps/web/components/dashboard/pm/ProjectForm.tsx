@@ -26,7 +26,12 @@ import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { SearchCombobox } from "@/components/common/SearchCombobox";
 import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
-import { UserRole, ProjectStatus, TaskPriority, TASK_PRIORITY_AR } from "@hassad/shared";
+import {
+  UserRole,
+  ProjectStatus,
+  TaskPriority,
+  TASK_PRIORITY_AR,
+} from "@hassad/shared";
 import type { Project } from "@hassad/shared";
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;

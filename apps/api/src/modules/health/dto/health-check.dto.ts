@@ -1,35 +1,42 @@
-import { IsOptional, IsString, IsEnum, IsNumber, IsBoolean, IsArray } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsBoolean,
+  IsArray,
+} from "class-validator";
+import { Transform, Type } from "class-transformer";
 
 export enum HealthStatus {
-  HEALTHY = 'HEALTHY',
-  DEGRADED = 'DEGRADED',
-  UNHEALTHY = 'UNHEALTHY',
+  HEALTHY = "HEALTHY",
+  DEGRADED = "DEGRADED",
+  UNHEALTHY = "UNHEALTHY",
 }
 
 export enum ServiceStatus {
-  UP = 'UP',
-  DEGRADED = 'DEGRADED',
-  DOWN = 'DOWN',
+  UP = "UP",
+  DEGRADED = "DEGRADED",
+  DOWN = "DOWN",
 }
 
 export enum ErrorLevel {
-  ERROR = 'ERROR',
-  WARN = 'WARN',
-  INFO = 'INFO',
+  ERROR = "ERROR",
+  WARN = "WARN",
+  INFO = "INFO",
 }
 
 export enum ErrorCategory {
-  DATABASE = 'DATABASE',
-  EXTERNAL_API = 'EXTERNAL_API',
-  AUTH = 'AUTH',
-  STORAGE = 'STORAGE',
-  PAYMENT_GATEWAY = 'PAYMENT_GATEWAY',
-  EMAIL = 'EMAIL',
-  AI_SERVICE = 'AI_SERVICE',
-  GENERAL = 'GENERAL',
-  NETWORK = 'NETWORK',
-  MEMORY = 'MEMORY',
+  DATABASE = "DATABASE",
+  EXTERNAL_API = "EXTERNAL_API",
+  AUTH = "AUTH",
+  STORAGE = "STORAGE",
+  PAYMENT_GATEWAY = "PAYMENT_GATEWAY",
+  EMAIL = "EMAIL",
+  AI_SERVICE = "AI_SERVICE",
+  GENERAL = "GENERAL",
+  NETWORK = "NETWORK",
+  MEMORY = "MEMORY",
 }
 
 export class HealthCheckResultDto {
@@ -42,7 +49,7 @@ export class HealthCheckResultDto {
 }
 
 export class HealthIndicatorResultDto {
-  status: 'up' | 'down';
+  status: "up" | "down";
   message?: string;
   responseTimeMs?: number;
   [key: string]: any;
@@ -53,7 +60,7 @@ export class ErrorLogQueryDto {
   @IsArray()
   @IsEnum(ErrorLevel, { each: true })
   @Transform(({ value }) => {
-    if (typeof value === 'string') return value.split(',');
+    if (typeof value === "string") return value.split(",");
     return value;
   })
   level?: ErrorLevel[];
@@ -62,7 +69,7 @@ export class ErrorLogQueryDto {
   @IsArray()
   @IsEnum(ErrorCategory, { each: true })
   @Transform(({ value }) => {
-    if (typeof value === 'string') return value.split(',');
+    if (typeof value === "string") return value.split(",");
     return value;
   })
   category?: ErrorCategory[];
@@ -73,7 +80,7 @@ export class ErrorLogQueryDto {
   hours?: number;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true')
+  @Transform(({ value }) => value === "true")
   @IsBoolean()
   resolved?: boolean;
 

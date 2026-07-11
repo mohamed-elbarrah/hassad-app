@@ -25,7 +25,7 @@ export function AppHeader() {
       {/* ── Right side: Welcome + Avatar ──────────────────────────── */}
       <div className="flex items-center gap-3">
         {/* Search — hidden on tablet & mobile */}
-        <div
+        {/* <div
           className="hidden lg:flex items-center gap-2 px-3 py-2 w-[373px]"
           style={{
             background: "#F9FAFB",
@@ -70,7 +70,7 @@ export function AppHeader() {
           <Search
             style={{ width: 24, height: 24, color: "rgba(0, 0, 0, 0.6)" }}
           />
-        </div>
+        </div> */}
 
         {/* Dark Mode Toggle */}
         <button

@@ -39,12 +39,16 @@ export function DisputeApprovalDialog({
   mode,
   onSuccess,
 }: DisputeApprovalDialogProps) {
-  const [priority, setPriority] = useState<DisputePriority>(DisputePriority.NORMAL);
+  const [priority, setPriority] = useState<DisputePriority>(
+    DisputePriority.NORMAL,
+  );
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
 
-  const [approveDispute, { isLoading: isApproving }] = useApproveDisputeMutation();
-  const [rejectDispute, { isLoading: isRejecting }] = useRejectDisputeMutation();
+  const [approveDispute, { isLoading: isApproving }] =
+    useApproveDisputeMutation();
+  const [rejectDispute, { isLoading: isRejecting }] =
+    useRejectDisputeMutation();
 
   const isLoading = isApproving || isRejecting;
 
@@ -63,19 +67,25 @@ export function DisputeApprovalDialog({
       onSuccess?.();
       resetForm();
     } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء الموافقة على التذكرة";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء الموافقة على التذكرة";
       toast.error(message);
     }
   };
 
   const handleReject = async () => {
     if (reason.trim().length < 10) {
-      toast.error("السبب مطلوب", { description: "يجب أن يكون السبب 10 أحرف على الأقل" });
+      toast.error("السبب مطلوب", {
+        description: "يجب أن يكون السبب 10 أحرف على الأقل",
+      });
       return;
     }
 
     try {
-      await rejectDispute({ id: disputeId, input: { reason: reason.trim() } }).unwrap();
+      await rejectDispute({
+        id: disputeId,
+        input: { reason: reason.trim() },
+      }).unwrap();
       toast.success("تم رفض التذكرة", {
         description: "تم إشعار العميل بقرار الرفض.",
       });
@@ -83,7 +93,8 @@ export function DisputeApprovalDialog({
       onSuccess?.();
       resetForm();
     } catch (error: any) {
-      const message = error?.data?.error?.message || "حدث خطأ أثناء رفض التذكرة";
+      const message =
+        error?.data?.error?.message || "حدث خطأ أثناء رفض التذكرة";
       toast.error(message);
     }
   };
@@ -116,7 +127,9 @@ export function DisputeApprovalDialog({
               disabled={isLoading}
               className="bg-green-600 hover:bg-green-700"
             >
-              {isLoading ? "جارٍ..." : (
+              {isLoading ? (
+                "جارٍ..."
+              ) : (
                 <>
                   <Check className="h-4 w-4 ml-2" />
                   موافقة
@@ -129,7 +142,9 @@ export function DisputeApprovalDialog({
               disabled={isLoading || reason.trim().length < 10}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isLoading ? "جارٍ..." : (
+              {isLoading ? (
+                "جارٍ..."
+              ) : (
                 <>
                   <X className="h-4 w-4 ml-2" />
                   رفض
@@ -145,8 +160,13 @@ export function DisputeApprovalDialog({
           <>
             {/* Priority Selection */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-natural-100">الأولوية</label>
-              <FormSelect value={priority} onValueChange={(v) => setPriority(v as DisputePriority)}>
+              <label className="text-sm font-medium text-natural-100">
+                الأولوية
+              </label>
+              <FormSelect
+                value={priority}
+                onValueChange={(v) => setPriority(v as DisputePriority)}
+              >
                 <FormSelectTrigger className="w-full">
                   <FormSelectValue placeholder="اختر الأولوية" />
                 </FormSelectTrigger>
@@ -177,7 +197,8 @@ export function DisputeApprovalDialog({
 
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
               <p className="text-sm text-blue-800">
-                بعد الموافقة، سيتم إشعار مدير المشروع وسيكون لديه 3 أيام لحل المشكلة.
+                بعد الموافقة، سيتم إشعار مدير المشروع وسيكون لديه 3 أيام لحل
+                المشكلة.
               </p>
             </div>
           </>

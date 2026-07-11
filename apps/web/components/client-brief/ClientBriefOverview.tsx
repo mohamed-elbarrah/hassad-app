@@ -118,7 +118,8 @@ export function ClientBriefOverview({
           label="إجمالي المدفوع"
           value={
             <>
-              {fmtAmount(client.totalPaid)} <CurrencySymbol className="inline-block" />
+              {fmtAmount(client.totalPaid)}{" "}
+              <CurrencySymbol className="inline-block" />
             </>
           }
           colorClass="text-action-purple"
