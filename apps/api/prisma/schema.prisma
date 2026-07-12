@@ -29,6 +29,12 @@ model User {
   twoFactorEnabled     Boolean                   @default(false) @map("two_factor_enabled")
   failedLoginAttempts  Int                       @default(0) @map("failed_login_attempts")
   lockedUntil          DateTime?                 @map("locked_until")
+  suspendedAt          DateTime?                 @map("suspended_at")
+  suspendedUntil       DateTime?                 @map("suspended_until")
+  suspendReason        String?                   @map("suspend_reason")
+  suspendedById        String?                   @map("suspended_by_id")
+  suspendedBy          User?                     @relation("UserSuspender", fields: [suspendedById], references: [id])
+  suspendedUsers       User[]                    @relation("UserSuspender")
 
   securityEvents       SecurityEvent[]
   sessions             Session[]
@@ -41,6 +47,7 @@ model User {
   clientHistory        ClientHistoryLog[]
   managedClients       Client[]                  @relation("AccountManager")
   clientProfile        Client?                   @relation("ClientUser")
+  suspendedClients     Client[]                  @relation("ClientSuspender")
   contractVersions     ContractVersion[]
   createdContracts     Contract[]                @relation("ContractCreator")
   soldContracts        Contract[]                @relation("ContractSalesPerson")
@@ -57,8 +64,10 @@ model User {
   assignedLeads        Lead[]                    @relation("LeadAssignee")
   createdLeads         Lead[]                    @relation("LeadCreator")
   ledgerEntries        Ledger[]
+  adminActionLogs      AdminActionLog[]
   sentMessages         Message[]
   notifications        Notification[]
+  resolvedSystemEvents SystemEventLog[]
   assignedTickets      PaymentTicket[]           @relation("TicketAssignee")
   uploadedProjectFiles ProjectFile[]
   projectMembers       ProjectMember[]
@@ -266,6 +275,11 @@ model Client {
   businessType         BusinessType             @map("business_type")
   accountManager       String?                  @map("account_manager")
   status               ClientStatus
+  suspendedAt          DateTime?                 @map("suspended_at")
+  suspendedUntil       DateTime?                 @map("suspended_until")
+  suspendReason        String?                   @map("suspend_reason")
+  suspendedById        String?                   @map("suspended_by_id")
+  suspendedBy          User?                     @relation("ClientSuspender", fields: [suspendedById], references: [id])
   portalAccessToken    String?                  @unique @map("portal_access_token")
   portalTokenExpiresAt DateTime?                @map("portal_token_expires_at")
   createdAt            DateTime                 @default(now()) @map("created_at")
@@ -1468,6 +1482,95 @@ model Ledger {
   @@index([createdAt])
   @@index([action])
   @@map("ledger")
+}
+
+// ── Admin Data Models (Phase 1) ────────────────────────────────────────────────────
+
+model AdminActionLog {
+  id          String   @id @default(uuid())
+  actorId     String   @map("actor_id")
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id")
+  actionType  String   @map("action_type")
+  reason      String?
+  beforeState Json?    @map("before_state")
+  afterState  Json?    @map("after_state")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor       User     @relation(fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("admin_action_logs")
+}
+
+model SystemEventLog {
+  id          String          @id @default(uuid())
+  eventType   SystemEventType @map("event_type")
+  source      String          @map("source")
+  message     String
+  metadata    Json?
+  status      SystemEventStatus @default(OPEN)
+  resolvedAt  DateTime?       @map("resolved_at")
+  resolvedBy  String?         @map("resolved_by")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  resolver    User?           @relation(fields: [resolvedBy], references: [id])
+
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("system_event_logs")
+}
+
+model ReportSnapshot {
+  id          String       @id @default(uuid())
+  reportType  String       @map("report_type")
+  period      ReportPeriod
+  periodStart DateTime     @map("period_start")
+  periodEnd   DateTime     @map("period_end")
+  data        Json
+  generatedAt DateTime     @default(now()) @map("generated_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@index([reportType, period, periodStart])
+  @@index([generatedAt])
+  @@map("report_snapshots")
+}
+
+enum SystemEventType {
+  WEBHOOK_FAILURE
+  GATEWAY_FAILURE
+  NOTIFICATION_FAILURE
+  INTEGRATION_SYNC_FAILURE
+  PAYMENT_FAILURE
+  AUTH_FAILURE
+  BACKUP_STARTED
+  BACKUP_COMPLETED
+  BACKUP_FAILED
+  BACKUP_RESTORE
+
+  @@map("system_event_types")
+}
+
+enum SystemEventStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+
+  @@map("system_event_statuses")
+}
+
+enum ReportPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM
+
+  @@map("report_periods")
 }
 
 // ── Security & Sessions ─────────────────────────────────────────────────────────

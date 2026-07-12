@@ -32,4 +32,10 @@ export class AdminIntegrationsController {
   getGateways() {
     return this.service.getGateways();
   }
+
+  @Get("sync-status")
+  @RequirePermissions("admin.settings")
+  getSyncStatus() {
+    return this.service.getSyncStatus();
+  }
 }

@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { AdminActionLogService } from "./admin-action-log.service";
 
 @Injectable()
 export class AdminClientsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly actionLog: AdminActionLogService,
+  ) {}
 
   async getStats() {
     const [totalClients, activeClients, inactiveClients, newThisMonth] = await Promise.all([
@@ -351,6 +355,162 @@ export class AdminClientsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async suspend(clientId: string, reason: string, adminId: string, suspendedUntil?: string) {
+    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (client.status === "STOPPED") throw new BadRequestException("العميل موقوف بالفعل");
+
+    const before = { status: client.status, suspendedAt: client.suspendedAt };
+    const after = { status: "STOPPED", reason, suspendedUntil: suspendedUntil ?? null };
+
+    await this.prisma.$transaction([
+      this.prisma.client.update({
+        where: { id: clientId },
+        data: {
+          status: "STOPPED",
+          suspendedAt: new Date(),
+          suspendedUntil: suspendedUntil ? new Date(suspendedUntil) : null,
+          suspendReason: reason,
+          suspendedById: adminId,
+        },
+      }),
+      this.prisma.clientHistoryLog.create({
+        data: {
+          clientId,
+          userId: adminId,
+          eventType: "suspended",
+          description: `تم إيقاف العميل - ${reason}`,
+          metadata: { reason, suspendedUntil: suspendedUntil ?? null },
+        },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.clients.suspend",
+          entity: "client",
+          entityId: clientId,
+          userId: adminId,
+          before,
+          after,
+        },
+      }),
+    ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "client",
+      targetId: clientId,
+      actionType: "admin.clients.suspend",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
+    return { success: true };
+  }
+
+  async reactivate(clientId: string, reason: string, adminId: string) {
+    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (client.status !== "STOPPED") throw new BadRequestException("العميل غير موقوف");
+
+    const before = { status: client.status, suspendedAt: client.suspendedAt };
+    const after = { status: "ACTIVE" };
+
+    await this.prisma.$transaction([
+      this.prisma.client.update({
+        where: { id: clientId },
+        data: {
+          status: "ACTIVE",
+          suspendedAt: null,
+          suspendedUntil: null,
+          suspendReason: null,
+          suspendedById: null,
+        },
+      }),
+      this.prisma.clientHistoryLog.create({
+        data: {
+          clientId,
+          userId: adminId,
+          eventType: "reactivated",
+          description: `تم إعادة تفعيل العميل - ${reason}`,
+          metadata: { reason },
+        },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.clients.reactivate",
+          entity: "client",
+          entityId: clientId,
+          userId: adminId,
+          before,
+          after,
+        },
+      }),
+    ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "client",
+      targetId: clientId,
+      actionType: "admin.clients.reactivate",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
+    return { success: true };
+  }
+
+  async assignManager(clientId: string, accountManagerId: string, reason: string, adminId: string) {
+    const [client, manager] = await Promise.all([
+      this.prisma.client.findUnique({ where: { id: clientId } }),
+      this.prisma.user.findUnique({ where: { id: accountManagerId } }),
+    ]);
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (!manager) throw new NotFoundException("المستخدم غير موجود");
+
+    const before = { accountManager: client.accountManager };
+    const after = { accountManager: accountManagerId, managerName: manager.name };
+
+    await this.prisma.$transaction([
+      this.prisma.client.update({
+        where: { id: clientId },
+        data: { accountManager: accountManagerId },
+      }),
+      this.prisma.clientHistoryLog.create({
+        data: {
+          clientId,
+          userId: adminId,
+          eventType: "manager_changed",
+          description: `تم تغيير مدير الحساب إلى ${manager.name} - ${reason}`,
+          metadata: { fromManager: before.accountManager, toManager: accountManagerId, reason },
+        },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.clients.assign-manager",
+          entity: "client",
+          entityId: clientId,
+          userId: adminId,
+          before,
+          after,
+        },
+      }),
+    ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "client",
+      targetId: clientId,
+      actionType: "admin.clients.assign-manager",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
+    return { success: true, managerName: manager.name };
   }
 
   private formatClientResponse(client: any) {

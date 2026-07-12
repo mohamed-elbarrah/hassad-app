@@ -39,8 +39,9 @@ export class AdminContractsController {
   @Post(":id/cancel") @RequirePermissions("admin.contracts.intervene") cancel(
     @Param("id") id: string,
     @Body("reason") reason: string,
+    @CurrentUser("id") adminId: string,
   ) {
-    return this.service.cancel(id, reason);
+    return this.service.cancel(id, reason, adminId);
   }
   @Post(":id/trigger-renewal-alert")
   @RequirePermissions("admin.contracts.intervene")

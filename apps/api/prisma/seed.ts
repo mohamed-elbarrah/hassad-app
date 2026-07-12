@@ -1484,6 +1484,61 @@ async function main() {
     "disputes.pm_read",
     "disputes.pm_update",
     "disputes.admin",
+
+    // Admin dashboard & monitoring
+    "admin.stats",
+    "admin.stats.trends",
+    "admin.funnel",
+    "admin.alerts",
+    "admin.audit",
+    "admin.dashboard",
+    "admin.reports",
+
+    // Admin settings & configuration
+    "admin.settings",
+    "admin.notifications",
+    "admin.team",
+    "admin.marketing",
+
+    // Admin users & security
+    "admin.users.read",
+    "admin.users.manage",
+    "admin.users.impersonate",
+    "admin.sessions.read",
+    "admin.security.read",
+
+    // Admin domain read
+    "admin.projects.read",
+    "admin.tasks.read",
+    "admin.contracts.read",
+    "admin.leads.read",
+    "admin.requests.read",
+    "admin.finance.read",
+    "admin.proposals.read",
+    "admin.clients.read",
+    "admin.campaigns.read",
+    "admin.chat.read",
+    "admin.portal.read",
+
+    // Admin domain intervene
+    "admin.projects.intervene",
+    "admin.projects.create",
+    "admin.tasks.intervene",
+    "admin.contracts.intervene",
+    "admin.leads.intervene",
+    "admin.requests.intervene",
+    "admin.finance.intervene",
+    "admin.proposals.intervene",
+    "admin.campaigns.create",
+    "admin.campaigns.intervene",
+    "admin.chat.moderate",
+    "admin.portal.manage",
+
+    // Admin clients intervene
+    "admin.clients.intervene",
+
+    // Admin generic (used on intake-forms)
+    "admin.portal",
   ];
 
   for (const name of permissions) {

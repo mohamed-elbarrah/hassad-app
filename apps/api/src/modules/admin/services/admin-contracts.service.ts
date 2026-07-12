@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { AdminActionLogService } from "./admin-action-log.service";
 import { ContractStatus, ProjectStatus, ProjectPeriodStatus, TaskPriority } from "@hassad/shared";
 import { ConvertToProjectDto } from "../dto/admin-contracts.dto";
 
 @Injectable()
 export class AdminContractsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly actionLog: AdminActionLogService,
+  ) {}
 
   async findAll(query: any) {
     const where: any = {};
@@ -107,26 +111,51 @@ export class AdminContractsService {
     return { ...contract, project };
   }
 
-  async cancel(contractId: string, reason: string) {
+  async cancel(contractId: string, reason: string, adminId: string) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
     });
     if (!contract) throw new NotFoundException("Contract not found");
+
+    const before = { status: contract.status };
+    const after = { status: "CANCELLED", reason };
 
     await this.prisma.$transaction([
       this.prisma.contract.update({
         where: { id: contractId },
         data: { status: "CANCELLED" as any },
       }),
+      this.prisma.contractStatusHistory.create({
+        data: {
+          contractId,
+          fromStatus: contract.status as any,
+          toStatus: "CANCELLED" as any,
+          changedBy: adminId,
+          reason,
+        },
+      }),
       this.prisma.ledger.create({
         data: {
           action: "admin.contracts.cancel",
           entity: "contract",
           entityId: contractId,
-          after: { previousStatus: contract.status, reason },
+          userId: adminId,
+          before,
+          after,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "contract",
+      targetId: contractId,
+      actionType: "admin.contracts.cancel",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
     return { success: true };
   }
 
@@ -153,6 +182,9 @@ export class AdminContractsService {
     });
     if (!contract) throw new NotFoundException("Contract not found");
 
+    const before = { status: contract.status };
+    const after = { status, reason };
+
     await this.prisma.$transaction([
       this.prisma.contract.update({
         where: { id: contractId },
@@ -173,11 +205,21 @@ export class AdminContractsService {
           entity: "contract",
           entityId: contractId,
           userId,
-          before: { status: contract.status },
-          after: { status },
+          before,
+          after,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "contract",
+      targetId: contractId,
+      actionType: "admin.contracts.status_change",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
 
     return { success: true };
   }
@@ -252,6 +294,14 @@ export class AdminContractsService {
       }
 
       return created;
+    });
+
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "contract",
+      targetId: id,
+      actionType: "admin.contracts.convert-to-project",
+      afterState: { projectId: project.id, projectName },
     });
 
     return project;

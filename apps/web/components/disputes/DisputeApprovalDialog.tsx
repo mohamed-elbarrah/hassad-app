@@ -7,7 +7,7 @@ import {
   useApproveDisputeMutation,
   useRejectDisputeMutation,
   type ApproveDisputeInput,
-} from "@/features/disputes/adminDisputesApi";
+} from "@/features/disputes/pmDisputesApi";
 import { DisputePriority, DISPUTE_PRIORITY_AR } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/design-system/Dialog";

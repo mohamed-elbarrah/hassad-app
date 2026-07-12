@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { AdminActionLogService } from "./admin-action-log.service";
 import { ProjectStatus, TaskStatus, TaskPriority } from "@hassad/shared";
 
 @Injectable()
 export class AdminProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly actionLog: AdminActionLogService,
+  ) {}
 
   async findAll(query: any) {
     const where: any = {};
@@ -235,13 +239,16 @@ export class AdminProjectsService {
     };
   }
 
-  async reassignPm(projectId: string, pmUserId: string) {
+  async reassignPm(projectId: string, pmUserId: string, adminId: string, reason?: string) {
     const [project, user] = await Promise.all([
       this.prisma.project.findUnique({ where: { id: projectId } }),
       this.prisma.user.findUnique({ where: { id: pmUserId } }),
     ]);
     if (!project) throw new NotFoundException("Project not found");
     if (!user) throw new NotFoundException("User not found");
+
+    const before = { projectManagerId: project.projectManagerId };
+    const after = { projectManagerId: pmUserId, reason };
 
     await this.prisma.$transaction([
       this.prisma.project.update({
@@ -253,18 +260,34 @@ export class AdminProjectsService {
           action: "admin.projects.reassign-pm",
           entity: "project",
           entityId: projectId,
-          after: { previousPmId: project.projectManagerId, newPmId: pmUserId },
+          userId: adminId,
+          before,
+          after,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "project",
+      targetId: projectId,
+      actionType: "admin.projects.reassign-pm",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
     return { success: true };
   }
 
-  async archive(projectId: string) {
+  async archive(projectId: string, adminId: string, reason?: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) throw new NotFoundException("Project not found");
+
+    const before = { isArchived: project.isArchived };
+    const after = { isArchived: true, archivedAt: new Date(), reason };
 
     await this.prisma.$transaction([
       this.prisma.project.update({
@@ -276,17 +299,34 @@ export class AdminProjectsService {
           action: "admin.projects.archive",
           entity: "project",
           entityId: projectId,
+          userId: adminId,
+          before,
+          after,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "project",
+      targetId: projectId,
+      actionType: "admin.projects.archive",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
     return { success: true };
   }
 
-  async forceStatus(projectId: string, status: ProjectStatus, reason: string) {
+  async forceStatus(projectId: string, status: ProjectStatus, reason: string, adminId: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) throw new NotFoundException("Project not found");
+
+    const before = { status: project.status };
+    const after = { status, reason };
 
     await this.prisma.$transaction([
       this.prisma.project.update({
@@ -298,49 +338,118 @@ export class AdminProjectsService {
           action: "admin.projects.force-status",
           entity: "project",
           entityId: projectId,
-          after: { previousStatus: project.status, newStatus: status, reason },
+          userId: adminId,
+          before,
+          after,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "project",
+      targetId: projectId,
+      actionType: "admin.projects.force-status",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
     return { success: true };
   }
 
-  async create(data: {
-    name: string;
-    clientId: string;
-    projectManagerId?: string;
-    status?: string;
-    startDate: string;
-    endDate: string;
-    description?: string;
-    priority?: string;
-  }) {
-    const project = await this.prisma.project.create({
-      data: {
-        name: data.name,
-        clientId: data.clientId,
-        projectManagerId: data.projectManagerId,
-        status: (data.status as ProjectStatus) ?? ProjectStatus.PLANNING,
-        priority: (data.priority as TaskPriority) ?? TaskPriority.NORMAL,
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate),
-        description: data.description,
-      },
+  async unarchive(projectId: string, adminId: string, reason?: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) throw new NotFoundException("Project not found");
+    if (!project.isArchived) throw new BadRequestException("Project is not archived");
+
+    const before = { isArchived: project.isArchived, archivedAt: project.archivedAt };
+    const after = { isArchived: false, archivedAt: null, reason };
+
+    await this.prisma.$transaction([
+      this.prisma.project.update({
+        where: { id: projectId },
+        data: { isArchived: false, archivedAt: null },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.projects.unarchive",
+          entity: "project",
+          entityId: projectId,
+          userId: adminId,
+          before,
+          after,
+        },
+      }),
+    ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "project",
+      targetId: projectId,
+      actionType: "admin.projects.unarchive",
+      reason,
+      beforeState: before,
+      afterState: after,
     });
 
-    await this.prisma.ledger.create({
-      data: {
-        action: "admin.projects.create",
-        entity: "project",
-        entityId: project.id,
-        after: { name: data.name, clientId: data.clientId },
-      },
+    return { success: true };
+  }
+
+  async create(
+    data: {
+      name: string;
+      clientId: string;
+      projectManagerId?: string;
+      status?: string;
+      startDate: string;
+      endDate: string;
+      description?: string;
+      priority?: string;
+    },
+    adminId: string,
+  ) {
+    const project = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          name: data.name,
+          clientId: data.clientId,
+          projectManagerId: data.projectManagerId,
+          status: (data.status as ProjectStatus) ?? ProjectStatus.PLANNING,
+          priority: (data.priority as TaskPriority) ?? TaskPriority.NORMAL,
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
+          description: data.description,
+        },
+      });
+
+      await tx.ledger.create({
+        data: {
+          action: "admin.projects.create",
+          entity: "project",
+          entityId: created.id,
+          userId: adminId,
+          after: { name: data.name, clientId: data.clientId },
+        },
+      });
+
+      return created;
+    });
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "project",
+      targetId: project.id,
+      actionType: "admin.projects.create",
+      afterState: { name: data.name, clientId: data.clientId },
     });
 
     return project;
   }
 
-  async addMember(projectId: string, userId: string, role: string) {
+  async addMember(projectId: string, userId: string, role: string, adminId: string, reason?: string) {
     const [project, user] = await Promise.all([
       this.prisma.project.findUnique({ where: { id: projectId } }),
       this.prisma.user.findUnique({ where: { id: userId } }),
@@ -348,17 +457,31 @@ export class AdminProjectsService {
     if (!project) throw new NotFoundException("Project not found");
     if (!user) throw new NotFoundException("User not found");
 
-    const member = await this.prisma.projectMember.create({
-      data: { projectId, userId, role: role as any },
+    const member = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.projectMember.create({
+        data: { projectId, userId, role: role as any },
+      });
+
+      await tx.ledger.create({
+        data: {
+          action: "admin.projects.add-member",
+          entity: "project",
+          entityId: projectId,
+          userId: adminId,
+          after: { userId, role, name: user.name },
+        },
+      });
+
+      return created;
     });
 
-    await this.prisma.ledger.create({
-      data: {
-        action: "admin.projects.add-member",
-        entity: "project",
-        entityId: projectId,
-        after: { userId, role, name: user.name },
-      },
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "project",
+      targetId: projectId,
+      actionType: "admin.projects.add-member",
+      reason,
+      afterState: { userId, role, name: user.name },
     });
 
     return member;
@@ -383,27 +506,42 @@ export class AdminProjectsService {
       });
     }
 
-    const task = await this.prisma.task.create({
-      data: {
-        projectId,
-        title: data.title,
-        assignedTo: data.assigneeId,
-        createdBy: adminId ?? project.projectManagerId ?? "00000000-0000-0000-0000-000000000000",
-        departmentId: defaultDept.id,
-        priority: data.priority as TaskPriority ?? TaskPriority.NORMAL,
-        dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
-        status: data.status as TaskStatus ?? TaskStatus.TODO,
-      },
+    const task = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.task.create({
+        data: {
+          projectId,
+          title: data.title,
+          assignedTo: data.assigneeId,
+          createdBy: adminId ?? project.projectManagerId ?? "00000000-0000-0000-0000-000000000000",
+          departmentId: defaultDept.id,
+          priority: data.priority as TaskPriority ?? TaskPriority.NORMAL,
+          dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
+          status: data.status as TaskStatus ?? TaskStatus.TODO,
+        },
+      });
+
+      await tx.ledger.create({
+        data: {
+          action: "admin.projects.add-task",
+          entity: "project",
+          entityId: projectId,
+          userId: adminId,
+          after: { taskId: created.id, title: data.title },
+        },
+      });
+
+      return created;
     });
 
-    await this.prisma.ledger.create({
-      data: {
-        action: "admin.projects.add-task",
-        entity: "project",
-        entityId: projectId,
-        after: { taskId: task.id, title: data.title },
-      },
-    });
+    if (adminId) {
+      await this.actionLog.record({
+        actorId: adminId,
+        targetType: "project",
+        targetId: projectId,
+        actionType: "admin.projects.add-task",
+        afterState: { taskId: task.id, title: data.title },
+      });
+    }
 
     return task;
   }

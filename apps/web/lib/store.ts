@@ -15,8 +15,6 @@ import { salesApi } from "@/features/sales/salesApi";
 import { financeApi } from "@/features/finance/financeApi";
 
 import { deliverablesApi } from "@/features/deliverables/deliverablesApi";
-import { adminApi } from "@/features/admin/adminApi";
-import { adminClientsApi } from "@/features/admin/adminClientsApi";
 import { marketingApi } from "@/features/marketing/marketingApi";
 import { portalApi } from "@/features/portal/portalApi";
 import { portalNotificationsApi } from "@/features/portal-notifications/portalNotificationsApi";
@@ -30,7 +28,6 @@ import notificationsReducer from "@/features/notifications/notificationsSlice";
 import { healthApi } from "@/features/health/healthApi";
 import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
-import { adminDisputesApi } from "@/features/disputes/adminDisputesApi";
 import { notificationTemplatesApi } from "@/features/notification-templates/notificationTemplatesApi";
 import { intakeFormApi } from "@/features/intakeForm/intakeFormApi";
 
@@ -52,8 +49,6 @@ export const store = configureStore({
     [financeApi.reducerPath]: financeApi.reducer,
 
     [deliverablesApi.reducerPath]: deliverablesApi.reducer,
-    [adminApi.reducerPath]: adminApi.reducer,
-    [adminClientsApi.reducerPath]: adminClientsApi.reducer,
     [marketingApi.reducerPath]: marketingApi.reducer,
     [portalApi.reducerPath]: portalApi.reducer,
     [portalNotificationsApi.reducerPath]: portalNotificationsApi.reducer,
@@ -66,7 +61,6 @@ export const store = configureStore({
     [healthApi.reducerPath]: healthApi.reducer,
     [periodsApi.reducerPath]: periodsApi.reducer,
     [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
-    [adminDisputesApi.reducerPath]: adminDisputesApi.reducer,
     [notificationTemplatesApi.reducerPath]: notificationTemplatesApi.reducer,
     [intakeFormApi.reducerPath]: intakeFormApi.reducer,
   },
@@ -86,8 +80,6 @@ export const store = configureStore({
       financeApi.middleware,
 
       deliverablesApi.middleware,
-      adminApi.middleware,
-      adminClientsApi.middleware,
       marketingApi.middleware,
       portalApi.middleware,
       portalNotificationsApi.middleware,
@@ -100,7 +92,6 @@ export const store = configureStore({
       healthApi.middleware,
       periodsApi.middleware,
       pmDisputesApi.middleware,
-      adminDisputesApi.middleware,
       notificationTemplatesApi.middleware,
       intakeFormApi.middleware,
     ];

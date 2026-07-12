@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { AdminActionLogService } from "./admin-action-log.service";
 
 @Injectable()
 export class AdminTasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly actionLog: AdminActionLogService,
+  ) {}
 
   async findAll(query: any) {
     const where: any = {};
@@ -143,7 +147,7 @@ export class AdminTasksService {
     };
   }
 
-  async reassign(taskId: string, assigneeId: string) {
+  async reassign(taskId: string, assigneeId: string, adminId: string, reason?: string) {
     const [task, user] = await Promise.all([
       this.prisma.task.findUnique({ where: { id: taskId } }),
       this.prisma.user.findUnique({ where: { id: assigneeId } }),
@@ -151,26 +155,53 @@ export class AdminTasksService {
     if (!task) throw new NotFoundException("Task not found");
     if (!user) throw new NotFoundException("User not found");
 
+    const before = { assignedTo: task.assignedTo };
+    const after = { assignedTo: assigneeId, reason };
+
     await this.prisma.$transaction([
       this.prisma.task.update({
         where: { id: taskId },
         data: { assignedTo: assigneeId },
+      }),
+      this.prisma.taskStatusHistory.create({
+        data: {
+          taskId,
+          fromStatus: task.status,
+          toStatus: task.status,
+          changedBy: adminId,
+        },
       }),
       this.prisma.ledger.create({
         data: {
           action: "admin.tasks.reassign",
           entity: "task",
           entityId: taskId,
-          after: { previousAssignee: task.assignedTo, newAssignee: assigneeId },
+          userId: adminId,
+          before,
+          after,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "task",
+      targetId: taskId,
+      actionType: "admin.tasks.reassign",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
     return { success: true };
   }
 
-  async forceTransition(taskId: string, status: any, reason: string) {
+  async forceTransition(taskId: string, status: any, reason: string, adminId: string) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) throw new NotFoundException("Task not found");
+
+    const before = { status: task.status };
+    const after = { status, reason };
 
     await this.prisma.$transaction([
       this.prisma.task.update({ where: { id: taskId }, data: { status } }),
@@ -179,7 +210,7 @@ export class AdminTasksService {
           taskId,
           fromStatus: task.status,
           toStatus: status,
-          changedBy: "admin",
+          changedBy: adminId,
         },
       }),
       this.prisma.ledger.create({
@@ -187,10 +218,23 @@ export class AdminTasksService {
           action: "admin.tasks.force-transition",
           entity: "task",
           entityId: taskId,
-          after: { previousStatus: task.status, newStatus: status, reason },
+          userId: adminId,
+          before,
+          after,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "task",
+      targetId: taskId,
+      actionType: "admin.tasks.force-transition",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
     return { success: true };
   }
 }

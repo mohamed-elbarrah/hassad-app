@@ -43,9 +43,13 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
+    @Request() req: ExpressRequest,
   ) {
+    const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip;
+    const userAgent = req.headers["user-agent"];
+
     const { user, accessToken, refreshToken } =
-      await this.authService.login(dto);
+      await this.authService.login(dto, ip, userAgent);
 
     const rememberMe = dto.rememberMe ?? false;
 

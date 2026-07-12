@@ -1,6 +1,8 @@
 import {
   Injectable,
   UnauthorizedException,
+  HttpException,
+  HttpStatus,
   InternalServerErrorException,
   ConflictException,
 } from "@nestjs/common";
@@ -21,6 +23,9 @@ import { CanonicalClientService } from "../modules/requests/canonical-client.ser
 import { RegisterClientDto } from "./dto/register-client.dto";
 import { RegisterInternalDto } from "./dto/register-internal.dto";
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MINUTES = 30;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -30,7 +35,7 @@ export class AuthService {
     private readonly canonicalClientService: CanonicalClientService,
   ) {}
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, ip?: string, userAgent?: string) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: {
@@ -49,8 +54,37 @@ export class AuthService {
         },
       },
     });
+
+    // Use generic message to avoid user enumeration
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");
+    }
+
+    // ── Lockout check ──────────────────────────────────────────────────
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const remainingMs = user.lockedUntil.getTime() - Date.now();
+      const remainingMin = Math.ceil(remainingMs / 60000);
+      throw new HttpException(
+        `Account locked. Try again in ${remainingMin} minute(s).`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    // ── Suspension check ───────────────────────────────────────────────
+    if (user.suspendedAt) {
+      if (!user.suspendedUntil || user.suspendedUntil > new Date()) {
+        throw new UnauthorizedException("User account is suspended.");
+      }
+      // Suspension period has passed — auto-clear
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          suspendedAt: null,
+          suspendedUntil: null,
+          suspendReason: null,
+          suspendedById: null,
+        },
+      });
     }
 
     if (!user.isActive) {
@@ -68,11 +102,105 @@ export class AuthService {
       dto.password,
       user.passwordHash,
     );
+
     if (!isPasswordValid) {
+      const newFailedCount = user.failedLoginAttempts + 1;
+
+      if (newFailedCount >= MAX_FAILED_ATTEMPTS) {
+        const lockedUntil = new Date(
+          Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000,
+        );
+        await this.prisma.$transaction([
+          this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginAttempts: newFailedCount,
+              lockedUntil,
+            },
+          }),
+          this.prisma.securityEvent.create({
+            data: {
+              userId: user.id,
+              type: "ACCOUNT_LOCKED",
+              ip,
+              userAgent,
+              metadata: {
+                reason: "too_many_failed_attempts",
+                failedAttempts: newFailedCount,
+                lockoutDurationMinutes: LOCKOUT_DURATION_MINUTES,
+              },
+            },
+          }),
+          this.prisma.securityEvent.create({
+            data: {
+              userId: user.id,
+              type: "LOGIN_FAILED",
+              ip,
+              userAgent,
+              metadata: { attempt: newFailedCount, max: MAX_FAILED_ATTEMPTS },
+            },
+          }),
+        ]);
+      } else {
+        await this.prisma.$transaction([
+          this.prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginAttempts: newFailedCount },
+          }),
+          this.prisma.securityEvent.create({
+            data: {
+              userId: user.id,
+              type: "LOGIN_FAILED",
+              ip,
+              userAgent,
+              metadata: { attempt: newFailedCount, max: MAX_FAILED_ATTEMPTS },
+            },
+          }),
+        ]);
+      }
+
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    // Get permissions for JWT payload (NEW)
+    // ── Successful login: reset lockout state ──────────────────────────
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+            lastLoginAt: new Date(),
+          },
+        }),
+        this.prisma.securityEvent.create({
+          data: {
+            userId: user.id,
+            type: "LOGIN_SUCCESS",
+            ip,
+            userAgent,
+            metadata: { previousFailedAttempts: user.failedLoginAttempts },
+          },
+        }),
+      ]);
+    } else {
+      await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        }),
+        this.prisma.securityEvent.create({
+          data: {
+            userId: user.id,
+            type: "LOGIN_SUCCESS",
+            ip,
+            userAgent,
+          },
+        }),
+      ]);
+    }
+
+    // Get permissions for JWT payload
     const permissions = [
       ...user.role.permissions.map((p: any) => p.permission.name),
       ...user.permissions.map((p: any) => p.permission.name),
@@ -83,7 +211,7 @@ export class AuthService {
       name: user.name,
       email: user.email,
       role: user.role.name,
-      permissions, // NEW - add permissions array
+      permissions,
     };
     const accessToken = this.jwtService.sign(payload);
 
@@ -102,10 +230,6 @@ export class AuthService {
     let clientId: string | undefined;
     let intakeCompleted = false;
     if (user.role.name === UserRole.CLIENT) {
-      // Personal identity (name, email, phone) now lives on `User`
-      // (single source of truth). The `Client` table no longer stores
-      // these fields — we link a client to their portal login via
-      // `userId` only.
       const client = await this.prisma.client.findFirst({
         where: {
           userId: user.id,

@@ -28,24 +28,44 @@ export class AdminProjectsController {
   }
   @Post(":id/reassign-pm")
   @RequirePermissions("admin.projects.intervene")
-  reassignPm(@Param("id") id: string, @Body("pmUserId") pmUserId: string) {
-    return this.service.reassignPm(id, pmUserId);
+  reassignPm(
+    @Param("id") id: string,
+    @Body("pmUserId") pmUserId: string,
+    @Body("reason") reason: string,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.reassignPm(id, pmUserId, adminId, reason);
   }
   @Post(":id/archive") @RequirePermissions("admin.projects.intervene") archive(
     @Param("id") id: string,
+    @Body("reason") reason: string,
+    @CurrentUser("id") adminId: string,
   ) {
-    return this.service.archive(id);
+    return this.service.archive(id, adminId, reason);
+  }
+  @Post(":id/unarchive")
+  @RequirePermissions("admin.projects.intervene")
+  unarchive(
+    @Param("id") id: string,
+    @Body("reason") reason: string,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.unarchive(id, adminId, reason);
   }
   @Post(":id/force-status")
   @RequirePermissions("admin.projects.intervene")
-  forceStatus(@Param("id") id: string, @Body() body: any) {
-    return this.service.forceStatus(id, body.status, body.reason);
+  forceStatus(
+    @Param("id") id: string,
+    @Body() body: any,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.forceStatus(id, body.status, body.reason, adminId);
   }
 
   @Post()
   @RequirePermissions("admin.projects.create")
-  create(@Body() body: any) {
-    return this.service.create(body);
+  create(@Body() body: any, @CurrentUser("id") adminId: string) {
+    return this.service.create(body, adminId);
   }
 
   @Post(":id/members")
@@ -54,8 +74,10 @@ export class AdminProjectsController {
     @Param("id") id: string,
     @Body("userId") userId: string,
     @Body("role") role: string,
+    @Body("reason") reason: string,
+    @CurrentUser("id") adminId: string,
   ) {
-    return this.service.addMember(id, userId, role);
+    return this.service.addMember(id, userId, role, adminId, reason);
   }
 
   @Post(":id/tasks")
