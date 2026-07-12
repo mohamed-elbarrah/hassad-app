@@ -26,6 +26,18 @@ import { rolesApi } from "@/features/roles/rolesApi";
 import { permissionsApi } from "@/features/permissions/permissionsApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
 import { healthApi } from "@/features/health/healthApi";
+import { adminApi } from "@/features/admin/adminApi";
+import { adminUsersApi } from "@/features/admin/adminUsersApi";
+import { adminProjectsApi } from "@/features/admin/adminProjectsApi";
+import { adminTasksApi } from "@/features/admin/adminTasksApi";
+import { adminContractsApi } from "@/features/admin/adminContractsApi";
+import { adminRequestsApi } from "@/features/admin/adminRequestsApi";
+import { adminLeadsApi } from "@/features/admin/adminLeadsApi";
+import { adminDisputesApi } from "@/features/admin/adminDisputesApi";
+import { adminClientsApi } from "@/features/admin/adminClientsApi";
+import { adminProposalsApi } from "@/features/admin/adminProposalsApi";
+import { adminFinanceApi } from "@/features/admin/adminFinanceApi";
+import { adminReportsApi } from "@/features/admin/adminReportsApi";
 import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
 import { notificationTemplatesApi } from "@/features/notification-templates/notificationTemplatesApi";
@@ -60,6 +72,18 @@ export const store = configureStore({
     [permissionsApi.reducerPath]: permissionsApi.reducer,
     [healthApi.reducerPath]: healthApi.reducer,
     [periodsApi.reducerPath]: periodsApi.reducer,
+    [adminApi.reducerPath]: adminApi.reducer,
+    [adminUsersApi.reducerPath]: adminUsersApi.reducer,
+    [adminProjectsApi.reducerPath]: adminProjectsApi.reducer,
+    [adminTasksApi.reducerPath]: adminTasksApi.reducer,
+    [adminContractsApi.reducerPath]: adminContractsApi.reducer,
+    [adminRequestsApi.reducerPath]: adminRequestsApi.reducer,
+    [adminLeadsApi.reducerPath]: adminLeadsApi.reducer,
+    [adminDisputesApi.reducerPath]: adminDisputesApi.reducer,
+    [adminClientsApi.reducerPath]: adminClientsApi.reducer,
+    [adminProposalsApi.reducerPath]: adminProposalsApi.reducer,
+    [adminFinanceApi.reducerPath]: adminFinanceApi.reducer,
+    [adminReportsApi.reducerPath]: adminReportsApi.reducer,
     [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
     [notificationTemplatesApi.reducerPath]: notificationTemplatesApi.reducer,
     [intakeFormApi.reducerPath]: intakeFormApi.reducer,
@@ -90,6 +114,18 @@ export const store = configureStore({
       rolesApi.middleware,
       permissionsApi.middleware,
       healthApi.middleware,
+      adminApi.middleware,
+      adminUsersApi.middleware,
+      adminProjectsApi.middleware,
+      adminTasksApi.middleware,
+      adminContractsApi.middleware,
+      adminRequestsApi.middleware,
+      adminLeadsApi.middleware,
+      adminDisputesApi.middleware,
+      adminClientsApi.middleware,
+      adminProposalsApi.middleware,
+      adminFinanceApi.middleware,
+      adminReportsApi.middleware,
       periodsApi.middleware,
       pmDisputesApi.middleware,
       notificationTemplatesApi.middleware,

@@ -13,6 +13,24 @@ import {
   BarChart3,
   TrendingUp,
   Ticket,
+  LayoutDashboard,
+  Users,
+  Group,
+  FolderKanban,
+  CheckSquare,
+  FileSpreadsheet,
+  UserPlus,
+  Handshake,
+  PiggyBank,
+  Scale,
+  Activity,
+  FileBarChart,
+  Lock,
+  Settings,
+  Database,
+  Globe,
+  AlertTriangle,
+  DollarSign,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -27,8 +45,176 @@ export type NavItem = {
 };
 export type NavSection = { label: string; items: NavItem[] };
 
-/* ── Admin-only navigation (empty — awaiting Phase 6 rebuild) ───────────────── */
-export const adminNavSections: NavSection[] = [];
+/* ── Admin-only navigation (Phase 6 — built in waves) ──────────────────────── */
+export const adminNavSections: NavSection[] = [
+  {
+    label: "لوحة التحكم",
+    items: [
+      {
+        title: "نظرة عامة",
+        url: "/dashboard/admin",
+        icon: LayoutDashboard,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "المستخدمون",
+    items: [
+      {
+        title: "المستخدمون",
+        url: "/dashboard/admin/users",
+        icon: Users,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الفرق",
+        url: "/dashboard/admin/teams",
+        icon: Group,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "العمليات",
+    items: [
+      {
+        title: "المشاريع",
+        url: "/dashboard/admin/projects",
+        icon: FolderKanban,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "المهام",
+        url: "/dashboard/admin/tasks",
+        icon: CheckSquare,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العقود",
+        url: "/dashboard/admin/contracts",
+        icon: FileSignature,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الطلبات",
+        url: "/dashboard/admin/requests",
+        icon: ClipboardList,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العملاء المحتملون",
+        url: "/dashboard/admin/leads",
+        icon: UserPlus,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العملاء",
+        url: "/dashboard/admin/clients",
+        icon: Handshake,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العروض الفنية",
+        url: "/dashboard/admin/proposals",
+        icon: FileText,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "النزاعات",
+        url: "/dashboard/admin/disputes",
+        icon: Scale,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "المالية",
+    items: [
+      {
+        title: "نظرة عامة",
+        url: "/dashboard/admin/finance",
+        icon: PiggyBank,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الفواتير",
+        url: "/dashboard/admin/finance/invoices",
+        icon: FileSpreadsheet,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "المدفوعات",
+        url: "/dashboard/admin/finance/payments",
+        icon: TrendingUp,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "المراقبة",
+    items: [
+      {
+        title: "سجل التدقيق",
+        url: "/dashboard/admin/audit",
+        icon: Activity,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الأمان",
+        url: "/dashboard/admin/security",
+        icon: Lock,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الجلسات",
+        url: "/dashboard/admin/sessions",
+        icon: Database,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "صحة النظام",
+        url: "/dashboard/admin/health",
+        icon: AlertTriangle,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "التقارير",
+    items: [
+      {
+        title: "التقارير",
+        url: "/dashboard/admin/reports",
+        icon: FileBarChart,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "الإعدادات",
+    items: [
+      {
+        title: "الإعدادات",
+        url: "/dashboard/admin/settings",
+        icon: Settings,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "التكاملات",
+        url: "/dashboard/admin/integrations",
+        icon: Globe,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العملات",
+        url: "/dashboard/admin/settings/currencies",
+        icon: DollarSign,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+];
 
 /* ── Role-specific navigation (PM, Sales, Marketing, Accountant, Employee) ──── */
 

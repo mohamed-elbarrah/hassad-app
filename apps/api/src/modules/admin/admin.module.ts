@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { FinanceModule } from "../finance/finance.module";
 import { PaymentsModule } from "../payments/payments.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { TerminusModule } from "@nestjs/terminus";
 
 import { AdminController } from "./controllers/admin.controller";
@@ -81,6 +82,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     PrismaModule,
     FinanceModule,
     PaymentsModule,
+    NotificationsModule,
     TerminusModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
