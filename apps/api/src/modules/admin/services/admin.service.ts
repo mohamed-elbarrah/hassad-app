@@ -1,22 +1,44 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ContractStatus } from "@prisma/client";
+import { AdminKpiService } from "./admin-kpi.service";
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private adminKpiService: AdminKpiService,
+  ) {}
 
-  async getStats() {
+  private parseDateRange(from?: string, to?: string) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      0,
-      23,
-      59,
-      59,
-    );
+
+    if (!from && !to) {
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      return { startOfMonth, startOfLastMonth, endOfLastMonth, isCustom: false };
+    }
+
+    const periodStart = from ? new Date(from) : startOfMonth;
+    const periodEnd = to ? new Date(to) : now;
+
+    // Previous period of same length
+    const durationMs = periodEnd.getTime() - periodStart.getTime();
+    const prevPeriodStart = new Date(periodStart.getTime() - durationMs);
+    const prevPeriodEnd = new Date(periodStart.getTime() - 1);
+
+    return {
+      startOfMonth: periodStart,
+      startOfLastMonth: prevPeriodStart,
+      endOfLastMonth: prevPeriodEnd,
+      isCustom: true,
+    };
+  }
+
+  async getStats(from?: string, to?: string) {
+    const { startOfMonth, startOfLastMonth, endOfLastMonth } = this.parseDateRange(from, to);
+    const now = new Date();
 
     const [
       totalUsers,
@@ -37,35 +59,39 @@ export class AdminService {
       recentUsers,
       usersByRole,
       satisfactionResult,
+      // Previous period values for delta
+      prevNewClients,
+      prevActiveProjects,
+      prevCompletedProjects,
+      prevTasksTotal,
+      prevOverdueTasks,
+      prevUnpaidInvoices,
+      prevTotalInvoices,
+      prevPendingRequests,
+      // Retention & churn
+      clientKpis,
+      prevClientKpis,
     ] = await Promise.all([
-      // Total users (exclude clients)
       this.prisma.user.count({
         where: { role: { name: { not: "CLIENT" } } },
       }),
-      // Active clients
       this.prisma.client.count({ where: { status: "ACTIVE" } }),
-      // New clients this month
       this.prisma.client.count({
         where: { createdAt: { gte: startOfMonth } },
       }),
-      // Active projects
       this.prisma.project.count({
         where: { status: { in: ["ACTIVE", "PLANNING"] } },
       }),
-      // Completed projects
       this.prisma.project.count({
         where: { status: "COMPLETED" },
       }),
-      // Overdue tasks
       this.prisma.task.count({
         where: {
           dueDate: { lt: now },
           status: { notIn: ["DONE", "REVISION"] },
         },
       }),
-      // Total tasks
       this.prisma.task.count(),
-      // Monthly revenue (paid invoices this month)
       this.prisma.invoice.aggregate({
         where: {
           status: "PAID",
@@ -73,7 +99,6 @@ export class AdminService {
         },
         _sum: { amount: true },
       }),
-      // Last month revenue
       this.prisma.invoice.aggregate({
         where: {
           status: "PAID",
@@ -81,138 +106,193 @@ export class AdminService {
         },
         _sum: { amount: true },
       }),
-      // Unpaid invoices
       this.prisma.invoice.count({
         where: { status: { in: ["DUE", "SENT", "LATE", "PARTIAL"] } },
       }),
-      // Total invoices
       this.prisma.invoice.count(),
-      // Active employees
       this.prisma.employee.count({ where: { isActive: true } }),
-      // Pending service requests
       this.prisma.request.count({
         where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
       }),
-      // Active campaigns
       this.prisma.campaign.count({
         where: { status: { in: ["ACTIVE", "PLANNING"] } },
       }),
-      // Active conversations
       this.prisma.conversation.count({
         where: { isActive: true },
       }),
-      // Recent signups (last 7 days)
       this.prisma.user.count({
         where: {
           createdAt: { gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) },
         },
       }),
-      // Users by role breakdown
       this.prisma.role.findMany({
         select: {
           name: true,
           _count: { select: { users: true } },
         },
       }),
-      // Average satisfaction score (1-5 scale, convert to 0-100)
       this.prisma.satisfactionRating.aggregate({
         _avg: { score: true },
       }),
+      // Previous period queries
+      this.prisma.client.count({
+        where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
+      }),
+      this.prisma.project.count({
+        where: {
+          status: { in: ["ACTIVE", "PLANNING"] },
+          createdAt: { lte: endOfLastMonth },
+        },
+      }),
+      // completedProjects delta — no completion date field, set null in response
+      0,
+      this.prisma.task.count({
+        where: { createdAt: { lte: endOfLastMonth } },
+      }),
+      this.prisma.task.count({
+        where: {
+          dueDate: { lt: endOfLastMonth },
+          status: { notIn: ["DONE", "REVISION"] },
+        },
+      }),
+      this.prisma.invoice.count({
+        where: {
+          status: { in: ["DUE", "SENT", "LATE", "PARTIAL"] },
+          createdAt: { lte: endOfLastMonth },
+        },
+      }),
+      this.prisma.invoice.count({
+        where: { createdAt: { lte: endOfLastMonth } },
+      }),
+      this.prisma.request.count({
+        where: {
+          status: { in: ["SUBMITTED", "QUALIFYING"] },
+          createdAt: { lte: endOfLastMonth },
+        },
+      }),
+      // Retention & churn for current period
+      this.adminKpiService.getClientKpis(from, to),
+      // Retention & churn for previous period
+      this.adminKpiService.getClientKpis(
+        startOfLastMonth.toISOString(),
+        endOfLastMonth.toISOString(),
+      ),
     ]);
 
-    const lastMonthRev = lastMonthRevenue._sum.amount ?? 0;
-    const thisMonthRev = monthlyRevenue._sum.amount ?? 0;
+    const lastMonthRev = Number(lastMonthRevenue._sum.amount ?? 0);
+    const thisMonthRev = Number(monthlyRevenue._sum.amount ?? 0);
     const revenueChange =
       lastMonthRev > 0
         ? Math.round(((thisMonthRev - lastMonthRev) / lastMonthRev) * 100)
         : 0;
 
+    const computeDelta = (current: number, previous: number): number | null => {
+      if (previous === 0 && current === 0) return null;
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+
     return {
-      // Users
       totalUsers,
       recentUsers,
       usersByRole: usersByRole.map((r) => ({
         role: r.name,
         count: r._count.users,
       })),
-      // Clients
       activeClients,
       newClientsThisMonth,
-      // Projects
       activeProjects,
       completedProjects,
-      // Tasks
       totalTasks,
       overdueTasks,
-      // Revenue
       monthlyRevenue: thisMonthRev,
       revenueChange,
-      // Invoices
       unpaidInvoicesCount,
       totalInvoices,
-      // HR
       employeesCount,
-      // Operations
       pendingRequests,
       activeCampaigns,
       conversationsCount,
-      // Satisfaction — real average from SatisfactionRating table (score 1-5 → 0-100)
       satisfactionRate: satisfactionResult._avg.score
         ? Math.round(satisfactionResult._avg.score * 20)
         : null,
+      retentionRate: Math.round(clientKpis.retentionRate * 10) / 10,
+      churnRate: Math.round(clientKpis.churnRate * 10) / 10,
+      deltas: {
+        totalUsers: null,
+        activeClients: null,
+        newClientsThisMonth: computeDelta(newClientsThisMonth, prevNewClients),
+        activeProjects: computeDelta(activeProjects, prevActiveProjects),
+        completedProjects: null, // No completion date field available
+        totalTasks: computeDelta(totalTasks, prevTasksTotal),
+        overdueTasks: computeDelta(overdueTasks, prevOverdueTasks),
+        monthlyRevenue: revenueChange,
+        unpaidInvoicesCount: computeDelta(unpaidInvoicesCount, prevUnpaidInvoices),
+        totalInvoices: computeDelta(totalInvoices, prevTotalInvoices),
+        pendingRequests: computeDelta(pendingRequests, prevPendingRequests),
+        retentionRate:
+          prevClientKpis.retentionRate > 0
+            ? Math.round(
+                (clientKpis.retentionRate - prevClientKpis.retentionRate) * 10,
+              ) / 10
+            : null,
+        churnRate:
+          prevClientKpis.churnRate > 0 || clientKpis.churnRate > 0
+            ? Math.round(
+                (clientKpis.churnRate - prevClientKpis.churnRate) * 10,
+              ) / 10
+            : null,
+      },
     };
   }
 
-  // ── Trends ──────────────────────────────────────────────────────────────────
-
-  async getTrends(days = 30) {
+  async getTrends(from?: string, to?: string, days = 30) {
     const now = new Date();
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    let startDate: Date;
+    let endDate: Date;
+    let numDays: number;
 
-    // Generate date labels
+    if (from && to) {
+      startDate = new Date(from);
+      endDate = new Date(to);
+      numDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+    } else {
+      startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      endDate = now;
+      numDays = days;
+    }
+
     const labels: string[] = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    for (let i = 0; i < numDays; i++) {
+      const d = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      if (d > endDate) break;
       labels.push(d.toISOString().slice(0, 10));
     }
 
-    // Daily revenue (paid invoices)
-    const paidInvoices = await this.prisma.invoice.findMany({
-      where: {
-        status: "PAID",
-        paidAt: { gte: startDate },
-      },
-      select: { amount: true, paidAt: true },
-    });
+    const [paidInvoices, newUsers, newClients, newProjects, completedTasks] =
+      await Promise.all([
+        this.prisma.invoice.findMany({
+          where: { status: "PAID", paidAt: { gte: startDate } },
+          select: { amount: true, paidAt: true },
+        }),
+        this.prisma.user.findMany({
+          where: { createdAt: { gte: startDate } },
+          select: { createdAt: true },
+        }),
+        this.prisma.client.findMany({
+          where: { createdAt: { gte: startDate } },
+          select: { createdAt: true },
+        }),
+        this.prisma.project.findMany({
+          where: { createdAt: { gte: startDate } },
+          select: { createdAt: true },
+        }),
+        this.prisma.task.findMany({
+          where: { status: "DONE", approvedAt: { gte: startDate } },
+          select: { approvedAt: true },
+        }),
+      ]);
 
-    // Daily new users
-    const newUsers = await this.prisma.user.findMany({
-      where: { createdAt: { gte: startDate } },
-      select: { createdAt: true },
-    });
-
-    // Daily new clients
-    const newClients = await this.prisma.client.findMany({
-      where: { createdAt: { gte: startDate } },
-      select: { createdAt: true },
-    });
-
-    // Daily new projects
-    const newProjects = await this.prisma.project.findMany({
-      where: { createdAt: { gte: startDate } },
-      select: { createdAt: true },
-    });
-
-    // Daily completed tasks
-    const completedTasks = await this.prisma.task.findMany({
-      where: {
-        status: "DONE",
-        approvedAt: { gte: startDate },
-      },
-      select: { approvedAt: true },
-    });
-
-    // Build daily arrays
     const revenue: number[] = [];
     const newUsersArr: number[] = [];
     const newClientsArr: number[] = [];
@@ -225,62 +305,64 @@ export class AdminService {
 
       revenue.push(
         paidInvoices
-          .filter(
-            (inv) =>
-              inv.paidAt && inv.paidAt >= dayStart && inv.paidAt <= dayEnd,
-          )
+          .filter((inv) => inv.paidAt && inv.paidAt >= dayStart && inv.paidAt <= dayEnd)
           .reduce((sum, inv) => sum + Number(inv.amount), 0),
       );
       newUsersArr.push(
-        newUsers.filter((u) => u.createdAt >= dayStart && u.createdAt <= dayEnd)
-          .length,
+        newUsers.filter((u) => u.createdAt >= dayStart && u.createdAt <= dayEnd).length,
       );
       newClientsArr.push(
-        newClients.filter(
-          (c) => c.createdAt >= dayStart && c.createdAt <= dayEnd,
-        ).length,
+        newClients.filter((c) => c.createdAt >= dayStart && c.createdAt <= dayEnd).length,
       );
       newProjectsArr.push(
-        newProjects.filter(
-          (p) => p.createdAt >= dayStart && p.createdAt <= dayEnd,
-        ).length,
+        newProjects.filter((p) => p.createdAt >= dayStart && p.createdAt <= dayEnd).length,
       );
       tasksCompletedArr.push(
-        completedTasks.filter(
-          (t) =>
-            t.approvedAt && t.approvedAt >= dayStart && t.approvedAt <= dayEnd,
-        ).length,
+        completedTasks.filter((t) => t.approvedAt && t.approvedAt >= dayStart && t.approvedAt <= dayEnd).length,
       );
     }
 
-    return {
-      revenue,
-      newUsers: newUsersArr,
-      newClients: newClientsArr,
-      newProjects: newProjectsArr,
-      tasksCompleted: tasksCompletedArr,
-      labels,
-    };
+    return { revenue, newUsers: newUsersArr, newClients: newClientsArr, newProjects: newProjectsArr, tasksCompleted: tasksCompletedArr, labels };
   }
 
-  // ── Funnel ────────────────────────────────────────────────────────────────────
+  async getFunnel(from?: string, to?: string) {
+    const dateFilter = from || to
+      ? {
+          createdAt: {
+            ...(from ? { gte: new Date(from) } : {}),
+            ...(to ? { lte: new Date(to) } : {}),
+          },
+        }
+      : {};
 
-  async getFunnel() {
-    const [leads, clients, proposals, contracts, projects, invoices, payments] =
+    const excludedStatuses: ContractStatus[] = [ContractStatus.CANCELLED, ContractStatus.DRAFT];
+    const contractDateFilter = from || to
+      ? { ...dateFilter, status: { notIn: excludedStatuses } }
+      : { status: { notIn: excludedStatuses } };
+
+    const [leads, clients, proposals, contracts, projects, invoices, payments, contractStatusDistribution] =
       await Promise.all([
-        this.prisma.lead.count({ where: { isActive: true } }),
-        this.prisma.client.count({ where: { status: { not: "STOPPED" } } }),
-        this.prisma.proposal.count(),
-        this.prisma.contract.count({
-          where: { status: { notIn: ["CANCELLED", "DRAFT"] } },
+        this.prisma.lead.count({ where: { isActive: true, ...dateFilter } }),
+        this.prisma.client.count({ where: { status: { not: "STOPPED" }, ...dateFilter } }),
+        this.prisma.proposal.count({ where: dateFilter }),
+        this.prisma.contract.count({ where: contractDateFilter }),
+        this.prisma.project.count({ where: { isArchived: false, ...dateFilter } }),
+        this.prisma.invoice.count({ where: dateFilter }),
+        this.prisma.payment.count({ where: { status: "SUCCESS", ...dateFilter } }),
+        // Contract status distribution — always all active contracts (not period-filtered)
+        this.prisma.contract.groupBy({
+          by: ["status"],
+          _count: { id: true },
         }),
-        this.prisma.project.count({ where: { isArchived: false } }),
-        this.prisma.invoice.count(),
-        this.prisma.payment.count({ where: { status: "SUCCESS" } }),
       ]);
 
     const calcRate = (from: number, to: number) =>
       from > 0 ? Math.round((to / from) * 100 * 10) / 10 : 0;
+
+    const statusDist: Record<string, number> = {};
+    for (const s of contractStatusDistribution) {
+      statusDist[s.status] = s._count.id;
+    }
 
     return {
       leads,
@@ -298,16 +380,13 @@ export class AdminService {
         projectsToInvoices: calcRate(projects, invoices),
         invoicesToPayments: calcRate(invoices, payments),
       },
+      contractStatusDistribution: statusDist,
     };
   }
 
-  // ── Alerts ───────────────────────────────────────────────────────────────────
-
   async getAlerts() {
     const now = new Date();
-    const thirtyDaysFromNow = new Date(
-      now.getTime() + 30 * 24 * 60 * 60 * 1000,
-    );
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     const [
       overdueTasks,
@@ -323,10 +402,7 @@ export class AdminService {
       expiringContractItems,
     ] = await Promise.all([
       this.prisma.task.count({
-        where: {
-          dueDate: { lt: now },
-          status: { notIn: ["DONE", "REVISION"] },
-        },
+        where: { dueDate: { lt: now }, status: { notIn: ["DONE", "REVISION"] } },
       }),
       this.prisma.invoice.count({
         where: {
@@ -334,35 +410,17 @@ export class AdminService {
           dueDate: { lt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000) },
         },
       }),
-      this.prisma.disputeTicket.count({
-        where: { status: "ESCALATED" },
-      }),
-      this.prisma.webhookLog.count({
-        where: { processed: false },
-      }),
+      this.prisma.disputeTicket.count({ where: { status: "ESCALATED" } }),
+      this.prisma.webhookLog.count({ where: { processed: false } }),
       this.prisma.contract.count({
-        where: {
-          status: "ACTIVE",
-          endDate: { gte: now, lte: thirtyDaysFromNow },
-        },
+        where: { status: "ACTIVE", endDate: { gte: now, lte: thirtyDaysFromNow } },
       }),
-      this.prisma.request.count({
-        where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
-      }),
+      this.prisma.request.count({ where: { status: { in: ["SUBMITTED", "QUALIFYING"] } } }),
       this.prisma.task.findMany({
-        where: {
-          dueDate: { lt: now },
-          status: { notIn: ["DONE", "REVISION"] },
-        },
+        where: { dueDate: { lt: now }, status: { notIn: ["DONE", "REVISION"] } },
         take: 5,
         orderBy: { dueDate: "asc" },
-        select: {
-          id: true,
-          title: true,
-          dueDate: true,
-          assignedTo: true,
-          assignee: { select: { name: true } },
-        },
+        select: { id: true, title: true, dueDate: true, assignedTo: true, assignee: { select: { name: true } } },
       }),
       this.prisma.invoice.findMany({
         where: {
@@ -371,13 +429,7 @@ export class AdminService {
         },
         take: 5,
         orderBy: { dueDate: "asc" },
-        select: {
-          id: true,
-          invoiceNumber: true,
-          amount: true,
-          dueDate: true,
-          client: { select: { companyName: true } },
-        },
+        select: { id: true, invoiceNumber: true, amount: true, dueDate: true, client: { select: { companyName: true } } },
       }),
       this.prisma.disputeTicket.findMany({
         where: { status: "ESCALATED" },
@@ -392,10 +444,7 @@ export class AdminService {
         select: { id: true, companyName: true, createdAt: true, contactName: true },
       }),
       this.prisma.contract.findMany({
-        where: {
-          status: "ACTIVE",
-          endDate: { gte: now, lte: thirtyDaysFromNow },
-        },
+        where: { status: "ACTIVE", endDate: { gte: now, lte: thirtyDaysFromNow } },
         take: 5,
         orderBy: { endDate: "asc" },
         select: { id: true, title: true, endDate: true, client: { select: { companyName: true } } },
@@ -407,35 +456,19 @@ export class AdminService {
         count: overdueTasks,
         label: "مهام متأخرة",
         link: "/dashboard/admin/tasks?status=OVERDUE",
-        items: overdueTaskItems.map((t) => ({
-          id: t.id,
-          title: t.title,
-          dueDate: t.dueDate?.toISOString() ?? null,
-          assignee: t.assignee?.name ?? null,
-        })),
+        items: overdueTaskItems.map((t) => ({ id: t.id, title: t.title, dueDate: t.dueDate?.toISOString() ?? null, assignee: t.assignee?.name ?? null })),
       },
       agedInvoices: {
         count: agedInvoices,
         label: "فواتير غير مسددة (+60 يوم)",
         link: "/dashboard/admin/finance/invoices?aging=60",
-        items: agedInvoiceItems.map((inv) => ({
-          id: inv.id,
-          invoiceNumber: inv.invoiceNumber,
-          amount: inv.amount,
-          dueDate: inv.dueDate?.toISOString() ?? null,
-          clientName: inv.client?.companyName ?? null,
-        })),
+        items: agedInvoiceItems.map((inv) => ({ id: inv.id, invoiceNumber: inv.invoiceNumber, amount: inv.amount, dueDate: inv.dueDate?.toISOString() ?? null, clientName: inv.client?.companyName ?? null })),
       },
       escalatedDisputes: {
         count: escalatedDisputes,
         label: "نزاعات تم تصعيدها",
         link: "/dashboard/admin/disputes?status=ESCALATED",
-        items: escalatedDisputeItems.map((d) => ({
-          id: d.id,
-          ticketNumber: d.ticketNumber,
-          title: d.title,
-          priority: d.priority,
-        })),
+        items: escalatedDisputeItems.map((d) => ({ id: d.id, ticketNumber: d.ticketNumber, title: d.title, priority: d.priority })),
       },
       failedWebhooks: {
         count: failedWebhooks,
@@ -447,28 +480,16 @@ export class AdminService {
         count: expiringContracts,
         label: "عقود تنتهي قريباً",
         link: "/dashboard/admin/contracts?expiring=30",
-        items: expiringContractItems.map((c) => ({
-          id: c.id,
-          title: c.title,
-          endDate: c.endDate?.toISOString() ?? null,
-          clientName: c.client?.companyName ?? null,
-        })),
+        items: expiringContractItems.map((c) => ({ id: c.id, title: c.title, endDate: c.endDate?.toISOString() ?? null, clientName: c.client?.companyName ?? null })),
       },
       pendingRequests: {
         count: pendingRequests,
         label: "طلبات معلقة",
         link: "/dashboard/admin/requests?status=PENDING",
-        items: pendingRequestItems.map((r) => ({
-          id: r.id,
-          companyName: r.companyName,
-          contactName: r.contactName,
-          createdAt: r.createdAt.toISOString(),
-        })),
+        items: pendingRequestItems.map((r) => ({ id: r.id, companyName: r.companyName, contactName: r.contactName, createdAt: r.createdAt.toISOString() })),
       },
     };
   }
-
-  // ── Recent Activity ──────────────────────────────────────────────────────────
 
   async getRecentActivity() {
     const now = new Date();
@@ -518,63 +539,22 @@ export class AdminService {
     }> = [];
 
     for (const h of clientHistory) {
-      entries.push({
-        id: h.id,
-        entityType: "client",
-        eventType: h.eventType,
-        description: h.description,
-        occurredAt: h.occurredAt.toISOString(),
-        actorName: h.user?.name ?? null,
-      });
+      entries.push({ id: h.id, entityType: "client", eventType: h.eventType, description: h.description, occurredAt: h.occurredAt.toISOString(), actorName: h.user?.name ?? null });
     }
     for (const h of taskHistory) {
-      entries.push({
-        id: h.id,
-        entityType: "task",
-        eventType: `TASK_${h.toStatus}`,
-        description: `تغيير حالة المهمة من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`,
-        occurredAt: h.changedAt.toISOString(),
-        actorName: h.changer?.name ?? null,
-      });
+      entries.push({ id: h.id, entityType: "task", eventType: `TASK_${h.toStatus}`, description: `تغيير حالة المهمة من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`, occurredAt: h.changedAt.toISOString(), actorName: h.changer?.name ?? null });
     }
     for (const h of contractHistory) {
-      entries.push({
-        id: h.id,
-        entityType: "contract",
-        eventType: `CONTRACT_${h.toStatus}`,
-        description: h.reason
-          ? `تغيير حالة العقد: ${h.reason}`
-          : `تغيير حالة العقد من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`,
-        occurredAt: h.changedAt.toISOString(),
-        actorName: h.changedByUser?.name ?? null,
-      });
+      entries.push({ id: h.id, entityType: "contract", eventType: `CONTRACT_${h.toStatus}`, description: h.reason ? `تغيير حالة العقد: ${h.reason}` : `تغيير حالة العقد من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`, occurredAt: h.changedAt.toISOString(), actorName: h.changedByUser?.name ?? null });
     }
     for (const h of disputeHistory) {
-      entries.push({
-        id: h.id,
-        entityType: "dispute",
-        eventType: `DISPUTE_${h.toStatus}`,
-        description: h.note ?? `تغيير حالة النزاع إلى ${h.toStatus}`,
-        occurredAt: h.changedAt.toISOString(),
-        actorName: h.changer?.name ?? null,
-      });
+      entries.push({ id: h.id, entityType: "dispute", eventType: `DISPUTE_${h.toStatus}`, description: h.note ?? `تغيير حالة النزاع إلى ${h.toStatus}`, occurredAt: h.changedAt.toISOString(), actorName: h.changer?.name ?? null });
     }
     for (const h of requestHistory) {
-      entries.push({
-        id: h.id,
-        entityType: "request",
-        eventType: `REQUEST_${h.toStatus}`,
-        description: h.note ?? `تغيير حالة الطلب إلى ${h.toStatus}`,
-        occurredAt: h.changedAt.toISOString(),
-        actorName: h.changer?.name ?? null,
-      });
+      entries.push({ id: h.id, entityType: "request", eventType: `REQUEST_${h.toStatus}`, description: h.note ?? `تغيير حالة الطلب إلى ${h.toStatus}`, occurredAt: h.changedAt.toISOString(), actorName: h.changer?.name ?? null });
     }
 
-    entries.sort(
-      (a, b) =>
-        new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
-    );
-
+    entries.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
     return entries.slice(0, 15);
   }
 
@@ -582,38 +562,13 @@ export class AdminService {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-    const [
-      dbTest,
-      errorCount,
-      activeUsers,
-      totalStorageBytes,
-      pendingWebhooks,
-    ] = await Promise.all([
-      // Quick DB connectivity test
-      this.prisma
-        .$queryRawUnsafe<[{ "1": number }]>(`SELECT 1`)
-        .catch(() => [{ 1: 0 }]),
-      // Recent errors (webhook failures + other indicators)
-      this.prisma.webhookLog.count({
-        where: {
-          processed: false,
-          createdAt: { gte: oneHourAgo },
-        },
-      }),
-      // "Active users" — users who generated ledger entries in the last hour
-      this.prisma.ledger.groupBy({
-        by: ["userId"],
-        where: {
-          createdAt: { gte: oneHourAgo },
-        },
-      }),
-      // Total storage estimate
-      this.prisma.taskFile.count().then((c) => c * 1024 * 1024), // rough estimate
-      // Pending webhooks
-      this.prisma.webhookLog.count({
-        where: { processed: false },
-      }),
-    ]);
+    const [dbTest, errorCount, activeUsers, pendingWebhooks] =
+      await Promise.all([
+        this.prisma.$queryRawUnsafe<[{ "1": number }]>(`SELECT 1`).catch(() => [{ 1: 0 }]),
+        this.prisma.webhookLog.count({ where: { processed: false, createdAt: { gte: oneHourAgo } } }),
+        this.prisma.ledger.groupBy({ by: ["userId"], where: { createdAt: { gte: oneHourAgo } } }),
+        this.prisma.webhookLog.count({ where: { processed: false } }),
+      ]);
 
     return {
       status: dbTest?.[0]?.["1"] === 1 ? "healthy" : "degraded",

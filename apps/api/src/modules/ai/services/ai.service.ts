@@ -1,19 +1,69 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AiAnalyzeDto } from "../dto/ai.dto";
 import { AiSuggestionStatus } from "@hassad/shared";
 
 @Injectable()
 export class AiService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AiService.name);
+  private genAI: GoogleGenerativeAI | null = null;
+  private available = false;
+
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+  ) {
+    const apiKey = this.config.get<string>("GEMINI_API_KEY");
+    if (apiKey) {
+      this.genAI = new GoogleGenerativeAI(apiKey);
+      this.available = true;
+      this.logger.log("Gemini AI initialized");
+    } else {
+      this.logger.warn("GEMINI_API_KEY not set — AI will use fallback stub");
+    }
+  }
 
   async analyze(userId: string, dto: AiAnalyzeDto) {
-    // Placeholder for AI logic
-    const result = {
-      summary: `AI Analysis for ${dto.entityType} ${dto.entityId}`,
-      score: Math.random() * 100,
-      timestamp: new Date().toISOString(),
-    };
+    const inputData = { entityType: dto.entityType, entityId: dto.entityId, analysisType: dto.analysisType };
+
+    if (!this.available) {
+      const stubResult = {
+        summary: `تحليل ${dto.analysisType} لـ ${dto.entityType} ${dto.entityId}`,
+        score: Math.round(Math.random() * 10000) / 100,
+        recommendations: [],
+      };
+
+      return this.prisma.aiAnalysisLog.create({
+        data: {
+          entityType: dto.entityType,
+          entityId: dto.entityId,
+          analysisType: dto.analysisType,
+          triggeredBy: userId,
+          inputData,
+          outputData: stubResult,
+          confidenceScore: stubResult.score,
+        },
+      });
+    }
+
+    const prompt = this.buildPrompt(dto);
+    const model = this.genAI!.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    let result: { summary: string; score: number; recommendations?: string[] };
+    try {
+      const response = await model.generateContent(prompt);
+      const text = response.response.text();
+      result = this.parseResponse(text, dto.analysisType);
+    } catch (err) {
+      this.logger.error("Gemini API call failed, falling back to stub", err);
+      result = {
+        summary: `تحليل ${dto.analysisType} لـ ${dto.entityType} ${dto.entityId}`,
+        score: Math.round(Math.random() * 10000) / 100,
+        recommendations: [],
+      };
+    }
 
     return this.prisma.aiAnalysisLog.create({
       data: {
@@ -21,19 +71,56 @@ export class AiService {
         entityId: dto.entityId,
         analysisType: dto.analysisType,
         triggeredBy: userId,
-        inputData: {}, // Map to schema
+        inputData,
         outputData: result,
-        confidenceScore: result.score || 100,
+        confidenceScore: result.score,
       },
     });
+  }
+
+  private buildPrompt(dto: AiAnalyzeDto): string {
+    const typeLabels: Record<string, string> = {
+      CHURN_PREDICTION: "توقع انسحاب العميل",
+      SENTIMENT_ANALYSIS: "تحليل المشاعر",
+      PERFORMANCE_FORECAST: "توقع الأداء",
+      CONTENT_GENERATION: "توليد محتوى",
+      QUALITY_CHECK: "فحص الجودة",
+    };
+
+    return (
+      `أنت مساعد تحليلي لمنصة حسد لإدارة الأعمال. قم بـ "${typeLabels[dto.analysisType] || dto.analysisType}" ` +
+      `للكيان "${dto.entityType}" بالمعرف "${dto.entityId}".\n\n` +
+      `الرد يجب أن يكون بصيغة JSON فقط (بدون علامات markdown أو أكواد):\n` +
+      `{\n  "summary": "ملخص التحليل بالعربية",\n  "score": 0-100,\n  "recommendations": ["توصية 1", "توصية 2"]\n}\n\n` +
+      `ملاحظات:\n` +
+      `- score: رقم بين 0 و 100 يمثل الثقة/الدرجة\n` +
+      `- summary: نص وصفي بالعربية\n` +
+      `- recommendations: مصفوفة من النصوص`
+    );
+  }
+
+  private parseResponse(text: string, _analysisType: string): { summary: string; score: number; recommendations?: string[] } {
+    try {
+      const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+      return {
+        summary: parsed.summary || "تحليل آلي",
+        score: Math.min(100, Math.max(0, Number(parsed.score) || 50)),
+        recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+      };
+    } catch {
+      return {
+        summary: text.slice(0, 500),
+        score: 50,
+        recommendations: [],
+      };
+    }
   }
 
   async getLog(id: string) {
     const log = await this.prisma.aiAnalysisLog.findUnique({
       where: { id },
-      include: {
-        user: true, // Relation name in schema
-      },
+      include: { user: true },
     });
 
     if (!log) {
@@ -46,9 +133,7 @@ export class AiService {
   async getSuggestions() {
     return this.prisma.aiSuggestion.findMany({
       where: { status: AiSuggestionStatus.PENDING },
-      include: {
-        actor: true, // Relation name in schema
-      },
+      include: { actor: true },
     });
   }
 

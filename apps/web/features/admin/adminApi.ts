@@ -1,6 +1,22 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 
+export interface AdminStatsDeltas {
+  totalUsers: number | null;
+  activeClients: number | null;
+  newClientsThisMonth: number | null;
+  activeProjects: number | null;
+  completedProjects: number | null;
+  totalTasks: number | null;
+  overdueTasks: number | null;
+  monthlyRevenue: number | null;
+  unpaidInvoicesCount: number | null;
+  totalInvoices: number | null;
+  pendingRequests: number | null;
+  retentionRate: number | null;
+  churnRate: number | null;
+}
+
 export interface AdminStats {
   totalUsers: number;
   recentUsers: number;
@@ -20,13 +36,18 @@ export interface AdminStats {
   activeCampaigns: number;
   conversationsCount: number;
   satisfactionRate: number | null;
+  retentionRate: number;
+  churnRate: number;
+  deltas: AdminStatsDeltas;
 }
 
-export interface AdminTrend {
-  date: string;
-  revenue: number;
-  users: number;
-  clients: number;
+export interface AdminTrendsResponse {
+  labels: string[];
+  revenue: number[];
+  newUsers: number[];
+  newClients: number[];
+  newProjects: number[];
+  tasksCompleted: number[];
 }
 
 export interface AdminFunnel {
@@ -45,6 +66,7 @@ export interface AdminFunnel {
     projectsToInvoices: number;
     invoicesToPayments: number;
   };
+  contractStatusDistribution: Record<string, number>;
 }
 
 export interface AdminAlertOverdueTaskItem {
@@ -217,6 +239,38 @@ export interface AdminAttentionUnacknowledgedAlert {
   user: { id: string; name: string };
 }
 
+export interface AdminBusinessGoal {
+  id: string;
+  metric: string;
+  target: number;
+  current: number;
+  period: string;
+  periodStart: string;
+  periodEnd: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBusinessGoalDto {
+  metric: string;
+  target: number;
+  current?: number;
+  period?: string;
+  periodStart: string;
+  periodEnd: string;
+}
+
+export interface UpdateBusinessGoalDto {
+  metric?: string;
+  target?: number;
+  current?: number;
+  period?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  isActive?: boolean;
+}
+
 export interface AdminAttentionResponse {
   stalledProjects: AdminAttentionStalledProject[];
   newRequests: AdminAttentionNewRequest[];
@@ -300,6 +354,7 @@ export const adminApi = createApi({
     "AuditFilters",
     "AdminSettings",
     "AdminIntegrations",
+    "AdminBusinessGoals",
   ],
   endpoints: (builder) => ({
     getAdminStats: builder.query<AdminStats, void>({
@@ -307,7 +362,7 @@ export const adminApi = createApi({
       providesTags: ["AdminStats"],
     }),
 
-    getAdminTrends: builder.query<AdminTrend[], void>({
+    getAdminTrends: builder.query<AdminTrendsResponse, void>({
       query: () => "/admin/stats/trends",
       providesTags: ["AdminTrends"],
     }),
@@ -420,6 +475,42 @@ export const adminApi = createApi({
       providesTags: ["AdminIntegrations"],
     }),
 
+    getAdminBusinessGoals: builder.query<AdminBusinessGoal[], string | void>({
+      query: (metric) =>
+        metric ? `/admin/business-goals?metric=${metric}` : "/admin/business-goals",
+      providesTags: ["AdminBusinessGoals"],
+    }),
+
+    getAdminBusinessGoal: builder.query<AdminBusinessGoal, string>({
+      query: (id) => `/admin/business-goals/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "AdminBusinessGoals", id }],
+    }),
+
+    createAdminBusinessGoal: builder.mutation<AdminBusinessGoal, CreateBusinessGoalDto>({
+      query: (body) => ({ url: "/admin/business-goals", method: "POST", body }),
+      invalidatesTags: ["AdminBusinessGoals"],
+    }),
+
+    updateAdminBusinessGoal: builder.mutation<
+      AdminBusinessGoal,
+      { id: string; body: UpdateBusinessGoalDto }
+    >({
+      query: ({ id, body }) => ({
+        url: `/admin/business-goals/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        "AdminBusinessGoals",
+        { type: "AdminBusinessGoals", id },
+      ],
+    }),
+
+    deleteAdminBusinessGoal: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/business-goals/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AdminBusinessGoals"],
+    }),
+
     getAdminIntegrationsGateways: builder.query<
       Array<{
         id: string;
@@ -453,4 +544,9 @@ export const {
   useUpdateAdminSettingsMutation,
   useGetAdminIntegrationsSyncStatusQuery,
   useGetAdminIntegrationsGatewaysQuery,
+  useGetAdminBusinessGoalsQuery,
+  useGetAdminBusinessGoalQuery,
+  useCreateAdminBusinessGoalMutation,
+  useUpdateAdminBusinessGoalMutation,
+  useDeleteAdminBusinessGoalMutation,
 } = adminApi;
