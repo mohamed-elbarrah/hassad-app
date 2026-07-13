@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { RefreshCw, AlertTriangle, Loader2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { RefreshCw, AlertTriangle, Loader2, Search } from "lucide-react";
 import { Checkbox } from "@/components/design-system/Checkbox";
 import { cn } from "@/lib/utils";
 
 interface ModelPickerProps {
-  providerId?: string | null;
   providerType: string;
   apiKey: string;
   baseUrl?: string;
@@ -17,7 +16,6 @@ interface ModelPickerProps {
 }
 
 export function ModelPicker({
-  providerId,
   providerType,
   apiKey,
   baseUrl,
@@ -29,8 +27,14 @@ export function ModelPicker({
   const [fetched, setFetched] = useState<string[] | null>(null);
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const displayModels = fetched ?? defaultModels;
+
+  const filteredModels = useMemo(
+    () => displayModels.filter((m) => m.toLowerCase().includes(search.toLowerCase())),
+    [displayModels, search],
+  );
 
   useEffect(() => {
     if (selected.length === 0 && defaultModels.length > 0) {
@@ -66,6 +70,17 @@ export function ModelPicker({
     }
   }
 
+  function selectAllVisible() {
+    const toAdd = filteredModels.filter((m) => !selected.includes(m));
+    if (toAdd.length === 0) return;
+    onChange([...selected, ...toAdd]);
+  }
+
+  function deselectAllVisible() {
+    const visibleSet = new Set(filteredModels);
+    onChange(selected.filter((m) => !visibleSet.has(m)));
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -83,7 +98,7 @@ export function ModelPicker({
           ) : (
             <RefreshCw className="w-3.5 h-3.5" />
           )}
-          {fetching ? "جاري الجلب..." : 'جلب النماذج المتاحة'}
+          {fetching ? "جاري الجلب..." : "جلب النماذج المتاحة"}
         </button>
       </div>
 
@@ -99,30 +114,72 @@ export function ModelPicker({
           {apiKey ? 'اضغط "جلب النماذج المتاحة" لعرض النماذج' : "أدخل مفتاح API لجلب النماذج المتاحة"}
         </p>
       ) : (
-        <div className={cn(
-          "grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto rounded-xl border border-neutral-200 p-2",
-          fetched ? "bg-success-50/30" : "bg-badge-gray-bg/30",
-        )}>
-          {displayModels.map((model) => {
-            const isSelected = selected.includes(model);
-            return (
-              <label
-                key={model}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm",
-                  isSelected
-                    ? "bg-secondary-50 text-secondary-700"
-                    : "text-portal-note-text hover:bg-neutral-50",
-                )}
-              >
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={() => toggleModel(model)}
-                />
-                <span className="truncate font-mono text-xs">{model}</span>
-              </label>
-            );
-          })}
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-portal-note-text pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ابحث عن نموذج..."
+              className="w-full h-10 pr-10 pl-4 text-sm text-secondary-500 bg-white border border-neutral-200 rounded-xl placeholder:text-neutral-200 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors text-right"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={selectAllVisible}
+              className="text-xs px-2.5 py-1 rounded-lg border border-neutral-200 text-portal-note-text hover:bg-neutral-50 transition-colors"
+            >
+              تحديد الكل ({filteredModels.length})
+            </button>
+            <button
+              type="button"
+              onClick={deselectAllVisible}
+              className="text-xs px-2.5 py-1 rounded-lg border border-neutral-200 text-portal-note-text hover:bg-neutral-50 transition-colors"
+            >
+              إلغاء تحديد الكل
+            </button>
+            {search && (
+              <span className="text-xs text-portal-note-text mr-auto">
+                {filteredModels.length} من {displayModels.length}
+              </span>
+            )}
+          </div>
+
+          <div
+            className={cn(
+              "grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto rounded-xl border border-neutral-200 p-2",
+              fetched ? "bg-success-50/30" : "bg-badge-gray-bg/30",
+            )}
+          >
+            {filteredModels.map((model) => {
+              const isSelected = selected.includes(model);
+              return (
+                <label
+                  key={model}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm",
+                    isSelected
+                      ? "bg-secondary-50 text-secondary-700"
+                      : "text-portal-note-text hover:bg-neutral-50",
+                  )}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleModel(model)}
+                  />
+                  <span className="truncate font-mono text-xs">{model}</span>
+                </label>
+              );
+            })}
+            {filteredModels.length === 0 && search && (
+              <p className="col-span-full text-xs text-portal-note-text text-center py-4">
+                لا توجد نماذج تطابق "{search}"
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

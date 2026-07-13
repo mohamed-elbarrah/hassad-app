@@ -33,6 +33,11 @@ const DEFAULT_MODELS: Record<string, string[]> = {
   google: ["gemini-2.0-flash", "gemini-1.5-pro"],
 };
 
+const DEFAULT_BASE_URLS: Record<string, string> = {
+  openai: "https://api.openai.com/v1",
+  openrouter: "https://openrouter.ai/api/v1",
+};
+
 export default function AiSettingsPage() {
   const { data: providers, isLoading } = useGetAiProvidersQuery();
   const [createProvider] = useCreateAiProviderMutation();
@@ -73,13 +78,16 @@ export default function AiSettingsPage() {
   function resetForm() {
     setFormType("openai");
     setFormApiKey("");
-    setFormBaseUrl("");
+    setFormBaseUrl(DEFAULT_BASE_URLS["openai"] || "");
     setFormModels(DEFAULT_MODELS["openai"]);
   }
 
   function handleFormTypeChange(value: string) {
     setFormType(value);
     setFormModels(DEFAULT_MODELS[value] || []);
+    if (DEFAULT_BASE_URLS[value]) {
+      setFormBaseUrl(DEFAULT_BASE_URLS[value]);
+    }
   }
 
   async function handleFetchModels(type: string, key: string, baseUrl?: string) {
