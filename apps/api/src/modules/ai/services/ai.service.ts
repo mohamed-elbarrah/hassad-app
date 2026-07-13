@@ -1,63 +1,28 @@
 import { Injectable, NotFoundException, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AiAnalyzeDto } from "../dto/ai.dto";
+import { AiProviderRegistry } from "./ai-provider-registry.service";
 import { AiSuggestionStatus } from "@hassad/shared";
 
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  private genAI: GoogleGenerativeAI | null = null;
-  private available = false;
 
   constructor(
     private prisma: PrismaService,
-    private config: ConfigService,
-  ) {
-    const apiKey = this.config.get<string>("GEMINI_API_KEY");
-    if (apiKey) {
-      this.genAI = new GoogleGenerativeAI(apiKey);
-      this.available = true;
-      this.logger.log("Gemini AI initialized");
-    } else {
-      this.logger.warn("GEMINI_API_KEY not set — AI will use fallback stub");
-    }
-  }
+    private registry: AiProviderRegistry,
+  ) {}
 
   async analyze(userId: string, dto: AiAnalyzeDto) {
     const inputData = { entityType: dto.entityType, entityId: dto.entityId, analysisType: dto.analysisType };
-
-    if (!this.available) {
-      const stubResult = {
-        summary: `تحليل ${dto.analysisType} لـ ${dto.entityType} ${dto.entityId}`,
-        score: Math.round(Math.random() * 10000) / 100,
-        recommendations: [],
-      };
-
-      return this.prisma.aiAnalysisLog.create({
-        data: {
-          entityType: dto.entityType,
-          entityId: dto.entityId,
-          analysisType: dto.analysisType,
-          triggeredBy: userId,
-          inputData,
-          outputData: stubResult,
-          confidenceScore: stubResult.score,
-        },
-      });
-    }
-
     const prompt = this.buildPrompt(dto);
-    const model = this.genAI!.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     let result: { summary: string; score: number; recommendations?: string[] };
     try {
-      const response = await model.generateContent(prompt);
-      const text = response.response.text();
-      result = this.parseResponse(text, dto.analysisType);
+      const aiResult = await this.registry.generateWithFallback(prompt);
+      result = this.parseResponse(aiResult.text);
     } catch (err) {
-      this.logger.error("Gemini API call failed, falling back to stub", err);
+      this.logger.warn("All AI providers failed, using stub fallback", err);
       result = {
         summary: `تحليل ${dto.analysisType} لـ ${dto.entityType} ${dto.entityId}`,
         score: Math.round(Math.random() * 10000) / 100,
@@ -99,7 +64,7 @@ export class AiService {
     );
   }
 
-  private parseResponse(text: string, _analysisType: string): { summary: string; score: number; recommendations?: string[] } {
+  private parseResponse(text: string): { summary: string; score: number; recommendations?: string[] } {
     try {
       const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       const parsed = JSON.parse(cleaned);

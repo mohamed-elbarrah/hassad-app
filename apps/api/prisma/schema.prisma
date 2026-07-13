@@ -1870,6 +1870,35 @@ model CompanySetting {
   @@map("company_settings")
 }
 
+// ── AI Providers ───────────────────────────────────────────────────────────────
+
+/// Provider-agnostic AI configuration — admin adds any provider via UI
+model AiProvider {
+  id          String   @id @default(uuid())
+  name        String   @unique        // "openai", "openrouter", "anthropic", "google"
+  displayName String?                 // Arabic label
+  baseUrl     String?                 // custom endpoint URL
+  apiKey      String                  // AES-256-GCM encrypted
+  models      String[] @default([])   // model names this provider can use
+  priority    Int      @default(0)    // lower = tried first in fallback chain
+  isActive    Boolean  @default(true)
+
+  // Rate limiting
+  requestsPerMinute Int?  @default(60)
+  tokensPerMinute   Int?  @default(100000)
+
+  // Default model parameters
+  maxTokens   Int?     @default(4096)
+  temperature Float?   @default(0.7)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([priority])
+  @@index([isActive])
+  @@map("ai_providers")
+}
+
 enum BusinessType {
   RESTAURANT
   CLINIC

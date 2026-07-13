@@ -31,6 +31,7 @@ import {
   Globe,
   AlertTriangle,
   DollarSign,
+  Bot,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -210,6 +211,12 @@ export const adminNavSections: NavSection[] = [
         title: "العملات",
         url: "/dashboard/admin/settings/currencies",
         icon: DollarSign,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الذكاء الاصطناعي",
+        url: "/dashboard/admin/ai",
+        icon: Bot,
         roles: ["ADMIN"],
       },
     ],

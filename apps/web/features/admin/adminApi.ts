@@ -239,6 +239,50 @@ export interface AdminAttentionUnacknowledgedAlert {
   user: { id: string; name: string };
 }
 
+export interface AiProvider {
+  id: string;
+  name: string;
+  displayName: string | null;
+  baseUrl: string | null;
+  apiKey: string;
+  models: string[];
+  priority: number;
+  isActive: boolean;
+  requestsPerMinute: number | null;
+  tokensPerMinute: number | null;
+  maxTokens: number | null;
+  temperature: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAiProviderDto {
+  name: string;
+  displayName?: string;
+  baseUrl?: string;
+  apiKey: string;
+  models?: string[];
+  priority?: number;
+  isActive?: boolean;
+  requestsPerMinute?: number;
+  tokensPerMinute?: number;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface UpdateAiProviderDto {
+  displayName?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  models?: string[];
+  priority?: number;
+  isActive?: boolean;
+  requestsPerMinute?: number;
+  tokensPerMinute?: number;
+  maxTokens?: number;
+  temperature?: number;
+}
+
 export interface AdminBusinessGoal {
   id: string;
   metric: string;
@@ -355,20 +399,40 @@ export const adminApi = createApi({
     "AdminSettings",
     "AdminIntegrations",
     "AdminBusinessGoals",
+    "AiProviders",
   ],
   endpoints: (builder) => ({
-    getAdminStats: builder.query<AdminStats, void>({
-      query: () => "/admin/stats",
+    getAdminStats: builder.query<AdminStats, { from?: string; to?: string } | void>({
+      query: (params) => {
+        if (!params) return "/admin/stats";
+        const sp = new URLSearchParams();
+        if (params.from) sp.set("from", params.from);
+        if (params.to) sp.set("to", params.to);
+        return `/admin/stats?${sp.toString()}`;
+      },
       providesTags: ["AdminStats"],
     }),
 
-    getAdminTrends: builder.query<AdminTrendsResponse, void>({
-      query: () => "/admin/stats/trends",
+    getAdminTrends: builder.query<AdminTrendsResponse, { from?: string; to?: string; days?: number } | void>({
+      query: (params) => {
+        if (!params) return "/admin/stats/trends";
+        const sp = new URLSearchParams();
+        if (params.from) sp.set("from", params.from);
+        if (params.to) sp.set("to", params.to);
+        if (params.days) sp.set("days", String(params.days));
+        return `/admin/stats/trends?${sp.toString()}`;
+      },
       providesTags: ["AdminTrends"],
     }),
 
-    getAdminFunnel: builder.query<AdminFunnel, void>({
-      query: () => "/admin/funnel",
+    getAdminFunnel: builder.query<AdminFunnel, { from?: string; to?: string } | void>({
+      query: (params) => {
+        if (!params) return "/admin/funnel";
+        const sp = new URLSearchParams();
+        if (params.from) sp.set("from", params.from);
+        if (params.to) sp.set("to", params.to);
+        return `/admin/funnel?${sp.toString()}`;
+      },
       providesTags: ["AdminFunnel"],
     }),
 
@@ -511,6 +575,41 @@ export const adminApi = createApi({
       invalidatesTags: ["AdminBusinessGoals"],
     }),
 
+    // ── AI Providers ────────────────────────────────────────────────────
+
+    getAiProviders: builder.query<AiProvider[], void>({
+      query: () => "/admin/ai/providers",
+      providesTags: ["AiProviders"],
+    }),
+
+    getAiProvider: builder.query<AiProvider, string>({
+      query: (id) => `/admin/ai/providers/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "AiProviders", id }],
+    }),
+
+    createAiProvider: builder.mutation<AiProvider, CreateAiProviderDto>({
+      query: (body) => ({ url: "/admin/ai/providers", method: "POST", body }),
+      invalidatesTags: ["AiProviders"],
+    }),
+
+    updateAiProvider: builder.mutation<AiProvider, { id: string; body: UpdateAiProviderDto }>({
+      query: ({ id, body }) => ({
+        url: `/admin/ai/providers/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => ["AiProviders", { type: "AiProviders", id }],
+    }),
+
+    deleteAiProvider: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/ai/providers/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AiProviders"],
+    }),
+
+    testAiProvider: builder.mutation<{ success: boolean; model?: string; message?: string; response?: string }, string>({
+      query: (id) => ({ url: `/admin/ai/providers/${id}/test`, method: "POST" }),
+    }),
+
     getAdminIntegrationsGateways: builder.query<
       Array<{
         id: string;
@@ -549,4 +648,10 @@ export const {
   useCreateAdminBusinessGoalMutation,
   useUpdateAdminBusinessGoalMutation,
   useDeleteAdminBusinessGoalMutation,
+  useGetAiProvidersQuery,
+  useGetAiProviderQuery,
+  useCreateAiProviderMutation,
+  useUpdateAiProviderMutation,
+  useDeleteAiProviderMutation,
+  useTestAiProviderMutation,
 } = adminApi;
