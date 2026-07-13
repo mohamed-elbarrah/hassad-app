@@ -2,6 +2,8 @@
 
 import { FileText } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { MiniPeriodFilter } from "./MiniPeriodFilter";
+import type { PeriodKey } from "./MiniPeriodFilter";
 import { cn } from "@/lib/utils";
 import { formatNumber } from "@/lib/format";
 
@@ -15,10 +17,12 @@ export interface ConversionStep {
 
 interface ContractChartProps {
   steps: ConversionStep[];
+  period?: PeriodKey;
+  onPeriodChange?: (key: PeriodKey) => void;
   className?: string;
 }
 
-export function ContractChart({ steps, className }: ContractChartProps) {
+export function ContractChart({ steps, period, onPeriodChange, className }: ContractChartProps) {
   if (steps.length === 0 || steps.every((s) => s.from === 0)) {
     return (
       <SurfaceCard title="تحويل العقود" icon={FileText} className={className}>
@@ -34,12 +38,17 @@ export function ContractChart({ steps, className }: ContractChartProps) {
       title="تحويل العقود"
       icon={FileText}
       action={
-        <a
-          href="/dashboard/admin/contracts"
-          className="text-xs text-secondary-500 hover:text-secondary-600"
-        >
-          عرض كل العقود ←
-        </a>
+        <div className="flex items-center gap-2">
+          {period && onPeriodChange ? (
+            <MiniPeriodFilter value={period} onChange={onPeriodChange} />
+          ) : null}
+          <a
+            href="/dashboard/admin/contracts"
+            className="text-xs text-secondary-500 hover:text-secondary-600"
+          >
+            عرض كل العقود ←
+          </a>
+        </div>
       }
       className={className}
     >

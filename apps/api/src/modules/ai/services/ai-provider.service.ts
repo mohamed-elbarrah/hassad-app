@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { EncryptionService } from "../encryption/encryption.service";
 import { AiProviderRegistry } from "./ai-provider-registry.service";
+import { ADAPTER_FACTORIES, DEFAULT_MODELS } from "../adapters/adapter-factory";
+import type { AiProviderConfig } from "../adapters/provider.interface";
 import { AiProvider as AiProviderType, Prisma } from "@prisma/client";
 
 type ProviderJson = Omit<AiProviderType, "apiKey"> & { apiKey: string };
@@ -62,6 +64,67 @@ export class AiProviderService {
 
   async refreshRegistry() {
     await this.registry.refresh();
+  }
+
+  async testProvider(id: string): Promise<{ text: string; model: string }> {
+    const row = await this.prisma.aiProvider.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException("AI provider not found");
+
+    const factory = ADAPTER_FACTORIES[row.name];
+    if (!factory) throw new BadRequestException(`No adapter for provider type "${row.name}"`);
+
+    const apiKey = this.encryption.decrypt(row.apiKey);
+
+    const config: AiProviderConfig = {
+      id: row.id,
+      name: row.name,
+      displayName: row.displayName,
+      baseUrl: row.baseUrl,
+      apiKey,
+      models: row.models,
+      priority: row.priority,
+      isActive: row.isActive,
+      requestsPerMinute: row.requestsPerMinute,
+      tokensPerMinute: row.tokensPerMinute,
+      maxTokens: row.maxTokens,
+      temperature: row.temperature,
+    };
+
+    const adapter = factory(config);
+    const result = await adapter.generateText("Respond with only the word: OK");
+    return { text: result.text, model: result.model };
+  }
+
+  async fetchModels(id: string): Promise<string[]> {
+    const row = await this.prisma.aiProvider.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException("AI provider not found");
+
+    const factory = ADAPTER_FACTORIES[row.name];
+    if (!factory) throw new BadRequestException(`No adapter for provider type "${row.name}"`);
+
+    const apiKey = this.encryption.decrypt(row.apiKey);
+
+    const config: AiProviderConfig = {
+      id: row.id,
+      name: row.name,
+      displayName: row.displayName,
+      baseUrl: row.baseUrl,
+      apiKey,
+      models: row.models,
+      priority: row.priority,
+      isActive: row.isActive,
+      requestsPerMinute: row.requestsPerMinute,
+      tokensPerMinute: row.tokensPerMinute,
+      maxTokens: row.maxTokens,
+      temperature: row.temperature,
+    };
+
+    const adapter = factory(config);
+    return adapter.listModels();
+  }
+
+  getDefaultModels(type: string): string[] {
+    return DEFAULT_MODELS[type] || [];
   }
 
   private maskKey(row: AiProviderType): ProviderJson {

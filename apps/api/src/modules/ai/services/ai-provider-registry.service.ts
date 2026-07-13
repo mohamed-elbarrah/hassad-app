@@ -1,10 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { EncryptionService } from "../encryption/encryption.service";
-import { AiProvider, AiProviderConfig, AiProviderFactory, AiResult, AiOptions } from "../adapters/provider.interface";
-import { OpenAICompatibleAdapter } from "../adapters/openai-compatible.adapter";
-import { AnthropicAdapter } from "../adapters/anthropic.adapter";
-import { GoogleAdapter } from "../adapters/google.adapter";
+import { AiProvider, AiProviderConfig, AiResult, AiOptions } from "../adapters/provider.interface";
+import { ADAPTER_FACTORIES } from "../adapters/adapter-factory";
 
 @Injectable()
 export class AiProviderRegistry implements OnModuleInit {
@@ -12,13 +10,6 @@ export class AiProviderRegistry implements OnModuleInit {
   private providers: AiProvider[] = [];
   private rateLimits = new Map<string, { requestsPerMinute: number | null }>();
   private usageMap = new Map<string, { requestTimestamps: number[] }>();
-
-  private readonly adapterFactories: Record<string, AiProviderFactory> = {
-    openai: (c) => new OpenAICompatibleAdapter(c),
-    openrouter: (c) => new OpenAICompatibleAdapter({ ...c, displayName: c.displayName || "OpenRouter" }),
-    anthropic: (c) => new AnthropicAdapter(c),
-    google: (c) => new GoogleAdapter(c),
-  };
 
   constructor(
     private prisma: PrismaService,
@@ -40,7 +31,7 @@ export class AiProviderRegistry implements OnModuleInit {
       this.rateLimits.clear();
 
       for (const row of rows) {
-        const factory = this.adapterFactories[row.name];
+        const factory = ADAPTER_FACTORIES[row.name];
         if (!factory) {
           this.logger.warn(`No adapter for provider "${row.name}" — skipping`);
           continue;

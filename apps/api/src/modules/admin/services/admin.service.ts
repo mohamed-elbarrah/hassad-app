@@ -349,9 +349,10 @@ export class AdminService {
         this.prisma.project.count({ where: { isArchived: false, ...dateFilter } }),
         this.prisma.invoice.count({ where: dateFilter }),
         this.prisma.payment.count({ where: { status: "SUCCESS", ...dateFilter } }),
-        // Contract status distribution — always all active contracts (not period-filtered)
+        // Contract status distribution — respects date range if provided
         this.prisma.contract.groupBy({
           by: ["status"],
+          where: from || to ? contractDateFilter : { status: { notIn: excludedStatuses } },
           _count: { id: true },
         }),
       ]);

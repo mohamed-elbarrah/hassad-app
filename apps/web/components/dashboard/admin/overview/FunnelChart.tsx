@@ -2,6 +2,8 @@
 
 import { BarChart3 } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { MiniPeriodFilter } from "./MiniPeriodFilter";
+import type { PeriodKey } from "./MiniPeriodFilter";
 import { Pill } from "@/components/design-system/Pill";
 import { formatNumber } from "@/lib/format";
 
@@ -14,10 +16,12 @@ export interface FunnelStage {
 interface FunnelChartProps {
   stages: FunnelStage[];
   conversionRate: number;
+  period?: PeriodKey;
+  onPeriodChange?: (key: PeriodKey) => void;
   className?: string;
 }
 
-export function FunnelChart({ stages, conversionRate, className }: FunnelChartProps) {
+export function FunnelChart({ stages, conversionRate, period, onPeriodChange, className }: FunnelChartProps) {
   if (stages.length === 0 || stages.every((s) => s.value === 0)) {
     return (
       <SurfaceCard title="مسار التحويل" icon={BarChart3} className={className}>
@@ -35,12 +39,17 @@ export function FunnelChart({ stages, conversionRate, className }: FunnelChartPr
       title="مسار التحويل"
       icon={BarChart3}
       action={
-        <a
-          href="/dashboard/admin/reports"
-          className="text-xs text-secondary-500 hover:text-secondary-600"
-        >
-          عرض مسار التحويل الكامل ←
-        </a>
+        <div className="flex items-center gap-2">
+          {period && onPeriodChange ? (
+            <MiniPeriodFilter value={period} onChange={onPeriodChange} />
+          ) : null}
+          <a
+            href="/dashboard/admin/reports"
+            className="text-xs text-secondary-500 hover:text-secondary-600"
+          >
+            عرض مسار التحويل الكامل ←
+          </a>
+        </div>
       }
       className={className}
     >

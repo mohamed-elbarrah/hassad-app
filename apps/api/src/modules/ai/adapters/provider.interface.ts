@@ -19,6 +19,7 @@ export interface AiProvider {
   generateText(prompt: string, options?: AiOptions): Promise<AiResult>;
   isAvailable(): boolean;
   supportedModels(): string[];
+  listModels(): Promise<string[]>;
 }
 
 export interface AiProviderConfig {

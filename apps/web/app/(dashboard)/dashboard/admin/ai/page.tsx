@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Bot, Plus, Trash2, TestTube, Wifi, WifiOff, ChevronUp, ChevronDown,
+  Bot, Plus, Trash2, TestTube, Wifi, WifiOff, ChevronUp, ChevronDown, Pencil,
 } from "lucide-react";
 import {
   useGetAiProvidersQuery,
@@ -10,12 +10,14 @@ import {
   useUpdateAiProviderMutation,
   useDeleteAiProviderMutation,
   useTestAiProviderMutation,
+  usePreviewAiProviderModelsMutation,
   type AiProvider,
   type CreateAiProviderDto,
 } from "@/features/admin/adminApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FormInput } from "@/components/design-system/FormInput";
 import { PageIntro } from "@/components/design-system/PageIntro";
+import { ModelPicker } from "@/components/dashboard/admin/ai/ModelPicker";
 
 const ADAPTER_OPTIONS = [
   { value: "openai", label: "OpenAI" },
@@ -37,26 +39,51 @@ export default function AiSettingsPage() {
   const [updateProvider] = useUpdateAiProviderMutation();
   const [deleteProvider] = useDeleteAiProviderMutation();
   const [testProvider] = useTestAiProviderMutation();
+  const [previewModels] = usePreviewAiProviderModelsMutation();
+
   const [showForm, setShowForm] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, string>>({});
+  const [editingModelsId, setEditingModelsId] = useState<string | null>(null);
+
+  // Add form state (needed by ModelPicker before submit)
+  const [formType, setFormType] = useState("openai");
+  const [formApiKey, setFormApiKey] = useState("");
+  const [formBaseUrl, setFormBaseUrl] = useState("");
+  const [formModels, setFormModels] = useState<string[]>(DEFAULT_MODELS["openai"]);
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const name = form.get("name") as string;
     const dto: CreateAiProviderDto = {
-      name,
+      name: formType,
       displayName: (form.get("displayName") as string) || undefined,
-      baseUrl: (form.get("baseUrl") as string) || undefined,
-      apiKey: form.get("apiKey") as string,
-      models: DEFAULT_MODELS[name] || [],
+      baseUrl: formBaseUrl || undefined,
+      apiKey: formApiKey,
+      models: formModels,
       priority: providers?.length ?? 0,
       requestsPerMinute: Number(form.get("requestsPerMinute")) || 60,
       tokensPerMinute: Number(form.get("tokensPerMinute")) || 100000,
     };
     await createProvider(dto);
     setShowForm(false);
+    resetForm();
+  }
+
+  function resetForm() {
+    setFormType("openai");
+    setFormApiKey("");
+    setFormBaseUrl("");
+    setFormModels(DEFAULT_MODELS["openai"]);
+  }
+
+  function handleFormTypeChange(value: string) {
+    setFormType(value);
+    setFormModels(DEFAULT_MODELS[value] || []);
+  }
+
+  async function handleFetchModels(type: string, key: string, baseUrl?: string) {
+    return previewModels({ name: type, apiKey: key, baseUrl }).unwrap();
   }
 
   async function handleTest(id: string) {
@@ -93,6 +120,11 @@ export default function AiSettingsPage() {
     await updateProvider({ id: target.id, body: { priority: provider.priority } });
   }
 
+  async function handleSaveModels(provider: AiProvider, models: string[]) {
+    await updateProvider({ id: provider.id, body: { models } });
+    setEditingModelsId(null);
+  }
+
   return (
     <div className="flex flex-col gap-5" dir="rtl">
       <PageIntro
@@ -101,7 +133,10 @@ export default function AiSettingsPage() {
         icon={Bot}
         actions={
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setShowForm(!showForm);
+              if (!showForm) resetForm();
+            }}
             className="flex items-center gap-2 h-10 px-4 bg-secondary-500 text-white rounded-xl text-sm hover:opacity-90 transition-opacity"
           >
             <Plus className="w-4 h-4" />
@@ -114,18 +149,58 @@ export default function AiSettingsPage() {
         <SurfaceCard title="إضافة مزود جديد" icon={Plus}>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <SelectField label="النوع" name="name" required options={ADAPTER_OPTIONS} />
+              <SelectField
+                label="النوع"
+                value={formType}
+                onChange={handleFormTypeChange}
+                options={ADAPTER_OPTIONS}
+              />
               <FormInput label="الاسم المعروض" name="displayName" placeholder="مثال: OpenRouter الأساسي" />
-              <FormInput label="رابط API (اختياري)" name="baseUrl" placeholder="https://api.openai.com/v1" />
-              <FormInput label="مفتاح API" name="apiKey" required type="password" showPasswordToggle placeholder="sk-..." />
+              <FormInput
+                label="رابط API (اختياري)"
+                name="baseUrl"
+                placeholder="https://api.openai.com/v1"
+                value={formBaseUrl}
+                onChange={(e) => setFormBaseUrl(e.target.value)}
+              />
+              <FormInput
+                label="مفتاح API"
+                name="apiKey"
+                required
+                type="password"
+                showPasswordToggle
+                placeholder="sk-..."
+                value={formApiKey}
+                onChange={(e) => setFormApiKey(e.target.value)}
+              />
               <FormInput label="الحد الأقصى للطلبات/الدقيقة" name="requestsPerMinute" type="number" defaultValue="60" />
               <FormInput label="الحد الأقصى للتوكنز/الدقيقة" name="tokensPerMinute" type="number" defaultValue="100000" />
             </div>
+
+            <div className="border-t border-portal-divider pt-4">
+              <ModelPicker
+                providerType={formType}
+                apiKey={formApiKey}
+                baseUrl={formBaseUrl}
+                selected={formModels}
+                defaultModels={DEFAULT_MODELS[formType] || []}
+                onChange={setFormModels}
+                onFetch={handleFetchModels}
+              />
+            </div>
+
             <div className="flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowForm(false)} className="h-10 px-4 text-sm text-portal-note-text hover:text-natural-100">
+              <button
+                type="button"
+                onClick={() => { setShowForm(false); resetForm(); }}
+                className="h-10 px-4 text-sm text-portal-note-text hover:text-natural-100"
+              >
                 إلغاء
               </button>
-              <button type="submit" className="h-10 px-6 bg-secondary-500 text-white rounded-xl text-sm hover:opacity-90 transition-opacity">
+              <button
+                type="submit"
+                className="h-10 px-6 bg-secondary-500 text-white rounded-xl text-sm hover:opacity-90 transition-opacity"
+              >
                 حفظ
               </button>
             </div>
@@ -196,8 +271,26 @@ export default function AiSettingsPage() {
                         {provider.isActive ? "نشط" : "غير نشط"}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-portal-note-text max-w-[200px] truncate" title={provider.models.join(", ")}>
-                      {provider.models.length > 0 ? provider.models.join("، ") : "—"}
+                    <td className="py-3 px-4 max-w-[240px]">
+                      <button
+                        onClick={() => setEditingModelsId(editingModelsId === provider.id ? null : provider.id)}
+                        className="group flex items-center gap-1.5 text-xs text-portal-note-text hover:text-secondary-500 transition-colors"
+                      >
+                        <span className="truncate">
+                          {provider.models.length > 0
+                            ? provider.models.slice(0, 2).join("، ")
+                            : "—"}
+                          {provider.models.length > 2 && ` +${provider.models.length - 2}`}
+                        </span>
+                        <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </button>
+                      {editingModelsId === provider.id && (
+                        <InlineModelEditor
+                          provider={provider}
+                          onSave={handleSaveModels}
+                          onCancel={() => setEditingModelsId(null)}
+                        />
+                      )}
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap text-portal-note-text">
                       <span className="text-xs">{provider.requestsPerMinute || "—"}/دقيقة</span>
@@ -248,15 +341,68 @@ export default function AiSettingsPage() {
   );
 }
 
-function SelectField({ label, name, options, required }: {
-  label: string; name: string; options: Array<{ value: string; label: string }>; required?: boolean;
+function InlineModelEditor({
+  provider,
+  onSave,
+  onCancel,
+}: {
+  provider: AiProvider;
+  onSave: (provider: AiProvider, models: string[]) => void;
+  onCancel: () => void;
+}) {
+  const [models, setModels] = useState<string[]>(provider.models);
+  const [editing, setEditing] = useState(false);
+
+  if (!editing) {
+    return (
+      <div className="mt-2 p-3 rounded-xl border border-neutral-200 bg-badge-gray-bg/30 space-y-2">
+        <div className="flex flex-wrap gap-1">
+          {models.map((m) => (
+            <span key={m} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-neutral-200 text-xs font-mono">
+              {m}
+              <button
+                type="button"
+                onClick={() => setModels(models.filter((x) => x !== m))}
+                className="text-danger-500 hover:text-danger-700"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-xs text-portal-note-text hover:text-natural-100"
+          >
+            إلغاء
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave(provider, models)}
+            className="text-xs px-3 py-1.5 bg-secondary-500 text-white rounded-lg hover:opacity-90"
+          >
+            حفظ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function SelectField({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
 }) {
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-secondary-500 text-right">{label}</label>
       <select
-        name={name}
-        required={required}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className="w-full h-12 px-4 text-sm text-secondary-500 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors duration-200 text-right"
       >
         {options.map((opt) => (

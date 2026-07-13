@@ -14,8 +14,8 @@ import {
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import { Skeleton } from "@/components/design-system/Skeleton";
-import { PeriodSelector } from "@/components/dashboard/admin/overview/PeriodSelector";
-import type { PeriodKey } from "@/components/dashboard/admin/overview/PeriodSelector";
+import { periodToDateRange } from "@/components/dashboard/admin/overview/MiniPeriodFilter";
+import type { PeriodKey } from "@/components/dashboard/admin/overview/MiniPeriodFilter";
 import { KpiGrid, buildAdminKpiConfigs } from "@/components/dashboard/admin/overview/KpiGrid";
 import { AlertPanel } from "@/components/dashboard/admin/overview/AlertPanel";
 import type { AlertCategory, AlertCategoryItem } from "@/components/dashboard/admin/overview/AlertPanel";
@@ -238,46 +238,24 @@ function buildBusinessMetrics(
   ];
 }
 
-function periodToDateRange(period: PeriodKey): { from?: string; to?: string; days?: number } {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  switch (period) {
-    case "today":
-      return { from: now.toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
-    case "yesterday": {
-      const d = new Date(now); d.setDate(d.getDate() - 1);
-      return { from: d.toISOString().slice(0, 10), to: d.toISOString().slice(0, 10) };
-    }
-    case "thisWeek": {
-      const d = new Date(now); d.setDate(d.getDate() - d.getDay());
-      return { from: d.toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
-    }
-    case "lastWeek": {
-      const end = new Date(now); end.setDate(end.getDate() - end.getDay() - 1);
-      const start = new Date(end); start.setDate(start.getDate() - 6);
-      return { from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) };
-    }
-    case "thisMonth":
-      return { from: new Date(y, m, 1).toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
-    case "lastMonth":
-      return { from: new Date(y, m - 1, 1).toISOString().slice(0, 10), to: new Date(y, m, 0).toISOString().slice(0, 10) };
-    default:
-      return {};
-  }
-}
-
 export default function AdminOverviewPage() {
+  // Shared period state — all 3 filters control the same value
   const [period, setPeriod] = useState<PeriodKey>("thisMonth");
-  const dateRange = useMemo(() => periodToDateRange(period), [period]);
+  const trendDateRange = useMemo(() => periodToDateRange(period), [period]);
+  const funnelDateRange = useMemo(() => periodToDateRange(period), [period]);
 
-  const { data: stats, isLoading: statsLoading, isError: statsError } = useGetAdminStatsQuery(dateRange);
-  const { data: trends } = useGetAdminTrendsQuery(dateRange);
+  // Stats — no date filter (defaults to trailing 30 days server-side)
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useGetAdminStatsQuery();
   const { data: alerts } = useGetAdminAlertsQuery();
   const { data: attention } = useGetAdminDashboardAttentionQuery();
   const { data: recentActivity } = useGetAdminDashboardRecentActivityQuery();
-  const { data: funnel } = useGetAdminFunnelQuery(dateRange);
   const { data: health } = useGetAdminHealthQuery();
+
+  // Trends — has own period filter
+  const { data: trends } = useGetAdminTrendsQuery(trendDateRange);
+
+  // Funnel — has own period filter (ContractChart shares this data)
+  const { data: funnel } = useGetAdminFunnelQuery(funnelDateRange);
 
   const kpiConfigs = useMemo(
     () => buildAdminKpiConfigs(stats, trends),
@@ -375,16 +353,13 @@ export default function AdminOverviewPage() {
   return (
     <div className="flex flex-col gap-6" dir="rtl">
       {/* Row 1 — Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <PageIntro
-          title="لوحة التحكم"
-          description="نظرة عامة على أداء المنصة والمؤشرات الرئيسية"
-          icon={LayoutDashboard}
-        />
-        <PeriodSelector value={period} onChange={setPeriod} />
-      </div>
+      <PageIntro
+        title="لوحة التحكم"
+        description="نظرة عامة على أداء المنصة والمؤشرات الرئيسية"
+        icon={LayoutDashboard}
+      />
 
-      {/* Row 2 — KPI Cards */}
+      {/* Row 2 — KPI Cards (defaults to trailing 30 days) */}
       <KpiGrid items={kpiConfigs} />
 
       {/* Row 3 — Alerts + Trend */}
@@ -396,6 +371,8 @@ export default function AdminOverviewPage() {
           <TrendChart
             labels={trends?.labels ?? []}
             metrics={trendMetrics}
+            period={period}
+            onPeriodChange={setPeriod}
           />
         </div>
       </div>
@@ -405,8 +382,14 @@ export default function AdminOverviewPage() {
         <FunnelChart
           stages={funnelStages}
           conversionRate={funnel?.conversionRates?.leadsToClients ?? 0}
+          period={period}
+          onPeriodChange={setPeriod}
         />
-        <ContractChart steps={contractSteps} />
+        <ContractChart
+          steps={contractSteps}
+          period={period}
+          onPeriodChange={setPeriod}
+        />
       </div>
 
       {/* Row 5 — Health + Activity */}

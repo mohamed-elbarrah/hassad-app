@@ -270,6 +270,12 @@ export interface CreateAiProviderDto {
   temperature?: number;
 }
 
+export interface FetchModelsDto {
+  name: string;
+  apiKey: string;
+  baseUrl?: string;
+}
+
 export interface UpdateAiProviderDto {
   displayName?: string;
   baseUrl?: string;
@@ -606,6 +612,15 @@ export const adminApi = createApi({
       invalidatesTags: ["AiProviders"],
     }),
 
+    getAiProviderModels: builder.query<{ success: boolean; models: string[]; message?: string }, string>({
+      query: (id) => `/admin/ai/providers/${id}/models`,
+      providesTags: (_result, _error, id) => [{ type: "AiProviders", id }],
+    }),
+
+    previewAiProviderModels: builder.mutation<{ success: boolean; models: string[]; message?: string }, FetchModelsDto>({
+      query: (body) => ({ url: "/admin/ai/providers/fetch-models", method: "POST", body }),
+    }),
+
     testAiProvider: builder.mutation<{ success: boolean; model?: string; message?: string; response?: string }, string>({
       query: (id) => ({ url: `/admin/ai/providers/${id}/test`, method: "POST" }),
     }),
@@ -650,6 +665,8 @@ export const {
   useDeleteAdminBusinessGoalMutation,
   useGetAiProvidersQuery,
   useGetAiProviderQuery,
+  useGetAiProviderModelsQuery,
+  usePreviewAiProviderModelsMutation,
   useCreateAiProviderMutation,
   useUpdateAiProviderMutation,
   useDeleteAiProviderMutation,

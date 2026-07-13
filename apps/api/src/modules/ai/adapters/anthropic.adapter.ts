@@ -19,6 +19,18 @@ export class AnthropicAdapter implements AiProvider {
     return this.config.models;
   }
 
+  async listModels(): Promise<string[]> {
+    const response = await fetch("https://api.anthropic.com/v1/models", {
+      headers: {
+        "x-api-key": this.config.apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+    });
+    if (!response.ok) throw new Error(`Failed to fetch models (${response.status})`);
+    const json = (await response.json()) as { data: Array<{ id: string }> };
+    return json.data.map((m) => m.id).sort();
+  }
+
   async generateText(prompt: string, options?: AiOptions): Promise<AiResult> {
     const model = options?.model || this.config.models[0] || "claude-sonnet-4-20250514";
 

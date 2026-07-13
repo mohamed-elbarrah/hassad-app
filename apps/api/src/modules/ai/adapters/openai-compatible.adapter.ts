@@ -19,6 +19,16 @@ export class OpenAICompatibleAdapter implements AiProvider {
     return this.config.models;
   }
 
+  async listModels(): Promise<string[]> {
+    const baseUrl = (this.config.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+    const response = await fetch(`${baseUrl}/models`, {
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+    });
+    if (!response.ok) throw new Error(`Failed to fetch models (${response.status})`);
+    const json = (await response.json()) as { data: Array<{ id: string }> };
+    return json.data.map((m) => m.id).sort();
+  }
+
   async generateText(prompt: string, options?: AiOptions): Promise<AiResult> {
     const baseUrl = (this.config.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
     const model = options?.model || this.config.models[0] || "gpt-4o";

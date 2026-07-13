@@ -11,6 +11,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { MiniPeriodFilter, periodToDateRange } from "./MiniPeriodFilter";
+import type { PeriodKey } from "./MiniPeriodFilter";
 import { cn } from "@/lib/utils";
 import { formatCompactNumber, formatCurrency } from "@/lib/format";
 
@@ -25,6 +27,8 @@ export interface TrendMetricOption {
 interface TrendChartProps {
   labels: string[];
   metrics: TrendMetricOption[];
+  period?: PeriodKey;
+  onPeriodChange?: (key: PeriodKey) => void;
   className?: string;
 }
 
@@ -36,7 +40,7 @@ function computePercentChange(data: number[]): number | null {
   return Math.round(((recent - previous) / previous) * 100);
 }
 
-export function TrendChart({ labels, metrics, className }: TrendChartProps) {
+export function TrendChart({ labels, metrics, period, onPeriodChange, className }: TrendChartProps) {
   const [activeMetric, setActiveMetric] = useState(metrics[0]?.key ?? "");
 
   const currentMetric = metrics.find((m) => m.key === activeMetric) ?? metrics[0];
@@ -65,12 +69,17 @@ export function TrendChart({ labels, metrics, className }: TrendChartProps) {
       title="اتجاهات الأداء"
       icon={TrendingUp}
       action={
-        <a
-          href="/dashboard/admin/reports"
-          className="text-xs text-secondary-500 hover:text-secondary-600"
-        >
-          عرض التقرير الكامل ←
-        </a>
+        <div className="flex items-center gap-2">
+          {period && onPeriodChange ? (
+            <MiniPeriodFilter value={period} onChange={onPeriodChange} />
+          ) : null}
+          <a
+            href="/dashboard/admin/reports"
+            className="text-xs text-secondary-500 hover:text-secondary-600"
+          >
+            عرض التقرير الكامل ←
+          </a>
+        </div>
       }
       className={className}
     >
