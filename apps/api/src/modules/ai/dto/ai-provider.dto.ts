@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsOptional, IsBoolean, IsArray, Min, IsIn } from "class-validator";
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  Min,
+  IsIn,
+} from "class-validator";
 
 export class FetchModelsDto {
   @IsString()

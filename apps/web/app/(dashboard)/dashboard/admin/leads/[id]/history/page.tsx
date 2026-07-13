@@ -44,10 +44,7 @@ export default function LeadHistoryTab({
               <div className="flex items-center gap-2 flex-wrap">
                 {entry.fromStage && (
                   <>
-                    <AdminStatusBadge
-                      domain="lead"
-                      status={entry.fromStage}
-                    />
+                    <AdminStatusBadge domain="lead" status={entry.fromStage} />
                     <ArrowLeft className="h-3.5 w-3.5 text-portal-note-text" />
                   </>
                 )}

@@ -90,8 +90,12 @@ export default function AdminDisputeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: dispute, isLoading, isError, refetch } =
-    useGetAdminDisputeByIdQuery(id);
+  const {
+    data: dispute,
+    isLoading,
+    isError,
+    refetch,
+  } = useGetAdminDisputeByIdQuery(id);
 
   if (isLoading || isError || !dispute) {
     return null;
@@ -114,7 +118,9 @@ export default function AdminDisputeDetailPage({
                 #{dispute.ticketNumber}
               </InfoRow>
               <InfoRow icon={Tag} label="التصنيف">
-                {DISPUTE_CATEGORY_AR[dispute.category as keyof typeof DISPUTE_CATEGORY_AR] || dispute.category}
+                {DISPUTE_CATEGORY_AR[
+                  dispute.category as keyof typeof DISPUTE_CATEGORY_AR
+                ] || dispute.category}
               </InfoRow>
               <InfoRow icon={Flag} label="الأولوية">
                 <span
@@ -123,7 +129,9 @@ export default function AdminDisputeDetailPage({
                     priorityBadgeClass(dispute.priority),
                   )}
                 >
-                  {DISPUTE_PRIORITY_AR[dispute.priority as keyof typeof DISPUTE_PRIORITY_AR] || dispute.priority}
+                  {DISPUTE_PRIORITY_AR[
+                    dispute.priority as keyof typeof DISPUTE_PRIORITY_AR
+                  ] || dispute.priority}
                 </span>
               </InfoRow>
               <InfoRow icon={Activity} label="الحالة">

@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileText, SendHorizonal, CheckCircle, XCircle, TrendingUp } from "lucide-react";
+import {
+  FileText,
+  SendHorizonal,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+} from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
@@ -13,7 +19,10 @@ import {
 import { Pagination } from "@/components/design-system/Pagination";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { useGetAdminProposalsQuery, useGetAdminProposalStatsQuery } from "@/features/admin/adminProposalsApi";
+import {
+  useGetAdminProposalsQuery,
+  useGetAdminProposalStatsQuery,
+} from "@/features/admin/adminProposalsApi";
 
 const COLUMNS: DataTableColumn[] = [
   { id: "title", label: "العنوان", align: "right" },
@@ -42,7 +51,9 @@ const STATUS_OPTIONS = [
 export default function AdminProposalsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
 
   const { data, isLoading, isError } = useGetAdminProposalsQuery({
     search: search || undefined,
@@ -55,13 +66,41 @@ export default function AdminProposalsPage() {
 
   const proposals = useMemo(() => data?.items ?? [], [data]);
 
-  const statCards = useMemo(() => [
-    { label: "الإجمالي", value: stats?.total ?? 0, icon: FileText, variant: "default" as const },
-    { label: "مرسل", value: stats?.sent ?? 0, icon: SendHorizonal, variant: "success" as const },
-    { label: "مقبول", value: stats?.approved ?? 0, icon: CheckCircle, variant: "success" as const },
-    { label: "مرفوض", value: stats?.rejected ?? 0, icon: XCircle, variant: "danger" as const },
-    { label: "معدل التحويل", value: stats ? `${stats.conversionRate}%` : "—", icon: TrendingUp, variant: "warning" as const },
-  ], [stats]);
+  const statCards = useMemo(
+    () => [
+      {
+        label: "الإجمالي",
+        value: stats?.total ?? 0,
+        icon: FileText,
+        variant: "default" as const,
+      },
+      {
+        label: "مرسل",
+        value: stats?.sent ?? 0,
+        icon: SendHorizonal,
+        variant: "success" as const,
+      },
+      {
+        label: "مقبول",
+        value: stats?.approved ?? 0,
+        icon: CheckCircle,
+        variant: "success" as const,
+      },
+      {
+        label: "مرفوض",
+        value: stats?.rejected ?? 0,
+        icon: XCircle,
+        variant: "danger" as const,
+      },
+      {
+        label: "معدل التحويل",
+        value: stats ? `${stats.conversionRate}%` : "—",
+        icon: TrendingUp,
+        variant: "warning" as const,
+      },
+    ],
+    [stats],
+  );
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
@@ -126,7 +165,9 @@ export default function AdminProposalsPage() {
                 </Link>
               </td>
               <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {proposal.client?.companyName || proposal.lead?.companyName || "—"}
+                {proposal.client?.companyName ||
+                  proposal.lead?.companyName ||
+                  "—"}
               </td>
               <td className="py-3 px-2 text-right">
                 <AdminStatusBadge domain="proposal" status={proposal.status} />
@@ -135,7 +176,10 @@ export default function AdminProposalsPage() {
                 {proposal.creator?.name || "—"}
               </td>
               <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {proposal.totalPrice.toLocaleString("ar-SA", { style: "currency", currency: "SAR" })}
+                {proposal.totalPrice.toLocaleString("ar-SA", {
+                  style: "currency",
+                  currency: "SAR",
+                })}
               </td>
               <td className="py-3 px-2 text-right text-sm text-portal-note-text">
                 {new Date(proposal.createdAt).toLocaleDateString("ar-SA")}
@@ -146,7 +190,11 @@ export default function AdminProposalsPage() {
 
         {data && data.totalPages > 1 && (
           <div className="mt-4 flex justify-center">
-            <Pagination page={page} totalPages={data.totalPages} onPageChange={setPage} />
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </SurfaceCard>

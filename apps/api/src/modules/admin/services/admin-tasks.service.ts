@@ -100,9 +100,14 @@ export class AdminTasksService {
     return task;
   }
 
-  async getDelayAlerts(query: { acknowledged?: boolean; page?: number; limit?: number }) {
+  async getDelayAlerts(query: {
+    acknowledged?: boolean;
+    page?: number;
+    limit?: number;
+  }) {
     const where: any = {};
-    if (query.acknowledged !== undefined) where.isAcknowledged = query.acknowledged;
+    if (query.acknowledged !== undefined)
+      where.isAcknowledged = query.acknowledged;
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
@@ -147,7 +152,12 @@ export class AdminTasksService {
     };
   }
 
-  async reassign(taskId: string, assigneeId: string, adminId: string, reason?: string) {
+  async reassign(
+    taskId: string,
+    assigneeId: string,
+    adminId: string,
+    reason?: string,
+  ) {
     const [task, user] = await Promise.all([
       this.prisma.task.findUnique({ where: { id: taskId } }),
       this.prisma.user.findUnique({ where: { id: assigneeId } }),
@@ -196,7 +206,12 @@ export class AdminTasksService {
     return { success: true };
   }
 
-  async forceTransition(taskId: string, status: any, reason: string, adminId: string) {
+  async forceTransition(
+    taskId: string,
+    status: any,
+    reason: string,
+    adminId: string,
+  ) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) throw new NotFoundException("Task not found");
 

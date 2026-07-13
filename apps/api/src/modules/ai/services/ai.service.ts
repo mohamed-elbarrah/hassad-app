@@ -14,7 +14,11 @@ export class AiService {
   ) {}
 
   async analyze(userId: string, dto: AiAnalyzeDto) {
-    const inputData = { entityType: dto.entityType, entityId: dto.entityId, analysisType: dto.analysisType };
+    const inputData = {
+      entityType: dto.entityType,
+      entityId: dto.entityId,
+      analysisType: dto.analysisType,
+    };
     const prompt = this.buildPrompt(dto);
 
     let result: { summary: string; score: number; recommendations?: string[] };
@@ -64,14 +68,23 @@ export class AiService {
     );
   }
 
-  private parseResponse(text: string): { summary: string; score: number; recommendations?: string[] } {
+  private parseResponse(text: string): {
+    summary: string;
+    score: number;
+    recommendations?: string[];
+  } {
     try {
-      const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const cleaned = text
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "")
+        .trim();
       const parsed = JSON.parse(cleaned);
       return {
         summary: parsed.summary || "تحليل آلي",
         score: Math.min(100, Math.max(0, Number(parsed.score) || 50)),
-        recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+        recommendations: Array.isArray(parsed.recommendations)
+          ? parsed.recommendations
+          : [],
       };
     } catch {
       return {

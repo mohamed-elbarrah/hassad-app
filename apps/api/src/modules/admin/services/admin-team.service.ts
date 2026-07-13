@@ -25,8 +25,7 @@ export class AdminTeamService {
     const summary = {
       available: items.filter((w) => w.workloadStatus === "AVAILABLE").length,
       busy: items.filter((w) => w.workloadStatus === "BUSY").length,
-      overloaded: items.filter((w) => w.workloadStatus === "OVERLOADED")
-        .length,
+      overloaded: items.filter((w) => w.workloadStatus === "OVERLOADED").length,
     };
 
     return { items: mapped, summary };

@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import {
-  Bot, Plus, Trash2, TestTube, Wifi, WifiOff, ChevronUp, ChevronDown, Pencil,
+  Bot,
+  Plus,
+  Trash2,
+  TestTube,
+  Wifi,
+  WifiOff,
+  ChevronUp,
+  ChevronDown,
+  Pencil,
 } from "lucide-react";
 import {
   useGetAiProvidersQuery,
@@ -28,7 +36,11 @@ const ADAPTER_OPTIONS = [
 
 const DEFAULT_MODELS: Record<string, string[]> = {
   openai: ["gpt-4o", "gpt-4o-mini"],
-  openrouter: ["openai/gpt-4o", "anthropic/claude-sonnet-4", "google/gemini-2.0-flash"],
+  openrouter: [
+    "openai/gpt-4o",
+    "anthropic/claude-sonnet-4",
+    "google/gemini-2.0-flash",
+  ],
   anthropic: ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022"],
   google: ["gemini-2.0-flash", "gemini-1.5-pro"],
 };
@@ -55,7 +67,9 @@ export default function AiSettingsPage() {
   const [formType, setFormType] = useState("openai");
   const [formApiKey, setFormApiKey] = useState("");
   const [formBaseUrl, setFormBaseUrl] = useState("");
-  const [formModels, setFormModels] = useState<string[]>(DEFAULT_MODELS["openai"]);
+  const [formModels, setFormModels] = useState<string[]>(
+    DEFAULT_MODELS["openai"],
+  );
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -90,7 +104,11 @@ export default function AiSettingsPage() {
     }
   }
 
-  async function handleFetchModels(type: string, key: string, baseUrl?: string) {
+  async function handleFetchModels(
+    type: string,
+    key: string,
+    baseUrl?: string,
+  ) {
     return previewModels({ name: type, apiKey: key, baseUrl }).unwrap();
   }
 
@@ -111,7 +129,10 @@ export default function AiSettingsPage() {
   }
 
   async function handleToggleActive(provider: AiProvider) {
-    await updateProvider({ id: provider.id, body: { isActive: !provider.isActive } });
+    await updateProvider({
+      id: provider.id,
+      body: { isActive: !provider.isActive },
+    });
   }
 
   async function handleDelete(id: string) {
@@ -124,8 +145,14 @@ export default function AiSettingsPage() {
     const targetIdx = dir === "up" ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= providers.length) return;
     const target = providers[targetIdx];
-    await updateProvider({ id: provider.id, body: { priority: target.priority } });
-    await updateProvider({ id: target.id, body: { priority: provider.priority } });
+    await updateProvider({
+      id: provider.id,
+      body: { priority: target.priority },
+    });
+    await updateProvider({
+      id: target.id,
+      body: { priority: provider.priority },
+    });
   }
 
   async function handleSaveModels(provider: AiProvider, models: string[]) {
@@ -163,7 +190,11 @@ export default function AiSettingsPage() {
                 onChange={handleFormTypeChange}
                 options={ADAPTER_OPTIONS}
               />
-              <FormInput label="الاسم المعروض" name="displayName" placeholder="مثال: OpenRouter الأساسي" />
+              <FormInput
+                label="الاسم المعروض"
+                name="displayName"
+                placeholder="مثال: OpenRouter الأساسي"
+              />
               <FormInput
                 label="رابط API (اختياري)"
                 name="baseUrl"
@@ -181,8 +212,18 @@ export default function AiSettingsPage() {
                 value={formApiKey}
                 onChange={(e) => setFormApiKey(e.target.value)}
               />
-              <FormInput label="الحد الأقصى للطلبات/الدقيقة" name="requestsPerMinute" type="number" defaultValue="60" />
-              <FormInput label="الحد الأقصى للتوكنز/الدقيقة" name="tokensPerMinute" type="number" defaultValue="100000" />
+              <FormInput
+                label="الحد الأقصى للطلبات/الدقيقة"
+                name="requestsPerMinute"
+                type="number"
+                defaultValue="60"
+              />
+              <FormInput
+                label="الحد الأقصى للتوكنز/الدقيقة"
+                name="tokensPerMinute"
+                type="number"
+                defaultValue="100000"
+              />
             </div>
 
             <div className="border-t border-portal-divider pt-4">
@@ -200,7 +241,10 @@ export default function AiSettingsPage() {
             <div className="flex gap-3 justify-end">
               <button
                 type="button"
-                onClick={() => { setShowForm(false); resetForm(); }}
+                onClick={() => {
+                  setShowForm(false);
+                  resetForm();
+                }}
                 className="h-10 px-4 text-sm text-portal-note-text hover:text-natural-100"
               >
                 إلغاء
@@ -218,41 +262,68 @@ export default function AiSettingsPage() {
 
       <SurfaceCard title="المزودون" icon={Bot}>
         {isLoading ? (
-          <div className="text-center py-12 text-portal-note-text">جاري التحميل...</div>
+          <div className="text-center py-12 text-portal-note-text">
+            جاري التحميل...
+          </div>
         ) : !providers?.length ? (
           <div className="text-center py-12 text-portal-note-text">
             <Bot className="w-12 h-12 mx-auto mb-3 opacity-40" />
             <p>لم يتم إضافة أي مزود بعد</p>
-            <p className="text-sm">أضف مزوداً للبدء باستخدام الذكاء الاصطناعي</p>
+            <p className="text-sm">
+              أضف مزوداً للبدء باستخدام الذكاء الاصطناعي
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-portal-divider">
-                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">#</th>
-                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">المزود</th>
-                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">الحالة</th>
-                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">النماذج</th>
-                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">الحدود</th>
-                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">اختبار</th>
-                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">الإجراءات</th>
+                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">
+                    #
+                  </th>
+                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">
+                    المزود
+                  </th>
+                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">
+                    الحالة
+                  </th>
+                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">
+                    النماذج
+                  </th>
+                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">
+                    الحدود
+                  </th>
+                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">
+                    اختبار
+                  </th>
+                  <th className="py-3 px-4 text-right text-portal-note-text font-medium">
+                    الإجراءات
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {providers.map((provider, idx) => (
-                  <tr key={provider.id} className="border-b border-portal-divider last:border-0 hover:bg-badge-gray-bg transition-colors">
+                  <tr
+                    key={provider.id}
+                    className="border-b border-portal-divider last:border-0 hover:bg-badge-gray-bg transition-colors"
+                  >
                     <td className="py-3 px-4 text-portal-note-text whitespace-nowrap">
                       <div className="flex items-center gap-1">
                         <span className="text-natural-100">{idx + 1}</span>
                         <div className="flex flex-col">
                           {idx > 0 && (
-                            <button onClick={() => handlePriority(provider, "up")} className="text-portal-note-text hover:text-natural-100 leading-none">
+                            <button
+                              onClick={() => handlePriority(provider, "up")}
+                              className="text-portal-note-text hover:text-natural-100 leading-none"
+                            >
                               <ChevronUp className="w-3 h-3" />
                             </button>
                           )}
                           {idx < providers.length - 1 && (
-                            <button onClick={() => handlePriority(provider, "down")} className="text-portal-note-text hover:text-natural-100 leading-none">
+                            <button
+                              onClick={() => handlePriority(provider, "down")}
+                              className="text-portal-note-text hover:text-natural-100 leading-none"
+                            >
                               <ChevronDown className="w-3 h-3" />
                             </button>
                           )}
@@ -261,9 +332,13 @@ export default function AiSettingsPage() {
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       <div>
-                        <span className="text-secondary-500 font-medium">{provider.displayName || provider.name}</span>
+                        <span className="text-secondary-500 font-medium">
+                          {provider.displayName || provider.name}
+                        </span>
                         {provider.baseUrl && (
-                          <p className="text-xs text-portal-note-text mt-0.5 dir-ltr text-left">{provider.baseUrl}</p>
+                          <p className="text-xs text-portal-note-text mt-0.5 dir-ltr text-left">
+                            {provider.baseUrl}
+                          </p>
                         )}
                       </div>
                     </td>
@@ -275,20 +350,29 @@ export default function AiSettingsPage() {
                             : "bg-neutral-100 text-neutral-500"
                         }`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${provider.isActive ? "bg-success-500" : "bg-neutral-300"}`} />
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${provider.isActive ? "bg-success-500" : "bg-neutral-300"}`}
+                        />
                         {provider.isActive ? "نشط" : "غير نشط"}
                       </span>
                     </td>
                     <td className="py-3 px-4 max-w-[240px]">
                       <button
-                        onClick={() => setEditingModelsId(editingModelsId === provider.id ? null : provider.id)}
+                        onClick={() =>
+                          setEditingModelsId(
+                            editingModelsId === provider.id
+                              ? null
+                              : provider.id,
+                          )
+                        }
                         className="group flex items-center gap-1.5 text-xs text-portal-note-text hover:text-secondary-500 transition-colors"
                       >
                         <span className="truncate">
                           {provider.models.length > 0
                             ? provider.models.slice(0, 2).join("، ")
                             : "—"}
-                          {provider.models.length > 2 && ` +${provider.models.length - 2}`}
+                          {provider.models.length > 2 &&
+                            ` +${provider.models.length - 2}`}
                         </span>
                         <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                       </button>
@@ -301,7 +385,9 @@ export default function AiSettingsPage() {
                       )}
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap text-portal-note-text">
-                      <span className="text-xs">{provider.requestsPerMinute || "—"}/دقيقة</span>
+                      <span className="text-xs">
+                        {provider.requestsPerMinute || "—"}/دقيقة
+                      </span>
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       <button
@@ -312,9 +398,12 @@ export default function AiSettingsPage() {
                         <TestTube className="w-3.5 h-3.5" />
                         {testingId === provider.id ? "..." : "اختبار"}
                       </button>
-                      {testResults[provider.id] && testingId !== provider.id && (
-                        <p className="text-xs mt-1 text-portal-note-text max-w-[200px] truncate">{testResults[provider.id]}</p>
-                      )}
+                      {testResults[provider.id] &&
+                        testingId !== provider.id && (
+                          <p className="text-xs mt-1 text-portal-note-text max-w-[200px] truncate">
+                            {testResults[provider.id]}
+                          </p>
+                        )}
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -327,7 +416,11 @@ export default function AiSettingsPage() {
                           }`}
                           title={provider.isActive ? "تعطيل" : "تفعيل"}
                         >
-                          {provider.isActive ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+                          {provider.isActive ? (
+                            <Wifi className="w-4 h-4" />
+                          ) : (
+                            <WifiOff className="w-4 h-4" />
+                          )}
                         </button>
                         <button
                           onClick={() => handleDelete(provider.id)}
@@ -366,7 +459,10 @@ function InlineModelEditor({
       <div className="mt-2 p-3 rounded-xl border border-neutral-200 bg-badge-gray-bg/30 space-y-2">
         <div className="flex flex-wrap gap-1">
           {models.map((m) => (
-            <span key={m} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-neutral-200 text-xs font-mono">
+            <span
+              key={m}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-neutral-200 text-xs font-mono"
+            >
               {m}
               <button
                 type="button"
@@ -401,20 +497,31 @@ function InlineModelEditor({
   return null;
 }
 
-function SelectField({ label, value, onChange, options }: {
-  label: string; value: string; onChange: (value: string) => void;
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
   options: Array<{ value: string; label: string }>;
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-secondary-500 text-right">{label}</label>
+      <label className="block text-sm font-medium text-secondary-500 text-right">
+        {label}
+      </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full h-12 px-4 text-sm text-secondary-500 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 transition-colors duration-200 text-right"
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
         ))}
       </select>
     </div>

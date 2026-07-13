@@ -309,19 +309,19 @@ export const roleNavSections: NavSection[] = [
     ],
   },
   {
-    label: "الموظف التنفيذي",
+    label: "فريق",
     items: [
       {
         title: "قائمة المهام",
-        url: "/dashboard/employee",
+        url: "/dashboard/team",
         icon: ClipboardList,
-        roles: ["EMPLOYEE"],
+        roles: ["TEAM"],
       },
       {
         title: "المحادثات",
         url: "/dashboard/messages",
         icon: MessageSquare,
-        roles: ["EMPLOYEE"],
+        roles: ["TEAM"],
       },
     ],
   },

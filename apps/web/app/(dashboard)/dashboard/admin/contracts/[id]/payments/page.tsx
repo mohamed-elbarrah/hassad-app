@@ -62,9 +62,7 @@ export default function ContractPaymentsTab({
 
   return (
     <div className="space-y-5">
-      <SurfaceCard
-        title={`المدفوعات (${paidInvoices.length})`}
-      >
+      <SurfaceCard title={`المدفوعات (${paidInvoices.length})`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -101,7 +99,10 @@ export default function ContractPaymentsTab({
                     {formatCurrency(invoice.amount)}
                   </td>
                   <td className="py-3 px-2 text-right">
-                    <AdminStatusBadge domain="invoice" status={invoice.status} />
+                    <AdminStatusBadge
+                      domain="invoice"
+                      status={invoice.status}
+                    />
                   </td>
                   <td className="py-3 px-2 text-right text-sm text-portal-note-text">
                     {formatDate(invoice.paidAt)}
@@ -135,13 +136,9 @@ export default function ContractPaymentsTab({
           </div>
           <div className="p-4 rounded-xl border border-portal-card-border text-center">
             <p className="text-2xl font-semibold text-success-600">
-              {paidInvoices.length > 0
-                ? "%100"
-                : "%0"}
+              {paidInvoices.length > 0 ? "%100" : "%0"}
             </p>
-            <p className="text-xs text-portal-note-text mt-1">
-              نسبة التحصيل
-            </p>
+            <p className="text-xs text-portal-note-text mt-1">نسبة التحصيل</p>
           </div>
         </div>
       </SurfaceCard>

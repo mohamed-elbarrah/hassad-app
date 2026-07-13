@@ -31,8 +31,8 @@ export default async function TaskRedirectPage({ params }: PageProps) {
   const payload = decodeJwtPayload(token as string);
   const role = payload?.role as string | undefined;
 
-  if (role === "EMPLOYEE") {
-    redirect(`/dashboard/employee/tasks/${id}`);
+  if (role === "TEAM") {
+    redirect(`/dashboard/team/tasks/${id}`);
   } else if (role === "MARKETING") {
     redirect(`/dashboard/marketing/tasks/${id}`);
   } else if (role === "PM" || role === "ADMIN") {

@@ -98,39 +98,44 @@ export class AdminKpiService {
   async getClientKpis(from?: string, to?: string) {
     const dateFilter = this.dateFilter(from, to);
 
-    const [totalClients, statusCounts, repeatClients, churned, activeAtPeriodStart] =
-      await Promise.all([
-        this.prisma.client.count({ where: dateFilter }),
-        this.prisma.client.groupBy({
-          by: ["status"],
-          where: dateFilter,
-          _count: { id: true },
-        }),
-        // Repeat clients: 2+ projects
-        this.prisma.client.count({
-          where: {
-            projects: { some: {} },
-            ...dateFilter,
-          },
-        }),
-        // Churned (STOPPED) in period
-        this.prisma.client.count({
-          where: { status: "STOPPED", ...dateFilter },
-        }),
-        // Active at period start
-        this.prisma.client.count({
-          where: {
-            OR: [
-              { status: "ACTIVE" },
-              ...(to
-                ? ([
-                    { status: "STOPPED", suspendedAt: { gte: new Date(to) } },
-                  ] as const)
-                : []),
-            ],
-          },
-        }),
-      ]);
+    const [
+      totalClients,
+      statusCounts,
+      repeatClients,
+      churned,
+      activeAtPeriodStart,
+    ] = await Promise.all([
+      this.prisma.client.count({ where: dateFilter }),
+      this.prisma.client.groupBy({
+        by: ["status"],
+        where: dateFilter,
+        _count: { id: true },
+      }),
+      // Repeat clients: 2+ projects
+      this.prisma.client.count({
+        where: {
+          projects: { some: {} },
+          ...dateFilter,
+        },
+      }),
+      // Churned (STOPPED) in period
+      this.prisma.client.count({
+        where: { status: "STOPPED", ...dateFilter },
+      }),
+      // Active at period start
+      this.prisma.client.count({
+        where: {
+          OR: [
+            { status: "ACTIVE" },
+            ...(to
+              ? ([
+                  { status: "STOPPED", suspendedAt: { gte: new Date(to) } },
+                ] as const)
+              : []),
+          ],
+        },
+      }),
+    ]);
 
     // Repeat clients: those with 2+ projects
     const repeatRaw = await this.prisma.client.findMany({
@@ -167,54 +172,55 @@ export class AdminKpiService {
       newThisPeriod: statusMap["LEAD"] ?? 0,
       repeatClients: repeatClientCount,
       churnRate:
-        activeAtPeriodStart > 0
-          ? (churned / activeAtPeriodStart) * 100
-          : 0,
+        activeAtPeriodStart > 0 ? (churned / activeAtPeriodStart) * 100 : 0,
       retentionRate:
-        repeatClientCount > 0
-          ? (retainedCount / repeatClientCount) * 100
-          : 0,
+        repeatClientCount > 0 ? (retainedCount / repeatClientCount) * 100 : 0,
     };
   }
 
   async getProjectKpis(from?: string, to?: string) {
     const dateFilter = this.dateFilter(from, to);
 
-    const [projects, revisionStats, completedDuration, overdueCount, activeCount] =
-      await Promise.all([
-        this.prisma.project.findMany({
-          where: dateFilter,
-          select: {
-            id: true,
-            status: true,
-            isArchived: true,
-            startDate: true,
-          },
-        }),
-        // Task revision stats
-        this.prisma.task.aggregate({
-          where: { project: { ...dateFilter } },
-          _avg: { revisionCount: true },
-          _count: { id: true },
-        }),
-        // Completed project durations
-        this.prisma.project.findMany({
-          where: { status: "COMPLETED", ...dateFilter },
-          select: { startDate: true, endDate: true },
-        }),
-        // Overdue projects
-        this.prisma.project.count({
-          where: {
-            status: { notIn: ["COMPLETED", "CANCELLED"] },
-            endDate: { lt: new Date() },
-            ...dateFilter,
-          },
-        }),
-        // Active projects
-        this.prisma.project.count({
-          where: { status: { in: ["ACTIVE", "PLANNING", "ON_HOLD"] } },
-        }),
-      ]);
+    const [
+      projects,
+      revisionStats,
+      completedDuration,
+      overdueCount,
+      activeCount,
+    ] = await Promise.all([
+      this.prisma.project.findMany({
+        where: dateFilter,
+        select: {
+          id: true,
+          status: true,
+          isArchived: true,
+          startDate: true,
+        },
+      }),
+      // Task revision stats
+      this.prisma.task.aggregate({
+        where: { project: { ...dateFilter } },
+        _avg: { revisionCount: true },
+        _count: { id: true },
+      }),
+      // Completed project durations
+      this.prisma.project.findMany({
+        where: { status: "COMPLETED", ...dateFilter },
+        select: { startDate: true, endDate: true },
+      }),
+      // Overdue projects
+      this.prisma.project.count({
+        where: {
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+          endDate: { lt: new Date() },
+          ...dateFilter,
+        },
+      }),
+      // Active projects
+      this.prisma.project.count({
+        where: { status: { in: ["ACTIVE", "PLANNING", "ON_HOLD"] } },
+      }),
+    ]);
 
     const statusMap: Record<string, number> = {};
     for (const p of projects) {
@@ -254,21 +260,18 @@ export class AdminKpiService {
         status,
         count,
       })),
-      activeProjects:
-        (statusMap["ACTIVE"] ?? 0) + (statusMap["PLANNING"] ?? 0),
+      activeProjects: (statusMap["ACTIVE"] ?? 0) + (statusMap["PLANNING"] ?? 0),
       pendingActivation: statusMap["PENDING_ACTIVATION"] ?? 0,
       completedProjects: statusMap["COMPLETED"] ?? 0,
       stalledProjects: statusMap["ON_HOLD"] ?? 0,
       overdueProjects: overdueCount,
-      overdueRatio:
-        activeCount > 0 ? (overdueCount / activeCount) * 100 : 0,
+      overdueRatio: activeCount > 0 ? (overdueCount / activeCount) * 100 : 0,
       revisionRate: Math.round(revisionRate * 10) / 10,
       averageRevisionCount:
         revisionStats._count.id > 0
           ? Math.round((revisionStats._avg.revisionCount ?? 0) * 100) / 100
           : 0,
-      averageCompletionTimeDays:
-        Math.round(avgDurationDays * 10) / 10,
+      averageCompletionTimeDays: Math.round(avgDurationDays * 10) / 10,
     };
   }
 
@@ -295,7 +298,12 @@ export class AdminKpiService {
           where: {
             ...dateFilter,
             OR: [
-              { status: "IN_REVIEW", createdAt: { lt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000) } },
+              {
+                status: "IN_REVIEW",
+                createdAt: {
+                  lt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+                },
+              },
               { revisionCount: { gte: 3 } },
             ],
           },
@@ -361,39 +369,42 @@ export class AdminKpiService {
       blockedTasks,
       revisionLoops,
       slaCompliance: Math.round(slaCompliance * 10) / 10,
-      teamThroughputByDepartment: Object.entries(deptMap).map(
-        ([id, data]) => ({
-          departmentId: id,
-          departmentName: data.departmentName,
-          tasksCompleted: data.count,
-        }),
-      ),
+      teamThroughputByDepartment: Object.entries(deptMap).map(([id, data]) => ({
+        departmentId: id,
+        departmentName: data.departmentName,
+        tasksCompleted: data.count,
+      })),
     };
   }
 
   async getSystemKpis(from?: string, to?: string) {
     const dateFilter = this.dateFilter(from, to);
 
-    const [failedWebhooks, failedNotifications, totalNotifications, securityEvents, systemErrors] =
-      await Promise.all([
-        this.prisma.webhookLog.count({
-          where: { processed: false, ...dateFilter },
-        }),
-        this.prisma.notification.count({
-          where: { sentAt: null, ...dateFilter },
-        }),
-        this.prisma.notification.count({ where: dateFilter }),
-        this.prisma.securityEvent.groupBy({
-          by: ["type"],
-          where: dateFilter,
-          _count: { id: true },
-        }),
-        this.prisma.systemError.groupBy({
-          by: ["level", "category"],
-          where: dateFilter,
-          _count: { id: true },
-        }),
-      ]);
+    const [
+      failedWebhooks,
+      failedNotifications,
+      totalNotifications,
+      securityEvents,
+      systemErrors,
+    ] = await Promise.all([
+      this.prisma.webhookLog.count({
+        where: { processed: false, ...dateFilter },
+      }),
+      this.prisma.notification.count({
+        where: { sentAt: null, ...dateFilter },
+      }),
+      this.prisma.notification.count({ where: dateFilter }),
+      this.prisma.securityEvent.groupBy({
+        by: ["type"],
+        where: dateFilter,
+        _count: { id: true },
+      }),
+      this.prisma.systemError.groupBy({
+        by: ["level", "category"],
+        where: dateFilter,
+        _count: { id: true },
+      }),
+    ]);
 
     const notificationFailureRate =
       totalNotifications > 0

@@ -53,12 +53,7 @@ export class AdminSystemEventsService {
   }
 
   async getStats() {
-    const [
-      totalEvents,
-      openCount,
-      byType,
-      recentFailures,
-    ] = await Promise.all([
+    const [totalEvents, openCount, byType, recentFailures] = await Promise.all([
       this.prisma.systemEventLog.count(),
       this.prisma.systemEventLog.count({ where: { status: "OPEN" } }),
       this.prisma.systemEventLog.groupBy({
@@ -68,10 +63,7 @@ export class AdminSystemEventsService {
       }),
       this.prisma.systemEventLog.findMany({
         where: {
-          OR: [
-            { status: "OPEN" },
-            { status: "ACKNOWLEDGED" },
-          ],
+          OR: [{ status: "OPEN" }, { status: "ACKNOWLEDGED" }],
         },
         orderBy: { createdAt: "desc" },
         take: 10,

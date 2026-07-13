@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsInt, Min, Max, MinLength } from "class-validator";
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  MinLength,
+} from "class-validator";
 import { Type } from "class-transformer";
 
 export class ForceLeadStageDto {

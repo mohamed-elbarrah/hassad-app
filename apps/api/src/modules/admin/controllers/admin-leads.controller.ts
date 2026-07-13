@@ -51,7 +51,12 @@ export class AdminLeadsController {
     @Param("id") id: string,
     @CurrentUser() user: JwtPayload,
     @Body()
-    body: { type: string; result: string; notes?: string; contactedAt?: string },
+    body: {
+      type: string;
+      result: string;
+      notes?: string;
+      contactedAt?: string;
+    },
   ) {
     return this.service.addContactLog(id, user.id, body);
   }

@@ -1,4 +1,9 @@
-import { AiProvider, AiOptions, AiResult, AiProviderConfig } from "./provider.interface";
+import {
+  AiProvider,
+  AiOptions,
+  AiResult,
+  AiProviderConfig,
+} from "./provider.interface";
 
 export class OpenAICompatibleAdapter implements AiProvider {
   readonly name: string;
@@ -20,17 +25,22 @@ export class OpenAICompatibleAdapter implements AiProvider {
   }
 
   async listModels(): Promise<string[]> {
-    const baseUrl = (this.config.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+    const baseUrl = (
+      this.config.baseUrl || "https://api.openai.com/v1"
+    ).replace(/\/+$/, "");
     const response = await fetch(`${baseUrl}/models`, {
       headers: { Authorization: `Bearer ${this.config.apiKey}` },
     });
-    if (!response.ok) throw new Error(`Failed to fetch models (${response.status})`);
+    if (!response.ok)
+      throw new Error(`Failed to fetch models (${response.status})`);
     const json = (await response.json()) as { data: Array<{ id: string }> };
     return json.data.map((m) => m.id).sort();
   }
 
   async generateText(prompt: string, options?: AiOptions): Promise<AiResult> {
-    const baseUrl = (this.config.baseUrl || "https://api.openai.com/v1").replace(/\/+$/, "");
+    const baseUrl = (
+      this.config.baseUrl || "https://api.openai.com/v1"
+    ).replace(/\/+$/, "");
     const model = options?.model || this.config.models[0] || "gpt-4o";
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -49,7 +59,9 @@ export class OpenAICompatibleAdapter implements AiProvider {
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => "unknown error");
-      throw new Error(`OpenAI-compatible API error (${response.status}): ${errBody}`);
+      throw new Error(
+        `OpenAI-compatible API error (${response.status}): ${errBody}`,
+      );
     }
 
     const json = (await response.json()) as {

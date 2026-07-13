@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { CreateBusinessGoalDto, UpdateBusinessGoalDto } from "../dto/admin-business-goal.dto";
+import {
+  CreateBusinessGoalDto,
+  UpdateBusinessGoalDto,
+} from "../dto/admin-business-goal.dto";
 
 @Injectable()
 export class AdminBusinessGoalService {
@@ -42,8 +45,12 @@ export class AdminBusinessGoalService {
         ...(dto.target !== undefined && { target: dto.target }),
         ...(dto.current !== undefined && { current: dto.current }),
         ...(dto.period !== undefined && { period: dto.period }),
-        ...(dto.periodStart !== undefined && { periodStart: new Date(dto.periodStart) }),
-        ...(dto.periodEnd !== undefined && { periodEnd: new Date(dto.periodEnd) }),
+        ...(dto.periodStart !== undefined && {
+          periodStart: new Date(dto.periodStart),
+        }),
+        ...(dto.periodEnd !== undefined && {
+          periodEnd: new Date(dto.periodEnd),
+        }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });

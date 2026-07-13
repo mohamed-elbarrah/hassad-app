@@ -123,24 +123,38 @@ export default function ProjectSummaryTab({
             <p className="text-sm font-medium text-natural-100">
               {startDate} — {endDate}
             </p>
-            <p className="text-xs text-portal-note-text mt-1">تاريخ البداية — النهاية</p>
+            <p className="text-xs text-portal-note-text mt-1">
+              تاريخ البداية — النهاية
+            </p>
           </div>
           <div className="p-4 rounded-xl border border-portal-card-border text-center">
             <DollarSign className="h-5 w-5 text-secondary-500 mx-auto mb-2" />
             <p className="text-2xl font-semibold text-natural-100">
               {project.totalValue.toLocaleString("ar-SA")}
             </p>
-            <p className="text-xs text-portal-note-text mt-1">القيمة الإجمالية (ر.س)</p>
+            <p className="text-xs text-portal-note-text mt-1">
+              القيمة الإجمالية (ر.س)
+            </p>
           </div>
         </div>
       </SurfaceCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <SurfaceCard title="المهام المتأخرة">
-          {project.tasks.filter((t) => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < new Date()).length > 0 ? (
+          {project.tasks.filter(
+            (t) =>
+              t.status !== "DONE" &&
+              t.dueDate &&
+              new Date(t.dueDate) < new Date(),
+          ).length > 0 ? (
             <div className="space-y-2">
               {project.tasks
-                .filter((t) => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < new Date())
+                .filter(
+                  (t) =>
+                    t.status !== "DONE" &&
+                    t.dueDate &&
+                    new Date(t.dueDate) < new Date(),
+                )
                 .slice(0, 5)
                 .map((task) => (
                   <div

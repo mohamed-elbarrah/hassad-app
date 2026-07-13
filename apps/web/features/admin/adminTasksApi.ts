@@ -93,10 +93,7 @@ export const adminTasksApi = createApi({
   baseQuery,
   tagTypes: ["AdminTasks", "AdminTask"],
   endpoints: (builder) => ({
-    getAdminTasks: builder.query<
-      PaginatedAdminTasks,
-      AdminTaskFilters | void
-    >({
+    getAdminTasks: builder.query<PaginatedAdminTasks, AdminTaskFilters | void>({
       query: (filters) => {
         if (!filters) return "/admin/tasks";
         const params = new URLSearchParams();
@@ -106,8 +103,7 @@ export const adminTasksApi = createApi({
         if (filters.department) params.set("department", filters.department);
         if (filters.status) params.set("status", filters.status);
         if (filters.priority) params.set("priority", filters.priority);
-        if (filters.overdueOnly)
-          params.set("overdueOnly", "true");
+        if (filters.overdueOnly) params.set("overdueOnly", "true");
         if (filters.page) params.set("page", String(filters.page));
         if (filters.limit) params.set("limit", String(filters.limit));
         return `/admin/tasks?${params.toString()}`;
@@ -122,7 +118,5 @@ export const adminTasksApi = createApi({
   }),
 });
 
-export const {
-  useGetAdminTasksQuery,
-  useGetAdminTaskByIdQuery,
-} = adminTasksApi;
+export const { useGetAdminTasksQuery, useGetAdminTaskByIdQuery } =
+  adminTasksApi;

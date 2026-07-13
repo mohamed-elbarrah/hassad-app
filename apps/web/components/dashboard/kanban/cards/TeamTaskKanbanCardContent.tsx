@@ -21,21 +21,21 @@ const PRIORITY_TONE: Record<
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-interface EmployeeTaskKanbanCardContentProps {
+interface TeamTaskKanbanCardContentProps {
   task: TaskWithProject;
   canDrag?: boolean;
 }
 
 /**
- * Card content for the employee task kanban.
+ * Card content for the team task kanban.
  *
  * Renders task title, project name, priority pill, and due date.
  * Shows a lock icon when the card is not draggable.
  */
-export function EmployeeTaskKanbanCardContent({
+export function TeamTaskKanbanCardContent({
   task,
   canDrag = true,
-}: EmployeeTaskKanbanCardContentProps) {
+}: TeamTaskKanbanCardContentProps) {
   const isOverdue =
     task.dueDate != null &&
     task.status !== TaskStatus.DONE &&
@@ -66,7 +66,7 @@ export function EmployeeTaskKanbanCardContent({
         </span>
         <div className="flex-1 min-w-0">
           <Link
-            href={`/dashboard/employee/tasks/${task.id}`}
+            href={`/dashboard/team/tasks/${task.id}`}
             className="text-sm font-medium hover:underline line-clamp-2 block"
             style={{ color: "#000000" }}
             onClick={(e) => e.stopPropagation()}

@@ -160,8 +160,7 @@ export const adminProjectsApi = createApi({
         if (filters.clientId) params.set("clientId", filters.clientId);
         if (filters.status) params.set("status", filters.status);
         if (filters.priority) params.set("priority", filters.priority);
-        if (filters.overdueOnly)
-          params.set("overdueOnly", "true");
+        if (filters.overdueOnly) params.set("overdueOnly", "true");
         if (filters.page) params.set("page", String(filters.page));
         if (filters.limit) params.set("limit", String(filters.limit));
         return `/admin/projects?${params.toString()}`;
@@ -176,7 +175,5 @@ export const adminProjectsApi = createApi({
   }),
 });
 
-export const {
-  useGetAdminProjectsQuery,
-  useGetAdminProjectByIdQuery,
-} = adminProjectsApi;
+export const { useGetAdminProjectsQuery, useGetAdminProjectByIdQuery } =
+  adminProjectsApi;

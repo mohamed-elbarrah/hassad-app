@@ -37,7 +37,11 @@ export function AlertPanel({ categories, className }: AlertPanelProps) {
 
   if (categories.length === 0) {
     return (
-      <SurfaceCard title="ما يحتاج اهتماماً" icon={AlertTriangle} className={className}>
+      <SurfaceCard
+        title="ما يحتاج اهتماماً"
+        icon={AlertTriangle}
+        className={className}
+      >
         <p className="text-sm text-portal-note-text text-center py-6">
           لا توجد عناصر تحتاج اهتماماً
         </p>
@@ -49,11 +53,7 @@ export function AlertPanel({ categories, className }: AlertPanelProps) {
     <SurfaceCard
       title="ما يحتاج اهتماماً"
       icon={AlertTriangle}
-      action={
-        totalUrgent > 0 && (
-          <Pill tone="danger">{totalUrgent}</Pill>
-        )
-      }
+      action={totalUrgent > 0 && <Pill tone="danger">{totalUrgent}</Pill>}
       className={className}
     >
       <div className="space-y-4">
@@ -72,7 +72,15 @@ export function AlertPanel({ categories, className }: AlertPanelProps) {
                   <span className="text-sm font-medium text-natural-100 truncate">
                     {cat.label}
                   </span>
-                  <Pill tone={cat.severity === "HIGH" ? "danger" : cat.severity === "MEDIUM" ? "warning" : "neutral"}>
+                  <Pill
+                    tone={
+                      cat.severity === "HIGH"
+                        ? "danger"
+                        : cat.severity === "MEDIUM"
+                          ? "warning"
+                          : "neutral"
+                    }
+                  >
                     {cat.count}
                   </Pill>
                 </div>
@@ -87,7 +95,10 @@ export function AlertPanel({ categories, className }: AlertPanelProps) {
               {cat.items.length > 0 && (
                 <div className="space-y-1.5 mr-5">
                   {cat.items.slice(0, 3).map((item) => (
-                    <div key={item.id} className="flex items-center justify-between">
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between"
+                    >
                       <span className="text-xs text-portal-note-text truncate">
                         {item.title}
                       </span>

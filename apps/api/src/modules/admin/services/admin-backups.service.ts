@@ -271,7 +271,7 @@ export class AdminBackupsService {
         },
         async (error: any, stdout: string) => {
           const exitMatch = stdout?.match(/EXIT:(\d+)/);
-          const exitCode = exitMatch ? parseInt(exitMatch[1]) : (error ? 1 : 0);
+          const exitCode = exitMatch ? parseInt(exitMatch[1]) : error ? 1 : 0;
 
           if (exitCode === 0) {
             const stats = await this.getFileSize(filepath);
@@ -296,12 +296,22 @@ export class AdminBackupsService {
               }),
               this.prisma.systemEventLog.update({
                 where: { id: startedEvent.id },
-                data: { status: "RESOLVED", resolvedAt: new Date(), resolvedBy: triggeredBy },
+                data: {
+                  status: "RESOLVED",
+                  resolvedAt: new Date(),
+                  resolvedBy: triggeredBy,
+                },
               }),
             ]);
-            resolvePromise({ success: true, filename, filepath, size: stats.size });
+            resolvePromise({
+              success: true,
+              filename,
+              filepath,
+              size: stats.size,
+            });
           } else {
-            const errMsg = error?.message || `pg_dump exited with code ${exitCode}`;
+            const errMsg =
+              error?.message || `pg_dump exited with code ${exitCode}`;
             await this.prisma.$transaction([
               this.prisma.systemEventLog.create({
                 data: {
@@ -318,7 +328,11 @@ export class AdminBackupsService {
               }),
               this.prisma.systemEventLog.update({
                 where: { id: startedEvent.id },
-                data: { status: "RESOLVED", resolvedAt: new Date(), resolvedBy: triggeredBy },
+                data: {
+                  status: "RESOLVED",
+                  resolvedAt: new Date(),
+                  resolvedBy: triggeredBy,
+                },
               }),
             ]);
             resolvePromise({ success: false, error: errMsg });
@@ -340,7 +354,14 @@ export class AdminBackupsService {
   async getBackupHistory(limit = 20) {
     return this.prisma.systemEventLog.findMany({
       where: {
-        eventType: { in: ["BACKUP_STARTED", "BACKUP_COMPLETED", "BACKUP_FAILED", "BACKUP_RESTORE"] as any },
+        eventType: {
+          in: [
+            "BACKUP_STARTED",
+            "BACKUP_COMPLETED",
+            "BACKUP_FAILED",
+            "BACKUP_RESTORE",
+          ] as any,
+        },
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -370,7 +391,8 @@ export class AdminBackupsService {
     return {
       lastBackup: latest
         ? {
-            status: latest.eventType === "BACKUP_COMPLETED" ? "completed" : "failed",
+            status:
+              latest.eventType === "BACKUP_COMPLETED" ? "completed" : "failed",
             timestamp: latest.createdAt.toISOString(),
             metadata: latest.metadata,
           }

@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Scale, MessageSquareWarning, Clock, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import {
+  Scale,
+  MessageSquareWarning,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
@@ -84,7 +91,8 @@ export default function AdminDisputesPage() {
     limit: 20,
   });
 
-  const { data: stats, isLoading: statsLoading } = useGetAdminDisputeStatsQuery();
+  const { data: stats, isLoading: statsLoading } =
+    useGetAdminDisputeStatsQuery();
 
   const disputes = useMemo(() => data?.data ?? [], [data]);
   const total = data?.meta?.total ?? 0;
@@ -169,14 +177,14 @@ export default function AdminDisputesPage() {
         ))}
       </div>
 
-      <SurfaceCard
-        title="قائمة النزاعات"
-        description={`${total} نزاع`}
-      >
+      <SurfaceCard title="قائمة النزاعات" description={`${total} نزاع`}>
         <div className="mb-4">
           <AdminListToolbar
             search={search}
-            onSearchChange={(v) => { setSearch(v); setPage(1); }}
+            onSearchChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
             searchPlaceholder="بحث برقم التذكرة أو العنوان..."
             filterGroups={[
               {
@@ -246,7 +254,9 @@ export default function AdminDisputesPage() {
                     priorityBadgeClass(dispute.priority),
                   )}
                 >
-                  {DISPUTE_PRIORITY_AR[dispute.priority as keyof typeof DISPUTE_PRIORITY_AR] || dispute.priority}
+                  {DISPUTE_PRIORITY_AR[
+                    dispute.priority as keyof typeof DISPUTE_PRIORITY_AR
+                  ] || dispute.priority}
                 </span>
               </td>
               <td className="py-3 px-2 text-right text-sm text-portal-note-text">
@@ -258,9 +268,7 @@ export default function AdminDisputesPage() {
 
         {!isLoading && !isError && totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-portal-note-text">
-              إجمالي {total} نزاع
-            </p>
+            <p className="text-sm text-portal-note-text">إجمالي {total} نزاع</p>
             <Pagination
               page={page}
               totalPages={totalPages}

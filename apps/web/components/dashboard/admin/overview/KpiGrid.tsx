@@ -1,12 +1,24 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Users, CheckCircle, UserPlus, DollarSign, Activity, ClipboardCheck, AlertCircle, Clock } from "lucide-react";
+import {
+  Users,
+  CheckCircle,
+  UserPlus,
+  DollarSign,
+  Activity,
+  ClipboardCheck,
+  AlertCircle,
+  Clock,
+} from "lucide-react";
 import { StatCard } from "@/components/design-system/StatCard";
 import type { PillTone } from "@/components/design-system/Pill";
 import { formatNumber, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { AdminStats, AdminTrendsResponse } from "@/features/admin/adminApi";
+import type {
+  AdminStats,
+  AdminTrendsResponse,
+} from "@/features/admin/adminApi";
 
 export interface KpiConfig {
   key: string;
@@ -116,12 +128,13 @@ export function buildAdminKpiConfigs(
       sparklineData: trends?.revenue,
       sparklineColor: "#10B981",
       ...(deltaToTrend(d?.monthlyRevenue ?? stats.revenueChange) ?? {}),
-      pill: d?.monthlyRevenue != null
-        ? {
-            text: `${d.monthlyRevenue > 0 ? "+" : ""}${d.monthlyRevenue}%`,
-            tone: d.monthlyRevenue > 0 ? "success" : "danger",
-          }
-        : undefined,
+      pill:
+        d?.monthlyRevenue != null
+          ? {
+              text: `${d.monthlyRevenue > 0 ? "+" : ""}${d.monthlyRevenue}%`,
+              tone: d.monthlyRevenue > 0 ? "success" : "danger",
+            }
+          : undefined,
     },
     {
       key: "activeProjects",
@@ -148,9 +161,10 @@ export function buildAdminKpiConfigs(
       variant: "danger",
       href: "/dashboard/admin/finance",
       ...(deltaToTrend(d?.unpaidInvoicesCount) ?? {}),
-      pill: stats.unpaidInvoicesCount > 0
-        ? { text: "عاجل", tone: "danger" as PillTone }
-        : undefined,
+      pill:
+        stats.unpaidInvoicesCount > 0
+          ? { text: "عاجل", tone: "danger" as PillTone }
+          : undefined,
     },
     {
       key: "overdueTasks",
@@ -160,9 +174,10 @@ export function buildAdminKpiConfigs(
       variant: "danger",
       href: "/dashboard/admin/tasks",
       ...(deltaToTrend(d?.overdueTasks) ?? {}),
-      pill: stats.overdueTasks > 0
-        ? { text: "عاجل", tone: "danger" as PillTone }
-        : undefined,
+      pill:
+        stats.overdueTasks > 0
+          ? { text: "عاجل", tone: "danger" as PillTone }
+          : undefined,
     },
   ];
 }

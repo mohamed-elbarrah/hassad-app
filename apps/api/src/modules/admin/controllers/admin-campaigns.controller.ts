@@ -11,7 +11,10 @@ import {
 
 import { AdminCampaignsService } from "../services/admin-campaigns.service";
 
-import { AdminCreateCampaignDto, AdminUpdateCampaignDto } from "../dto/admin-campaign.dto";
+import {
+  AdminCreateCampaignDto,
+  AdminUpdateCampaignDto,
+} from "../dto/admin-campaign.dto";
 
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";

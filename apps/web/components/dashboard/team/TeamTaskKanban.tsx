@@ -13,22 +13,22 @@ import {
 import { useAppSelector } from "@/lib/hooks";
 import { KanbanBoard } from "@/components/dashboard/kanban";
 import { TASK_STATUS_CONFIG } from "@/components/dashboard/kanban/configs/task-status";
-import { EmployeeTaskKanbanCardContent } from "@/components/dashboard/kanban/cards/EmployeeTaskKanbanCardContent";
+import { TeamTaskKanbanCardContent } from "@/components/dashboard/kanban/cards/TeamTaskKanbanCardContent";
 
 // ─── Allowed status transitions per role ──────────────────────────────────────
 
 const TASK_STATUS_TRANSITIONS: Partial<
   Record<TaskStatus, Partial<Record<string, TaskStatus[]>>>
 > = {
-  [TaskStatus.TODO]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
-  [TaskStatus.IN_PROGRESS]: { EMPLOYEE: [TaskStatus.IN_REVIEW] },
+  [TaskStatus.TODO]: { TEAM: [TaskStatus.IN_PROGRESS] },
+  [TaskStatus.IN_PROGRESS]: { TEAM: [TaskStatus.IN_REVIEW] },
   [TaskStatus.IN_REVIEW]: { PM: [TaskStatus.DONE, TaskStatus.REVISION] },
-  [TaskStatus.REVISION]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
+  [TaskStatus.REVISION]: { TEAM: [TaskStatus.IN_PROGRESS] },
 };
 
 // ─── Props ─────────────────────────────────────────────────────────────────────
 
-interface EmployeeTaskKanbanProps {
+interface TeamTaskKanbanProps {
   tasks: TaskWithProject[];
   isLoading: boolean;
   onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
@@ -36,11 +36,11 @@ interface EmployeeTaskKanbanProps {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function EmployeeTaskKanban({
+export function TeamTaskKanban({
   tasks,
   isLoading,
   onStatusChange,
-}: EmployeeTaskKanbanProps) {
+}: TeamTaskKanbanProps) {
   const { user } = useAppSelector((state) => state.auth);
   const [startTask] = useStartTaskMutation();
   const [submitTask] = useSubmitTaskMutation();
@@ -157,7 +157,7 @@ export function EmployeeTaskKanban({
   // ── Render card ──────────────────────────────────────────────────────
   const renderCard = useCallback(
     (task: TaskWithProject, _options: { isOverlay: boolean }) => (
-      <EmployeeTaskKanbanCardContent task={task} canDrag={canDragItem(task)} />
+      <TeamTaskKanbanCardContent task={task} canDrag={canDragItem(task)} />
     ),
     [canDragItem],
   );

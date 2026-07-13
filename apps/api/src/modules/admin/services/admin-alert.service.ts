@@ -21,8 +21,14 @@ export class AdminAlertService {
       where: {
         isArchived: false,
         OR: [
-          { status: { in: ["PLANNING", "PENDING_ACTIVATION"] }, createdAt: { lt: sevenDaysAgo } },
-          { status: { notIn: ["COMPLETED", "CANCELLED"] }, updatedAt: { lt: fourteenDaysAgo } },
+          {
+            status: { in: ["PLANNING", "PENDING_ACTIVATION"] },
+            createdAt: { lt: sevenDaysAgo },
+          },
+          {
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+            updatedAt: { lt: fourteenDaysAgo },
+          },
         ],
       },
       include: {
@@ -60,7 +66,8 @@ export class AdminAlertService {
       notified++;
     }
 
-    if (notified > 0) this.logger.log(`Stalled projects: ${notified} notification(s) sent`);
+    if (notified > 0)
+      this.logger.log(`Stalled projects: ${notified} notification(s) sent`);
     return notified;
   }
 
@@ -93,7 +100,9 @@ export class AdminAlertService {
       eventType: "UNASSIGNED_LEAD",
     });
 
-    this.logger.log(`Unassigned leads alert sent to ${managerIds.length} manager(s)`);
+    this.logger.log(
+      `Unassigned leads alert sent to ${managerIds.length} manager(s)`,
+    );
     return unassigned.length;
   }
 
@@ -126,7 +135,9 @@ export class AdminAlertService {
       eventType: "UNASSIGNED_REQUEST",
     });
 
-    this.logger.log(`Unassigned requests alert sent to ${managerIds.length} manager(s)`);
+    this.logger.log(
+      `Unassigned requests alert sent to ${managerIds.length} manager(s)`,
+    );
     return unassigned.length;
   }
 
@@ -157,7 +168,9 @@ export class AdminAlertService {
         .filter(Boolean),
     );
 
-    const newFailures = openFailures.filter((f) => !alreadyAlertedIds.has(f.id));
+    const newFailures = openFailures.filter(
+      (f) => !alreadyAlertedIds.has(f.id),
+    );
     if (newFailures.length === 0) return 0;
 
     const admins = await this.prisma.user.findMany({
@@ -167,8 +180,12 @@ export class AdminAlertService {
     if (admins.length === 0) return 0;
 
     const adminIds = admins.map((u) => u.id);
-    const webhookCount = newFailures.filter((f) => f.eventType === "WEBHOOK_FAILURE").length;
-    const gatewayCount = newFailures.filter((f) => f.eventType === "GATEWAY_FAILURE").length;
+    const webhookCount = newFailures.filter(
+      (f) => f.eventType === "WEBHOOK_FAILURE",
+    ).length;
+    const gatewayCount = newFailures.filter(
+      (f) => f.eventType === "GATEWAY_FAILURE",
+    ).length;
 
     await this.notificationsService.notifyUsers({
       userIds: adminIds,
@@ -219,7 +236,9 @@ export class AdminAlertService {
       });
       if (existing) continue;
 
-      const recipients = [client.accountManager, client.userId].filter(Boolean) as string[];
+      const recipients = [client.accountManager, client.userId].filter(
+        Boolean,
+      ) as string[];
       if (recipients.length === 0) continue;
 
       await this.notificationsService.notifyUsers({
@@ -233,7 +252,8 @@ export class AdminAlertService {
       notified++;
     }
 
-    if (notified > 0) this.logger.log(`Inactive clients: ${notified} notification(s) sent`);
+    if (notified > 0)
+      this.logger.log(`Inactive clients: ${notified} notification(s) sent`);
     return notified;
   }
 
@@ -249,9 +269,14 @@ export class AdminAlertService {
 
     if (workloads.length === 0) return 0;
 
-    const avgTasks = workloads.reduce((s, w) => s + w.activeTasksCount, 0) / workloads.length;
-    const overloaded = workloads.filter((w) => w.activeTasksCount > avgTasks * 2);
-    const underloaded = workloads.filter((w) => w.activeTasksCount < avgTasks * 0.3 && avgTasks > 2);
+    const avgTasks =
+      workloads.reduce((s, w) => s + w.activeTasksCount, 0) / workloads.length;
+    const overloaded = workloads.filter(
+      (w) => w.activeTasksCount > avgTasks * 2,
+    );
+    const underloaded = workloads.filter(
+      (w) => w.activeTasksCount < avgTasks * 0.3 && avgTasks > 2,
+    );
 
     let notified = 0;
 
@@ -288,7 +313,10 @@ export class AdminAlertService {
         select: { id: true },
       });
       if (managers.length > 0) {
-        const names = underloaded.map((w) => w.user?.name).filter(Boolean).join("، ");
+        const names = underloaded
+          .map((w) => w.user?.name)
+          .filter(Boolean)
+          .join("، ");
         await this.notificationsService.notifyUsers({
           userIds: managers.map((m) => m.id),
           title: "أعضاء فريق بحمل عمل منخفض",
@@ -301,7 +329,8 @@ export class AdminAlertService {
       }
     }
 
-    if (notified > 0) this.logger.log(`Workload alerts: ${notified} notification(s) sent`);
+    if (notified > 0)
+      this.logger.log(`Workload alerts: ${notified} notification(s) sent`);
     return notified;
   }
 
@@ -326,13 +355,17 @@ export class AdminAlertService {
       });
       if (existing) continue;
 
-      const daysOverdue = Math.floor((now.getTime() - task.dueDate.getTime()) / (24 * 60 * 60 * 1000));
-      const alertLevel = daysOverdue > 7 ? "HIGH" : daysOverdue > 3 ? "MEDIUM" : "LOW";
+      const daysOverdue = Math.floor(
+        (now.getTime() - task.dueDate.getTime()) / (24 * 60 * 60 * 1000),
+      );
+      const alertLevel =
+        daysOverdue > 7 ? "HIGH" : daysOverdue > 3 ? "MEDIUM" : "LOW";
 
       await this.prisma.taskDelayAlert.create({
         data: {
           taskId: task.id,
-          notifiedUserId: task.assignee?.id ?? task.project?.projectManagerId ?? "unknown",
+          notifiedUserId:
+            task.assignee?.id ?? task.project?.projectManagerId ?? "unknown",
           alertLevel: alertLevel as any,
         },
       });
@@ -355,7 +388,10 @@ export class AdminAlertService {
   }
 
   // ── Auto-flag stale records (gated by feature flag) ────────────────────
-  async checkStaleRecords(): Promise<{ flaggedLeads: number; flaggedRequests: number }> {
+  async checkStaleRecords(): Promise<{
+    flaggedLeads: number;
+    flaggedRequests: number;
+  }> {
     const featureFlag = await this.prisma.companySetting.findUnique({
       where: { key: "feature.auto_flag_stale" },
     });
@@ -408,10 +444,15 @@ export class AdminAlertService {
     }
 
     if (staleLeads.length > 0 || staleRequests.length > 0) {
-      this.logger.log(`Stale records flagged: ${staleLeads.length} leads, ${staleRequests.length} requests`);
+      this.logger.log(
+        `Stale records flagged: ${staleLeads.length} leads, ${staleRequests.length} requests`,
+      );
     }
 
-    return { flaggedLeads: staleLeads.length, flaggedRequests: staleRequests.length };
+    return {
+      flaggedLeads: staleLeads.length,
+      flaggedRequests: staleRequests.length,
+    };
   }
 
   // ── Run all checks ─────────────────────────────────────────────────────
@@ -434,7 +475,10 @@ export class AdminAlertService {
         results[name] = await fn();
       } catch (err: any) {
         results[name] = { error: err.message };
-        this.logger.error(`Alert check "${name}" failed: ${err.message}`, err.stack);
+        this.logger.error(
+          `Alert check "${name}" failed: ${err.message}`,
+          err.stack,
+        );
       }
     }
 

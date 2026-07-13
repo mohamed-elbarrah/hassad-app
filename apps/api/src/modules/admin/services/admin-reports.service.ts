@@ -25,26 +25,28 @@ export class AdminReportsService {
   async getSalesReport(from?: string, to?: string) {
     const dateFilter = this.dateWhere(from, to);
 
-    const [totalLeads, leadsByStage, leadsBySource, signedLeads] = await Promise.all([
-      this.prisma.lead.count({ where: dateFilter }),
-      this.prisma.lead.groupBy({
-        by: ["pipelineStage"],
-        where: dateFilter,
-        _count: { id: true },
-      }),
-      this.prisma.lead.groupBy({
-        by: ["source"],
-        where: dateFilter,
-        _count: { id: true },
-      }),
-      this.prisma.leadPipelineHistory.findMany({
-        where: { toStage: "CONTRACT_SIGNED" },
-        select: { leadId: true },
-        distinct: ["leadId"],
-      }),
-    ]);
+    const [totalLeads, leadsByStage, leadsBySource, signedLeads] =
+      await Promise.all([
+        this.prisma.lead.count({ where: dateFilter }),
+        this.prisma.lead.groupBy({
+          by: ["pipelineStage"],
+          where: dateFilter,
+          _count: { id: true },
+        }),
+        this.prisma.lead.groupBy({
+          by: ["source"],
+          where: dateFilter,
+          _count: { id: true },
+        }),
+        this.prisma.leadPipelineHistory.findMany({
+          where: { toStage: "CONTRACT_SIGNED" },
+          select: { leadId: true },
+          distinct: ["leadId"],
+        }),
+      ]);
 
-    const conversionRate = totalLeads > 0 ? (signedLeads.length / totalLeads) * 100 : 0;
+    const conversionRate =
+      totalLeads > 0 ? (signedLeads.length / totalLeads) * 100 : 0;
 
     const topRaw = await this.prisma.lead.groupBy({
       by: ["assignedTo"],
@@ -73,9 +75,15 @@ export class AdminReportsService {
 
     return {
       totalLeads,
-      leadsByStage: leadsByStage.map((l) => ({ stage: l.pipelineStage, count: l._count.id })),
+      leadsByStage: leadsByStage.map((l) => ({
+        stage: l.pipelineStage,
+        count: l._count.id,
+      })),
       conversionRate,
-      leadsBySource: leadsBySource.map((l) => ({ source: l.source, count: l._count.id })),
+      leadsBySource: leadsBySource.map((l) => ({
+        source: l.source,
+        count: l._count.id,
+      })),
       topSalesPeople,
     };
   }
@@ -124,7 +132,8 @@ export class AdminReportsService {
 
     const clientMap: Record<string, { total: number; count: number }> = {};
     for (const inv of invoices) {
-      if (!clientMap[inv.clientId]) clientMap[inv.clientId] = { total: 0, count: 0 };
+      if (!clientMap[inv.clientId])
+        clientMap[inv.clientId] = { total: 0, count: 0 };
       clientMap[inv.clientId].total += inv.amount;
       clientMap[inv.clientId].count += 1;
     }
@@ -179,21 +188,33 @@ export class AdminReportsService {
       statusMap[p.status] = (statusMap[p.status] || 0) + 1;
     }
 
-    const byStatus = Object.entries(statusMap).map(([status, count]) => ({ status, count }));
+    const byStatus = Object.entries(statusMap).map(([status, count]) => ({
+      status,
+      count,
+    }));
 
     const durations = projects
       .filter((p) => p.startDate && p.endDate)
-      .map((p) => Math.ceil((p.endDate.getTime() - p.startDate.getTime()) / (1000 * 60 * 60 * 24)));
+      .map((p) =>
+        Math.ceil(
+          (p.endDate.getTime() - p.startDate.getTime()) / (1000 * 60 * 60 * 24),
+        ),
+      );
 
     const avgDuration =
-      durations.length > 0 ? durations.reduce((s, d) => s + d, 0) / durations.length : 0;
+      durations.length > 0
+        ? durations.reduce((s, d) => s + d, 0) / durations.length
+        : 0;
 
     const now = new Date();
     const overdueCount = projects.filter(
-      (p) => p.endDate < now && p.status !== "COMPLETED" && p.status !== "CANCELLED",
+      (p) =>
+        p.endDate < now && p.status !== "COMPLETED" && p.status !== "CANCELLED",
     ).length;
 
-    const completedCount = projects.filter((p) => p.status === "COMPLETED").length;
+    const completedCount = projects.filter(
+      (p) => p.status === "COMPLETED",
+    ).length;
     const completionRate = total > 0 ? (completedCount / total) * 100 : 0;
 
     return { total, byStatus, avgDuration, overdueCount, completionRate };
@@ -323,10 +344,12 @@ export class AdminReportsService {
       count,
     }));
 
-    const platformBreakdown = Object.entries(platformMap).map(([platform, data]) => ({
-      platform,
-      ...data,
-    }));
+    const platformBreakdown = Object.entries(platformMap).map(
+      ([platform, data]) => ({
+        platform,
+        ...data,
+      }),
+    );
 
     const snapshots = await this.prisma.campaignKpiSnapshot.findMany({
       where: dateFilter,
@@ -336,7 +359,13 @@ export class AdminReportsService {
     const totalRevenue = snapshots.reduce((s, sn) => s + sn.revenue, 0);
     const avgROI = totalSpent > 0 ? totalRevenue / totalSpent : 0;
 
-    return { totalByStatus, totalBudget, totalSpent, avgROI, platformBreakdown };
+    return {
+      totalByStatus,
+      totalBudget,
+      totalSpent,
+      avgROI,
+      platformBreakdown,
+    };
   }
 
   async exportReport(type: string, format: string, from?: string, to?: string) {
@@ -381,11 +410,22 @@ export class AdminReportsService {
       periodEnd = new Date(periodStart.getTime() + 24 * 60 * 60 * 1000);
     } else if (period === "WEEKLY") {
       const day = now.getDay();
-      periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+      periodStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - day,
+      );
       periodEnd = new Date(periodStart.getTime() + 7 * 24 * 60 * 60 * 1000);
     } else {
       periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      periodEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      );
     }
 
     const from = periodStart.toISOString();
@@ -479,7 +519,10 @@ export class AdminReportsService {
       const prev = snapshots[i + 1];
       const change =
         prev && typeof prev.data === "object" && prev.data !== null
-          ? this.computeChange(prev.data as Record<string, unknown>, s.data as Record<string, unknown>)
+          ? this.computeChange(
+              prev.data as Record<string, unknown>,
+              s.data as Record<string, unknown>,
+            )
           : null;
       return { ...s, change };
     });
@@ -575,31 +618,33 @@ export class AdminReportsService {
   }
 
   async getSystemHealthReport(from?: string, to?: string) {
-    const [kpis, gateways, paymentCounts, externalServices] = await Promise.all([
-      this.kpiService.getSystemKpis(from, to),
-      this.prisma.paymentGateway.findMany({
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          isActive: true,
-          createdAt: true,
-        },
-      }),
-      this.prisma.payment.groupBy({
-        by: ["gatewayId"],
-        _count: { id: true },
-      }),
-      this.prisma.externalServiceHealth.findMany({
-        select: {
-          serviceName: true,
-          status: true,
-          responseTime: true,
-          lastCheckedAt: true,
-          consecutiveFailures: true,
-        },
-      }),
-    ]);
+    const [kpis, gateways, paymentCounts, externalServices] = await Promise.all(
+      [
+        this.kpiService.getSystemKpis(from, to),
+        this.prisma.paymentGateway.findMany({
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            isActive: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.payment.groupBy({
+          by: ["gatewayId"],
+          _count: { id: true },
+        }),
+        this.prisma.externalServiceHealth.findMany({
+          select: {
+            serviceName: true,
+            status: true,
+            responseTime: true,
+            lastCheckedAt: true,
+            consecutiveFailures: true,
+          },
+        }),
+      ],
+    );
 
     const paymentCountMap = new Map(
       paymentCounts.map((p) => [p.gatewayId, p._count.id]),

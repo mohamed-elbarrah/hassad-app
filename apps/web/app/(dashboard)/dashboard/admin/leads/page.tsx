@@ -43,9 +43,9 @@ const EMPTY_STATE: DataTableEmptyState = {
 export default function AdminLeadsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [activeFilters, setActiveFilters] = useState<
-    Record<string, string[]>
-  >({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
 
   const filters = useMemo(() => {
     const f: Record<string, string | number | undefined> = {
@@ -103,8 +103,7 @@ export default function AdminLeadsPage() {
               stats?.conversionRate != null
                 ? `${(stats.conversionRate * 100).toFixed(1)}%`
                 : "—",
-            className:
-              "bg-success-100/50 border-success-200 text-success-600",
+            className: "bg-success-100/50 border-success-200 text-success-600",
           },
         ].map((card) => (
           <div
@@ -190,10 +189,7 @@ export default function AdminLeadsPage() {
                 {lead.contactName}
               </td>
               <td className="py-3 px-2 text-right">
-                <AdminStatusBadge
-                  domain="lead"
-                  status={lead.pipelineStage}
-                />
+                <AdminStatusBadge domain="lead" status={lead.pipelineStage} />
               </td>
               <td className="py-3 px-2 text-right text-sm text-portal-note-text">
                 {CLIENT_SOURCE_AR[

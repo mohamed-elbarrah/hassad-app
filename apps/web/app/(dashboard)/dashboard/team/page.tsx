@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
 import { StatCard } from "@/components/design-system/StatCard";
-import { EmployeeTaskKanban } from "@/components/dashboard/employee/EmployeeTaskKanban";
+import { TeamTaskKanban } from "@/components/dashboard/team/TeamTaskKanban";
 import { EmptyState } from "@/components/common/EmptyState";
 import {
   FilterBar,
@@ -20,7 +20,7 @@ import { TASK_PRIORITY_LABELS } from "@/lib/utils/task-status";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function EmployeeDashboardPage() {
+export default function TeamDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
 
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({
@@ -110,7 +110,7 @@ export default function EmployeeDashboardPage() {
           }
         />
       ) : (
-        <EmployeeTaskKanban tasks={filteredTasks} isLoading={tasksLoading} />
+        <TeamTaskKanban tasks={filteredTasks} isLoading={tasksLoading} />
       )}
     </div>
   );

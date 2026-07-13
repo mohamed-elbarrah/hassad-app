@@ -1,9 +1,19 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Param, Body, Query, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
 } from "@nestjs/common";
 import { AdminBusinessGoalService } from "../services/admin-business-goal.service";
-import { CreateBusinessGoalDto, UpdateBusinessGoalDto } from "../dto/admin-business-goal.dto";
+import {
+  CreateBusinessGoalDto,
+  UpdateBusinessGoalDto,
+} from "../dto/admin-business-goal.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";

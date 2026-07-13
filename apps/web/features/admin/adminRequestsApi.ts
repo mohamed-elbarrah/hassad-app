@@ -98,7 +98,5 @@ export const adminRequestsApi = createApi({
   }),
 });
 
-export const {
-  useGetAdminRequestsQuery,
-  useGetAdminRequestByIdQuery,
-} = adminRequestsApi;
+export const { useGetAdminRequestsQuery, useGetAdminRequestByIdQuery } =
+  adminRequestsApi;

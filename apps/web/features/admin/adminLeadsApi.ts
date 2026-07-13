@@ -101,10 +101,7 @@ export const adminLeadsApi = createApi({
   baseQuery,
   tagTypes: ["AdminLeads", "AdminLead", "AdminLeadStats"],
   endpoints: (builder) => ({
-    getAdminLeads: builder.query<
-      PaginatedAdminLeads,
-      AdminLeadFilters | void
-    >({
+    getAdminLeads: builder.query<PaginatedAdminLeads, AdminLeadFilters | void>({
       query: (filters) => {
         if (!filters) return "/admin/leads";
         const params = new URLSearchParams();

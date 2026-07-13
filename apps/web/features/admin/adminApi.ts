@@ -426,7 +426,10 @@ export const adminApi = createApi({
     "AiProviders",
   ],
   endpoints: (builder) => ({
-    getAdminStats: builder.query<AdminStats, { from?: string; to?: string } | void>({
+    getAdminStats: builder.query<
+      AdminStats,
+      { from?: string; to?: string } | void
+    >({
       query: (params) => {
         if (!params) return "/admin/stats";
         const sp = new URLSearchParams();
@@ -437,7 +440,10 @@ export const adminApi = createApi({
       providesTags: ["AdminStats"],
     }),
 
-    getAdminTrends: builder.query<AdminTrendsResponse, { from?: string; to?: string; days?: number } | void>({
+    getAdminTrends: builder.query<
+      AdminTrendsResponse,
+      { from?: string; to?: string; days?: number } | void
+    >({
       query: (params) => {
         if (!params) return "/admin/stats/trends";
         const sp = new URLSearchParams();
@@ -449,7 +455,10 @@ export const adminApi = createApi({
       providesTags: ["AdminTrends"],
     }),
 
-    getAdminFunnel: builder.query<AdminFunnel, { from?: string; to?: string } | void>({
+    getAdminFunnel: builder.query<
+      AdminFunnel,
+      { from?: string; to?: string } | void
+    >({
       query: (params) => {
         if (!params) return "/admin/funnel";
         const sp = new URLSearchParams();
@@ -480,7 +489,10 @@ export const adminApi = createApi({
       providesTags: ["AdminAiInsights"],
     }),
 
-    runAdminAiScan: builder.mutation<{ analyzed: number; failed: number }, void>({
+    runAdminAiScan: builder.mutation<
+      { analyzed: number; failed: number },
+      void
+    >({
       query: () => ({ url: "/admin/ai/scan", method: "POST" }),
       invalidatesTags: ["AdminAiInsights"],
     }),
@@ -575,16 +587,23 @@ export const adminApi = createApi({
 
     getAdminBusinessGoals: builder.query<AdminBusinessGoal[], string | void>({
       query: (metric) =>
-        metric ? `/admin/business-goals?metric=${metric}` : "/admin/business-goals",
+        metric
+          ? `/admin/business-goals?metric=${metric}`
+          : "/admin/business-goals",
       providesTags: ["AdminBusinessGoals"],
     }),
 
     getAdminBusinessGoal: builder.query<AdminBusinessGoal, string>({
       query: (id) => `/admin/business-goals/${id}`,
-      providesTags: (_result, _error, id) => [{ type: "AdminBusinessGoals", id }],
+      providesTags: (_result, _error, id) => [
+        { type: "AdminBusinessGoals", id },
+      ],
     }),
 
-    createAdminBusinessGoal: builder.mutation<AdminBusinessGoal, CreateBusinessGoalDto>({
+    createAdminBusinessGoal: builder.mutation<
+      AdminBusinessGoal,
+      CreateBusinessGoalDto
+    >({
       query: (body) => ({ url: "/admin/business-goals", method: "POST", body }),
       invalidatesTags: ["AdminBusinessGoals"],
     }),
@@ -626,13 +645,19 @@ export const adminApi = createApi({
       invalidatesTags: ["AiProviders"],
     }),
 
-    updateAiProvider: builder.mutation<AiProvider, { id: string; body: UpdateAiProviderDto }>({
+    updateAiProvider: builder.mutation<
+      AiProvider,
+      { id: string; body: UpdateAiProviderDto }
+    >({
       query: ({ id, body }) => ({
         url: `/admin/ai/providers/${id}`,
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (_result, _error, { id }) => ["AiProviders", { type: "AiProviders", id }],
+      invalidatesTags: (_result, _error, { id }) => [
+        "AiProviders",
+        { type: "AiProviders", id },
+      ],
     }),
 
     deleteAiProvider: builder.mutation<void, string>({
@@ -640,17 +665,33 @@ export const adminApi = createApi({
       invalidatesTags: ["AiProviders"],
     }),
 
-    getAiProviderModels: builder.query<{ success: boolean; models: string[]; message?: string }, string>({
+    getAiProviderModels: builder.query<
+      { success: boolean; models: string[]; message?: string },
+      string
+    >({
       query: (id) => `/admin/ai/providers/${id}/models`,
       providesTags: (_result, _error, id) => [{ type: "AiProviders", id }],
     }),
 
-    previewAiProviderModels: builder.mutation<{ success: boolean; models: string[]; message?: string }, FetchModelsDto>({
-      query: (body) => ({ url: "/admin/ai/providers/fetch-models", method: "POST", body }),
+    previewAiProviderModels: builder.mutation<
+      { success: boolean; models: string[]; message?: string },
+      FetchModelsDto
+    >({
+      query: (body) => ({
+        url: "/admin/ai/providers/fetch-models",
+        method: "POST",
+        body,
+      }),
     }),
 
-    testAiProvider: builder.mutation<{ success: boolean; model?: string; message?: string; response?: string }, string>({
-      query: (id) => ({ url: `/admin/ai/providers/${id}/test`, method: "POST" }),
+    testAiProvider: builder.mutation<
+      { success: boolean; model?: string; message?: string; response?: string },
+      string
+    >({
+      query: (id) => ({
+        url: `/admin/ai/providers/${id}/test`,
+        method: "POST",
+      }),
     }),
 
     getAdminIntegrationsGateways: builder.query<

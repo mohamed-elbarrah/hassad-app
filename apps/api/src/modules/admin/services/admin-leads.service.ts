@@ -103,7 +103,13 @@ export class AdminLeadsService {
         automationLogs: { orderBy: { executedAt: "desc" }, take: 20 },
         client: { select: { id: true } },
         proposals: {
-          select: { id: true, title: true, totalPrice: true, status: true, createdAt: true },
+          select: {
+            id: true,
+            title: true,
+            totalPrice: true,
+            status: true,
+            createdAt: true,
+          },
           orderBy: { createdAt: "desc" },
         },
       },
@@ -112,7 +118,11 @@ export class AdminLeadsService {
     return lead;
   }
 
-  async convertToClient(leadId: string, userId: string, additionalNotes?: string) {
+  async convertToClient(
+    leadId: string,
+    userId: string,
+    additionalNotes?: string,
+  ) {
     const lead = await this.prisma.lead.findUnique({
       where: { id: leadId },
       include: { client: { select: { id: true } } },
@@ -169,7 +179,12 @@ export class AdminLeadsService {
     return result;
   }
 
-  async reassign(leadId: string, assigneeId: string, adminId: string, reason?: string) {
+  async reassign(
+    leadId: string,
+    assigneeId: string,
+    adminId: string,
+    reason?: string,
+  ) {
     const [lead, user] = await Promise.all([
       this.prisma.lead.findUnique({ where: { id: leadId } }),
       this.prisma.user.findUnique({ where: { id: assigneeId } }),
@@ -248,7 +263,12 @@ export class AdminLeadsService {
   async addContactLog(
     leadId: string,
     userId: string,
-    body: { type: string; result: string; notes?: string; contactedAt?: string },
+    body: {
+      type: string;
+      result: string;
+      notes?: string;
+      contactedAt?: string;
+    },
   ) {
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) throw new NotFoundException("Lead not found");
@@ -294,7 +314,12 @@ export class AdminLeadsService {
     return log;
   }
 
-  async forceStage(leadId: string, stage: PipelineStage, reason: string, adminId: string) {
+  async forceStage(
+    leadId: string,
+    stage: PipelineStage,
+    reason: string,
+    adminId: string,
+  ) {
     const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) throw new NotFoundException("Lead not found");
 
@@ -377,7 +402,10 @@ export class AdminLeadsService {
         pipelineStage: l.pipelineStage,
         source: l.source,
         daysSinceLastContact: l.lastContactAt
-          ? Math.floor((Date.now() - new Date(l.lastContactAt).getTime()) / (1000 * 60 * 60 * 24))
+          ? Math.floor(
+              (Date.now() - new Date(l.lastContactAt).getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
           : null,
         createdAt: l.createdAt.toISOString(),
       })),

@@ -48,7 +48,7 @@ export function LoginForm() {
     [UserRole.SALES]: "/dashboard/sales",
     [UserRole.ACCOUNTANT]: "/dashboard/finance",
     [UserRole.MARKETING]: "/dashboard/marketing",
-    [UserRole.EMPLOYEE]: "/dashboard/employee",
+    [UserRole.TEAM]: "/dashboard/team",
     [UserRole.CLIENT]: "/portal",
   };
 

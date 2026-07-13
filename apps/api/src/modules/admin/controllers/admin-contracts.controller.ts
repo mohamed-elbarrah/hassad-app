@@ -27,7 +27,9 @@ export class AdminContractsController {
   ) {
     return this.service.findOne(id);
   }
-  @Post(":id/status") @RequirePermissions("admin.contracts.intervene") updateStatus(
+  @Post(":id/status")
+  @RequirePermissions("admin.contracts.intervene")
+  updateStatus(
     @Param("id") id: string,
     @CurrentUser() user: any,
     @Body("status") status: string,

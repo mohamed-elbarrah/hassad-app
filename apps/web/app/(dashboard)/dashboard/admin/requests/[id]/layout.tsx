@@ -60,7 +60,9 @@ export default function RequestDetailLayout({
           title={request.companyName}
         />
         <div className="flex items-center gap-2">
-          <span className="text-sm text-portal-note-text">{request.contactName}</span>
+          <span className="text-sm text-portal-note-text">
+            {request.contactName}
+          </span>
         </div>
       </div>
 

@@ -17,9 +17,26 @@ export class AdminService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     if (!from && !to) {
-      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-      return { startOfMonth, startOfLastMonth, endOfLastMonth, isCustom: false };
+      const startOfLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() - 1,
+        1,
+      );
+      const endOfLastMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
+      return {
+        startOfMonth,
+        startOfLastMonth,
+        endOfLastMonth,
+        isCustom: false,
+      };
     }
 
     const periodStart = from ? new Date(from) : startOfMonth;
@@ -39,7 +56,8 @@ export class AdminService {
   }
 
   async getStats(from?: string, to?: string) {
-    const { startOfMonth, startOfLastMonth, endOfLastMonth } = this.parseDateRange(from, to);
+    const { startOfMonth, startOfLastMonth, endOfLastMonth } =
+      this.parseDateRange(from, to);
     const now = new Date();
 
     const [
@@ -229,7 +247,10 @@ export class AdminService {
         totalTasks: computeDelta(totalTasks, prevTasksTotal),
         overdueTasks: computeDelta(overdueTasks, prevOverdueTasks),
         monthlyRevenue: revenueChange,
-        unpaidInvoicesCount: computeDelta(unpaidInvoicesCount, prevUnpaidInvoices),
+        unpaidInvoicesCount: computeDelta(
+          unpaidInvoicesCount,
+          prevUnpaidInvoices,
+        ),
         totalInvoices: computeDelta(totalInvoices, prevTotalInvoices),
         pendingRequests: computeDelta(pendingRequests, prevPendingRequests),
         retentionRate:
@@ -257,7 +278,10 @@ export class AdminService {
     if (from && to) {
       startDate = new Date(from);
       endDate = new Date(to);
-      numDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+      numDays =
+        Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000),
+        ) + 1;
     } else {
       startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
       endDate = now;
@@ -307,57 +331,97 @@ export class AdminService {
 
       revenue.push(
         paidInvoices
-          .filter((inv) => inv.paidAt && inv.paidAt >= dayStart && inv.paidAt <= dayEnd)
+          .filter(
+            (inv) =>
+              inv.paidAt && inv.paidAt >= dayStart && inv.paidAt <= dayEnd,
+          )
           .reduce((sum, inv) => sum + Number(inv.amount), 0),
       );
       newUsersArr.push(
-        newUsers.filter((u) => u.createdAt >= dayStart && u.createdAt <= dayEnd).length,
+        newUsers.filter((u) => u.createdAt >= dayStart && u.createdAt <= dayEnd)
+          .length,
       );
       newClientsArr.push(
-        newClients.filter((c) => c.createdAt >= dayStart && c.createdAt <= dayEnd).length,
+        newClients.filter(
+          (c) => c.createdAt >= dayStart && c.createdAt <= dayEnd,
+        ).length,
       );
       newProjectsArr.push(
-        newProjects.filter((p) => p.createdAt >= dayStart && p.createdAt <= dayEnd).length,
+        newProjects.filter(
+          (p) => p.createdAt >= dayStart && p.createdAt <= dayEnd,
+        ).length,
       );
       tasksCompletedArr.push(
-        completedTasks.filter((t) => t.approvedAt && t.approvedAt >= dayStart && t.approvedAt <= dayEnd).length,
+        completedTasks.filter(
+          (t) =>
+            t.approvedAt && t.approvedAt >= dayStart && t.approvedAt <= dayEnd,
+        ).length,
       );
     }
 
-    return { revenue, newUsers: newUsersArr, newClients: newClientsArr, newProjects: newProjectsArr, tasksCompleted: tasksCompletedArr, labels };
+    return {
+      revenue,
+      newUsers: newUsersArr,
+      newClients: newClientsArr,
+      newProjects: newProjectsArr,
+      tasksCompleted: tasksCompletedArr,
+      labels,
+    };
   }
 
   async getFunnel(from?: string, to?: string) {
-    const dateFilter = from || to
-      ? {
-          createdAt: {
-            ...(from ? { gte: new Date(from) } : {}),
-            ...(to ? { lte: new Date(to) } : {}),
-          },
-        }
-      : {};
+    const dateFilter =
+      from || to
+        ? {
+            createdAt: {
+              ...(from ? { gte: new Date(from) } : {}),
+              ...(to ? { lte: new Date(to) } : {}),
+            },
+          }
+        : {};
 
-    const excludedStatuses: ContractStatus[] = [ContractStatus.CANCELLED, ContractStatus.DRAFT];
-    const contractDateFilter = from || to
-      ? { ...dateFilter, status: { notIn: excludedStatuses } }
-      : { status: { notIn: excludedStatuses } };
+    const excludedStatuses: ContractStatus[] = [
+      ContractStatus.CANCELLED,
+      ContractStatus.DRAFT,
+    ];
+    const contractDateFilter =
+      from || to
+        ? { ...dateFilter, status: { notIn: excludedStatuses } }
+        : { status: { notIn: excludedStatuses } };
 
-    const [leads, clients, proposals, contracts, projects, invoices, payments, contractStatusDistribution] =
-      await Promise.all([
-        this.prisma.lead.count({ where: { isActive: true, ...dateFilter } }),
-        this.prisma.client.count({ where: { status: { not: "STOPPED" }, ...dateFilter } }),
-        this.prisma.proposal.count({ where: dateFilter }),
-        this.prisma.contract.count({ where: contractDateFilter }),
-        this.prisma.project.count({ where: { isArchived: false, ...dateFilter } }),
-        this.prisma.invoice.count({ where: dateFilter }),
-        this.prisma.payment.count({ where: { status: "SUCCESS", ...dateFilter } }),
-        // Contract status distribution — respects date range if provided
-        this.prisma.contract.groupBy({
-          by: ["status"],
-          where: from || to ? contractDateFilter : { status: { notIn: excludedStatuses } },
-          _count: { id: true },
-        }),
-      ]);
+    const [
+      leads,
+      clients,
+      proposals,
+      contracts,
+      projects,
+      invoices,
+      payments,
+      contractStatusDistribution,
+    ] = await Promise.all([
+      this.prisma.lead.count({ where: { isActive: true, ...dateFilter } }),
+      this.prisma.client.count({
+        where: { status: { not: "STOPPED" }, ...dateFilter },
+      }),
+      this.prisma.proposal.count({ where: dateFilter }),
+      this.prisma.contract.count({ where: contractDateFilter }),
+      this.prisma.project.count({
+        where: { isArchived: false, ...dateFilter },
+      }),
+      this.prisma.invoice.count({ where: dateFilter }),
+      this.prisma.payment.count({
+        where: { status: "SUCCESS", ...dateFilter },
+      }),
+      // Contract status distribution — respects date range if provided
+      this.prisma.contract.groupBy({
+        by: ["status"],
+        where:
+          from || to
+            ? contractDateFilter
+            : { status: { notIn: excludedStatuses } },
+        _count: { id: true },
+      }),
+    ]);
 
     const calcRate = (from: number, to: number) =>
       from > 0 ? Math.round((to / from) * 100 * 10) / 10 : 0;
@@ -389,7 +453,9 @@ export class AdminService {
 
   async getAlerts() {
     const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysFromNow = new Date(
+      now.getTime() + 30 * 24 * 60 * 60 * 1000,
+    );
 
     const [
       overdueTasks,
@@ -405,7 +471,10 @@ export class AdminService {
       expiringContractItems,
     ] = await Promise.all([
       this.prisma.task.count({
-        where: { dueDate: { lt: now }, status: { notIn: ["DONE", "REVISION"] } },
+        where: {
+          dueDate: { lt: now },
+          status: { notIn: ["DONE", "REVISION"] },
+        },
       }),
       this.prisma.invoice.count({
         where: {
@@ -416,14 +485,28 @@ export class AdminService {
       this.prisma.disputeTicket.count({ where: { status: "ESCALATED" } }),
       this.prisma.webhookLog.count({ where: { processed: false } }),
       this.prisma.contract.count({
-        where: { status: "ACTIVE", endDate: { gte: now, lte: thirtyDaysFromNow } },
+        where: {
+          status: "ACTIVE",
+          endDate: { gte: now, lte: thirtyDaysFromNow },
+        },
       }),
-      this.prisma.request.count({ where: { status: { in: ["SUBMITTED", "QUALIFYING"] } } }),
+      this.prisma.request.count({
+        where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
+      }),
       this.prisma.task.findMany({
-        where: { dueDate: { lt: now }, status: { notIn: ["DONE", "REVISION"] } },
+        where: {
+          dueDate: { lt: now },
+          status: { notIn: ["DONE", "REVISION"] },
+        },
         take: 5,
         orderBy: { dueDate: "asc" },
-        select: { id: true, title: true, dueDate: true, assignedTo: true, assignee: { select: { name: true } } },
+        select: {
+          id: true,
+          title: true,
+          dueDate: true,
+          assignedTo: true,
+          assignee: { select: { name: true } },
+        },
       }),
       this.prisma.invoice.findMany({
         where: {
@@ -432,25 +515,50 @@ export class AdminService {
         },
         take: 5,
         orderBy: { dueDate: "asc" },
-        select: { id: true, invoiceNumber: true, amount: true, dueDate: true, client: { select: { companyName: true } } },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          amount: true,
+          dueDate: true,
+          client: { select: { companyName: true } },
+        },
       }),
       this.prisma.disputeTicket.findMany({
         where: { status: "ESCALATED" },
         take: 5,
         orderBy: { escalatedAt: "desc" },
-        select: { id: true, ticketNumber: true, title: true, priority: true, escalatedAt: true },
+        select: {
+          id: true,
+          ticketNumber: true,
+          title: true,
+          priority: true,
+          escalatedAt: true,
+        },
       }),
       this.prisma.request.findMany({
         where: { status: { in: ["SUBMITTED", "QUALIFYING"] } },
         take: 5,
         orderBy: { createdAt: "desc" },
-        select: { id: true, companyName: true, createdAt: true, contactName: true },
+        select: {
+          id: true,
+          companyName: true,
+          createdAt: true,
+          contactName: true,
+        },
       }),
       this.prisma.contract.findMany({
-        where: { status: "ACTIVE", endDate: { gte: now, lte: thirtyDaysFromNow } },
+        where: {
+          status: "ACTIVE",
+          endDate: { gte: now, lte: thirtyDaysFromNow },
+        },
         take: 5,
         orderBy: { endDate: "asc" },
-        select: { id: true, title: true, endDate: true, client: { select: { companyName: true } } },
+        select: {
+          id: true,
+          title: true,
+          endDate: true,
+          client: { select: { companyName: true } },
+        },
       }),
     ]);
 
@@ -459,19 +567,35 @@ export class AdminService {
         count: overdueTasks,
         label: "مهام متأخرة",
         link: "/dashboard/admin/tasks?status=OVERDUE",
-        items: overdueTaskItems.map((t) => ({ id: t.id, title: t.title, dueDate: t.dueDate?.toISOString() ?? null, assignee: t.assignee?.name ?? null })),
+        items: overdueTaskItems.map((t) => ({
+          id: t.id,
+          title: t.title,
+          dueDate: t.dueDate?.toISOString() ?? null,
+          assignee: t.assignee?.name ?? null,
+        })),
       },
       agedInvoices: {
         count: agedInvoices,
         label: "فواتير غير مسددة (+60 يوم)",
         link: "/dashboard/admin/finance/invoices?aging=60",
-        items: agedInvoiceItems.map((inv) => ({ id: inv.id, invoiceNumber: inv.invoiceNumber, amount: inv.amount, dueDate: inv.dueDate?.toISOString() ?? null, clientName: inv.client?.companyName ?? null })),
+        items: agedInvoiceItems.map((inv) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          amount: inv.amount,
+          dueDate: inv.dueDate?.toISOString() ?? null,
+          clientName: inv.client?.companyName ?? null,
+        })),
       },
       escalatedDisputes: {
         count: escalatedDisputes,
         label: "نزاعات تم تصعيدها",
         link: "/dashboard/admin/disputes?status=ESCALATED",
-        items: escalatedDisputeItems.map((d) => ({ id: d.id, ticketNumber: d.ticketNumber, title: d.title, priority: d.priority })),
+        items: escalatedDisputeItems.map((d) => ({
+          id: d.id,
+          ticketNumber: d.ticketNumber,
+          title: d.title,
+          priority: d.priority,
+        })),
       },
       failedWebhooks: {
         count: failedWebhooks,
@@ -483,13 +607,23 @@ export class AdminService {
         count: expiringContracts,
         label: "عقود تنتهي قريباً",
         link: "/dashboard/admin/contracts?expiring=30",
-        items: expiringContractItems.map((c) => ({ id: c.id, title: c.title, endDate: c.endDate?.toISOString() ?? null, clientName: c.client?.companyName ?? null })),
+        items: expiringContractItems.map((c) => ({
+          id: c.id,
+          title: c.title,
+          endDate: c.endDate?.toISOString() ?? null,
+          clientName: c.client?.companyName ?? null,
+        })),
       },
       pendingRequests: {
         count: pendingRequests,
         label: "طلبات معلقة",
         link: "/dashboard/admin/requests?status=PENDING",
-        items: pendingRequestItems.map((r) => ({ id: r.id, companyName: r.companyName, contactName: r.contactName, createdAt: r.createdAt.toISOString() })),
+        items: pendingRequestItems.map((r) => ({
+          id: r.id,
+          companyName: r.companyName,
+          contactName: r.contactName,
+          createdAt: r.createdAt.toISOString(),
+        })),
       },
     };
   }
@@ -498,39 +632,44 @@ export class AdminService {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const [clientHistory, taskHistory, contractHistory, disputeHistory, requestHistory] =
-      await Promise.all([
-        this.prisma.clientHistoryLog.findMany({
-          where: { occurredAt: { gte: sevenDaysAgo } },
-          take: 10,
-          orderBy: { occurredAt: "desc" },
-          include: { user: { select: { name: true } } },
-        }),
-        this.prisma.taskStatusHistory.findMany({
-          where: { changedAt: { gte: sevenDaysAgo } },
-          take: 10,
-          orderBy: { changedAt: "desc" },
-          include: { changer: { select: { name: true } } },
-        }),
-        this.prisma.contractStatusHistory.findMany({
-          where: { changedAt: { gte: sevenDaysAgo } },
-          take: 10,
-          orderBy: { changedAt: "desc" },
-          include: { changedByUser: { select: { name: true } } },
-        }),
-        this.prisma.disputeHistory.findMany({
-          where: { changedAt: { gte: sevenDaysAgo } },
-          take: 10,
-          orderBy: { changedAt: "desc" },
-          include: { changer: { select: { name: true } } },
-        }),
-        this.prisma.requestStatusHistory.findMany({
-          where: { changedAt: { gte: sevenDaysAgo } },
-          take: 10,
-          orderBy: { changedAt: "desc" },
-          include: { changer: { select: { name: true } } },
-        }),
-      ]);
+    const [
+      clientHistory,
+      taskHistory,
+      contractHistory,
+      disputeHistory,
+      requestHistory,
+    ] = await Promise.all([
+      this.prisma.clientHistoryLog.findMany({
+        where: { occurredAt: { gte: sevenDaysAgo } },
+        take: 10,
+        orderBy: { occurredAt: "desc" },
+        include: { user: { select: { name: true } } },
+      }),
+      this.prisma.taskStatusHistory.findMany({
+        where: { changedAt: { gte: sevenDaysAgo } },
+        take: 10,
+        orderBy: { changedAt: "desc" },
+        include: { changer: { select: { name: true } } },
+      }),
+      this.prisma.contractStatusHistory.findMany({
+        where: { changedAt: { gte: sevenDaysAgo } },
+        take: 10,
+        orderBy: { changedAt: "desc" },
+        include: { changedByUser: { select: { name: true } } },
+      }),
+      this.prisma.disputeHistory.findMany({
+        where: { changedAt: { gte: sevenDaysAgo } },
+        take: 10,
+        orderBy: { changedAt: "desc" },
+        include: { changer: { select: { name: true } } },
+      }),
+      this.prisma.requestStatusHistory.findMany({
+        where: { changedAt: { gte: sevenDaysAgo } },
+        take: 10,
+        orderBy: { changedAt: "desc" },
+        include: { changer: { select: { name: true } } },
+      }),
+    ]);
 
     const entries: Array<{
       id: string;
@@ -542,22 +681,62 @@ export class AdminService {
     }> = [];
 
     for (const h of clientHistory) {
-      entries.push({ id: h.id, entityType: "client", eventType: h.eventType, description: h.description, occurredAt: h.occurredAt.toISOString(), actorName: h.user?.name ?? null });
+      entries.push({
+        id: h.id,
+        entityType: "client",
+        eventType: h.eventType,
+        description: h.description,
+        occurredAt: h.occurredAt.toISOString(),
+        actorName: h.user?.name ?? null,
+      });
     }
     for (const h of taskHistory) {
-      entries.push({ id: h.id, entityType: "task", eventType: `TASK_${h.toStatus}`, description: `تغيير حالة المهمة من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`, occurredAt: h.changedAt.toISOString(), actorName: h.changer?.name ?? null });
+      entries.push({
+        id: h.id,
+        entityType: "task",
+        eventType: `TASK_${h.toStatus}`,
+        description: `تغيير حالة المهمة من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`,
+        occurredAt: h.changedAt.toISOString(),
+        actorName: h.changer?.name ?? null,
+      });
     }
     for (const h of contractHistory) {
-      entries.push({ id: h.id, entityType: "contract", eventType: `CONTRACT_${h.toStatus}`, description: h.reason ? `تغيير حالة العقد: ${h.reason}` : `تغيير حالة العقد من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`, occurredAt: h.changedAt.toISOString(), actorName: h.changedByUser?.name ?? null });
+      entries.push({
+        id: h.id,
+        entityType: "contract",
+        eventType: `CONTRACT_${h.toStatus}`,
+        description: h.reason
+          ? `تغيير حالة العقد: ${h.reason}`
+          : `تغيير حالة العقد من ${h.fromStatus ?? "—"} إلى ${h.toStatus}`,
+        occurredAt: h.changedAt.toISOString(),
+        actorName: h.changedByUser?.name ?? null,
+      });
     }
     for (const h of disputeHistory) {
-      entries.push({ id: h.id, entityType: "dispute", eventType: `DISPUTE_${h.toStatus}`, description: h.note ?? `تغيير حالة النزاع إلى ${h.toStatus}`, occurredAt: h.changedAt.toISOString(), actorName: h.changer?.name ?? null });
+      entries.push({
+        id: h.id,
+        entityType: "dispute",
+        eventType: `DISPUTE_${h.toStatus}`,
+        description: h.note ?? `تغيير حالة النزاع إلى ${h.toStatus}`,
+        occurredAt: h.changedAt.toISOString(),
+        actorName: h.changer?.name ?? null,
+      });
     }
     for (const h of requestHistory) {
-      entries.push({ id: h.id, entityType: "request", eventType: `REQUEST_${h.toStatus}`, description: h.note ?? `تغيير حالة الطلب إلى ${h.toStatus}`, occurredAt: h.changedAt.toISOString(), actorName: h.changer?.name ?? null });
+      entries.push({
+        id: h.id,
+        entityType: "request",
+        eventType: `REQUEST_${h.toStatus}`,
+        description: h.note ?? `تغيير حالة الطلب إلى ${h.toStatus}`,
+        occurredAt: h.changedAt.toISOString(),
+        actorName: h.changer?.name ?? null,
+      });
     }
 
-    entries.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+    entries.sort(
+      (a, b) =>
+        new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
+    );
     return entries.slice(0, 15);
   }
 
@@ -567,9 +746,16 @@ export class AdminService {
 
     const [dbTest, errorCount, activeUsers, pendingWebhooks] =
       await Promise.all([
-        this.prisma.$queryRawUnsafe<[{ "1": number }]>(`SELECT 1`).catch(() => [{ 1: 0 }]),
-        this.prisma.webhookLog.count({ where: { processed: false, createdAt: { gte: oneHourAgo } } }),
-        this.prisma.ledger.groupBy({ by: ["userId"], where: { createdAt: { gte: oneHourAgo } } }),
+        this.prisma
+          .$queryRawUnsafe<[{ "1": number }]>(`SELECT 1`)
+          .catch(() => [{ 1: 0 }]),
+        this.prisma.webhookLog.count({
+          where: { processed: false, createdAt: { gte: oneHourAgo } },
+        }),
+        this.prisma.ledger.groupBy({
+          by: ["userId"],
+          where: { createdAt: { gte: oneHourAgo } },
+        }),
         this.prisma.webhookLog.count({ where: { processed: false } }),
       ]);
 
@@ -639,11 +825,31 @@ export class AdminService {
       }),
     ]);
 
-    const allJobs: Array<{ entityType: string; entityId: string; analysisType: string }> = [
-      ...leads.map((l) => ({ entityType: "LEAD", entityId: l.id, analysisType: "SENTIMENT_ANALYSIS" })),
-      ...clients.map((c) => ({ entityType: "CLIENT", entityId: c.id, analysisType: "CHURN_PREDICTION" })),
-      ...projects.map((p) => ({ entityType: "PROJECT", entityId: p.id, analysisType: "QUALITY_CHECK" })),
-      ...tasks.map((t) => ({ entityType: "TASK", entityId: t.id, analysisType: "QUALITY_CHECK" })),
+    const allJobs: Array<{
+      entityType: string;
+      entityId: string;
+      analysisType: string;
+    }> = [
+      ...leads.map((l) => ({
+        entityType: "LEAD",
+        entityId: l.id,
+        analysisType: "SENTIMENT_ANALYSIS",
+      })),
+      ...clients.map((c) => ({
+        entityType: "CLIENT",
+        entityId: c.id,
+        analysisType: "CHURN_PREDICTION",
+      })),
+      ...projects.map((p) => ({
+        entityType: "PROJECT",
+        entityId: p.id,
+        analysisType: "QUALITY_CHECK",
+      })),
+      ...tasks.map((t) => ({
+        entityType: "TASK",
+        entityId: t.id,
+        analysisType: "QUALITY_CHECK",
+      })),
     ];
 
     let analyzed = 0;

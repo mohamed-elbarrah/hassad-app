@@ -13,7 +13,10 @@ import { Pagination } from "@/components/design-system/Pagination";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { Input } from "@/components/design-system/Input";
-import { useGetAdminAuditLogQuery, useGetAdminAuditLogFiltersQuery } from "@/features/admin/adminApi";
+import {
+  useGetAdminAuditLogQuery,
+  useGetAdminAuditLogFiltersQuery,
+} from "@/features/admin/adminApi";
 
 const COLUMNS: DataTableColumn[] = [
   { id: "actionAr", label: "الإجراء", align: "right" },
@@ -35,7 +38,9 @@ export default function AdminAuditPage() {
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
 
   const { data: filtersData } = useGetAdminAuditLogFiltersQuery();
 
@@ -142,7 +147,11 @@ export default function AdminAuditPage() {
 
         {data && data.totalPages > 1 && (
           <div className="mt-4 flex justify-center">
-            <Pagination page={page} totalPages={data.totalPages} onPageChange={setPage} />
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </SurfaceCard>

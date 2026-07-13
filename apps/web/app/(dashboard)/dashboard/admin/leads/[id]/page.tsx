@@ -56,12 +56,12 @@ export default function LeadOverviewTab({
             label="اسم الشركة"
             value={lead.companyName}
           />
+          <InfoCard icon={User} label="جهة الاتصال" value={lead.contactName} />
           <InfoCard
-            icon={User}
-            label="جهة الاتصال"
-            value={lead.contactName}
+            icon={Mail}
+            label="البريد الإلكتروني"
+            value={lead.email || "—"}
           />
-          <InfoCard icon={Mail} label="البريد الإلكتروني" value={lead.email || "—"} />
           <InfoCard
             icon={Phone}
             label="رقم الجوال"
@@ -80,9 +80,8 @@ export default function LeadOverviewTab({
             icon={Globe}
             label="المصدر"
             value={
-              CLIENT_SOURCE_AR[
-                lead.source as keyof typeof CLIENT_SOURCE_AR
-              ] || lead.source
+              CLIENT_SOURCE_AR[lead.source as keyof typeof CLIENT_SOURCE_AR] ||
+              lead.source
             }
           />
           <InfoCard
@@ -116,9 +115,7 @@ export default function LeadOverviewTab({
                 ? new Date(lead.lastContactAt).toLocaleDateString("ar-SA")
                 : "—"}
             </p>
-            <p className="text-xs text-portal-note-text mt-1">
-              آخر تواصل
-            </p>
+            <p className="text-xs text-portal-note-text mt-1">آخر تواصل</p>
           </div>
         </div>
       </SurfaceCard>
@@ -150,10 +147,7 @@ export default function LeadOverviewTab({
                     <span className="text-sm font-medium text-natural-100">
                       {CONTACT_LOG_TYPE_AR[log.type] || log.type}
                     </span>
-                    <AdminStatusBadge
-                      domain="lead"
-                      status={log.result}
-                    />
+                    <AdminStatusBadge domain="lead" status={log.result} />
                   </div>
                   {log.notes && (
                     <p className="text-sm text-portal-note-text mt-1">

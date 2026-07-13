@@ -2,11 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Building2,
-  UserPlus,
-  Download,
-} from "lucide-react";
+import { Building2, UserPlus, Download } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {

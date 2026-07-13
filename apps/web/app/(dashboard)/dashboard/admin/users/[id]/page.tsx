@@ -25,14 +25,18 @@ export default function UserProfileTab({
             <User className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">الاسم</p>
-              <p className="text-sm font-medium text-natural-100">{user.name}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {user.name}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
             <Mail className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">البريد الإلكتروني</p>
-              <p className="text-sm font-medium text-natural-100">{user.email}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {user.email}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
@@ -63,13 +67,17 @@ export default function UserProfileTab({
               <p className="text-2xl font-semibold text-natural-100">
                 {user.performance.tasksCompleted}
               </p>
-              <p className="text-xs text-portal-note-text mt-1">المهام المنجزة</p>
+              <p className="text-xs text-portal-note-text mt-1">
+                المهام المنجزة
+              </p>
             </div>
             <div className="p-4 rounded-xl border border-portal-card-border text-center">
               <p className="text-2xl font-semibold text-natural-100">
                 {user.performance.avgCompletionSpeedDays.toFixed(1)}
               </p>
-              <p className="text-xs text-portal-note-text mt-1">متوسط أيام الإنجاز</p>
+              <p className="text-xs text-portal-note-text mt-1">
+                متوسط أيام الإنجاز
+              </p>
             </div>
             <div className="p-4 rounded-xl border border-portal-card-border text-center">
               <p className="text-2xl font-semibold text-natural-100">

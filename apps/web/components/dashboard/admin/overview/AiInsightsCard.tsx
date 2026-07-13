@@ -1,9 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Brain, Lightbulb, Sparkles, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import {
+  Brain,
+  Lightbulb,
+  Sparkles,
+  ArrowLeft,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { useGetAdminAiInsightsQuery, useRunAdminAiScanMutation } from "@/features/admin/adminApi";
+import {
+  useGetAdminAiInsightsQuery,
+  useRunAdminAiScanMutation,
+} from "@/features/admin/adminApi";
 import type { AdminAiInsightEntry } from "@/features/admin/adminApi";
 import { cn } from "@/lib/utils";
 
@@ -70,7 +80,10 @@ function AnalysisCard({ entry }: { entry: AdminAiInsightEntry }) {
 export function AiInsightsCard({ className }: { className?: string }) {
   const { data, isLoading, refetch } = useGetAdminAiInsightsQuery();
   const [runScan, { isLoading: scanning }] = useRunAdminAiScanMutation();
-  const [scanResult, setScanResult] = useState<{ analyzed: number; failed: number } | null>(null);
+  const [scanResult, setScanResult] = useState<{
+    analyzed: number;
+    failed: number;
+  } | null>(null);
 
   async function handleScan() {
     setScanResult(null);
@@ -105,12 +118,14 @@ export function AiInsightsCard({ className }: { className?: string }) {
       className={className}
     >
       {scanResult && (
-        <div className={cn(
-          "p-3 rounded-xl border text-xs flex items-center gap-2",
-          scanResult.analyzed > 0
-            ? "bg-success-50 border-success-200 text-success-700"
-            : "bg-alert-50 border-alert-200 text-alert-700",
-        )}>
+        <div
+          className={cn(
+            "p-3 rounded-xl border text-xs flex items-center gap-2",
+            scanResult.analyzed > 0
+              ? "bg-success-50 border-success-200 text-success-700"
+              : "bg-alert-50 border-alert-200 text-alert-700",
+          )}
+        >
           {scanResult.analyzed > 0
             ? `تم تحليل ${scanResult.analyzed} عنصر${scanResult.analyzed > 1 ? "اً" : ""} بنجاح`
             : "تعذر التحليل — تأكد من إعداد مزود AI"}
@@ -121,7 +136,10 @@ export function AiInsightsCard({ className }: { className?: string }) {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-xl bg-badge-gray-bg animate-pulse" />
+            <div
+              key={i}
+              className="h-24 rounded-xl bg-badge-gray-bg animate-pulse"
+            />
           ))}
         </div>
       ) : !data || data.recentAnalyses.length === 0 ? (
@@ -129,7 +147,8 @@ export function AiInsightsCard({ className }: { className?: string }) {
           <Brain className="w-10 h-10 mx-auto mb-2 text-portal-note-text opacity-40" />
           <p className="text-sm text-portal-note-text">لا توجد تحليلات بعد</p>
           <p className="text-xs text-portal-note-text mt-1 mb-4">
-            اضغط "تشغيل تحليل شامل" لفحص العملاء المتوقعين والعملاء والمشاريع والمهام
+            اضغط "تشغيل تحليل شامل" لفحص العملاء المتوقعين والعملاء والمشاريع
+            والمهام
           </p>
           <button
             type="button"

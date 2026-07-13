@@ -74,15 +74,10 @@ function StatCardInner({
 
         <div className="flex shrink-0 flex-col items-end gap-2">
           {sparklineData && (
-            <Sparkline
-              data={sparklineData}
-              color={sparklineColor}
-            />
+            <Sparkline data={sparklineData} color={sparklineColor} />
           )}
           <div className="flex items-center gap-2">
-            {pillProp && (
-              <Pill tone={pillProp.tone}>{pillProp.text}</Pill>
-            )}
+            {pillProp && <Pill tone={pillProp.tone}>{pillProp.text}</Pill>}
             {Icon && <Icon className="h-5 w-5 text-secondary-500" />}
             {extra}
           </div>
@@ -103,7 +98,11 @@ export function StatCard(props: StatCardProps) {
 
   if (props.onClick) {
     return (
-      <button type="button" onClick={props.onClick} className="block w-full text-right">
+      <button
+        type="button"
+        onClick={props.onClick}
+        className="block w-full text-right"
+      >
         <StatCardInner {...props} />
       </button>
     );

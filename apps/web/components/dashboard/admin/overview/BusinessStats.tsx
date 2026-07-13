@@ -60,7 +60,9 @@ export function BusinessStats({ metrics, className }: BusinessStatsProps) {
               <m.icon
                 className={cn(
                   "h-5 w-5",
-                  m.tone ? toneClasses[m.tone].split(" ")[0] : "text-secondary-500",
+                  m.tone
+                    ? toneClasses[m.tone].split(" ")[0]
+                    : "text-secondary-500",
                 )}
               />
             </div>
@@ -69,7 +71,15 @@ export function BusinessStats({ metrics, className }: BusinessStatsProps) {
               {m.value}
             </span>
             {m.tone && (
-              <Pill tone={m.tone}>{m.tone === "success" ? "جيد" : m.tone === "warning" ? "انتباه" : m.tone === "danger" ? "متراجع" : "—"}</Pill>
+              <Pill tone={m.tone}>
+                {m.tone === "success"
+                  ? "جيد"
+                  : m.tone === "warning"
+                    ? "انتباه"
+                    : m.tone === "danger"
+                      ? "متراجع"
+                      : "—"}
+              </Pill>
             )}
           </div>
         ))}

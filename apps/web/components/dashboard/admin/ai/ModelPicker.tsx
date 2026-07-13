@@ -12,7 +12,11 @@ interface ModelPickerProps {
   selected: string[];
   defaultModels: string[];
   onChange: (models: string[]) => void;
-  onFetch?: (type: string, key: string, baseUrl?: string) => Promise<{ success: boolean; models: string[]; message?: string }>;
+  onFetch?: (
+    type: string,
+    key: string,
+    baseUrl?: string,
+  ) => Promise<{ success: boolean; models: string[]; message?: string }>;
 }
 
 export function ModelPicker({
@@ -32,7 +36,10 @@ export function ModelPicker({
   const displayModels = fetched ?? defaultModels;
 
   const filteredModels = useMemo(
-    () => displayModels.filter((m) => m.toLowerCase().includes(search.toLowerCase())),
+    () =>
+      displayModels.filter((m) =>
+        m.toLowerCase().includes(search.toLowerCase()),
+      ),
     [displayModels, search],
   );
 
@@ -111,7 +118,9 @@ export function ModelPicker({
 
       {displayModels.length === 0 ? (
         <p className="text-xs text-portal-note-text py-2">
-          {apiKey ? 'اضغط "جلب النماذج المتاحة" لعرض النماذج' : "أدخل مفتاح API لجلب النماذج المتاحة"}
+          {apiKey
+            ? 'اضغط "جلب النماذج المتاحة" لعرض النماذج'
+            : "أدخل مفتاح API لجلب النماذج المتاحة"}
         </p>
       ) : (
         <div className="space-y-2">

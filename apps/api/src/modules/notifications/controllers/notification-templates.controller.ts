@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Put, Param, Body, UseGuards } from "@nestjs/common";
 import { NotificationTemplatesService } from "../services/notification-templates.service";
 import { UpdateNotificationTemplateDto } from "../dto/notification-template.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
@@ -31,10 +24,7 @@ export class NotificationTemplatesController {
 
   @Put(":id")
   @RequirePermissions("notification-templates.update")
-  update(
-    @Param("id") id: string,
-    @Body() dto: UpdateNotificationTemplateDto,
-  ) {
+  update(@Param("id") id: string, @Body() dto: UpdateNotificationTemplateDto) {
     return this.service.update(id, dto);
   }
 }

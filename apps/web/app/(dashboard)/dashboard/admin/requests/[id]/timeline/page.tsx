@@ -64,7 +64,10 @@ export default function RequestTimelineTab({
                         <ArrowLeft className="h-3 w-3 text-portal-note-text" />
                       </div>
                     ) : null}
-                    <AdminStatusBadge domain="request" status={entry.toStatus} />
+                    <AdminStatusBadge
+                      domain="request"
+                      status={entry.toStatus}
+                    />
                   </div>
 
                   <p className="text-xs text-portal-note-text">

@@ -38,7 +38,12 @@ export interface AdminFinanceInvoiceItem {
   dueDate: string | null;
   paidAt: string | null;
   createdAt: string;
-  payments: Array<{ id: string; amount: number; status: string; createdAt: string }>;
+  payments: Array<{
+    id: string;
+    amount: number;
+    status: string;
+    createdAt: string;
+  }>;
 }
 
 export interface AdminFinancePaymentItem {
@@ -63,6 +68,4 @@ export const adminFinanceApi = createApi({
   }),
 });
 
-export const {
-  useGetAdminFinanceOverviewQuery,
-} = adminFinanceApi;
+export const { useGetAdminFinanceOverviewQuery } = adminFinanceApi;

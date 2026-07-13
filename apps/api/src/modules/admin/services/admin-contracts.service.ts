@@ -1,7 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
-import { ContractStatus, ProjectStatus, ProjectPeriodStatus, TaskPriority } from "@hassad/shared";
+import {
+  ContractStatus,
+  ProjectStatus,
+  ProjectPeriodStatus,
+  TaskPriority,
+} from "@hassad/shared";
 import { ConvertToProjectDto } from "../dto/admin-contracts.dto";
 
 @Injectable()
@@ -176,7 +185,12 @@ export class AdminContractsService {
     return { success: true };
   }
 
-  async updateStatus(contractId: string, userId: string, status: string, reason?: string) {
+  async updateStatus(
+    contractId: string,
+    userId: string,
+    status: string,
+    reason?: string,
+  ) {
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
     });
@@ -244,7 +258,8 @@ export class AdminContractsService {
       throw new BadRequestException("تم تحويل هذا العقد إلى مشروع مسبقاً");
     }
 
-    const projectName = dto.name || `${contract.client.companyName} — ${contract.title}`;
+    const projectName =
+      dto.name || `${contract.client.companyName} — ${contract.title}`;
     const pmId = dto.pmId || null;
 
     const project = await this.prisma.$transaction(async (tx) => {

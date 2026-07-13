@@ -4,7 +4,7 @@ import { UserRole } from "@hassad/shared";
 const INTERNAL_ROLES = [
   UserRole.PM,
   UserRole.SALES,
-  UserRole.EMPLOYEE,
+  UserRole.TEAM,
   UserRole.MARKETING,
   UserRole.ACCOUNTANT,
 ] as const;

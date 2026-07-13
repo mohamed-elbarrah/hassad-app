@@ -21,7 +21,8 @@ export default function TeamOverviewTab({
     return {
       members,
       total: members.length,
-      overloaded: members.filter((m) => m.workloadStatus === "OVERLOADED").length,
+      overloaded: members.filter((m) => m.workloadStatus === "OVERLOADED")
+        .length,
       available: members.filter((m) => m.workloadStatus === "AVAILABLE").length,
       totalTasks: members.reduce((s, m) => s + m.activeTasksCount, 0),
     };
@@ -40,19 +41,27 @@ export default function TeamOverviewTab({
       <SurfaceCard title={`الفريق: ${teamName}`}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 rounded-xl border border-portal-card-border text-center">
-            <p className="text-2xl font-semibold text-natural-100">{teamData.total}</p>
+            <p className="text-2xl font-semibold text-natural-100">
+              {teamData.total}
+            </p>
             <p className="text-xs text-portal-note-text mt-1">إجمالي الأعضاء</p>
           </div>
           <div className="p-4 rounded-xl border border-portal-card-border text-center">
-            <p className="text-2xl font-semibold text-success-600">{teamData.available}</p>
+            <p className="text-2xl font-semibold text-success-600">
+              {teamData.available}
+            </p>
             <p className="text-xs text-portal-note-text mt-1">متاحون</p>
           </div>
           <div className="p-4 rounded-xl border border-portal-card-border text-center">
-            <p className="text-2xl font-semibold text-danger-600">{teamData.overloaded}</p>
+            <p className="text-2xl font-semibold text-danger-600">
+              {teamData.overloaded}
+            </p>
             <p className="text-xs text-portal-note-text mt-1">محمّلون</p>
           </div>
           <div className="p-4 rounded-xl border border-portal-card-border text-center">
-            <p className="text-2xl font-semibold text-natural-100">{teamData.totalTasks}</p>
+            <p className="text-2xl font-semibold text-natural-100">
+              {teamData.totalTasks}
+            </p>
             <p className="text-xs text-portal-note-text mt-1">مهام نشطة</p>
           </div>
         </div>

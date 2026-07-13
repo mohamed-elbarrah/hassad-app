@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  LayoutDashboard,
-  AlertTriangle,
-} from "lucide-react";
+import { LayoutDashboard, AlertTriangle } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { periodToDateRange } from "@/components/dashboard/admin/overview/MiniPeriodFilter";
 import type { PeriodKey } from "@/components/dashboard/admin/overview/MiniPeriodFilter";
-import { KpiGrid, buildAdminKpiConfigs } from "@/components/dashboard/admin/overview/KpiGrid";
+import {
+  KpiGrid,
+  buildAdminKpiConfigs,
+} from "@/components/dashboard/admin/overview/KpiGrid";
 import { AlertPanel } from "@/components/dashboard/admin/overview/AlertPanel";
-import type { AlertCategory, AlertCategoryItem } from "@/components/dashboard/admin/overview/AlertPanel";
+import type {
+  AlertCategory,
+  AlertCategoryItem,
+} from "@/components/dashboard/admin/overview/AlertPanel";
 import { TrendChart } from "@/components/dashboard/admin/overview/TrendChart";
 import type { TrendMetricOption } from "@/components/dashboard/admin/overview/TrendChart";
 import { FunnelChart } from "@/components/dashboard/admin/overview/FunnelChart";
@@ -155,7 +158,11 @@ export default function AdminOverviewPage() {
   const funnelDateRange = useMemo(() => periodToDateRange(period), [period]);
 
   // Stats — no date filter (defaults to trailing 30 days server-side)
-  const { data: stats, isLoading: statsLoading, isError: statsError } = useGetAdminStatsQuery();
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+  } = useGetAdminStatsQuery();
   const { data: alerts } = useGetAdminAlertsQuery();
   const { data: attention } = useGetAdminDashboardAttentionQuery();
   const { data: recentActivity } = useGetAdminDashboardRecentActivityQuery();
@@ -180,10 +187,31 @@ export default function AdminOverviewPage() {
   const trendMetrics = useMemo((): TrendMetricOption[] => {
     if (!trends) return [];
     return [
-      { key: "revenue", label: "الإيرادات", data: trends.revenue, color: "#10B981", format: "currency" },
-      { key: "newUsers", label: "المستخدمون", data: trends.newUsers, color: "#121936" },
-      { key: "newClients", label: "العملاء", data: trends.newClients, color: "#6366F1" },
-      { key: "newProjects", label: "المشاريع", data: trends.newProjects, color: "#E7BE52" },
+      {
+        key: "revenue",
+        label: "الإيرادات",
+        data: trends.revenue,
+        color: "#10B981",
+        format: "currency",
+      },
+      {
+        key: "newUsers",
+        label: "المستخدمون",
+        data: trends.newUsers,
+        color: "#121936",
+      },
+      {
+        key: "newClients",
+        label: "العملاء",
+        data: trends.newClients,
+        color: "#6366F1",
+      },
+      {
+        key: "newProjects",
+        label: "المشاريع",
+        data: trends.newProjects,
+        color: "#E7BE52",
+      },
     ];
   }, [trends]);
 
@@ -202,25 +230,29 @@ export default function AdminOverviewPage() {
     return [
       {
         label: "العروض ← العقود",
-        from: funnel.proposals, to: funnel.contracts,
+        from: funnel.proposals,
+        to: funnel.contracts,
         rate: funnel.conversionRates.proposalsToContracts,
         color: "#121936",
       },
       {
         label: "العقود ← المشاريع",
-        from: funnel.contracts, to: funnel.projects,
+        from: funnel.contracts,
+        to: funnel.projects,
         rate: funnel.conversionRates.contractsToProjects,
         color: "#6366F1",
       },
       {
         label: "المشاريع ← الفواتير",
-        from: funnel.projects, to: funnel.invoices,
+        from: funnel.projects,
+        to: funnel.invoices,
         rate: funnel.conversionRates.projectsToInvoices,
         color: "#E7BE52",
       },
       {
         label: "الفواتير ← المدفوعات",
-        from: funnel.invoices, to: funnel.payments,
+        from: funnel.invoices,
+        to: funnel.payments,
         rate: funnel.conversionRates.invoicesToPayments,
         color: "#10B981",
       },
@@ -303,7 +335,10 @@ export default function AdminOverviewPage() {
           <HealthScore
             overallScore={health?.overallScore ?? 0}
             database={health?.database ?? "connected"}
-            servicesHealthy={health?.services?.filter((s) => s.status === "healthy").length ?? 0}
+            servicesHealthy={
+              health?.services?.filter((s) => s.status === "healthy").length ??
+              0
+            }
             servicesTotal={health?.services?.length ?? 0}
             recentErrors={health?.recentErrors ?? 0}
             activeUsersLastHour={health?.activeUsersLastHour ?? 0}

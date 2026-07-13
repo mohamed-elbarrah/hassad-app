@@ -33,7 +33,9 @@ export default function RequestNotesTab({
         <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
           <FileText className="h-5 w-5 text-secondary-500 mt-0.5 shrink-0" />
           <div>
-            <p className="text-xs text-portal-note-text mb-1">ملاحظات الفريق الداخلي</p>
+            <p className="text-xs text-portal-note-text mb-1">
+              ملاحظات الفريق الداخلي
+            </p>
             <p className="text-sm font-medium text-natural-100 whitespace-pre-wrap">
               {request.internalNotes || "لا توجد ملاحظات داخلية"}
             </p>

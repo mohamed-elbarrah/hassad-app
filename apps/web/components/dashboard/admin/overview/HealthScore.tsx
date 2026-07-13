@@ -70,21 +70,45 @@ export function HealthScore({
       </div>
 
       <div className="mt-5 space-y-3 pt-4 border-t border-portal-divider">
-        <StatusRow dot={dbStatus.dot} label="قاعدة البيانات" value={dbStatus.text} />
-        <StatusRow dot={serviceStatus.dot} label="الخدمات" value={serviceStatus.text} />
-        <StatusRow dot={errorStatus.dot} label="الأخطاء الحديثة" value={errorStatus.text} />
+        <StatusRow
+          dot={dbStatus.dot}
+          label="قاعدة البيانات"
+          value={dbStatus.text}
+        />
+        <StatusRow
+          dot={serviceStatus.dot}
+          label="الخدمات"
+          value={serviceStatus.text}
+        />
+        <StatusRow
+          dot={errorStatus.dot}
+          label="الأخطاء الحديثة"
+          value={errorStatus.text}
+        />
         <StatusRow
           dot="bg-blue-500"
           label="المستخدمون النشطون"
           value={`${activeUsersLastHour} آخر ساعة`}
         />
         <StatusRow
-          dot={retentionRate >= 80 ? "bg-success-500" : retentionRate >= 50 ? "bg-alert-500" : "bg-danger-500"}
+          dot={
+            retentionRate >= 80
+              ? "bg-success-500"
+              : retentionRate >= 50
+                ? "bg-alert-500"
+                : "bg-danger-500"
+          }
           label="معدل الاحتفاظ"
           value={`${Math.round(retentionRate)}%`}
         />
         <StatusRow
-          dot={churnRate <= 10 ? "bg-success-500" : churnRate <= 25 ? "bg-alert-500" : "bg-danger-500"}
+          dot={
+            churnRate <= 10
+              ? "bg-success-500"
+              : churnRate <= 25
+                ? "bg-alert-500"
+                : "bg-danger-500"
+          }
           label="معدل التوقف"
           value={`${Math.round(churnRate)}%`}
         />

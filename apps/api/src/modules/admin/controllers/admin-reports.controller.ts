@@ -12,28 +12,19 @@ export class AdminReportsController {
 
   @Get("sales")
   @RequirePermissions("admin.reports")
-  getSalesReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getSalesReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getSalesReport(from, to);
   }
 
   @Get("revenue")
   @RequirePermissions("admin.reports")
-  getRevenueReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getRevenueReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getRevenueReport(from, to);
   }
 
   @Get("projects")
   @RequirePermissions("admin.reports")
-  getProjectsReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getProjectsReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getProjectsReport(from, to);
   }
 
@@ -57,10 +48,7 @@ export class AdminReportsController {
 
   @Get("campaigns")
   @RequirePermissions("admin.reports")
-  getCampaignsReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getCampaignsReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getCampaignsReport(from, to);
   }
 
@@ -68,19 +56,13 @@ export class AdminReportsController {
 
   @Get("leads")
   @RequirePermissions("admin.reports")
-  getLeadsReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getLeadsReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getLeadsReport(from, to);
   }
 
   @Get("clients")
   @RequirePermissions("admin.reports")
-  getClientReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getClientReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getClientReport(from, to);
   }
 

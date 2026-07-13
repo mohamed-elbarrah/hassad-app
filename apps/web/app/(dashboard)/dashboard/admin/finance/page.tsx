@@ -119,7 +119,7 @@ export default function AdminFinancePage() {
               <p className="text-sm text-portal-note-text">{card.label}</p>
             </div>
             <p className="text-2xl font-semibold text-natural-100">
-              {isLoading ? "—" : card.value ?? "—"}
+              {isLoading ? "—" : (card.value ?? "—")}
             </p>
           </div>
         ))}

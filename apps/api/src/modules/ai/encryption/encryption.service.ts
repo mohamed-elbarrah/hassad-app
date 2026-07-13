@@ -15,9 +15,15 @@ export class EncryptionService {
   constructor(private config: ConfigService) {
     const secret = this.config.get<string>("KEY_ENCRYPTION_SECRET");
     if (secret) {
-      this.key = crypto.scryptSync(secret, "hassad-ai-provider-salt", KEY_LENGTH);
+      this.key = crypto.scryptSync(
+        secret,
+        "hassad-ai-provider-salt",
+        KEY_LENGTH,
+      );
     } else {
-      this.logger.warn("KEY_ENCRYPTION_SECRET not set — API keys will be stored in plaintext");
+      this.logger.warn(
+        "KEY_ENCRYPTION_SECRET not set — API keys will be stored in plaintext",
+      );
     }
   }
 

@@ -2,7 +2,7 @@
 
 import { ErrorFallback } from "@/components/common/ErrorFallback";
 
-export default function EmployeeError({
+export default function TeamError({
   error,
   reset,
 }: {
@@ -13,8 +13,8 @@ export default function EmployeeError({
     <ErrorFallback
       error={error}
       reset={reset}
-      backHref="/dashboard/employee"
-      backLabel="العودة للوحة الموظف"
+      backHref="/dashboard/team"
+      backLabel="العودة للوحة الفريق"
     />
   );
 }

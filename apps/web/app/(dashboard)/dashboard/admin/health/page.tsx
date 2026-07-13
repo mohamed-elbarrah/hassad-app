@@ -41,9 +41,11 @@ export default function AdminHealthPage() {
     );
   }
 
-  const statusColor = data?.status === "healthy" ? "bg-success-500" : "bg-danger-500";
+  const statusColor =
+    data?.status === "healthy" ? "bg-success-500" : "bg-danger-500";
   const statusText = data?.status === "healthy" ? "سليم" : "تدهور";
-  const dbColor = data?.database === "connected" ? "bg-success-500" : "bg-danger-500";
+  const dbColor =
+    data?.database === "connected" ? "bg-success-500" : "bg-danger-500";
   const dbText = data?.database === "connected" ? "متصل" : "منفصل";
 
   return (
@@ -100,7 +102,8 @@ export default function AdminHealthPage() {
               {[
                 {
                   label: "درجة الصحة العامة",
-                  value: data?.overallScore != null ? `${data.overallScore}%` : "—",
+                  value:
+                    data?.overallScore != null ? `${data.overallScore}%` : "—",
                   icon: Gauge,
                   color:
                     (data?.overallScore ?? 0) >= 80
@@ -113,7 +116,10 @@ export default function AdminHealthPage() {
                   label: "قاعدة البيانات",
                   value: dbText,
                   icon: Database,
-                  color: data?.database === "connected" ? "text-success-500" : "text-danger-500",
+                  color:
+                    data?.database === "connected"
+                      ? "text-success-500"
+                      : "text-danger-500",
                 },
                 {
                   label: "وقت التشغيل",
@@ -123,7 +129,9 @@ export default function AdminHealthPage() {
                 },
                 {
                   label: "استخدام الذاكرة",
-                  value: data ? `${(data.memoryUsage / 1024 / 1024).toFixed(1)} MB` : "—",
+                  value: data
+                    ? `${(data.memoryUsage / 1024 / 1024).toFixed(1)} MB`
+                    : "—",
                   icon: MemoryStick,
                   color: "text-natural-100",
                 },

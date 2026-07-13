@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
 
@@ -10,14 +14,19 @@ export class AdminClientsService {
   ) {}
 
   async getStats() {
-    const [totalClients, activeClients, inactiveClients, newThisMonth] = await Promise.all([
-      this.prisma.client.count(),
-      this.prisma.client.count({ where: { status: "ACTIVE" } }),
-      this.prisma.client.count({ where: { status: "STOPPED" } }),
-      this.prisma.client.count({
-        where: { createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } },
-      }),
-    ]);
+    const [totalClients, activeClients, inactiveClients, newThisMonth] =
+      await Promise.all([
+        this.prisma.client.count(),
+        this.prisma.client.count({ where: { status: "ACTIVE" } }),
+        this.prisma.client.count({ where: { status: "STOPPED" } }),
+        this.prisma.client.count({
+          where: {
+            createdAt: {
+              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            },
+          },
+        }),
+      ]);
 
     return {
       total: totalClients,
@@ -40,9 +49,16 @@ export class AdminClientsService {
     const clientWhere: any = {};
 
     if (filters.status) {
-      if (filters.status === "active") { clientWhere.status = "ACTIVE"; }
-      else if (filters.status === "stopped" || filters.status === "inactive") { clientWhere.status = "STOPPED"; }
-      else if (filters.status === "lead") { clientWhere.status = "LEAD"; }
+      if (filters.status === "active") {
+        clientWhere.status = "ACTIVE";
+      } else if (
+        filters.status === "stopped" ||
+        filters.status === "inactive"
+      ) {
+        clientWhere.status = "STOPPED";
+      } else if (filters.status === "lead") {
+        clientWhere.status = "LEAD";
+      }
     }
 
     if (filters.search) {
@@ -68,14 +84,26 @@ export class AdminClientsService {
       skip: (page - 1) * limit,
       take: limit,
       include: {
-        user: { select: { id: true, name: true, email: true, isActive: true, createdAt: true, lastLoginAt: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            isActive: true,
+            createdAt: true,
+            lastLoginAt: true,
+          },
+        },
         _count: { select: { contracts: true, projects: true, invoices: true } },
       },
     });
 
-    const total = clientRecords.length < limit && page === 1
-      ? clientRecords.length
-      : await this.prisma.client.count({ where: { ...clientWhere, ...searchFilter } });
+    const total =
+      clientRecords.length < limit && page === 1
+        ? clientRecords.length
+        : await this.prisma.client.count({
+            where: { ...clientWhere, ...searchFilter },
+          });
 
     const clientIdList = clientRecords.map((c) => c.id);
 
@@ -87,7 +115,9 @@ export class AdminClientsService {
       },
       _count: { id: true },
     });
-    const overdueMap = new Map(overdueGroups.map((o) => [o.clientId, o._count.id]));
+    const overdueMap = new Map(
+      overdueGroups.map((o) => [o.clientId, o._count.id]),
+    );
 
     const items = clientRecords.map((c) => ({
       id: c.user?.id ?? c.id,
@@ -116,10 +146,27 @@ export class AdminClientsService {
       where: { id },
       include: {
         manager: { select: { id: true, name: true, email: true } },
-        user: { select: { id: true, name: true, email: true, phoneWhatsapp: true, avatarUrl: true, isActive: true, lastLoginAt: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneWhatsapp: true,
+            avatarUrl: true,
+            isActive: true,
+            lastLoginAt: true,
+          },
+        },
         profile: true,
         _count: {
-          select: { contracts: true, projects: true, invoices: true, payments: true, proposals: true, requests: true },
+          select: {
+            contracts: true,
+            projects: true,
+            invoices: true,
+            payments: true,
+            proposals: true,
+            requests: true,
+          },
         },
       },
     });
@@ -173,25 +220,59 @@ export class AdminClientsService {
       where: { id: clientId },
       include: {
         manager: { select: { id: true, name: true, email: true } },
-        user: { select: { id: true, name: true, email: true, phoneWhatsapp: true, avatarUrl: true, isActive: true, lastLoginAt: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneWhatsapp: true,
+            avatarUrl: true,
+            isActive: true,
+            lastLoginAt: true,
+          },
+        },
         profile: true,
         lead: { select: { source: true } },
         _count: {
-          select: { contracts: true, projects: true, invoices: true, payments: true, proposals: true, requests: true },
+          select: {
+            contracts: true,
+            projects: true,
+            invoices: true,
+            payments: true,
+            proposals: true,
+            requests: true,
+          },
         },
       },
     });
 
     if (!client) throw new NotFoundException("العميل غير موجود");
 
-    const [contracts, projects, invoices, payments, historyLogs, satRatings, avgResult, overdueInvoicesCount] = await Promise.all([
+    const [
+      contracts,
+      projects,
+      invoices,
+      payments,
+      historyLogs,
+      satRatings,
+      avgResult,
+      overdueInvoicesCount,
+    ] = await Promise.all([
       this.prisma.contract.findMany({
         where: { clientId },
         orderBy: { createdAt: "desc" },
         take: 50,
         select: {
-          id: true, title: true, status: true, totalValue: true, monthlyValue: true,
-          startDate: true, endDate: true, createdAt: true, type: true, currency: true,
+          id: true,
+          title: true,
+          status: true,
+          totalValue: true,
+          monthlyValue: true,
+          startDate: true,
+          endDate: true,
+          createdAt: true,
+          type: true,
+          currency: true,
           _count: { select: { invoices: true } },
         },
       }),
@@ -200,8 +281,13 @@ export class AdminClientsService {
         orderBy: { createdAt: "desc" },
         take: 50,
         select: {
-          id: true, name: true, status: true, completionPercentage: true,
-          startDate: true, endDate: true, createdAt: true,
+          id: true,
+          name: true,
+          status: true,
+          completionPercentage: true,
+          startDate: true,
+          endDate: true,
+          createdAt: true,
           manager: { select: { id: true, name: true } },
         },
       }),
@@ -210,9 +296,17 @@ export class AdminClientsService {
         orderBy: { createdAt: "desc" },
         take: 50,
         select: {
-          id: true, invoiceNumber: true, amount: true,
-          status: true, issueDate: true, dueDate: true, paidAt: true, createdAt: true,
-          payments: { select: { id: true, amount: true, status: true, createdAt: true } },
+          id: true,
+          invoiceNumber: true,
+          amount: true,
+          status: true,
+          issueDate: true,
+          dueDate: true,
+          paidAt: true,
+          createdAt: true,
+          payments: {
+            select: { id: true, amount: true, status: true, createdAt: true },
+          },
         },
       }),
       this.prisma.payment.findMany({
@@ -220,7 +314,11 @@ export class AdminClientsService {
         orderBy: { createdAt: "desc" },
         take: 50,
         select: {
-          id: true, amount: true, method: true, status: true, createdAt: true,
+          id: true,
+          amount: true,
+          method: true,
+          status: true,
+          createdAt: true,
           invoice: { select: { id: true, invoiceNumber: true } },
         },
       }),
@@ -280,7 +378,11 @@ export class AdminClientsService {
         id: inv.id,
         invoiceNumber: inv.invoiceNumber,
         amount: inv.amount,
-        remainingAmount: inv.amount - inv.payments.filter((pm) => pm.status === "SUCCESS").reduce((sum, pm) => sum + pm.amount, 0),
+        remainingAmount:
+          inv.amount -
+          inv.payments
+            .filter((pm) => pm.status === "SUCCESS")
+            .reduce((sum, pm) => sum + pm.amount, 0),
         status: inv.status,
         issueDate: inv.issueDate?.toISOString() ?? null,
         dueDate: inv.dueDate?.toISOString() ?? null,
@@ -321,7 +423,9 @@ export class AdminClientsService {
   }
 
   async getHistory(clientId: string, page = 1, limit = 20) {
-    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+    });
     if (!client) throw new NotFoundException("العميل غير موجود");
 
     const skip = (page - 1) * limit;
@@ -357,13 +461,25 @@ export class AdminClientsService {
     };
   }
 
-  async suspend(clientId: string, reason: string, adminId: string, suspendedUntil?: string) {
-    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+  async suspend(
+    clientId: string,
+    reason: string,
+    adminId: string,
+    suspendedUntil?: string,
+  ) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+    });
     if (!client) throw new NotFoundException("العميل غير موجود");
-    if (client.status === "STOPPED") throw new BadRequestException("العميل موقوف بالفعل");
+    if (client.status === "STOPPED")
+      throw new BadRequestException("العميل موقوف بالفعل");
 
     const before = { status: client.status, suspendedAt: client.suspendedAt };
-    const after = { status: "STOPPED", reason, suspendedUntil: suspendedUntil ?? null };
+    const after = {
+      status: "STOPPED",
+      reason,
+      suspendedUntil: suspendedUntil ?? null,
+    };
 
     await this.prisma.$transaction([
       this.prisma.client.update({
@@ -411,9 +527,12 @@ export class AdminClientsService {
   }
 
   async reactivate(clientId: string, reason: string, adminId: string) {
-    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+    });
     if (!client) throw new NotFoundException("العميل غير موجود");
-    if (client.status !== "STOPPED") throw new BadRequestException("العميل غير موقوف");
+    if (client.status !== "STOPPED")
+      throw new BadRequestException("العميل غير موقوف");
 
     const before = { status: client.status, suspendedAt: client.suspendedAt };
     const after = { status: "ACTIVE" };
@@ -463,7 +582,12 @@ export class AdminClientsService {
     return { success: true };
   }
 
-  async assignManager(clientId: string, accountManagerId: string, reason: string, adminId: string) {
+  async assignManager(
+    clientId: string,
+    accountManagerId: string,
+    reason: string,
+    adminId: string,
+  ) {
     const [client, manager] = await Promise.all([
       this.prisma.client.findUnique({ where: { id: clientId } }),
       this.prisma.user.findUnique({ where: { id: accountManagerId } }),
@@ -472,7 +596,10 @@ export class AdminClientsService {
     if (!manager) throw new NotFoundException("المستخدم غير موجود");
 
     const before = { accountManager: client.accountManager };
-    const after = { accountManager: accountManagerId, managerName: manager.name };
+    const after = {
+      accountManager: accountManagerId,
+      managerName: manager.name,
+    };
 
     await this.prisma.$transaction([
       this.prisma.client.update({
@@ -485,7 +612,11 @@ export class AdminClientsService {
           userId: adminId,
           eventType: "manager_changed",
           description: `تم تغيير مدير الحساب إلى ${manager.name} - ${reason}`,
-          metadata: { fromManager: before.accountManager, toManager: accountManagerId, reason },
+          metadata: {
+            fromManager: before.accountManager,
+            toManager: accountManagerId,
+            reason,
+          },
         },
       }),
       this.prisma.ledger.create({
@@ -526,7 +657,9 @@ export class AdminClientsService {
       phone: client.user?.phoneWhatsapp ?? null,
       isActive: client.user?.isActive ?? false,
       lastLoginAt: client.user?.lastLoginAt?.toISOString() ?? null,
-      portalAccess: !!client.portalAccessToken || !!client.user?.clientProfile?.portalAccessToken,
+      portalAccess:
+        !!client.portalAccessToken ||
+        !!client.user?.clientProfile?.portalAccessToken,
       intakeCompleted: client.intakeCompleted,
       avatarUrl: client.user?.avatarUrl ?? null,
       createdAt: client.createdAt.toISOString(),

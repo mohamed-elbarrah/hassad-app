@@ -28,7 +28,9 @@ export function Sparkline({
   const stepX = viewW / (data.length - 1);
 
   const points = data
-    .map((v, i) => `${i * stepX},${viewH - ((v - min) / range) * (viewH - 2) - 1}`)
+    .map(
+      (v, i) => `${i * stepX},${viewH - ((v - min) / range) * (viewH - 2) - 1}`,
+    )
     .join(" ");
 
   return (

@@ -60,9 +60,7 @@ export default function ClientOverviewTab({
     {
       icon: Shield,
       label: "الحالة",
-      value: (
-        <AdminStatusBadge domain="client" status={client.status} />
-      ),
+      value: <AdminStatusBadge domain="client" status={client.status} />,
     },
     {
       icon: User,
@@ -90,7 +88,11 @@ export default function ClientOverviewTab({
     { icon: FolderOpen, label: "المشاريع", count: client.counters.projects },
     { icon: Receipt, label: "الفواتير", count: client.counters.invoices },
     { icon: CreditCard, label: "المدفوعات", count: client.counters.payments },
-    { icon: FileCheck, label: "عروض الأسعار", count: client.counters.proposals },
+    {
+      icon: FileCheck,
+      label: "عروض الأسعار",
+      count: client.counters.proposals,
+    },
     { icon: ClipboardList, label: "الطلبات", count: client.counters.requests },
   ];
 
@@ -154,7 +156,10 @@ export default function ClientOverviewTab({
                   <span className="text-sm font-medium text-natural-100">
                     {currencyFormatter.format(contract.totalValue)}
                   </span>
-                  <AdminStatusBadge domain="contract" status={contract.status} />
+                  <AdminStatusBadge
+                    domain="contract"
+                    status={contract.status}
+                  />
                 </div>
               </div>
             ))}

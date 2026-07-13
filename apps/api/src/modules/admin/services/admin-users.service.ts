@@ -288,7 +288,8 @@ export class AdminUsersService {
       const existing = await this.prisma.user.findUnique({
         where: { email: dto.email },
       });
-      if (existing) throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
+      if (existing)
+        throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
     }
 
     const data: any = {};
@@ -312,7 +313,11 @@ export class AdminUsersService {
         entityId: id,
         userId: user.id,
         before: { name: user.name, email: user.email },
-        after: { name: dto.name, email: dto.email, phoneWhatsapp: dto.phoneWhatsapp },
+        after: {
+          name: dto.name,
+          email: dto.email,
+          phoneWhatsapp: dto.phoneWhatsapp,
+        },
       },
     });
 
@@ -612,10 +617,18 @@ export class AdminUsersService {
     return { permissionIds: dto.permissionIds };
   }
 
-  async suspend(userId: string, reason: string, adminId: string, suspendedUntil?: string) {
+  async suspend(
+    userId: string,
+    reason: string,
+    adminId: string,
+    suspendedUntil?: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException("المستخدم غير موجود");
-    if (user.suspendedAt && (!user.suspendedUntil || user.suspendedUntil > new Date()))
+    if (
+      user.suspendedAt &&
+      (!user.suspendedUntil || user.suspendedUntil > new Date())
+    )
       throw new BadRequestException("المستخدم موقوف بالفعل");
 
     const before = { isActive: user.isActive, suspendedAt: user.suspendedAt };
@@ -668,7 +681,10 @@ export class AdminUsersService {
     if (!user) throw new NotFoundException("المستخدم غير موجود");
     if (!user.suspendedAt) throw new BadRequestException("المستخدم غير موقوف");
 
-    const before = { suspendedAt: user.suspendedAt, suspendReason: user.suspendReason };
+    const before = {
+      suspendedAt: user.suspendedAt,
+      suspendReason: user.suspendReason,
+    };
     const after = { reason };
 
     await this.prisma.$transaction([

@@ -1,4 +1,9 @@
-import { AiProvider, AiOptions, AiResult, AiProviderConfig } from "./provider.interface";
+import {
+  AiProvider,
+  AiOptions,
+  AiResult,
+  AiProviderConfig,
+} from "./provider.interface";
 
 export class AnthropicAdapter implements AiProvider {
   readonly name: string;
@@ -26,13 +31,15 @@ export class AnthropicAdapter implements AiProvider {
         "anthropic-version": "2023-06-01",
       },
     });
-    if (!response.ok) throw new Error(`Failed to fetch models (${response.status})`);
+    if (!response.ok)
+      throw new Error(`Failed to fetch models (${response.status})`);
     const json = (await response.json()) as { data: Array<{ id: string }> };
     return json.data.map((m) => m.id).sort();
   }
 
   async generateText(prompt: string, options?: AiOptions): Promise<AiResult> {
-    const model = options?.model || this.config.models[0] || "claude-sonnet-4-20250514";
+    const model =
+      options?.model || this.config.models[0] || "claude-sonnet-4-20250514";
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

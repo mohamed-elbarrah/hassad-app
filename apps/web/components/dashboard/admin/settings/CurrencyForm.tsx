@@ -2,14 +2,7 @@
 
 import { useState, useRef, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Eye,
-  Upload,
-  Loader2,
-  Save,
-  X,
-  Ban,
-} from "lucide-react";
+import { Eye, Upload, Loader2, Save, X, Ban } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FormInput } from "@/components/design-system/FormInput";
 import { Select, SelectItem } from "@/components/design-system/Select";
@@ -84,9 +77,7 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
         <div className="flex flex-wrap items-center gap-6">
           <div>
             <p className="text-xs text-portal-note-text mb-1">الرمز</p>
-            <p className="text-xl font-bold text-natural-100">
-              {preview.code}
-            </p>
+            <p className="text-xl font-bold text-natural-100">{preview.code}</p>
           </div>
           <div>
             <p className="text-xs text-portal-note-text mb-1">الاسم</p>
@@ -95,11 +86,7 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
           <div>
             <p className="text-xs text-portal-note-text mb-1">الترميز</p>
             <div className="flex items-center gap-2">
-              <SymbolRenderer
-                currency={preview}
-                width={32}
-                height={32}
-              />
+              <SymbolRenderer currency={preview} width={32} height={32} />
               <span className="text-xl text-secondary-500">
                 {preview.symbol}
               </span>
@@ -115,27 +102,15 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
             <div className="bg-neutral-50 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2 text-2xl font-semibold text-natural-100">
                 <span>{formatPreview(1500)}</span>
-                <SymbolRenderer
-                  currency={preview}
-                  width={28}
-                  height={28}
-                />
+                <SymbolRenderer currency={preview} width={28} height={28} />
               </div>
               <div className="flex items-center gap-2 text-lg font-medium text-natural-100">
                 <span>{formatPreview(25000.5)}</span>
-                <SymbolRenderer
-                  currency={preview}
-                  width={22}
-                  height={22}
-                />
+                <SymbolRenderer currency={preview} width={22} height={22} />
               </div>
               <div className="flex items-center gap-2 text-sm text-portal-note-text">
                 <span>{formatPreview(99.99)}</span>
-                <SymbolRenderer
-                  currency={preview}
-                  width={16}
-                  height={16}
-                />
+                <SymbolRenderer currency={preview} width={16} height={16} />
               </div>
             </div>
           ) : (
@@ -157,10 +132,7 @@ function LivePreview({ data }: { data: CurrencyFormData }) {
   );
 }
 
-export default function CurrencyForm({
-  initialData,
-  mode,
-}: CurrencyFormProps) {
+export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -416,8 +388,8 @@ export default function CurrencyForm({
                   error={errors.exchangeRate}
                 />
                 <p className="text-xs text-portal-note-text mt-1">
-                  سعر العملة مقارنة بالعملة الافتراضية (1 {formData.code || "..."} ={" "}
-                  {formData.exchangeRate || "..."})
+                  سعر العملة مقارنة بالعملة الافتراضية (1{" "}
+                  {formData.code || "..."} = {formData.exchangeRate || "..."})
                 </p>
               </div>
             </div>
@@ -433,7 +405,9 @@ export default function CurrencyForm({
               <label className="flex items-center gap-3 cursor-pointer">
                 <Checkbox
                   checked={formData.isDefault}
-                  onCheckedChange={(val) => updateField("isDefault", Boolean(val))}
+                  onCheckedChange={(val) =>
+                    updateField("isDefault", Boolean(val))
+                  }
                 />
                 <span className="text-sm text-natural-100">
                   العملة الافتراضية

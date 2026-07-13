@@ -234,9 +234,7 @@ export class PaymentsService implements OnModuleInit {
 
     const provider = await this.getProvider(log.provider);
     const event =
-      typeof log.payload === "string"
-        ? JSON.parse(log.payload)
-        : log.payload;
+      typeof log.payload === "string" ? JSON.parse(log.payload) : log.payload;
 
     try {
       const result = await provider.handleWebhookEvent(event);
@@ -518,11 +516,16 @@ export class PaymentsService implements OnModuleInit {
   }
 
   async createBankAccount(dto: any) {
-    return this.prisma.bankAccount.create({ data: this.mapBankAccountDto(dto) });
+    return this.prisma.bankAccount.create({
+      data: this.mapBankAccountDto(dto),
+    });
   }
 
   async updateBankAccount(id: string, dto: any) {
-    return this.prisma.bankAccount.update({ where: { id }, data: this.mapBankAccountDto(dto) });
+    return this.prisma.bankAccount.update({
+      where: { id },
+      data: this.mapBankAccountDto(dto),
+    });
   }
 
   async deleteBankAccount(id: string) {

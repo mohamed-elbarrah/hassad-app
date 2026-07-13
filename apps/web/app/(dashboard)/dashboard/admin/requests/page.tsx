@@ -56,7 +56,15 @@ export default function AdminRequestsPage() {
   const statCards = useMemo(() => {
     const total = data?.total ?? 0;
     const pending = requests.filter((r) =>
-      ["SUBMITTED", "QUALIFYING", "PROPOSAL_IN_PROGRESS", "PROPOSAL_SENT", "NEGOTIATION", "CONTRACT_PREPARATION", "CONTRACT_SENT"].includes(r.status),
+      [
+        "SUBMITTED",
+        "QUALIFYING",
+        "PROPOSAL_IN_PROGRESS",
+        "PROPOSAL_SENT",
+        "NEGOTIATION",
+        "CONTRACT_PREPARATION",
+        "CONTRACT_SENT",
+      ].includes(r.status),
     ).length;
     const completed = requests.filter((r) =>
       ["SIGNED", "PROJECT_CREATED"].includes(r.status),

@@ -135,7 +135,9 @@ export class AdminPortalService {
         id: f.id,
         clientId: f.clientId,
         companyName:
-          (f.client as any)?.companyName ?? (f.client as any)?.businessName ?? "—",
+          (f.client as any)?.companyName ??
+          (f.client as any)?.businessName ??
+          "—",
         token: f.token,
         currentStep: f.currentStep,
         isSubmitted: f.isSubmitted,

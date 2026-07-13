@@ -26,8 +26,8 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/design-system/Tabs";
-import { FileItem } from "@/components/dashboard/employee/FileItem";
-import { CommentItem } from "@/components/dashboard/employee/CommentItem";
+import { FileItem } from "@/components/dashboard/team/FileItem";
+import { CommentItem } from "@/components/dashboard/team/CommentItem";
 import { ClientBriefCompact } from "@/components/client-brief";
 import {
   useGetTaskByIdQuery,
@@ -116,10 +116,10 @@ function getAllowedTransitions(
   const transitions: Partial<
     Record<TaskStatus, Partial<Record<UserRole | string, TaskStatus[]>>>
   > = {
-    [TaskStatus.TODO]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
-    [TaskStatus.IN_PROGRESS]: { EMPLOYEE: [TaskStatus.IN_REVIEW] },
+    [TaskStatus.TODO]: { TEAM: [TaskStatus.IN_PROGRESS] },
+    [TaskStatus.IN_PROGRESS]: { TEAM: [TaskStatus.IN_REVIEW] },
     [TaskStatus.IN_REVIEW]: { PM: [TaskStatus.DONE, TaskStatus.REVISION] },
-    [TaskStatus.REVISION]: { EMPLOYEE: [TaskStatus.IN_PROGRESS] },
+    [TaskStatus.REVISION]: { TEAM: [TaskStatus.IN_PROGRESS] },
   };
   return transitions[currentStatus]?.[role as string] ?? [];
 }
@@ -194,7 +194,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
         title="المهمة غير موجودة"
         description="لا يمكن الوصول إلى هذه المهمة. ربما تم حذفها أو ليس لديك صلاحية."
         actionLabel="العودة للوحة"
-        actionHref="/dashboard/employee"
+        actionHref="/dashboard/team"
       />
     );
   }
@@ -280,7 +280,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
-            href="/dashboard/employee"
+            href="/dashboard/team"
             className="p-2 -ms-2 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors"
           >
             <ArrowRight className="w-5 h-5" />
@@ -289,10 +289,10 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             {t.project && (
               <nav className="flex items-center gap-1.5 text-xs text-neutral-400">
                 <Link
-                  href="/dashboard/employee"
+                  href="/dashboard/team"
                   className="hover:text-secondary-500 transition-colors"
                 >
-                  لوحة الموظف
+                  لوحة الفريق
                 </Link>
                 <span>/</span>
                 <span className="text-natural-100 truncate max-w-[200px]">

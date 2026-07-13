@@ -129,7 +129,5 @@ export const adminContractsApi = createApi({
   }),
 });
 
-export const {
-  useGetAdminContractsQuery,
-  useGetAdminContractByIdQuery,
-} = adminContractsApi;
+export const { useGetAdminContractsQuery, useGetAdminContractByIdQuery } =
+  adminContractsApi;

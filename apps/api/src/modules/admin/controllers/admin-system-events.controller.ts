@@ -24,10 +24,7 @@ export class AdminSystemEventsController {
 
   @Post(":id/resolve")
   @RequirePermissions("admin.settings")
-  resolve(
-    @Param("id") id: string,
-    @CurrentUser() user: any,
-  ) {
+  resolve(@Param("id") id: string, @CurrentUser() user: any) {
     return this.service.resolve(id, user.id);
   }
 }

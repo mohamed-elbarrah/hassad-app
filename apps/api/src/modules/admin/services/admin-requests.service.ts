@@ -79,7 +79,12 @@ export class AdminRequestsService {
     return request;
   }
 
-  async reassign(requestId: string, assigneeId: string, adminId: string, reason?: string) {
+  async reassign(
+    requestId: string,
+    assigneeId: string,
+    adminId: string,
+    reason?: string,
+  ) {
     const [request, user] = await Promise.all([
       this.prisma.request.findUnique({ where: { id: requestId } }),
       this.prisma.user.findUnique({ where: { id: assigneeId } }),
@@ -129,7 +134,12 @@ export class AdminRequestsService {
     return { success: true };
   }
 
-  async forceStatus(requestId: string, status: any, reason: string, adminId: string) {
+  async forceStatus(
+    requestId: string,
+    status: any,
+    reason: string,
+    adminId: string,
+  ) {
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
     });
@@ -211,7 +221,9 @@ export class AdminRequestsService {
         clientName: r.client?.companyName ?? "—",
         assigneeName: r.assignee?.name ?? "—",
         status: r.status,
-        ageDays: Math.floor((Date.now() - r.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
+        ageDays: Math.floor(
+          (Date.now() - r.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+        ),
         createdAt: r.createdAt.toISOString(),
       })),
       total,

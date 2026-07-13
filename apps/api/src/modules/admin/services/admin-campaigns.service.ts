@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
-import { AdminCreateCampaignDto, AdminUpdateCampaignDto } from "../dto/admin-campaign.dto";
+import {
+  AdminCreateCampaignDto,
+  AdminUpdateCampaignDto,
+} from "../dto/admin-campaign.dto";
 
 @Injectable()
 export class AdminCampaignsService {
@@ -134,7 +137,8 @@ export class AdminCampaignsService {
     if (dto.platform !== undefined) data.platform = dto.platform;
     if (dto.budgetTotal !== undefined) data.budgetTotal = dto.budgetTotal;
     if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
-    if (dto.endDate !== undefined) data.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    if (dto.endDate !== undefined)
+      data.endDate = dto.endDate ? new Date(dto.endDate) : null;
 
     const updated = await this.prisma.campaign.update({
       where: { id },
@@ -142,22 +146,30 @@ export class AdminCampaignsService {
     });
 
     await this.prisma.ledger.create({
-        data: {
-          action: "admin.campaigns.update",
-          entity: "campaign",
-          entityId: id,
-          userId,
-          before: { name: campaign.name, platform: campaign.platform, budgetTotal: campaign.budgetTotal },
-          after: data,
+      data: {
+        action: "admin.campaigns.update",
+        entity: "campaign",
+        entityId: id,
+        userId,
+        before: {
+          name: campaign.name,
+          platform: campaign.platform,
+          budgetTotal: campaign.budgetTotal,
         },
-      });
+        after: data,
+      },
+    });
 
     await this.actionLog.record({
       actorId: userId,
       targetType: "campaign",
       targetId: id,
       actionType: "admin.campaigns.update",
-      beforeState: { name: campaign.name, platform: campaign.platform, budgetTotal: campaign.budgetTotal },
+      beforeState: {
+        name: campaign.name,
+        platform: campaign.platform,
+        budgetTotal: campaign.budgetTotal,
+      },
       afterState: data,
     });
 

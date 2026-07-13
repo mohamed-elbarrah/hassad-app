@@ -369,7 +369,9 @@ export class BillingCronService {
       });
     }
 
-    this.logger.log(`Escalated ${overdue.length} overdue invoice(s) to finance team`);
+    this.logger.log(
+      `Escalated ${overdue.length} overdue invoice(s) to finance team`,
+    );
   }
 
   // ── Company settings ─────────────────────────────────────────────────────────

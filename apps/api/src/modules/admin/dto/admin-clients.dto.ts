@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsDateString, IsUUID, MinLength } from "class-validator";
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsUUID,
+  MinLength,
+} from "class-validator";
 
 export class SuspendClientDto {
   @IsString()

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
 import { ProjectStatus, TaskStatus, TaskPriority } from "@hassad/shared";
@@ -71,14 +75,15 @@ export class AdminProjectsService {
           p.endDate < now &&
           p.status !== "COMPLETED" &&
           p.status !== "CANCELLED";
-        const completedPeriods = p.periods?.filter(
-          (per: any) => per.status === "COMPLETED",
-        ).length ?? 0;
+        const completedPeriods =
+          p.periods?.filter((per: any) => per.status === "COMPLETED").length ??
+          0;
         const totalPeriods = p.periods?.length ?? 0;
-        const totalInvoiced = p.invoiceItems?.reduce(
-          (sum: number, item: any) => sum + (item.total ?? 0),
-          0,
-        ) ?? 0;
+        const totalInvoiced =
+          p.invoiceItems?.reduce(
+            (sum: number, item: any) => sum + (item.total ?? 0),
+            0,
+          ) ?? 0;
         const remainingValue = (p.contract?.totalValue ?? 0) - totalInvoiced;
 
         return {
@@ -239,7 +244,12 @@ export class AdminProjectsService {
     };
   }
 
-  async reassignPm(projectId: string, pmUserId: string, adminId: string, reason?: string) {
+  async reassignPm(
+    projectId: string,
+    pmUserId: string,
+    adminId: string,
+    reason?: string,
+  ) {
     const [project, user] = await Promise.all([
       this.prisma.project.findUnique({ where: { id: projectId } }),
       this.prisma.user.findUnique({ where: { id: pmUserId } }),
@@ -319,7 +329,12 @@ export class AdminProjectsService {
     return { success: true };
   }
 
-  async forceStatus(projectId: string, status: ProjectStatus, reason: string, adminId: string) {
+  async forceStatus(
+    projectId: string,
+    status: ProjectStatus,
+    reason: string,
+    adminId: string,
+  ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -363,9 +378,13 @@ export class AdminProjectsService {
       where: { id: projectId },
     });
     if (!project) throw new NotFoundException("Project not found");
-    if (!project.isArchived) throw new BadRequestException("Project is not archived");
+    if (!project.isArchived)
+      throw new BadRequestException("Project is not archived");
 
-    const before = { isArchived: project.isArchived, archivedAt: project.archivedAt };
+    const before = {
+      isArchived: project.isArchived,
+      archivedAt: project.archivedAt,
+    };
     const after = { isArchived: false, archivedAt: null, reason };
 
     await this.prisma.$transaction([
@@ -449,7 +468,13 @@ export class AdminProjectsService {
     return project;
   }
 
-  async addMember(projectId: string, userId: string, role: string, adminId: string, reason?: string) {
+  async addMember(
+    projectId: string,
+    userId: string,
+    role: string,
+    adminId: string,
+    reason?: string,
+  ) {
     const [project, user] = await Promise.all([
       this.prisma.project.findUnique({ where: { id: projectId } }),
       this.prisma.user.findUnique({ where: { id: userId } }),
@@ -487,19 +512,25 @@ export class AdminProjectsService {
     return member;
   }
 
-  async addTask(projectId: string, data: {
-    title: string;
-    assigneeId?: string;
-    priority?: string;
-    dueDate?: string;
-    status?: string;
-  }, adminId?: string) {
+  async addTask(
+    projectId: string,
+    data: {
+      title: string;
+      assigneeId?: string;
+      priority?: string;
+      dueDate?: string;
+      status?: string;
+    },
+    adminId?: string,
+  ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) throw new NotFoundException("Project not found");
 
-    let defaultDept = await this.prisma.department.findFirst({ orderBy: { createdAt: "asc" } });
+    let defaultDept = await this.prisma.department.findFirst({
+      orderBy: { createdAt: "asc" },
+    });
     if (!defaultDept) {
       defaultDept = await this.prisma.department.create({
         data: { name: "General" },
@@ -512,11 +543,14 @@ export class AdminProjectsService {
           projectId,
           title: data.title,
           assignedTo: data.assigneeId,
-          createdBy: adminId ?? project.projectManagerId ?? "00000000-0000-0000-0000-000000000000",
+          createdBy:
+            adminId ??
+            project.projectManagerId ??
+            "00000000-0000-0000-0000-000000000000",
           departmentId: defaultDept.id,
-          priority: data.priority as TaskPriority ?? TaskPriority.NORMAL,
+          priority: (data.priority as TaskPriority) ?? TaskPriority.NORMAL,
           dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
-          status: data.status as TaskStatus ?? TaskStatus.TODO,
+          status: (data.status as TaskStatus) ?? TaskStatus.TODO,
         },
       });
 

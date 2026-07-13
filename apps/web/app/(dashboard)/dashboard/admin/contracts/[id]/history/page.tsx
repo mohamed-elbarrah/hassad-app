@@ -49,10 +49,7 @@ export default function ContractHistoryTab({
                 {entry.fromStatus && (
                   <ArrowLeft className="h-3 w-3 text-portal-note-text" />
                 )}
-                <AdminStatusBadge
-                  domain="contract"
-                  status={entry.toStatus}
-                />
+                <AdminStatusBadge domain="contract" status={entry.toStatus} />
               </div>
               <div className="flex items-center gap-3 mt-1.5 text-xs text-portal-note-text">
                 <span>

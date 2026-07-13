@@ -37,21 +37,22 @@ export class AdminFinanceService {
       this.financeService.getAlerts(),
     ]);
 
-    const [totalPayments, refundPayments, paymentMethodSplit, overdueInvoices] = await Promise.all([
-      this.prisma.payment.count(),
-      this.prisma.payment.count({ where: { status: "REFUNDED" } }),
-      this.prisma.payment.groupBy({
-        by: ["method"],
-        _count: { method: true },
-        _sum: { amount: true },
-      }),
-      this.prisma.invoice.findMany({
-        where: { status: "LATE" },
-        include: { client: { select: { id: true, companyName: true } } },
-        orderBy: { dueDate: "asc" },
-        take: 5,
-      }),
-    ]);
+    const [totalPayments, refundPayments, paymentMethodSplit, overdueInvoices] =
+      await Promise.all([
+        this.prisma.payment.count(),
+        this.prisma.payment.count({ where: { status: "REFUNDED" } }),
+        this.prisma.payment.groupBy({
+          by: ["method"],
+          _count: { method: true },
+          _sum: { amount: true },
+        }),
+        this.prisma.invoice.findMany({
+          where: { status: "LATE" },
+          include: { client: { select: { id: true, companyName: true } } },
+          orderBy: { dueDate: "asc" },
+          take: 5,
+        }),
+      ]);
 
     const totalMethodAmount = paymentMethodSplit.reduce(
       (sum, p) => sum + (p._sum.amount ?? 0),
@@ -104,7 +105,8 @@ export class AdminFinanceService {
         amount: inv.amount,
         dueDate: inv.dueDate,
         daysOverdue: Math.floor(
-          (Date.now() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+          (Date.now() - new Date(inv.dueDate).getTime()) /
+            (1000 * 60 * 60 * 24),
         ),
       })),
       paidVsUnpaid: {
@@ -335,7 +337,11 @@ export class AdminFinanceService {
             eventType: "WEBHOOK_FAILURE",
             source: "admin.finance.retry-webhook",
             message: `Webhook retry failed: ${error.message}`,
-            metadata: { webhookId, provider: log.provider, eventType: log.eventType },
+            metadata: {
+              webhookId,
+              provider: log.provider,
+              eventType: log.eventType,
+            },
             status: "OPEN",
           },
         });
@@ -416,7 +422,9 @@ export class AdminFinanceService {
       let error: string | null = null;
 
       try {
-        const provider = await this.paymentsService.getProvider(gw.name.toLowerCase());
+        const provider = await this.paymentsService.getProvider(
+          gw.name.toLowerCase(),
+        );
         if (provider) {
           // Lightweight health check: attempt to verify connectivity
           status = "UP";

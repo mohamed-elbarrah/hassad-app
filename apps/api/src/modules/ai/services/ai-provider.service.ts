@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { EncryptionService } from "../encryption/encryption.service";
 import { AiProviderRegistry } from "./ai-provider-registry.service";
@@ -71,7 +75,10 @@ export class AiProviderService {
     if (!row) throw new NotFoundException("AI provider not found");
 
     const factory = ADAPTER_FACTORIES[row.name];
-    if (!factory) throw new BadRequestException(`No adapter for provider type "${row.name}"`);
+    if (!factory)
+      throw new BadRequestException(
+        `No adapter for provider type "${row.name}"`,
+      );
 
     const apiKey = this.encryption.decrypt(row.apiKey);
 
@@ -100,7 +107,10 @@ export class AiProviderService {
     if (!row) throw new NotFoundException("AI provider not found");
 
     const factory = ADAPTER_FACTORIES[row.name];
-    if (!factory) throw new BadRequestException(`No adapter for provider type "${row.name}"`);
+    if (!factory)
+      throw new BadRequestException(
+        `No adapter for provider type "${row.name}"`,
+      );
 
     const apiKey = this.encryption.decrypt(row.apiKey);
 

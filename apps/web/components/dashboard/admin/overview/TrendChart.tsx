@@ -40,15 +40,28 @@ function computePercentChange(data: number[]): number | null {
   return Math.round(((recent - previous) / previous) * 100);
 }
 
-export function TrendChart({ labels, metrics, period, onPeriodChange, className }: TrendChartProps) {
+export function TrendChart({
+  labels,
+  metrics,
+  period,
+  onPeriodChange,
+  className,
+}: TrendChartProps) {
   const [activeMetric, setActiveMetric] = useState(metrics[0]?.key ?? "");
 
-  const currentMetric = metrics.find((m) => m.key === activeMetric) ?? metrics[0];
-  const pctChange = currentMetric ? computePercentChange(currentMetric.data) : null;
+  const currentMetric =
+    metrics.find((m) => m.key === activeMetric) ?? metrics[0];
+  const pctChange = currentMetric
+    ? computePercentChange(currentMetric.data)
+    : null;
 
   if (!labels || labels.length === 0 || metrics.length === 0) {
     return (
-      <SurfaceCard title="اتجاهات الأداء" icon={TrendingUp} className={className}>
+      <SurfaceCard
+        title="اتجاهات الأداء"
+        icon={TrendingUp}
+        className={className}
+      >
         <p className="text-xs text-portal-note-text text-center py-10">
           لا توجد بيانات كافية للمخطط.
         </p>
@@ -147,7 +160,12 @@ export function TrendChart({ labels, metrics, period, onPeriodChange, className 
               fill={currentMetric?.color ?? "#121936"}
               fillOpacity={0.06}
               dot={false}
-              activeDot={{ r: 4, fill: currentMetric?.color, stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{
+                r: 4,
+                fill: currentMetric?.color,
+                stroke: "#fff",
+                strokeWidth: 2,
+              }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -168,9 +186,7 @@ export function TrendChart({ labels, metrics, period, onPeriodChange, className 
             {pctChange > 0 ? "↑" : pctChange < 0 ? "↓" : "→"}{" "}
             {Math.abs(pctChange)}%
           </span>
-          <span className="text-portal-note-text">
-            عن الشهر الماضي
-          </span>
+          <span className="text-portal-note-text">عن الشهر الماضي</span>
         </div>
       )}
     </SurfaceCard>

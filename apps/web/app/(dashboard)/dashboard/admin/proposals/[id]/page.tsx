@@ -2,7 +2,14 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { FileText, Building2, User, DollarSign, FileCheck, ClipboardList } from "lucide-react";
+import {
+  FileText,
+  Building2,
+  User,
+  DollarSign,
+  FileCheck,
+  ClipboardList,
+} from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { AdminDetailBreadcrumb } from "@/components/dashboard/admin/shared/AdminDetailBreadcrumb";
@@ -27,7 +34,9 @@ export default function AdminProposalDetailPage({
       />
 
       <div>
-        <h1 className="text-2xl font-bold text-natural-100">{proposal.title}</h1>
+        <h1 className="text-2xl font-bold text-natural-100">
+          {proposal.title}
+        </h1>
         <div className="mt-2">
           <AdminStatusBadge domain="proposal" status={proposal.status} />
         </div>
@@ -41,7 +50,10 @@ export default function AdminProposalDetailPage({
               <div>
                 <p className="text-xs text-portal-note-text">المبلغ الإجمالي</p>
                 <p className="text-sm font-medium text-natural-100">
-                  {proposal.totalPrice.toLocaleString("ar-SA", { style: "currency", currency: "SAR" })}
+                  {proposal.totalPrice.toLocaleString("ar-SA", {
+                    style: "currency",
+                    currency: "SAR",
+                  })}
                 </p>
               </div>
             </div>
@@ -64,7 +76,9 @@ export default function AdminProposalDetailPage({
                 <Building2 className="h-5 w-5 text-secondary-500 mt-0.5" />
                 <div>
                   <p className="text-xs text-portal-note-text">الشركة</p>
-                  <p className="text-sm font-medium text-natural-100">{proposal.client.companyName}</p>
+                  <p className="text-sm font-medium text-natural-100">
+                    {proposal.client.companyName}
+                  </p>
                 </div>
               </div>
             ) : proposal.lead ? (
@@ -72,8 +86,12 @@ export default function AdminProposalDetailPage({
                 <Building2 className="h-5 w-5 text-secondary-500 mt-0.5" />
                 <div>
                   <p className="text-xs text-portal-note-text">الفرصة</p>
-                  <p className="text-sm font-medium text-natural-100">{proposal.lead.companyName}</p>
-                  <p className="text-xs text-portal-note-text mt-1">{proposal.lead.contactName}</p>
+                  <p className="text-sm font-medium text-natural-100">
+                    {proposal.lead.companyName}
+                  </p>
+                  <p className="text-xs text-portal-note-text mt-1">
+                    {proposal.lead.contactName}
+                  </p>
                 </div>
               </div>
             ) : (
@@ -87,9 +105,13 @@ export default function AdminProposalDetailPage({
             <User className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">الاسم</p>
-              <p className="text-sm font-medium text-natural-100">{proposal.creator?.name || "—"}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {proposal.creator?.name || "—"}
+              </p>
               {proposal.creator?.email && (
-                <p className="text-xs text-portal-note-text mt-1">{proposal.creator.email}</p>
+                <p className="text-xs text-portal-note-text mt-1">
+                  {proposal.creator.email}
+                </p>
               )}
             </div>
           </div>
@@ -101,10 +123,17 @@ export default function AdminProposalDetailPage({
               <ClipboardList className="h-5 w-5 text-secondary-500 mt-0.5" />
               <div>
                 <p className="text-xs text-portal-note-text">الشركة</p>
-                <p className="text-sm font-medium text-natural-100">{proposal.request.companyName}</p>
-                <p className="text-xs text-portal-note-text mt-1">جهة الاتصال: {proposal.request.contactName}</p>
+                <p className="text-sm font-medium text-natural-100">
+                  {proposal.request.companyName}
+                </p>
+                <p className="text-xs text-portal-note-text mt-1">
+                  جهة الاتصال: {proposal.request.contactName}
+                </p>
                 <div className="mt-1">
-                  <AdminStatusBadge domain="request" status={proposal.request.status} />
+                  <AdminStatusBadge
+                    domain="request"
+                    status={proposal.request.status}
+                  />
                 </div>
               </div>
             </div>
@@ -124,7 +153,10 @@ export default function AdminProposalDetailPage({
                   {proposal.contract.title}
                 </Link>
                 <div className="mt-1">
-                  <AdminStatusBadge domain="contract" status={proposal.contract.status} />
+                  <AdminStatusBadge
+                    domain="contract"
+                    status={proposal.contract.status}
+                  />
                 </div>
               </div>
             </div>

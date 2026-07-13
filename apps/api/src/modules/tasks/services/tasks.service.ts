@@ -266,7 +266,7 @@ export class TasksService {
 
     const assigneeRole = user.role.name as UserRole;
 
-    if (assigneeRole === UserRole.EMPLOYEE) {
+    if (assigneeRole === UserRole.TEAM) {
       const inDepartment = user.departments.some(
         (d) => d.departmentId === departmentId,
       );

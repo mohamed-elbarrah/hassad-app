@@ -22,7 +22,12 @@ interface ContractChartProps {
   className?: string;
 }
 
-export function ContractChart({ steps, period, onPeriodChange, className }: ContractChartProps) {
+export function ContractChart({
+  steps,
+  period,
+  onPeriodChange,
+  className,
+}: ContractChartProps) {
   if (steps.length === 0 || steps.every((s) => s.from === 0)) {
     return (
       <SurfaceCard title="تحويل العقود" icon={FileText} className={className}>
@@ -100,7 +105,10 @@ export function ContractChart({ steps, period, onPeriodChange, className }: Cont
                   <div className="h-2 rounded-full bg-badge-gray-bg overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ width: `${toPct}%`, backgroundColor: step.color }}
+                      style={{
+                        width: `${toPct}%`,
+                        backgroundColor: step.color,
+                      }}
                     />
                   </div>
                 </div>

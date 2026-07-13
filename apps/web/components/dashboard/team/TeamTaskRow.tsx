@@ -53,11 +53,7 @@ interface TaskRowProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function EmployeeTaskRow({
-  task,
-  onArchive,
-  isArchiving,
-}: TaskRowProps) {
+export function TeamTaskRow({ task, onArchive, isArchiving }: TaskRowProps) {
   const isOverdue =
     task.dueDate != null &&
     task.status !== TaskStatus.DONE &&
@@ -77,7 +73,7 @@ export function EmployeeTaskRow({
         {/* Title + project */}
         <div className="flex-1 min-w-0">
           <Link
-            href={`/dashboard/employee/tasks/${task.id}`}
+            href={`/dashboard/team/tasks/${task.id}`}
             className="text-sm font-medium hover:underline line-clamp-1"
           >
             {task.title}

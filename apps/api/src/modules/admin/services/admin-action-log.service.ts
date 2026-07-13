@@ -14,7 +14,15 @@ export class AdminActionLogService {
     beforeState?: Record<string, unknown>;
     afterState?: Record<string, unknown>;
   }) {
-    const { actorId, targetType, targetId, actionType, reason, beforeState, afterState } = params;
+    const {
+      actorId,
+      targetType,
+      targetId,
+      actionType,
+      reason,
+      beforeState,
+      afterState,
+    } = params;
 
     return this.prisma.adminActionLog.create({
       data: {

@@ -1,10 +1,21 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Param, Body, UseGuards, BadRequestException,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  BadRequestException,
 } from "@nestjs/common";
 import { AiProviderService } from "../services/ai-provider.service";
 import { ADAPTER_FACTORIES, DEFAULT_MODELS } from "../adapters/adapter-factory";
-import { CreateAiProviderDto, UpdateAiProviderDto, FetchModelsDto } from "../dto/ai-provider.dto";
+import {
+  CreateAiProviderDto,
+  UpdateAiProviderDto,
+  FetchModelsDto,
+} from "../dto/ai-provider.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
@@ -12,9 +23,7 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 @Controller("admin/ai/providers")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AiProviderController {
-  constructor(
-    private readonly service: AiProviderService,
-  ) {}
+  constructor(private readonly service: AiProviderService) {}
 
   @Get()
   @RequirePermissions("admin.ai.read")
@@ -32,7 +41,10 @@ export class AiProviderController {
   @RequirePermissions("admin.ai.manage")
   async fetchModelsPreview(@Body() dto: FetchModelsDto) {
     const factory = ADAPTER_FACTORIES[dto.name];
-    if (!factory) throw new BadRequestException(`No adapter for provider type "${dto.name}"`);
+    if (!factory)
+      throw new BadRequestException(
+        `No adapter for provider type "${dto.name}"`,
+      );
 
     const config = {
       id: "preview",
@@ -55,7 +67,11 @@ export class AiProviderController {
       return { success: true, models };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      return { success: false, message, models: DEFAULT_MODELS[dto.name] || [] };
+      return {
+        success: false,
+        message,
+        models: DEFAULT_MODELS[dto.name] || [],
+      };
     }
   }
 
@@ -99,7 +115,10 @@ export class AiProviderController {
       const result = await this.service.testProvider(id);
       return { success: true, model: result.model, response: result.text };
     } catch (err) {
-      return { success: false, message: err instanceof Error ? err.message : "Unknown error" };
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : "Unknown error",
+      };
     }
   }
 }

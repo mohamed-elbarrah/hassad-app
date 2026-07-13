@@ -1,7 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { EncryptionService } from "../encryption/encryption.service";
-import { AiProvider, AiProviderConfig, AiResult, AiOptions } from "../adapters/provider.interface";
+import {
+  AiProvider,
+  AiProviderConfig,
+  AiResult,
+  AiOptions,
+} from "../adapters/provider.interface";
 import { ADAPTER_FACTORIES } from "../adapters/adapter-factory";
 
 @Injectable()
@@ -54,7 +59,9 @@ export class AiProviderRegistry implements OnModuleInit {
           temperature: row.temperature,
         };
 
-        this.rateLimits.set(row.name, { requestsPerMinute: row.requestsPerMinute });
+        this.rateLimits.set(row.name, {
+          requestsPerMinute: row.requestsPerMinute,
+        });
         this.providers.push(factory(config));
       }
 
@@ -77,7 +84,10 @@ export class AiProviderRegistry implements OnModuleInit {
     return [...this.providers];
   }
 
-  async generateWithFallback(prompt: string, options?: AiOptions): Promise<AiResult> {
+  async generateWithFallback(
+    prompt: string,
+    options?: AiOptions,
+  ): Promise<AiResult> {
     let lastError: Error | null = null;
 
     for (const provider of this.providers) {
@@ -90,7 +100,9 @@ export class AiProviderRegistry implements OnModuleInit {
         return result;
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
-        this.logger.warn(`Provider "${provider.name}" failed: ${lastError.message}`);
+        this.logger.warn(
+          `Provider "${provider.name}" failed: ${lastError.message}`,
+        );
       }
     }
 
@@ -105,7 +117,9 @@ export class AiProviderRegistry implements OnModuleInit {
     if (!usage) return false;
 
     const oneMinuteAgo = Date.now() - 60_000;
-    const recentRequests = usage.requestTimestamps.filter((t) => t > oneMinuteAgo);
+    const recentRequests = usage.requestTimestamps.filter(
+      (t) => t > oneMinuteAgo,
+    );
     return recentRequests.length >= limit.requestsPerMinute;
   }
 

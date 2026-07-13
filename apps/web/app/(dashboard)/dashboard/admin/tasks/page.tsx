@@ -196,7 +196,9 @@ export default function AdminTasksPage() {
                     getPriorityVariant(task.priority),
                   )}
                 >
-                  {TASK_PRIORITY_AR[task.priority as keyof typeof TASK_PRIORITY_AR] || task.priority}
+                  {TASK_PRIORITY_AR[
+                    task.priority as keyof typeof TASK_PRIORITY_AR
+                  ] || task.priority}
                 </span>
               </td>
               <td className="py-3 px-2 text-right text-sm">

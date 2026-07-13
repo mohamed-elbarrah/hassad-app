@@ -15,9 +15,16 @@ export default function AdminTeamsPage() {
     if (!workload) return [];
 
     const members = workload.items;
-    const totalActiveTasks = members.reduce((s, m) => s + m.activeTasksCount, 0);
-    const overloaded = members.filter((m) => m.workloadStatus === "OVERLOADED").length;
-    const available = members.filter((m) => m.workloadStatus === "AVAILABLE").length;
+    const totalActiveTasks = members.reduce(
+      (s, m) => s + m.activeTasksCount,
+      0,
+    );
+    const overloaded = members.filter(
+      (m) => m.workloadStatus === "OVERLOADED",
+    ).length;
+    const available = members.filter(
+      (m) => m.workloadStatus === "AVAILABLE",
+    ).length;
 
     return [
       {

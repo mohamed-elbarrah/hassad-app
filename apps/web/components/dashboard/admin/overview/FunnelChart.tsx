@@ -21,7 +21,13 @@ interface FunnelChartProps {
   className?: string;
 }
 
-export function FunnelChart({ stages, conversionRate, period, onPeriodChange, className }: FunnelChartProps) {
+export function FunnelChart({
+  stages,
+  conversionRate,
+  period,
+  onPeriodChange,
+  className,
+}: FunnelChartProps) {
   if (stages.length === 0 || stages.every((s) => s.value === 0)) {
     return (
       <SurfaceCard title="مسار التحويل" icon={BarChart3} className={className}>
@@ -77,7 +83,15 @@ export function FunnelChart({ stages, conversionRate, period, onPeriodChange, cl
 
       <div className="mt-5 pt-4 border-t border-portal-divider flex items-center justify-between">
         <span className="text-sm text-portal-note-text">نسبة التحويل</span>
-        <Pill tone={conversionRate > 30 ? "success" : conversionRate > 15 ? "warning" : "danger"}>
+        <Pill
+          tone={
+            conversionRate > 30
+              ? "success"
+              : conversionRate > 15
+                ? "warning"
+                : "danger"
+          }
+        >
           {conversionRate}%
         </Pill>
       </div>

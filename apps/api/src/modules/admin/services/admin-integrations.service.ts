@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 @Injectable()
 export class AdminIntegrationsService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getSyncStatus() {
     const services = await this.prisma.externalServiceHealth.findMany({
@@ -70,7 +72,8 @@ export class AdminIntegrationsService {
   async retryWebhook(id: string, userId?: string) {
     const log = await this.prisma.webhookLog.findUnique({ where: { id } });
     if (!log) throw new NotFoundException("سجل الويب هوك غير موجود");
-    if (log.processed) throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
+    if (log.processed)
+      throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
 
     // Mark as WEBHOOK_FAILURE in SystemEventLog when retry is triggered
     // (actual reprocessing is handled by admin-finance's retry which has PaymentsService)

@@ -25,7 +25,11 @@ const OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: "all", label: "الكل" },
 ];
 
-export function MiniPeriodFilter({ value, onChange, className }: MiniPeriodFilterProps) {
+export function MiniPeriodFilter({
+  value,
+  onChange,
+  className,
+}: MiniPeriodFilterProps) {
   return (
     <select
       value={value}
@@ -44,28 +48,46 @@ export function MiniPeriodFilter({ value, onChange, className }: MiniPeriodFilte
   );
 }
 
-export function periodToDateRange(period: PeriodKey): { from?: string; to?: string } {
+export function periodToDateRange(period: PeriodKey): {
+  from?: string;
+  to?: string;
+} {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
 
   switch (period) {
     case "today":
-      return { from: now.toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
+      return {
+        from: now.toISOString().slice(0, 10),
+        to: now.toISOString().slice(0, 10),
+      };
     case "yesterday": {
       const d = new Date(now);
       d.setDate(d.getDate() - 1);
-      return { from: d.toISOString().slice(0, 10), to: d.toISOString().slice(0, 10) };
+      return {
+        from: d.toISOString().slice(0, 10),
+        to: d.toISOString().slice(0, 10),
+      };
     }
     case "thisWeek": {
       const start = new Date(now);
       start.setDate(start.getDate() - start.getDay());
-      return { from: start.toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
+      return {
+        from: start.toISOString().slice(0, 10),
+        to: now.toISOString().slice(0, 10),
+      };
     }
     case "thisMonth":
-      return { from: new Date(y, m, 1).toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
+      return {
+        from: new Date(y, m, 1).toISOString().slice(0, 10),
+        to: now.toISOString().slice(0, 10),
+      };
     case "thisYear":
-      return { from: new Date(y, 0, 1).toISOString().slice(0, 10), to: now.toISOString().slice(0, 10) };
+      return {
+        from: new Date(y, 0, 1).toISOString().slice(0, 10),
+        to: now.toISOString().slice(0, 10),
+      };
     case "all":
       return {};
     default:

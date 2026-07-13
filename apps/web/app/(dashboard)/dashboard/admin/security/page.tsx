@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Shield, AlertTriangle, UserX, Key, Users, ShieldCheck } from "lucide-react";
+import {
+  Shield,
+  AlertTriangle,
+  UserX,
+  Key,
+  Users,
+  ShieldCheck,
+} from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
@@ -12,7 +19,10 @@ import {
 import { Pagination } from "@/components/design-system/Pagination";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { Input } from "@/components/design-system/Input";
-import { useGetAdminSecurityEventsQuery, useGetAdminSecurityStatsQuery } from "@/features/admin/adminUsersApi";
+import {
+  useGetAdminSecurityEventsQuery,
+  useGetAdminSecurityStatsQuery,
+} from "@/features/admin/adminUsersApi";
 
 const COLUMNS: DataTableColumn[] = [
   { id: "type", label: "النوع", align: "right" },
@@ -40,7 +50,9 @@ export default function AdminSecurityPage() {
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
 
   const { data, isLoading, isError } = useGetAdminSecurityEventsQuery({
     type: activeFilters.type?.[0],
@@ -54,14 +66,37 @@ export default function AdminSecurityPage() {
 
   const events = useMemo(() => data?.items ?? [], [data]);
 
-  const statCards = useMemo(() => [
-    { label: "إجمالي الأحداث", value: stats?.totalEvents ?? 0, icon: Shield },
-    { label: "محاولات دخول فاشلة (24 ساعة)", value: stats?.failedLogins24h ?? 0, icon: AlertTriangle },
-    { label: "انتحال شخصية (7 أيام)", value: stats?.impersonations7d ?? 0, icon: UserX },
-    { label: "إعادة تعيين كلمة المرور (7 أيام)", value: stats?.passwordResets7d ?? 0, icon: Key },
-    { label: "الجلسات النشطة", value: stats?.activeSessions ?? 0, icon: Users },
-    { label: "المصادقة الثنائية", value: stats?.twoFactorEnabled ?? 0, icon: ShieldCheck },
-  ], [stats]);
+  const statCards = useMemo(
+    () => [
+      { label: "إجمالي الأحداث", value: stats?.totalEvents ?? 0, icon: Shield },
+      {
+        label: "محاولات دخول فاشلة (24 ساعة)",
+        value: stats?.failedLogins24h ?? 0,
+        icon: AlertTriangle,
+      },
+      {
+        label: "انتحال شخصية (7 أيام)",
+        value: stats?.impersonations7d ?? 0,
+        icon: UserX,
+      },
+      {
+        label: "إعادة تعيين كلمة المرور (7 أيام)",
+        value: stats?.passwordResets7d ?? 0,
+        icon: Key,
+      },
+      {
+        label: "الجلسات النشطة",
+        value: stats?.activeSessions ?? 0,
+        icon: Users,
+      },
+      {
+        label: "المصادقة الثنائية",
+        value: stats?.twoFactorEnabled ?? 0,
+        icon: ShieldCheck,
+      },
+    ],
+    [stats],
+  );
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
@@ -130,7 +165,9 @@ export default function AdminSecurityPage() {
               className="border-b border-portal-divider last:border-0"
             >
               <td className="py-3 px-2 text-right">
-                <span className="text-sm font-medium text-natural-100">{event.type}</span>
+                <span className="text-sm font-medium text-natural-100">
+                  {event.type}
+                </span>
               </td>
               <td className="py-3 px-2 text-right text-sm text-portal-note-text">
                 {event.userName || "—"}
@@ -150,7 +187,11 @@ export default function AdminSecurityPage() {
 
         {data && data.totalPages > 1 && (
           <div className="mt-4 flex justify-center">
-            <Pagination page={page} totalPages={data.totalPages} onPageChange={setPage} />
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </SurfaceCard>

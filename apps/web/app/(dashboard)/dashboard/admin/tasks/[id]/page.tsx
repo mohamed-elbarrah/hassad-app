@@ -33,7 +33,9 @@ export default function TaskOverviewTab({
             <FileText className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">العنوان</p>
-              <p className="text-sm font-medium text-natural-100">{task.title}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {task.title}
+              </p>
             </div>
           </div>
 
@@ -79,7 +81,8 @@ export default function TaskOverviewTab({
             <div>
               <p className="text-xs text-portal-note-text">الحالة</p>
               <p className="text-sm font-medium text-natural-100">
-                {TASK_STATUS_AR[task.status as keyof typeof TASK_STATUS_AR] || task.status}
+                {TASK_STATUS_AR[task.status as keyof typeof TASK_STATUS_AR] ||
+                  task.status}
               </p>
             </div>
           </div>
@@ -89,7 +92,9 @@ export default function TaskOverviewTab({
             <div>
               <p className="text-xs text-portal-note-text">الأولوية</p>
               <p className="text-sm font-medium text-natural-100">
-                {TASK_PRIORITY_AR[task.priority as keyof typeof TASK_PRIORITY_AR] || task.priority}
+                {TASK_PRIORITY_AR[
+                  task.priority as keyof typeof TASK_PRIORITY_AR
+                ] || task.priority}
               </p>
             </div>
           </div>

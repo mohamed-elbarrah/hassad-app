@@ -1,6 +1,13 @@
 "use client";
 
-import { Cable, Wifi, WifiOff, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import {
+  Cable,
+  Wifi,
+  WifiOff,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatCard } from "@/components/design-system/StatCard";
@@ -108,8 +115,7 @@ function SyncStatusSection() {
               >
                 <div className="flex items-center gap-3">
                   {(() => {
-                    const Icon =
-                      SERVICE_STATUS_ICON[service.status] || WifiOff;
+                    const Icon = SERVICE_STATUS_ICON[service.status] || WifiOff;
                     return (
                       <Icon
                         className={`h-5 w-5 ${SERVICE_STATUS_COLOR[service.status] || "text-neutral-300"}`}

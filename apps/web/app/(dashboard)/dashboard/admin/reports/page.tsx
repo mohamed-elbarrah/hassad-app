@@ -288,7 +288,11 @@ function ProjectsSection() {
     <SurfaceCard title="المشاريع" icon={FolderKanban}>
       <div className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard title="إجمالي المشاريع" value={data.total} icon={FolderKanban} />
+          <StatCard
+            title="إجمالي المشاريع"
+            value={data.total}
+            icon={FolderKanban}
+          />
           <StatCard
             title="معدل الإنجاز"
             value={"٪" + data.completionRate}
@@ -319,7 +323,9 @@ function ProjectsSection() {
                   key={item.status}
                   className="flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-2.5"
                 >
-                  <span className="text-sm text-natural-100">{item.status}</span>
+                  <span className="text-sm text-natural-100">
+                    {item.status}
+                  </span>
                   <span className="text-sm font-semibold text-natural-100">
                     {item.count}
                   </span>
@@ -367,7 +373,11 @@ function SatisfactionSection() {
           value={data.avgScore.toFixed(1) + " / 5"}
           icon={Star}
           variant={
-            data.avgScore >= 4 ? "success" : data.avgScore >= 3 ? "warning" : "danger"
+            data.avgScore >= 4
+              ? "success"
+              : data.avgScore >= 3
+                ? "warning"
+                : "danger"
           }
         />
 

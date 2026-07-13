@@ -38,7 +38,9 @@ const EMPTY_STATE: DataTableEmptyState = {
 export default function AdminSessionsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
 
   const { data, isLoading, isError } = useGetAdminSessionsQuery({
     search: search || undefined,

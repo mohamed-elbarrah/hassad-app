@@ -45,21 +45,27 @@ export default function RequestOverviewTab({
             <Building2 className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">اسم الشركة</p>
-              <p className="text-sm font-medium text-natural-100">{request.companyName}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {request.companyName}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
             <Briefcase className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">النشاط التجاري</p>
-              <p className="text-sm font-medium text-natural-100">{request.businessName}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {request.businessName}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
             <Tag className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">نوع النشاط</p>
-              <p className="text-sm font-medium text-natural-100">{request.businessType}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {request.businessType}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
@@ -89,21 +95,29 @@ export default function RequestOverviewTab({
             <User className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">اسم جهة الاتصال</p>
-              <p className="text-sm font-medium text-natural-100">{request.contactName}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {request.contactName}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
             <Phone className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
-              <p className="text-xs text-portal-note-text">رقم الهاتف / واتساب</p>
-              <p className="text-sm font-medium text-natural-100" dir="ltr">{request.phoneWhatsapp}</p>
+              <p className="text-xs text-portal-note-text">
+                رقم الهاتف / واتساب
+              </p>
+              <p className="text-sm font-medium text-natural-100" dir="ltr">
+                {request.phoneWhatsapp}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
             <Mail className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">البريد الإلكتروني</p>
-              <p className="text-sm font-medium text-natural-100">{request.email || "—"}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {request.email || "—"}
+              </p>
             </div>
           </div>
         </div>
@@ -124,12 +138,16 @@ export default function RequestOverviewTab({
             <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
               <UserCircle className="h-5 w-5 text-secondary-500 mt-0.5" />
               <div>
-                <p className="text-xs text-portal-note-text">المسؤول (المبيعات)</p>
+                <p className="text-xs text-portal-note-text">
+                  المسؤول (المبيعات)
+                </p>
                 <p className="text-sm font-medium text-natural-100">
                   {request.assignee?.name || "—"}
                 </p>
                 {request.assignee && (
-                  <p className="text-xs text-portal-note-text">{request.assignee.email}</p>
+                  <p className="text-xs text-portal-note-text">
+                    {request.assignee.email}
+                  </p>
                 )}
               </div>
             </div>
@@ -141,7 +159,9 @@ export default function RequestOverviewTab({
             <FileText className="h-5 w-5 text-secondary-500 mt-0.5" />
             <div>
               <p className="text-xs text-portal-note-text">المصدر</p>
-              <p className="text-sm font-medium text-natural-100">{request.source}</p>
+              <p className="text-sm font-medium text-natural-100">
+                {request.source}
+              </p>
             </div>
           </div>
         </SurfaceCard>
@@ -162,7 +182,9 @@ export default function RequestOverviewTab({
                     {svc.serviceId}
                   </p>
                   {svc.notes && (
-                    <p className="text-xs text-portal-note-text mt-1">{svc.notes}</p>
+                    <p className="text-xs text-portal-note-text mt-1">
+                      {svc.notes}
+                    </p>
                   )}
                 </div>
                 <span className="text-sm text-portal-note-text">
@@ -176,13 +198,17 @@ export default function RequestOverviewTab({
 
       {request.notes && (
         <SurfaceCard title="الملاحظات">
-          <p className="text-sm text-natural-100 whitespace-pre-wrap">{request.notes}</p>
+          <p className="text-sm text-natural-100 whitespace-pre-wrap">
+            {request.notes}
+          </p>
         </SurfaceCard>
       )}
 
       {request.internalNotes && (
         <SurfaceCard title="ملاحظات داخلية">
-          <p className="text-sm text-natural-100 whitespace-pre-wrap">{request.internalNotes}</p>
+          <p className="text-sm text-natural-100 whitespace-pre-wrap">
+            {request.internalNotes}
+          </p>
         </SurfaceCard>
       )}
     </div>

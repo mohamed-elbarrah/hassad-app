@@ -171,7 +171,9 @@ export default function AdminCurrenciesPage() {
                 <SymbolRenderer currency={cfg} width={24} height={24} />
               </td>,
               <td key="name" className="px-5 py-4">
-                <span className="text-sm text-natural-100">{currency.name}</span>
+                <span className="text-sm text-natural-100">
+                  {currency.name}
+                </span>
               </td>,
               <td key="exchangeRate" className="px-5 py-4">
                 <span className="text-sm text-portal-note-text font-mono">

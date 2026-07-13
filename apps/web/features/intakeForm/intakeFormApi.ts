@@ -34,7 +34,10 @@ export const intakeFormApi = createApi({
   baseQuery,
   tagTypes: ["IntakeForms"],
   endpoints: (builder) => ({
-    getIntakeForms: builder.query<PaginatedIntakeForms, { clientId?: string; page?: number; limit?: number }>({
+    getIntakeForms: builder.query<
+      PaginatedIntakeForms,
+      { clientId?: string; page?: number; limit?: number }
+    >({
       query: (params) => ({
         url: "/admin/portal/intake-forms",
         params,
