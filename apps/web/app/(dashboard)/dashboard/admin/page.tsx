@@ -4,12 +4,6 @@ import { useState, useMemo } from "react";
 import {
   LayoutDashboard,
   AlertTriangle,
-  CheckCircle,
-  TrendingUp,
-  ShieldCheck,
-  Smile,
-  Clock,
-  Heart,
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
@@ -29,8 +23,7 @@ import { HealthScore } from "@/components/dashboard/admin/overview/HealthScore";
 import { ActivityFeed } from "@/components/dashboard/admin/overview/ActivityFeed";
 
 import { QuickActions } from "@/components/dashboard/admin/overview/QuickActions";
-import { BusinessStats } from "@/components/dashboard/admin/overview/BusinessStats";
-import type { BusinessMetric } from "@/components/dashboard/admin/overview/BusinessStats";
+import { AiInsightsCard } from "@/components/dashboard/admin/overview/AiInsightsCard";
 import {
   useGetAdminStatsQuery,
   useGetAdminTrendsQuery,
@@ -155,89 +148,6 @@ function buildAlertCategories(
   return categories;
 }
 
-function buildBusinessMetrics(
-  stats: Parameters<typeof buildAdminKpiConfigs>[0],
-  funnel: ReturnType<typeof useGetAdminFunnelQuery>["data"],
-): BusinessMetric[] {
-  if (!stats) return [];
-
-  const totalProjects = stats.activeProjects + stats.completedProjects;
-  const completionRate =
-    totalProjects > 0
-      ? `${Math.round((stats.completedProjects / totalProjects) * 100)}%`
-      : "—";
-
-  const paymentSuccessRate =
-    stats.totalInvoices > 0
-      ? `${Math.round((1 - stats.unpaidInvoicesCount / stats.totalInvoices) * 100)}%`
-      : "—";
-
-  return [
-    {
-      key: "contractCompletion",
-      label: "معدل إنجاز المشاريع",
-      value: completionRate,
-      icon: CheckCircle,
-      tone: completionRate !== "—" && parseInt(completionRate) > 70 ? "success" : completionRate !== "—" && parseInt(completionRate) > 40 ? "warning" : "neutral",
-      tooltip: "النسبة المئوية للمشاريع المكتملة من إجمالي المشاريع",
-    },
-    {
-      key: "leadConversion",
-      label: "معدل تحويل العملاء",
-      value: funnel?.conversionRates?.leadsToClients
-        ? `${funnel.conversionRates.leadsToClients}%`
-        : "—",
-      icon: TrendingUp,
-      tone: funnel?.conversionRates?.leadsToClients && funnel.conversionRates.leadsToClients > 30
-        ? "success"
-        : funnel?.conversionRates?.leadsToClients && funnel.conversionRates.leadsToClients > 15
-          ? "warning"
-          : "neutral",
-      tooltip: "نسبة العملاء المتوقعين الذين تحولوا إلى عملاء فعليين",
-    },
-    {
-      key: "paymentSuccess",
-      label: "معدل نجاح الدفع",
-      value: paymentSuccessRate,
-      icon: ShieldCheck,
-      tone: paymentSuccessRate !== "—" && parseInt(paymentSuccessRate) > 85
-        ? "success"
-        : paymentSuccessRate !== "—" && parseInt(paymentSuccessRate) > 60
-          ? "warning"
-          : "danger",
-      tooltip: "النسبة المئوية للفواتير التي تم دفعها بنجاح",
-    },
-    {
-      key: "satisfaction",
-      label: "رضا العملاء",
-      value: stats.satisfactionRate != null ? `${stats.satisfactionRate}%` : "—",
-      icon: Smile,
-      tone: stats.satisfactionRate != null && stats.satisfactionRate > 80
-        ? "success"
-        : stats.satisfactionRate != null && stats.satisfactionRate > 50
-          ? "warning"
-          : "neutral",
-      tooltip: "متوسط تقييم رضا العملاء عن الخدمات",
-    },
-    {
-      key: "avgCompletionSpeed",
-      label: "متوسط وقت الإنجاز",
-      value: "قريباً",
-      icon: Clock,
-      tone: "neutral",
-      tooltip: "متوسط الوقت المستغرق لإنجاز المشاريع",
-    },
-    {
-      key: "retention",
-      label: "معدل الاحتفاظ",
-      value: "قريباً",
-      icon: Heart,
-      tone: "neutral",
-      tooltip: "نسبة العملاء الذين يستمرون في التعامل مع المنصة",
-    },
-  ];
-}
-
 export default function AdminOverviewPage() {
   // Shared period state — all 3 filters control the same value
   const [period, setPeriod] = useState<PeriodKey>("thisMonth");
@@ -316,11 +226,6 @@ export default function AdminOverviewPage() {
       },
     ];
   }, [funnel]);
-
-  const businessMetrics = useMemo(
-    () => buildBusinessMetrics(stats, funnel),
-    [stats, funnel],
-  );
 
   if (statsLoading) {
     return (
@@ -420,10 +325,10 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
-      {/* Row 6 — Quick Actions + Business Stats */}
+      {/* Row 6 — Quick Actions + AI Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <QuickActions />
-        <BusinessStats metrics={businessMetrics} />
+        <AiInsightsCard />
       </div>
     </div>
   );

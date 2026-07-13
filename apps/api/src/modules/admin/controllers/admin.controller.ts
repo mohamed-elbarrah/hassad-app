@@ -1,7 +1,8 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
 import { AdminService } from "../services/admin.service";
 import { AdminQueryDto } from "../dto/admin-query.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { HealthCheckService, MemoryHealthIndicator } from "@nestjs/terminus";
@@ -49,6 +50,18 @@ export class AdminController {
   @RequirePermissions("admin.stats")
   getRecentActivity() {
     return this.adminService.getRecentActivity();
+  }
+
+  @Get("ai-insights")
+  @RequirePermissions("admin.stats")
+  getAiInsights() {
+    return this.adminService.getAiInsights();
+  }
+
+  @Post("ai/scan")
+  @RequirePermissions("admin.stats")
+  runAiScan(@CurrentUser("id") userId: string) {
+    return this.adminService.runAiScan(userId);
   }
 
   @Get("health")

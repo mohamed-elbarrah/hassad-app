@@ -388,6 +388,23 @@ export interface AuditLogSearchParams {
   to?: string;
 }
 
+export interface AdminAiInsightEntry {
+  id: string;
+  entityType: string;
+  entityId: string;
+  analysisType: string;
+  summary: string;
+  score: number | null;
+  recommendations: string[];
+  triggeredBy: string | null;
+  createdAt: string;
+}
+
+export interface AdminAiInsights {
+  recentAnalyses: AdminAiInsightEntry[];
+  pendingSuggestions: number;
+}
+
 export const adminApi = createApi({
   reducerPath: "adminApi",
   baseQuery,
@@ -405,6 +422,7 @@ export const adminApi = createApi({
     "AdminSettings",
     "AdminIntegrations",
     "AdminBusinessGoals",
+    "AdminAiInsights",
     "AiProviders",
   ],
   endpoints: (builder) => ({
@@ -455,6 +473,16 @@ export const adminApi = createApi({
     getAdminHealth: builder.query<AdminHealthInfo, void>({
       query: () => "/admin/health",
       providesTags: ["AdminHealth"],
+    }),
+
+    getAdminAiInsights: builder.query<AdminAiInsights, void>({
+      query: () => "/admin/ai-insights",
+      providesTags: ["AdminAiInsights"],
+    }),
+
+    runAdminAiScan: builder.mutation<{ analyzed: number; failed: number }, void>({
+      query: () => ({ url: "/admin/ai/scan", method: "POST" }),
+      invalidatesTags: ["AdminAiInsights"],
     }),
 
     getAdminDashboardAttention: builder.query<AdminAttentionResponse, void>({
@@ -649,6 +677,8 @@ export const {
   useGetAdminAlertsQuery,
   useGetAdminRecentActivityQuery,
   useGetAdminHealthQuery,
+  useGetAdminAiInsightsQuery,
+  useRunAdminAiScanMutation,
   useGetAdminDashboardAttentionQuery,
   useGetAdminDashboardRecentActivityQuery,
   useGetAdminDashboardTeamWorkloadQuery,

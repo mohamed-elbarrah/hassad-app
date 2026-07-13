@@ -2,12 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { ContractStatus } from "@prisma/client";
 import { AdminKpiService } from "./admin-kpi.service";
+import { AiService } from "../../ai/services/ai.service";
 
 @Injectable()
 export class AdminService {
   constructor(
     private prisma: PrismaService,
     private adminKpiService: AdminKpiService,
+    private aiService: AiService,
   ) {}
 
   private parseDateRange(from?: string, to?: string) {
@@ -581,5 +583,81 @@ export class AdminService {
       memoryUsage: process.memoryUsage().heapUsed,
       timestamp: now.toISOString(),
     };
+  }
+
+  async getAiInsights() {
+    const [recentAnalyses, pendingSuggestions] = await Promise.all([
+      this.prisma.aiAnalysisLog.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { name: true } } },
+      }),
+      this.prisma.aiSuggestion.count({
+        where: { status: "PENDING" },
+      }),
+    ]);
+
+    return {
+      recentAnalyses: recentAnalyses.map((log) => ({
+        id: log.id,
+        entityType: log.entityType,
+        entityId: log.entityId,
+        analysisType: log.analysisType,
+        summary: (log.outputData as any)?.summary ?? "",
+        score: (log.outputData as any)?.score ?? null,
+        recommendations: (log.outputData as any)?.recommendations ?? [],
+        triggeredBy: log.user?.name ?? null,
+        createdAt: log.createdAt.toISOString(),
+      })),
+      pendingSuggestions,
+    };
+  }
+
+  async runAiScan(userId: string) {
+    const SYSTEM_USER_ID = userId;
+
+    const [leads, clients, projects, tasks] = await Promise.all([
+      this.prisma.lead.findMany({
+        where: { isActive: true },
+        take: 10,
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.client.findMany({
+        where: { status: "ACTIVE" },
+        take: 10,
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.project.findMany({
+        where: { status: { not: "COMPLETED" } },
+        take: 10,
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.task.findMany({
+        where: { status: { not: "DONE" } },
+        take: 10,
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    const allJobs: Array<{ entityType: string; entityId: string; analysisType: string }> = [
+      ...leads.map((l) => ({ entityType: "LEAD", entityId: l.id, analysisType: "SENTIMENT_ANALYSIS" })),
+      ...clients.map((c) => ({ entityType: "CLIENT", entityId: c.id, analysisType: "CHURN_PREDICTION" })),
+      ...projects.map((p) => ({ entityType: "PROJECT", entityId: p.id, analysisType: "QUALITY_CHECK" })),
+      ...tasks.map((t) => ({ entityType: "TASK", entityId: t.id, analysisType: "QUALITY_CHECK" })),
+    ];
+
+    let analyzed = 0;
+    let failed = 0;
+
+    for (const job of allJobs) {
+      try {
+        await this.aiService.analyze(SYSTEM_USER_ID, job as any);
+        analyzed++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return { analyzed, failed };
   }
 }
