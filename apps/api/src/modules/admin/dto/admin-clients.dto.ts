@@ -3,8 +3,14 @@ import {
   IsOptional,
   IsDateString,
   IsUUID,
+  IsInt,
+  Min,
+  Max,
+  IsEnum,
   MinLength,
 } from "class-validator";
+import { Type } from "class-transformer";
+import { ClientStatus } from "@hassad/shared";
 
 export class SuspendClientDto {
   @IsString()
@@ -29,4 +35,31 @@ export class AssignManagerDto {
   @IsString()
   @MinLength(1)
   reason: string;
+}
+
+export class QueryClientUsersDto {
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsEnum(ClientStatus)
+  status?: ClientStatus;
+
+  @IsOptional()
+  @IsString()
+  segment?: "new" | "active" | "stopped";
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
 }

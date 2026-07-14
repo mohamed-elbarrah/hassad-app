@@ -16,6 +16,7 @@ import {
   SuspendClientDto,
   ReactivateClientDto,
   AssignManagerDto,
+  QueryClientUsersDto,
 } from "../dto/admin-clients.dto";
 
 @Controller("admin/clients")
@@ -33,6 +34,12 @@ export class AdminClientsController {
   @RequirePermissions("admin.clients.read")
   stats() {
     return this.service.getStats();
+  }
+
+  @Get("users")
+  @RequirePermissions("admin.clients.read")
+  findClientUsers(@Query() query: QueryClientUsersDto) {
+    return this.service.findClientUsers(query);
   }
 
   @Get(":id")

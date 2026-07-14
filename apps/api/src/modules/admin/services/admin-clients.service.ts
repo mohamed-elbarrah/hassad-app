@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AdminActionLogService } from "./admin-action-log.service";
+import { QueryClientUsersDto } from "../dto/admin-clients.dto";
 
 @Injectable()
 export class AdminClientsService {
@@ -12,6 +13,73 @@ export class AdminClientsService {
     private readonly prisma: PrismaService,
     private readonly actionLog: AdminActionLogService,
   ) {}
+
+  async findClientUsers(query: QueryClientUsersDto) {
+    const where: any = {
+      role: { name: "CLIENT" },
+    };
+
+    if (query.search) {
+      where.OR = [
+        { name: { contains: query.search, mode: "insensitive" } },
+        { email: { contains: query.search, mode: "insensitive" } },
+      ];
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          role: true,
+          clientProfile: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    let mapped = items.map((u) => ({
+      id: u.id,
+      clientId: u.clientProfile?.id ?? null,
+      name: u.name,
+      email: u.email,
+      companyName: u.clientProfile?.companyName ?? null,
+      businessType: u.clientProfile?.businessType ?? null,
+      status: u.clientProfile?.status ?? "LEAD",
+      portalAccess: u.clientProfile?.portalAccessToken ? true : false,
+      totalProjects: u.clientProfile?.totalProjects ?? 0,
+      activeProjects: u.clientProfile?.activeProjects ?? 0,
+      totalPaid: u.clientProfile?.totalPaid ?? 0,
+      lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
+      createdAt: u.createdAt.toISOString(),
+    }));
+
+    if (query.segment === "new") {
+      mapped = mapped.filter((c) => c.activeProjects === 0);
+    } else if (query.segment === "active") {
+      mapped = mapped.filter((c) => c.activeProjects > 0);
+    } else if (query.segment === "stopped") {
+      mapped = mapped.filter((c) => c.status === "STOPPED");
+    }
+
+    if (query.status) {
+      mapped = mapped.filter((c) => c.status === query.status);
+    }
+
+    return {
+      items: mapped,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 
   async getStats() {
     const [totalClients, activeClients, inactiveClients, newThisMonth] =
