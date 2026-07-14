@@ -7,6 +7,7 @@ import {
   Min,
   Max,
   IsEnum,
+  IsIn,
   MinLength,
 } from "class-validator";
 import { Type } from "class-transformer";
@@ -47,7 +48,7 @@ export class QueryClientUsersDto {
   status?: ClientStatus;
 
   @IsOptional()
-  @IsString()
+  @IsIn(["new", "active", "stopped"])
   segment?: "new" | "active" | "stopped";
 
   @IsOptional()

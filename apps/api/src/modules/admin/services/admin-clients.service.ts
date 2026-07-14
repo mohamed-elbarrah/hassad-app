@@ -26,6 +26,18 @@ export class AdminClientsService {
       ];
     }
 
+    if (query.segment === "new") {
+      where.clientProfile = { activeProjects: 0 };
+    } else if (query.segment === "active") {
+      where.clientProfile = { activeProjects: { gt: 0 } };
+    } else if (query.segment === "stopped") {
+      where.clientProfile = { status: "STOPPED" };
+    }
+
+    if (query.status) {
+      where.clientProfile = { ...(where.clientProfile || {}), status: query.status };
+    }
+
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
@@ -44,7 +56,7 @@ export class AdminClientsService {
       this.prisma.user.count({ where }),
     ]);
 
-    let mapped = items.map((u) => ({
+    const mapped = items.map((u) => ({
       id: u.id,
       clientId: u.clientProfile?.id ?? null,
       name: u.name,
@@ -59,18 +71,6 @@ export class AdminClientsService {
       lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
       createdAt: u.createdAt.toISOString(),
     }));
-
-    if (query.segment === "new") {
-      mapped = mapped.filter((c) => c.activeProjects === 0);
-    } else if (query.segment === "active") {
-      mapped = mapped.filter((c) => c.activeProjects > 0);
-    } else if (query.segment === "stopped") {
-      mapped = mapped.filter((c) => c.status === "STOPPED");
-    }
-
-    if (query.status) {
-      mapped = mapped.filter((c) => c.status === query.status);
-    }
 
     return {
       items: mapped,
