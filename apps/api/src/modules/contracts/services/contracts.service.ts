@@ -704,9 +704,9 @@ export class ContractsService {
     const shareLinkToken = randomUUID();
 
     let servicesList: any = undefined;
-    let startDate = dto.startDate ? new Date(dto.startDate) : new Date();
+    const startDate = dto.startDate ? new Date(dto.startDate) : new Date();
     let endDate = dto.endDate ? new Date(dto.endDate) : new Date();
-    let monthlyValue = dto.monthlyValue ?? 0;
+    const monthlyValue = dto.monthlyValue ?? 0;
     let totalValue = dto.totalValue ?? 0;
 
     if (dto.proposalId) {

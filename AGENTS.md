@@ -28,7 +28,9 @@ Always read the relevant `.agent/` spec before touching API or DB code. Validate
 
 ```bash
 npx turbo dev            # start both api (port 3001) and web (port 3000)
-turbo build              # build everything (shared → api/web)
+turbo build              # build everything (shared → api/web), gates on lint + typecheck
+npm run verify           # lint + typecheck only — fast, no build
+npm run lint             # lint only (turbo lint)
 npm run format           # prettier --write "**/*.{ts,tsx,md}"
 ```
 
@@ -115,16 +117,17 @@ Both apps have `predev`/`prebuild` scripts that build shared automatically. When
 - Tasks touching `packages/shared` execute first (api + web depend on it)
 - Remaining tasks dispatch in parallel — one subagent per package
 
-### Per-task build (each subagent)
+### Per-task verification (each subagent)
 
-- `turbo build --filter=<package>` (cached, fast)
-- NOT `turbo build` (full rebuild — wasted)
+- `npm run verify --filter=<package>` — lint + typecheck only. Fast and cached.
+- Avoid `turbo build --filter=<package>` during work — builds are slow and only needed at integration.
+- Only build (`turbo build --filter=<package>`) if you need to test the compiled output.
 
 ### Integration (after all subagents return)
 
-- One `turbo build` (full) to catch cross-package issues
-- If it fails: fix only the broken package, preserve other packages' work
-- If it passes: phase complete
+- One `turbo build` (full) — runs lint + typecheck then builds everything.
+- If it fails: fix only the broken package, preserve other packages' work.
+- If it passes: phase complete.
 
 ### Before execution
 
@@ -256,7 +259,7 @@ Both `apps/api` and `apps/web` use `strict: false`, `strictNullChecks: false`, `
 
 ## No test suite
 
-There are no tests anywhere in this repo — no jest, no vitest, no test scripts. Verify changes by running `turbo build` and manual inspection.
+There are no tests anywhere in this repo — no jest, no vitest, no test scripts. Verify changes by running `npm run verify` then `turbo build` for final confirmation.
 
 ---
 

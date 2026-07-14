@@ -5,12 +5,18 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "watch:shared": "npm --prefix packages/shared run watch",
+    "verify": "turbo run lint typecheck",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.2.10",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.x",
-    "turbo": "latest"
+    "turbo": "latest",
+    "typescript-eslint": "^8.64.0"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -1504,7 +1504,7 @@ export class PortalService {
   }): Promise<PortalContractDetail> {
     const { contractId, clientId, role } = params;
 
-    let where: any = {
+    const where: any = {
       OR: [{ id: contractId }, { shareLinkToken: contractId }],
     };
     if (role === "CLIENT" && clientId) {
