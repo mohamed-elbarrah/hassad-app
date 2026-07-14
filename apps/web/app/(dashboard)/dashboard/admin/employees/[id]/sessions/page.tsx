@@ -6,7 +6,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import { Monitor, Smartphone } from "lucide-react";
 
-export default function UserSessionsTab({
+export default function EmployeeSessionsTab({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -24,7 +24,7 @@ export default function UserSessionsTab({
         <AdminEmptyState
           icon={Monitor}
           title="لا توجد جلسات نشطة"
-          description="لا توجد جلسات نشطة لهذا المستخدم حالياً."
+          description="لا توجد جلسات نشطة لهذا الموظف حالياً."
         />
       ) : (
         <div className="space-y-3">

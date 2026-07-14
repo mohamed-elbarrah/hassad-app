@@ -29,6 +29,7 @@ export interface AdminUserFilters {
   department?: TaskDepartment;
   isActive?: boolean;
   lastLogin?: string;
+  excludeRole?: string;
   page?: number;
   limit?: number;
 }
@@ -158,6 +159,7 @@ export const adminUsersApi = createApi({
         if (filters.isActive !== undefined)
           params.set("isActive", String(filters.isActive));
         if (filters.lastLogin) params.set("lastLogin", filters.lastLogin);
+        if (filters.excludeRole) params.set("excludeRole", filters.excludeRole);
         if (filters.page) params.set("page", String(filters.page));
         if (filters.limit) params.set("limit", String(filters.limit));
         return `/admin/users?${params.toString()}`;

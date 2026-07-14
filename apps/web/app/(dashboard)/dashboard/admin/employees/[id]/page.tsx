@@ -7,7 +7,7 @@ import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatu
 import { useGetAdminUserByIdQuery } from "@/features/admin/adminUsersApi";
 import { USER_ROLE_AR } from "@hassad/shared";
 
-export default function UserProfileTab({
+export default function EmployeeProfileTab({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -19,7 +19,7 @@ export default function UserProfileTab({
 
   return (
     <div className="space-y-5">
-      <SurfaceCard title="معلومات المستخدم">
+      <SurfaceCard title="معلومات الموظف">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
             <User className="h-5 w-5 text-secondary-500 mt-0.5" />

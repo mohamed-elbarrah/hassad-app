@@ -16,7 +16,7 @@ const TABS = [
   { key: "/permissions", label: "الصلاحيات" },
 ];
 
-export default function UserDetailLayout({
+export default function EmployeeDetailLayout({
   children,
   params,
 }: {
@@ -34,7 +34,7 @@ export default function UserDetailLayout({
 
   const currentTab = useMemo(() => {
     for (const tab of TABS) {
-      if (pathname.endsWith(`/users/${id}${tab.key}`)) return tab.key;
+      if (pathname.endsWith(`/employees/${id}${tab.key}`)) return tab.key;
     }
     return "";
   }, [pathname, id]);
@@ -45,9 +45,9 @@ export default function UserDetailLayout({
     return (
       <AdminDetailError
         onRetry={refetch}
-        backHref="/dashboard/admin/users"
-        backLabel="المستخدمون"
-        title="حدث خطأ أثناء تحميل بيانات المستخدم"
+        backHref="/dashboard/admin/employees"
+        backLabel="الموظفون"
+        title="حدث خطأ أثناء تحميل بيانات الموظف"
       />
     );
   }
@@ -56,8 +56,8 @@ export default function UserDetailLayout({
     <div className="flex flex-col gap-5" dir="rtl">
       <div className="flex items-center justify-between">
         <AdminDetailBreadcrumb
-          backHref="/dashboard/admin/users"
-          backLabel="المستخدمون"
+          backHref="/dashboard/admin/employees"
+          backLabel="الموظفون"
           title={user.name}
         />
         <div className="flex items-center gap-2">
@@ -68,8 +68,8 @@ export default function UserDetailLayout({
       <div className="flex items-center gap-4 border-b border-portal-divider">
         {TABS.map((tab) => {
           const href = tab.key
-            ? `/dashboard/admin/users/${id}${tab.key}`
-            : `/dashboard/admin/users/${id}`;
+            ? `/dashboard/admin/employees/${id}${tab.key}`
+            : `/dashboard/admin/employees/${id}`;
           const isActive = currentTab === tab.key;
           return (
             <Link

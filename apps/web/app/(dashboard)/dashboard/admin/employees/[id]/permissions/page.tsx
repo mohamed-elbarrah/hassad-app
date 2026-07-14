@@ -7,7 +7,7 @@ import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyS
 import { Shield } from "lucide-react";
 import { USER_ROLE_AR } from "@hassad/shared";
 
-export default function UserPermissionsTab({
+export default function EmployeePermissionsTab({
   params,
 }: {
   params: Promise<{ id: string }>;

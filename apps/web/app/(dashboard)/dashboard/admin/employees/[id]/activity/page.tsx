@@ -7,7 +7,7 @@ import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyS
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { Activity } from "lucide-react";
 
-export default function UserActivityTab({
+export default function EmployeeActivityTab({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -37,7 +37,7 @@ export default function UserActivityTab({
         <AdminEmptyState
           icon={Activity}
           title="لا توجد نشاطات"
-          description="لا توجد نشاطات مسجلة لهذا المستخدم."
+          description="لا توجد نشاطات مسجلة لهذا الموظف."
         />
       </SurfaceCard>
     );
