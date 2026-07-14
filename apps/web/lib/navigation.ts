@@ -60,11 +60,11 @@ export const adminNavSections: NavSection[] = [
     ],
   },
   {
-    label: "المستخدمون",
+    label: "إدارة الموظفين",
     items: [
       {
-        title: "المستخدمون",
-        url: "/dashboard/admin/users",
+        title: "الموظفون",
+        url: "/dashboard/admin/employees",
         icon: Users,
         roles: ["ADMIN"],
       },
@@ -72,6 +72,23 @@ export const adminNavSections: NavSection[] = [
         title: "الفرق",
         url: "/dashboard/admin/teams",
         icon: Group,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "إدارة العملاء",
+    items: [
+      {
+        title: "العملاء",
+        url: "/dashboard/admin/clients",
+        icon: Handshake,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العملاء المحتملون",
+        url: "/dashboard/admin/leads",
+        icon: UserPlus,
         roles: ["ADMIN"],
       },
     ],
@@ -101,18 +118,6 @@ export const adminNavSections: NavSection[] = [
         title: "الطلبات",
         url: "/dashboard/admin/requests",
         icon: ClipboardList,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "العملاء المحتملون",
-        url: "/dashboard/admin/leads",
-        icon: UserPlus,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "العملاء",
-        url: "/dashboard/admin/clients",
-        icon: Handshake,
         roles: ["ADMIN"],
       },
       {
