@@ -31,6 +31,7 @@ import {
   Globe,
   AlertTriangle,
   DollarSign,
+  CreditCard,
   Bot,
 } from "lucide-react";
 
@@ -153,6 +154,12 @@ export const adminNavSections: NavSection[] = [
         title: "المدفوعات",
         url: "/dashboard/admin/finance/payments",
         icon: TrendingUp,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "بوابات الدفع",
+        url: "/dashboard/admin/payment-gateways",
+        icon: CreditCard,
         roles: ["ADMIN"],
       },
     ],

@@ -215,6 +215,22 @@ export const adminUsersApi = createApi({
       invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
+    suspendAdminUser: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/users/${id}/suspend`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }, "AdminUsers"],
+    }),
+
+    reactivateAdminUser: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/users/${id}/reactivate`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }, "AdminUsers"],
+    }),
+
     impersonateAdminUser: builder.mutation<
       { token: string },
       { id: string; reason: string }
@@ -316,6 +332,8 @@ export const {
   useCreateAdminUserMutation,
   useUpdateAdminUserMutation,
   useResetAdminUserPasswordMutation,
+  useSuspendAdminUserMutation,
+  useReactivateAdminUserMutation,
   useImpersonateAdminUserMutation,
   useRevokeAdminUserSessionsMutation,
   useUpdateAdminUserPermissionsMutation,

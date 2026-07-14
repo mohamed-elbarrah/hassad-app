@@ -101,6 +101,31 @@ export const adminLeadsApi = createApi({
   baseQuery,
   tagTypes: ["AdminLeads", "AdminLead", "AdminLeadStats"],
   endpoints: (builder) => ({
+    reassignAdminLead: builder.mutation<void, { id: string; userId: string }>({
+      query: ({ id, userId }) => ({
+        url: `/admin/leads/${id}/reassign`,
+        method: "POST",
+        body: { userId },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminLead", id }, "AdminLeads"],
+    }),
+
+    convertAdminLeadToClient: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/leads/${id}/convert-to-client`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminLead", id }, "AdminLeads"],
+    }),
+
+    forceAdminLeadStage: builder.mutation<void, { id: string; stage: string }>({
+      query: ({ id, stage }) => ({
+        url: `/admin/leads/${id}/force-stage`,
+        method: "POST",
+        body: { stage },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminLead", id }],
+    }),
     getAdminLeads: builder.query<PaginatedAdminLeads, AdminLeadFilters | void>({
       query: (filters) => {
         if (!filters) return "/admin/leads";
@@ -136,4 +161,7 @@ export const {
   useGetAdminLeadsQuery,
   useGetAdminLeadByIdQuery,
   useGetAdminLeadStatsQuery,
+  useReassignAdminLeadMutation,
+  useConvertAdminLeadToClientMutation,
+  useForceAdminLeadStageMutation,
 } = adminLeadsApi;

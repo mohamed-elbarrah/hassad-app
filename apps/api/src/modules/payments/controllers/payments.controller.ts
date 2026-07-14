@@ -19,6 +19,9 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
+import { UpdateGatewayDto } from "../dto/update-gateway.dto";
+import { CreateBankAccountDto } from "../dto/create-bank-account.dto";
+import { UpdateBankAccountDto } from "../dto/update-bank-account.dto";
 
 @Controller("payments")
 export class PaymentsController {
@@ -93,7 +96,7 @@ export class PaymentsController {
 
   @Post("gateways/:name")
   @RequirePermissions("finance.admin")
-  async updateGateway(@Param("name") name: string, @Body() dto: any) {
+  async updateGateway(@Param("name") name: string, @Body() dto: UpdateGatewayDto) {
     return this.paymentsService.updateGatewayConfig(name, dto);
   }
 
@@ -118,13 +121,13 @@ export class PaymentsController {
 
   @Post("bank-accounts")
   @RequirePermissions("finance.admin")
-  async createBankAccount(@Body() dto: any) {
+  async createBankAccount(@Body() dto: CreateBankAccountDto) {
     return this.paymentsService.createBankAccount(dto);
   }
 
   @Patch("bank-accounts/:id")
   @RequirePermissions("finance.admin")
-  async updateBankAccount(@Param("id") id: string, @Body() dto: any) {
+  async updateBankAccount(@Param("id") id: string, @Body() dto: UpdateBankAccountDto) {
     return this.paymentsService.updateBankAccount(id, dto);
   }
 

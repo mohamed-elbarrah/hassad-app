@@ -88,6 +88,14 @@ export const adminProposalsApi = createApi({
       query: () => "/admin/proposals/stats",
       providesTags: ["AdminProposalStats"],
     }),
+
+    convertAdminProposalToContract: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/proposals/${id}/convert-to-contract`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminProposal", id }, "AdminProposals"],
+    }),
   }),
 });
 
@@ -95,4 +103,5 @@ export const {
   useGetAdminProposalsQuery,
   useGetAdminProposalByIdQuery,
   useGetAdminProposalStatsQuery,
+  useConvertAdminProposalToContractMutation,
 } = adminProposalsApi;

@@ -18,6 +18,7 @@ import {
 import { StripeProvider } from "../providers/stripe.provider";
 import { BankTransferProvider } from "../providers/bank-transfer.provider";
 import { PaymentProvider } from "../providers/payment-provider.interface";
+import { UpdateGatewayDto } from "../dto/update-gateway.dto";
 import * as crypto from "crypto";
 
 @Injectable()
@@ -431,17 +432,29 @@ export class PaymentsService implements OnModuleInit {
   async getGateways() {
     const gateways = await this.prisma.paymentGateway.findMany();
     return gateways.map((g) => {
-      let config = g.configJson;
+      let config: any = g.configJson;
       if (typeof config === "string") {
         try {
           config = JSON.parse(this.decrypt(config));
-        } catch (e) {}
+        } catch (e) {
+          config = {};
+        }
       }
-      return { ...g, configJson: config };
+      const fields: Record<string, boolean> = {};
+      for (const key of ["secretKey", "webhookSecret", "publishableKey"]) {
+        if (config[key]) fields[key] = true;
+      }
+      return {
+        ...g,
+        configJson: {
+          fields,
+          isConfigured: fields.secretKey || fields.publishableKey,
+        },
+      };
     });
   }
 
-  async updateGatewayConfig(name: string, dto: any) {
+  async updateGatewayConfig(name: string, dto: UpdateGatewayDto) {
     const { isActive, ...config } = dto;
     const encryptedConfig = this.encrypt(JSON.stringify(config));
 
