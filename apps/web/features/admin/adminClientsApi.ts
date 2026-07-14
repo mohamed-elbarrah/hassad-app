@@ -59,6 +59,38 @@ export interface AdminClientDetail {
   manager: { id: string; name: string; email: string } | null;
 }
 
+export interface ClientUserItem {
+  id: string;
+  clientId: string | null;
+  name: string;
+  email: string;
+  companyName: string | null;
+  businessType: string | null;
+  status: string;
+  portalAccess: boolean;
+  totalProjects: number;
+  activeProjects: number;
+  totalPaid: number;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export interface PaginatedClientUsers {
+  items: ClientUserItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ClientUserFilters {
+  search?: string;
+  status?: string;
+  segment?: "new" | "active" | "stopped";
+  page?: number;
+  limit?: number;
+}
+
 export interface AdminClientFullDetail extends AdminClientDetail {
   source: string | null;
   managerName: string | null;
@@ -117,7 +149,7 @@ export interface AdminClientFullDetail extends AdminClientDetail {
 export const adminClientsApi = createApi({
   reducerPath: "adminClientsApi",
   baseQuery,
-  tagTypes: ["AdminClients", "AdminClient", "AdminClientStats"],
+  tagTypes: ["AdminClients", "AdminClient", "AdminClientStats", "AdminClientUsers"],
   endpoints: (builder) => ({
     getAdminClients: builder.query<
       PaginatedAdminClients,
@@ -144,6 +176,23 @@ export const adminClientsApi = createApi({
       query: () => "/admin/clients/stats",
       providesTags: ["AdminClientStats"],
     }),
+
+    getAdminClientUsers: builder.query<
+      PaginatedClientUsers,
+      ClientUserFilters | void
+    >({
+      query: (filters) => {
+        if (!filters) return "/admin/clients/users";
+        const params = new URLSearchParams();
+        if (filters.search) params.set("search", filters.search);
+        if (filters.status) params.set("status", filters.status);
+        if (filters.segment) params.set("segment", filters.segment);
+        if (filters.page) params.set("page", String(filters.page));
+        if (filters.limit) params.set("limit", String(filters.limit));
+        return `/admin/clients/users?${params.toString()}`;
+      },
+      providesTags: ["AdminClientUsers"],
+    }),
   }),
 });
 
@@ -151,4 +200,5 @@ export const {
   useGetAdminClientsQuery,
   useGetAdminClientByIdQuery,
   useGetAdminClientStatsQuery,
+  useGetAdminClientUsersQuery,
 } = adminClientsApi;
