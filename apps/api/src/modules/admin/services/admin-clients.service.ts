@@ -48,7 +48,6 @@ export class AdminClientsService {
         skip,
         take: limit,
         include: {
-          role: true,
           clientProfile: true,
         },
         orderBy: { createdAt: "desc" },
