@@ -40,24 +40,19 @@ export class AdminUsersService {
         { email: { contains: query.search, mode: "insensitive" } },
       ];
     }
-    if (query.excludeRole) {
-      const excludeRole = await this.prisma.role.findFirst({
-        where: { name: query.excludeRole },
-      });
-      if (excludeRole) where.roleId = { not: excludeRole.id };
-    }
     if (query.roles) {
       const roleNames = query.roles.split(",").map((r) => r.trim());
       const roles = await this.prisma.role.findMany({
         where: { name: { in: roleNames } },
       });
       if (roles.length > 0) {
-        const roleIds = roles.map((r) => r.id);
-        where.roleId = {
-          ...(where.roleId as object || {}),
-          in: roleIds,
-        };
+        where.roleId = { in: roles.map((r) => r.id) };
       }
+    } else if (query.excludeRole) {
+      const excludeRole = await this.prisma.role.findFirst({
+        where: { name: query.excludeRole },
+      });
+      if (excludeRole) where.roleId = { not: excludeRole.id };
     }
     if (query.status === "active") where.isActive = true;
     if (query.status === "inactive") where.isActive = false;
