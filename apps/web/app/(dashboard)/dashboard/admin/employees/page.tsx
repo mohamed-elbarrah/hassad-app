@@ -18,6 +18,7 @@ import {
   useGetAdminUsersQuery,
   type AdminUserFilters,
 } from "@/features/admin/adminUsersApi";
+import { CreateEmployeeModal } from "@/components/dashboard/admin/shared/CreateEmployeeModal";
 import { cn } from "@/lib/utils";
 
 const COLUMNS: DataTableColumn[] = [
@@ -58,6 +59,7 @@ const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => ({
 export default function AdminEmployeesPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [createOpen, setCreateOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
   const queryParams: AdminUserFilters = useMemo(() => {
@@ -103,7 +105,11 @@ export default function AdminEmployeesPage() {
         description="إدارة جميع موظفي المنصة: الأدوار، الأقسام، والصلاحيات"
         icon={Users}
         actions={
-          <ActionButton variant="primary" size="md">
+          <ActionButton
+            variant="primary"
+            size="md"
+            onClick={() => setCreateOpen(true)}
+          >
             <UserPlus className="h-4 w-4" />
             إضافة موظف
           </ActionButton>
@@ -239,6 +245,10 @@ export default function AdminEmployeesPage() {
           )}
         />
       </SurfaceCard>
+      <CreateEmployeeModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
     </div>
   );
 }

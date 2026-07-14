@@ -15,28 +15,37 @@ export class AdminClientsService {
   ) {}
 
   async findClientUsers(query: QueryClientUsersDto) {
-    const where: any = {
-      role: { name: "CLIENT" },
-    };
+    const conditions: any[] = [{ role: { name: "CLIENT" } }];
 
     if (query.search) {
-      where.OR = [
-        { name: { contains: query.search, mode: "insensitive" } },
-        { email: { contains: query.search, mode: "insensitive" } },
-      ];
+      conditions.push({
+        OR: [
+          { name: { contains: query.search, mode: "insensitive" } },
+          { email: { contains: query.search, mode: "insensitive" } },
+        ],
+      });
     }
 
     if (query.segment === "new") {
-      where.clientProfile = { activeProjects: 0 };
+      conditions.push({ clientProfile: { activeProjects: 0 } });
     } else if (query.segment === "active") {
-      where.clientProfile = { activeProjects: { gt: 0 } };
+      conditions.push({ clientProfile: { activeProjects: { gt: 0 } } });
     } else if (query.segment === "stopped") {
-      where.clientProfile = { status: "STOPPED" };
+      conditions.push({ clientProfile: { status: "STOPPED" } });
     }
 
-    if (query.status) {
-      where.clientProfile = { ...(where.clientProfile || {}), status: query.status };
+    if (query.status === "LEAD") {
+      conditions.push({
+        OR: [
+          { clientProfile: { status: "LEAD" } },
+          { clientProfile: null },
+        ],
+      });
+    } else if (query.status) {
+      conditions.push({ clientProfile: { status: query.status } });
     }
+
+    const where = { AND: conditions };
 
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
@@ -81,26 +90,36 @@ export class AdminClientsService {
   }
 
   async getStats() {
-    const [totalClients, activeClients, inactiveClients, newThisMonth] =
-      await Promise.all([
-        this.prisma.client.count(),
-        this.prisma.client.count({ where: { status: "ACTIVE" } }),
-        this.prisma.client.count({ where: { status: "STOPPED" } }),
-        this.prisma.client.count({
-          where: {
-            createdAt: {
-              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-            },
-          },
-        }),
-      ]);
+    const whereClient = { role: { name: "CLIENT" } };
 
-    return {
-      total: totalClients,
-      active: activeClients,
-      inactive: inactiveClients,
-      newThisMonth,
-    };
+    const [total, lead, active, inactive, newThisMonth] = await Promise.all([
+      this.prisma.user.count({ where: whereClient }),
+      this.prisma.user.count({
+        where: {
+          ...whereClient,
+          OR: [
+            { clientProfile: { status: "LEAD" } },
+            { clientProfile: null },
+          ],
+        },
+      }),
+      this.prisma.user.count({
+        where: { ...whereClient, clientProfile: { status: "ACTIVE" } },
+      }),
+      this.prisma.user.count({
+        where: { ...whereClient, clientProfile: { status: "STOPPED" } },
+      }),
+      this.prisma.user.count({
+        where: {
+          ...whereClient,
+          createdAt: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
+        },
+      }),
+    ]);
+
+    return { total, lead, active, inactive, newThisMonth };
   }
 
   async findAll(filters: {

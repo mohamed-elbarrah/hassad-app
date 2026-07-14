@@ -342,7 +342,7 @@ export class AuthService {
         companyName: dto.name,
         businessName: dto.name,
         businessType: dto.businessType,
-        status: ClientStatus.ACTIVE,
+        status: ClientStatus.LEAD,
       });
 
       return { message: "Registration successful. Please log in." };
@@ -442,7 +442,7 @@ export class AuthService {
         companyName: data.name,
         businessName: data.name,
         businessType: BusinessType.OTHER,
-        status: ClientStatus.ACTIVE,
+        status: ClientStatus.LEAD,
       });
 
       return createdUser;

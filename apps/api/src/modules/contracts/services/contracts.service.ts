@@ -21,6 +21,7 @@ import {
   PaymentPlanRowDto,
 } from "../dto/payment-plan.dto";
 import {
+  ClientStatus,
   ContractStatus,
   ProjectStatus,
   RequestStatus,
@@ -467,6 +468,12 @@ export class ContractsService {
       await tx.project.updateMany({
         where: { contractId, status: ProjectStatus.PENDING_ACTIVATION },
         data: { status: ProjectStatus.ACTIVE },
+      });
+
+      // First signed contract → client becomes ACTIVE.
+      await tx.client.update({
+        where: { id: contract.clientId },
+        data: { status: ClientStatus.ACTIVE },
       });
 
       return c;

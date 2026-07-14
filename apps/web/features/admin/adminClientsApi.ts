@@ -37,6 +37,7 @@ export interface AdminClientFilters {
 
 export interface AdminClientStats {
   total: number;
+  lead: number;
   active: number;
   inactive: number;
   newThisMonth: number;

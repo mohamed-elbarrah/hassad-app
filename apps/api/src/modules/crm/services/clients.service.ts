@@ -73,7 +73,7 @@ export class ClientsService {
           businessName: dto.businessName || dto.companyName || nameFallback,
           businessType: dto.businessType || BusinessType.OTHER,
           preferredManagerId: dto.accountManager ?? null,
-          status: ClientStatus.ACTIVE,
+          status: ClientStatus.LEAD,
         },
       );
 
