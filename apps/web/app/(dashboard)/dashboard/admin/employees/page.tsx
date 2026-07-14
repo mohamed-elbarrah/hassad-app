@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Users, UserPlus, Download } from "lucide-react";
+import { Users, UserPlus, Download, ListChecks } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
@@ -14,7 +14,10 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
-import { useGetAdminUsersQuery } from "@/features/admin/adminUsersApi";
+import {
+  useGetAdminUsersQuery,
+  type AdminUserFilters,
+} from "@/features/admin/adminUsersApi";
 import { cn } from "@/lib/utils";
 
 const COLUMNS: DataTableColumn[] = [
@@ -23,6 +26,7 @@ const COLUMNS: DataTableColumn[] = [
   { id: "role", label: "الدور", align: "right" },
   { id: "department", label: "القسم", align: "right" },
   { id: "status", label: "الحالة", align: "right" },
+  { id: "tasks", label: "المهام النشطة", align: "center" },
   { id: "lastLogin", label: "آخر تسجيل دخول", align: "right" },
 ];
 
@@ -56,12 +60,28 @@ export default function AdminEmployeesPage() {
   const [page, setPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
 
-  const { data, isLoading, isError } = useGetAdminUsersQuery({
-    search: search || undefined,
-    excludeRole: "CLIENT",
-    page,
-    limit: 20,
-  });
+  const queryParams: AdminUserFilters = useMemo(() => {
+    const params: AdminUserFilters = {
+      search: search || undefined,
+      excludeRole: "CLIENT",
+      page,
+      limit: 20,
+    };
+    if (activeFilters["role"]?.length) {
+      params.roles = activeFilters["role"].join(",");
+    }
+    if (activeFilters["status"]?.length) {
+      params.status =
+        activeFilters["status"][0] === "true" ? "active" : "inactive";
+    }
+    return params;
+  }, [search, page, activeFilters]);
+
+  const { data, isLoading, isError } = useGetAdminUsersQuery(queryParams);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, activeFilters]);
 
   const users = useMemo(() => data?.items ?? [], [data]);
 
@@ -201,6 +221,14 @@ export default function AdminEmployeesPage() {
                   domain="client"
                   status={user.isActive ? "ACTIVE" : "STOPPED"}
                 />
+              </td>
+              <td className="py-3 px-2 text-center">
+                <div className="flex items-center justify-center gap-1.5">
+                  <ListChecks className="h-4 w-4 text-portal-note-text" />
+                  <span className="text-sm font-medium text-natural-100">
+                    {user.activeTasksCount ?? 0}
+                  </span>
+                </div>
               </td>
               <td className="py-3 px-2 text-right text-sm text-portal-note-text">
                 {user.lastLoginAt
