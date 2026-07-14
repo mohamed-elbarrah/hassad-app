@@ -1,8 +1,23 @@
-import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { AdminClientsService } from "../services/admin-clients.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import {
+  SuspendClientDto,
+  ReactivateClientDto,
+  AssignManagerDto,
+  QueryClientUsersDto,
+} from "../dto/admin-clients.dto";
 
 @Controller("admin/clients")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -19,6 +34,12 @@ export class AdminClientsController {
   @RequirePermissions("admin.clients.read")
   stats() {
     return this.service.getStats();
+  }
+
+  @Get("users")
+  @RequirePermissions("admin.clients.read")
+  findClientUsers(@Query() query: QueryClientUsersDto) {
+    return this.service.findClientUsers(query);
   }
 
   @Get(":id")
@@ -40,6 +61,45 @@ export class AdminClientsController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
-    return this.service.getHistory(id, page ? Number(page) : 1, limit ? Number(limit) : 20);
+    return this.service.getHistory(
+      id,
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 20,
+    );
+  }
+
+  @Post(":id/suspend")
+  @RequirePermissions("admin.clients.intervene")
+  suspend(
+    @Param("id") id: string,
+    @Body() dto: SuspendClientDto,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.suspend(id, dto.reason, adminId, dto.suspendedUntil);
+  }
+
+  @Post(":id/reactivate")
+  @RequirePermissions("admin.clients.intervene")
+  reactivate(
+    @Param("id") id: string,
+    @Body() dto: ReactivateClientDto,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.reactivate(id, dto.reason, adminId);
+  }
+
+  @Post(":id/assign-manager")
+  @RequirePermissions("admin.clients.intervene")
+  assignManager(
+    @Param("id") id: string,
+    @Body() dto: AssignManagerDto,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.service.assignManager(
+      id,
+      dto.accountManagerId,
+      dto.reason,
+      adminId,
+    );
   }
 }

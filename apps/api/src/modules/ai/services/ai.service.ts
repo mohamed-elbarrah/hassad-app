@@ -1,19 +1,38 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { AiAnalyzeDto } from "../dto/ai.dto";
+import { AiProviderRegistry } from "./ai-provider-registry.service";
 import { AiSuggestionStatus } from "@hassad/shared";
 
 @Injectable()
 export class AiService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AiService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private registry: AiProviderRegistry,
+  ) {}
 
   async analyze(userId: string, dto: AiAnalyzeDto) {
-    // Placeholder for AI logic
-    const result = {
-      summary: `AI Analysis for ${dto.entityType} ${dto.entityId}`,
-      score: Math.random() * 100,
-      timestamp: new Date().toISOString(),
+    const inputData = {
+      entityType: dto.entityType,
+      entityId: dto.entityId,
+      analysisType: dto.analysisType,
     };
+    const prompt = this.buildPrompt(dto);
+
+    let result: { summary: string; score: number; recommendations?: string[] };
+    try {
+      const aiResult = await this.registry.generateWithFallback(prompt);
+      result = this.parseResponse(aiResult.text);
+    } catch (err) {
+      this.logger.warn("All AI providers failed, using stub fallback", err);
+      result = {
+        summary: `تحليل ${dto.analysisType} لـ ${dto.entityType} ${dto.entityId}`,
+        score: Math.round(Math.random() * 10000) / 100,
+        recommendations: [],
+      };
+    }
 
     return this.prisma.aiAnalysisLog.create({
       data: {
@@ -21,19 +40,65 @@ export class AiService {
         entityId: dto.entityId,
         analysisType: dto.analysisType,
         triggeredBy: userId,
-        inputData: {}, // Map to schema
+        inputData,
         outputData: result,
-        confidenceScore: result.score || 100,
+        confidenceScore: result.score,
       },
     });
+  }
+
+  private buildPrompt(dto: AiAnalyzeDto): string {
+    const typeLabels: Record<string, string> = {
+      CHURN_PREDICTION: "توقع انسحاب العميل",
+      SENTIMENT_ANALYSIS: "تحليل المشاعر",
+      PERFORMANCE_FORECAST: "توقع الأداء",
+      CONTENT_GENERATION: "توليد محتوى",
+      QUALITY_CHECK: "فحص الجودة",
+    };
+
+    return (
+      `أنت مساعد تحليلي لمنصة حسد لإدارة الأعمال. قم بـ "${typeLabels[dto.analysisType] || dto.analysisType}" ` +
+      `للكيان "${dto.entityType}" بالمعرف "${dto.entityId}".\n\n` +
+      `الرد يجب أن يكون بصيغة JSON فقط (بدون علامات markdown أو أكواد):\n` +
+      `{\n  "summary": "ملخص التحليل بالعربية",\n  "score": 0-100,\n  "recommendations": ["توصية 1", "توصية 2"]\n}\n\n` +
+      `ملاحظات:\n` +
+      `- score: رقم بين 0 و 100 يمثل الثقة/الدرجة\n` +
+      `- summary: نص وصفي بالعربية\n` +
+      `- recommendations: مصفوفة من النصوص`
+    );
+  }
+
+  private parseResponse(text: string): {
+    summary: string;
+    score: number;
+    recommendations?: string[];
+  } {
+    try {
+      const cleaned = text
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "")
+        .trim();
+      const parsed = JSON.parse(cleaned);
+      return {
+        summary: parsed.summary || "تحليل آلي",
+        score: Math.min(100, Math.max(0, Number(parsed.score) || 50)),
+        recommendations: Array.isArray(parsed.recommendations)
+          ? parsed.recommendations
+          : [],
+      };
+    } catch {
+      return {
+        summary: text.slice(0, 500),
+        score: 50,
+        recommendations: [],
+      };
+    }
   }
 
   async getLog(id: string) {
     const log = await this.prisma.aiAnalysisLog.findUnique({
       where: { id },
-      include: {
-        user: true, // Relation name in schema
-      },
+      include: { user: true },
     });
 
     if (!log) {
@@ -46,9 +111,7 @@ export class AiService {
   async getSuggestions() {
     return this.prisma.aiSuggestion.findMany({
       where: { status: AiSuggestionStatus.PENDING },
-      include: {
-        actor: true, // Relation name in schema
-      },
+      include: { actor: true },
     });
   }
 

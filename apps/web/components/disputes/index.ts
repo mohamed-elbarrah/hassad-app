@@ -7,7 +7,6 @@ export { DisputeConfirmationDialog } from "./DisputeConfirmationDialog";
 export { DisputeEmptyState } from "./DisputeEmptyState";
 export { PmDisputeCard } from "./PmDisputeCard";
 export { DisputeResolutionTimer, CompactTimer } from "./DisputeResolutionTimer";
-export { AdminDisputeCard } from "./AdminDisputeCard";
 export { PmStatsPanel } from "./PmStatsPanel";
 export { DisputeApprovalDialog } from "./DisputeApprovalDialog";
 export { PmChangeDialog } from "./PmChangeDialog";

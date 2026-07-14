@@ -1,8 +1,9 @@
-import { Controller, Get, Query, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, UseGuards } from "@nestjs/common";
 import { AdminReportsService } from "../services/admin-reports.service";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
+import { SnapshotGenerateDto, SnapshotQueryDto } from "../dto/admin-kpi.dto";
 
 @Controller("admin/reports")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -11,28 +12,19 @@ export class AdminReportsController {
 
   @Get("sales")
   @RequirePermissions("admin.reports")
-  getSalesReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getSalesReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getSalesReport(from, to);
   }
 
   @Get("revenue")
   @RequirePermissions("admin.reports")
-  getRevenueReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getRevenueReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getRevenueReport(from, to);
   }
 
   @Get("projects")
   @RequirePermissions("admin.reports")
-  getProjectsReport(
-    @Query("from") from?: string,
-    @Query("to") to?: string,
-  ) {
+  getProjectsReport(@Query("from") from?: string, @Query("to") to?: string) {
     return this.service.getProjectsReport(from, to);
   }
 
@@ -56,11 +48,45 @@ export class AdminReportsController {
 
   @Get("campaigns")
   @RequirePermissions("admin.reports")
-  getCampaignsReport(
+  getCampaignsReport(@Query("from") from?: string, @Query("to") to?: string) {
+    return this.service.getCampaignsReport(from, to);
+  }
+
+  // ── New report types ──────────────────────────────────────────────────────
+
+  @Get("leads")
+  @RequirePermissions("admin.reports")
+  getLeadsReport(@Query("from") from?: string, @Query("to") to?: string) {
+    return this.service.getLeadsReport(from, to);
+  }
+
+  @Get("clients")
+  @RequirePermissions("admin.reports")
+  getClientReport(@Query("from") from?: string, @Query("to") to?: string) {
+    return this.service.getClientReport(from, to);
+  }
+
+  @Get("system-health")
+  @RequirePermissions("admin.reports")
+  getSystemHealthReport(
     @Query("from") from?: string,
     @Query("to") to?: string,
   ) {
-    return this.service.getCampaignsReport(from, to);
+    return this.service.getSystemHealthReport(from, to);
+  }
+
+  // ── Snapshot persistence ──────────────────────────────────────────────────
+
+  @Post("snapshots")
+  @RequirePermissions("admin.reports")
+  saveSnapshot(@Body() dto: SnapshotGenerateDto) {
+    return this.service.saveSnapshot(dto.reportType, dto.period as any);
+  }
+
+  @Get("snapshots")
+  @RequirePermissions("admin.reports")
+  getSnapshots(@Query() q: SnapshotQueryDto) {
+    return this.service.getSnapshots(q.reportType, q.period, q.limit);
   }
 
   @Get("export")

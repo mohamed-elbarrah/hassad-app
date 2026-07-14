@@ -1,309 +1,210 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Search, FileSignature, XCircle, Bell, Download } from "lucide-react";
-import { differenceInDays } from "date-fns";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
-import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { FileText, Plus, Download } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
-import { DataTable } from "@/components/design-system/DataTable";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { Pill } from "@/components/design-system/Pill";
-import { Dialog } from "@/components/design-system/Dialog";
-import { StatCard } from "@/components/design-system/StatCard";
-import { toast } from "sonner";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
-  useGetAdminContractsQuery,
-  useCancelContractMutation,
-  useTriggerRenewalAlertMutation,
-  type ContractRow,
-} from "@/features/admin/adminApi";
-import { CONTRACT_STATUS_AR } from "@hassad/shared";
+  DataTable,
+  type DataTableColumn,
+  type DataTableEmptyState,
+} from "@/components/design-system/DataTable";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
+import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+import { useGetAdminContractsQuery } from "@/features/admin/adminContractsApi";
 
-const STATUS_OPTIONS = [
-  { label: "الكل", value: "" },
-  ...Object.entries(CONTRACT_STATUS_AR).map(([value, label]) => ({
-    label,
-    value,
-  })),
-];
-
-function useDebounce<T>(value: T, delay = 400): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
-
-const exportCSV = (data: any[], filename: string) => {
-  if (!data || data.length === 0) return;
-  const headers = Object.keys(data[0]);
-  const csvContent = [
-    headers.join(","),
-    ...data.map((row) => headers.map((h) => `"${row[h] ?? ""}"`).join(",")),
-  ].join("\n");
-  const BOM = "\uFEFF";
-  const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${filename}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+const CONTRACT_TYPE_AR: Record<string, string> = {
+  MONTHLY_RETAINER: "اشتراك شهري",
+  FIXED_PROJECT: "مشروع ثابت",
+  ONE_TIME_SERVICE: "خدمة لمرة واحدة",
 };
 
+const COLUMNS: DataTableColumn[] = [
+  { id: "title", label: "العنوان", align: "right" },
+  { id: "clientName", label: "العميل", align: "right" },
+  { id: "type", label: "النوع", align: "right" },
+  { id: "status", label: "الحالة", align: "right" },
+  { id: "monthlyValue", label: "القيمة الشهرية", align: "right" },
+  { id: "totalValue", label: "القيمة الإجمالية", align: "right" },
+  { id: "startDate", label: "تاريخ البداية", align: "right" },
+];
+
+const EMPTY_STATE: DataTableEmptyState = {
+  icon: FileText,
+  message: "لا يوجد عقود",
+  hint: "لم يتم إضافة أي عقود بعد.",
+};
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("ar-SA", {
+    style: "currency",
+    currency: "SAR",
+    minimumFractionDigits: 0,
+  }).format(value);
+}
+
 export default function AdminContractsPage() {
-  const router = useRouter();
-  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
-  const [cancelContract, setCancelContract] = useState<ContractRow | null>(
-    null,
-  );
-  const [cancelReason, setCancelReason] = useState("");
 
-  const debouncedSearch = useDebounce(searchInput, 400);
-  const filters: any = {
-    search: debouncedSearch || undefined,
-    ...Object.fromEntries(
-      Object.entries(activeFilters).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]),
-    ),
-  };
+  const statusFilter = activeFilters.status?.[0];
+  const typeFilter = activeFilters.type?.[0];
 
-  const { data, isLoading, isError } = useGetAdminContractsQuery(filters);
-  const [cancel] = useCancelContractMutation();
-  const [triggerAlert] = useTriggerRenewalAlertMutation();
+  const { data, isLoading, isError } = useGetAdminContractsQuery({
+    search: search || undefined,
+    status: statusFilter,
+    type: typeFilter,
+    page,
+    limit: 20,
+  });
 
-  const contracts = data?.items ?? [];
+  const contracts = useMemo(() => data?.items ?? [], [data]);
 
-  const handleFilterChange = useCallback(
-    (key: string, values: string[]) =>
-      setActiveFilters((prev) => ({ ...prev, [key]: values })),
-    [],
-  );
-
-  const handleCancel = async () => {
-    if (!cancelContract || !cancelReason.trim()) {
-      toast.error("يرجى كتابة سبب الإلغاء");
-      return;
-    }
-    try {
-      await cancel({ id: cancelContract.id, reason: cancelReason }).unwrap();
-      toast.success("تم إلغاء العقد");
-      setCancelContract(null);
-      setCancelReason("");
-    } catch {
-      toast.error("فشل إلغاء العقد");
-    }
-  };
+  const statCards = useMemo(() => {
+    const total = data?.total ?? 0;
+    const active = contracts.filter((c) => c.status === "ACTIVE").length;
+    const draft = contracts.filter((c) => c.status === "DRAFT").length;
+    return { total, active, draft };
+  }, [data, contracts]);
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="flex flex-col gap-5" dir="rtl">
       <PageIntro
         title="العقود"
-        description={`إجمالي ${data?.total ?? 0} عقد`}
-        icon={FileSignature}
+        description="إدارة جميع عقود المنصة: العقود النشطة والمسودات"
+        icon={FileText}
         actions={
-          <button
-            onClick={() => exportCSV(contracts, "العقود")}
-            className="inline-flex items-center gap-2 rounded-xl border border-portal-divider px-4 py-2 text-sm font-medium hover:bg-badge-gray-bg transition-colors"
-          >
-            <Download className="size-4" />
-            تصدير CSV
-          </button>
+          <ActionButton variant="primary" size="md">
+            <Plus className="h-4 w-4" />
+            إضافة عقد
+          </ActionButton>
         }
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="إجمالي العقود" value={data?.total ?? 0} icon={FileSignature} />
-        <StatCard title="نشطة" value={contracts.filter((c) => c.status === "ACTIVE").length} variant="success" />
-        <StatCard title="منتهية" value={contracts.filter((c) => c.status === "COMPLETED").length} variant="default" />
-        <StatCard title="ملغية" value={contracts.filter((c) => c.status === "CANCELLED").length} variant="danger" />
-      </div>
-      <div className="flex flex-col sm:flex-row gap-3 items-start">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
-          <FormInputControl
-            placeholder="ابحث عن عقد..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pr-9"
-          />
-        </div>
-        <FilterBar
-          groups={[
-            { key: "status", label: "الحالة", options: STATUS_OPTIONS },
-            { key: "expiringDays", label: "تاريخ الانتهاء", options: [{ label: "ينتهي قريباً", value: "30" }] },
-          ]}
-          activeFilters={activeFilters}
-          onFilterChange={handleFilterChange}
-        />
-      </div>
 
-      <DataTable
-        columns={[
-          { id: "title", label: "العقد" },
-          { id: "client", label: "العميل" },
-          { id: "type", label: "النوع" },
-          { id: "status", label: "الحالة" },
-          { id: "value", label: "القيمة" },
-          { id: "startDate", label: "تاريخ البداية", align: "left" },
-          { id: "endDate", label: "تاريخ النهاية", align: "left" },
-          { id: "invoiceCount", label: "عدد الفواتير" },
-          { id: "eSigned", label: "توقيع إلكتروني" },
-          { id: "daysToRenewal", label: "أيام حتى التجديد", align: "left" },
-          { id: "renewal", label: "التجديد" },
-          { id: "actions", label: "الإجراءات", width: "120px" },
-        ]}
-        data={contracts}
-        isLoading={isLoading}
-        isError={isError}
-        emptyState={{
-          icon: FileSignature,
-          message: "لا توجد عقود",
-          hint: "لم يتم إنشاء أي عقود بعد",
-        }}
-        renderRow={(c: ContractRow) => (
-          <tr
-            key={c.id}
-            className="border-b border-portal-divider cursor-pointer hover:bg-badge-gray-bg/50"
-            onClick={() => router.push(`/dashboard/admin/contracts/${c.id}`)}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "الإجمالي", value: statCards.total, className: "" },
+          {
+            label: "نشط",
+            value: statCards.active,
+            className: "bg-success-100/50 border-success-200 text-success-600",
+          },
+          {
+            label: "مسودة",
+            value: statCards.draft,
+            className: "bg-warning-100/50 border-warning-200 text-warning-600",
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className={`rounded-[30px] border-[1.5px] border-portal-card-border p-5 ${card.className}`}
           >
-            <td className="px-5 py-4 text-base font-medium text-natural-100">
-              {c.title}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {c.clientName}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {c.type}
-            </td>
-            <td className="px-5 py-4">
-              <StatusBadge
-                status={c.status}
-                label={CONTRACT_STATUS_AR[c.status] ?? c.status}
-              />
-            </td>
-            <td className="px-5 py-4 text-sm font-medium">
-              {c.totalValue.toLocaleString()} {c.currency}
-            </td>
-            <td
-              className="px-5 py-4 text-sm text-portal-note-text text-left"
-              dir="ltr"
-            >
-              {c.startDate?.slice(0, 10) ?? "—"}
-            </td>
-            <td
-              className="px-5 py-4 text-sm text-portal-note-text text-left"
-              dir="ltr"
-            >
-              {c.endDate?.slice(0, 10) ?? "—"}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {c.invoiceCount ?? 0}
-            </td>
-            <td className="px-5 py-4 text-sm">
-              <span
-                className={
-                  c.eSigned ? "text-green-600 font-medium" : "text-portal-note-text"
-                }
-              >
-                {c.eSigned ? "موقّع" : "غير موقّع"}
-              </span>
-            </td>
-            <td className="px-5 py-4 text-sm">
-              {(() => {
-                if (!c.endDate) return <span className="text-portal-note-text">—</span>;
-                const days = differenceInDays(new Date(c.endDate), new Date());
-                if (days < 0) return <span className="text-[#E10000]">منتهي</span>;
-                if (days <= 7)
-                  return (
-                    <span className="text-[#E10000] animate-pulse font-medium">
-                      {days} يوم
-                    </span>
-                  );
-                if (days <= 30)
-                  return <span className="text-[#E10000]">{days} يوم</span>;
-                return <span className="text-portal-note-text">{days} يوم</span>;
-              })()}
-            </td>
-            <td className="px-5 py-4">
-              {c.pendingRenewalAlerts > 0 ? (
-                <Pill tone="warning">{c.pendingRenewalAlerts}</Pill>
-              ) : (
-                <span className="text-sm text-portal-note-text">—</span>
-              )}
-            </td>
-            <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex gap-1">
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="إلغاء"
-                  onClick={() => {
-                    setCancelContract(c);
-                    setCancelReason("");
-                  }}
-                >
-                  <XCircle className="size-3.5" />
-                </ActionButton>
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="تفعيل تنبيه التجديد"
-                  onClick={async () => {
-                    try {
-                      await triggerAlert(c.id).unwrap();
-                      toast.success("تم تفعيل تنبيه التجديد");
-                    } catch {
-                      toast.error("فشل");
-                    }
-                  }}
-                >
-                  <Bell className="size-3.5" />
-                </ActionButton>
-              </div>
-            </td>
-          </tr>
-        )}
-      />
-
-      <Dialog
-        open={!!cancelContract}
-        onOpenChange={(o) => {
-          if (!o) setCancelContract(null);
-        }}
-        title="إلغاء العقد"
-        description="هل أنت متأكد من إلغاء هذا العقد؟"
-        footer={
-          <div className="flex gap-2 justify-end">
-            <ActionButton
-              variant="outline"
-              onClick={() => setCancelContract(null)}
-            >
-              إلغاء
-            </ActionButton>
-            <ActionButton variant="primary" onClick={handleCancel}>
-              تأكيد الإلغاء
-            </ActionButton>
+            <p className="text-sm text-portal-note-text">{card.label}</p>
+            <p className="text-2xl font-semibold text-natural-100 mt-2">
+              {isLoading ? "—" : card.value}
+            </p>
           </div>
+        ))}
+      </div>
+
+      <SurfaceCard
+        title="قائمة العقود"
+        action={
+          <ActionButton variant="outline" size="sm">
+            <Download className="h-4 w-4" />
+            تصدير CSV
+          </ActionButton>
         }
       >
-        <FormInputControl
-          placeholder="سبب الإلغاء..."
-          value={cancelReason}
-          onChange={(e) => setCancelReason(e.target.value)}
+        <div className="mb-4">
+          <AdminListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="بحث بالعنوان أو اسم العميل..."
+            filterGroups={[
+              {
+                key: "status",
+                label: "الحالة",
+                options: [
+                  { label: "مسودة", value: "DRAFT" },
+                  { label: "مرسل", value: "SENT" },
+                  { label: "موقّع", value: "SIGNED" },
+                  { label: "نشط", value: "ACTIVE" },
+                  { label: "معلق", value: "ON_HOLD" },
+                  { label: "مكتمل", value: "COMPLETED" },
+                  { label: "منتهي", value: "EXPIRED" },
+                  { label: "ملغي", value: "CANCELLED" },
+                ],
+              },
+              {
+                key: "type",
+                label: "النوع",
+                options: [
+                  { label: "اشتراك شهري", value: "MONTHLY_RETAINER" },
+                  { label: "مشروع ثابت", value: "FIXED_PROJECT" },
+                  { label: "خدمة لمرة واحدة", value: "ONE_TIME_SERVICE" },
+                ],
+              },
+            ]}
+            activeFilters={activeFilters}
+            onFilterChange={(key, values) =>
+              setActiveFilters((prev) => ({ ...prev, [key]: values }))
+            }
+          />
+        </div>
+
+        <DataTable
+          columns={COLUMNS}
+          data={contracts}
+          isLoading={isLoading}
+          isError={isError}
+          errorMessage="حدث خطأ أثناء تحميل العقود."
+          emptyState={EMPTY_STATE}
+          renderRow={(contract) => (
+            <tr
+              key={contract.id}
+              className="border-b border-portal-divider last:border-0"
+            >
+              <td className="py-3 px-2 text-right">
+                <Link
+                  href={`/dashboard/admin/contracts/${contract.id}`}
+                  className="hover:underline text-secondary-500 font-medium text-sm"
+                >
+                  {contract.title}
+                </Link>
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {contract.clientName}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {CONTRACT_TYPE_AR[contract.type] || contract.type}
+              </td>
+              <td className="py-3 px-2 text-right">
+                <AdminStatusBadge domain="contract" status={contract.status} />
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {contract.monthlyValue > 0
+                  ? formatCurrency(contract.monthlyValue)
+                  : "—"}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {formatCurrency(contract.totalValue)}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {contract.startDate
+                  ? new Date(contract.startDate).toLocaleDateString("ar-SA")
+                  : "—"}
+              </td>
+            </tr>
+          )}
         />
-      </Dialog>
+      </SurfaceCard>
     </div>
   );
 }

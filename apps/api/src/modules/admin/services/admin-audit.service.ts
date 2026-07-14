@@ -3,7 +3,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import { AuditLogQueryDto } from "../dto/admin.dto";
 
 const ACTION_AR: Record<string, string> = {
-  "ADMIN_FORCE_INVOICE_STATUS": "تغيير حالة فاتورة",
+  ADMIN_FORCE_INVOICE_STATUS: "تغيير حالة فاتورة",
   "admin.tasks.reassign": "إعادة تعيين مهمة",
   "admin.tasks.force-transition": "تغيير حالة مهمة",
   "admin.users.create": "إنشاء مستخدم",
@@ -19,8 +19,8 @@ const ACTION_AR: Record<string, string> = {
   "admin.projects.archive": "أرشفة مشروع",
   "admin.projects.force-status": "تغيير حالة مشروع",
   "admin.leads.reassign": "إعادة تعيين عميل متوقع",
-  "ADMIN_TRIGGER_REFUND": "تنفيذ استرداد مالي",
-  "ADMIN_RETRY_WEBHOOK": "إعادة محاولة ويب هوك",
+  ADMIN_TRIGGER_REFUND: "تنفيذ استرداد مالي",
+  ADMIN_RETRY_WEBHOOK: "إعادة محاولة ويب هوك",
 };
 
 const ENTITY_AR: Record<string, string> = {
@@ -179,38 +179,40 @@ export class AdminAuditService {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [mostCommonActions, mostActiveUsers, actionsByDay, totalEntries] = await Promise.all([
-      this.prisma.ledger.groupBy({
-        by: ["action"],
-        _count: true,
-        orderBy: { _count: { action: "desc" } },
-        take: 10,
-      }),
-      this.prisma.ledger.groupBy({
-        by: ["userId"],
-        _count: true,
-        where: { userId: { not: null } },
-        orderBy: { _count: { userId: "desc" } },
-        take: 10,
-      }),
-      this.prisma.ledger.findMany({
-        where: {
-          createdAt: { gte: thirtyDaysAgo },
-        },
-        select: { createdAt: true },
-      }),
-      this.prisma.ledger.count(),
-    ]);
+    const [mostCommonActions, mostActiveUsers, actionsByDay, totalEntries] =
+      await Promise.all([
+        this.prisma.ledger.groupBy({
+          by: ["action"],
+          _count: true,
+          orderBy: { _count: { action: "desc" } },
+          take: 10,
+        }),
+        this.prisma.ledger.groupBy({
+          by: ["userId"],
+          _count: true,
+          where: { userId: { not: null } },
+          orderBy: { _count: { userId: "desc" } },
+          take: 10,
+        }),
+        this.prisma.ledger.findMany({
+          where: {
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          select: { createdAt: true },
+        }),
+        this.prisma.ledger.count(),
+      ]);
 
     const userIds = mostActiveUsers
       .filter((u) => u.userId)
       .map((u) => u.userId);
-    const users = userIds.length > 0
-      ? await this.prisma.user.findMany({
-          where: { id: { in: userIds } },
-          select: { id: true, name: true },
-        })
-      : [];
+    const users =
+      userIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true },
+          })
+        : [];
     const userMap = new Map(users.map((u) => [u.id, u.name]));
 
     const dayCounts: Record<string, number> = {};

@@ -4,11 +4,11 @@ const prisma = new PrismaClient();
 
 async function main() {
   const employeeRole = await prisma.role.findUnique({
-    where: { name: "EMPLOYEE" },
+    where: { name: "TEAM" },
   });
 
   if (!employeeRole) {
-    throw new Error("EMPLOYEE role not found");
+    throw new Error("TEAM role not found");
   }
 
   const permissionNames = ["notifications.read", "notifications.update"];
@@ -35,7 +35,7 @@ async function main() {
     });
   }
 
-  console.log("Patched EMPLOYEE role notification permissions.");
+  console.log("Patched TEAM role notification permissions.");
 }
 
 main()

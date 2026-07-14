@@ -21,10 +21,7 @@ export class AdminNotificationTemplatesController {
 
   @Get()
   @RequirePermissions("admin.notifications")
-  findAll(
-    @Query("page") page?: string,
-    @Query("limit") limit?: string,
-  ) {
+  findAll(@Query("page") page?: string, @Query("limit") limit?: string) {
     return this.service.findAll(
       page ? Number(page) : 1,
       limit ? Number(limit) : 20,

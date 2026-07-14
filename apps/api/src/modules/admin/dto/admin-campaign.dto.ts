@@ -1,4 +1,12 @@
-import { IsString, IsEnum, IsOptional, IsNumber, Min, IsDateString, IsUUID } from "class-validator";
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  Min,
+  IsDateString,
+  IsUUID,
+} from "class-validator";
 import { CampaignPlatform, CampaignStatus } from "@hassad/shared";
 
 export class AdminCreateCampaignDto {

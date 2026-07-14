@@ -30,7 +30,7 @@ export default function DashboardLayout({
     [UserRole.SALES]: "/dashboard/sales",
     [UserRole.ACCOUNTANT]: "/dashboard/finance",
     [UserRole.MARKETING]: "/dashboard/marketing",
-    [UserRole.EMPLOYEE]: "/dashboard/employee",
+    [UserRole.TEAM]: "/dashboard/team",
     [UserRole.CLIENT]: "/portal",
   };
 
@@ -48,7 +48,7 @@ export default function DashboardLayout({
     [UserRole.SALES]: ["/dashboard/sales"],
     [UserRole.ACCOUNTANT]: ["/dashboard/finance"],
     [UserRole.MARKETING]: ["/dashboard/marketing"],
-    [UserRole.EMPLOYEE]: ["/dashboard/employee", "/dashboard/designer"],
+    [UserRole.TEAM]: ["/dashboard/team", "/dashboard/designer"],
     [UserRole.CLIENT]: ["/portal"],
   };
 

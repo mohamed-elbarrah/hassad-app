@@ -1,10 +1,17 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { AdminCreateCampaignDto, AdminUpdateCampaignDto } from "../dto/admin-campaign.dto";
+import { AdminActionLogService } from "./admin-action-log.service";
+import {
+  AdminCreateCampaignDto,
+  AdminUpdateCampaignDto,
+} from "../dto/admin-campaign.dto";
 
 @Injectable()
 export class AdminCampaignsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly actionLog: AdminActionLogService,
+  ) {}
 
   async create(dto: AdminCreateCampaignDto, userId: string) {
     const campaign = await this.prisma.campaign.create({
@@ -130,7 +137,8 @@ export class AdminCampaignsService {
     if (dto.platform !== undefined) data.platform = dto.platform;
     if (dto.budgetTotal !== undefined) data.budgetTotal = dto.budgetTotal;
     if (dto.startDate !== undefined) data.startDate = new Date(dto.startDate);
-    if (dto.endDate !== undefined) data.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    if (dto.endDate !== undefined)
+      data.endDate = dto.endDate ? new Date(dto.endDate) : null;
 
     const updated = await this.prisma.campaign.update({
       where: { id },
@@ -143,15 +151,32 @@ export class AdminCampaignsService {
         entity: "campaign",
         entityId: id,
         userId,
-        before: { name: campaign.name, platform: campaign.platform, budgetTotal: campaign.budgetTotal },
+        before: {
+          name: campaign.name,
+          platform: campaign.platform,
+          budgetTotal: campaign.budgetTotal,
+        },
         after: data,
       },
+    });
+
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "campaign",
+      targetId: id,
+      actionType: "admin.campaigns.update",
+      beforeState: {
+        name: campaign.name,
+        platform: campaign.platform,
+        budgetTotal: campaign.budgetTotal,
+      },
+      afterState: data,
     });
 
     return updated;
   }
 
-  async pause(campaignId: string) {
+  async pause(campaignId: string, userId: string) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
     });
@@ -167,13 +192,22 @@ export class AdminCampaignsService {
           action: "admin.campaigns.pause",
           entity: "campaign",
           entityId: campaignId,
+          userId,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "campaign",
+      targetId: campaignId,
+      actionType: "admin.campaigns.pause",
+    });
+
     return { success: true };
   }
 
-  async end(campaignId: string) {
+  async end(campaignId: string, userId: string) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
     });
@@ -189,9 +223,18 @@ export class AdminCampaignsService {
           action: "admin.campaigns.end",
           entity: "campaign",
           entityId: campaignId,
+          userId,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "campaign",
+      targetId: campaignId,
+      actionType: "admin.campaigns.end",
+    });
+
     return { success: true };
   }
 }

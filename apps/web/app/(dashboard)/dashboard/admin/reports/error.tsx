@@ -1,5 +1,21 @@
 "use client";
-import { ErrorFallback } from "@/components/common/ErrorFallback";
-export default function ReportsError({ error, reset }: { error: Error; reset: () => void }) {
-  return <ErrorFallback error={error} reset={reset} backHref="/dashboard/admin" backLabel="العودة للوحة الإدارة" />;
+
+import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageError";
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <AdminPageError
+      title="حدث خطأ في تحميل التقارير"
+      description={
+        error.message ||
+        "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
+      }
+    />
+  );
 }

@@ -27,7 +27,9 @@ export class AdminContractsController {
   ) {
     return this.service.findOne(id);
   }
-  @Post(":id/status") @RequirePermissions("admin.contracts.intervene") updateStatus(
+  @Post(":id/status")
+  @RequirePermissions("admin.contracts.intervene")
+  updateStatus(
     @Param("id") id: string,
     @CurrentUser() user: any,
     @Body("status") status: string,
@@ -39,8 +41,9 @@ export class AdminContractsController {
   @Post(":id/cancel") @RequirePermissions("admin.contracts.intervene") cancel(
     @Param("id") id: string,
     @Body("reason") reason: string,
+    @CurrentUser("id") adminId: string,
   ) {
-    return this.service.cancel(id, reason);
+    return this.service.cancel(id, reason, adminId);
   }
   @Post(":id/trigger-renewal-alert")
   @RequirePermissions("admin.contracts.intervene")

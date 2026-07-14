@@ -1,20 +1,21 @@
 "use client";
 
-import { ErrorFallback } from "@/components/common/ErrorFallback";
+import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageError";
 
-export default function AdminError({
+export default function Error({
   error,
   reset,
 }: {
-  error: Error;
+  error: Error & { digest?: string };
   reset: () => void;
 }) {
   return (
-    <ErrorFallback
-      error={error}
-      reset={reset}
-      backHref="/dashboard/admin"
-      backLabel="العودة للوحة الإدارة"
+    <AdminPageError
+      title="حدث خطأ في لوحة التحكم"
+      description={
+        error.message ||
+        "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
+      }
     />
   );
 }

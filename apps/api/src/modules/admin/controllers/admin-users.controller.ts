@@ -108,6 +108,27 @@ export class AdminUsersController {
     return this.adminUsersService.revokeSessions(id);
   }
 
+  @Post(":id/suspend")
+  @RequirePermissions("admin.users.manage")
+  suspend(
+    @Param("id") id: string,
+    @Body("reason") reason: string,
+    @Body("suspendedUntil") suspendedUntil: string | undefined,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.adminUsersService.suspend(id, reason, adminId, suspendedUntil);
+  }
+
+  @Post(":id/reactivate")
+  @RequirePermissions("admin.users.manage")
+  reactivate(
+    @Param("id") id: string,
+    @Body("reason") reason: string,
+    @CurrentUser("id") adminId: string,
+  ) {
+    return this.adminUsersService.reactivate(id, reason, adminId);
+  }
+
   @Patch(":id")
   @RequirePermissions("admin.users.manage")
   update(@Param("id") id: string, @Body() dto: UpdateUserDto) {

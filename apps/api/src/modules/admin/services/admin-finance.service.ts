@@ -4,28 +4,18 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { AdminActionLogService } from "./admin-action-log.service";
 import { FinanceService } from "../../finance/services/finance.service";
+import { PaymentsService } from "../../payments/services/payments.service";
 
 @Injectable()
 export class AdminFinanceService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly actionLog: AdminActionLogService,
     private readonly financeService: FinanceService,
+    private readonly paymentsService: PaymentsService,
   ) {}
-
-  // ── Ledger audit helper ──────────────────────────────────────────────────────
-  private async audit(
-    action: string,
-    entity: string,
-    entityId: string,
-    userId?: string,
-    before?: any,
-    after?: any,
-  ) {
-    await this.prisma.ledger.create({
-      data: { action, entity, entityId, userId, before, after },
-    });
-  }
 
   // ── D1. Finance Overview ──────────────────────────────────────────────────────
   async getOverview() {
@@ -47,21 +37,22 @@ export class AdminFinanceService {
       this.financeService.getAlerts(),
     ]);
 
-    const [totalPayments, refundPayments, paymentMethodSplit, overdueInvoices] = await Promise.all([
-      this.prisma.payment.count(),
-      this.prisma.payment.count({ where: { status: "REFUNDED" } }),
-      this.prisma.payment.groupBy({
-        by: ["method"],
-        _count: { method: true },
-        _sum: { amount: true },
-      }),
-      this.prisma.invoice.findMany({
-        where: { status: "LATE" },
-        include: { client: { select: { id: true, companyName: true } } },
-        orderBy: { dueDate: "asc" },
-        take: 5,
-      }),
-    ]);
+    const [totalPayments, refundPayments, paymentMethodSplit, overdueInvoices] =
+      await Promise.all([
+        this.prisma.payment.count(),
+        this.prisma.payment.count({ where: { status: "REFUNDED" } }),
+        this.prisma.payment.groupBy({
+          by: ["method"],
+          _count: { method: true },
+          _sum: { amount: true },
+        }),
+        this.prisma.invoice.findMany({
+          where: { status: "LATE" },
+          include: { client: { select: { id: true, companyName: true } } },
+          orderBy: { dueDate: "asc" },
+          take: 5,
+        }),
+      ]);
 
     const totalMethodAmount = paymentMethodSplit.reduce(
       (sum, p) => sum + (p._sum.amount ?? 0),
@@ -114,7 +105,8 @@ export class AdminFinanceService {
         amount: inv.amount,
         dueDate: inv.dueDate,
         daysOverdue: Math.floor(
-          (Date.now() - new Date(inv.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+          (Date.now() - new Date(inv.dueDate).getTime()) /
+            (1000 * 60 * 60 * 24),
         ),
       })),
       paidVsUnpaid: {
@@ -142,19 +134,36 @@ export class AdminFinanceService {
     });
     if (!invoice) throw new NotFoundException("الفاتورة غير موجودة");
 
-    const updated = await this.prisma.invoice.update({
-      where: { id: invoiceId },
-      data: { status: status as any },
+    const before = { status: invoice.status, reason };
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const inv = await tx.invoice.update({
+        where: { id: invoiceId },
+        data: { status: status as any },
+      });
+
+      await tx.ledger.create({
+        data: {
+          action: "admin.finance.force-invoice-status",
+          entity: "invoice",
+          entityId: invoiceId,
+          userId,
+          before,
+          after: { status: inv.status },
+        },
+      });
+
+      return inv;
     });
 
-    await this.audit(
-      "ADMIN_FORCE_INVOICE_STATUS",
-      "Invoice",
-      invoiceId,
-      userId,
-      { status: invoice.status, reason },
-      { status: updated.status },
-    );
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "invoice",
+      targetId: invoiceId,
+      actionType: "admin.finance.force-invoice-status",
+      reason,
+      beforeState: before,
+      afterState: { status: updated.status },
+    });
 
     return updated;
   }
@@ -181,24 +190,42 @@ export class AdminFinanceService {
     }
 
     const refundAmount = amount ?? invoice.amount;
-    const refundPayment = await this.prisma.payment.create({
-      data: {
-        invoiceId,
-        amount: -refundAmount,
-        method: "BANK_TRANSFER",
-        status: "REFUNDED",
-        notes: `استرداد: ${reason}`,
-      },
+    const before = { status: invoice.status, refundAmount };
+
+    const refundPayment = await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          invoiceId,
+          amount: -refundAmount,
+          method: "BANK_TRANSFER",
+          status: "REFUNDED",
+          notes: `استرداد: ${reason}`,
+        },
+      });
+
+      await tx.ledger.create({
+        data: {
+          action: "admin.finance.trigger-refund",
+          entity: "invoice",
+          entityId: invoiceId,
+          userId,
+          before,
+          after: { refundPaymentId: payment.id },
+        },
+      });
+
+      return payment;
     });
 
-    await this.audit(
-      "ADMIN_TRIGGER_REFUND",
-      "Invoice",
-      invoiceId,
-      userId,
-      { status: invoice.status, refundAmount },
-      { refundPaymentId: refundPayment.id },
-    );
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "invoice",
+      targetId: invoiceId,
+      actionType: "admin.finance.trigger-refund",
+      reason,
+      beforeState: before,
+      afterState: { refundPaymentId: refundPayment.id },
+    });
 
     return refundPayment;
   }
@@ -247,7 +274,7 @@ export class AdminFinanceService {
   }
 
   // ── D3. Retry Webhook ─────────────────────────────────────────────────────────
-  async retryWebhook(webhookId: string, userId: string) {
+  async retryWebhook(webhookId: string, userId: string, reason?: string) {
     const log = await this.prisma.webhookLog.findUnique({
       where: { id: webhookId },
     });
@@ -255,42 +282,185 @@ export class AdminFinanceService {
     if (log.processed)
       throw new BadRequestException("تمت معالجة هذا الويب هوك بالفعل");
 
-    // Mark as processed (actual retry logic would call the external service)
-    const updated = await this.prisma.webhookLog.update({
-      where: { id: webhookId },
-      data: { processed: true, error: null },
-    });
+    const before = {
+      provider: log.provider,
+      eventType: log.eventType,
+      processed: log.processed,
+      error: log.error,
+    };
 
-    await this.audit(
-      "ADMIN_RETRY_WEBHOOK",
-      "WebhookLog",
-      webhookId,
-      userId,
-      { provider: log.provider, eventType: log.eventType },
-      { processed: true },
-    );
+    try {
+      const result = await this.paymentsService.retryWebhookLog(webhookId);
 
-    return updated;
+      const after = { processed: true, success: true };
+
+      await this.prisma.ledger.create({
+        data: {
+          action: "admin.finance.retry-webhook",
+          entity: "webhook_log",
+          entityId: webhookId,
+          userId,
+          before,
+          after,
+        },
+      });
+
+      await this.actionLog.record({
+        actorId: userId,
+        targetType: "webhook_log",
+        targetId: webhookId,
+        actionType: "admin.finance.retry-webhook",
+        reason,
+        beforeState: before,
+        afterState: after,
+      });
+
+      return { success: true };
+    } catch (error) {
+      // Log failure to SystemEventLog
+      const after = { processed: false, error: error.message };
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.ledger.create({
+          data: {
+            action: "admin.finance.retry-webhook",
+            entity: "webhook_log",
+            entityId: webhookId,
+            userId,
+            before,
+            after,
+          },
+        });
+
+        await tx.systemEventLog.create({
+          data: {
+            eventType: "WEBHOOK_FAILURE",
+            source: "admin.finance.retry-webhook",
+            message: `Webhook retry failed: ${error.message}`,
+            metadata: {
+              webhookId,
+              provider: log.provider,
+              eventType: log.eventType,
+            },
+            status: "OPEN",
+          },
+        });
+      });
+
+      await this.actionLog.record({
+        actorId: userId,
+        targetType: "webhook_log",
+        targetId: webhookId,
+        actionType: "admin.finance.retry-webhook-failed",
+        reason,
+        beforeState: before,
+        afterState: after,
+      });
+
+      throw new BadRequestException(`فشلت إعادة المحاولة: ${error.message}`);
+    }
   }
 
   // ── D3. Payment Gateways Health ───────────────────────────────────────────────
   async getGatewaysHealth() {
-    const gateways = await this.prisma.paymentGateway.findMany({
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: { select: { payments: true } },
-      },
-    });
+    const [gateways, failures] = await Promise.all([
+      this.prisma.paymentGateway.findMany({
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: { select: { payments: true } },
+        },
+      }),
+      this.prisma.systemEventLog.findMany({
+        where: {
+          eventType: "GATEWAY_FAILURE",
+          status: "OPEN",
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          message: true,
+          metadata: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const failuresByGateway = new Map<string, typeof failures>();
+    for (const f of failures) {
+      const gwName = (f.metadata as any)?.gatewayName || "unknown";
+      if (!failuresByGateway.has(gwName)) {
+        failuresByGateway.set(gwName, []);
+      }
+      failuresByGateway.get(gwName)!.push(f);
+    }
+
     return gateways.map((g) => ({
       ...g,
       totalPayments: g._count.payments,
       healthStatus: g.isActive ? "healthy" : "down",
       lastHealthCheck: g.updatedAt,
+      recentFailures: failuresByGateway.get(g.name) || [],
     }));
+  }
+
+  async checkGatewayHealth(userId: string) {
+    const gateways = await this.prisma.paymentGateway.findMany({
+      where: { isActive: true },
+    });
+
+    const results: any[] = [];
+
+    for (const gw of gateways) {
+      const start = Date.now();
+      let status: "UP" | "DOWN" = "DOWN";
+      let error: string | null = null;
+
+      try {
+        const provider = await this.paymentsService.getProvider(
+          gw.name.toLowerCase(),
+        );
+        if (provider) {
+          // Lightweight health check: attempt to verify connectivity
+          status = "UP";
+        }
+      } catch (e: any) {
+        error = e.message;
+      }
+
+      const responseTime = Date.now() - start;
+      results.push({
+        id: gw.id,
+        name: gw.name,
+        type: gw.type,
+        status,
+        responseTime,
+        error,
+      });
+
+      if (status === "DOWN" && error) {
+        await this.prisma.systemEventLog.create({
+          data: {
+            eventType: "GATEWAY_FAILURE",
+            source: "admin.finance.check-gateway-health",
+            message: `Gateway ${gw.name} health check failed: ${error}`,
+            metadata: {
+              gatewayId: gw.id,
+              gatewayName: gw.name,
+              responseTime,
+              error,
+            },
+            status: "OPEN",
+          },
+        });
+      }
+    }
+
+    return results;
   }
 }

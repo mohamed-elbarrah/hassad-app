@@ -941,7 +941,7 @@ export class FinanceService {
     const { from, to } = this.getDateRange(dto);
     const months: { label: string; income: number; expenses: number }[] = [];
 
-    let cursor = new Date(from.getFullYear(), from.getMonth(), 1);
+    const cursor = new Date(from.getFullYear(), from.getMonth(), 1);
     const end = new Date(to.getFullYear(), to.getMonth(), 1);
 
     while (cursor <= end) {
@@ -1261,7 +1261,7 @@ export class FinanceService {
       "ديسمبر",
     ];
 
-    let cursor = new Date(from);
+    const cursor = new Date(from);
     cursor.setHours(0, 0, 0, 0);
 
     while (cursor <= to) {

@@ -113,6 +113,53 @@ export class ContractCronService {
       }
     }
 
+    // ── Renewal escalation: expiring within 7d with no renewal action ──────
+    for (const contract of expiringContracts) {
+      const hasRenewalAlert = await this.prisma.contractRenewalAlert.findFirst({
+        where: {
+          contractId: contract.id,
+          alertType: "THIRTY_DAYS",
+        },
+      });
+
+      // Only escalate if the 30-day alert was already sent (meaning admin knew and did nothing)
+      if (!hasRenewalAlert) continue;
+
+      const escalated = await this.prisma.contractRenewalAlert.findFirst({
+        where: {
+          contractId: contract.id,
+          alertType: "SEVEN_DAYS",
+          isSent: true,
+        },
+      });
+      if (escalated) continue;
+
+      await this.prisma.contractRenewalAlert.create({
+        data: {
+          contractId: contract.id,
+          alertType: "SEVEN_DAYS",
+          isSent: true,
+          scheduledAt: new Date(),
+          sentAt: new Date(),
+        },
+      });
+
+      const managerIds = [
+        contract.createdBy,
+        contract.client?.accountManager,
+      ].filter(Boolean) as string[];
+      if (managerIds.length > 0) {
+        await this.notificationsService.notifyUsers({
+          userIds: managerIds,
+          title: "تنبيه: العقد يحتاج لتجديد عاجل",
+          message: `العقد "${contract.title}" مع ${contract.client?.companyName} ينتهي خلال 7 أيام ولم يتم اتخاذ إجراء. يرجى التواصل مع العميل للتجديد.`,
+          entityId: contract.id,
+          entityType: "CONTRACT",
+          eventType: "RENEWAL_ESCALATED",
+        });
+      }
+    }
+
     this.logger.log(
       `Processed ${expiringContracts.length} expiring and ${expiredContracts.length} expired contracts`,
     );

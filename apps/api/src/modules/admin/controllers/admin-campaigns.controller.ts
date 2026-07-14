@@ -11,7 +11,10 @@ import {
 
 import { AdminCampaignsService } from "../services/admin-campaigns.service";
 
-import { AdminCreateCampaignDto, AdminUpdateCampaignDto } from "../dto/admin-campaign.dto";
+import {
+  AdminCreateCampaignDto,
+  AdminUpdateCampaignDto,
+} from "../dto/admin-campaign.dto";
 
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -37,21 +40,23 @@ export class AdminCampaignsController {
   ) {
     return this.service.findOne(id);
   }
-  @Patch(":id") @RequirePermissions("admin.campaigns.read") update(
+  @Patch(":id") @RequirePermissions("admin.campaigns.intervene") update(
     @Param("id") id: string,
     @Body() dto: AdminUpdateCampaignDto,
     @CurrentUser() user: any,
   ) {
     return this.service.update(id, dto, user.id);
   }
-  @Post(":id/pause") @RequirePermissions("admin.campaigns.read") pause(
+  @Post(":id/pause") @RequirePermissions("admin.campaigns.intervene") pause(
     @Param("id") id: string,
+    @CurrentUser("id") userId: string,
   ) {
-    return this.service.pause(id);
+    return this.service.pause(id, userId);
   }
-  @Post(":id/end") @RequirePermissions("admin.campaigns.read") end(
+  @Post(":id/end") @RequirePermissions("admin.campaigns.intervene") end(
     @Param("id") id: string,
+    @CurrentUser("id") userId: string,
   ) {
-    return this.service.end(id);
+    return this.service.end(id, userId);
   }
 }

@@ -1,320 +1,282 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
-  Ticket,
-  Search,
-  AlertTriangle,
+  Scale,
+  MessageSquareWarning,
   Clock,
+  AlertTriangle,
   CheckCircle,
-  Inbox,
-  Ban,
-  Timer,
+  XCircle,
 } from "lucide-react";
-import type { DisputeStatus, DisputePriority } from "@hassad/shared";
-import { DISPUTE_STATUS_AR } from "@hassad/shared";
-import {
-  useGetAdminDisputesQuery,
-  useGetDisputeStatsQuery,
-} from "@/features/disputes/adminDisputesApi";
 import { PageIntro } from "@/components/design-system/PageIntro";
-import { Pagination } from "@/components/design-system/Pagination";
-import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
-import { Input } from "@/components/design-system/Input";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/design-system/Tabs";
-import { AdminDisputeCard } from "@/components/disputes/AdminDisputeCard";
-import { DisputeEmptyState } from "@/components/disputes/DisputeEmptyState";
+  DataTable,
+  type DataTableColumn,
+  type DataTableEmptyState,
+} from "@/components/design-system/DataTable";
+import { Pagination } from "@/components/design-system/Pagination";
+import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
+import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+import {
+  useGetAdminDisputesQuery,
+  useGetAdminDisputeStatsQuery,
+} from "@/features/admin/adminDisputesApi";
+import { cn } from "@/lib/utils";
+import { DISPUTE_CATEGORY_AR, DISPUTE_PRIORITY_AR } from "@hassad/shared";
 
-const PAGE_SIZE = 9;
-
-// ─── Filter Configuration ──────────────────────────────────────────────────────
-
-const STATUS_GROUPS: FilterGroup[] = [
-  {
-    key: "status",
-    label: "الحالة",
-    options: [
-      { label: "الكل", value: "" },
-      { label: DISPUTE_STATUS_AR.PENDING_APPROVAL, value: "PENDING_APPROVAL" },
-      { label: DISPUTE_STATUS_AR.APPROVED, value: "APPROVED" },
-      { label: DISPUTE_STATUS_AR.IN_PROGRESS, value: "IN_PROGRESS" },
-      { label: DISPUTE_STATUS_AR.ESCALATED, value: "ESCALATED" },
-      { label: DISPUTE_STATUS_AR.RESOLVED, value: "RESOLVED" },
-      { label: DISPUTE_STATUS_AR.CLOSED, value: "CLOSED" },
-    ],
-  },
-  {
-    key: "priority",
-    label: "الأولوية",
-    options: [
-      { label: "الكل", value: "" },
-      { label: "عاجل", value: "URGENT" },
-      { label: "عالي", value: "HIGH" },
-      { label: "عادي", value: "NORMAL" },
-      { label: "منخفض", value: "LOW" },
-    ],
-  },
+const COLUMNS: DataTableColumn[] = [
+  { id: "ticketNumber", label: "رقم التذكرة", align: "right" },
+  { id: "title", label: "العنوان", align: "right" },
+  { id: "client", label: "العميل", align: "right" },
+  { id: "project", label: "المشروع", align: "right" },
+  { id: "status", label: "الحالة", align: "right" },
+  { id: "priority", label: "الأولوية", align: "right" },
+  { id: "pm", label: "مدير المشروع", align: "right" },
 ];
 
-// ─── Tab Configuration ────────────────────────────────────────────────────────
+const EMPTY_STATE: DataTableEmptyState = {
+  icon: Scale,
+  message: "لا يوجد نزاعات",
+  hint: "لم يتم تسجيل أي نزاعات حتى الآن.",
+};
 
-const TABS = [
-  { value: "", label: "الكل", icon: Ticket },
-  { value: "PENDING_APPROVAL", label: "بانتظار الموافقة", icon: Clock },
-  { value: "ESCALATED", label: "تم التصعيد", icon: AlertTriangle },
-  { value: "IN_PROGRESS", label: "نشطة", icon: Clock },
-  { value: "RESOLVED", label: "تم الحل", icon: CheckCircle },
-] as const;
+const CATEGORY_OPTIONS = [
+  { label: "تأخير", value: "DELAY" },
+  { label: "جودة", value: "QUALITY" },
+  { label: "تواصل", value: "COMMUNICATION" },
+  { label: "ميزانية", value: "BUDGET" },
+  { label: "نطاق العمل", value: "SCOPE" },
+  { label: "تعامل", value: "ATTITUDE" },
+  { label: "أخرى", value: "OTHER" },
+];
+
+const STATUS_OPTIONS = [
+  { label: "بانتظار الموافقة", value: "PENDING_APPROVAL" },
+  { label: "مرفوض", value: "REJECTED" },
+  { label: "تمت الموافقة", value: "APPROVED" },
+  { label: "قيد المعالجة", value: "IN_PROGRESS" },
+  { label: "بانتظار تأكيد العميل", value: "PENDING_CLIENT" },
+  { label: "تم التصعيد", value: "ESCALATED" },
+  { label: "تم الحل", value: "RESOLVED" },
+  { label: "مغلق", value: "CLOSED" },
+];
+
+const PRIORITY_OPTIONS = [
+  { label: "منخفض", value: "LOW" },
+  { label: "عادي", value: "NORMAL" },
+  { label: "عالي", value: "HIGH" },
+  { label: "عاجل", value: "URGENT" },
+];
 
 export default function AdminDisputesPage() {
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState("");
 
-  // Get filter values
-  const statusFilter = activeFilters["status"]?.[0] ?? activeTab ?? "";
-  const priorityFilter = activeFilters["priority"]?.[0] ?? "";
+  const filterStatus = activeFilters.status?.[0];
+  const filterCategory = activeFilters.category?.[0];
+  const filterPriority = activeFilters.priority?.[0];
 
-  // Fetch disputes
-  const { data, isLoading } = useGetAdminDisputesQuery(
-    {
-      status: statusFilter as DisputeStatus | undefined,
-      priority: (priorityFilter || undefined) as DisputePriority | undefined,
-      page,
-      limit: PAGE_SIZE,
-    },
-    { pollingInterval: 60_000 },
-  );
+  const { data, isLoading, isError } = useGetAdminDisputesQuery({
+    status: filterStatus,
+    category: filterCategory,
+    priority: filterPriority,
+    page,
+    limit: 20,
+  });
 
-  // Fetch stats
-  const { data: stats } = useGetDisputeStatsQuery();
+  const { data: stats, isLoading: statsLoading } =
+    useGetAdminDisputeStatsQuery();
 
-  const disputes = data?.data ?? [];
+  const disputes = useMemo(() => data?.data ?? [], [data]);
   const total = data?.meta?.total ?? 0;
   const totalPages = data?.meta?.totalPages ?? 1;
 
-  const handleFilterChange = useCallback(
-    (groupKey: string, values: string[]) => {
-      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-      setPage(1);
-    },
-    [],
-  );
+  const statCards = useMemo(() => {
+    if (!stats) return [];
+    return [
+      {
+        label: "بانتظار الموافقة",
+        value: stats.pendingApproval,
+        icon: Clock,
+        className: "bg-alert-100/50 border-alert-200 text-alert-600",
+      },
+      {
+        label: "نشط",
+        value: stats.active,
+        icon: MessageSquareWarning,
+        className: "bg-primary-100/50 border-primary-200 text-primary-600",
+      },
+      {
+        label: "مصعّد",
+        value: stats.escalated,
+        icon: AlertTriangle,
+        className: "bg-danger-100/50 border-danger-200 text-danger-600",
+      },
+      {
+        label: "محلول",
+        value: stats.resolved,
+        icon: CheckCircle,
+        className: "bg-success-100/50 border-success-200 text-success-600",
+      },
+      {
+        label: "مغلق",
+        value: stats.closed,
+        icon: XCircle,
+        className: "bg-neutral-100/50 border-neutral-200 text-neutral-600",
+      },
+    ];
+  }, [stats]);
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    setActiveFilters({});
-    setPage(1);
+  const priorityBadgeClass = (priority: string) => {
+    switch (priority) {
+      case "URGENT":
+        return "bg-danger-100 text-danger-600 border-danger-200";
+      case "HIGH":
+        return "bg-alert-100 text-alert-600 border-alert-200";
+      case "NORMAL":
+        return "bg-primary-100 text-primary-600 border-primary-200";
+      case "LOW":
+        return "bg-neutral-100 text-neutral-600 border-neutral-200";
+      default:
+        return "bg-neutral-100 text-neutral-600 border-neutral-200";
+    }
   };
-
-  // Average resolution time
-  const resolvedDisputes = disputes.filter((d) => d.resolvedAt);
-  const avgResolutionDays =
-    resolvedDisputes.length > 0
-      ? Math.round(
-          (resolvedDisputes.reduce((sum, d) => {
-            const diff =
-              new Date(d.resolvedAt!).getTime() -
-              new Date(d.openedAt).getTime();
-            return sum + diff / (1000 * 60 * 60 * 24);
-          }, 0) /
-            resolvedDisputes.length) *
-            10,
-        ) / 10
-      : 0;
-
-  // Filter by search locally
-  const filtered = search
-    ? disputes.filter(
-        (d) =>
-          d.title.toLowerCase().includes(search.toLowerCase()) ||
-          d.client.name.toLowerCase().includes(search.toLowerCase()) ||
-          d.pm.name.toLowerCase().includes(search.toLowerCase()) ||
-          d.project.name.toLowerCase().includes(search.toLowerCase()),
-      )
-    : disputes;
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
       <PageIntro
-        title="إدارة النزاعات"
-        description="مراجعة وإدارة جميع تذاكر النزاعات"
-        icon={Ticket}
+        title="النزاعات"
+        description="إدارة نزاعات العملاء ومشاكل المشاريع"
+        icon={Scale}
       />
 
-      {/* ── Stats Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-        <StatsCard
-          icon={Clock}
-          label="بانتظار الموافقة"
-          value={stats?.pendingApproval ?? 0}
-          color="yellow"
-        />
-        <StatsCard
-          icon={Ticket}
-          label="نشطة"
-          value={stats?.active ?? 0}
-          color="blue"
-        />
-        <StatsCard
-          icon={AlertTriangle}
-          label="مصعدة"
-          value={stats?.escalated ?? 0}
-          color="red"
-        />
-        <StatsCard
-          icon={CheckCircle}
-          label="تم الحل"
-          value={stats?.resolved ?? 0}
-          color="green"
-        />
-        <StatsCard
-          icon={Ban}
-          label="مغلقة"
-          value={stats?.closed ?? 0}
-          color="gray"
-        />
-        <StatsCard
-          icon={Timer}
-          label="متوسط وقت الحل"
-          value={avgResolutionDays}
-          color="blue"
-          suffix=" يوم"
-        />
+      <div className="grid grid-cols-5 gap-4">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className={cn(
+              "rounded-[30px] border-[1.5px] border-portal-card-border p-5",
+              card.className,
+            )}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <card.icon className="h-4 w-4" />
+              <p className="text-sm text-portal-note-text">{card.label}</p>
+            </div>
+            <p className="text-2xl font-semibold text-natural-100 mt-2">
+              {statsLoading ? "—" : card.value}
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* ── Tabs ────────────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList>
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const count =
-              tab.value === ""
-                ? total
-                : disputes.filter((d) => d.status === tab.value).length;
-            return (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-                <Icon className="h-4 w-4" />
-                {tab.label}
-                {count > 0 && (
-                  <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs">
-                    {count}
-                  </span>
-                )}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+      <SurfaceCard title="قائمة النزاعات" description={`${total} نزاع`}>
+        <div className="mb-4">
+          <AdminListToolbar
+            search={search}
+            onSearchChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            searchPlaceholder="بحث برقم التذكرة أو العنوان..."
+            filterGroups={[
+              {
+                key: "status",
+                label: "الحالة",
+                options: STATUS_OPTIONS,
+              },
+              {
+                key: "category",
+                label: "التصنيف",
+                options: CATEGORY_OPTIONS,
+              },
+              {
+                key: "priority",
+                label: "الأولوية",
+                options: PRIORITY_OPTIONS,
+              },
+            ]}
+            activeFilters={activeFilters}
+            onFilterChange={(key, values) =>
+              setActiveFilters((prev) => ({ ...prev, [key]: values }))
+            }
+          />
+        </div>
 
-        <TabsContent value={activeTab} className="mt-4">
-          {/* ── Toolbar ────────────────────────────────────────────────────── */}
-          <div className="flex flex-col sm:flex-row gap-3 items-start mb-4">
-            <div className="relative flex-1 w-full sm:w-auto">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
-              <Input
-                placeholder="ابحث في التذاكر..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pr-9"
-              />
-            </div>
-            <FilterBar
-              groups={STATUS_GROUPS}
-              activeFilters={activeFilters}
-              onFilterChange={handleFilterChange}
+        <DataTable
+          columns={COLUMNS}
+          data={disputes}
+          isLoading={isLoading}
+          isError={isError}
+          errorMessage="حدث خطأ أثناء تحميل النزاعات."
+          emptyState={EMPTY_STATE}
+          renderRow={(dispute) => (
+            <tr
+              key={dispute.id}
+              className="border-b border-portal-divider last:border-0"
+            >
+              <td className="py-3 px-2 text-right">
+                <Link
+                  href={`/dashboard/admin/disputes/${dispute.id}`}
+                  className="hover:underline text-secondary-500 font-medium text-sm"
+                >
+                  #{dispute.ticketNumber}
+                </Link>
+              </td>
+              <td className="py-3 px-2 text-right">
+                <Link
+                  href={`/dashboard/admin/disputes/${dispute.id}`}
+                  className="hover:underline text-natural-100 font-medium text-sm"
+                >
+                  {dispute.title}
+                </Link>
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {dispute.client.companyName}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {dispute.project.name}
+              </td>
+              <td className="py-3 px-2 text-right">
+                <AdminStatusBadge domain="dispute" status={dispute.status} />
+              </td>
+              <td className="py-3 px-2 text-right">
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                    priorityBadgeClass(dispute.priority),
+                  )}
+                >
+                  {DISPUTE_PRIORITY_AR[
+                    dispute.priority as keyof typeof DISPUTE_PRIORITY_AR
+                  ] || dispute.priority}
+                </span>
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {dispute.pm.name}
+              </td>
+            </tr>
+          )}
+        />
+
+        {!isLoading && !isError && totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-portal-note-text">إجمالي {total} نزاع</p>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
             />
           </div>
-
-          {/* ── Disputes Grid ────────────────────────────────────────────── */}
-          {isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-48 rounded-[24px]" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <DisputeEmptyState
-              hasFilter={!!search || !!statusFilter || !!priorityFilter}
-              canCreate={false}
-            />
-          ) : (
-            <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filtered.map((dispute) => (
-                  <AdminDisputeCard key={dispute.id} dispute={dispute} />
-                ))}
-              </div>
-
-              {/* ── Pagination ──────────────────────────────────────────── */}
-              {totalPages > 1 && (
-                <div className="flex justify-center mt-6">
-                  <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
+        )}
+      </SurfaceCard>
     </div>
-  );
-}
-
-// ─── Stats Card Component ─────────────────────────────────────────────────────
-
-interface StatsCardProps {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number;
-  color: "yellow" | "blue" | "red" | "green" | "gray";
-  suffix?: string;
-}
-
-const STATS_COLORS = {
-  yellow: { bg: "bg-yellow-100", icon: "text-yellow-600" },
-  blue: { bg: "bg-blue-100", icon: "text-blue-600" },
-  red: { bg: "bg-red-100", icon: "text-red-600" },
-  green: { bg: "bg-green-100", icon: "text-green-600" },
-  gray: { bg: "bg-gray-100", icon: "text-gray-600" },
-};
-
-function StatsCard({ icon: Icon, label, value, color, suffix }: StatsCardProps) {
-  const colors = STATS_COLORS[color];
-  return (
-    <SurfaceCard className="p-4">
-      <div className="flex items-center gap-3">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-full ${colors.bg}`}
-        >
-          <Icon className={`h-5 w-5 ${colors.icon}`} />
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-natural-100">
-            {value}
-            {suffix && <span className="text-base font-normal text-portal-note-text mr-1">{suffix}</span>}
-          </p>
-          <p className="text-sm text-portal-note-text">{label}</p>
-        </div>
-      </div>
-    </SurfaceCard>
   );
 }

@@ -1,15 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard,
-  Users,
   Building2,
   Shield,
-  ScrollText,
-  Activity,
-  Settings,
-  Wrench,
-  DollarSign,
-  CreditCard,
   Briefcase,
   ListChecks,
   ClipboardList,
@@ -20,12 +12,26 @@ import {
   MessageSquare,
   BarChart3,
   TrendingUp,
-  Megaphone,
-  Bell,
   Ticket,
-  AlertTriangle,
-  Monitor,
+  LayoutDashboard,
+  Users,
+  Group,
+  FolderKanban,
+  CheckSquare,
+  FileSpreadsheet,
+  UserPlus,
+  Handshake,
+  PiggyBank,
+  Scale,
+  Activity,
+  FileBarChart,
+  Lock,
+  Settings,
+  Database,
   Globe,
+  AlertTriangle,
+  DollarSign,
+  Bot,
 } from "lucide-react";
 
 /* ── Navigation types ────────────────────────────────────────────────────────── */
@@ -40,14 +46,13 @@ export type NavItem = {
 };
 export type NavSection = { label: string; items: NavItem[] };
 
-/* ── Admin-only navigation ──────────────────────────────────────────────────── */
-
+/* ── Admin-only navigation (Phase 6 — built in waves) ──────────────────────── */
 export const adminNavSections: NavSection[] = [
   {
-    label: "الرئيسية",
+    label: "لوحة التحكم",
     items: [
       {
-        title: "لوحة التحكم",
+        title: "نظرة عامة",
         url: "/dashboard/admin",
         icon: LayoutDashboard,
         roles: ["ADMIN"],
@@ -55,36 +60,35 @@ export const adminNavSections: NavSection[] = [
     ],
   },
   {
-    label: "إدارة المستخدمين",
+    label: "إدارة الموظفين",
     items: [
       {
-        title: "المستخدمون",
-        url: "/dashboard/admin/users",
+        title: "الموظفون",
+        url: "/dashboard/admin/employees",
         icon: Users,
         roles: ["ADMIN"],
       },
       {
+        title: "الفرق",
+        url: "/dashboard/admin/teams",
+        icon: Group,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "إدارة العملاء",
+    items: [
+      {
         title: "العملاء",
         url: "/dashboard/admin/clients",
-        icon: Building2,
+        icon: Handshake,
         roles: ["ADMIN"],
       },
       {
-        title: "الأدوار",
-        url: "/dashboard/admin/roles",
-        icon: Shield,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "الأقسام",
-        url: "/dashboard/admin/departments",
-        icon: Briefcase,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "بوابة العملاء",
-        url: "/dashboard/admin/portal",
-        icon: Globe,
+        title: "العملاء المحتملون",
+        url: "/dashboard/admin/leads",
+        icon: UserPlus,
         roles: ["ADMIN"],
       },
     ],
@@ -95,13 +99,13 @@ export const adminNavSections: NavSection[] = [
       {
         title: "المشاريع",
         url: "/dashboard/admin/projects",
-        icon: Briefcase,
+        icon: FolderKanban,
         roles: ["ADMIN"],
       },
       {
         title: "المهام",
         url: "/dashboard/admin/tasks",
-        icon: ListChecks,
+        icon: CheckSquare,
         roles: ["ADMIN"],
       },
       {
@@ -111,38 +115,21 @@ export const adminNavSections: NavSection[] = [
         roles: ["ADMIN"],
       },
       {
+        title: "الطلبات",
+        url: "/dashboard/admin/requests",
+        icon: ClipboardList,
+        roles: ["ADMIN"],
+      },
+      {
         title: "العروض الفنية",
         url: "/dashboard/admin/proposals",
         icon: FileText,
         roles: ["ADMIN"],
       },
       {
-        title: "طلبات الخدمة",
-        url: "/dashboard/admin/requests",
-        icon: ClipboardList,
-        roles: ["ADMIN"],
-      },
-      {
         title: "النزاعات",
         url: "/dashboard/admin/disputes",
-        icon: AlertTriangle,
-        roles: ["ADMIN"],
-      },
-    ],
-  },
-  {
-    label: "التسويق",
-    items: [
-      {
-        title: "الحملات",
-        url: "/dashboard/admin/campaigns",
-        icon: BarChart3,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "الاستراتيجيات التسويقية",
-        url: "/dashboard/admin/marketing/strategies",
-        icon: Megaphone,
+        icon: Scale,
         roles: ["ADMIN"],
       },
     ],
@@ -153,102 +140,88 @@ export const adminNavSections: NavSection[] = [
       {
         title: "نظرة عامة",
         url: "/dashboard/admin/finance",
-        icon: DollarSign,
+        icon: PiggyBank,
         roles: ["ADMIN"],
       },
       {
         title: "الفواتير",
         url: "/dashboard/admin/finance/invoices",
-        icon: FileText,
+        icon: FileSpreadsheet,
         roles: ["ADMIN"],
       },
       {
         title: "المدفوعات",
         url: "/dashboard/admin/finance/payments",
-        icon: CreditCard,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "الرواتب",
-        url: "/dashboard/admin/finance/payroll",
-        icon: Kanban,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "الحسابات البنكية",
-        url: "/dashboard/admin/finance/bank-accounts",
-        icon: Building2,
+        icon: TrendingUp,
         roles: ["ADMIN"],
       },
     ],
   },
   {
-    label: "الإعدادات والمراقبة",
+    label: "المراقبة",
     items: [
       {
-        title: "التقارير",
-        url: "/dashboard/admin/reports",
-        icon: BarChart3,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "أداء الفريق",
-        url: "/dashboard/admin/team-performance",
-        icon: TrendingUp,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "إعدادات المنصة",
-        url: "/dashboard/admin/settings",
-        icon: Settings,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "الخدمات",
-        url: "/dashboard/admin/services",
-        icon: Wrench,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "العملات",
-        url: "/dashboard/admin/currency",
-        icon: DollarSign,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "قوالب الإشعارات",
-        url: "/dashboard/admin/notification-templates",
-        icon: Bell,
+        title: "سجل التدقيق",
+        url: "/dashboard/admin/audit",
+        icon: Activity,
         roles: ["ADMIN"],
       },
       {
         title: "الأمان",
         url: "/dashboard/admin/security",
-        icon: Shield,
+        icon: Lock,
         roles: ["ADMIN"],
       },
       {
-        title: "الجلسات النشطة",
+        title: "الجلسات",
         url: "/dashboard/admin/sessions",
-        icon: Monitor,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "سجل النشاطات",
-        url: "/dashboard/admin/audit-log",
-        icon: ScrollText,
+        icon: Database,
         roles: ["ADMIN"],
       },
       {
         title: "صحة النظام",
         url: "/dashboard/admin/health",
-        icon: Activity,
+        icon: AlertTriangle,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "التقارير",
+    items: [
+      {
+        title: "التقارير",
+        url: "/dashboard/admin/reports",
+        icon: FileBarChart,
+        roles: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    label: "الإعدادات",
+    items: [
+      {
+        title: "الإعدادات",
+        url: "/dashboard/admin/settings",
+        icon: Settings,
         roles: ["ADMIN"],
       },
       {
-        title: "المحادثات",
-        url: "/dashboard/admin/chat",
-        icon: MessageSquare,
+        title: "التكاملات",
+        url: "/dashboard/admin/integrations",
+        icon: Globe,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "العملات",
+        url: "/dashboard/admin/settings/currencies",
+        icon: DollarSign,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "الذكاء الاصطناعي",
+        url: "/dashboard/admin/ai",
+        icon: Bot,
         roles: ["ADMIN"],
       },
     ],
@@ -341,19 +314,19 @@ export const roleNavSections: NavSection[] = [
     ],
   },
   {
-    label: "الموظف التنفيذي",
+    label: "فريق",
     items: [
       {
         title: "قائمة المهام",
-        url: "/dashboard/employee",
+        url: "/dashboard/team",
         icon: ClipboardList,
-        roles: ["EMPLOYEE"],
+        roles: ["TEAM"],
       },
       {
         title: "المحادثات",
         url: "/dashboard/messages",
         icon: MessageSquare,
-        roles: ["EMPLOYEE"],
+        roles: ["TEAM"],
       },
     ],
   },

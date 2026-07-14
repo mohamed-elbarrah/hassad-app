@@ -10,10 +10,7 @@ import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/features/auth/authSlice";
 import { useLogoutMutation } from "@/features/auth/authApi";
 import { UserRole } from "@hassad/shared";
-import {
-  adminNavSections,
-  roleNavSections,
-} from "@/lib/navigation";
+import { adminNavSections, roleNavSections } from "@/lib/navigation";
 import { UserInfoCard } from "./UserAvatar";
 
 function isActiveLink(href: string, pathname: string) {
@@ -23,7 +20,7 @@ function isActiveLink(href: string, pathname: string) {
     "/dashboard/sales",
     "/dashboard/finance",
     "/dashboard/marketing",
-    "/dashboard/employee",
+    "/dashboard/team",
     "/dashboard",
   ];
   if (roleHomes.includes(href)) {

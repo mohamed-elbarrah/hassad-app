@@ -224,6 +224,44 @@ export class PaymentsService implements OnModuleInit {
     };
   }
 
+  async retryWebhookLog(webhookLogId: string) {
+    const log = await this.prisma.webhookLog.findUnique({
+      where: { id: webhookLogId },
+    });
+    if (!log) throw new NotFoundException("Webhook log not found");
+    if (log.processed)
+      throw new BadRequestException("Webhook already processed");
+
+    const provider = await this.getProvider(log.provider);
+    const event =
+      typeof log.payload === "string" ? JSON.parse(log.payload) : log.payload;
+
+    try {
+      const result = await provider.handleWebhookEvent(event);
+
+      if (result) {
+        await this.updatePaymentStatus(
+          result.providerPaymentId,
+          result.status,
+          result.metadata,
+        );
+      }
+
+      await this.prisma.webhookLog.update({
+        where: { id: webhookLogId },
+        data: { processed: true, error: null },
+      });
+
+      return { success: true };
+    } catch (error) {
+      await this.prisma.webhookLog.update({
+        where: { id: webhookLogId },
+        data: { error: error.message },
+      });
+      throw error;
+    }
+  }
+
   async processWebhook(provider: string, rawBody: any, signature: string) {
     const providerInstance = await this.getProvider(provider);
 
@@ -478,11 +516,16 @@ export class PaymentsService implements OnModuleInit {
   }
 
   async createBankAccount(dto: any) {
-    return this.prisma.bankAccount.create({ data: this.mapBankAccountDto(dto) });
+    return this.prisma.bankAccount.create({
+      data: this.mapBankAccountDto(dto),
+    });
   }
 
   async updateBankAccount(id: string, dto: any) {
-    return this.prisma.bankAccount.update({ where: { id }, data: this.mapBankAccountDto(dto) });
+    return this.prisma.bankAccount.update({
+      where: { id },
+      data: this.mapBankAccountDto(dto),
+    });
   }
 
   async deleteBankAccount(id: string) {

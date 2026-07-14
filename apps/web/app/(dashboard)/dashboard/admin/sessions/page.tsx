@@ -1,213 +1,194 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Monitor, XCircle, Smartphone, Tablet } from "lucide-react";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { useMemo, useState } from "react";
+import { LogIn, XCircle } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
-import { DataTable } from "@/components/design-system/DataTable";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { StatCard } from "@/components/design-system/StatCard";
-import { Dialog } from "@/components/design-system/Dialog";
-import { toast } from "sonner";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableEmptyState,
+} from "@/components/design-system/DataTable";
+import { ActionButton } from "@/components/design-system/ActionButton";
+import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
+import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import {
   useGetAdminSessionsQuery,
-  useRevokeSessionMutation,
-  type AdminSession,
-} from "@/features/admin/adminApi";
-import { formatRelativeTime } from "@/lib/format";
+  useRevokeAdminSessionMutation,
+} from "@/features/admin/adminUsersApi";
 
-function useDebounce<T>(value: T, delay = 400): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
+const COLUMNS: DataTableColumn[] = [
+  { id: "userName", label: "المستخدم", align: "right" },
+  { id: "userEmail", label: "البريد الإلكتروني", align: "right" },
+  { id: "userAgent", label: "المتصفح", align: "right" },
+  { id: "ip", label: "IP", align: "right" },
+  { id: "createdAt", label: "تاريخ البدء", align: "right" },
+  { id: "expiresAt", label: "تاريخ الانتهاء", align: "right" },
+  { id: "status", label: "الحالة", align: "right" },
+  { id: "actions", label: "إجراء", align: "center" },
+];
 
-function sessionDeviceIcon(ua: string | null) {
-  if (!ua) return Monitor;
-  const lua = ua.toLowerCase();
-  if (/tablet|ipad/i.test(lua)) return Tablet;
-  if (/mobile|android|iphone|ios/i.test(lua)) return Smartphone;
-  return Monitor;
-}
+const EMPTY_STATE: DataTableEmptyState = {
+  icon: LogIn,
+  message: "لا توجد جلسات نشطة",
+  hint: "لم يتم تسجيل أي جلسات دخول بعد.",
+};
 
 export default function AdminSessionsPage() {
-  const [searchInput, setSearchInput] = useState("");
-  const [revokeTarget, setRevokeTarget] = useState<AdminSession | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
 
-  const debouncedSearch = useDebounce(searchInput, 400);
-  const filters: any = {
-    search: debouncedSearch || undefined,
-  };
+  const { data, isLoading, isError } = useGetAdminSessionsQuery({
+    search: search || undefined,
+    page,
+    limit: 20,
+  });
 
-  const { data, isLoading, isError } = useGetAdminSessionsQuery(filters);
-  const [revokeSession] = useRevokeSessionMutation();
+  const [revokeSession, { isLoading: isRevoking }] =
+    useRevokeAdminSessionMutation();
 
-  const sessions = data?.items ?? [];
-  const today = new Date().toISOString().slice(0, 10);
-  const activeToday = sessions.filter(
-    (s) => s.isActive && s.createdAt.slice(0, 10) === today,
-  ).length;
-  const desktopSessions = sessions.filter(
-    (s) => s.userAgent && !/mobile|android|ios|iphone|ipad|tablet/i.test(s.userAgent),
-  ).length;
-  const mobileSessions = sessions.filter(
-    (s) => s.userAgent && /mobile|android|ios|iphone|ipad|tablet/i.test(s.userAgent),
-  ).length;
+  const sessions = useMemo(() => data?.items ?? [], [data]);
 
-  const handleRevoke = async () => {
-    if (!revokeTarget) return;
+  const statCards = useMemo(() => {
+    const total = data?.total ?? 0;
+    const active = sessions.filter((s) => s.isActive).length;
+    const expired = sessions.filter((s) => !s.isActive).length;
+    return { total, active, expired };
+  }, [data, sessions]);
+
+  const handleRevoke = async (id: string) => {
     try {
-      await revokeSession(revokeTarget.id).unwrap();
-      toast.success("تم إنهاء الجلسة بنجاح");
-      setRevokeTarget(null);
+      await revokeSession(id).unwrap();
     } catch {
-      toast.error("فشل إنهاء الجلسة");
+      // Error handled by RTK
     }
   };
 
-  return (
-    <div className="flex flex-col gap-6" dir="rtl">
-      <PageIntro
-        title="الجلسات النشطة"
-        description={`إجمالي ${data?.total ?? 0} جلسة`}
-        icon={Monitor}
-      />
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="إجمالي الجلسات"
-          value={data?.total ?? 0}
-          icon={Monitor}
-        />
-        <StatCard
-          title="نشطة اليوم"
-          value={activeToday}
-          icon={Monitor}
-          variant="success"
-        />
-        <StatCard
-          title="سطح المكتب"
-          value={desktopSessions}
-          icon={Monitor}
-        />
-        <StatCard
-          title="الجوال"
-          value={mobileSessions}
-          icon={Smartphone}
+  if (isError) {
+    return (
+      <div className="flex flex-col gap-5" dir="rtl">
+        <AdminEmptyState
+          icon={LogIn}
+          title="حدث خطأ أثناء تحميل الجلسات"
+          description="يرجى تحديث الصفحة والمحاولة مرة أخرى."
         />
       </div>
+    );
+  }
 
-      <div className="flex flex-col sm:flex-row gap-3 items-start">
-        <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
-          <FormInputControl
-            placeholder="ابحث عن مستخدم..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pr-9"
+  return (
+    <div className="flex flex-col gap-5" dir="rtl">
+      <PageIntro
+        title="الجلسات"
+        description="إدارة جلسات تسجيل دخول المستخدمين"
+        icon={LogIn}
+      />
+
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "الإجمالي", value: statCards.total, className: "" },
+          {
+            label: "نشط",
+            value: statCards.active,
+            className: "bg-success-100/50 border-success-200 text-success-600",
+          },
+          {
+            label: "منتهي",
+            value: statCards.expired,
+            className: "bg-portal-card-border/50 text-portal-note-text",
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className={`rounded-[30px] border-[1.5px] border-portal-card-border p-5 ${card.className}`}
+          >
+            <p className="text-sm text-portal-note-text">{card.label}</p>
+            <p className="text-2xl font-semibold text-natural-100 mt-2">
+              {isLoading ? "—" : card.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <SurfaceCard title="قائمة الجلسات">
+        <div className="mb-4">
+          <AdminListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="بحث بالاسم أو البريد الإلكتروني..."
+            filterGroups={[
+              {
+                key: "status",
+                label: "الحالة",
+                options: [
+                  { label: "نشط", value: "active" },
+                  { label: "منتهي", value: "expired" },
+                ],
+              },
+            ]}
+            activeFilters={activeFilters}
+            onFilterChange={(key, values) =>
+              setActiveFilters((prev) => ({ ...prev, [key]: values }))
+            }
           />
         </div>
-      </div>
 
-      <DataTable
-        columns={[
-          { id: "user", label: "المستخدم" },
-          { id: "email", label: "البريد الإلكتروني" },
-          { id: "device", label: "الجهاز" },
-          { id: "ip", label: "IP" },
-          { id: "createdAt", label: "تاريخ الإنشاء" },
-          { id: "status", label: "الحالة" },
-          { id: "actions", label: "الإجراءات", width: "80px" },
-        ]}
-        data={sessions}
-        isLoading={isLoading}
-        isError={isError}
-        emptyState={{
-          icon: Monitor,
-          message: "لا توجد جلسات",
-          hint: "لم يتم العثور على جلسات تطابق معايير البحث",
-        }}
-        renderRow={(s: AdminSession) => (
-          <tr
-            key={s.id}
-            className="border-b border-portal-divider hover:bg-badge-gray-bg/50"
-          >
-            <td className="px-5 py-4 text-base font-medium text-natural-100">
-              {s.userName}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text">
-              {s.userEmail}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text max-w-[200px] truncate" dir="ltr">
-              {s.userAgent ? (
-                <span className="inline-flex items-center gap-1.5">
-                  {(() => {
-                    const Icon = sessionDeviceIcon(s.userAgent);
-                    return <Icon className="size-4 shrink-0" />;
-                  })()}
-                  <span className="truncate">{s.userAgent}</span>
-                </span>
-              ) : (
-                "—"
-              )}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text font-mono" dir="ltr">
-              {s.ip ?? "—"}
-            </td>
-            <td className="px-5 py-4 text-sm text-portal-note-text whitespace-nowrap">
-              {formatRelativeTime(s.createdAt)}
-            </td>
-            <td className="px-5 py-4">
-              {s.isActive ? (
-                <StatusBadge status="ACTIVE" label="نشطة" />
-              ) : (
-                <StatusBadge status="INACTIVE" label="منتهية" />
-              )}
-            </td>
-            <td className="px-5 py-4">
-              {s.isActive && (
-                <ActionButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8"
-                  title="إنهاء الجلسة"
-                  onClick={() => setRevokeTarget(s)}
-                >
-                  <XCircle className="size-3.5" />
-                </ActionButton>
-              )}
-            </td>
-          </tr>
-        )}
-      />
-
-      <Dialog
-        open={!!revokeTarget}
-        onOpenChange={(o) => {
-          if (!o) setRevokeTarget(null);
-        }}
-        title="إنهاء الجلسة"
-        description={`هل أنت متأكد من إنهاء جلسة المستخدم "${revokeTarget?.userName}"؟`}
-        footer={
-          <div className="flex gap-2 justify-end">
-            <ActionButton
-              variant="outline"
-              onClick={() => setRevokeTarget(null)}
+        <DataTable
+          columns={COLUMNS}
+          data={sessions}
+          isLoading={isLoading}
+          isError={isError}
+          errorMessage="حدث خطأ أثناء تحميل الجلسات."
+          emptyState={EMPTY_STATE}
+          renderRow={(session) => (
+            <tr
+              key={session.id}
+              className="border-b border-portal-divider last:border-0"
             >
-              إلغاء
-            </ActionButton>
-            <ActionButton variant="primary" onClick={handleRevoke}>
-              تأكيد الإنهاء
-            </ActionButton>
-          </div>
-        }
-      >
-        <div />
-      </Dialog>
+              <td className="py-3 px-2 text-right text-sm font-medium text-natural-100">
+                {session.userName}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {session.userEmail}
+              </td>
+              <td className="py-3 px-2 text-right text-xs text-portal-note-text max-w-[180px] truncate">
+                {session.userAgent || "—"}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {session.ip || "—"}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {new Date(session.createdAt).toLocaleDateString("ar-SA")}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {new Date(session.expiresAt).toLocaleDateString("ar-SA")}
+              </td>
+              <td className="py-3 px-2 text-right">
+                <AdminStatusBadge
+                  domain="client"
+                  status={session.isActive ? "ACTIVE" : "STOPPED"}
+                />
+              </td>
+              <td className="py-3 px-2 text-center">
+                {session.isActive && (
+                  <button
+                    onClick={() => handleRevoke(session.id)}
+                    disabled={isRevoking}
+                    className="inline-flex items-center gap-1 rounded-lg bg-danger-500/10 px-2.5 py-1.5 text-xs font-medium text-danger-500 transition-colors hover:bg-danger-500/20 disabled:opacity-50"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    إنهاء
+                  </button>
+                )}
+              </td>
+            </tr>
+          )}
+        />
+      </SurfaceCard>
     </div>
   );
 }

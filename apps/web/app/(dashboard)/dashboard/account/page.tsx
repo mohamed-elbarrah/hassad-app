@@ -15,7 +15,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.SALES]: "المبيعات",
   [UserRole.ACCOUNTANT]: "المحاسبة",
   [UserRole.MARKETING]: "التسويق",
-  [UserRole.EMPLOYEE]: "موظف",
+  [UserRole.TEAM]: "فريق",
   [UserRole.CLIENT]: "عميل",
 };
 

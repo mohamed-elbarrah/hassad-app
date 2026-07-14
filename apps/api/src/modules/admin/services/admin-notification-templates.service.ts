@@ -102,7 +102,14 @@ export class AdminNotificationTemplatesService {
         orderBy: { sentAt: "desc" },
         include: {
           user: { select: { id: true, name: true, email: true } },
-          event: { select: { id: true, eventType: true, entityType: true, entityId: true } },
+          event: {
+            select: {
+              id: true,
+              eventType: true,
+              entityType: true,
+              entityId: true,
+            },
+          },
         },
       }),
       this.prisma.notification.count({ where }),

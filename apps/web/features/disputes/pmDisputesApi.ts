@@ -70,6 +70,21 @@ export interface PmResolveInput {
   message: string;
 }
 
+export interface PmDisputeStats {
+  userId: string;
+  userName: string;
+  totalDisputes: number;
+  resolvedDisputes: number;
+  escalatedDisputes: number;
+  pmChangedCount: number;
+  avgResolutionDays: number;
+}
+
+export interface ApproveDisputeInput {
+  priority: string;
+  notes?: string;
+}
+
 // ─── API Slice ────────────────────────────────────────────────────────────────
 
 export const pmDisputesApi = createApi({
@@ -146,6 +161,56 @@ export const pmDisputesApi = createApi({
         "PmDisputes",
       ],
     }),
+
+    getPmDisputeStats: builder.query<PmDisputeStats, string>({
+      query: (pmId) => `/admin/disputes/pm/${pmId}/stats`,
+      providesTags: ["PmDispute"],
+    }),
+
+    approveDispute: builder.mutation<
+      void,
+      { id: string; input: ApproveDisputeInput }
+    >({
+      query: ({ id, input }) => ({
+        url: `/admin/disputes/${id}/approve`,
+        method: "POST",
+        body: input,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "PmDispute", id },
+        "PmDisputes",
+      ],
+    }),
+
+    rejectDispute: builder.mutation<
+      void,
+      { id: string; input: { reason: string } }
+    >({
+      query: ({ id, input }) => ({
+        url: `/admin/disputes/${id}/reject`,
+        method: "POST",
+        body: input,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "PmDispute", id },
+        "PmDisputes",
+      ],
+    }),
+
+    changePm: builder.mutation<
+      void,
+      { id: string; input: { newPmId: string; reason: string } }
+    >({
+      query: ({ id, input }) => ({
+        url: `/admin/disputes/${id}/change-pm`,
+        method: "POST",
+        body: input,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "PmDispute", id },
+        "PmDisputes",
+      ],
+    }),
   }),
 });
 
@@ -155,4 +220,8 @@ export const {
   useAcknowledgeDisputeMutation,
   useAddPmDisputeMessageMutation,
   useResolveDisputeMutation,
+  useGetPmDisputeStatsQuery,
+  useApproveDisputeMutation,
+  useRejectDisputeMutation,
+  useChangePmMutation,
 } = pmDisputesApi;

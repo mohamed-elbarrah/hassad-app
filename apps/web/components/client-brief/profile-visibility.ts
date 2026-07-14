@@ -64,7 +64,7 @@ export const SIDEBAR_VISIBILITY: Record<UserRole, SidebarVisibility> = {
     fields: ["email", "phone", "businessType", "accountManager", "createdAt"],
     showContactSubtitle: false,
   },
-  [UserRole.EMPLOYEE]: {
+  [UserRole.TEAM]: {
     fields: ["businessType", "accountManager", "createdAt"],
     showContactSubtitle: false,
   },
@@ -114,7 +114,7 @@ export const PROFILE_SECTION_VISIBILITY: Record<UserRole, ProfileSectionKey[]> =
       "visual",
     ],
     [UserRole.ACCOUNTANT]: [],
-    [UserRole.EMPLOYEE]: ["product", "visual"],
+    [UserRole.TEAM]: ["product", "visual"],
     [UserRole.ADMIN]: [
       "personalInfo",
       "product",
@@ -154,7 +154,7 @@ export const KPI_VISIBILITY: Record<UserRole, KpiKey[]> = {
   ],
   [UserRole.MARKETING]: [],
   [UserRole.ACCOUNTANT]: ["contractValue", "totalPaid"],
-  [UserRole.EMPLOYEE]: [],
+  [UserRole.TEAM]: [],
   [UserRole.ADMIN]: [
     "totalProjects",
     "activeProjects",

@@ -7,6 +7,7 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { AdminActionLogService } from "./admin-action-log.service";
 import { UserRole } from "@hassad/shared";
 import {
   QueryUsersDto,
@@ -25,6 +26,7 @@ export class AdminUsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly actionLog: AdminActionLogService,
   ) {}
 
   // ── Queries ─────────────────────────────────────────────────────────────────
@@ -286,7 +288,8 @@ export class AdminUsersService {
       const existing = await this.prisma.user.findUnique({
         where: { email: dto.email },
       });
-      if (existing) throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
+      if (existing)
+        throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل");
     }
 
     const data: any = {};
@@ -310,7 +313,11 @@ export class AdminUsersService {
         entityId: id,
         userId: user.id,
         before: { name: user.name, email: user.email },
-        after: { name: dto.name, email: dto.email, phoneWhatsapp: dto.phoneWhatsapp },
+        after: {
+          name: dto.name,
+          email: dto.email,
+          phoneWhatsapp: dto.phoneWhatsapp,
+        },
       },
     });
 
@@ -608,6 +615,118 @@ export class AdminUsersService {
     });
 
     return { permissionIds: dto.permissionIds };
+  }
+
+  async suspend(
+    userId: string,
+    reason: string,
+    adminId: string,
+    suspendedUntil?: string,
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (
+      user.suspendedAt &&
+      (!user.suspendedUntil || user.suspendedUntil > new Date())
+    )
+      throw new BadRequestException("المستخدم موقوف بالفعل");
+
+    const before = { isActive: user.isActive, suspendedAt: user.suspendedAt };
+    const after = { reason, suspendedUntil: suspendedUntil ?? null };
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          suspendedAt: new Date(),
+          suspendedUntil: suspendedUntil ? new Date(suspendedUntil) : null,
+          suspendReason: reason,
+          suspendedById: adminId,
+        },
+      }),
+      this.prisma.securityEvent.create({
+        data: {
+          userId,
+          type: "ACCOUNT_LOCKED",
+          metadata: { reason, triggeredBy: adminId },
+        },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.users.suspend",
+          entity: "user",
+          entityId: userId,
+          userId: adminId,
+          before,
+          after,
+        },
+      }),
+    ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "user",
+      targetId: userId,
+      actionType: "admin.users.suspend",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
+    return { success: true };
+  }
+
+  async reactivate(userId: string, reason: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!user.suspendedAt) throw new BadRequestException("المستخدم غير موقوف");
+
+    const before = {
+      suspendedAt: user.suspendedAt,
+      suspendReason: user.suspendReason,
+    };
+    const after = { reason };
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          suspendedAt: null,
+          suspendedUntil: null,
+          suspendReason: null,
+          suspendedById: null,
+        },
+      }),
+      this.prisma.securityEvent.create({
+        data: {
+          userId,
+          type: "ACCOUNT_UNLOCKED",
+          metadata: { reason, triggeredBy: adminId },
+        },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.users.reactivate",
+          entity: "user",
+          entityId: userId,
+          userId: adminId,
+          before,
+          after,
+        },
+      }),
+    ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "user",
+      targetId: userId,
+      actionType: "admin.users.reactivate",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
+    return { success: true };
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

@@ -1,284 +1,369 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import { LayoutDashboard, AlertTriangle } from "lucide-react";
+import { PageIntro } from "@/components/design-system/PageIntro";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+import { Skeleton } from "@/components/design-system/Skeleton";
+import { periodToDateRange } from "@/components/dashboard/admin/overview/MiniPeriodFilter";
+import type { PeriodKey } from "@/components/dashboard/admin/overview/MiniPeriodFilter";
 import {
-  LayoutDashboard,
-  Users,
-  AlertTriangle,
-  Activity,
-  UserCheck,
-  Ticket,
-  Settings,
-  ChevronLeft,
-  TrendingUp,
-  BarChart3,
-} from "lucide-react";
-import { useAppSelector } from "@/lib/hooks";
-import { useDashboardNotificationSocket } from "@/hooks/useDashboardNotificationSocket";
-import { TimeRangeSelector } from "@/components/design-system/TimeRangeSelector";
-import type { TimeRange } from "@/components/design-system/TimeRangeSelector";
+  KpiGrid,
+  buildAdminKpiConfigs,
+} from "@/components/dashboard/admin/overview/KpiGrid";
+import { AlertPanel } from "@/components/dashboard/admin/overview/AlertPanel";
+import type {
+  AlertCategory,
+  AlertCategoryItem,
+} from "@/components/dashboard/admin/overview/AlertPanel";
+import { TrendChart } from "@/components/dashboard/admin/overview/TrendChart";
+import type { TrendMetricOption } from "@/components/dashboard/admin/overview/TrendChart";
+import { FunnelChart } from "@/components/dashboard/admin/overview/FunnelChart";
+import type { FunnelStage } from "@/components/dashboard/admin/overview/FunnelChart";
+import { ContractChart } from "@/components/dashboard/admin/overview/ContractChart";
+import type { ConversionStep } from "@/components/dashboard/admin/overview/ContractChart";
+import { HealthScore } from "@/components/dashboard/admin/overview/HealthScore";
+import { ActivityFeed } from "@/components/dashboard/admin/overview/ActivityFeed";
+
+import { QuickActions } from "@/components/dashboard/admin/overview/QuickActions";
+import { AiInsightsCard } from "@/components/dashboard/admin/overview/AiInsightsCard";
 import {
   useGetAdminStatsQuery,
-  useGetTrendDataQuery,
-  useGetFunnelDataQuery,
-  useGetAlertsDataQuery,
-  useGetHealthQuery,
-  useGetRecentActivityQuery,
+  useGetAdminTrendsQuery,
+  useGetAdminAlertsQuery,
   useGetAdminDashboardAttentionQuery,
-  useGetAdminDashboardTeamWorkloadQuery,
+  useGetAdminDashboardRecentActivityQuery,
+  useGetAdminFunnelQuery,
+  useGetAdminHealthQuery,
 } from "@/features/admin/adminApi";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { DashboardCard } from "@/components/design-system/DashboardCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import type {
+  AdminAlertsResponse,
+  AdminAttentionResponse,
+} from "@/features/admin/adminApi";
 
-import { HeroKpis } from "@/components/dashboard/admin/HeroKpis";
-import { RevenueChart } from "@/components/dashboard/admin/RevenueChart";
-import { UsersBarChart } from "@/components/dashboard/admin/UsersBarChart";
-import { FunnelCard } from "@/components/dashboard/admin/FunnelCard";
-import { RoleDistribution } from "@/components/dashboard/admin/RoleDistribution";
-import { NeedsAttentionCards } from "@/components/dashboard/admin/NeedsAttentionCards";
-import { TeamWorkload } from "@/components/dashboard/admin/TeamWorkload";
-import { RecentActivityMerged } from "@/components/dashboard/admin/RecentActivityMerged";
+function buildAlertCategories(
+  alerts: AdminAlertsResponse | undefined,
+  attention: AdminAttentionResponse | undefined,
+): AlertCategory[] {
+  const categories: AlertCategory[] = [];
 
-// ── Quick Action Link ─────────────────────────────────────────────────────────
+  if (alerts) {
+    if (alerts.overdueTasks.count > 0) {
+      categories.push({
+        key: "overdueTasks",
+        label: alerts.overdueTasks.label,
+        count: alerts.overdueTasks.count,
+        severity: "HIGH",
+        href: "/dashboard/admin/tasks",
+        items: alerts.overdueTasks.items.map((i) => ({
+          id: i.id,
+          title: i.title,
+          subtitle: i.assignee ? `مسند إلى ${i.assignee}` : undefined,
+        })),
+      });
+    }
+    if (alerts.agedInvoices.count > 0) {
+      categories.push({
+        key: "agedInvoices",
+        label: alerts.agedInvoices.label,
+        count: alerts.agedInvoices.count,
+        severity: "HIGH",
+        href: "/dashboard/admin/finance",
+        items: alerts.agedInvoices.items.map((i) => ({
+          id: i.id,
+          title: `فاتورة ${i.invoiceNumber}`,
+          subtitle: i.clientName ?? undefined,
+        })),
+      });
+    }
+    if (alerts.escalatedDisputes.count > 0) {
+      categories.push({
+        key: "escalatedDisputes",
+        label: alerts.escalatedDisputes.label,
+        count: alerts.escalatedDisputes.count,
+        severity: "HIGH",
+        href: "/dashboard/admin/disputes",
+        items: alerts.escalatedDisputes.items.map((i) => ({
+          id: i.id,
+          title: i.title,
+          subtitle: `#${i.ticketNumber}`,
+        })),
+      });
+    }
+    if (alerts.expiringContracts.count > 0) {
+      categories.push({
+        key: "expiringContracts",
+        label: alerts.expiringContracts.label,
+        count: alerts.expiringContracts.count,
+        severity: "MEDIUM",
+        href: "/dashboard/admin/contracts",
+        items: alerts.expiringContracts.items.map((i) => ({
+          id: i.id,
+          title: i.title,
+          subtitle: i.clientName ?? undefined,
+        })),
+      });
+    }
+    if (alerts.pendingRequests.count > 0) {
+      categories.push({
+        key: "pendingRequests",
+        label: alerts.pendingRequests.label,
+        count: alerts.pendingRequests.count,
+        severity: "MEDIUM",
+        href: "/dashboard/admin/requests",
+        items: alerts.pendingRequests.items.map((i) => ({
+          id: i.id,
+          title: i.companyName,
+          subtitle: i.contactName,
+        })),
+      });
+    }
+    if (alerts.failedWebhooks.count > 0) {
+      categories.push({
+        key: "failedWebhooks",
+        label: alerts.failedWebhooks.label,
+        count: alerts.failedWebhooks.count,
+        severity: "LOW",
+        href: "/dashboard/admin/integrations",
+        items: [],
+      });
+    }
+  }
 
-function QuickAction({
-  href,
-  icon: Icon,
-  title,
-  description,
-  color,
-}: {
-  href: string;
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  color: string;
-}) {
-  return (
-    <Link href={href} className="group">
-      <div className="h-full rounded-2xl border border-portal-card-border bg-natural-0 p-4 flex items-center gap-3 hover:border-secondary-300 hover:shadow-lg hover:-translate-y-0.5 transition-all">
-        <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `${color}15` }}
-        >
-          <Icon className="w-5 h-5" style={{ color }} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-natural-100">{title}</p>
-          <p className="text-[11px] text-portal-note-text truncate">
-            {description}
-          </p>
-        </div>
-        <ChevronLeft className="w-4 h-4 text-portal-note-text group-hover:text-secondary-500 mr-auto shrink-0" />
-      </div>
-    </Link>
-  );
+  if (attention) {
+    if (attention.stalledProjects.length > 0) {
+      categories.push({
+        key: "stalledProjects",
+        label: "مشاريع متعطلة",
+        count: attention.stalledProjects.length,
+        severity: "LOW",
+        href: "/dashboard/admin/projects",
+        items: attention.stalledProjects.map((p) => ({
+          id: p.id,
+          title: p.name,
+          subtitle: p.client.companyName,
+          href: `/dashboard/admin/projects/${p.id}`,
+        })),
+      });
+    }
+  }
+
+  return categories;
 }
 
-const ACCENTS = {
-  navy: "#121936",
-  green: "#0ed589",
-  purple: "#7a13e8",
-  blue: "#2684fc",
-  orange: "#f8af01",
-  red: "#ef4444",
-};
+export default function AdminOverviewPage() {
+  // Shared period state — all 3 filters control the same value
+  const [period, setPeriod] = useState<PeriodKey>("thisMonth");
+  const trendDateRange = useMemo(() => periodToDateRange(period), [period]);
+  const funnelDateRange = useMemo(() => periodToDateRange(period), [period]);
 
-// ── Main page ────────────────────────────────────────────────────────────────
+  // Stats — no date filter (defaults to trailing 30 days server-side)
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+  } = useGetAdminStatsQuery();
+  const { data: alerts } = useGetAdminAlertsQuery();
+  const { data: attention } = useGetAdminDashboardAttentionQuery();
+  const { data: recentActivity } = useGetAdminDashboardRecentActivityQuery();
+  const { data: health } = useGetAdminHealthQuery();
 
-export default function AdminDashboardPage() {
-  const router = useRouter();
-  const { user } = useAppSelector((state) => state.auth);
-  useDashboardNotificationSocket();
+  // Trends — has own period filter
+  const { data: trends } = useGetAdminTrendsQuery(trendDateRange);
 
-  const [timeRange, setTimeRange] = useState<TimeRange>("last30days");
+  // Funnel — has own period filter (ContractChart shares this data)
+  const { data: funnel } = useGetAdminFunnelQuery(funnelDateRange);
 
-  const days = useMemo(() => {
-    switch (timeRange) {
-      case "last7days": return 7;
-      case "last30days": return 30;
-      case "last12months": return 365;
-      default: return 30;
-    }
-  }, [timeRange]);
-
-  const { data: stats, isLoading: statsLoading } = useGetAdminStatsQuery();
-  const { data: trends, isLoading: trendsLoading } = useGetTrendDataQuery({ days });
-  const { data: funnel, isLoading: funnelLoading } = useGetFunnelDataQuery();
-  const { data: alerts, isLoading: alertsLoading } = useGetAlertsDataQuery();
-  const { data: recentActivity, isLoading: activityLoading } = useGetRecentActivityQuery();
-  const { data: attention, isLoading: attentionLoading } = useGetAdminDashboardAttentionQuery();
-  const { data: teamWorkload, isLoading: teamWorkloadLoading } = useGetAdminDashboardTeamWorkloadQuery();
-
-  const revenueData = useMemo(() => {
-    if (!trends?.revenue || !trends?.labels) return [];
-    return trends.revenue
-      .map((v, i) => ({ value: v, label: trends.labels[i] }))
-      .reverse();
-  }, [trends]);
-
-  const usersBarData = useMemo(() => {
-    if (!trends?.newUsers || !trends?.newClients || !trends?.labels) return [];
-    return trends.newUsers
-      .map((v, i) => ({
-        label: trends.labels[i],
-        users: v,
-        clients: trends.newClients[i] ?? 0,
-      }))
-      .reverse();
-  }, [trends]);
-
-  const roleData = useMemo(() => {
-    if (!stats?.usersByRole) return [];
-    return stats.usersByRole.map((item: any) => ({
-      name: item.role,
-      value: item.count,
-    }));
-  }, [stats]);
-
-  const roleTotal = useMemo(
-    () => roleData.reduce((s: number, r: any) => s + r.value, 0),
-    [roleData],
+  const kpiConfigs = useMemo(
+    () => buildAdminKpiConfigs(stats, trends),
+    [stats, trends],
   );
 
-  if (!user) return null;
+  const alertCategories = useMemo(
+    () => buildAlertCategories(alerts, attention),
+    [alerts, attention],
+  );
+
+  const trendMetrics = useMemo((): TrendMetricOption[] => {
+    if (!trends) return [];
+    return [
+      {
+        key: "revenue",
+        label: "الإيرادات",
+        data: trends.revenue,
+        color: "#10B981",
+        format: "currency",
+      },
+      {
+        key: "newUsers",
+        label: "المستخدمون",
+        data: trends.newUsers,
+        color: "#121936",
+      },
+      {
+        key: "newClients",
+        label: "العملاء",
+        data: trends.newClients,
+        color: "#6366F1",
+      },
+      {
+        key: "newProjects",
+        label: "المشاريع",
+        data: trends.newProjects,
+        color: "#E7BE52",
+      },
+    ];
+  }, [trends]);
+
+  const funnelStages = useMemo((): FunnelStage[] => {
+    if (!funnel) return [];
+    return [
+      { label: "العملاء المتوقعون", value: funnel.leads, color: "#E7BE52" },
+      { label: "العملاء المؤهلون", value: funnel.clients, color: "#6366F1" },
+      { label: "العروض", value: funnel.proposals, color: "#121936" },
+      { label: "العقود", value: funnel.contracts, color: "#10B981" },
+    ];
+  }, [funnel]);
+
+  const contractSteps = useMemo((): ConversionStep[] => {
+    if (!funnel) return [];
+    return [
+      {
+        label: "العروض ← العقود",
+        from: funnel.proposals,
+        to: funnel.contracts,
+        rate: funnel.conversionRates.proposalsToContracts,
+        color: "#121936",
+      },
+      {
+        label: "العقود ← المشاريع",
+        from: funnel.contracts,
+        to: funnel.projects,
+        rate: funnel.conversionRates.contractsToProjects,
+        color: "#6366F1",
+      },
+      {
+        label: "المشاريع ← الفواتير",
+        from: funnel.projects,
+        to: funnel.invoices,
+        rate: funnel.conversionRates.projectsToInvoices,
+        color: "#E7BE52",
+      },
+      {
+        label: "الفواتير ← المدفوعات",
+        from: funnel.invoices,
+        to: funnel.payments,
+        rate: funnel.conversionRates.invoicesToPayments,
+        color: "#10B981",
+      },
+    ];
+  }, [funnel]);
+
+  if (statsLoading) {
+    return (
+      <div className="flex flex-col gap-5" dir="rtl">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-[30px]" />
+          ))}
+        </div>
+        <Skeleton className="h-64 rounded-[30px]" />
+        <Skeleton className="h-48 rounded-[30px]" />
+      </div>
+    );
+  }
+
+  if (statsError) {
+    return (
+      <div className="flex flex-col gap-5" dir="rtl">
+        <PageIntro title="لوحة التحكم" icon={LayoutDashboard} />
+        <AdminEmptyState
+          icon={AlertTriangle}
+          title="تعذر تحميل البيانات"
+          description="حدث خطأ أثناء تحميل إحصائيات لوحة التحكم. يرجى تحديث الصفحة والمحاولة مرة أخرى."
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5 pb-6" dir="rtl">
+    <div className="flex flex-col gap-6" dir="rtl">
+      {/* Row 1 — Header */}
       <PageIntro
-        title="مركز القيادة"
-        description={`مرحباً، ${user.name || "الإدارة"} — نظرة شاملة على أداء المنصة`}
+        title="لوحة التحكم"
+        description="نظرة عامة على أداء المنصة والمؤشرات الرئيسية"
         icon={LayoutDashboard}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
-            <ActionButton
-              href="/dashboard/admin/users"
-              variant="primary"
-              size="md"
-              icon={<Users className="w-4 h-4" />}
-            >
-              المستخدمين
-            </ActionButton>
-            <ActionButton
-              href="/dashboard/admin/roles"
-              variant="outline"
-              size="md"
-              icon={<UserCheck className="w-4 h-4" />}
-            >
-              الأدوار
-            </ActionButton>
-            <ActionButton
-              href="/dashboard/admin/settings"
-              variant="outline"
-              size="md"
-              icon={<Settings className="w-4 h-4" />}
-            >
-              الإعدادات
-            </ActionButton>
-            <ActionButton
-              href="/dashboard/admin/audit-log"
-              variant="ghost"
-              size="md"
-              icon={<BarChart3 className="w-4 h-4" />}
-            >
-              السجل
-            </ActionButton>
-          </div>
-        }
       />
 
-      {/* Row 1 — Hero KPIs | Needs Attention | Team Workload */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <DashboardCard title="المؤشرات الرئيسية" icon={BarChart3} showAll={false}>
-          <HeroKpis stats={stats} isLoading={statsLoading} />
-        </DashboardCard>
-        <DashboardCard title="ما يحتاج اهتماماً" icon={AlertTriangle} showAll={false}>
-          <NeedsAttentionCards data={attention} isLoading={attentionLoading} />
-        </DashboardCard>
-        <DashboardCard title="حالة الفريق" icon={Users} showAll={false}>
-          <TeamWorkload data={teamWorkload} isLoading={teamWorkloadLoading} />
-        </DashboardCard>
-      </div>
+      {/* Row 2 — KPI Cards (defaults to trailing 30 days) */}
+      <KpiGrid items={kpiConfigs} />
 
-      {/* Row 2 — Revenue Chart | Funnel | Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <DashboardCard
-          title="الإيرادات الشهرية"
-          icon={TrendingUp}
-          onShowAll={() => router.push("/dashboard/admin/finance")}
-        >
-          <div className="h-[300px]">
-            <RevenueChart data={revenueData} isLoading={trendsLoading} />
-          </div>
-        </DashboardCard>
-        <DashboardCard title="مسار التحويل" icon={Activity} showAll={false}>
-          <FunnelCard funnel={funnel} isLoading={funnelLoading} />
-        </DashboardCard>
-        <DashboardCard title="إجراءات سريعة" icon={Settings} showAll={false}>
-          <div className="grid grid-cols-1 gap-3">
-            <QuickAction
-              href="/dashboard/admin/users"
-              icon={Users}
-              title="المستخدمون"
-              description="إدارة الحسابات والصلاحيات"
-              color={ACCENTS.navy}
-            />
-            <QuickAction
-              href="/dashboard/admin/roles"
-              icon={UserCheck}
-              title="الأدوار"
-              description="إدارة الصلاحيات والأدوار"
-              color={ACCENTS.purple}
-            />
-            <QuickAction
-              href="/dashboard/admin/disputes"
-              icon={Ticket}
-              title="النزاعات"
-              description="إدارة وحل النزاعات"
-              color={ACCENTS.red}
-            />
-            <QuickAction
-              href="/dashboard/admin/settings"
-              icon={Settings}
-              title="الإعدادات"
-              description="تكوين المنصة والتفضيلات"
-              color={ACCENTS.orange}
-            />
-          </div>
-        </DashboardCard>
-      </div>
-
-      {/* Row 3 — Users Chart | Role Distribution | Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <DashboardCard
-          title="المستخدمين والعملاء"
-          icon={Users}
-          onShowAll={() => router.push("/dashboard/admin/users")}
-        >
-          <div className="h-[300px]">
-            <UsersBarChart data={usersBarData} isLoading={trendsLoading} />
-          </div>
-        </DashboardCard>
-        <DashboardCard title="توزيع المستخدمين" icon={BarChart3} showAll={false}>
-          <div className="h-[300px]">
-            <RoleDistribution
-              data={roleData}
-              total={roleTotal}
-              isLoading={statsLoading}
-            />
-          </div>
-        </DashboardCard>
-        <DashboardCard title="آخر النشاطات" icon={Activity} showAll={false}>
-          <RecentActivityMerged
-            activities={recentActivity}
-            alerts={alerts}
-            isLoading={activityLoading || alertsLoading}
+      {/* Row 3 — Alerts + Trend */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2">
+          <AlertPanel categories={alertCategories} />
+        </div>
+        <div className="lg:col-span-3">
+          <TrendChart
+            labels={trends?.labels ?? []}
+            metrics={trendMetrics}
+            period={period}
+            onPeriodChange={setPeriod}
           />
-        </DashboardCard>
+        </div>
+      </div>
+
+      {/* Row 4 — Funnel + Contract Conversion */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <FunnelChart
+          stages={funnelStages}
+          conversionRate={funnel?.conversionRates?.leadsToClients ?? 0}
+          period={period}
+          onPeriodChange={setPeriod}
+        />
+        <ContractChart
+          steps={contractSteps}
+          period={period}
+          onPeriodChange={setPeriod}
+        />
+      </div>
+
+      {/* Row 5 — Health + Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2">
+          <HealthScore
+            overallScore={health?.overallScore ?? 0}
+            database={health?.database ?? "connected"}
+            servicesHealthy={
+              health?.services?.filter((s) => s.status === "healthy").length ??
+              0
+            }
+            servicesTotal={health?.services?.length ?? 0}
+            recentErrors={health?.recentErrors ?? 0}
+            activeUsersLastHour={health?.activeUsersLastHour ?? 0}
+            unresolvedErrors={health?.unresolvedErrors ?? 0}
+            retentionRate={stats?.retentionRate ?? 0}
+            churnRate={stats?.churnRate ?? 0}
+          />
+        </div>
+        <div className="lg:col-span-3">
+          <ActivityFeed
+            items={(recentActivity ?? []).map((a) => ({
+              id: a.id,
+              actorName: a.userName,
+              action: a.action,
+              entityType: a.entity,
+              createdAt: a.createdAt,
+            }))}
+          />
+        </div>
+      </div>
+
+      {/* Row 6 — Quick Actions + AI Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <QuickActions />
+        <AiInsightsCard />
       </div>
     </div>
   );

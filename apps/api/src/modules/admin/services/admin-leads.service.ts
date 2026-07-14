@@ -4,11 +4,15 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
-import { ClientStatus } from "@prisma/client";
+import { AdminActionLogService } from "./admin-action-log.service";
+import { ClientStatus, PipelineStage } from "@prisma/client";
 
 @Injectable()
 export class AdminLeadsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly actionLog: AdminActionLogService,
+  ) {}
 
   async findAll(query: any) {
     const where: any = { isActive: true };
@@ -99,7 +103,13 @@ export class AdminLeadsService {
         automationLogs: { orderBy: { executedAt: "desc" }, take: 20 },
         client: { select: { id: true } },
         proposals: {
-          select: { id: true, title: true, totalPrice: true, status: true, createdAt: true },
+          select: {
+            id: true,
+            title: true,
+            totalPrice: true,
+            status: true,
+            createdAt: true,
+          },
           orderBy: { createdAt: "desc" },
         },
       },
@@ -108,7 +118,11 @@ export class AdminLeadsService {
     return lead;
   }
 
-  async convertToClient(leadId: string, userId: string, additionalNotes?: string) {
+  async convertToClient(
+    leadId: string,
+    userId: string,
+    additionalNotes?: string,
+  ) {
     const lead = await this.prisma.lead.findUnique({
       where: { id: leadId },
       include: { client: { select: { id: true } } },
@@ -154,10 +168,23 @@ export class AdminLeadsService {
       return newClient;
     });
 
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "lead",
+      targetId: leadId,
+      actionType: "admin.leads.convert-to-client",
+      afterState: { clientId: result.id, companyName: lead.companyName },
+    });
+
     return result;
   }
 
-  async reassign(leadId: string, assigneeId: string) {
+  async reassign(
+    leadId: string,
+    assigneeId: string,
+    adminId: string,
+    reason?: string,
+  ) {
     const [lead, user] = await Promise.all([
       this.prisma.lead.findUnique({ where: { id: leadId } }),
       this.prisma.user.findUnique({ where: { id: assigneeId } }),
@@ -165,20 +192,44 @@ export class AdminLeadsService {
     if (!lead) throw new NotFoundException("Lead not found");
     if (!user) throw new NotFoundException("User not found");
 
+    const before = { assignedTo: lead.assignedTo };
+    const after = { assignedTo: assigneeId, reason };
+
     await this.prisma.$transaction([
       this.prisma.lead.update({
         where: { id: leadId },
         data: { assignedTo: assigneeId },
+      }),
+      this.prisma.leadPipelineHistory.create({
+        data: {
+          leadId,
+          fromStage: lead.pipelineStage,
+          toStage: lead.pipelineStage,
+          changedBy: adminId,
+        },
       }),
       this.prisma.ledger.create({
         data: {
           action: "admin.leads.reassign",
           entity: "lead",
           entityId: leadId,
-          after: { previousAssignee: lead.assignedTo, newAssignee: assigneeId },
+          userId: adminId,
+          before,
+          after,
         },
       }),
     ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "lead",
+      targetId: leadId,
+      actionType: "admin.leads.reassign",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
     return { success: true };
   }
 
@@ -212,9 +263,17 @@ export class AdminLeadsService {
   async addContactLog(
     leadId: string,
     userId: string,
-    body: { type: string; result: string; notes?: string; contactedAt?: string },
+    body: {
+      type: string;
+      result: string;
+      notes?: string;
+      contactedAt?: string;
+    },
   ) {
-    return this.prisma.leadContactLog.create({
+    const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
+    if (!lead) throw new NotFoundException("Lead not found");
+
+    const log = await this.prisma.leadContactLog.create({
       data: {
         leadId,
         userId,
@@ -223,6 +282,137 @@ export class AdminLeadsService {
         notes: body.notes,
         contactedAt: body.contactedAt ? new Date(body.contactedAt) : new Date(),
       },
+      include: { user: { select: { name: true } } },
     });
+
+    await this.prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        lastContactAt: new Date(),
+        contactAttemptCount: { increment: 1 },
+      },
+    });
+
+    await this.prisma.ledger.create({
+      data: {
+        action: "admin.leads.contact-log",
+        entity: "lead",
+        entityId: leadId,
+        userId,
+        after: { type: body.type, result: body.result },
+      },
+    });
+
+    await this.actionLog.record({
+      actorId: userId,
+      targetType: "lead",
+      targetId: leadId,
+      actionType: "admin.leads.contact-log",
+      afterState: { type: body.type, result: body.result, notes: body.notes },
+    });
+
+    return log;
+  }
+
+  async forceStage(
+    leadId: string,
+    stage: PipelineStage,
+    reason: string,
+    adminId: string,
+  ) {
+    const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
+    if (!lead) throw new NotFoundException("Lead not found");
+
+    const before = { pipelineStage: lead.pipelineStage };
+    const after = { pipelineStage: stage, reason };
+
+    await this.prisma.$transaction([
+      this.prisma.lead.update({
+        where: { id: leadId },
+        data: { pipelineStage: stage },
+      }),
+      this.prisma.leadPipelineHistory.create({
+        data: {
+          leadId,
+          fromStage: lead.pipelineStage,
+          toStage: stage,
+          changedBy: adminId,
+        },
+      }),
+      this.prisma.ledger.create({
+        data: {
+          action: "admin.leads.force-stage",
+          entity: "lead",
+          entityId: leadId,
+          userId: adminId,
+          before,
+          after,
+        },
+      }),
+    ]);
+
+    await this.actionLog.record({
+      actorId: adminId,
+      targetType: "lead",
+      targetId: leadId,
+      actionType: "admin.leads.force-stage",
+      reason,
+      beforeState: before,
+      afterState: after,
+    });
+
+    return { success: true };
+  }
+
+  async getStaleLeads(days = 7, page = 1, limit = 20) {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      isActive: true,
+      OR: [
+        { assignedTo: null },
+        { lastContactAt: null },
+        { lastContactAt: { lt: since } },
+      ],
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.lead.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          assignee: { select: { id: true, name: true } },
+          _count: { select: { proposals: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.lead.count({ where }),
+    ]);
+
+    return {
+      items: items.map((l) => ({
+        id: l.id,
+        companyName: l.companyName,
+        contactName: l.contactName,
+        email: l.email,
+        phone: l.phoneWhatsapp,
+        assigneeName: l.assignee?.name ?? "—",
+        pipelineStage: l.pipelineStage,
+        source: l.source,
+        daysSinceLastContact: l.lastContactAt
+          ? Math.floor(
+              (Date.now() - new Date(l.lastContactAt).getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
+          : null,
+        createdAt: l.createdAt.toISOString(),
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }

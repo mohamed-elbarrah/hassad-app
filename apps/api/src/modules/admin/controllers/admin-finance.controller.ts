@@ -74,8 +74,12 @@ export class AdminFinanceController {
 
   @Post("webhook-logs/:id/retry")
   @RequirePermissions("admin.finance.intervene")
-  retryWebhook(@Param("id") id: string, @CurrentUser() user: any) {
-    return this.service.retryWebhook(id, user.id);
+  retryWebhook(
+    @Param("id") id: string,
+    @Body("reason") reason: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.service.retryWebhook(id, user.id, reason);
   }
 
   // ── D3. Gateways Health ───────────────────────────────────────────────────────
@@ -83,5 +87,11 @@ export class AdminFinanceController {
   @RequirePermissions("admin.finance.read")
   getGatewaysHealth() {
     return this.service.getGatewaysHealth();
+  }
+
+  @Post("gateways-health/check")
+  @RequirePermissions("admin.finance.intervene")
+  checkGatewayHealth(@CurrentUser() user: any) {
+    return this.service.checkGatewayHealth(user.id);
   }
 }

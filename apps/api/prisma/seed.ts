@@ -310,7 +310,7 @@ async function main() {
     "ADMIN",
     "PM",
     "SALES",
-    "EMPLOYEE",
+    "TEAM",
     "MARKETING",
     "ACCOUNTANT",
     "CLIENT",
@@ -349,7 +349,7 @@ async function main() {
     {
       email: "employee@hassad.com",
       name: "Hana Designer",
-      role: "EMPLOYEE",
+      role: "TEAM",
       dept: "DESIGN",
     },
     {
@@ -417,7 +417,7 @@ async function main() {
   // ── Employees ─────────────────────────────────────────────────────────────────
   const payrollUsers = [
     {
-      role: "EMPLOYEE",
+      role: "TEAM",
       name: "Hana Designer",
       baseSalary: 7000,
       payType: "FIXED",
@@ -695,7 +695,7 @@ async function main() {
     await prisma.projectMember.createMany({
       data: [
         { projectId: project.id, userId: userIds["PM"], role: "MANAGER" },
-        { projectId: project.id, userId: userIds["EMPLOYEE"], role: "MEMBER" },
+        { projectId: project.id, userId: userIds["TEAM"], role: "MEMBER" },
         { projectId: project.id, userId: userIds["MARKETING"], role: "MEMBER" },
       ],
       skipDuplicates: true,
@@ -1020,7 +1020,7 @@ async function main() {
         status: "IN_PROGRESS",
         priority: "HIGH",
         dueDate: d(2026, 6, 25),
-        assignedTo: userIds["EMPLOYEE"],
+        assignedTo: userIds["TEAM"],
         createdBy: userIds["PM"],
       },
     });
@@ -1032,7 +1032,7 @@ async function main() {
         status: "TODO",
         priority: "NORMAL",
         dueDate: d(2026, 7, 10),
-        assignedTo: userIds["EMPLOYEE"],
+        assignedTo: userIds["TEAM"],
         createdBy: userIds["PM"],
       },
     });
@@ -1382,7 +1382,7 @@ async function main() {
   await prisma.salary.createMany({
     data: [
       {
-        employeeId: employeeIds["EMPLOYEE"],
+        employeeId: employeeIds["TEAM"],
         amount: 7000,
         baseSalary: 7000,
         status: "PAID",
@@ -1484,6 +1484,61 @@ async function main() {
     "disputes.pm_read",
     "disputes.pm_update",
     "disputes.admin",
+
+    // Admin dashboard & monitoring
+    "admin.stats",
+    "admin.stats.trends",
+    "admin.funnel",
+    "admin.alerts",
+    "admin.audit",
+    "admin.dashboard",
+    "admin.reports",
+
+    // Admin settings & configuration
+    "admin.settings",
+    "admin.notifications",
+    "admin.team",
+    "admin.marketing",
+
+    // Admin users & security
+    "admin.users.read",
+    "admin.users.manage",
+    "admin.users.impersonate",
+    "admin.sessions.read",
+    "admin.security.read",
+
+    // Admin domain read
+    "admin.projects.read",
+    "admin.tasks.read",
+    "admin.contracts.read",
+    "admin.leads.read",
+    "admin.requests.read",
+    "admin.finance.read",
+    "admin.proposals.read",
+    "admin.clients.read",
+    "admin.campaigns.read",
+    "admin.chat.read",
+    "admin.portal.read",
+
+    // Admin domain intervene
+    "admin.projects.intervene",
+    "admin.projects.create",
+    "admin.tasks.intervene",
+    "admin.contracts.intervene",
+    "admin.leads.intervene",
+    "admin.requests.intervene",
+    "admin.finance.intervene",
+    "admin.proposals.intervene",
+    "admin.campaigns.create",
+    "admin.campaigns.intervene",
+    "admin.chat.moderate",
+    "admin.portal.manage",
+
+    // Admin clients intervene
+    "admin.clients.intervene",
+
+    // Admin generic (used on intake-forms)
+    "admin.portal",
   ];
 
   for (const name of permissions) {
@@ -1554,7 +1609,7 @@ async function main() {
       "clients.update",
       "clients.read_activity",
     ],
-    EMPLOYEE: [
+    TEAM: [
       "tasks.read",
       "tasks.update",
       "tasks.comment",

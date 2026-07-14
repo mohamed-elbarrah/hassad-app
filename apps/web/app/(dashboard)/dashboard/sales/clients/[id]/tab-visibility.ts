@@ -38,7 +38,7 @@ export const TAB_VISIBILITY: Partial<Record<UserRole, ClientDetailTab[]>> = {
   [UserRole.PM]: ["overview", "projects", "activity"],
   [UserRole.MARKETING]: ["overview", "activity"],
   [UserRole.ACCOUNTANT]: ["overview", "finance", "activity"],
-  [UserRole.EMPLOYEE]: ["overview", "projects", "activity"],
+  [UserRole.TEAM]: ["overview", "projects", "activity"],
   [UserRole.ADMIN]: ["overview", "projects", "finance", "activity"],
   [UserRole.CLIENT]: ["overview", "projects", "finance", "activity"],
 };

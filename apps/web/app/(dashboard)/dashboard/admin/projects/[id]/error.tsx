@@ -1,20 +1,13 @@
 "use client";
 
-import { ErrorFallback } from "@/components/common/ErrorFallback";
+import { AdminDetailError } from "@/components/dashboard/admin/shared/AdminDetailError";
 
-export default function AdminProjectDetailError({
-  error,
-  reset,
-}: {
-  error: Error;
-  reset: () => void;
-}) {
+export default function Error() {
   return (
-    <ErrorFallback
-      error={error}
-      reset={reset}
-      backHref="/dashboard/admin"
-      backLabel="العودة للوحة الإدارة"
+    <AdminDetailError
+      title="حدث خطأ أثناء تحميل بيانات المشروع"
+      backHref="/dashboard/admin/projects"
+      backLabel="المشاريع"
     />
   );
 }

@@ -1,213 +1,200 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { FileText, Search, TrendingUp, Eye, User, Building2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  FileText,
+  SendHorizonal,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+} from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { DataTable } from "@/components/design-system/DataTable";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { StatCard } from "@/components/design-system/StatCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableEmptyState,
+} from "@/components/design-system/DataTable";
+import { Pagination } from "@/components/design-system/Pagination";
+import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
+import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import {
   useGetAdminProposalsQuery,
   useGetAdminProposalStatsQuery,
-  useGetAdminClientsQuery,
-} from "@/features/admin/adminApi";
-import { PROPOSAL_STATUS_AR } from "@hassad/shared";
+} from "@/features/admin/adminProposalsApi";
+
+const COLUMNS: DataTableColumn[] = [
+  { id: "title", label: "العنوان", align: "right" },
+  { id: "client", label: "العميل / الفرصة", align: "right" },
+  { id: "status", label: "الحالة", align: "right" },
+  { id: "creator", label: "المنشئ", align: "right" },
+  { id: "totalPrice", label: "المبلغ الإجمالي", align: "right" },
+  { id: "createdAt", label: "التاريخ", align: "right" },
+];
+
+const EMPTY_STATE: DataTableEmptyState = {
+  icon: FileText,
+  message: "لا يوجد عروض أسعار",
+  hint: "لم يتم إضافة أي عروض أسعار بعد.",
+};
+
+const STATUS_OPTIONS = [
+  { label: "مسودة", value: "DRAFT" },
+  { label: "مرسل", value: "SENT" },
+  { label: "قيد المراجعة", value: "UNDER_REVIEW" },
+  { label: "مقبول", value: "ACCEPTED" },
+  { label: "مرفوض", value: "REJECTED" },
+  { label: "ملغي", value: "CANCELLED" },
+];
 
 export default function AdminProposalsPage() {
-  const router = useRouter();
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [clientFilter, setClientFilter] = useState("");
-  const [assigneeFilter, setAssigneeFilter] = useState("");
-
-  const { data: clientsData } = useGetAdminClientsQuery({ limit: 200 });
+  const [page, setPage] = useState(1);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
 
   const { data, isLoading, isError } = useGetAdminProposalsQuery({
+    search: search || undefined,
+    status: activeFilters.status?.[0],
     page,
     limit: 20,
-    search: search || undefined,
-    status: statusFilter || undefined,
-    clientId: clientFilter || undefined,
-    creatorId: assigneeFilter || undefined,
   });
+
   const { data: stats } = useGetAdminProposalStatsQuery();
 
-  const proposals = data?.items ?? [];
+  const proposals = useMemo(() => data?.items ?? [], [data]);
 
-  const assigneeOptions = useMemo(() => {
-    const names = new Set<string>();
-    proposals.forEach((p: any) => {
-      if (p.creator?.name) names.add(p.creator.name);
-    });
-    return Array.from(names).map((name) => ({
-      id: proposals.find((p: any) => p.creator?.name === name)?.creator?.id,
-      name,
-    })).filter((o): o is { id: string; name: string } => !!o.id);
-  }, [proposals]);
+  const statCards = useMemo(
+    () => [
+      {
+        label: "الإجمالي",
+        value: stats?.total ?? 0,
+        icon: FileText,
+        variant: "default" as const,
+      },
+      {
+        label: "مرسل",
+        value: stats?.sent ?? 0,
+        icon: SendHorizonal,
+        variant: "success" as const,
+      },
+      {
+        label: "مقبول",
+        value: stats?.approved ?? 0,
+        icon: CheckCircle,
+        variant: "success" as const,
+      },
+      {
+        label: "مرفوض",
+        value: stats?.rejected ?? 0,
+        icon: XCircle,
+        variant: "danger" as const,
+      },
+      {
+        label: "معدل التحويل",
+        value: stats ? `${stats.conversionRate}%` : "—",
+        icon: TrendingUp,
+        variant: "warning" as const,
+      },
+    ],
+    [stats],
+  );
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="flex flex-col gap-5" dir="rtl">
       <PageIntro
-        title="العروض الفنية"
-        description="إدارة ومتابعة جميع العروض الفنية"
+        title="عروض الأسعار"
+        description="إدارة جميع عروض الأسعار في المنصة"
         icon={FileText}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <StatCard
-          title="الإجمالي"
-          value={`${stats?.total ?? 0}`}
-          icon={FileText}
-        />
-        <StatCard
-          title="مرسل"
-          value={`${stats?.sent ?? 0}`}
-          icon={TrendingUp}
-        />
-        <StatCard
-          title="مقبول"
-          value={`${stats?.approved ?? 0}`}
-          icon={TrendingUp}
-          trend="up"
-          trendValue={`${stats?.conversionRate ?? 0}%`}
-        />
-        <StatCard
-          title="مرفوض"
-          value={`${stats?.rejected ?? 0}`}
-          icon={FileText}
-        />
-        <StatCard
-          title="طلب مراجعة"
-          value={`${stats?.revisionRequested ?? 0}`}
-          icon={FileText}
-        />
+      <div className="grid grid-cols-5 gap-4">
+        {statCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-[30px] border-[1.5px] border-portal-card-border p-5"
+          >
+            <p className="text-sm text-portal-note-text">{card.label}</p>
+            <p className="text-2xl font-semibold text-natural-100 mt-2">
+              {isLoading ? "—" : card.value}
+            </p>
+          </div>
+        ))}
       </div>
 
-      <SurfaceCard>
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <div className="relative flex-1 max-w-sm min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-note-text" />
-            <FormInputControl
-              placeholder="ابحث عن عرض..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pr-10"
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-portal-divider px-3 py-2 text-sm"
-          >
-            <option value="">كل الحالات</option>
-            {Object.entries(PROPOSAL_STATUS_AR).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-          <select
-            value={clientFilter}
-            onChange={(e) => setClientFilter(e.target.value)}
-            className="rounded-xl border border-portal-divider px-3 py-2 text-sm"
-          >
-            <option value="">كل العملاء</option>
-            {(clientsData?.items ?? []).map((c: any) => (
-              <option key={c.id} value={c.id}>
-                {c.companyName ?? c.contactName ?? "—"}
-              </option>
-            ))}
-          </select>
-          <select
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="rounded-xl border border-portal-divider px-3 py-2 text-sm"
-          >
-            <option value="">كل المنشئين</option>
-            {assigneeOptions.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
-            ))}
-          </select>
+      <SurfaceCard title="قائمة عروض الأسعار">
+        <div className="mb-4">
+          <AdminListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="بحث بالعنوان أو اسم العميل..."
+            filterGroups={[
+              {
+                key: "status",
+                label: "الحالة",
+                options: STATUS_OPTIONS,
+              },
+            ]}
+            activeFilters={activeFilters}
+            onFilterChange={(key, values) =>
+              setActiveFilters((prev) => ({ ...prev, [key]: values }))
+            }
+          />
         </div>
 
         <DataTable
-          columns={[
-            { id: "title", label: "العنوان" },
-            { id: "client", label: "العميل" },
-            { id: "totalPrice", label: "المبلغ" },
-            { id: "status", label: "الحالة" },
-            { id: "createdAt", label: "تاريخ الإنشاء", align: "left" },
-            { id: "actions", label: "", align: "left" },
-          ]}
+          columns={COLUMNS}
           data={proposals}
           isLoading={isLoading}
           isError={isError}
-          emptyState={{
-            icon: FileText,
-            message: "لا توجد عروض فنية",
-            hint: "لم يتم إنشاء أي عروض فنية بعد",
-          }}
-          renderRow={(p: any) => (
+          errorMessage="حدث خطأ أثناء تحميل عروض الأسعار."
+          emptyState={EMPTY_STATE}
+          renderRow={(proposal) => (
             <tr
-              key={p.id}
-              className="border-b border-portal-divider cursor-pointer hover:bg-badge-gray-bg/50"
-              onClick={() => router.push(`/dashboard/admin/proposals/${p.id}`)}
+              key={proposal.id}
+              className="border-b border-portal-divider last:border-0"
             >
-              <td className="px-5 py-3 text-sm font-medium">{p.title}</td>
-              <td className="px-5 py-3 text-sm text-portal-note-text">
-                {p.client?.companyName ?? p.lead?.companyName ?? "—"}
+              <td className="py-3 px-2 text-right">
+                <Link
+                  href={`/dashboard/admin/proposals/${proposal.id}`}
+                  className="hover:underline text-secondary-500 font-medium text-sm"
+                >
+                  {proposal.title}
+                </Link>
               </td>
-              <td className="px-5 py-3 text-sm">
-                {p.totalPrice?.toLocaleString()} ر.س
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {proposal.client?.companyName ||
+                  proposal.lead?.companyName ||
+                  "—"}
               </td>
-              <td className="px-5 py-3">
-                <StatusBadge
-                  status={p.status}
-                  label={PROPOSAL_STATUS_AR[p.status] ?? p.status}
-                />
+              <td className="py-3 px-2 text-right">
+                <AdminStatusBadge domain="proposal" status={proposal.status} />
               </td>
-              <td className="px-5 py-3 text-sm text-portal-note-text text-left">
-                {p.createdAt?.slice(0, 10) ?? "—"}
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {proposal.creator?.name || "—"}
               </td>
-              <td className="px-5 py-3 text-left">
-                <ActionButton variant="ghost" size="sm">
-                  <Eye className="size-4" />
-                </ActionButton>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {proposal.totalPrice.toLocaleString("ar-SA", {
+                  style: "currency",
+                  currency: "SAR",
+                })}
+              </td>
+              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
+                {new Date(proposal.createdAt).toLocaleDateString("ar-SA")}
               </td>
             </tr>
           )}
         />
 
         {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4 border-t border-portal-divider mt-4">
-            <span className="text-sm text-portal-note-text">
-              إجمالي {data.total} عرض
-            </span>
-            <div className="flex gap-2">
-              <ActionButton
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                السابق
-              </ActionButton>
-              <ActionButton
-                variant="outline"
-                size="sm"
-                disabled={page >= data.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                التالي
-              </ActionButton>
-            </div>
+          <div className="mt-4 flex justify-center">
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </SurfaceCard>

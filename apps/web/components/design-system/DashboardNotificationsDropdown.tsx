@@ -18,8 +18,7 @@ export function resolveDashboardUrl(
   if (!entityType || !entityId) return null;
 
   if (entityType === "task") {
-    if (role === UserRole.EMPLOYEE)
-      return `/dashboard/employee/tasks/${entityId}`;
+    if (role === UserRole.TEAM) return `/dashboard/team/tasks/${entityId}`;
     if (role === UserRole.MARKETING)
       return `/dashboard/marketing/tasks/${entityId}`;
     if (role === UserRole.PM || role === UserRole.ADMIN)

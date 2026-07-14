@@ -63,8 +63,7 @@ export class AdminMarketingService {
     const strategy = await this.prisma.marketingStrategy.findUnique({
       where: { id },
     });
-    if (!strategy)
-      throw new NotFoundException("الاستراتيجية غير موجودة");
+    if (!strategy) throw new NotFoundException("الاستراتيجية غير موجودة");
 
     const validStatuses = [
       "DRAFT",

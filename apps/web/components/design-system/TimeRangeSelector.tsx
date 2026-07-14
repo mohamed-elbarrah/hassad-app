@@ -59,7 +59,8 @@ interface TimeRangeSelectorProps {
 }
 
 export function TimeRangeSelector({ value, onChange }: TimeRangeSelectorProps) {
-  const currentLabel = RANGES.find((r) => r.key === value)?.label ?? RANGES[1].label;
+  const currentLabel =
+    RANGES.find((r) => r.key === value)?.label ?? RANGES[1].label;
 
   return (
     <Select

@@ -1,6 +1,8 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
 import { AdminService } from "../services/admin.service";
+import { AdminQueryDto } from "../dto/admin-query.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
+import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { HealthCheckService, MemoryHealthIndicator } from "@nestjs/terminus";
@@ -22,20 +24,20 @@ export class AdminController {
 
   @Get("stats")
   @RequirePermissions("admin.stats")
-  getStats() {
-    return this.adminService.getStats();
+  getStats(@Query() query: AdminQueryDto) {
+    return this.adminService.getStats(query.from, query.to);
   }
 
   @Get("stats/trends")
   @RequirePermissions("admin.stats.trends")
-  getTrends(@Query("days") days?: string) {
-    return this.adminService.getTrends(days ? parseInt(days, 10) : 30);
+  getTrends(@Query() query: AdminQueryDto) {
+    return this.adminService.getTrends(query.from, query.to, query.days);
   }
 
   @Get("funnel")
   @RequirePermissions("admin.funnel")
-  getFunnel() {
-    return this.adminService.getFunnel();
+  getFunnel(@Query() query: AdminQueryDto) {
+    return this.adminService.getFunnel(query.from, query.to);
   }
 
   @Get("alerts")
@@ -50,10 +52,21 @@ export class AdminController {
     return this.adminService.getRecentActivity();
   }
 
+  @Get("ai-insights")
+  @RequirePermissions("admin.stats")
+  getAiInsights() {
+    return this.adminService.getAiInsights();
+  }
+
+  @Post("ai/scan")
+  @RequirePermissions("admin.stats")
+  runAiScan(@CurrentUser("id") userId: string) {
+    return this.adminService.runAiScan(userId);
+  }
+
   @Get("health")
   @RequirePermissions("admin.stats")
   async getHealth() {
-    // Use the new health check system
     const startTime = Date.now();
 
     const result = await this.health.check([
@@ -61,22 +74,19 @@ export class AdminController {
       () => this.memoryIndicator.checkHeap("memory_heap", 512 * 1024 * 1024),
     ]);
 
-    // Get additional error stats
     const errorStats = await this.errorLogger.getErrorStats(24);
     const unresolvedErrors = await this.errorLogger.getUnresolvedCount();
     const services = await this.healthPersistence.getServiceHealth();
 
-    // Transform to maintain backward compatibility with old format
     return {
       status: result.status === "ok" ? "healthy" : "degraded",
       database: result.status === "ok" ? "connected" : "disconnected",
       recentErrors: errorStats.total,
-      activeUsersLastHour: 0, // Not tracked in new system yet
-      pendingWebhooks: 0, // From new system
+      activeUsersLastHour: 0,
+      pendingWebhooks: 0,
       uptime: process.uptime(),
       memoryUsage: process.memoryUsage().heapUsed,
       timestamp: new Date().toISOString(),
-      // Additional new fields
       overallScore: this.calculateHealthScore(result),
       services: services.map((s) => ({
         name: s.serviceName,
@@ -90,9 +100,7 @@ export class AdminController {
   private calculateHealthScore(result: any): number {
     const allIndicators = { ...result.info, ...result.error };
     const totalIndicators = Object.keys(allIndicators).length;
-
     if (totalIndicators === 0) return 0;
-
     const healthyIndicators = Object.keys(result.info).length;
     return Math.round((healthyIndicators / totalIndicators) * 100);
   }

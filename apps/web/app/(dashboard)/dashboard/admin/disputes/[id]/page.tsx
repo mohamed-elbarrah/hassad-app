@@ -1,438 +1,257 @@
 "use client";
 
-import { use, useState } from "react";
-import Link from "next/link";
+import { use } from "react";
 import {
-  ArrowRight,
-  MessageSquare,
-  History,
-  Clock,
+  Scale,
+  Ticket,
   User,
   Building2,
-  Check,
-  X,
-  ArrowRightLeft,
-  Ban,
+  FolderKanban,
+  Tag,
+  Flag,
+  Calendar,
+  Clock,
+  MessageSquare,
+  Paperclip,
+  Activity,
+  CheckCircle,
   AlertTriangle,
 } from "lucide-react";
-import { toast } from "sonner";
-import {
-  useGetAdminDisputeDetailQuery,
-  useGetPmDisputeStatsQuery,
-  useCloseDisputeMutation,
-  useAddAdminMessageMutation,
-} from "@/features/disputes/adminDisputesApi";
+import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
+import { AdminDetailBreadcrumb } from "@/components/dashboard/admin/shared/AdminDetailBreadcrumb";
+import { useGetAdminDisputeByIdQuery } from "@/features/admin/adminDisputesApi";
 import {
   DISPUTE_STATUS_AR,
-  DISPUTE_PRIORITY_AR,
   DISPUTE_CATEGORY_AR,
-  type DisputeStatus,
+  DISPUTE_PRIORITY_AR,
 } from "@hassad/shared";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import {
-  DisputeStatusBadge,
-  DisputeCategoryIcon,
-  DisputeMessageThread,
-} from "@/components/disputes";
-import { DisputeResolutionTimer } from "@/components/disputes/DisputeResolutionTimer";
-import { PmStatsPanel } from "@/components/disputes/PmStatsPanel";
-import { DisputeApprovalDialog } from "@/components/disputes/DisputeApprovalDialog";
-import { PmChangeDialog } from "@/components/disputes/PmChangeDialog";
-import { Dialog } from "@/components/design-system/Dialog";
-import { FormInput } from "@/components/design-system/FormInput";
+import { cn } from "@/lib/utils";
 
-interface AdminDisputeDetailPageProps {
-  params: Promise<{ id: string }>;
+const priorityBadgeClass = (priority: string) => {
+  switch (priority) {
+    case "URGENT":
+      return "bg-danger-100 text-danger-600 border-danger-200";
+    case "HIGH":
+      return "bg-alert-100 text-alert-600 border-alert-200";
+    case "NORMAL":
+      return "bg-primary-100 text-primary-600 border-primary-200";
+    case "LOW":
+      return "bg-neutral-100 text-neutral-600 border-neutral-200";
+    default:
+      return "bg-neutral-100 text-neutral-600 border-neutral-200";
+  }
+};
+
+function InfoRow({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: React.ElementType;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 p-4 rounded-xl border border-portal-card-border">
+      <Icon className="h-5 w-5 text-secondary-500 mt-0.5 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-xs text-portal-note-text">{label}</p>
+        <div className="text-sm font-medium text-natural-100 mt-0.5">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("ar-SA", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatDateTime(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("ar-SA", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function AdminDisputeDetailPage({
   params,
-}: AdminDisputeDetailPageProps) {
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [pmChangeDialogOpen, setPmChangeDialogOpen] = useState(false);
-  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
-  const [closeResolution, setCloseResolution] = useState("");
-
   const {
     data: dispute,
     isLoading,
+    isError,
     refetch,
-  } = useGetAdminDisputeDetailQuery(id, {
-    pollingInterval: 30_000,
-  });
+  } = useGetAdminDisputeByIdQuery(id);
 
-  const { data: pmStats, isLoading: isLoadingPmStats } =
-    useGetPmDisputeStatsQuery(dispute?.pm.id ?? "", { skip: !dispute?.pm.id });
-
-  const [closeDispute, { isLoading: isClosing }] = useCloseDisputeMutation();
-  const [addMessage, { isLoading: isSendingMessage }] =
-    useAddAdminMessageMutation();
-
-  const handleSendMessage = async (content: string) => {
-    try {
-      await addMessage({ id, input: { content, isInternal: true } }).unwrap();
-      refetch();
-    } catch (error: any) {
-      const message =
-        error?.data?.error?.message || "حدث خطأ أثناء إرسال الرسالة";
-      toast.error(message);
-    }
-  };
-
-  const handleClose = async () => {
-    if (closeResolution.trim().length < 10) {
-      toast.error("قرار الحل مطلوب", {
-        description: "يجب أن يكون القرار 10 أحرف على الأقل",
-      });
-      return;
-    }
-
-    try {
-      await closeDispute({
-        id,
-        input: { resolution: closeResolution.trim() },
-      }).unwrap();
-      toast.success("تم إغلاق التذكرة");
-      setCloseDialogOpen(false);
-      refetch();
-    } catch (error: any) {
-      const message =
-        error?.data?.error?.message || "حدث خطأ أثناء إغلاق التذكرة";
-      toast.error(message);
-    }
-  };
-
-  if (isLoading) {
-    return <DisputeDetailSkeleton />;
+  if (isLoading || isError || !dispute) {
+    return null;
   }
-
-  if (!dispute) {
-    return (
-      <div
-        className="flex flex-col items-center justify-center gap-4 py-16"
-        dir="rtl"
-      >
-        <div className="text-6xl">🔍</div>
-        <h1 className="text-xl font-semibold text-natural-100">
-          التذكرة غير موجودة
-        </h1>
-        <p className="text-portal-note-text">لا يمكنك الوصول إلى هذه التذكرة</p>
-        <Link href="/dashboard/admin/disputes">
-          <Button variant="outline" className="mt-4 rounded-xl">
-            <ArrowRight className="ml-2 h-4 w-4" />
-            العودة للقائمة
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
-  const canApprove = dispute.status === "PENDING_APPROVAL";
-  const canReject = dispute.status === "PENDING_APPROVAL";
-  const canChangePm = dispute.status === "ESCALATED";
-  const canClose =
-    dispute.status === "ESCALATED" ||
-    dispute.status === "IN_PROGRESS" ||
-    dispute.status === "PENDING_CLIENT";
-  const canSendMessage =
-    dispute.status !== "PENDING_APPROVAL" &&
-    dispute.status !== "REJECTED" &&
-    dispute.status !== "CLOSED";
-  const showTimer = ["APPROVED", "IN_PROGRESS", "ESCALATED"].includes(
-    dispute.status,
-  );
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4">
-        <Link
-          href="/dashboard/admin/disputes"
-          className="flex items-center gap-1 text-sm text-portal-note-text hover:text-secondary-500 transition-colors w-fit"
-        >
-          <ArrowRight className="h-4 w-4" />
-          العودة لإدارة النزاعات
-        </Link>
+      <AdminDetailBreadcrumb
+        backHref="/dashboard/admin/disputes"
+        backLabel="النزاعات"
+        title={`#${dispute.ticketNumber} - ${dispute.title}`}
+      />
 
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-secondary-500">
-                #{dispute.ticketNumber.toString().padStart(3, "0")}
-              </span>
-              <DisputeStatusBadge status={dispute.status} />
-              <span className="text-xs text-portal-note-text">
-                الأولوية: {DISPUTE_PRIORITY_AR[dispute.priority]}
-              </span>
-            </div>
-            <h1 className="text-2xl font-semibold text-natural-100">
-              {dispute.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-portal-note-text">
-              <span className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {new Date(dispute.openedAt).toLocaleDateString("ar-SA")}
-              </span>
-              <DisputeCategoryIcon
-                category={dispute.category}
-                showLabel
-                size="md"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {showTimer && dispute.deadlineAt && (
-              <DisputeResolutionTimer
-                deadlineAt={dispute.deadlineAt}
-                status={dispute.status}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Main Layout: Content + Sidebar ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ── Main Content ───────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Main info */}
         <div className="lg:col-span-2 space-y-5">
-          {/* ── Parties Card ───────────────────────────────────────────────────── */}
-          <SurfaceCard className="p-5">
-            <h2 className="text-lg font-semibold text-natural-100 mb-4">
-              أطراف النزاع
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                  <User className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-portal-note-text">العميل</p>
-                  <p className="text-sm font-medium text-natural-100">
-                    {dispute.client.name}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
-                  <User className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-portal-note-text">المدير</p>
-                  <p className="text-sm font-medium text-natural-100">
-                    {dispute.pm.name}
-                  </p>
-                  {dispute.pmChanged && dispute.newPm && (
-                    <p className="text-xs text-green-600">
-                      تم التغيير → {dispute.newPm.name}
-                    </p>
+          <SurfaceCard title="معلومات النزاع">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InfoRow icon={Ticket} label="رقم التذكرة">
+                #{dispute.ticketNumber}
+              </InfoRow>
+              <InfoRow icon={Tag} label="التصنيف">
+                {DISPUTE_CATEGORY_AR[
+                  dispute.category as keyof typeof DISPUTE_CATEGORY_AR
+                ] || dispute.category}
+              </InfoRow>
+              <InfoRow icon={Flag} label="الأولوية">
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                    priorityBadgeClass(dispute.priority),
                   )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                  <Building2 className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-portal-note-text">المشروع</p>
-                  <p className="text-sm font-medium text-natural-100">
-                    {dispute.project.name}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </SurfaceCard>
-
-          {/* ── Description Card ─────────────────────────────────────────────────── */}
-          <SurfaceCard className="p-5">
-            <h2 className="text-lg font-semibold text-natural-100 mb-3">
-              وصف المشكلة
-            </h2>
-            <p className="text-sm text-portal-note-text leading-relaxed whitespace-pre-wrap">
-              {dispute.description}
-            </p>
-            {dispute.rejectionReason && (
-              <div className="mt-4 p-3 bg-red-50 rounded-xl border border-red-200">
-                <p className="text-xs text-red-600 mb-1">سبب الرفض:</p>
-                <p className="text-sm text-red-800">
+                >
+                  {DISPUTE_PRIORITY_AR[
+                    dispute.priority as keyof typeof DISPUTE_PRIORITY_AR
+                  ] || dispute.priority}
+                </span>
+              </InfoRow>
+              <InfoRow icon={Activity} label="الحالة">
+                <AdminStatusBadge domain="dispute" status={dispute.status} />
+              </InfoRow>
+              <InfoRow icon={Calendar} label="تاريخ الفتح">
+                {formatDate(dispute.openedAt)}
+              </InfoRow>
+              <InfoRow icon={Calendar} label="تاريخ الإغلاق">
+                {formatDate(dispute.closedAt)}
+              </InfoRow>
+              {dispute.deadlineAt && (
+                <InfoRow icon={Clock} label="الموعد النهائي">
+                  {formatDate(dispute.deadlineAt)}
+                </InfoRow>
+              )}
+              {dispute.resolution && (
+                <InfoRow icon={CheckCircle} label="الحل">
+                  {dispute.resolution}
+                </InfoRow>
+              )}
+              {dispute.rejectionReason && (
+                <InfoRow icon={AlertTriangle} label="سبب الرفض">
                   {dispute.rejectionReason}
-                </p>
-              </div>
-            )}
-          </SurfaceCard>
-
-          {/* ── Action Banners ─────────────────────────────────────────────────── */}
-          {canApprove && (
-            <SurfaceCard className="p-4 bg-yellow-50 border-yellow-200">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100">
-                    <Clock className="h-5 w-5 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-natural-100">
-                      بانتظار الموافقة
-                    </p>
-                    <p className="text-sm text-portal-note-text">
-                      راجع التذكرة وقرر الموافقة أو الرفض
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="rounded-xl"
-                    onClick={() => setRejectDialogOpen(true)}
-                  >
-                    <X className="h-4 w-4 ml-1" />
-                    رفض
-                  </Button>
-                  <Button
-                    className="rounded-xl bg-green-600 hover:bg-green-700"
-                    onClick={() => setApprovalDialogOpen(true)}
-                  >
-                    <Check className="h-4 w-4 ml-1" />
-                    موافقة
-                  </Button>
-                </div>
-              </div>
-            </SurfaceCard>
-          )}
-
-          {canChangePm && (
-            <SurfaceCard className="p-4 bg-red-50 border-red-200">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-red-800">تم التصعيد</p>
-                    <p className="text-sm text-red-700">
-                      {dispute.escalatedAt
-                        ? `تم التصعيد: ${new Date(dispute.escalatedAt).toLocaleDateString("ar-SA")}`
-                        : "هذه التذكرة تحتاج تدخل الإدارة"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="rounded-xl border-red-300 text-red-700 hover:bg-red-100"
-                    onClick={() => setPmChangeDialogOpen(true)}
-                  >
-                    <ArrowRightLeft className="h-4 w-4 ml-1" />
-                    تغيير المدير
-                  </Button>
-                  <Button
-                    className="rounded-xl bg-red-600 hover:bg-red-700"
-                    onClick={() => setCloseDialogOpen(true)}
-                  >
-                    <Ban className="h-4 w-4 ml-1" />
-                    إغلاق
-                  </Button>
-                </div>
-              </div>
-            </SurfaceCard>
-          )}
-
-          {canClose && dispute.status === "IN_PROGRESS" && (
-            <SurfaceCard className="p-4 bg-blue-50 border-blue-200">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-natural-100">قيد المعالجة</p>
-                  <p className="text-sm text-portal-note-text">
-                    المدير يعمل على حل المشكلة. يمكنك إغلاق التذكرة إذا تم الحل.
-                  </p>
-                </div>
-              </div>
-            </SurfaceCard>
-          )}
-
-          {dispute.resolution && (
-            <SurfaceCard className="p-4 bg-green-50 border-green-200">
-              <h3 className="text-sm font-medium text-green-800 mb-2">
-                قرار الحل:
-              </h3>
-              <p className="text-sm text-green-700">{dispute.resolution}</p>
-            </SurfaceCard>
-          )}
-
-          {/* ── Message Thread ─────────────────────────────────────────────────── */}
-          <SurfaceCard className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <MessageSquare className="h-5 w-5 text-secondary-500" />
-              <h2 className="text-lg font-semibold text-natural-100">
-                الرسائل
-              </h2>
-              <span className="text-xs text-portal-note-text">
-                (الملاحظات الداخلية باللون الرمادي)
-              </span>
+                </InfoRow>
+              )}
             </div>
-            <DisputeMessageThread
-              messages={dispute.messages}
-              onSendMessage={handleSendMessage}
-              isLoading={isSendingMessage}
-              canSendMessage={canSendMessage}
-              showInternalBadge
-            />
+
+            <div className="mt-4 p-4 rounded-xl border border-portal-card-border">
+              <p className="text-xs text-portal-note-text mb-2">الوصف</p>
+              <p className="text-sm text-natural-100 leading-relaxed whitespace-pre-wrap">
+                {dispute.description}
+              </p>
+            </div>
           </SurfaceCard>
 
-          {/* ── History ──────────────────────────────────────────────────────── */}
-          {dispute.history.length > 0 && (
-            <SurfaceCard className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <History className="h-5 w-5 text-secondary-500" />
-                <h2 className="text-lg font-semibold text-natural-100">
-                  سجل التحديثات
-                </h2>
-              </div>
-              <div className="space-y-3">
-                {dispute.history.map((event) => (
+          {/* Messages */}
+          {dispute.messages.length > 0 && (
+            <SurfaceCard
+              title="الرسائل"
+              description={`${dispute.messages.length} رسالة`}
+            >
+              <div className="space-y-4">
+                {dispute.messages.map((msg) => (
                   <div
-                    key={event.id}
-                    className="flex items-start gap-3 rounded-xl border-[1.5px] border-portal-divider p-3"
+                    key={msg.id}
+                    className={cn(
+                      "p-4 rounded-xl border",
+                      msg.isInternal
+                        ? "border-alert-200 bg-alert-50/50"
+                        : "border-portal-card-border",
+                    )}
                   >
-                    <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-natural-100">
-                          {event.changer.name}
+                          {msg.author.name}
                         </span>
-                        <span className="text-xs text-portal-note-text">
-                          {new Date(event.changedAt).toLocaleString("ar-SA", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })}
-                        </span>
+                        {msg.isInternal && (
+                          <span className="text-[10px] bg-alert-100 text-alert-600 rounded-full px-2 py-0.5 font-medium">
+                            داخلي
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-portal-note-text">
+                        {formatDateTime(msg.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-natural-100 leading-relaxed whitespace-pre-wrap">
+                      {msg.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </SurfaceCard>
+          )}
+
+          {/* Status History */}
+          {dispute.history.length > 0 && (
+            <SurfaceCard
+              title="سجل الحالة"
+              description={`${dispute.history.length} تغيير`}
+            >
+              <div className="space-y-3">
+                {dispute.history.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-start gap-3 p-3 rounded-xl border border-portal-card-border"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary-100">
+                      <Activity className="h-4 w-4 text-secondary-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {entry.fromStatus && (
+                          <>
+                            <AdminStatusBadge
+                              domain="dispute"
+                              status={entry.fromStatus}
+                            />
+                            <span className="text-portal-note-text">→</span>
+                          </>
+                        )}
+                        <AdminStatusBadge
+                          domain="dispute"
+                          status={entry.toStatus}
+                        />
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-portal-note-text">
-                          الحالة:
+                          {entry.changer.name}
                         </span>
-                        {event.fromStatus && (
-                          <>
-                            <DisputeStatusBadge
-                              status={event.fromStatus}
-                              className="text-xs"
-                            />
-                            <span className="text-xs">→</span>
-                          </>
-                        )}
-                        <DisputeStatusBadge
-                          status={event.toStatus}
-                          className="text-xs"
-                        />
+                        <span className="text-xs text-portal-note-text">•</span>
+                        <span className="text-xs text-portal-note-text">
+                          {formatDateTime(entry.changedAt)}
+                        </span>
                       </div>
-                      {event.note && (
-                        <p className="mt-1 text-sm text-portal-note-text">
-                          {event.note}
+                      {entry.note && (
+                        <p className="text-sm text-natural-100 mt-2">
+                          {entry.note}
                         </p>
                       )}
                     </div>
@@ -441,126 +260,150 @@ export default function AdminDisputeDetailPage({
               </div>
             </SurfaceCard>
           )}
-        </div>
 
-        {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-        <div className="space-y-5">
-          {/* PM Stats Panel */}
-          {dispute.pm.id && (
-            <PmStatsPanel
-              stats={pmStats}
-              isLoading={isLoadingPmStats}
-              pmId={dispute.pm.id}
-            />
+          {/* Attachments */}
+          {dispute.attachments.length > 0 && (
+            <SurfaceCard
+              title="المرفقات"
+              description={`${dispute.attachments.length} ملف`}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {dispute.attachments.map((file) => (
+                  <div
+                    key={file.id}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-portal-card-border"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary-100">
+                      <Paperclip className="h-5 w-5 text-secondary-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-natural-100 truncate">
+                        {file.fileName}
+                      </p>
+                      <p className="text-xs text-portal-note-text">
+                        {(file.fileSize / 1024).toFixed(1)} KB •{" "}
+                        {file.uploader.name}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SurfaceCard>
           )}
+        </div>
 
-          {/* Category Card */}
-          <SurfaceCard className="p-5">
-            <h3 className="text-sm font-medium text-portal-note-text mb-2">
-              التصنيف
-            </h3>
-            <DisputeCategoryIcon
-              category={dispute.category}
-              showLabel
-              size="lg"
-            />
+        {/* Sidebar */}
+        <div className="space-y-5">
+          <SurfaceCard title="الأطراف ذات العلاقة">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-portal-card-border">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-100">
+                  <Building2 className="h-5 w-5 text-primary-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-portal-note-text">العميل</p>
+                  <p className="text-sm font-medium text-natural-100">
+                    {dispute.client.companyName}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-portal-card-border">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary-100">
+                  <User className="h-5 w-5 text-secondary-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-portal-note-text">مدير المشروع</p>
+                  <p className="text-sm font-medium text-natural-100">
+                    {dispute.pm.name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-portal-card-border">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                  <FolderKanban className="h-5 w-5 text-neutral-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-portal-note-text">المشروع</p>
+                  <p className="text-sm font-medium text-natural-100">
+                    {dispute.project.name}
+                  </p>
+                </div>
+              </div>
+
+              {dispute.reviewer && (
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-portal-card-border">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-alert-100">
+                    <User className="h-5 w-5 text-alert-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-portal-note-text">المراجع</p>
+                    <p className="text-sm font-medium text-natural-100">
+                      {dispute.reviewer.name}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {dispute.resolver && (
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-portal-card-border">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-100">
+                    <User className="h-5 w-5 text-success-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-portal-note-text">الحلال</p>
+                    <p className="text-sm font-medium text-natural-100">
+                      {dispute.resolver.name}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {dispute.newPm && (
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-portal-card-border">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-alert-100">
+                    <User className="h-5 w-5 text-alert-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-portal-note-text">
+                      مدير المشروع الجديد
+                    </p>
+                    <p className="text-sm font-medium text-natural-100">
+                      {dispute.newPm.name}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </SurfaceCard>
-        </div>
-      </div>
 
-      {/* ── Dialogs ────────────────────────────────────────────────────────────── */}
-      <DisputeApprovalDialog
-        open={approvalDialogOpen}
-        onOpenChange={setApprovalDialogOpen}
-        disputeId={id}
-        disputeTitle={dispute.title}
-        mode="approve"
-        onSuccess={refetch}
-      />
-
-      <DisputeApprovalDialog
-        open={rejectDialogOpen}
-        onOpenChange={setRejectDialogOpen}
-        disputeId={id}
-        disputeTitle={dispute.title}
-        mode="reject"
-        onSuccess={refetch}
-      />
-
-      <PmChangeDialog
-        open={pmChangeDialogOpen}
-        onOpenChange={setPmChangeDialogOpen}
-        disputeId={id}
-        disputeTitle={dispute.title}
-        currentPmId={dispute.pm.id}
-        currentPmName={dispute.pm.name}
-        projectName={dispute.project.name}
-        onSuccess={refetch}
-      />
-
-      <Dialog
-        open={closeDialogOpen}
-        onOpenChange={setCloseDialogOpen}
-        title="إغلاق التذكرة"
-        description={`التذكرة: ${dispute.title}`}
-        footer={
-          <>
-            <Button
-              variant="outline"
-              onClick={() => setCloseDialogOpen(false)}
-              disabled={isClosing}
-            >
-              إلغاء
-            </Button>
-            <Button
-              onClick={handleClose}
-              disabled={isClosing || closeResolution.trim().length < 10}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isClosing ? "جارٍ..." : "إغلاق التذكرة"}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-natural-100">
-              قرار الحل <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              className="w-full min-h-[120px] rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-secondary-500 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 resize-none"
-              placeholder="اشرح سبب إغلاق التذكرة..."
-              value={closeResolution}
-              onChange={(e) => setCloseResolution(e.target.value)}
-              dir="rtl"
-            />
-            <p className="text-xs text-portal-note-text">
-              {closeResolution.trim().length}/10 أحرف على الأقل
-            </p>
-          </div>
-        </div>
-      </Dialog>
-    </div>
-  );
-}
-
-function DisputeDetailSkeleton() {
-  return (
-    <div className="flex flex-col gap-5" dir="rtl">
-      <Skeleton className="h-8 w-24 rounded-lg" />
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-48 rounded-lg" />
-        <Skeleton className="h-10 w-full max-w-md rounded-lg" />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <Skeleton className="h-32 rounded-[24px]" />
-          <Skeleton className="h-24 rounded-[24px]" />
-          <Skeleton className="h-64 rounded-[24px]" />
-        </div>
-        <div className="space-y-4">
-          <Skeleton className="h-48 rounded-[24px]" />
-          <Skeleton className="h-24 rounded-[24px]" />
+          {/* Timeline summary */}
+          <SurfaceCard title="الجدول الزمني">
+            <div className="space-y-3">
+              {[
+                { label: "تاريخ الفتح", value: dispute.openedAt },
+                { label: "تمت الموافقة", value: dispute.approvedAt },
+                { label: "تاريخ الحل", value: dispute.resolvedAt },
+                { label: "تاريخ الإغلاق", value: dispute.closedAt },
+              ].map(
+                (item) =>
+                  item.value && (
+                    <div
+                      key={item.label}
+                      className="flex items-center justify-between p-2"
+                    >
+                      <span className="text-xs text-portal-note-text">
+                        {item.label}
+                      </span>
+                      <span className="text-xs font-medium text-natural-100">
+                        {formatDate(item.value)}
+                      </span>
+                    </div>
+                  ),
+              )}
+            </div>
+          </SurfaceCard>
         </div>
       </div>
     </div>

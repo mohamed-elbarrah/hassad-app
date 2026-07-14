@@ -15,8 +15,6 @@ import { salesApi } from "@/features/sales/salesApi";
 import { financeApi } from "@/features/finance/financeApi";
 
 import { deliverablesApi } from "@/features/deliverables/deliverablesApi";
-import { adminApi } from "@/features/admin/adminApi";
-import { adminClientsApi } from "@/features/admin/adminClientsApi";
 import { marketingApi } from "@/features/marketing/marketingApi";
 import { portalApi } from "@/features/portal/portalApi";
 import { portalNotificationsApi } from "@/features/portal-notifications/portalNotificationsApi";
@@ -28,9 +26,20 @@ import { rolesApi } from "@/features/roles/rolesApi";
 import { permissionsApi } from "@/features/permissions/permissionsApi";
 import notificationsReducer from "@/features/notifications/notificationsSlice";
 import { healthApi } from "@/features/health/healthApi";
+import { adminApi } from "@/features/admin/adminApi";
+import { adminUsersApi } from "@/features/admin/adminUsersApi";
+import { adminProjectsApi } from "@/features/admin/adminProjectsApi";
+import { adminTasksApi } from "@/features/admin/adminTasksApi";
+import { adminContractsApi } from "@/features/admin/adminContractsApi";
+import { adminRequestsApi } from "@/features/admin/adminRequestsApi";
+import { adminLeadsApi } from "@/features/admin/adminLeadsApi";
+import { adminDisputesApi } from "@/features/admin/adminDisputesApi";
+import { adminClientsApi } from "@/features/admin/adminClientsApi";
+import { adminProposalsApi } from "@/features/admin/adminProposalsApi";
+import { adminFinanceApi } from "@/features/admin/adminFinanceApi";
+import { adminReportsApi } from "@/features/admin/adminReportsApi";
 import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
-import { adminDisputesApi } from "@/features/disputes/adminDisputesApi";
 import { notificationTemplatesApi } from "@/features/notification-templates/notificationTemplatesApi";
 import { intakeFormApi } from "@/features/intakeForm/intakeFormApi";
 
@@ -52,8 +61,6 @@ export const store = configureStore({
     [financeApi.reducerPath]: financeApi.reducer,
 
     [deliverablesApi.reducerPath]: deliverablesApi.reducer,
-    [adminApi.reducerPath]: adminApi.reducer,
-    [adminClientsApi.reducerPath]: adminClientsApi.reducer,
     [marketingApi.reducerPath]: marketingApi.reducer,
     [portalApi.reducerPath]: portalApi.reducer,
     [portalNotificationsApi.reducerPath]: portalNotificationsApi.reducer,
@@ -65,8 +72,19 @@ export const store = configureStore({
     [permissionsApi.reducerPath]: permissionsApi.reducer,
     [healthApi.reducerPath]: healthApi.reducer,
     [periodsApi.reducerPath]: periodsApi.reducer,
-    [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
+    [adminApi.reducerPath]: adminApi.reducer,
+    [adminUsersApi.reducerPath]: adminUsersApi.reducer,
+    [adminProjectsApi.reducerPath]: adminProjectsApi.reducer,
+    [adminTasksApi.reducerPath]: adminTasksApi.reducer,
+    [adminContractsApi.reducerPath]: adminContractsApi.reducer,
+    [adminRequestsApi.reducerPath]: adminRequestsApi.reducer,
+    [adminLeadsApi.reducerPath]: adminLeadsApi.reducer,
     [adminDisputesApi.reducerPath]: adminDisputesApi.reducer,
+    [adminClientsApi.reducerPath]: adminClientsApi.reducer,
+    [adminProposalsApi.reducerPath]: adminProposalsApi.reducer,
+    [adminFinanceApi.reducerPath]: adminFinanceApi.reducer,
+    [adminReportsApi.reducerPath]: adminReportsApi.reducer,
+    [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
     [notificationTemplatesApi.reducerPath]: notificationTemplatesApi.reducer,
     [intakeFormApi.reducerPath]: intakeFormApi.reducer,
   },
@@ -86,8 +104,6 @@ export const store = configureStore({
       financeApi.middleware,
 
       deliverablesApi.middleware,
-      adminApi.middleware,
-      adminClientsApi.middleware,
       marketingApi.middleware,
       portalApi.middleware,
       portalNotificationsApi.middleware,
@@ -98,9 +114,20 @@ export const store = configureStore({
       rolesApi.middleware,
       permissionsApi.middleware,
       healthApi.middleware,
+      adminApi.middleware,
+      adminUsersApi.middleware,
+      adminProjectsApi.middleware,
+      adminTasksApi.middleware,
+      adminContractsApi.middleware,
+      adminRequestsApi.middleware,
+      adminLeadsApi.middleware,
+      adminDisputesApi.middleware,
+      adminClientsApi.middleware,
+      adminProposalsApi.middleware,
+      adminFinanceApi.middleware,
+      adminReportsApi.middleware,
       periodsApi.middleware,
       pmDisputesApi.middleware,
-      adminDisputesApi.middleware,
       notificationTemplatesApi.middleware,
       intakeFormApi.middleware,
     ];

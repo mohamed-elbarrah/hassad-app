@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 @Injectable()
@@ -99,7 +103,9 @@ export class AdminProposalsService {
 
     const clientId = proposal.clientId ?? proposal.lead?.client?.id;
     if (!clientId) {
-      throw new BadRequestException("يجب أن يكون للعميل عميل مرتبط لتحويل العرض إلى عقد");
+      throw new BadRequestException(
+        "يجب أن يكون للعميل عميل مرتبط لتحويل العرض إلى عقد",
+      );
     }
 
     const contract = await this.prisma.$transaction(async (tx) => {

@@ -3,10 +3,14 @@ import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { PrismaModule } from "../../prisma/prisma.module";
 import { FinanceModule } from "../finance/finance.module";
+import { PaymentsModule } from "../payments/payments.module";
+import { NotificationsModule } from "../notifications/notifications.module";
+import { AiModule } from "../ai/ai.module";
 import { TerminusModule } from "@nestjs/terminus";
 
 import { AdminController } from "./controllers/admin.controller";
 import { AdminAuditController } from "./controllers/admin-audit.controller";
+import { AdminKpiController } from "./controllers/admin-kpi.controller";
 import { AdminSettingsController } from "./controllers/admin-settings.controller";
 import { AdminUsersController } from "./controllers/admin-users.controller";
 import { AdminSessionsController } from "./controllers/admin-sessions.controller";
@@ -30,11 +34,15 @@ import { AdminBackupsController } from "./controllers/admin-backups.controller";
 import { AdminReportsController } from "./controllers/admin-reports.controller";
 import { AdminDashboardController } from "./controllers/admin-dashboard.controller";
 import { AdminNotificationTemplatesController } from "./controllers/admin-notification-templates.controller";
+import { AdminSystemEventsController } from "./controllers/admin-system-events.controller";
 import { AdminTeamController } from "./controllers/admin-team.controller";
 import { AdminDeliverablesController } from "./controllers/admin-deliverables.controller";
 import { AdminMarketingController } from "./controllers/admin-marketing.controller";
 import { AdminIntakeFormsController } from "./controllers/admin-intake-forms.controller";
+import { AdminBusinessGoalController } from "./controllers/admin-business-goal.controller";
 
+import { AdminActionLogService } from "./services/admin-action-log.service";
+import { AdminKpiService } from "./services/admin-kpi.service";
 import { AdminService } from "./services/admin.service";
 import { AdminAuditService } from "./services/admin-audit.service";
 import { AdminSettingsService } from "./services/admin-settings.service";
@@ -62,7 +70,11 @@ import { AdminDeliverablesService } from "./services/admin-deliverables.service"
 import { AdminReportsService } from "./services/admin-reports.service";
 import { AdminDashboardService } from "./services/admin-dashboard.service";
 import { AdminNotificationTemplatesService } from "./services/admin-notification-templates.service";
+import { AdminSystemEventsService } from "./services/admin-system-events.service";
+import { AdminAlertService } from "./services/admin-alert.service";
+import { AdminAlertScheduler } from "./schedulers/admin-alert.scheduler";
 import { AdminMarketingService } from "./services/admin-marketing.service";
+import { AdminBusinessGoalService } from "./services/admin-business-goal.service";
 
 import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
@@ -72,6 +84,9 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
   imports: [
     PrismaModule,
     FinanceModule,
+    PaymentsModule,
+    NotificationsModule,
+    AiModule,
     TerminusModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -87,6 +102,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
   ],
   controllers: [
     AdminController,
+    AdminKpiController,
     AdminAuditController,
     AdminSettingsController,
     AdminUsersController,
@@ -109,14 +125,18 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminEnvironmentController,
     AdminBackupsController,
     AdminTeamController,
+    AdminSystemEventsController,
     AdminDeliverablesController,
     AdminMarketingController,
+    AdminBusinessGoalController,
     AdminIntakeFormsController,
     AdminReportsController,
     AdminDashboardController,
     AdminNotificationTemplatesController,
   ],
   providers: [
+    AdminActionLogService,
+    AdminKpiService,
     AdminService,
     AdminAuditService,
     AdminSettingsService,
@@ -142,6 +162,10 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminTeamService,
     AdminDeliverablesService,
     AdminMarketingService,
+    AdminBusinessGoalService,
+    AdminSystemEventsService,
+    AdminAlertService,
+    AdminAlertScheduler,
     AdminReportsService,
     AdminDashboardService,
     AdminNotificationTemplatesService,
@@ -150,6 +174,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     RobustErrorLoggerService,
   ],
   exports: [
+    AdminActionLogService,
     AdminAuditService,
     AdminSettingsService,
     AdminUsersService,

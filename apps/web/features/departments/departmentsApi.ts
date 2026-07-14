@@ -45,13 +45,19 @@ export const departmentsApi = createApi({
       invalidatesTags: [{ type: "Department", id: "LIST" }],
     }),
 
-    updateDepartment: builder.mutation<Department, { id: string; body: Partial<CreateDepartmentInput> }>({
+    updateDepartment: builder.mutation<
+      Department,
+      { id: string; body: Partial<CreateDepartmentInput> }
+    >({
       query: ({ id, body }) => ({
         url: `/departments/${id}`,
         method: "PATCH",
         body,
       }),
-      invalidatesTags: (_r, _e, { id }) => [{ type: "Department", id }, { type: "Department", id: "LIST" }],
+      invalidatesTags: (_r, _e, { id }) => [
+        { type: "Department", id },
+        { type: "Department", id: "LIST" },
+      ],
     }),
 
     deleteDepartment: builder.mutation<void, string>({

@@ -1,6 +1,10 @@
 "use client";
+
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Sparkline } from "@/components/dashboard/admin/overview/Sparkline";
+import { Pill, type PillTone } from "@/components/design-system/Pill";
 
 export interface StatCardProps {
   title: string;
@@ -9,7 +13,13 @@ export interface StatCardProps {
   variant?: "default" | "success" | "warning" | "danger";
   trend?: "up" | "down" | "neutral";
   trendValue?: string;
+  description?: string;
   extra?: React.ReactNode;
+  sparklineData?: number[];
+  sparklineColor?: string;
+  href?: string;
+  onClick?: () => void;
+  pill?: { text: string; tone: PillTone };
   className?: string;
 }
 
@@ -26,26 +36,30 @@ const trendColors = {
   neutral: "text-neutral-300",
 };
 
-export function StatCard({
+function StatCardInner({
   title,
   value,
   icon: Icon,
-  variant = "default",
+  variant,
   trend,
   trendValue,
+  description,
   extra,
+  sparklineData,
+  sparklineColor,
+  pill: pillProp,
   className,
 }: StatCardProps) {
   return (
     <div
       className={cn(
-        "rounded-[30px] border-[1.5px] p-5",
-        variantClasses[variant],
+        "rounded-[30px] border-[1.5px] p-5 transition-shadow hover:shadow-sm",
+        variantClasses[variant ?? "default"],
         className,
       )}
     >
       <div className="flex items-start justify-between">
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-1.5">
           <p className="text-sm text-neutral-300">{title}</p>
           <p className="text-2xl font-semibold text-natural-100">{value}</p>
           {trend && (
@@ -53,12 +67,46 @@ export function StatCard({
               {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"} {trendValue}
             </p>
           )}
+          {description && !trend && (
+            <p className="text-xs text-portal-note-text">{description}</p>
+          )}
         </div>
-        <div className="flex flex-col items-end gap-2">
-          {Icon && <Icon className="h-5 w-5 text-secondary-500" />}
-          {extra}
+
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          {sparklineData && (
+            <Sparkline data={sparklineData} color={sparklineColor} />
+          )}
+          <div className="flex items-center gap-2">
+            {pillProp && <Pill tone={pillProp.tone}>{pillProp.text}</Pill>}
+            {Icon && <Icon className="h-5 w-5 text-secondary-500" />}
+            {extra}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+export function StatCard(props: StatCardProps) {
+  if (props.href) {
+    return (
+      <Link href={props.href} className="block" onClick={props.onClick}>
+        <StatCardInner {...props} />
+      </Link>
+    );
+  }
+
+  if (props.onClick) {
+    return (
+      <button
+        type="button"
+        onClick={props.onClick}
+        className="block w-full text-right"
+      >
+        <StatCardInner {...props} />
+      </button>
+    );
+  }
+
+  return <StatCardInner {...props} />;
 }

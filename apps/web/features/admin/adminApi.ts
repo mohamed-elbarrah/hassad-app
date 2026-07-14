@@ -1,7 +1,21 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 
-// ── Existing types ────────────────────────────────────────────────────────────
+export interface AdminStatsDeltas {
+  totalUsers: number | null;
+  activeClients: number | null;
+  newClientsThisMonth: number | null;
+  activeProjects: number | null;
+  completedProjects: number | null;
+  totalTasks: number | null;
+  overdueTasks: number | null;
+  monthlyRevenue: number | null;
+  unpaidInvoicesCount: number | null;
+  totalInvoices: number | null;
+  pendingRequests: number | null;
+  retentionRate: number | null;
+  churnRate: number | null;
+}
 
 export interface AdminStats {
   totalUsers: number;
@@ -21,227 +35,22 @@ export interface AdminStats {
   pendingRequests: number;
   activeCampaigns: number;
   conversationsCount: number;
-  satisfactionRate: number;
+  satisfactionRate: number | null;
+  retentionRate: number;
+  churnRate: number;
+  deltas: AdminStatsDeltas;
 }
 
-export interface SystemHealth {
-  status: string;
-  database: string;
-  recentErrors: number;
-  activeUsersLastHour: number;
-  pendingWebhooks: number;
-  uptime: number;
-  memoryUsage: number;
-  timestamp: string;
-}
-
-export interface AuditLogEntry {
-  id: string;
-  action: string;
-  entity: string;
-  entityId: string;
-  userId: string | null;
-  userName: string | null;
-  userEmail: string | null;
-  userRole: string | null;
-  before: any;
-  after: any;
-  metadata: any;
-  createdAt: string;
-}
-
-export interface AuditStats {
-  total: number;
-  topActions: Array<{ action: string; count: number }>;
-  topUsers: Array<{ userId: string; userName: string; count: number }>;
-}
-
-export interface PaginatedAuditLog {
-  items: AuditLogEntry[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface AuditLogFilters {
-  userId?: string;
-  action?: string;
-  entity?: string;
-  entityId?: string;
-  search?: string;
-  from?: string;
-  to?: string;
-  page?: number;
-  limit?: number;
-}
-
-export interface AuditFilterOptions {
-  actions: string[];
-  entities: string[];
-  users: Array<{ id: string; name: string }>;
-}
-
-export interface AdminSettings {
-  [key: string]: any;
-}
-
-// ── New admin user types ───────────────────────────────────────────────────────
-
-export interface AdminUserDetail {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  isActive: boolean;
-  department: string | null;
-  phoneWhatsapp: string | null;
-  avatarUrl: string | null;
-  lastLoginAt: string | null;
-  twoFactorEnabled: boolean;
-  failedLoginAttempts: number;
-  lockedUntil: string | null;
-  activeRequestsCount: number;
-  activeTasksCount: number;
-  activeProjectsCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PaginatedAdminUsers {
-  items: AdminUserDetail[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface AdminUserFilters {
-  search?: string;
-  role?: string;
-  excludeRole?: string;
-  department?: string;
-  status?: "active" | "inactive";
-  page?: number;
-  limit?: number;
-}
-
-export interface BulkUserAction {
-  userIds: string[];
-  action:
-    | "activate"
-    | "deactivate"
-    | "changeRole"
-    | "reassignDepartment"
-    | "export";
-  value?: string;
-}
-
-export interface BulkUserActionResult {
-  affected: number;
-  failed: string[];
-}
-
-export interface ImpersonationResult {
-  token: string;
-  expiresAt: string;
-}
-
-export interface PasswordResetResult {
-  temporaryPassword: string;
-}
-
-export interface UserActivityEntry {
-  id: string;
-  action: string;
-  entity: string;
-  entityId: string;
-  before: any;
-  after: any;
-  metadata: any;
-  createdAt: string;
-}
-
-export interface PaginatedUserActivity {
-  items: UserActivityEntry[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface UserPerformance {
-  activeTasksCount: number;
-  workloadStatus: "AVAILABLE" | "BUSY" | "OVERLOADED";
-  avgCompletionSpeedDays: number;
-  avgQualityScore: number;
-}
-
-// ── Session types ─────────────────────────────────────────────────────────────
-
-export interface AdminSession {
-  id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userAgent: string | null;
-  ip: string | null;
-  createdAt: string;
-  expiresAt: string;
-  isActive: boolean;
-}
-
-export interface PaginatedSessions {
-  items: AdminSession[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-// ── Security event types ──────────────────────────────────────────────────────
-
-export interface SecurityEvent {
-  id: string;
-  userId: string | null;
-  userName: string | null;
-  userEmail: string | null;
-  type: string;
-  ip: string | null;
-  userAgent: string | null;
-  metadata: any;
-  createdAt: string;
-}
-
-export interface PaginatedSecurityEvents {
-  items: SecurityEvent[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface SecurityStats {
-  totalEvents: number;
-  failedLogins24h: number;
-  impersonations7d: number;
-  passwordResets7d: number;
-  activeSessions: number;
-  twoFactorEnabled: number;
-}
-
-// ── Command Center types ───────────────────────────────────────────────────────
-
-export interface TrendData {
+export interface AdminTrendsResponse {
+  labels: string[];
   revenue: number[];
   newUsers: number[];
   newClients: number[];
   newProjects: number[];
   tasksCompleted: number[];
-  labels: string[];
 }
 
-export interface FunnelData {
+export interface AdminFunnel {
   leads: number;
   clients: number;
   proposals: number;
@@ -257,221 +66,112 @@ export interface FunnelData {
     projectsToInvoices: number;
     invoicesToPayments: number;
   };
+  contractStatusDistribution: Record<string, number>;
 }
 
-export interface AlertItemBase {
+export interface AdminAlertOverdueTaskItem {
+  id: string;
+  title: string;
+  dueDate: string | null;
+  assignee: string | null;
+}
+
+export interface AdminAlertAgedInvoiceItem {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  dueDate: string | null;
+  clientName: string | null;
+}
+
+export interface AdminAlertEscalatedDisputeItem {
+  id: string;
+  ticketNumber: string;
+  title: string;
+  priority: string;
+}
+
+export interface AdminAlertExpiringContractItem {
+  id: string;
+  title: string;
+  endDate: string | null;
+  clientName: string | null;
+}
+
+export interface AdminAlertPendingRequestItem {
+  id: string;
+  companyName: string;
+  contactName: string;
+  createdAt: string;
+}
+
+export interface AdminAlertCategory {
   count: number;
   label: string;
   link: string;
+  items: (
+    | AdminAlertOverdueTaskItem
+    | AdminAlertAgedInvoiceItem
+    | AdminAlertEscalatedDisputeItem
+    | AdminAlertExpiringContractItem
+    | AdminAlertPendingRequestItem
+  )[];
 }
 
-export interface AlertItem extends AlertItemBase {
-  items?: any[];
+export interface AdminAlertsResponse {
+  overdueTasks: {
+    count: number;
+    label: string;
+    link: string;
+    items: AdminAlertOverdueTaskItem[];
+  };
+  agedInvoices: {
+    count: number;
+    label: string;
+    link: string;
+    items: AdminAlertAgedInvoiceItem[];
+  };
+  escalatedDisputes: {
+    count: number;
+    label: string;
+    link: string;
+    items: AdminAlertEscalatedDisputeItem[];
+  };
+  failedWebhooks: {
+    count: number;
+    label: string;
+    link: string;
+    items: never[];
+  };
+  expiringContracts: {
+    count: number;
+    label: string;
+    link: string;
+    items: AdminAlertExpiringContractItem[];
+  };
+  pendingRequests: {
+    count: number;
+    label: string;
+    link: string;
+    items: AdminAlertPendingRequestItem[];
+  };
 }
 
-export interface AlertsData {
-  overdueTasks: AlertItem;
-  agedInvoices: AlertItem;
-  escalatedDisputes: AlertItem;
-  failedWebhooks: AlertItem;
-  expiringContracts: AlertItem;
-  pendingRequests: AlertItem;
-}
-
-// ── Business Operations types ─────────────────────────────────────────────────
-
-export interface ProjectRow {
+export interface AdminRecentActivity {
   id: string;
-  name: string;
-  clientName: string;
-  pmId: string | null;
-  pmName: string;
-  status: string;
-  completionPercentage: number;
-  overdueTasksCount: number;
-  priority: string | null;
-  totalValue: number;
-  startDate: string | null;
-  endDate: string | null;
-  createdAt: string;
-  isBehindSchedule: boolean;
-  remainingValue: number;
-}
-export interface PaginatedProjects {
-  items: ProjectRow[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface TaskRow {
-  id: string;
-  title: string;
-  projectName: string;
-  assigneeId: string | null;
-  assigneeName: string;
-  department: string | null;
-  status: string;
-  priority: string | null;
-  dueDate: string | null;
-  isOverdue: boolean;
-  revisionCount: number;
-  createdAt: string;
-}
-export interface PaginatedTasks {
-  items: TaskRow[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface ContractRow {
-  id: string;
-  title: string;
-  clientName: string;
-  type: string;
-  status: string;
-  monthlyValue: number;
-  totalValue: number;
-  currency: string;
-  startDate: string | null;
-  endDate: string | null;
-  versionNumber: number;
-  eSigned: boolean;
-  pendingRenewalAlerts: number;
-  invoiceCount: number;
+  action: string;
+  entity: string;
+  entityId: string;
+  userId: string;
+  userName: string | null;
+  userEmail: string | null;
+  before: unknown | null;
+  after: unknown | null;
+  metadata: unknown | null;
   createdAt: string;
 }
-export interface PaginatedContracts {
-  items: ContractRow[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
 
-export interface LeadRow {
-  id: string;
-  companyName: string;
-  contactName: string;
-  email: string | null;
-  phone: string | null;
-  assigneeId: string | null;
-  assigneeName: string;
-  pipelineStage: string;
-  source: string | null;
-  businessType: string | null;
-  contactAttemptCount: number;
-  lastContactAt: string | null;
-  createdAt: string;
-  potentialValue: number | null;
-  daysSinceLastContact: number | null;
-  hasProposal: boolean;
-}
-export interface PaginatedLeads {
-  items: LeadRow[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-export interface LeadStats {
-  byStage: { stage: string; count: number }[];
-  bySource: { source: string; count: number }[];
-  conversionRate: number;
-}
-
-export interface RequestRow {
-  id: string;
-  clientName: string;
-  assigneeId: string | null;
-  assigneeName: string;
-  status: string;
-  servicesCount: number;
-  ageDays: number;
-  createdAt: string;
-}
-export interface PaginatedRequests {
-  items: RequestRow[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface CampaignRow {
-  id: string;
-  name: string;
-  clientName: string;
-  managedById: string | null;
-  managedByName: string;
-  platform: string | null;
-  status: string;
-  budgetTotal: number;
-  budgetSpent: number;
-  isOverspent: boolean;
-  startDate: string | null;
-  endDate: string | null;
-  createdAt: string;
-}
-export interface PaginatedCampaigns {
-  items: CampaignRow[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface ConversationRow {
-  id: string;
-  participants: { id: string; name: string }[];
-  lastMessageAt: string | null;
-  lastMessageContent: string | null;
-  messageCount: number;
-  isActive: boolean;
-  isStale: boolean;
-  createdAt: string;
-}
-export interface PaginatedConversations {
-  items: ConversationRow[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface PortalClientRow {
-  id: string;
-  companyName: string;
-  contactName: string;
-  status: string;
-  hasPortalAccess: boolean;
-  lastLoginAt: string | null;
-  intakeCompleted: boolean;
-  pendingApprovalsCount: number;
-  createdAt: string;
-}
-export interface PaginatedPortalClients {
-  items: PortalClientRow[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-export interface PortalOverview {
-  totalClients: number;
-  activeClients: number;
-  idleClients: number;
-  pendingApprovals: number;
-  pendingRevisions: number;
-  unsubmittedIntakeForms: number;
-  snoozedItemsCount: number;
-  activeTokens: number;
-}
-
-export interface RecentActivityEntry {
+export interface AdminRecentActivityEntry {
   id: string;
   entityType: string;
   eventType: string;
@@ -480,65 +180,377 @@ export interface RecentActivityEntry {
   actorName: string | null;
 }
 
-// ── API slice ─────────────────────────────────────────────────────────────────
+export interface AdminHealthInfo {
+  status: "healthy" | "degraded";
+  database: "connected" | "disconnected";
+  recentErrors: number;
+  activeUsersLastHour: number;
+  pendingWebhooks: number;
+  uptime: number;
+  memoryUsage: number;
+  timestamp: string;
+  overallScore: number;
+  services: Array<{ name: string; status: string; responseTime: number }>;
+  unresolvedErrors: number;
+}
+
+export interface AdminAttentionStalledProject {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  client: { id: string; companyName: string };
+}
+
+export interface AdminAttentionNewRequest {
+  id: string;
+  companyName: string;
+  contactName: string;
+  status: string;
+  createdAt: string;
+  client: { id: string; companyName: string } | null;
+}
+
+export interface AdminAttentionOpenDispute {
+  id: string;
+  ticketNumber: string;
+  title: string;
+  status: string;
+  escalatedAt: string | null;
+  openedAt: string;
+  client: { id: string; companyName: string } | null;
+}
+
+export interface AdminAttentionOverdueInvoice {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  status: string;
+  dueDate: string;
+  client: { id: string; companyName: string } | null;
+}
+
+export interface AdminAttentionUnacknowledgedAlert {
+  id: string;
+  alertLevel: string;
+  triggeredAt: string;
+  task: { id: string; title: string };
+  user: { id: string; name: string };
+}
+
+export interface AiProvider {
+  id: string;
+  name: string;
+  displayName: string | null;
+  baseUrl: string | null;
+  apiKey: string;
+  models: string[];
+  priority: number;
+  isActive: boolean;
+  requestsPerMinute: number | null;
+  tokensPerMinute: number | null;
+  maxTokens: number | null;
+  temperature: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAiProviderDto {
+  name: string;
+  displayName?: string;
+  baseUrl?: string;
+  apiKey: string;
+  models?: string[];
+  priority?: number;
+  isActive?: boolean;
+  requestsPerMinute?: number;
+  tokensPerMinute?: number;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface FetchModelsDto {
+  name: string;
+  apiKey: string;
+  baseUrl?: string;
+}
+
+export interface UpdateAiProviderDto {
+  displayName?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  models?: string[];
+  priority?: number;
+  isActive?: boolean;
+  requestsPerMinute?: number;
+  tokensPerMinute?: number;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface AdminBusinessGoal {
+  id: string;
+  metric: string;
+  target: number;
+  current: number;
+  period: string;
+  periodStart: string;
+  periodEnd: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBusinessGoalDto {
+  metric: string;
+  target: number;
+  current?: number;
+  period?: string;
+  periodStart: string;
+  periodEnd: string;
+}
+
+export interface UpdateBusinessGoalDto {
+  metric?: string;
+  target?: number;
+  current?: number;
+  period?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  isActive?: boolean;
+}
+
+export interface AdminAttentionResponse {
+  stalledProjects: AdminAttentionStalledProject[];
+  newRequests: AdminAttentionNewRequest[];
+  openDisputes: AdminAttentionOpenDispute[];
+  overdueInvoices: AdminAttentionOverdueInvoice[];
+  unacknowledgedAlerts: AdminAttentionUnacknowledgedAlert[];
+}
+
+export interface AdminDashboardWorkloadMember {
+  userId: string;
+  userName: string | null;
+  userEmail: string | null;
+  activeTasksCount: number;
+  workloadStatus: string;
+  avgCompletionSpeedDays: number | null;
+  avgQualityScore: number | null;
+}
+
+export interface AdminDashboardTeamWorkload {
+  summary: {
+    total: number;
+    byStatus: Array<{ status: string; count: number }>;
+  };
+  members: AdminDashboardWorkloadMember[];
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  actionAr: string | null;
+  entity: string;
+  entityAr: string | null;
+  entityId: string;
+  userId: string | null;
+  userName: string | null;
+  userEmail: string | null;
+  userRole: string | null;
+  before: unknown;
+  after: unknown;
+  metadata: unknown;
+  createdAt: string;
+}
+
+export interface AuditLogFilters {
+  actions: string[];
+  entityTypes: string[];
+}
+
+export interface PaginatedAuditLog {
+  items: AuditLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface AuditLogSearchParams {
+  action?: string;
+  entity?: string;
+  userId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  from?: string;
+  to?: string;
+}
+
+export interface AdminAiInsightEntry {
+  id: string;
+  entityType: string;
+  entityId: string;
+  analysisType: string;
+  summary: string;
+  score: number | null;
+  recommendations: string[];
+  triggeredBy: string | null;
+  createdAt: string;
+}
+
+export interface AdminAiInsights {
+  recentAnalyses: AdminAiInsightEntry[];
+  pendingSuggestions: number;
+}
 
 export const adminApi = createApi({
   reducerPath: "adminApi",
   baseQuery,
   tagTypes: [
     "AdminStats",
-    "AdminSettings",
+    "AdminTrends",
+    "AdminFunnel",
+    "AdminAlerts",
+    "AdminActivity",
+    "AdminHealth",
+    "AdminAttention",
+    "AdminWorkload",
     "AuditLog",
-    "AdminUsers",
-    "AdminUser",
-    "AdminSessions",
-    "AdminSecurity",
-    "NotificationTemplates",
-    "MarketingStrategies",
+    "AuditFilters",
+    "AdminSettings",
+    "AdminIntegrations",
+    "AdminBusinessGoals",
+    "AdminAiInsights",
+    "AiProviders",
   ],
   endpoints: (builder) => ({
-    // ── Existing endpoints ──────────────────────────────────────────────────
-
-    getAdminStats: builder.query<AdminStats, void>({
-      query: () => "/admin/stats",
+    getAdminStats: builder.query<
+      AdminStats,
+      { from?: string; to?: string } | void
+    >({
+      query: (params) => {
+        if (!params) return "/admin/stats";
+        const sp = new URLSearchParams();
+        if (params.from) sp.set("from", params.from);
+        if (params.to) sp.set("to", params.to);
+        return `/admin/stats?${sp.toString()}`;
+      },
       providesTags: ["AdminStats"],
     }),
 
-    getHealth: builder.query<SystemHealth, void>({
-      query: () => "/admin/health",
+    getAdminTrends: builder.query<
+      AdminTrendsResponse,
+      { from?: string; to?: string; days?: number } | void
+    >({
+      query: (params) => {
+        if (!params) return "/admin/stats/trends";
+        const sp = new URLSearchParams();
+        if (params.from) sp.set("from", params.from);
+        if (params.to) sp.set("to", params.to);
+        if (params.days) sp.set("days", String(params.days));
+        return `/admin/stats/trends?${sp.toString()}`;
+      },
+      providesTags: ["AdminTrends"],
     }),
 
-    getAuditLog: builder.query<PaginatedAuditLog, AuditLogFilters>({
-      query: (filters) => {
-        const params = new URLSearchParams();
-        if (filters.userId) params.set("userId", filters.userId);
-        if (filters.action) params.set("action", filters.action);
-        if (filters.entity) params.set("entity", filters.entity);
-        if (filters.entityId) params.set("entityId", filters.entityId);
-        if (filters.search) params.set("search", filters.search);
-        if (filters.from) params.set("from", filters.from);
-        if (filters.to) params.set("to", filters.to);
-        if (filters.page) params.set("page", String(filters.page));
-        if (filters.limit) params.set("limit", String(filters.limit));
-        return `/admin/audit-log?${params.toString()}`;
+    getAdminFunnel: builder.query<
+      AdminFunnel,
+      { from?: string; to?: string } | void
+    >({
+      query: (params) => {
+        if (!params) return "/admin/funnel";
+        const sp = new URLSearchParams();
+        if (params.from) sp.set("from", params.from);
+        if (params.to) sp.set("to", params.to);
+        return `/admin/funnel?${sp.toString()}`;
+      },
+      providesTags: ["AdminFunnel"],
+    }),
+
+    getAdminAlerts: builder.query<AdminAlertsResponse, void>({
+      query: () => "/admin/alerts",
+      providesTags: ["AdminAlerts"],
+    }),
+
+    getAdminRecentActivity: builder.query<AdminRecentActivityEntry[], void>({
+      query: () => "/admin/recent-activity",
+      providesTags: ["AdminActivity"],
+    }),
+
+    getAdminHealth: builder.query<AdminHealthInfo, void>({
+      query: () => "/admin/health",
+      providesTags: ["AdminHealth"],
+    }),
+
+    getAdminAiInsights: builder.query<AdminAiInsights, void>({
+      query: () => "/admin/ai-insights",
+      providesTags: ["AdminAiInsights"],
+    }),
+
+    runAdminAiScan: builder.mutation<
+      { analyzed: number; failed: number },
+      void
+    >({
+      query: () => ({ url: "/admin/ai/scan", method: "POST" }),
+      invalidatesTags: ["AdminAiInsights"],
+    }),
+
+    getAdminDashboardAttention: builder.query<AdminAttentionResponse, void>({
+      query: () => "/admin/dashboard/attention",
+      providesTags: ["AdminAttention"],
+    }),
+
+    getAdminDashboardRecentActivity: builder.query<AdminRecentActivity[], void>(
+      {
+        query: () => "/admin/dashboard/recent-activity",
+        providesTags: ["AdminActivity"],
+      },
+    ),
+
+    getAdminDashboardTeamWorkload: builder.query<
+      AdminDashboardTeamWorkload,
+      void
+    >({
+      query: () => "/admin/dashboard/team-workload",
+      providesTags: ["AdminWorkload"],
+    }),
+
+    getAdminAuditLog: builder.query<
+      PaginatedAuditLog,
+      AuditLogSearchParams | void
+    >({
+      query: (params) => {
+        if (!params) return "/admin/audit-log";
+        const searchParams = new URLSearchParams();
+        if (params.action) searchParams.set("action", params.action);
+        if (params.entity) searchParams.set("entity", params.entity);
+        if (params.userId) searchParams.set("userId", params.userId);
+        if (params.search) searchParams.set("search", params.search);
+        if (params.page) searchParams.set("page", String(params.page));
+        if (params.limit) searchParams.set("limit", String(params.limit));
+        if (params.from) searchParams.set("from", params.from);
+        if (params.to) searchParams.set("to", params.to);
+        return `/admin/audit-log?${searchParams.toString()}`;
       },
       providesTags: ["AuditLog"],
     }),
 
-    getAdminAuditStats: builder.query<AuditStats, void>({
-      query: () => "/admin/audit-log/stats",
-    }),
-
-    getAuditFilters: builder.query<AuditFilterOptions, void>({
+    getAdminAuditLogFilters: builder.query<AuditLogFilters, void>({
       query: () => "/admin/audit-log/filters",
+      providesTags: ["AuditFilters"],
     }),
 
-    getAdminSettings: builder.query<AdminSettings, void>({
+    getAdminSettings: builder.query<Record<string, unknown>, void>({
       query: () => "/admin/settings",
       providesTags: ["AdminSettings"],
     }),
 
-    updateAdminSettings: builder.mutation<AdminSettings, Record<string, any>>({
+    updateAdminSettings: builder.mutation<
+      Record<string, unknown>,
+      Record<string, unknown>
+    >({
       query: (body) => ({
         url: "/admin/settings",
         method: "POST",
@@ -547,800 +559,187 @@ export const adminApi = createApi({
       invalidatesTags: ["AdminSettings"],
     }),
 
-    // ── Admin Users ─────────────────────────────────────────────────────────
-
-    searchAdminUsers: builder.query<PaginatedAdminUsers, AdminUserFilters>({
-      query: (filters) => ({
-        url: "/admin/users",
-        params: filters,
-      }),
-      providesTags: ["AdminUsers"],
-    }),
-
-    getAdminUser: builder.query<AdminUserDetail, string>({
-      query: (id) => `/admin/users/${id}`,
-      providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
-    }),
-
-    getUserActivity: builder.query<
-      PaginatedUserActivity,
-      { id: string; page?: number; limit?: number }
-    >({
-      query: ({ id, page, limit }) => ({
-        url: `/admin/users/${id}/activity`,
-        params: { page, limit },
-      }),
-    }),
-
-    bulkUserAction: builder.mutation<BulkUserActionResult, BulkUserAction>({
-      query: (body) => ({
-        url: "/admin/users/bulk",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["AdminUsers"],
-    }),
-
-    resetUserPassword: builder.mutation<PasswordResetResult, string>({
-      query: (id) => ({
-        url: `/admin/users/${id}/reset-password`,
-        method: "POST",
-      }),
-    }),
-
-    impersonateUser: builder.mutation<
-      ImpersonationResult,
-      { id: string; reason: string }
-    >({
-      query: ({ id, reason }) => ({
-        url: `/admin/users/${id}/impersonate`,
-        method: "POST",
-        body: { reason },
-      }),
-    }),
-
-    revokeUserSessions: builder.mutation<{ revokedCount: number }, string>({
-      query: (id) => ({
-        url: `/admin/users/${id}/revoke-sessions`,
-        method: "POST",
-      }),
-      invalidatesTags: ["AdminSessions"],
-    }),
-
-    setUserPermissions: builder.mutation<
-      { permissionIds: string[] },
-      { id: string; permissionIds: string[] }
-    >({
-      query: ({ id, permissionIds }) => ({
-        url: `/admin/users/${id}/permissions`,
-        method: "POST",
-        body: { permissionIds },
-      }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminUser", id }],
-    }),
-
-    createAdminUser: builder.mutation<
-      { id: string; name: string; email: string; role: string },
+    getAdminIntegrationsSyncStatus: builder.query<
       {
-        name: string;
-        email: string;
-        password: string;
-        role: string;
-        phoneWhatsapp?: string;
-        department?: string;
-      }
+        summary: {
+          total: number;
+          healthy: number;
+          degraded: number;
+          down: number;
+          unchecked: number;
+        };
+        items: Array<{
+          serviceName: string;
+          status: string;
+          responseTime: number | null;
+          lastCheckedAt: string;
+          lastError: string | null;
+          consecutiveFailures: number;
+          timeoutThreshold: number;
+          degradationThreshold: number;
+        }>;
+      },
+      void
     >({
-      query: (body) => ({
-        url: "/admin/users",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["AdminStats"],
+      query: () => "/admin/integrations/sync-status",
+      providesTags: ["AdminIntegrations"],
     }),
 
-    updateAdminUser: builder.mutation<
-      AdminUserDetail,
-      { id: string; body: { name?: string; email?: string; phoneWhatsapp?: string; password?: string } }
+    getAdminBusinessGoals: builder.query<AdminBusinessGoal[], string | void>({
+      query: (metric) =>
+        metric
+          ? `/admin/business-goals?metric=${metric}`
+          : "/admin/business-goals",
+      providesTags: ["AdminBusinessGoals"],
+    }),
+
+    getAdminBusinessGoal: builder.query<AdminBusinessGoal, string>({
+      query: (id) => `/admin/business-goals/${id}`,
+      providesTags: (_result, _error, id) => [
+        { type: "AdminBusinessGoals", id },
+      ],
+    }),
+
+    createAdminBusinessGoal: builder.mutation<
+      AdminBusinessGoal,
+      CreateBusinessGoalDto
+    >({
+      query: (body) => ({ url: "/admin/business-goals", method: "POST", body }),
+      invalidatesTags: ["AdminBusinessGoals"],
+    }),
+
+    updateAdminBusinessGoal: builder.mutation<
+      AdminBusinessGoal,
+      { id: string; body: UpdateBusinessGoalDto }
     >({
       query: ({ id, body }) => ({
-        url: `/admin/users/${id}`,
+        url: `/admin/business-goals/${id}`,
         method: "PATCH",
         body,
       }),
       invalidatesTags: (_result, _error, { id }) => [
-        { type: "AdminUser", id },
-        "AdminUsers",
+        "AdminBusinessGoals",
+        { type: "AdminBusinessGoals", id },
       ],
     }),
 
-    // ── Admin Sessions ──────────────────────────────────────────────────────
+    deleteAdminBusinessGoal: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/business-goals/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AdminBusinessGoals"],
+    }),
 
-    getAdminSessions: builder.query<
-      PaginatedSessions,
-      { userId?: string; page?: number; limit?: number }
+    // ── AI Providers ────────────────────────────────────────────────────
+
+    getAiProviders: builder.query<AiProvider[], void>({
+      query: () => "/admin/ai/providers",
+      providesTags: ["AiProviders"],
+    }),
+
+    getAiProvider: builder.query<AiProvider, string>({
+      query: (id) => `/admin/ai/providers/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "AiProviders", id }],
+    }),
+
+    createAiProvider: builder.mutation<AiProvider, CreateAiProviderDto>({
+      query: (body) => ({ url: "/admin/ai/providers", method: "POST", body }),
+      invalidatesTags: ["AiProviders"],
+    }),
+
+    updateAiProvider: builder.mutation<
+      AiProvider,
+      { id: string; body: UpdateAiProviderDto }
     >({
-      query: (params) => ({
-        url: "/admin/sessions",
-        params,
+      query: ({ id, body }) => ({
+        url: `/admin/ai/providers/${id}`,
+        method: "PATCH",
+        body,
       }),
-      providesTags: ["AdminSessions"],
+      invalidatesTags: (_result, _error, { id }) => [
+        "AiProviders",
+        { type: "AiProviders", id },
+      ],
     }),
 
-    revokeSession: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/admin/sessions/${id}/revoke`,
-        method: "POST",
-      }),
-      invalidatesTags: ["AdminSessions"],
+    deleteAiProvider: builder.mutation<void, string>({
+      query: (id) => ({ url: `/admin/ai/providers/${id}`, method: "DELETE" }),
+      invalidatesTags: ["AiProviders"],
     }),
 
-    // ── Admin Security ─────────────────────────────────────────────────────
-
-    getSecurityEvents: builder.query<
-      PaginatedSecurityEvents,
-      {
-        userId?: string;
-        type?: string;
-        from?: string;
-        to?: string;
-        page?: number;
-        limit?: number;
-      }
+    getAiProviderModels: builder.query<
+      { success: boolean; models: string[]; message?: string },
+      string
     >({
-      query: (params) => ({
-        url: "/admin/security/events",
-        params,
-      }),
-      providesTags: ["AdminSecurity"],
+      query: (id) => `/admin/ai/providers/${id}/models`,
+      providesTags: (_result, _error, id) => [{ type: "AiProviders", id }],
     }),
 
-    getSecurityStats: builder.query<SecurityStats, void>({
-      query: () => "/admin/security/stats",
-      providesTags: ["AdminSecurity"],
-    }),
-
-    // ── Command Center ────────────────────────────────────────────────────
-
-    getTrendData: builder.query<TrendData, { days?: number }>({
-      query: ({ days }) => ({
-        url: "/admin/stats/trends",
-        params: days ? { days } : undefined,
-      }),
-      providesTags: ["AdminStats"],
-    }),
-
-    getFunnelData: builder.query<FunnelData, void>({
-      query: () => "/admin/funnel",
-      providesTags: ["AdminStats"],
-    }),
-
-    getAlertsData: builder.query<AlertsData, void>({
-      query: () => "/admin/alerts",
-      providesTags: ["AdminStats"],
-    }),
-
-    getRecentActivity: builder.query<RecentActivityEntry[], void>({
-      query: () => "/admin/recent-activity",
-    }),
-
-    // ── Dashboard v2 endpoints ────────────────────────────────────────────
-
-    getAdminDashboardAttention: builder.query<any, void>({
-      query: () => "/admin/dashboard/attention",
-    }),
-
-    getAdminDashboardRecentActivity: builder.query<any, number>({
-      query: (limit) => `/admin/dashboard/recent-activity?limit=${limit}`,
-    }),
-
-    getAdminDashboardTeamWorkload: builder.query<any, void>({
-      query: () => "/admin/dashboard/team-workload",
-    }),
-
-    getAdminUserWork: builder.query<any, string>({
-      query: (id) => `/admin/users/${id}/work`,
-    }),
-
-    getAdminUserPerformance: builder.query<UserPerformance, string>({
-      query: (id) => `/admin/users/${id}/performance`,
-    }),
-
-    // ── Projects ───────────────────────────────────────────────────────────
-
-    getAdminProjects: builder.query<PaginatedProjects, Record<string, any>>({
-      query: (params) => ({ url: "/admin/projects", params }),
-      providesTags: ["AdminStats"],
-    }),
-    getAdminProject: builder.query<any, string>({
-      query: (id) => `/admin/projects/${id}`,
-    }),
-    reassignProjectPm: builder.mutation<void, { id: string; pmUserId: string }>(
-      {
-        query: ({ id, pmUserId }) => ({
-          url: `/admin/projects/${id}/reassign-pm`,
-          method: "POST",
-          body: { pmUserId },
-        }),
-        invalidatesTags: ["AdminStats"],
-      },
-    ),
-    archiveProject: builder.mutation<void, string>({
-      query: (id) => ({ url: `/admin/projects/${id}/archive`, method: "POST" }),
-      invalidatesTags: ["AdminStats"],
-    }),
-    forceProjectStatus: builder.mutation<
-      void,
-      { id: string; status: string; reason: string }
+    previewAiProviderModels: builder.mutation<
+      { success: boolean; models: string[]; message?: string },
+      FetchModelsDto
     >({
-      query: ({ id, status, reason }) => ({
-        url: `/admin/projects/${id}/force-status`,
-        method: "POST",
-        body: { status, reason },
-      }),
-      invalidatesTags: ["AdminStats"],
-    }),
-    createAdminProject: builder.mutation<any, Record<string, any>>({
       query: (body) => ({
-        url: "/admin/projects",
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["AdminStats"],
-    }),
-    addProjectMember: builder.mutation<
-      void,
-      { id: string; userId: string; role: string }
-    >({
-      query: ({ id, userId, role }) => ({
-        url: `/admin/projects/${id}/members`,
-        method: "POST",
-        body: { userId, role },
-      }),
-      invalidatesTags: ["AdminStats"],
-    }),
-    createProjectTask: builder.mutation<
-      void,
-      { id: string; title: string; assigneeId?: string; priority?: string; dueDate?: string; status?: string }
-    >({
-      query: ({ id, ...body }) => ({
-        url: `/admin/projects/${id}/tasks`,
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["AdminStats"],
-    }),
-
-    // ── Tasks ──────────────────────────────────────────────────────────────
-
-    getAdminTasks: builder.query<PaginatedTasks, Record<string, any>>({
-      query: (params) => ({ url: "/admin/tasks", params }),
-    }),
-    getAdminTask: builder.query<any, string>({
-      query: (id) => `/admin/tasks/${id}`,
-    }),
-    reassignTask: builder.mutation<void, { id: string; assigneeId: string }>({
-      query: ({ id, assigneeId }) => ({
-        url: `/admin/tasks/${id}/reassign`,
-        method: "POST",
-        body: { assigneeId },
-      }),
-    }),
-    forceTaskTransition: builder.mutation<
-      void,
-      { id: string; status: string; reason: string }
-    >({
-      query: ({ id, status, reason }) => ({
-        url: `/admin/tasks/${id}/force-transition`,
-        method: "POST",
-        body: { status, reason },
-      }),
-    }),
-
-    // ── Contracts ──────────────────────────────────────────────────────────
-
-    getAdminContracts: builder.query<PaginatedContracts, Record<string, any>>({
-      query: (params) => ({ url: "/admin/contracts", params }),
-    }),
-    getAdminContract: builder.query<any, string>({
-      query: (id) => `/admin/contracts/${id}`,
-    }),
-    cancelContract: builder.mutation<void, { id: string; reason: string }>({
-      query: ({ id, reason }) => ({
-        url: `/admin/contracts/${id}/cancel`,
-        method: "POST",
-        body: { reason },
-      }),
-    }),
-    triggerRenewalAlert: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/admin/contracts/${id}/trigger-renewal-alert`,
-        method: "POST",
-      }),
-    }),
-    convertContractToProject: builder.mutation<any, { id: string; name?: string; pmId?: string }>({
-      query: ({ id, ...body }) => ({
-        url: `/admin/contracts/${id}/convert-to-project`,
-        method: "POST",
-        body,
-      }),
-    }),
-    updateContractStatus: builder.mutation<void, { id: string; status: string; reason?: string }>({
-      query: ({ id, status, reason }) => ({
-        url: `/admin/contracts/${id}/status`,
-        method: "POST",
-        body: { status, reason },
-      }),
-    }),
-
-    // ── Leads ──────────────────────────────────────────────────────────────
-
-    getAdminLeads: builder.query<PaginatedLeads, Record<string, any>>({
-      query: (params) => ({ url: "/admin/leads", params }),
-    }),
-    getAdminLead: builder.query<any, string>({
-      query: (id) => `/admin/leads/${id}`,
-    }),
-    getAdminLeadStats: builder.query<LeadStats, void>({
-      query: () => "/admin/leads/stats",
-    }),
-    reassignLead: builder.mutation<void, { id: string; assigneeId: string }>({
-      query: ({ id, assigneeId }) => ({
-        url: `/admin/leads/${id}/reassign`,
-        method: "POST",
-        body: { assigneeId },
-      }),
-    }),
-    convertLeadToClient: builder.mutation<any, { id: string; additionalNotes?: string }>({
-      query: ({ id, additionalNotes }) => ({
-        url: `/admin/leads/${id}/convert-to-client`,
-        method: "POST",
-        body: { additionalNotes },
-      }),
-    }),
-    addContactLog: builder.mutation<any, { id: string; type: string; result: string; notes?: string; contactedAt?: string }>({
-      query: ({ id, ...body }) => ({
-        url: `/admin/leads/${id}/contact-log`,
+        url: "/admin/ai/providers/fetch-models",
         method: "POST",
         body,
       }),
     }),
 
-    // ── Requests ───────────────────────────────────────────────────────────
-
-    getAdminRequests: builder.query<PaginatedRequests, Record<string, any>>({
-      query: (params) => ({ url: "/admin/requests", params }),
-    }),
-    getAdminRequest: builder.query<any, string>({
-      query: (id) => `/admin/requests/${id}`,
-    }),
-    reassignRequest: builder.mutation<void, { id: string; assigneeId: string }>(
-      {
-        query: ({ id, assigneeId }) => ({
-          url: `/admin/requests/${id}/reassign`,
-          method: "POST",
-          body: { assigneeId },
-        }),
-      },
-    ),
-    forceRequestStatus: builder.mutation<
-      void,
-      { id: string; status: string; reason: string }
-    >({
-      query: ({ id, status, reason }) => ({
-        url: `/admin/requests/${id}/force-status`,
-        method: "POST",
-        body: { status, reason },
-      }),
-    }),
-    updateRequestNotes: builder.mutation<any, { id: string; notes: string }>({
-      query: ({ id, notes }) => ({
-        url: `/admin/requests/${id}/notes`,
-        method: "PATCH",
-        body: { notes },
-      }),
-      invalidatesTags: (_result, _error, { id }) => [
-        { type: "AdminStats", id },
-      ],
-    }),
-
-    // ── Campaigns ──────────────────────────────────────────────────────────
-
-    getAdminCampaigns: builder.query<PaginatedCampaigns, Record<string, any>>({
-      query: (params) => ({ url: "/admin/campaigns", params }),
-    }),
-    getAdminCampaign: builder.query<any, string>({
-      query: (id) => `/admin/campaigns/${id}`,
-    }),
-    createAdminCampaign: builder.mutation<any, any>({
-      query: (body) => ({ url: "/admin/campaigns", method: "POST", body }),
-    }),
-    pauseCampaign: builder.mutation<void, string>({
-      query: (id) => ({ url: `/admin/campaigns/${id}/pause`, method: "POST" }),
-    }),
-    endCampaign: builder.mutation<void, string>({
-      query: (id) => ({ url: `/admin/campaigns/${id}/end`, method: "POST" }),
-    }),
-    updateAdminCampaign: builder.mutation<any, { id: string; data: any }>({
-      query: ({ id, data }) => ({
-        url: `/admin/campaigns/${id}`,
-        method: "PATCH",
-        body: data,
-      }),
-      invalidatesTags: (_result, _error, { id }) => [
-        { type: "AdminStats" },
-      ],
-    }),
-
-    // ── Chat ───────────────────────────────────────────────────────────────
-
-    getAdminConversations: builder.query<
-      PaginatedConversations,
-      Record<string, any>
-    >({
-      query: (params) => ({ url: "/admin/conversations", params }),
-    }),
-    getAdminConversationMessages: builder.query<
-      any,
-      { id: string; page?: number; limit?: number }
-    >({
-      query: ({ id, page, limit }) => ({
-        url: `/admin/conversations/${id}/messages`,
-        params: { page, limit },
-      }),
-    }),
-    hideConversation: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/admin/conversations/${id}/hide`,
-        method: "POST",
-      }),
-    }),
-
-    // ── Portal ─────────────────────────────────────────────────────────────
-
-    getPortalOverview: builder.query<PortalOverview, void>({
-      query: () => "/admin/portal/overview",
-    }),
-    getPortalClients: builder.query<
-      PaginatedPortalClients,
-      Record<string, any>
-    >({
-      query: (params) => ({ url: "/admin/portal/clients", params }),
-    }),
-    regeneratePortalToken: builder.mutation<
-      { token: string; expiresAt: string },
+    testAiProvider: builder.mutation<
+      { success: boolean; model?: string; message?: string; response?: string },
       string
     >({
       query: (id) => ({
-        url: `/admin/portal/clients/${id}/regenerate-token`,
-        method: "POST",
-      }),
-    }),
-    togglePortalAccess: builder.mutation<
-      { enabled: boolean; token?: string; expiresAt?: string },
-      string
-    >({
-      query: (id) => ({
-        url: `/admin/portal/clients/${id}/toggle-access`,
+        url: `/admin/ai/providers/${id}/test`,
         method: "POST",
       }),
     }),
 
-    // ── Proposals ──────────────────────────────────────────────────────────
-    getAdminProposals: builder.query<any, any>({
-      query: (filters) => ({ url: "/admin/proposals", params: filters }),
-    }),
-    getAdminProposalStats: builder.query<any, void>({
-      query: () => "/admin/proposals/stats",
-    }),
-    getAdminProposal: builder.query<any, string>({
-      query: (id) => `/admin/proposals/${id}`,
-    }),
-    convertProposalToContract: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/admin/proposals/${id}/convert-to-contract`,
-        method: "POST",
-      }),
-      invalidatesTags: ["AdminStats"],
-    }),
-
-    // ── Team Workload ────────────────────────────────────────────────────
-    getAdminTeamWorkload: builder.query<any, void>({
-      query: () => "/admin/team/workload",
-    }),
-
-    // ── Reports ──────────────────────────────────────────────────────────
-    getAdminReportSales: builder.query<any, { from?: string; to?: string }>({
-      query: (params) => ({ url: "/admin/reports/sales", params }),
-    }),
-    getAdminReportRevenue: builder.query<any, { from?: string; to?: string }>({
-      query: (params) => ({ url: "/admin/reports/revenue", params }),
-    }),
-    getAdminReportProjects: builder.query<any, { from?: string; to?: string }>({
-      query: (params) => ({ url: "/admin/reports/projects", params }),
-    }),
-    getAdminReportTeamPerformance: builder.query<any, { from?: string; to?: string }>({
-      query: (params) => ({ url: "/admin/reports/team-performance", params }),
-    }),
-    getAdminReportSatisfaction: builder.query<any, { from?: string; to?: string }>({
-      query: (params) => ({ url: "/admin/reports/satisfaction", params }),
-    }),
-    getAdminReportCampaigns: builder.query<any, { from?: string; to?: string }>({
-      query: (params) => ({ url: "/admin/reports/campaigns", params }),
-    }),
-
-    // ── Clients ────────────────────────────────────────────────────────────
-    getAdminClients: builder.query<any, any>({
-      query: (filters) => ({ url: "/admin/clients", params: filters }),
-    }),
-    getAdminClient: builder.query<any, string>({
-      query: (id) => `/admin/clients/${id}`,
-    }),
-    getAdminClientsStats: builder.query<any, void>({
-      query: () => "/admin/clients/stats",
-    }),
-
-    // ── Finance ────────────────────────────────────────────────────────────
-    getAdminFinanceOverview: builder.query<
-      any,
-      { dateFrom?: string; dateTo?: string } | void
+    getAdminIntegrationsGateways: builder.query<
+      Array<{
+        id: string;
+        name: string;
+        type: string;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+      }>,
+      void
     >({
-      query: (params) => {
-        const url = "/admin/finance/overview";
-        if (!params) return url;
-        const search = new URLSearchParams();
-        if (params.dateFrom) search.set("dateFrom", params.dateFrom);
-        if (params.dateTo) search.set("dateTo", params.dateTo);
-        const qs = search.toString();
-        return qs ? `${url}?${qs}` : url;
-      },
-      providesTags: ["AdminStats"],
-    }),
-    forceAdminInvoiceStatus: builder.mutation<
-      any,
-      { id: string; status: string; reason: string }
-    >({
-      query: ({ id, ...body }) => ({
-        url: `/admin/finance/invoices/${id}/force-status`,
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["AdminStats"],
-    }),
-    writeOffAdminInvoice: builder.mutation<any, { id: string; reason: string }>(
-      {
-        query: ({ id, ...body }) => ({
-          url: `/admin/finance/invoices/${id}/write-off`,
-          method: "POST",
-          body,
-        }),
-        invalidatesTags: ["AdminStats"],
-      },
-    ),
-    triggerAdminRefund: builder.mutation<
-      any,
-      { id: string; amount: number; reason: string }
-    >({
-      query: ({ id, ...body }) => ({
-        url: `/admin/finance/invoices/${id}/refund`,
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: ["AdminStats"],
-    }),
-    getAdminPaymentEvents: builder.query<any, string | void>({
-      query: (paymentId) => ({
-        url: "/admin/finance/payment-events",
-        params: paymentId ? { paymentId } : {},
-      }),
-    }),
-    getAdminWebhookLogs: builder.query<any, any>({
-      query: (filters) => ({
-        url: "/admin/finance/webhook-logs",
-        params: filters,
-      }),
-    }),
-    retryAdminWebhook: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/admin/finance/webhook-logs/${id}/retry`,
-        method: "POST",
-      }),
-    }),
-    getAdminGatewaysHealth: builder.query<any, void>({
-      query: () => "/admin/finance/gateways-health",
-    }),
-
-    // ── Notification Templates ──────────────────────────────────────────────
-
-    getAdminNotificationTemplates: builder.query<
-      any,
-      { page?: number; limit?: number }
-    >({
-      query: (params) => ({
-        url: "admin/notification-templates",
-        params,
-      }),
-      providesTags: ["NotificationTemplates"],
-    }),
-
-    getAdminNotificationEventTypes: builder.query<any, void>({
-      query: () => "admin/notification-templates/event-types",
-    }),
-
-    updateAdminNotificationTemplate: builder.mutation<
-      any,
-      { id: string; data: any }
-    >({
-      query: ({ id, data }) => ({
-        url: `admin/notification-templates/${id}`,
-        method: "PATCH",
-        body: data,
-      }),
-      invalidatesTags: ["NotificationTemplates"],
-    }),
-
-    getAdminTemplateLogs: builder.query<any, string>({
-      query: (id) => `admin/notification-templates/${id}/logs`,
-    }),
-
-    broadcastNotification: builder.mutation<
-      any,
-      { title: string; body: string; role?: string; userId?: string }
-    >({
-      query: (body) => ({
-        url: "notifications/broadcast",
-        method: "POST",
-        body,
-      }),
-    }),
-
-    // ── Marketing Strategies ────────────────────────────────────────────────
-
-    getAdminMarketingStrategies: builder.query<
-      any,
-      { page?: number; limit?: number; status?: string }
-    >({
-      query: (params) => ({
-        url: "admin/marketing/strategies",
-        params,
-      }),
-      providesTags: ["MarketingStrategies"],
-    }),
-
-    updateAdminMarketingStrategyStatus: builder.mutation<
-      any,
-      { id: string; status: string; note?: string }
-    >({
-      query: ({ id, status, note }) => ({
-        url: `admin/marketing/strategies/${id}/status`,
-        method: "PATCH",
-        body: { status, note },
-      }),
-      invalidatesTags: ["MarketingStrategies"],
+      query: () => "/admin/integrations/gateways",
+      providesTags: ["AdminIntegrations"],
     }),
   }),
 });
 
 export const {
-  // Existing
   useGetAdminStatsQuery,
-  useGetHealthQuery,
-  useGetAuditLogQuery,
-  useGetAdminAuditStatsQuery,
-  useGetAuditFiltersQuery,
-  useGetAdminSettingsQuery,
-  useUpdateAdminSettingsMutation,
-  // Admin Users
-  useSearchAdminUsersQuery,
-  useGetAdminUserQuery,
-  useGetUserActivityQuery,
-  useBulkUserActionMutation,
-  useResetUserPasswordMutation,
-  useImpersonateUserMutation,
-  useRevokeUserSessionsMutation,
-  useSetUserPermissionsMutation,
-  useCreateAdminUserMutation,
-  useUpdateAdminUserMutation,
-  // Admin Sessions
-  useGetAdminSessionsQuery,
-  useRevokeSessionMutation,
-  // Admin Security
-  useGetSecurityEventsQuery,
-  useGetSecurityStatsQuery,
-  // Command Center
-  useGetTrendDataQuery,
-  useGetFunnelDataQuery,
-  useGetAlertsDataQuery,
-  useGetRecentActivityQuery,
+  useGetAdminTrendsQuery,
+  useGetAdminFunnelQuery,
+  useGetAdminAlertsQuery,
+  useGetAdminRecentActivityQuery,
+  useGetAdminHealthQuery,
+  useGetAdminAiInsightsQuery,
+  useRunAdminAiScanMutation,
   useGetAdminDashboardAttentionQuery,
   useGetAdminDashboardRecentActivityQuery,
   useGetAdminDashboardTeamWorkloadQuery,
-  useGetAdminUserWorkQuery,
-  useGetAdminUserPerformanceQuery,
-  // Projects
-  useGetAdminProjectsQuery,
-  useGetAdminProjectQuery,
-  useReassignProjectPmMutation,
-  useArchiveProjectMutation,
-  useForceProjectStatusMutation,
-  useCreateAdminProjectMutation,
-  useAddProjectMemberMutation,
-  useCreateProjectTaskMutation,
-  // Tasks
-  useGetAdminTasksQuery,
-  useGetAdminTaskQuery,
-  useReassignTaskMutation,
-  useForceTaskTransitionMutation,
-  // Contracts
-  useGetAdminContractsQuery,
-  useGetAdminContractQuery,
-  useCancelContractMutation,
-  useTriggerRenewalAlertMutation,
-  useConvertContractToProjectMutation,
-  useUpdateContractStatusMutation,
-  // Leads
-  useGetAdminLeadsQuery,
-  useGetAdminLeadQuery,
-  useGetAdminLeadStatsQuery,
-  useReassignLeadMutation,
-  useConvertLeadToClientMutation,
-  useAddContactLogMutation,
-  // Requests
-  useGetAdminRequestsQuery,
-  useGetAdminRequestQuery,
-  useReassignRequestMutation,
-  useForceRequestStatusMutation,
-  useUpdateRequestNotesMutation,
-  // Campaigns
-  useGetAdminCampaignsQuery,
-  useGetAdminCampaignQuery,
-  useCreateAdminCampaignMutation,
-  usePauseCampaignMutation,
-  useEndCampaignMutation,
-  useUpdateAdminCampaignMutation,
-  // Chat
-  useGetAdminConversationsQuery,
-  useGetAdminConversationMessagesQuery,
-  useHideConversationMutation,
-  // Portal
-  useGetPortalOverviewQuery,
-  useGetPortalClientsQuery,
-  useRegeneratePortalTokenMutation,
-  useTogglePortalAccessMutation,
-  // Proposals
-  useGetAdminProposalsQuery,
-  useGetAdminProposalStatsQuery,
-  useGetAdminProposalQuery,
-  useConvertProposalToContractMutation,
-  // Clients
-  useGetAdminClientsQuery,
-  useGetAdminClientQuery,
-  useGetAdminClientsStatsQuery,
-  // Team Workload
-  useGetAdminTeamWorkloadQuery,
-  // Reports
-  useGetAdminReportSalesQuery,
-  useGetAdminReportRevenueQuery,
-  useGetAdminReportProjectsQuery,
-  useGetAdminReportTeamPerformanceQuery,
-  useGetAdminReportSatisfactionQuery,
-  useGetAdminReportCampaignsQuery,
-  // Finance
-  useGetAdminFinanceOverviewQuery,
-  useForceAdminInvoiceStatusMutation,
-  useWriteOffAdminInvoiceMutation,
-  useTriggerAdminRefundMutation,
-  useGetAdminPaymentEventsQuery,
-  useGetAdminWebhookLogsQuery,
-  useRetryAdminWebhookMutation,
-  useGetAdminGatewaysHealthQuery,
-  // Notification Templates
-  useGetAdminNotificationTemplatesQuery,
-  useGetAdminNotificationEventTypesQuery,
-  useUpdateAdminNotificationTemplateMutation,
-  useGetAdminTemplateLogsQuery,
-  // Marketing Strategies
-  useGetAdminMarketingStrategiesQuery,
-  useUpdateAdminMarketingStrategyStatusMutation,
-  // Notifications
-  useBroadcastNotificationMutation,
+  useGetAdminAuditLogQuery,
+  useGetAdminAuditLogFiltersQuery,
+  useGetAdminSettingsQuery,
+  useUpdateAdminSettingsMutation,
+  useGetAdminIntegrationsSyncStatusQuery,
+  useGetAdminIntegrationsGatewaysQuery,
+  useGetAdminBusinessGoalsQuery,
+  useGetAdminBusinessGoalQuery,
+  useCreateAdminBusinessGoalMutation,
+  useUpdateAdminBusinessGoalMutation,
+  useDeleteAdminBusinessGoalMutation,
+  useGetAiProvidersQuery,
+  useGetAiProviderQuery,
+  useGetAiProviderModelsQuery,
+  usePreviewAiProviderModelsMutation,
+  useCreateAiProviderMutation,
+  useUpdateAiProviderMutation,
+  useDeleteAiProviderMutation,
+  useTestAiProviderMutation,
 } = adminApi;

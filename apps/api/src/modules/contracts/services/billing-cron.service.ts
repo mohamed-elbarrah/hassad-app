@@ -45,6 +45,11 @@ export class BillingCronService {
         `Down-payment auto-cancel failed: ${(err as Error).message}`,
       );
     }
+    try {
+      await this.escalateOverdueInvoices();
+    } catch (err) {
+      this.logger.error(`Escalation pass failed: ${(err as Error).message}`);
+    }
     this.logger.log("Billing cycle complete");
   }
 
@@ -313,6 +318,60 @@ export class BillingCronService {
         );
       }
     }
+  }
+
+  // ── Escalation pass ───────────────────────────────────────────────────────────
+
+  /** Notify finance admins when invoices are 30+ days past due. */
+  private async escalateOverdueInvoices() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    const overdue = await this.prisma.invoice.findMany({
+      where: {
+        dueDate: { lt: thirtyDaysAgo },
+        status: { in: ["DUE", "LATE", "PENDING", "SENT"] },
+        reminderFlags: { not: { gte: 1 << 7 } }, // escalation bit (previously unused high bit)
+      },
+      include: {
+        client: { select: { companyName: true } },
+        contract: { select: { title: true } },
+      },
+    });
+
+    if (overdue.length === 0) return;
+
+    const financeUsers = await this.prisma.user.findMany({
+      where: {
+        role: { name: { in: ["ADMIN", "FINANCE"] } },
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    if (financeUsers.length === 0) return;
+
+    await this.notificationsService.notifyUsers({
+      userIds: financeUsers.map((u) => u.id),
+      title: "فواتير متأخرة +30 يوماً",
+      message: `يوجد ${overdue.length} فاتورة متأخرة منذ أكثر من 30 يوماً بحاجة للمتابعة.`,
+      entityId: "overdue-escalation",
+      entityType: "INVOICE",
+      eventType: "INVOICE_ESCALATED",
+    });
+
+    // Mark escalation bit so we don't re-alert
+    for (const inv of overdue) {
+      await this.prisma.invoice.update({
+        where: { id: inv.id },
+        data: { reminderFlags: inv.reminderFlags | (1 << 7) },
+      });
+    }
+
+    this.logger.log(
+      `Escalated ${overdue.length} overdue invoice(s) to finance team`,
+    );
   }
 
   // ── Company settings ─────────────────────────────────────────────────────────
