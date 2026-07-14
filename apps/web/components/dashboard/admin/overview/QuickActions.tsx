@@ -44,7 +44,7 @@ const DEFAULT_ACTIONS: QuickAction[] = [
     key: "newUser",
     label: "مستخدم جديد",
     icon: UserCog,
-    href: "/dashboard/admin/users/new",
+      href: "/dashboard/admin/employees/new",
   },
   {
     key: "newCampaign",

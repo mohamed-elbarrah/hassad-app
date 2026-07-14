@@ -95,11 +95,11 @@ export function buildAdminKpiConfigs(
   return [
     {
       key: "activeUsers",
-      title: "المستخدمون النشطون",
+      title: "الموظفون النشطون",
       value: formatNumber(stats.totalUsers),
       icon: Users,
-      href: "/dashboard/admin/users",
-      description: "إجمالي المستخدمين",
+      href: "/dashboard/admin/employees",
+      description: "إجمالي الموظفين",
     },
     {
       key: "activeClients",
