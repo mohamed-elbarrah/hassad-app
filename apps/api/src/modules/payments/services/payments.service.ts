@@ -455,30 +455,46 @@ export class PaymentsService implements OnModuleInit {
   }
 
   async updateGatewayConfig(name: string, dto: UpdateGatewayDto) {
-    const { isActive, ...config } = dto;
-    const encryptedConfig = this.encrypt(JSON.stringify(config));
+    const { isActive, secretKey, webhookSecret, publishableKey } = dto;
+    const hasConfigFields = secretKey || webhookSecret || publishableKey;
+
+    const updateData: any = {};
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (hasConfigFields) {
+      const config: Record<string, string> = {};
+      if (secretKey) config.secretKey = secretKey;
+      if (webhookSecret) config.webhookSecret = webhookSecret;
+      if (publishableKey) config.publishableKey = publishableKey;
+      updateData.configJson = this.encrypt(JSON.stringify(config)) as any;
+    }
 
     return this.prisma.paymentGateway.upsert({
       where: { name },
-      update: {
-        configJson: encryptedConfig as any,
-        isActive: isActive ?? true,
-      },
+      update: updateData,
       create: {
         name,
         type:
           name === "stripe"
             ? PaymentGatewayType.ONLINE
             : PaymentGatewayType.MANUAL,
-        configJson: encryptedConfig as any,
+        configJson: hasConfigFields
+          ? (this.encrypt(JSON.stringify({ secretKey, webhookSecret, publishableKey })) as any)
+          : undefined,
         isActive: isActive ?? true,
       },
     });
   }
 
-  async getBankAccounts() {
+  async deleteGateway(name: string) {
+    return this.prisma.paymentGateway.update({
+      where: { name },
+      data: { isActive: false },
+    });
+  }
+
+  async getBankAccounts(includeInactive?: boolean) {
     return this.prisma.bankAccount.findMany({
-      where: { isActive: true },
+      where: includeInactive ? undefined : { isActive: true },
     });
   }
 

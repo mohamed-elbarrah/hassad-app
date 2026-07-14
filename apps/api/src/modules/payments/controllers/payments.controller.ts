@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -100,9 +101,17 @@ export class PaymentsController {
     return this.paymentsService.updateGatewayConfig(name, dto);
   }
 
+  @Delete("gateways/:name")
+  @RequirePermissions("finance.admin")
+  async deleteGateway(@Param("name") name: string) {
+    return this.paymentsService.deleteGateway(name);
+  }
+
   @Get("bank-accounts")
-  async getBankAccounts() {
-    return this.paymentsService.getBankAccounts();
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions("finance.read")
+  async getBankAccounts(@Query("all") all?: string) {
+    return this.paymentsService.getBankAccounts(all === "true");
   }
 
   @Get("public-config")

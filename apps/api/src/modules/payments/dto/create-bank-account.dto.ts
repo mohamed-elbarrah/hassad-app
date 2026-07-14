@@ -1,4 +1,4 @@
-import { IsString, IsOptional } from "class-validator";
+import { IsString, IsOptional, IsBoolean } from "class-validator";
 
 export class CreateBankAccountDto {
   @IsString()
@@ -21,4 +21,8 @@ export class CreateBankAccountDto {
   @IsOptional()
   @IsString()
   instructions?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

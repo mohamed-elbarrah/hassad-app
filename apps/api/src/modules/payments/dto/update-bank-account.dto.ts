@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from "class-validator";
+import { IsOptional, IsString, IsBoolean } from "class-validator";
 
 export class UpdateBankAccountDto {
   @IsOptional()
@@ -24,4 +24,8 @@ export class UpdateBankAccountDto {
   @IsOptional()
   @IsString()
   instructions?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

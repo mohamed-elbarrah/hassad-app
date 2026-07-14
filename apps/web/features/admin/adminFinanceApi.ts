@@ -282,13 +282,21 @@ export const adminFinanceApi = createApi({
       invalidatesTags: ["AdminGateways"],
     }),
 
+    deleteAdminGateway: builder.mutation<void, string>({
+      query: (name) => ({
+        url: `/payments/gateways/${name}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["AdminGateways"],
+    }),
+
     getAdminBankAccounts: builder.query<Array<{
       id: string; bankName: string; accountName: string;
       accountNumber: string | null; iban: string;
       swiftCode: string | null; instructions: string | null;
       isActive: boolean; createdAt: string;
     }>, void>({
-      query: () => "/payments/bank-accounts",
+      query: () => "/payments/bank-accounts?all=true",
       providesTags: ["AdminBankAccounts"],
     }),
 
@@ -296,6 +304,7 @@ export const adminFinanceApi = createApi({
       bankName: string; accountName: string;
       accountNumber?: string; iban: string;
       swiftCode?: string; instructions?: string;
+      isActive?: boolean;
     }>({
       query: (body) => ({
         url: "/payments/bank-accounts",
@@ -309,6 +318,7 @@ export const adminFinanceApi = createApi({
       id: string; bankName?: string; accountName?: string;
       accountNumber?: string; iban?: string;
       swiftCode?: string; instructions?: string;
+      isActive?: boolean;
     }>({
       query: ({ id, ...body }) => ({
         url: `/payments/bank-accounts/${id}`,
@@ -356,6 +366,7 @@ export const {
   useRefundInvoiceMutation,
   useGetAdminGatewaysQuery,
   useUpdateAdminGatewayMutation,
+  useDeleteAdminGatewayMutation,
   useGetAdminBankAccountsQuery,
   useCreateAdminBankAccountMutation,
   useUpdateAdminBankAccountMutation,
