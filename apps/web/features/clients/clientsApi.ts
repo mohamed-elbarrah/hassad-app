@@ -150,7 +150,7 @@ export interface HandoverResult {
 export const clientsApi = createApi({
   reducerPath: "clientsApi",
   baseQuery,
-  tagTypes: ["Client", "ClientProfile", "Project"],
+  tagTypes: ["Client", "ClientProfile", "Project", "AdminClientUsers", "AdminClientStats"],
   endpoints: (builder) => ({
     /** GET /v1/clients — paginated + filtered list */
     getClients: builder.query<PaginatedClients, ClientFilters>({
@@ -179,7 +179,11 @@ export const clientsApi = createApi({
     /** POST /v1/clients — create a new client */
     createClient: builder.mutation<Client, CreateClientInput>({
       query: (body) => ({ url: "/clients", method: "POST", body }),
-      invalidatesTags: [{ type: "Client", id: "LIST" }],
+      invalidatesTags: [
+        { type: "Client", id: "LIST" },
+        "AdminClientUsers",
+        "AdminClientStats",
+      ],
     }),
 
     /** PATCH /v1/clients/:id — update general client fields */

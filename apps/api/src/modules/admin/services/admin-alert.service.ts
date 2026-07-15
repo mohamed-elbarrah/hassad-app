@@ -427,7 +427,7 @@ export class AdminAlertService {
         status: { notIn: ["PROJECT_CREATED", "CANCELLED"] },
         updatedAt: { lt: fourteenDaysAgo },
       },
-      select: { id: true, companyName: true, assignedSalesId: true },
+      select: { id: true, companyName: true, contactName: true, assignedSalesId: true },
     });
 
     for (const req of staleRequests) {
@@ -435,7 +435,7 @@ export class AdminAlertService {
         await this.notificationsService.createNotification({
           userId: req.assignedSalesId,
           title: "طلب بحاجة للمتابعة",
-          body: `الطلب "${req.companyName}" لم يتم تحديثه منذ 14 يوماً.`,
+          body: `طلب "${req.contactName}" (${req.companyName}) لم يتم تحديثه منذ 14 يوماً.`,
           entityId: req.id,
           entityType: "REQUEST",
           eventType: "STALE_REQUEST",

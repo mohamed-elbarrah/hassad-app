@@ -8,17 +8,7 @@ import {
   useSubmitIntakeFormMutation,
 } from "@/features/portal/portalApi";
 
-export const STEP_SECTION_MAP: [string, ...string[]][] = [
-  ["communicationInfo"],
-  ["productInfo"],
-  ["audienceInfo", "brandVoice"],
-  ["customerJourney"],
-  ["campaignInfo"],
-  ["pastPerformance", "budgetInfo"],
-  ["visualIdentityInfo"],
-];
-
-const TOTAL_STEPS = STEP_SECTION_MAP.length;
+import { STEPS, TOTAL_STEPS } from "../steps.config";
 
 export function useIntakeFormV2(onSuccess?: () => void) {
   const { data: draft, isLoading: isDraftLoading } =
@@ -52,13 +42,14 @@ export function useIntakeFormV2(onSuccess?: () => void) {
     const data: Record<string, any> = {};
     const completed: number[] = [];
 
-    STEP_SECTION_MAP.forEach((keys, stepIdx) => {
-      const hasData = keys.some((key) => {
+    STEPS.forEach((step, wizardStepIdx) => {
+      if (step.sectionKeys.length === 0) return;
+      const hasData = step.sectionKeys.some((key) => {
         const val = (draft as any)[key];
         return val && typeof val === "object" && Object.keys(val).length > 0;
       });
-      if (hasData) completed.push(stepIdx);
-      keys.forEach((key) => {
+      if (hasData) completed.push(wizardStepIdx);
+      step.sectionKeys.forEach((key) => {
         const val = (draft as any)[key];
         if (val && typeof val === "object" && Object.keys(val).length > 0) {
           data[key] = val;
@@ -111,7 +102,7 @@ export function useIntakeFormV2(onSuccess?: () => void) {
   );
 
   const nextStep = useCallback(() => {
-    goToStep(Math.min(currentStep + 1, TOTAL_STEPS));
+    goToStep(Math.min(currentStep + 1, TOTAL_STEPS - 1));
   }, [currentStep, goToStep]);
 
   const prevStep = useCallback(() => {
@@ -143,10 +134,11 @@ export function useIntakeFormV2(onSuccess?: () => void) {
   }, [submitForm, onSuccess]);
 
   const getStepData = useCallback(
-    (stepIdx: number) => {
-      const keys = STEP_SECTION_MAP[stepIdx];
-      if (keys.length === 1) return sectionData[keys[0]];
-      return keys.reduce(
+    (wizardStepIdx: number) => {
+      const step = STEPS[wizardStepIdx];
+      if (!step || step.sectionKeys.length === 0) return undefined;
+      if (step.sectionKeys.length === 1) return sectionData[step.sectionKeys[0]];
+      return step.sectionKeys.reduce(
         (acc, key) => ({ ...acc, [key]: sectionData[key] }),
         {},
       );

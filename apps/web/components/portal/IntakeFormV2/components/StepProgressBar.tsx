@@ -35,6 +35,7 @@ export function StepProgressBar({
         {STEP_LABELS.map((label, i) => {
           const isCompleted = completedSteps.includes(i);
           const isCurrent = i === currentStep;
+          const isSkipped = !isCompleted && !isCurrent && i < currentStep;
 
           return (
             <div key={label} className="flex items-center gap-1 flex-1">
@@ -47,20 +48,21 @@ export function StepProgressBar({
                     isCurrent &&
                       !isCompleted &&
                       "bg-secondary-100 text-secondary-700 border-secondary-500",
+                    isSkipped &&
+                      "bg-natural-0 text-portal-icon border-dashed border-portal-divider",
                     !isCompleted &&
                       !isCurrent &&
+                      !isSkipped &&
                       "bg-natural-0 text-portal-icon border-portal-divider",
                   )}
                 >
-                  {isCompleted ? "✓" : i + 1}
+                  {isCompleted ? "✓" : isSkipped ? "—" : i + 1}
                 </div>
                 {i < STEP_LABELS.length - 1 && (
                   <div
                     className={cn(
                       "h-0.5 w-full transition-colors",
-                      isCompleted || (isCurrent && i < currentStep)
-                        ? "bg-secondary-500"
-                        : "bg-portal-divider",
+                      isCompleted ? "bg-secondary-500" : "bg-portal-divider",
                     )}
                   />
                 )}
@@ -71,19 +73,23 @@ export function StepProgressBar({
       </div>
 
       <div className="md:hidden flex items-center justify-center gap-1">
-        {STEP_LABELS.map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              "w-2.5 h-2.5 rounded-full transition-colors",
-              i === currentStep && "bg-secondary-500 w-4",
-              completedSteps.includes(i) && "bg-secondary-300",
-              i > currentStep &&
-                !completedSteps.includes(i) &&
-                "bg-portal-divider",
-            )}
-          />
-        ))}
+        {STEP_LABELS.map((_, i) => {
+          const isCompleted = completedSteps.includes(i);
+          const isCurrent = i === currentStep;
+          const isSkipped = !isCompleted && !isCurrent && i < currentStep;
+          return (
+            <div
+              key={i}
+              className={cn(
+                "w-2.5 h-2.5 rounded-full transition-colors",
+                isCurrent && "bg-secondary-500 w-4",
+                isCompleted && "bg-secondary-300",
+                isSkipped && "border border-portal-divider bg-transparent",
+                !isCompleted && !isCurrent && !isSkipped && "bg-portal-divider",
+              )}
+            />
+          );
+        })}
       </div>
     </div>
   );

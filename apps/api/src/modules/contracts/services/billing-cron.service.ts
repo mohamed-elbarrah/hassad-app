@@ -145,7 +145,7 @@ export class BillingCronService {
         },
         period: {
           select: { id: true, projectId: true },
-          include: { project: { select: { id: true, status: true } } },
+          include: { project: { select: { id: true, status: true, projectManagerId: true } } },
         },
       },
     });
@@ -211,6 +211,7 @@ export class BillingCronService {
           invoice.contract?.createdBy,
           invoice.contract?.client?.accountManager,
           invoice.contract?.client?.userId,
+          project.projectManagerId,
         ].filter(Boolean) as string[];
 
         if (recipientIds.length > 0) {
@@ -218,7 +219,7 @@ export class BillingCronService {
             .notifyUsers({
               userIds: recipientIds,
               title: "تم تعليق المشروع",
-              message: `تم تعليق المشروع بسبب عدم دفع الفاتورة "${invoice.contract?.title ?? invoice.invoiceNumber}". يرجى متابعة السداد لاستئناف العمل.`,
+              message: `تم تعليق المشروع بسبب عدم سداد الفاتورة "${invoice.contract?.title ?? invoice.invoiceNumber}". يرجى متابعة السداد لاستئناف العمل.`,
               entityId: project.id,
               entityType: "PROJECT",
               eventType: "PROJECT_SUSPENDED",

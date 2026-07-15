@@ -18,6 +18,7 @@ import {
 import { StripeProvider } from "../providers/stripe.provider";
 import { BankTransferProvider } from "../providers/bank-transfer.provider";
 import { PaymentProvider } from "../providers/payment-provider.interface";
+import { UpdateGatewayDto } from "../dto/update-gateway.dto";
 import * as crypto from "crypto";
 
 @Injectable()
@@ -365,13 +366,21 @@ export class PaymentsService implements OnModuleInit {
             data: { status: InvoiceStatus.PAID, paidAt: new Date() },
           });
 
-          await this.notifications.createNotification({
+          const clientUser = await this.prisma.client.findUnique({
+            where: { id: payment.invoice.clientId },
+            select: { userId: true },
+          });
+
+          await this.notifications.notifyUsers({
+            userIds: [
+              payment.invoice.createdBy,
+              clientUser?.userId,
+            ].filter(Boolean) as string[],
+            title: "تم دفع الفاتورة",
+            message: `تم دفع الفاتورة ${payment.invoice.invoiceNumber} بالكامل`,
             entityId: payment.invoiceId,
             entityType: "INVOICE",
             eventType: "INVOICE_PAID",
-            userId: payment.invoice.createdBy,
-            title: "تم دفع الفاتورة",
-            body: `تم دفع الفاتورة ${payment.invoice.invoiceNumber} بالكامل`,
           });
         } else if (totalPaid > 0) {
           await tx.invoice.update({
@@ -431,41 +440,69 @@ export class PaymentsService implements OnModuleInit {
   async getGateways() {
     const gateways = await this.prisma.paymentGateway.findMany();
     return gateways.map((g) => {
-      let config = g.configJson;
+      let config: any = g.configJson;
       if (typeof config === "string") {
         try {
           config = JSON.parse(this.decrypt(config));
-        } catch (e) {}
+        } catch (e) {
+          config = {};
+        }
       }
-      return { ...g, configJson: config };
+      const fields: Record<string, boolean> = {};
+      for (const key of ["secretKey", "webhookSecret", "publishableKey"]) {
+        if (config[key]) fields[key] = true;
+      }
+      return {
+        ...g,
+        configJson: {
+          fields,
+          isConfigured: fields.secretKey || fields.publishableKey,
+        },
+      };
     });
   }
 
-  async updateGatewayConfig(name: string, dto: any) {
-    const { isActive, ...config } = dto;
-    const encryptedConfig = this.encrypt(JSON.stringify(config));
+  async updateGatewayConfig(name: string, dto: UpdateGatewayDto) {
+    const { isActive, secretKey, webhookSecret, publishableKey } = dto;
+    const hasConfigFields = secretKey || webhookSecret || publishableKey;
+
+    const updateData: any = {};
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (hasConfigFields) {
+      const config: Record<string, string> = {};
+      if (secretKey) config.secretKey = secretKey;
+      if (webhookSecret) config.webhookSecret = webhookSecret;
+      if (publishableKey) config.publishableKey = publishableKey;
+      updateData.configJson = this.encrypt(JSON.stringify(config)) as any;
+    }
 
     return this.prisma.paymentGateway.upsert({
       where: { name },
-      update: {
-        configJson: encryptedConfig as any,
-        isActive: isActive ?? true,
-      },
+      update: updateData,
       create: {
         name,
         type:
           name === "stripe"
             ? PaymentGatewayType.ONLINE
             : PaymentGatewayType.MANUAL,
-        configJson: encryptedConfig as any,
+        configJson: hasConfigFields
+          ? (this.encrypt(JSON.stringify({ secretKey, webhookSecret, publishableKey })) as any)
+          : undefined,
         isActive: isActive ?? true,
       },
     });
   }
 
-  async getBankAccounts() {
+  async deleteGateway(name: string) {
+    return this.prisma.paymentGateway.update({
+      where: { name },
+      data: { isActive: false },
+    });
+  }
+
+  async getBankAccounts(includeInactive?: boolean) {
     return this.prisma.bankAccount.findMany({
-      where: { isActive: true },
+      where: includeInactive ? undefined : { isActive: true },
     });
   }
 

@@ -345,6 +345,7 @@ export class MarketingStrategyService {
   ) {
     const strategy = await this.prisma.marketingStrategy.findUnique({
       where: { id },
+      include: { task: { select: { createdBy: true } } },
     });
 
     if (!strategy) {
@@ -380,19 +381,22 @@ export class MarketingStrategyService {
       select: { userId: true },
     });
 
-    if (client?.userId) {
+    const pmId = strategy.task?.createdBy;
+    const resubmitRecipients = [client?.userId, pmId].filter(Boolean) as string[];
+
+    if (resubmitRecipients.length > 0) {
       await this.notifications
-        .createNotification({
+        .notifyUsers({
+          userIds: resubmitRecipients,
+          title: "دراسة تسويقية مُعدّلة",
+          message: "تم إعادة إرسال الدراسة التسويقية المُعدّلة بانتظار مراجعتك",
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",
-          userId: client.userId,
-          title: "دراسة تسويقية مُعدّلة",
-          body: "تم إعادة إرسال الدراسة التسويقية المُعدّلة بانتظار مراجعتك",
         })
         .catch((err) =>
           this.logger.error(
-            `Failed to notify client about resubmit ${id}`,
+            `Failed to notify about resubmit ${id}`,
             err,
           ),
         );

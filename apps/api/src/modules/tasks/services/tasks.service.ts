@@ -129,6 +129,43 @@ export class TasksService {
     });
   }
 
+  private getTaskStatusNotificationConfig(
+    taskTitle: string,
+    status: TaskStatus,
+    actorName: string,
+  ):
+    | { eventType: string; title: string; body: string }
+    | undefined {
+    switch (status) {
+      case TaskStatus.IN_PROGRESS:
+        return {
+          eventType: "TASK_STARTED",
+          title: "بدأ تنفيذ المهمة",
+          body: `بدأ ${actorName} تنفيذ المهمة "${taskTitle}".`,
+        };
+      case TaskStatus.IN_REVIEW:
+        return {
+          eventType: "TASK_SUBMITTED",
+          title: "مهمة بانتظار المراجعة",
+          body: `سلّم ${actorName} المهمة "${taskTitle}" للمراجعة.`,
+        };
+      case TaskStatus.DONE:
+        return {
+          eventType: "TASK_APPROVED",
+          title: "تم اعتماد المهمة",
+          body: `تم اعتماد المهمة "${taskTitle}".`,
+        };
+      case TaskStatus.REVISION:
+        return {
+          eventType: "TASK_REJECTED",
+          title: "تم إرجاع المهمة للتعديل",
+          body: `أعاد ${actorName} المهمة "${taskTitle}" للتعديل.`,
+        };
+      default:
+        return undefined;
+    }
+  }
+
   private mapTaskFile(file: {
     id: string;
     taskId: string;
@@ -508,48 +545,24 @@ export class TasksService {
       return updated;
     });
 
-    const isApproveOrReject =
-      toStatus === TaskStatus.DONE || toStatus === TaskStatus.REVISION;
-    const isSubmittedForReview = toStatus === TaskStatus.IN_REVIEW;
+    const recipients = this.toUniqueUserIds(
+      task.assignedTo,
+      task.createdBy,
+    ).filter((id) => id !== userId);
 
-    const recipients = isApproveOrReject
-      ? this.toUniqueUserIds(task.assignedTo)
-      : isSubmittedForReview
-        ? this.toUniqueUserIds(task.assignedTo, task.createdBy)
-        : this.toUniqueUserIds(task.assignedTo);
+    const taskActor = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    const taskActorName = taskActor?.name ?? "النظام";
 
-    const statusNotificationByTarget: Record<
-      TaskStatus,
-      { eventType: string; title: string; body: string }
-    > = {
-      [TaskStatus.IN_PROGRESS]: {
-        eventType: "TASK_STARTED",
-        title: "بدأ تنفيذ المهمة",
-        body: `بدأ الفريق تنفيذ المهمة "${task.title}".`,
-      },
-      [TaskStatus.IN_REVIEW]: {
-        eventType: "TASK_SUBMITTED",
-        title: "مهمة بانتظار المراجعة",
-        body: `تم إرسال المهمة "${task.title}" للمراجعة.`,
-      },
-      [TaskStatus.DONE]: {
-        eventType: "TASK_APPROVED",
-        title: "تم اعتماد المهمة",
-        body: `تم اعتماد المهمة "${task.title}".`,
-      },
-      [TaskStatus.REVISION]: {
-        eventType: "TASK_REJECTED",
-        title: "تم إرجاع المهمة للتعديل",
-        body: `تم إرجاع المهمة "${task.title}" للتعديل.`,
-      },
-      [TaskStatus.TODO]: {
-        eventType: "TASK_UPDATED",
-        title: "تم تحديث المهمة",
-        body: `تم تحديث المهمة "${task.title}".`,
-      },
-    };
+    const notificationConfig = this.getTaskStatusNotificationConfig(
+      task.title,
+      toStatus,
+      taskActorName,
+    );
+    if (!notificationConfig) return updatedTask;
 
-    const notificationConfig = statusNotificationByTarget[toStatus];
     const notificationJobs: Array<Promise<any>> = recipients.map(
       (recipientId) =>
         this.notificationsService.createNotification({

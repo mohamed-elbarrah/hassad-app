@@ -16,7 +16,8 @@ import { useUpdateUserMutation } from "@/features/users/usersApi";
 import { useAppSelector } from "@/lib/hooks";
 import { StepProgressBar } from "./components/StepProgressBar";
 import { AutoSaveIndicator } from "./components/AutoSaveIndicator";
-import { useIntakeFormV2, STEP_SECTION_MAP } from "./hooks/useIntakeFormV2";
+import { STEPS } from "./steps.config";
+import { useIntakeFormV2 } from "./hooks/useIntakeFormV2";
 import { Step8_Review } from "./steps/Step8_Review";
 
 interface IntakeFormV2Props {
@@ -46,16 +47,16 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
   } = useIntakeFormV2(onSuccess);
 
   const handleStepDataChange = useCallback(
-    (stepIdx: number, data: any) => {
-      const keys = STEP_SECTION_MAP[stepIdx];
-      if (keys.length === 1) {
-        updateSections({ [keys[0]]: data });
+    (wizardStepIdx: number, data: any) => {
+      const step = STEPS[wizardStepIdx];
+      if (!step || step.sectionKeys.length === 0) return;
+      if (step.sectionKeys.length === 1) {
+        updateSections({ [step.sectionKeys[0]]: data });
       } else {
         updateSections(data);
       }
-      markStepCompleted(stepIdx);
     },
-    [updateSections, markStepCompleted],
+    [updateSections],
   );
 
   const handleStepNext = useCallback(
@@ -98,7 +99,7 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
                 toast.error("فشل تحديث البيانات الشخصية");
               }
             }}
-            onNext={() => nextStep()}
+            onNext={() => { markStepCompleted(0); nextStep(); }}
             onBack={() => undefined}
           />
         );
@@ -107,10 +108,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         return (
           <CommunicationSection
             mode="wizard"
-            initialData={getStepData(0)}
-            onDataChange={(data) => handleStepDataChange(0, data)}
+            initialData={getStepData(1)}
+            onDataChange={(data) => handleStepDataChange(1, data)}
             onValid={() => {}}
-            onNext={() => handleStepNext(0)}
+            onNext={() => handleStepNext(1)}
             onBack={prevStep}
           />
         );
@@ -118,10 +119,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         return (
           <ProductSection
             mode="wizard"
-            initialData={getStepData(1)}
-            onDataChange={(data) => handleStepDataChange(1, data)}
+            initialData={getStepData(2)}
+            onDataChange={(data) => handleStepDataChange(2, data)}
             onValid={() => {}}
-            onNext={() => handleStepNext(1)}
+            onNext={() => handleStepNext(2)}
             onBack={prevStep}
             onSkip={() => goToStep(3)}
           />
@@ -138,9 +139,9 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
               verbalSlogan: sectionData.brandVoice?.verbalSlogan,
               appearanceMethod: sectionData.brandVoice?.appearanceMethod,
             }}
-            onDataChange={(data) => handleStepDataChange(2, data)}
+            onDataChange={(data) => handleStepDataChange(3, data)}
             onValid={() => {}}
-            onNext={() => handleStepNext(2)}
+            onNext={() => handleStepNext(3)}
             onBack={prevStep}
             onSkip={() => goToStep(4)}
           />
@@ -149,10 +150,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         return (
           <JourneySection
             mode="wizard"
-            initialData={getStepData(3)}
-            onDataChange={(data) => handleStepDataChange(3, data)}
+            initialData={getStepData(4)}
+            onDataChange={(data) => handleStepDataChange(4, data)}
             onValid={() => {}}
-            onNext={() => handleStepNext(3)}
+            onNext={() => handleStepNext(4)}
             onBack={prevStep}
             onSkip={() => goToStep(5)}
           />
@@ -161,10 +162,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         return (
           <CampaignSection
             mode="wizard"
-            initialData={getStepData(4)}
-            onDataChange={(data) => handleStepDataChange(4, data)}
+            initialData={getStepData(5)}
+            onDataChange={(data) => handleStepDataChange(5, data)}
             onValid={() => {}}
-            onNext={() => handleStepNext(4)}
+            onNext={() => handleStepNext(5)}
             onBack={prevStep}
             onSkip={() => goToStep(6)}
           />
@@ -173,10 +174,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         return (
           <PerformanceSection
             mode="wizard"
-            initialData={getStepData(5)}
-            onDataChange={(data) => handleStepDataChange(5, data)}
+            initialData={getStepData(6)}
+            onDataChange={(data) => handleStepDataChange(6, data)}
             onValid={() => {}}
-            onNext={() => handleStepNext(5)}
+            onNext={() => handleStepNext(6)}
             onBack={prevStep}
             onSkip={() => goToStep(7)}
           />
@@ -185,10 +186,10 @@ export function IntakeFormV2({ onSuccess }: IntakeFormV2Props) {
         return (
           <VisualSection
             mode="wizard"
-            initialData={getStepData(6)}
-            onDataChange={(data) => handleStepDataChange(6, data)}
+            initialData={getStepData(7)}
+            onDataChange={(data) => handleStepDataChange(7, data)}
             onValid={() => {}}
-            onNext={() => handleStepNext(6)}
+            onNext={() => handleStepNext(7)}
             onBack={prevStep}
             onSkip={() => goToStep(8)}
           />

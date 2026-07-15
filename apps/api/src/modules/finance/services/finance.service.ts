@@ -433,7 +433,7 @@ export class FinanceService {
         eventType: "PAYMENT_RECEIVED",
         userId: clientUser.userId,
         title: "تم استلام دفع",
-        body: `تم تسجيل دفعة بقيمة ${payment.amount} ر.س للفاتورة ${invoice.invoiceNumber}`,
+        body: `تم استلام دفعة بقيمة ${payment.amount} ر.س للفاتورة "${invoice.invoiceNumber}"`,
       });
     }
 

@@ -37,6 +37,7 @@ export interface AdminClientFilters {
 
 export interface AdminClientStats {
   total: number;
+  lead: number;
   active: number;
   inactive: number;
   newThisMonth: number;
@@ -151,6 +152,46 @@ export const adminClientsApi = createApi({
   baseQuery,
   tagTypes: ["AdminClients", "AdminClient", "AdminClientStats", "AdminClientUsers"],
   endpoints: (builder) => ({
+    suspendAdminClient: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/clients/${id}/suspend`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminClient", id }, "AdminClients"],
+    }),
+
+    reactivateAdminClient: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/clients/${id}/reactivate`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminClient", id }, "AdminClients"],
+    }),
+
+    assignAdminClientManager: builder.mutation<void, { id: string; managerId: string }>({
+      query: ({ id, managerId }) => ({
+        url: `/admin/clients/${id}/assign-manager`,
+        method: "POST",
+        body: { managerId },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminClient", id }, "AdminClients"],
+    }),
+
+    toggleAdminClientPortalAccess: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/portal/clients/${id}/toggle-access`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminClient", id }],
+    }),
+
+    regenerateAdminClientPortalToken: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/portal/clients/${id}/regenerate-token`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminClient", id }],
+    }),
     getAdminClients: builder.query<
       PaginatedAdminClients,
       AdminClientFilters | void
@@ -201,4 +242,9 @@ export const {
   useGetAdminClientByIdQuery,
   useGetAdminClientStatsQuery,
   useGetAdminClientUsersQuery,
+  useSuspendAdminClientMutation,
+  useReactivateAdminClientMutation,
+  useAssignAdminClientManagerMutation,
+  useToggleAdminClientPortalAccessMutation,
+  useRegenerateAdminClientPortalTokenMutation,
 } = adminClientsApi;

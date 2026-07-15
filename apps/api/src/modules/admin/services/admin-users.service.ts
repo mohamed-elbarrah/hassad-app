@@ -40,13 +40,15 @@ export class AdminUsersService {
         { email: { contains: query.search, mode: "insensitive" } },
       ];
     }
-    if (query.role) {
-      const role = await this.prisma.role.findFirst({
-        where: { name: query.role },
+    if (query.roles) {
+      const roleNames = query.roles.split(",").map((r) => r.trim());
+      const roles = await this.prisma.role.findMany({
+        where: { name: { in: roleNames } },
       });
-      if (role) where.roleId = role.id;
-    }
-    if (query.excludeRole) {
+      if (roles.length > 0) {
+        where.roleId = { in: roles.map((r) => r.id) };
+      }
+    } else if (query.excludeRole) {
       const excludeRole = await this.prisma.role.findFirst({
         where: { name: query.excludeRole },
       });

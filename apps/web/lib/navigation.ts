@@ -15,11 +15,9 @@ import {
   Ticket,
   LayoutDashboard,
   Users,
-  Group,
   FolderKanban,
   CheckSquare,
   FileSpreadsheet,
-  UserPlus,
   Handshake,
   PiggyBank,
   Scale,
@@ -31,6 +29,7 @@ import {
   Globe,
   AlertTriangle,
   DollarSign,
+  CreditCard,
   Bot,
 } from "lucide-react";
 
@@ -68,12 +67,6 @@ export const adminNavSections: NavSection[] = [
         icon: Users,
         roles: ["ADMIN"],
       },
-      {
-        title: "الفرق",
-        url: "/dashboard/admin/teams",
-        icon: Group,
-        roles: ["ADMIN"],
-      },
     ],
   },
   {
@@ -83,12 +76,6 @@ export const adminNavSections: NavSection[] = [
         title: "العملاء",
         url: "/dashboard/admin/clients",
         icon: Handshake,
-        roles: ["ADMIN"],
-      },
-      {
-        title: "العملاء المحتملون",
-        url: "/dashboard/admin/leads",
-        icon: UserPlus,
         roles: ["ADMIN"],
       },
     ],
@@ -153,6 +140,12 @@ export const adminNavSections: NavSection[] = [
         title: "المدفوعات",
         url: "/dashboard/admin/finance/payments",
         icon: TrendingUp,
+        roles: ["ADMIN"],
+      },
+      {
+        title: "بوابات الدفع",
+        url: "/dashboard/admin/payment-gateways",
+        icon: CreditCard,
         roles: ["ADMIN"],
       },
     ],

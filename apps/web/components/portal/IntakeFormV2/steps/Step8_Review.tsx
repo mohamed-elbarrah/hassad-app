@@ -47,7 +47,7 @@ interface Step8Props {
 const SECTIONS: ReviewSection[] = [
   {
     key: "communicationInfo",
-    stepIndex: 0,
+    stepIndex: 1,
     title: "الملخص التواصلي",
     icon: User,
     data: undefined,
@@ -55,7 +55,7 @@ const SECTIONS: ReviewSection[] = [
   },
   {
     key: "productInfo",
-    stepIndex: 1,
+    stepIndex: 2,
     title: "معلومات المنتج / الخدمة",
     icon: Building2,
     data: undefined,
@@ -63,7 +63,7 @@ const SECTIONS: ReviewSection[] = [
   },
   {
     key: "audienceInfo",
-    stepIndex: 2,
+    stepIndex: 3,
     title: "الجمهور والرسائل",
     icon: Target,
     data: undefined,
@@ -71,7 +71,7 @@ const SECTIONS: ReviewSection[] = [
   },
   {
     key: "brandVoice",
-    stepIndex: 2,
+    stepIndex: 3,
     title: "الرسائل والهوية",
     icon: FileText,
     data: undefined,
@@ -79,7 +79,7 @@ const SECTIONS: ReviewSection[] = [
   },
   {
     key: "customerJourney",
-    stepIndex: 3,
+    stepIndex: 4,
     title: "رحلة العميل",
     icon: ShoppingCart,
     data: undefined,
@@ -87,7 +87,7 @@ const SECTIONS: ReviewSection[] = [
   },
   {
     key: "campaignInfo",
-    stepIndex: 4,
+    stepIndex: 5,
     title: "الحملة الإعلانية",
     icon: Megaphone,
     data: undefined,
@@ -95,7 +95,7 @@ const SECTIONS: ReviewSection[] = [
   },
   {
     key: "pastPerformance",
-    stepIndex: 5,
+    stepIndex: 6,
     title: "الأداء السابق",
     icon: TrendingUp,
     data: undefined,
@@ -103,7 +103,7 @@ const SECTIONS: ReviewSection[] = [
   },
   {
     key: "budgetInfo",
-    stepIndex: 5,
+    stepIndex: 6,
     title: "الميزانية",
     icon: TrendingUp,
     data: undefined,
@@ -111,7 +111,7 @@ const SECTIONS: ReviewSection[] = [
   },
   {
     key: "visualIdentityInfo",
-    stepIndex: 6,
+    stepIndex: 7,
     title: "الهوية البصرية",
     icon: Palette,
     data: undefined,
@@ -390,7 +390,7 @@ export function Step8_Review({
           <ActionButton
             type="button"
             variant="outline"
-            onClick={() => onEdit(6)}
+            onClick={() => onEdit(7)}
           >
             السابق
           </ActionButton>

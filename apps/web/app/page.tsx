@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system/ActionButton";
 
 export default function HomePage() {
   return (
@@ -12,17 +12,16 @@ export default function HomePage() {
           A full-stack SaaS platform for marketing agencies to manage CRM,
           projects, clients, finances, and campaigns.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 mt-8">
-          <Link href="/login">
-            <Button size="lg" className="w-full sm:w-auto">
-              Login
-            </Button>
-          </Link>
-          <Link href="/signup">
-            <Button size="lg" variant="outline" className="w-full sm:w-auto">
-              Sign Up
-            </Button>
-          </Link>
+        <div className="flex flex-col gap-4 mt-8 sm:flex-row">
+          <ActionButton href="/login" variant="primary" size="lg">
+            Login
+          </ActionButton>
+          <ActionButton href="/signup" variant="outline" size="lg">
+            Sign Up
+          </ActionButton>
+          <ActionButton href="/design-system" variant="action-blue" size="lg">
+            Design System
+          </ActionButton>
         </div>
       </div>
     </main>

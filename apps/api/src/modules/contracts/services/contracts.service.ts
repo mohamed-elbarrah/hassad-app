@@ -21,6 +21,7 @@ import {
   PaymentPlanRowDto,
 } from "../dto/payment-plan.dto";
 import {
+  ClientStatus,
   ContractStatus,
   ProjectStatus,
   RequestStatus,
@@ -439,6 +440,7 @@ export class ContractsService {
         title: true,
         clientId: true,
         createdBy: true,
+        client: { select: { accountManager: true } },
       },
     });
     if (!contract) throw new NotFoundException("Contract not found");
@@ -469,11 +471,26 @@ export class ContractsService {
         data: { status: ProjectStatus.ACTIVE },
       });
 
+      // First signed contract → client becomes ACTIVE.
+      await tx.client.update({
+        where: { id: contract.clientId },
+        data: { status: ClientStatus.ACTIVE },
+      });
+
       return c;
     });
 
+    const projectManager = await this.prisma.project.findFirst({
+      where: { contractId },
+      select: { projectManagerId: true },
+    });
+
     await this.notificationsService.notifyUsers({
-      userIds: [contract.createdBy].filter(Boolean) as string[],
+      userIds: [
+        contract.createdBy,
+        contract.client.accountManager,
+        projectManager?.projectManagerId,
+      ].filter(Boolean) as string[],
       title: "تم تفعيل العقد",
       message: `تم تفعيل العقد "${contract.title}" بعد استلام الدفعة المقدمة.`,
       entityId: contractId,
@@ -588,7 +605,13 @@ export class ContractsService {
     const period = invoice.period;
     const projectStatus = await this.prisma.project.findUnique({
       where: { id: period.projectId },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        projectManagerId: true,
+        members: { select: { userId: true } },
+        client: { select: { userId: true } },
+      },
     });
     if (period.status !== ProjectPeriodStatus.SUSPENDED) return;
 
@@ -642,16 +665,25 @@ export class ContractsService {
       }
     });
 
-    await this.notificationsService
-      .createNotification({
-        entityId: period.id,
-        entityType: "PROJECT_PERIOD",
-        eventType: "PERIOD_RESUMED",
-        userId,
-        title: "تم استئناف الفترة",
-        body: `تم استئناف الفترة رقم ${period.periodNumber} بعد دفع الفاتورة`,
-      })
-      .catch(() => undefined);
+    const resumeRecipients = [
+      projectStatus?.projectManagerId,
+      ...(projectStatus?.members ?? []).map((m) => m.userId),
+      projectStatus?.client?.userId,
+    ].filter(Boolean) as string[];
+
+    if (resumeRecipients.length > 0) {
+      await this.notificationsService
+        .notifyUsers({
+          userIds: resumeRecipients,
+          excludeUserIds: [userId],
+          title: "تم استئناف الفترة",
+          message: `تم استئناف الفترة رقم ${period.periodNumber} بعد سداد الفاتورة`,
+          entityId: period.id,
+          entityType: "PROJECT_PERIOD",
+          eventType: "PERIOD_RESUMED",
+        })
+        .catch(() => undefined);
+    }
 
     // Refresh the owning client's counters — resuming a project moves it
     // from ON_HOLD back to ACTIVE, which changes the `activeProjects` /
@@ -1064,7 +1096,7 @@ export class ContractsService {
     });
   }
 
-  async send(id: string) {
+  async send(id: string, userId?: string) {
     const contract = await this.findOne(id);
 
     const updated = await this.prisma.contract.update({
@@ -1074,14 +1106,24 @@ export class ContractsService {
       },
     });
 
-    const notifyUserIds = [contract.client.accountManager].filter(
-      Boolean,
-    ) as string[];
+    let actorName: string | undefined;
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+      actorName = actor?.name;
+    }
+
+    const notifyUserIds = [
+      contract.client.accountManager,
+      contract.createdBy,
+    ].filter(Boolean) as string[];
     if (notifyUserIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: notifyUserIds,
         title: "تم إرسال العقد",
-        message: `تم إرسال العقد "${contract.title}" إلى ${contract.client.companyName}`,
+        message: `أرسل ${actorName ?? "النظام"} العقد "${contract.title}" إلى ${contract.client.companyName}`,
         entityId: id,
         entityType: "CONTRACT",
         eventType: "CONTRACT_SENT",
@@ -1209,12 +1251,19 @@ export class ContractsService {
       return c;
     });
 
+    const cancelActor = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { name: true },
+    });
+    const cancelActorName = cancelActor?.name ?? "النظام";
+
     await this.notificationsService.notifyUsers({
       userIds: [contract.createdBy, contract.client.accountManager].filter(
         Boolean,
       ) as string[],
+      excludeUserIds: [actorId],
       title: "تم إلغاء العقد",
-      message: `تم إلغاء العقد "${contract.title}" مع ${contract.client.companyName}`,
+      message: `ألغى ${cancelActorName} العقد "${contract.title}" مع ${contract.client.companyName}`,
       entityId: id,
       entityType: "CONTRACT",
       eventType: "CONTRACT_CANCELLED",
@@ -1232,7 +1281,7 @@ export class ContractsService {
           eventType: "CONTRACT_CANCELLED",
           userId: clientUser.userId,
           title: "تم إلغاء العقد",
-          body: `تم إلغاء العقد "${contract.title}". يرجى التواصل معنا لمزيد من التفاصيل.`,
+          body: `تم إلغاء العقد "${contract.title}". للاستفسار، يرجى التواصل مع فريقنا.`,
         })
         .catch(() => undefined);
     }

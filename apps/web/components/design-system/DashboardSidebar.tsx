@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Settings, ChevronDown, ChevronLeft } from "lucide-react";
+import { LogOut, Settings, ChevronDown, ChevronLeft, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
@@ -70,13 +70,26 @@ export function DashboardSidebar() {
       .filter((section) => section.items.length > 0);
   }, [user]);
 
+  const isAdmin = user?.role === UserRole.ADMIN;
+
   const { standaloneItems, groupedSections } = useMemo(() => {
-    if (processedSections.length === 0) {
-      return { standaloneItems: [], groupedSections: [] };
+    const standalone: { title: string; url: string; icon: LucideIcon }[] = [];
+    const grouped: { label: string; items: { title: string; url: string; icon: LucideIcon }[] }[] = [];
+    if (isAdmin) {
+      for (const section of processedSections) {
+        if (section.items.length === 1) {
+          standalone.push(section.items[0]);
+        } else {
+          grouped.push(section);
+        }
+      }
+    } else {
+      for (const section of processedSections) {
+        standalone.push(...section.items);
+      }
     }
-    const [first, ...rest] = processedSections;
-    return { standaloneItems: first.items, groupedSections: rest };
-  }, [processedSections]);
+    return { standaloneItems: standalone, groupedSections: grouped };
+  }, [processedSections, isAdmin]);
 
   const activeGroupLabel = useMemo(() => {
     for (const section of groupedSections) {

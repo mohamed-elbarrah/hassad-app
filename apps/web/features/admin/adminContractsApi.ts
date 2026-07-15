@@ -102,6 +102,38 @@ export const adminContractsApi = createApi({
   baseQuery,
   tagTypes: ["AdminContracts", "AdminContract"],
   endpoints: (builder) => ({
+    cancelAdminContract: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/contracts/${id}/cancel`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminContract", id }, "AdminContracts"],
+    }),
+
+    triggerAdminContractRenewalAlert: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/contracts/${id}/trigger-renewal-alert`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminContract", id }],
+    }),
+
+    convertAdminContractToProject: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/contracts/${id}/convert-to-project`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminContract", id }, "AdminContracts"],
+    }),
+
+    updateAdminContractStatus: builder.mutation<void, { id: string; status: string; reason?: string }>({
+      query: ({ id, status, reason }) => ({
+        url: `/admin/contracts/${id}/status`,
+        method: "POST",
+        body: { status, reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminContract", id }, "AdminContracts"],
+    }),
     getAdminContracts: builder.query<
       PaginatedAdminContracts,
       AdminContractFilters | void
@@ -129,5 +161,11 @@ export const adminContractsApi = createApi({
   }),
 });
 
-export const { useGetAdminContractsQuery, useGetAdminContractByIdQuery } =
-  adminContractsApi;
+export const {
+  useGetAdminContractsQuery,
+  useGetAdminContractByIdQuery,
+  useCancelAdminContractMutation,
+  useTriggerAdminContractRenewalAlertMutation,
+  useConvertAdminContractToProjectMutation,
+  useUpdateAdminContractStatusMutation,
+} = adminContractsApi;

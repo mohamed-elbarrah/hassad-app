@@ -19,8 +19,8 @@ export class QueryUsersDto {
   search?: string;
 
   @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
+  @IsString()
+  roles?: string;
 
   @IsOptional()
   @IsEnum(UserRole)

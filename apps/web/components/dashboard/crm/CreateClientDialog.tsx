@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Building2, Briefcase } from "lucide-react";
 import { Dialog } from "@/components/design-system/Dialog";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
@@ -12,7 +11,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/design-system/Form";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
@@ -29,8 +27,6 @@ import { useAppSelector } from "@/lib/hooks";
 import { CreateClientSchema, BusinessType, UserRole } from "@hassad/shared";
 import type { CreateClientInput } from "@hassad/shared";
 
-// ── Labels ────────────────────────────────────────────────────────────────────
-
 const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.RESTAURANT]: "مطعم",
   [BusinessType.CLINIC]: "عيادة",
@@ -39,12 +35,14 @@ const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   [BusinessType.OTHER]: "أخرى",
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-export function CreateClientDialog() {
+export function CreateClientModal({ open, onOpenChange }: Props) {
   const { user } = useAppSelector((state) => state.auth);
   const isAdmin = user?.role === UserRole.ADMIN;
-  const [open, setOpen] = useState(false);
   const [createClient, { isLoading }] = useCreateClientMutation();
   const { data: salesUsers } = useSearchUsersQuery(
     { role: UserRole.SALES, limit: 50 },
@@ -69,40 +67,58 @@ export function CreateClientDialog() {
       await createClient(values).unwrap();
       toast.success("تم إضافة العميل بنجاح.");
       form.reset();
-      setOpen(false);
+      onOpenChange(false);
     } catch {
       toast.error("فشل إضافة العميل. يرجى المحاولة مجدداً.");
     }
   }
 
-  return (
-    <>
-      <ActionButton
-        variant="primary"
-        onClick={() => setOpen(true)}
-        icon={<Plus className="h-4 w-4" />}
-      >
-        إضافة عميل
-      </ActionButton>
+  function handleClose(v: boolean) {
+    if (!v) form.reset();
+    onOpenChange(v);
+  }
 
-      <Dialog
-        open={open}
-        onOpenChange={setOpen}
-        title="إضافة عميل جديد"
-        contentClassName="sm:max-w-md"
-      >
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 pt-2"
-          >
-            {/* Company Name */}
+  const isValid = form.formState.isValid;
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={handleClose}
+      contentClassName="sm:max-w-[480px]"
+    >
+      <div className="text-center space-y-1.5 pb-4">
+        <div className="flex justify-center mb-3">
+          <div className="h-14 w-14 rounded-full bg-secondary-500/10 flex items-center justify-center">
+            <Building2 className="h-7 w-7 text-secondary-500" />
+          </div>
+        </div>
+        <h1 className="text-[22px] font-bold text-natural-100 leading-tight">
+          إضافة عميل جديد
+        </h1>
+        <p className="text-[13px] text-neutral-300 leading-relaxed px-2">
+          أدخل بيانات العميل الجديد لإضافته إلى المنصة
+        </p>
+      </div>
+
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-5"
+        >
+          <div className="border border-neutral-200 rounded-2xl p-5 space-y-4 bg-natural-0">
+            <p className="text-[15px] font-bold text-natural-100 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-secondary-500" />
+              بيانات العميل
+            </p>
+
             <FormField
               control={form.control}
               name="companyName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>اسم الشركة</FormLabel>
+                  <label className="text-[13px] font-bold text-natural-100 block">
+                    اسم الشركة <span className="text-danger-500">*</span>
+                  </label>
                   <FormControl>
                     <FormInputControl
                       placeholder="مثال: شركة النجوم"
@@ -114,13 +130,14 @@ export function CreateClientDialog() {
               )}
             />
 
-            {/* Contact Name */}
             <FormField
               control={form.control}
               name="contactName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>اسم جهة الاتصال</FormLabel>
+                  <label className="text-[13px] font-bold text-natural-100 block">
+                    اسم جهة الاتصال <span className="text-danger-500">*</span>
+                  </label>
                   <FormControl>
                     <FormInputControl
                       placeholder="الاسم الكامل للمسؤول"
@@ -132,13 +149,14 @@ export function CreateClientDialog() {
               )}
             />
 
-            {/* Phone (WhatsApp) */}
             <FormField
               control={form.control}
               name="phoneWhatsapp"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>رقم الواتساب</FormLabel>
+                  <label className="text-[13px] font-bold text-natural-100 block">
+                    رقم الواتساب <span className="text-danger-500">*</span>
+                  </label>
                   <FormControl>
                     <FormInputControl
                       dir="ltr"
@@ -151,13 +169,17 @@ export function CreateClientDialog() {
               )}
             />
 
-            {/* Email (optional) */}
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>البريد الإلكتروني (اختياري)</FormLabel>
+                  <label className="text-[13px] font-bold text-natural-100 block">
+                    البريد الإلكتروني{" "}
+                    <span className="text-neutral-300 text-[12px]">
+                      (اختياري)
+                    </span>
+                  </label>
                   <FormControl>
                     <FormInputControl
                       dir="ltr"
@@ -171,14 +193,25 @@ export function CreateClientDialog() {
                 </FormItem>
               )}
             />
+          </div>
 
-            {/* Business Name */}
+          <div className="border border-neutral-200 rounded-2xl p-5 space-y-4 bg-natural-0">
+            <p className="text-[15px] font-bold text-natural-100 flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-secondary-500" />
+              النشاط التجاري
+            </p>
+
             <FormField
               control={form.control}
               name="businessName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>اسم النشاط التجاري</FormLabel>
+                  <label className="text-[13px] font-bold text-natural-100 block">
+                    اسم النشاط التجاري{" "}
+                    <span className="text-neutral-300 text-[12px]">
+                      (اختياري)
+                    </span>
+                  </label>
                   <FormControl>
                     <FormInputControl
                       placeholder="الاسم التجاري المعروف به"
@@ -190,13 +223,14 @@ export function CreateClientDialog() {
               )}
             />
 
-            {/* Business Type */}
             <FormField
               control={form.control}
               name="businessType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>نوع النشاط</FormLabel>
+                  <label className="text-[13px] font-bold text-natural-100 block">
+                    نوع النشاط <span className="text-danger-500">*</span>
+                  </label>
                   <FormSelect
                     onValueChange={field.onChange}
                     value={field.value}
@@ -221,14 +255,18 @@ export function CreateClientDialog() {
               )}
             />
 
-            {/* Account Manager (admin only) */}
             {isAdmin && (
               <FormField
                 control={form.control}
                 name="accountManager"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>مدير الحساب (اختياري)</FormLabel>
+                    <label className="text-[13px] font-bold text-natural-100 block">
+                      مدير الحساب{" "}
+                      <span className="text-neutral-300 text-[12px]">
+                        (اختياري)
+                      </span>
+                    </label>
                     <FormSelect
                       value={field.value ?? "AUTO"}
                       onValueChange={(value) =>
@@ -256,28 +294,36 @@ export function CreateClientDialog() {
                 )}
               />
             )}
+          </div>
 
-            {form.formState.errors.root && (
-              <p className="text-sm text-danger-500">
-                {form.formState.errors.root.message}
-              </p>
-            )}
+          {form.formState.errors.root && (
+            <p className="text-sm text-danger-500">
+              {form.formState.errors.root.message}
+            </p>
+          )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <ActionButton
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
-                إلغاء
-              </ActionButton>
-              <ActionButton type="submit" variant="primary" loading={isLoading}>
-                {isLoading ? "جارٍ الحفظ..." : "حفظ"}
-              </ActionButton>
-            </div>
-          </form>
-        </Form>
-      </Dialog>
-    </>
+          <div className="flex gap-3 pt-1">
+            <ActionButton
+              variant="outline"
+              type="button"
+              onClick={() => handleClose(false)}
+              className="w-[30%] h-14 text-[13px] font-medium"
+            >
+              إلغاء
+            </ActionButton>
+            <ActionButton
+              type="submit"
+              variant="submit"
+              size="lg"
+              loading={isLoading}
+              disabled={!isValid}
+              className="flex-1 h-14 text-[15px] font-semibold"
+            >
+              {isLoading ? "جارٍ الحفظ..." : "إضافة العميل"}
+            </ActionButton>
+          </div>
+        </form>
+      </Form>
+    </Dialog>
   );
 }

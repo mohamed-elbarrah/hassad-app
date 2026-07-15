@@ -25,9 +25,9 @@ export interface PaginatedAdminUsers {
 
 export interface AdminUserFilters {
   search?: string;
-  role?: UserRole;
+  roles?: string;
   department?: TaskDepartment;
-  isActive?: boolean;
+  status?: "active" | "inactive";
   lastLogin?: string;
   excludeRole?: string;
   page?: number;
@@ -154,10 +154,9 @@ export const adminUsersApi = createApi({
         if (!filters) return "/admin/users";
         const params = new URLSearchParams();
         if (filters.search) params.set("search", filters.search);
-        if (filters.role) params.set("role", filters.role);
+        if (filters.roles) params.set("roles", filters.roles);
         if (filters.department) params.set("department", filters.department);
-        if (filters.isActive !== undefined)
-          params.set("isActive", String(filters.isActive));
+        if (filters.status) params.set("status", filters.status);
         if (filters.lastLogin) params.set("lastLogin", filters.lastLogin);
         if (filters.excludeRole) params.set("excludeRole", filters.excludeRole);
         if (filters.page) params.set("page", String(filters.page));
@@ -213,6 +212,22 @@ export const adminUsersApi = createApi({
         method: "POST",
       }),
       invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
+    }),
+
+    suspendAdminUser: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/users/${id}/suspend`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }, "AdminUsers"],
+    }),
+
+    reactivateAdminUser: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/users/${id}/reactivate`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }, "AdminUsers"],
     }),
 
     impersonateAdminUser: builder.mutation<
@@ -316,6 +331,8 @@ export const {
   useCreateAdminUserMutation,
   useUpdateAdminUserMutation,
   useResetAdminUserPasswordMutation,
+  useSuspendAdminUserMutation,
+  useReactivateAdminUserMutation,
   useImpersonateAdminUserMutation,
   useRevokeAdminUserSessionsMutation,
   useUpdateAdminUserPermissionsMutation,

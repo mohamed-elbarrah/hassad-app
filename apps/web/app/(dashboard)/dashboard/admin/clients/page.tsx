@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Building2, UserPlus } from "lucide-react";
+import { Building2, UserPlus, Handshake } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
@@ -10,24 +10,17 @@ import {
   type DataTableColumn,
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
+import { Pagination } from "@/components/design-system/Pagination";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import {
   useGetAdminClientUsersQuery,
+  useGetAdminClientStatsQuery,
   type ClientUserItem,
 } from "@/features/admin/adminClientsApi";
+import { CreateClientModal } from "@/components/dashboard/crm/CreateClientDialog";
 import { cn } from "@/lib/utils";
-
-type SegmentTab = "all" | "new" | "active" | "stopped";
-
-const SEGMENT_TABS: { key: SegmentTab; label: string }[] = [
-  { key: "all", label: "كل العملاء" },
-  { key: "new", label: "جدد" },
-  { key: "active", label: "نشطون" },
-  { key: "stopped", label: "موقوفون" },
-];
 
 const COLUMNS: DataTableColumn[] = [
   { id: "name", label: "اسم العميل", align: "right" },
@@ -53,35 +46,68 @@ const currencyFormatter = new Intl.NumberFormat("ar-SA", {
 export default function AdminClientsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [segment, setSegment] = useState<SegmentTab>("all");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [createOpen, setCreateOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<
+    Record<string, string[]>
+  >({});
 
-  const segmentParam = segment === "all" ? undefined : segment;
   const statusFilter = activeFilters.status?.[0];
 
   const { data, isLoading, isError } = useGetAdminClientUsersQuery({
     search: search || undefined,
-    segment: segmentParam as "new" | "active" | "stopped" | undefined,
     status: statusFilter,
     page,
     limit: 20,
   });
 
-  const clients = useMemo(() => data?.items ?? [], [data]);
+  const { data: clientStats, isLoading: statsLoading } =
+    useGetAdminClientStatsQuery();
 
-  const statCards = useMemo(() => {
-    const total = data?.total ?? 0;
-    return { total };
-  }, [data]);
+  const items = useMemo(() => data?.items ?? [], [data]);
+  const totalPages = data?.totalPages ?? 1;
+
+  function handleFilterChange(groupKey: string, values: string[]) {
+    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+    setPage(1);
+  }
+
+  function renderStatCards() {
+    return [
+      {
+        label: "الإجمالي",
+        value: clientStats?.total ?? (statsLoading ? "—" : 0),
+        className: "",
+      },
+      {
+        label: "عميل محتمل",
+        value: clientStats?.lead ?? (statsLoading ? "—" : 0),
+        className: "bg-alert-100/50 border-alert-200 text-alert-600",
+      },
+      {
+        label: "نشط",
+        value: clientStats?.active ?? (statsLoading ? "—" : 0),
+        className: "bg-success-100/50 border-success-200 text-success-600",
+      },
+      {
+        label: "موقوف",
+        value: clientStats?.inactive ?? (statsLoading ? "—" : 0),
+        className: "bg-danger-100/50 border-danger-200 text-danger-600",
+      },
+    ];
+  }
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
       <PageIntro
         title="العملاء"
-        description="إدارة حسابات العملاء: متابعة النشاط والمشاريع والفواتير"
-        icon={Building2}
+        description="إدارة العملاء والعملاء المحتملين"
+        icon={Handshake}
         actions={
-          <ActionButton variant="primary" size="md">
+          <ActionButton
+            variant="primary"
+            size="md"
+            onClick={() => setCreateOpen(true)}
+          >
             <UserPlus className="h-4 w-4" />
             إضافة عميل
           </ActionButton>
@@ -89,12 +115,7 @@ export default function AdminClientsPage() {
       />
 
       <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: "الإجمالي", value: statCards.total, className: "" },
-          { label: "جدد", value: clients.filter((c) => c.activeProjects === 0 && c.status !== "STOPPED").length, className: "bg-blue-100/50 border-blue-200 text-blue-600" },
-          { label: "نشطون", value: clients.filter((c) => c.activeProjects > 0).length, className: "bg-success-100/50 border-success-200 text-success-600" },
-          { label: "موقوفون", value: clients.filter((c) => c.status === "STOPPED").length, className: "bg-danger-100/50 border-danger-200 text-danger-600" },
-        ].map((card) => (
+        {renderStatCards().map((card) => (
           <div
             key={card.label}
             className={cn(
@@ -104,27 +125,9 @@ export default function AdminClientsPage() {
           >
             <p className="text-sm text-portal-note-text">{card.label}</p>
             <p className="text-2xl font-semibold text-natural-100 mt-2">
-              {isLoading ? "—" : card.value}
+              {card.value}
             </p>
           </div>
-        ))}
-      </div>
-
-      {/* Segment tabs */}
-      <div className="flex gap-1 bg-portal-divider/30 rounded-xl p-1 w-fit">
-        {SEGMENT_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => { setSegment(tab.key); setPage(1); }}
-            className={cn(
-              "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-              segment === tab.key
-                ? "bg-white text-natural-100 shadow-sm"
-                : "text-portal-note-text hover:text-natural-100",
-            )}
-          >
-            {tab.label}
-          </button>
         ))}
       </div>
 
@@ -132,7 +135,10 @@ export default function AdminClientsPage() {
         <div className="mb-4">
           <AdminListToolbar
             search={search}
-            onSearchChange={setSearch}
+            onSearchChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
             searchPlaceholder="بحث باسم العميل أو الشركة..."
             filterGroups={[
               {
@@ -146,15 +152,13 @@ export default function AdminClientsPage() {
               },
             ]}
             activeFilters={activeFilters}
-            onFilterChange={(key, values) =>
-              setActiveFilters((prev) => ({ ...prev, [key]: values }))
-            }
+            onFilterChange={handleFilterChange}
           />
         </div>
 
         <DataTable
           columns={COLUMNS}
-          data={clients}
+          data={items}
           isLoading={isLoading}
           isError={isError}
           errorMessage="حدث خطأ أثناء تحميل العملاء."
@@ -190,7 +194,22 @@ export default function AdminClientsPage() {
             </tr>
           )}
         />
+
+        {!isLoading && !isError && totalPages > 1 && (
+          <div className="mt-4 flex justify-center">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </SurfaceCard>
+
+      <CreateClientModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
     </div>
   );
 }

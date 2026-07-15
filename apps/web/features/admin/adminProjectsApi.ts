@@ -148,6 +148,48 @@ export const adminProjectsApi = createApi({
   baseQuery,
   tagTypes: ["AdminProjects", "AdminProject"],
   endpoints: (builder) => ({
+    reassignAdminProjectPM: builder.mutation<void, { id: string; projectManagerId: string }>({
+      query: ({ id, projectManagerId }) => ({
+        url: `/admin/projects/${id}/reassign-pm`,
+        method: "POST",
+        body: { projectManagerId },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }, "AdminProjects"],
+    }),
+
+    archiveAdminProject: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/projects/${id}/archive`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminProject", id }, "AdminProjects"],
+    }),
+
+    unarchiveAdminProject: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin/projects/${id}/unarchive`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "AdminProject", id }, "AdminProjects"],
+    }),
+
+    forceAdminProjectStatus: builder.mutation<void, { id: string; status: string }>({
+      query: ({ id, status }) => ({
+        url: `/admin/projects/${id}/force-status`,
+        method: "POST",
+        body: { status },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }, "AdminProjects"],
+    }),
+
+    addAdminProjectMember: builder.mutation<void, { id: string; userId: string; role: string }>({
+      query: ({ id, userId, role }) => ({
+        url: `/admin/projects/${id}/members`,
+        method: "POST",
+        body: { userId, role },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: "AdminProject", id }],
+    }),
     getAdminProjects: builder.query<
       PaginatedAdminProjects,
       AdminProjectFilters | void
@@ -175,5 +217,12 @@ export const adminProjectsApi = createApi({
   }),
 });
 
-export const { useGetAdminProjectsQuery, useGetAdminProjectByIdQuery } =
-  adminProjectsApi;
+export const {
+  useGetAdminProjectsQuery,
+  useGetAdminProjectByIdQuery,
+  useReassignAdminProjectPMMutation,
+  useArchiveAdminProjectMutation,
+  useUnarchiveAdminProjectMutation,
+  useForceAdminProjectStatusMutation,
+  useAddAdminProjectMemberMutation,
+} = adminProjectsApi;
