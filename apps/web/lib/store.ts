@@ -40,6 +40,7 @@ import { adminFinanceApi } from "@/features/admin/adminFinanceApi";
 import { adminReportsApi } from "@/features/admin/adminReportsApi";
 import { periodsApi } from "@/features/projects/periodsApi";
 import { pmDisputesApi } from "@/features/disputes/pmDisputesApi";
+import { aiAssistantApi } from "@/features/aiAssistantApi";
 import { notificationTemplatesApi } from "@/features/notification-templates/notificationTemplatesApi";
 import { intakeFormApi } from "@/features/intakeForm/intakeFormApi";
 
@@ -85,6 +86,7 @@ export const store = configureStore({
     [adminFinanceApi.reducerPath]: adminFinanceApi.reducer,
     [adminReportsApi.reducerPath]: adminReportsApi.reducer,
     [pmDisputesApi.reducerPath]: pmDisputesApi.reducer,
+    [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
     [notificationTemplatesApi.reducerPath]: notificationTemplatesApi.reducer,
     [intakeFormApi.reducerPath]: intakeFormApi.reducer,
   },
@@ -128,6 +130,7 @@ export const store = configureStore({
       adminReportsApi.middleware,
       periodsApi.middleware,
       pmDisputesApi.middleware,
+      aiAssistantApi.middleware,
       notificationTemplatesApi.middleware,
       intakeFormApi.middleware,
     ];

@@ -99,6 +99,7 @@ model User {
   disputeAttachments   DisputeAttachment[]
   disputeHistoryChanges DisputeHistory[]
   disputeStats         PmDisputeStats?
+  aiConversations      AiConversation[]
 
   @@index([roleId])
   @@index([createdAt])
@@ -2208,6 +2209,61 @@ enum AiSuggestionStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+enum AiAssistantArea {
+  CRM
+  FINANCE
+  CLIENTS
+  PM
+  MARKETING
+  ALL
+
+  @@map("ai_assistant_areas")
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+
+  @@map("ai_message_roles")
+}
+
+// ── AI Assistant (Admin Chat Bot) ──────────────────────────────────────────────
+
+model AiConversation {
+  id          String             @id @default(uuid())
+  userId      String             @map("user_id")
+  title       String?
+  areas       AiAssistantArea[]  @map("areas")
+  preferences Json?              @map("preferences")
+  isActive    Boolean            @default(true) @map("is_active")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  messages    AiMessage[]
+  user        User               @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id              String         @id @default(uuid())
+  conversationId  String         @map("conversation_id")
+  role            AiMessageRole  @map("role")
+  content         String?
+  toolCalls       Json?          @map("tool_calls")
+  tokensUsed      Int?           @map("tokens_used")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  conversation    AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("ai_messages")
 }
 
 enum ServiceCategory {

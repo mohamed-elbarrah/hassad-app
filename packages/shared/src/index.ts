@@ -5,6 +5,7 @@ export * from "./enums/project";
 
 export * from "./enums/finance";
 export * from "./enums/ai";
+export * from "./enums/ai-assistant";
 export * from "./enums/satisfaction";
 export * from "./enums/workload";
 export * from "./enums/campaign";

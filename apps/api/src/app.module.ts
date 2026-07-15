@@ -23,6 +23,7 @@ import { FinanceModule } from "./modules/finance/finance.module";
 import { ChatModule } from "./modules/chat/chat.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { AiModule } from "./modules/ai/ai.module";
+import { AiAssistantModule } from "./modules/ai-assistant/ai-assistant.module";
 import { SalesModule } from "./modules/sales/sales.module";
 import { MarketingModule } from "./modules/marketing/marketing.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
@@ -75,6 +76,7 @@ import { DisputesModule } from "./modules/disputes/disputes.module";
     ChatModule,
     NotificationsModule,
     AiModule,
+    AiAssistantModule,
     SalesModule,
     HealthModule,
     DisputesModule,
