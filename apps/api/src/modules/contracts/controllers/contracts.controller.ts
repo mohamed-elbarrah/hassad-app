@@ -108,8 +108,8 @@ export class ContractsController {
   @Post(":id/send")
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @RequirePermissions("contracts.send")
-  send(@Param("id") id: string) {
-    return this.contractsService.send(id);
+  send(@CurrentUser() user: any, @Param("id") id: string) {
+    return this.contractsService.send(id, user?.id);
   }
 
   @Post(":id/sign")

@@ -259,7 +259,7 @@ export class ProjectsService {
     };
   }
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: string, userId?: string) {
     const project = await this.findOne(id);
 
     const updated = await this.prisma.project.update({
@@ -268,6 +268,15 @@ export class ProjectsService {
     });
 
     this.clientCounterService.onProjectStatusChange(id).catch(() => undefined);
+
+    let actorName: string | undefined;
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+      actorName = actor?.name;
+    }
 
     const memberIds = await this.prisma.projectMember.findMany({
       where: { projectId: id },
@@ -282,7 +291,7 @@ export class ProjectsService {
       await this.notificationsService.notifyUsers({
         userIds: recipientIds,
         title: "تحديث حالة المشروع",
-        message: `تم تغيير حالة المشروع "${project.name}" إلى ${status}`,
+        message: `غيّر ${actorName ?? "النظام"} حالة المشروع "${project.name}" إلى ${status}`,
         entityId: id,
         entityType: "PROJECT",
         eventType: "PROJECT_STATUS_CHANGED",

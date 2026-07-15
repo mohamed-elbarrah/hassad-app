@@ -100,8 +100,12 @@ export class ProjectsController {
 
   @Patch(":id/status")
   @RequirePermissions("projects.update")
-  updateStatus(@Param("id") id: string, @Body() body: { status: string }) {
-    return this.projectsService.updateStatus(id, body.status);
+  updateStatus(
+    @CurrentUser() user: any,
+    @Param("id") id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.projectsService.updateStatus(id, body.status, user?.id);
   }
 
   // ─── Periods (monthly delivery/billing units for retainer projects) ────────────

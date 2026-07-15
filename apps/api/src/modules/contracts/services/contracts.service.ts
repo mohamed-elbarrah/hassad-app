@@ -677,7 +677,7 @@ export class ContractsService {
           userIds: resumeRecipients,
           excludeUserIds: [userId],
           title: "تم استئناف الفترة",
-          message: `تم استئناف الفترة رقم ${period.periodNumber} بعد دفع الفاتورة`,
+          message: `تم استئناف الفترة رقم ${period.periodNumber} بعد سداد الفاتورة`,
           entityId: period.id,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIOD_RESUMED",
@@ -1096,7 +1096,7 @@ export class ContractsService {
     });
   }
 
-  async send(id: string) {
+  async send(id: string, userId?: string) {
     const contract = await this.findOne(id);
 
     const updated = await this.prisma.contract.update({
@@ -1106,6 +1106,15 @@ export class ContractsService {
       },
     });
 
+    let actorName: string | undefined;
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+      actorName = actor?.name;
+    }
+
     const notifyUserIds = [
       contract.client.accountManager,
       contract.createdBy,
@@ -1114,7 +1123,7 @@ export class ContractsService {
       await this.notificationsService.notifyUsers({
         userIds: notifyUserIds,
         title: "تم إرسال العقد",
-        message: `تم إرسال العقد "${contract.title}" إلى ${contract.client.companyName}`,
+        message: `أرسل ${actorName ?? "النظام"} العقد "${contract.title}" إلى ${contract.client.companyName}`,
         entityId: id,
         entityType: "CONTRACT",
         eventType: "CONTRACT_SENT",
@@ -1242,13 +1251,19 @@ export class ContractsService {
       return c;
     });
 
+    const cancelActor = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { name: true },
+    });
+    const cancelActorName = cancelActor?.name ?? "النظام";
+
     await this.notificationsService.notifyUsers({
       userIds: [contract.createdBy, contract.client.accountManager].filter(
         Boolean,
       ) as string[],
       excludeUserIds: [actorId],
       title: "تم إلغاء العقد",
-      message: `تم إلغاء العقد "${contract.title}" مع ${contract.client.companyName}`,
+      message: `ألغى ${cancelActorName} العقد "${contract.title}" مع ${contract.client.companyName}`,
       entityId: id,
       entityType: "CONTRACT",
       eventType: "CONTRACT_CANCELLED",
@@ -1266,7 +1281,7 @@ export class ContractsService {
           eventType: "CONTRACT_CANCELLED",
           userId: clientUser.userId,
           title: "تم إلغاء العقد",
-          body: `تم إلغاء العقد "${contract.title}". يرجى التواصل معنا لمزيد من التفاصيل.`,
+          body: `تم إلغاء العقد "${contract.title}". للاستفسار، يرجى التواصل مع فريقنا.`,
         })
         .catch(() => undefined);
     }

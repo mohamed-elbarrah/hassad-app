@@ -210,6 +210,12 @@ export class LeadsService {
       return updatedLead;
     });
 
+    const actor = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    const actorName = actor?.name ?? "النظام";
+
     const recipientIds = [lead.assignedTo, lead.createdBy].filter(
       Boolean,
     ) as string[];
@@ -218,7 +224,7 @@ export class LeadsService {
         userIds: recipientIds,
         excludeUserIds: [userId],
         title: "تحديث مرحلة العميل المحتمل",
-        message: `تم نقل "${lead.companyName}" من ${lead.pipelineStage} إلى ${dto.toStage}`,
+        message: `نقل ${actorName} "${lead.companyName}" من ${lead.pipelineStage} إلى ${dto.toStage}`,
         entityId: id,
         entityType: "LEAD",
         eventType: "LEAD_STAGE_CHANGED",
@@ -282,8 +288,8 @@ export class LeadsService {
         entityType: "lead",
         eventType: "LEAD_CONVERTED",
         userId: lead.assignedTo,
-        title: "Lead Converted",
-        body: `Lead "${lead.contactName}" has been successfully converted to a client`,
+        title: "تم تحويل عميل محتمل",
+        body: `تم تحويل العميل المحتمل "${lead.contactName}" (${lead.companyName}) إلى عميل`,
       });
     }
 

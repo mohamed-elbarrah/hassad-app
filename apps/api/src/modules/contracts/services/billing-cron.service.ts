@@ -219,7 +219,7 @@ export class BillingCronService {
             .notifyUsers({
               userIds: recipientIds,
               title: "تم تعليق المشروع",
-              message: `تم تعليق المشروع بسبب عدم دفع الفاتورة "${invoice.contract?.title ?? invoice.invoiceNumber}". يرجى متابعة السداد لاستئناف العمل.`,
+              message: `تم تعليق المشروع بسبب عدم سداد الفاتورة "${invoice.contract?.title ?? invoice.invoiceNumber}". يرجى متابعة السداد لاستئناف العمل.`,
               entityId: project.id,
               entityType: "PROJECT",
               eventType: "PROJECT_SUSPENDED",
