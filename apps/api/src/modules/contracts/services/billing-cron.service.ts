@@ -145,7 +145,7 @@ export class BillingCronService {
         },
         period: {
           select: { id: true, projectId: true },
-          include: { project: { select: { id: true, status: true } } },
+          include: { project: { select: { id: true, status: true, projectManagerId: true } } },
         },
       },
     });
@@ -211,6 +211,7 @@ export class BillingCronService {
           invoice.contract?.createdBy,
           invoice.contract?.client?.accountManager,
           invoice.contract?.client?.userId,
+          project.projectManagerId,
         ].filter(Boolean) as string[];
 
         if (recipientIds.length > 0) {

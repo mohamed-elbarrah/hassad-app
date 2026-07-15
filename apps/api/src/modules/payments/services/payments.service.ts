@@ -366,13 +366,21 @@ export class PaymentsService implements OnModuleInit {
             data: { status: InvoiceStatus.PAID, paidAt: new Date() },
           });
 
-          await this.notifications.createNotification({
+          const clientUser = await this.prisma.client.findUnique({
+            where: { id: payment.invoice.clientId },
+            select: { userId: true },
+          });
+
+          await this.notifications.notifyUsers({
+            userIds: [
+              payment.invoice.createdBy,
+              clientUser?.userId,
+            ].filter(Boolean) as string[],
+            title: "تم دفع الفاتورة",
+            message: `تم دفع الفاتورة ${payment.invoice.invoiceNumber} بالكامل`,
             entityId: payment.invoiceId,
             entityType: "INVOICE",
             eventType: "INVOICE_PAID",
-            userId: payment.invoice.createdBy,
-            title: "تم دفع الفاتورة",
-            body: `تم دفع الفاتورة ${payment.invoice.invoiceNumber} بالكامل`,
           });
         } else if (totalPaid > 0) {
           await tx.invoice.update({

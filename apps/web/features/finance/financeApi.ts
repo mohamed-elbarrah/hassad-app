@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import { getApiBaseUrl } from "@/lib/utils";
 import type {
   Invoice,
   Payment,
@@ -527,10 +528,7 @@ export const financeApi = createApi({
         const formData = new FormData();
         formData.append("receipt", file);
         formData.append("paymentId", paymentId);
-        const apiBase =
-          typeof window !== "undefined"
-            ? `${window.location.origin.replace(/\/+$/, "")}/v1`
-            : "";
+        const apiBase = getApiBaseUrl();
         const res = await fetch(`${apiBase}/payments/upload-receipt`, {
           method: "POST",
           credentials: "include",

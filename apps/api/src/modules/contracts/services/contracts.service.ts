@@ -440,6 +440,7 @@ export class ContractsService {
         title: true,
         clientId: true,
         createdBy: true,
+        client: { select: { accountManager: true } },
       },
     });
     if (!contract) throw new NotFoundException("Contract not found");
@@ -479,8 +480,17 @@ export class ContractsService {
       return c;
     });
 
+    const projectManager = await this.prisma.project.findFirst({
+      where: { contractId },
+      select: { projectManagerId: true },
+    });
+
     await this.notificationsService.notifyUsers({
-      userIds: [contract.createdBy].filter(Boolean) as string[],
+      userIds: [
+        contract.createdBy,
+        contract.client.accountManager,
+        projectManager?.projectManagerId,
+      ].filter(Boolean) as string[],
       title: "تم تفعيل العقد",
       message: `تم تفعيل العقد "${contract.title}" بعد استلام الدفعة المقدمة.`,
       entityId: contractId,
@@ -595,7 +605,13 @@ export class ContractsService {
     const period = invoice.period;
     const projectStatus = await this.prisma.project.findUnique({
       where: { id: period.projectId },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        projectManagerId: true,
+        members: { select: { userId: true } },
+        client: { select: { userId: true } },
+      },
     });
     if (period.status !== ProjectPeriodStatus.SUSPENDED) return;
 
@@ -649,16 +665,25 @@ export class ContractsService {
       }
     });
 
-    await this.notificationsService
-      .createNotification({
-        entityId: period.id,
-        entityType: "PROJECT_PERIOD",
-        eventType: "PERIOD_RESUMED",
-        userId,
-        title: "تم استئناف الفترة",
-        body: `تم استئناف الفترة رقم ${period.periodNumber} بعد دفع الفاتورة`,
-      })
-      .catch(() => undefined);
+    const resumeRecipients = [
+      projectStatus?.projectManagerId,
+      ...(projectStatus?.members ?? []).map((m) => m.userId),
+      projectStatus?.client?.userId,
+    ].filter(Boolean) as string[];
+
+    if (resumeRecipients.length > 0) {
+      await this.notificationsService
+        .notifyUsers({
+          userIds: resumeRecipients,
+          excludeUserIds: [userId],
+          title: "تم استئناف الفترة",
+          message: `تم استئناف الفترة رقم ${period.periodNumber} بعد دفع الفاتورة`,
+          entityId: period.id,
+          entityType: "PROJECT_PERIOD",
+          eventType: "PERIOD_RESUMED",
+        })
+        .catch(() => undefined);
+    }
 
     // Refresh the owning client's counters — resuming a project moves it
     // from ON_HOLD back to ACTIVE, which changes the `activeProjects` /
@@ -1081,9 +1106,10 @@ export class ContractsService {
       },
     });
 
-    const notifyUserIds = [contract.client.accountManager].filter(
-      Boolean,
-    ) as string[];
+    const notifyUserIds = [
+      contract.client.accountManager,
+      contract.createdBy,
+    ].filter(Boolean) as string[];
     if (notifyUserIds.length > 0) {
       await this.notificationsService.notifyUsers({
         userIds: notifyUserIds,
@@ -1220,6 +1246,7 @@ export class ContractsService {
       userIds: [contract.createdBy, contract.client.accountManager].filter(
         Boolean,
       ) as string[],
+      excludeUserIds: [actorId],
       title: "تم إلغاء العقد",
       message: `تم إلغاء العقد "${contract.title}" مع ${contract.client.companyName}`,
       entityId: id,

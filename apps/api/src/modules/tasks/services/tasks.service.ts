@@ -508,15 +508,10 @@ export class TasksService {
       return updated;
     });
 
-    const isApproveOrReject =
-      toStatus === TaskStatus.DONE || toStatus === TaskStatus.REVISION;
-    const isSubmittedForReview = toStatus === TaskStatus.IN_REVIEW;
-
-    const recipients = isApproveOrReject
-      ? this.toUniqueUserIds(task.assignedTo)
-      : isSubmittedForReview
-        ? this.toUniqueUserIds(task.assignedTo, task.createdBy)
-        : this.toUniqueUserIds(task.assignedTo);
+    const recipients = this.toUniqueUserIds(
+      task.assignedTo,
+      task.createdBy,
+    ).filter((id) => id !== userId);
 
     const statusNotificationByTarget: Record<
       TaskStatus,
