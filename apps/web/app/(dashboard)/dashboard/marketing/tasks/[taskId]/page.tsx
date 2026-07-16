@@ -667,22 +667,18 @@ export default function MarketingTaskDetailPage() {
               <SurfaceCard title="مؤشرات التفاعل" icon={Gauge}>
                 <div className="grid grid-cols-2 gap-3">
                   <MetricCard
-                    size="sm"
                     title="الظهورات"
                     value={formatNumber(aggregated.impressions)}
                   />
                   <MetricCard
-                    size="sm"
                     title="النقرات"
                     value={formatNumber(aggregated.clicks)}
                   />
                   <MetricCard
-                    size="sm"
                     title="معدل CTR"
                     value={totalCtr > 0 ? `${totalCtr.toFixed(2)}%` : "—"}
                   />
                   <MetricCard
-                    size="sm"
                     title="CPC"
                     value={totalCpc > 0 ? formatCurrency(totalCpc) : "—"}
                   />

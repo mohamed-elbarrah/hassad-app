@@ -344,19 +344,16 @@ export default function PortalPage() {
                 campaignSummary.totalConversions > 0) ? (
               <div className="space-y-3">
                 <MetricCard
-                  size="sm"
                   title="الزيارات"
                   value={`${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`}
                   icon={<Users className="w-[29px] h-[22px] text-secondary-500" />}
                 />
                 <MetricCard
-                  size="sm"
                   title="التحويلات"
                   value={`${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`}
                   icon={<Filter className="w-[23px] h-[23px] text-secondary-500" />}
                 />
                 <MetricCard
-                  size="sm"
                   title="العائد على الإنفاق الإعلاني"
                   value={`${campaignSummary.avgRoas}x`}
                   icon={<DollarSign className="w-7 h-7 text-secondary-500" />}

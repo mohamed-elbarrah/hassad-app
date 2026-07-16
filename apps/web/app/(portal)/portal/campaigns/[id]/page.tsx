@@ -96,17 +96,14 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <MetricCard
-              size="sm"
               title="الميزانية الكلية"
               amount={campaignData.budgetTotal}
             />
             <MetricCard
-              size="sm"
               title="الميزانية المنفقة"
               amount={campaignData.budgetSpent}
             />
             <MetricCard
-              size="sm"
               title="تاريخ البدء"
               value={
                 <span className="text-lg font-semibold text-natural-100">

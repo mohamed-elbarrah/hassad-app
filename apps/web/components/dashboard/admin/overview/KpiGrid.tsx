@@ -28,9 +28,6 @@ export interface KpiConfig {
   variant?: "default" | "success" | "warning" | "danger";
   trend?: "up" | "down" | "neutral";
   trendValue?: string;
-  description?: string;
-  sparklineData?: number[];
-  sparklineColor?: string;
   href: string;
   pill?: { text: string; tone: PillTone };
 }
@@ -61,9 +58,6 @@ export function KpiGrid({ items, columns = 4, className }: KpiGridProps) {
           variant={card.variant}
           trend={card.trend}
           trendValue={card.trendValue}
-          description={card.description}
-          sparklineData={card.sparklineData}
-          sparklineColor={card.sparklineColor}
           href={card.href}
           pillText={card.pill?.text}
           pillTone={card.pill?.tone}
@@ -100,7 +94,6 @@ export function buildAdminKpiConfigs(
       value: formatNumber(stats.totalUsers),
       icon: Users,
       href: "/dashboard/admin/employees",
-      description: "إجمالي الموظفين",
     },
     {
       key: "activeClients",
@@ -117,7 +110,6 @@ export function buildAdminKpiConfigs(
       icon: UserPlus,
       href: "/dashboard/admin/clients",
       ...(deltaToTrend(d?.newClientsThisMonth) ?? {}),
-      description: "هذا الشهر",
     },
     {
       key: "monthlyRevenue",
@@ -126,8 +118,6 @@ export function buildAdminKpiConfigs(
       icon: DollarSign,
       variant: "success",
       href: "/dashboard/admin/finance",
-      sparklineData: trends?.revenue,
-      sparklineColor: "#10B981",
       ...(deltaToTrend(d?.monthlyRevenue ?? stats.revenueChange) ?? {}),
       pill:
         d?.monthlyRevenue != null

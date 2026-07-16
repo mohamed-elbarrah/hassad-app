@@ -48,18 +48,15 @@ export function FinanceSummaryKpis({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <MetricCard
-        size="sm"
         title="إجمالي المفوتر"
         amount={summary.totalInvoiced}
       />
       <RemainingKpi amount={summary.totalRemaining} />
       <MetricCard
-        size="sm"
         title="إجمالي المدفوع"
         amount={summary.totalPaid}
       />
       <MetricCard
-        size="sm"
         title="الفاتورة القادمة"
         {...(nextDate
           ? { value: <NextDueDateDisplay date={nextDate} amount={summary.nextInvoiceAmount} /> }

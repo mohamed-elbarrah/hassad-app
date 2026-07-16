@@ -482,19 +482,19 @@ export default function DesignSystemShowcasePage() {
                 <MetricCard title="قياسي (lg)" value="128" pillText="+12%" pillTone="success" />
               </MiniCompare>
               <MiniCompare name="MetricCard + amount" usage={5}>
-                <MetricCard title="بعملة" amount={128000} size="sm" />
+                <MetricCard title="بعملة" amount={128000} />
               </MiniCompare>
               <MiniCompare name="MetricCard + trend" usage={12}>
-                <MetricCard title="مع اتجاه" value="128" trend="up" trendValue="+12%" size="sm" />
+                <MetricCard title="مع اتجاه" value="128" trend="up" trendValue="+12%" />
               </MiniCompare>
               <MiniCompare name="MetricCard + icon" usage={15}>
-                <MetricCard title="مع أيقونة" value="128" icon={<Target className="h-5 w-5 text-secondary-500" />} size="sm" />
+                <MetricCard title="مع أيقونة" value="128" icon={<Target className="h-5 w-5 text-secondary-500" />} />
               </MiniCompare>
               <MiniCompare name="MetricCard + variant" usage={20}>
-                <MetricCard title="نجاح" value="128" variant="success" size="sm" />
+                <MetricCard title="نجاح" value="128" variant="success" />
               </MiniCompare>
               <MiniCompare name="MetricCard + variant" usage={8}>
-                <MetricCard title="تحذير" value="128" variant="warning" size="sm" />
+                <MetricCard title="تحذير" value="128" variant="warning" />
               </MiniCompare>
             </div>
           </OverlapGroup>
@@ -533,10 +533,10 @@ export default function DesignSystemShowcasePage() {
           >
             <div className="grid gap-3 sm:grid-cols-3">
               <MiniCompare name="MetricCard + amount" usage={5}>
-                <MetricCard title="الإيرادات" amount={128000} size="sm" />
+                <MetricCard title="الإيرادات" amount={128000} />
               </MiniCompare>
               <MiniCompare name="KpiCurrency (تصدير)" usage={3} keep>
-                <MetricCard title="KpiCurrency" value={<KpiCurrency amount={128000} />} size="sm" />
+                <MetricCard title="KpiCurrency" value={<KpiCurrency amount={128000} />} />
               </MiniCompare>
               <MiniCompare name="CurrencySymbol" usage={12}>
                 <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-portal-note-text">

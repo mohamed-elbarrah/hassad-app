@@ -544,7 +544,6 @@ export default function CampaignDetailPage() {
               {section.metrics.map((metric) => (
                 <MetricCard
                   key={metric.label}
-                  size="sm"
                   title={metric.label}
                   value={
                     <span
