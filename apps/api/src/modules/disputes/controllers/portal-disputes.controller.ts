@@ -50,7 +50,7 @@ export class PortalDisputesController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
-    return this.disputesService.createDispute(clientId, dto, files);
+    return this.disputesService.createDispute(clientId, user.id, dto, files);
   }
 
   @Get()
@@ -91,6 +91,6 @@ export class PortalDisputesController {
   ) {
     const clientId = await this.resolveClientId(user);
     if (!clientId) throw new ForbiddenException();
-    return this.disputesService.clientConfirmResolution(clientId, id, dto);
+    return this.disputesService.clientConfirmResolution(clientId, user.id, id, dto);
   }
 }

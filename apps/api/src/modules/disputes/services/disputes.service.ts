@@ -44,6 +44,7 @@ export class DisputesService {
    */
   async createDispute(
     clientId: string,
+    userId: string,
     dto: CreateDisputeDto,
     files?: Express.Multer.File[],
   ) {
@@ -110,7 +111,7 @@ export class DisputesService {
           history: {
             create: {
               toStatus: DisputeStatus.PENDING_APPROVAL,
-              changedBy: clientId,
+              changedBy: userId,
               note: "تم إنشاء التذكرة",
             },
           },
@@ -122,7 +123,7 @@ export class DisputesService {
       });
 
       if (files?.length) {
-        await this.uploadAttachments(tx, created.id, clientId, files);
+        await this.uploadAttachments(tx, created.id, userId, files);
       }
 
       return created;
@@ -301,6 +302,7 @@ export class DisputesService {
    */
   async clientConfirmResolution(
     clientId: string,
+    userId: string,
     disputeId: string,
     dto: ClientConfirmDto,
   ) {
@@ -339,7 +341,7 @@ export class DisputesService {
           history: {
             create: {
               toStatus: DisputeStatus.RESOLVED,
-              changedBy: clientId,
+              changedBy: userId,
               note: dto.feedback || "أكد العميل حل المشكلة",
             },
           },
@@ -370,7 +372,7 @@ export class DisputesService {
             create: {
               fromStatus: DisputeStatus.PENDING_CLIENT,
               toStatus: DisputeStatus.ESCALATED,
-              changedBy: clientId,
+              changedBy: userId,
               note: dto.feedback || "العميل يؤكد عدم حل المشكلة",
             },
           },
