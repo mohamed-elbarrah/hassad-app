@@ -14,7 +14,7 @@ import {
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { KpiPill, KpiCurrency } from "@/components/design-system/KpiPill";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
 import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
@@ -95,16 +95,19 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <KpiPill
-              label="الميزانية الكلية"
-              value={<KpiCurrency amount={campaignData.budgetTotal} />}
+            <MetricCard
+              size="sm"
+              title="الميزانية الكلية"
+              amount={campaignData.budgetTotal}
             />
-            <KpiPill
-              label="الميزانية المنفقة"
-              value={<KpiCurrency amount={campaignData.budgetSpent} />}
+            <MetricCard
+              size="sm"
+              title="الميزانية المنفقة"
+              amount={campaignData.budgetSpent}
             />
-            <KpiPill
-              label="تاريخ البدء"
+            <MetricCard
+              size="sm"
+              title="تاريخ البدء"
               value={
                 <span className="text-lg font-semibold text-natural-100">
                   {formatDate(campaignData.startDate)}

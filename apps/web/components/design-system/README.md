@@ -27,14 +27,14 @@ Raw `@/components/ui/*` imports are **only** allowed inside wrapper component de
 | `DashboardCard`         | `Card`                                                                     | Card with title, icon, optional "عرض الكل" action                                               |
 | `PageIntro`             | header boilerplate                                                         | Page hero header with icon circle                                                               |
 | `StatusBadge`           | `Badge`                                                                    | Status badge with icons & colors                                                                |
-| `KpiPill`               | `Badge`                                                                    | Stat / KPI pill                                                                                 |
+| `MetricCard`            | `StatCard`, `KpiPill`, `KpiRow`, `ProgressCard`                        | المقياس الموحد — sm/lg، عملة، أيقونة، اتجاه، pill، رابط، KpiCurrency |
 | `IconCircle`            | icon wrapper                                                               | Decorative icon circle                                                                          |
 | `InfoPanel`             | info block                                                                 | Reusable info/visual block                                                                      |
 | `NotificationsDropdown` | notification panel                                                         | Dropdown notification list                                                                      |
 | `NotificationBell`      | bell icon                                                                  | Bell button + dropdown wrapper                                                                  |
 | `Pagination`            | pagination                                                                 | Page navigation                                                                                 |
 | `StatusBanner`          | banner                                                                     | Success / warning / danger banner                                                               |
-| `FilterPills`           | filter chips                                                               | Horizontal filter pills                                                                         |
+| `FilterBar`             | popover filter                                                             | Multi-group, multi-select filter with checkboxes, count badge, clear-all button                 |
 | `Pill`                  | pill                                                                       | Tag / badge pill                                                                                |
 | `AppHeader`             | header                                                                     | Top app header (currently portal-specific)                                                      |
 | `Sidebar`               | sidebar                                                                    | Navigation sidebar (currently portal-specific)                                                  |

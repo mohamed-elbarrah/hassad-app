@@ -36,7 +36,7 @@ import { DashboardCard } from "@/components/design-system/DashboardCard";
 import { GaugeChart } from "@/components/design-system/GaugeChart";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionItemCard } from "@/components/design-system/ActionItemCard";
-import { KpiRow } from "@/components/design-system/KpiRow";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { TimelineItem } from "@/components/design-system/TimelineItem";
 import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
 import { Skeleton } from "@/components/design-system/Skeleton";
@@ -343,22 +343,21 @@ export default function PortalPage() {
               (campaignSummary.totalVisits > 0 ||
                 campaignSummary.totalConversions > 0) ? (
               <div className="space-y-3">
-                <KpiRow
-                  label="الزيارات"
+                <MetricCard
+                  size="sm"
+                  title="الزيارات"
                   value={`${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`}
-                  icon={
-                    <Users className="w-[29px] h-[22px] text-secondary-500" />
-                  }
+                  icon={<Users className="w-[29px] h-[22px] text-secondary-500" />}
                 />
-                <KpiRow
-                  label="التحويلات"
+                <MetricCard
+                  size="sm"
+                  title="التحويلات"
                   value={`${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`}
-                  icon={
-                    <Filter className="w-[23px] h-[23px] text-secondary-500" />
-                  }
+                  icon={<Filter className="w-[23px] h-[23px] text-secondary-500" />}
                 />
-                <KpiRow
-                  label="العائد على الإنفاق الإعلاني"
+                <MetricCard
+                  size="sm"
+                  title="العائد على الإنفاق الإعلاني"
                   value={`${campaignSummary.avgRoas}x`}
                   icon={<DollarSign className="w-7 h-7 text-secondary-500" />}
                 />

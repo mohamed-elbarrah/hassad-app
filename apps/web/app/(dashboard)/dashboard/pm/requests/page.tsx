@@ -6,7 +6,7 @@ import type { PmDeliverableWithRevisions } from "@/features/projects/projectsApi
 import { useAppSelector } from "@/lib/hooks";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { formatShortDate } from "@/lib/format";
 import {
   ClipboardList,
@@ -130,31 +130,31 @@ export default function PMChangeRequestsPage() {
       {/* ── Stats Overview ──────────────────────────────────────────────── */}
       {!isLoading && !isError && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          <StatCard
+          <MetricCard
             title="بانتظار المراجعة"
             value={stats.pending}
             icon={AlertCircle}
             variant={stats.pending > 0 ? "warning" : "default"}
           />
-          <StatCard
+          <MetricCard
             title="قيد التنفيذ"
             value={stats.inProgress}
             icon={Clock}
             variant="default"
           />
-          <StatCard
+          <MetricCard
             title="قيد المراجعة"
             value={stats.inReview}
             icon={MessageSquare}
             variant="default"
           />
-          <StatCard
+          <MetricCard
             title="يحتاج تعديل"
             value={stats.needsRevision}
             icon={AlertCircle}
             variant={stats.needsRevision > 0 ? "danger" : "default"}
           />
-          <StatCard
+          <MetricCard
             title="منجزة"
             value={stats.done}
             icon={CheckCircle2}

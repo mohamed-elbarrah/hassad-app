@@ -6,7 +6,7 @@ import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatus
 import { FinancePageHeader } from "@/components/dashboard/finance/shared/FinancePageHeader";
 import { FinanceListToolbar } from "@/components/dashboard/finance/shared/FinanceListToolbar";
 import { DataTable } from "@/components/design-system/DataTable";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Popover } from "@/components/design-system/Popover";
 import { Pagination } from "@/components/design-system/Pagination";
@@ -108,25 +108,25 @@ export default function InvoicesPage() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
+        <MetricCard
           title="إجمالي الفواتير"
           value={stats.count.toLocaleString()}
           icon={FileText}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="المحصل"
           value={<CurrencyDisplay amount={stats.totalPaid} />}
           icon={DollarSign}
           variant="success"
         />
-        <StatCard
+        <MetricCard
           title="متأخرة"
           value={`${stats.overdueCount} (${stats.overdueAmount.toLocaleString()} ر.س)`}
           icon={AlertTriangle}
           variant={stats.overdueCount > 0 ? "danger" : "default"}
         />
-        <StatCard
+        <MetricCard
           title="نسبة التحصيل"
           value={`${stats.rate}%`}
           icon={TrendingUp}

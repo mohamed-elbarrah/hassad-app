@@ -48,7 +48,7 @@ export function Select({
       >
         <SelectTrigger
           className={cn(
-            "h-12 rounded-xl border border-neutral-200 bg-white px-4 text-sm text-secondary-500",
+            "h-10 rounded-xl border border-neutral-200 bg-white px-4 text-sm text-secondary-500",
             "focus:ring-1 focus:ring-secondary-500/20 focus:border-secondary-500",
             "data-[placeholder]:text-neutral-200",
             "transition-colors duration-200",

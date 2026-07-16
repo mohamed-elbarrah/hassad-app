@@ -6,7 +6,7 @@ import { FinancePageHeader } from "@/components/dashboard/finance/shared/Finance
 import { DataTable } from "@/components/design-system/DataTable";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { TrendingUp, DollarSign, PieChart, FileText } from "lucide-react";
@@ -30,7 +30,7 @@ export default function ContractsFinancePage() {
       />
 
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard
+        <MetricCard
           title="إجمالي قيمة العقود"
           value={<CurrencyDisplay amount={totalValue} />}
           icon={TrendingUp}
@@ -38,7 +38,7 @@ export default function ContractsFinancePage() {
           trend="up"
           trendValue="+5% عن الشهر الماضي"
         />
-        <StatCard
+        <MetricCard
           title="المبالغ المحصلة"
           value={<CurrencyDisplay amount={totalPaid} />}
           icon={DollarSign}
@@ -46,7 +46,7 @@ export default function ContractsFinancePage() {
           trend="neutral"
           trendValue={`${averageCollectionRate.toFixed(1)}% من الإجمالي`}
         />
-        <StatCard
+        <MetricCard
           title="المبالغ المتبقية"
           value={<CurrencyDisplay amount={totalRemaining} />}
           icon={DollarSign}
@@ -54,7 +54,7 @@ export default function ContractsFinancePage() {
           trend="neutral"
           trendValue="بانتظار الفواتير القادمة"
         />
-        <StatCard
+        <MetricCard
           title="عقود نشطة"
           value={contracts.length}
           icon={PieChart}

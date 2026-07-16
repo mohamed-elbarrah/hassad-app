@@ -21,26 +21,26 @@ const sizeConfig: Record<
   { width: number; height: number; fontSize: string; borderRadius: string }
 > = {
   sm: {
-    width: 40,
-    height: 40,
+    width: 24,
+    height: 24,
     fontSize: "text-xs",
     borderRadius: "rounded-lg",
   },
   md: {
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     fontSize: "text-sm",
     borderRadius: "rounded-xl",
   },
   lg: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     fontSize: "text-base",
     borderRadius: "rounded-xl",
   },
   xl: {
-    width: 64,
-    height: 64,
+    width: 60,
+    height: 60,
     fontSize: "text-lg",
     borderRadius: "rounded-xl",
   },

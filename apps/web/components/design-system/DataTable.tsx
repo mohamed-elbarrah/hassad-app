@@ -159,8 +159,8 @@ export function DataTable<T>({
                 className={cn(
                   "h-12 whitespace-nowrap px-5 text-sm font-medium text-portal-note-text",
                   col.align === "center" && "text-center",
-                  col.align === "left" && "text-start",
-                  col.align === "right" && "text-end",
+                  col.align === "left" && "text-end",
+                  col.align === "right" && "",
                 )}
                 style={col.width ? { width: col.width } : undefined}
               >

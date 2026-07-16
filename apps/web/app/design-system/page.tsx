@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -25,19 +26,30 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { AlertCard } from "@/components/design-system/AlertCard";
+import { CountChip } from "@/components/design-system/CountChip";
+import { DashboardCard } from "@/components/design-system/DashboardCard";
 import {
   DataTable,
   type DataTableColumn,
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
 import { EmptyState } from "@/components/design-system/EmptyState";
-import { FilterPills } from "@/components/design-system/FilterPills";
+import { FilterBar } from "@/components/design-system/FilterBar";
+import { FormInput } from "@/components/design-system/FormInput";
+import { FormTextarea } from "@/components/design-system/FormTextarea";
 import { Input } from "@/components/design-system/Input";
-import { MetricCard } from "@/components/design-system/MetricCard";
+import { MetricCard, KpiCurrency } from "@/components/design-system/MetricCard";
+import { MetricSwitcher } from "@/components/design-system/MetricSwitcher";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { Pill } from "@/components/design-system/Pill";
+import { PmCard } from "@/components/design-system/PmCard";
+import { Popover } from "@/components/design-system/Popover";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
+
+import { QuickLinkCard } from "@/components/design-system/QuickLinkCard";
 import { Select, SelectItem } from "@/components/design-system/Select";
+import { ShowcaseCard } from "@/components/design-system/ShowcaseCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -47,6 +59,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/design-system/Tabs";
+import { TimeRangeSelector } from "@/components/design-system/TimeRangeSelector";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 
 const tableColumns: DataTableColumn[] = [
@@ -132,6 +145,14 @@ const statusSamples = [
 ];
 
 export default function DesignSystemShowcasePage() {
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
+    {},
+  );
+
+  function handleFilterChange(groupKey: string, values: string[]) {
+    setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
+  }
+
   return (
     <main className="min-h-screen bg-portal-bg" dir="rtl">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
@@ -246,6 +267,7 @@ export default function DesignSystemShowcasePage() {
               <div className="grid gap-3 md:grid-cols-3">
                 <Input
                   icon={<Search className="h-4 w-4" />}
+                  size="lg"
                   placeholder="ابحث عن عميل، مشروع، أو فاتورة"
                 />
                 <Select defaultValue="all" label="الفريق">
@@ -303,17 +325,24 @@ export default function DesignSystemShowcasePage() {
             <Input
               className="lg:w-80"
               icon={<Search className="h-4 w-4" />}
+              size="lg"
               placeholder="بحث داخل السجلات"
             />
-            <FilterPills
-              options={[
-                { label: "الكل", value: "all" },
-                { label: "نشط", value: "active" },
-                { label: "بحاجة انتباه", value: "attention" },
-                { label: "متأخر", value: "late" },
+            <FilterBar
+              groups={[
+                {
+                  key: "status",
+                  label: "الحالة",
+                  options: [
+                    { label: "الكل", value: "all" },
+                    { label: "نشط", value: "active" },
+                    { label: "بحاجة انتباه", value: "attention" },
+                    { label: "متأخر", value: "late" },
+                  ],
+                },
               ]}
-              active="all"
-              onChange={() => undefined}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
             />
           </div>
 
@@ -436,8 +465,298 @@ export default function DesignSystemShowcasePage() {
             </div>
           </SurfaceCard>
         </div>
+      <SurfaceCard
+        title="تدقيق المكونات"
+        description="كل مشكلة تحتوي على المكونات المتشابهة مع معاينة حية للمقارنة، واقتراح القرار النهائي."
+        icon={Activity}
+      >
+        <div className="space-y-6">
+          {/* ── 1. عرض قيمة رقمية (KPI) ── */}
+          <OverlapGroup
+            title="1. عرض قيمة رقمية (KPI)"
+            recommendation="المعيار الموحد — MetricCard يدسم الأحجام والميزات"
+            action="none"
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <MiniCompare name="MetricCard" usage={49} keep>
+                <MetricCard title="قياسي (lg)" value="128" pillText="+12%" pillTone="success" />
+              </MiniCompare>
+              <MiniCompare name="MetricCard + amount" usage={5}>
+                <MetricCard title="بعملة" amount={128000} size="sm" />
+              </MiniCompare>
+              <MiniCompare name="MetricCard + trend" usage={12}>
+                <MetricCard title="مع اتجاه" value="128" trend="up" trendValue="+12%" size="sm" />
+              </MiniCompare>
+              <MiniCompare name="MetricCard + icon" usage={15}>
+                <MetricCard title="مع أيقونة" value="128" icon={<Target className="h-5 w-5 text-secondary-500" />} size="sm" />
+              </MiniCompare>
+              <MiniCompare name="MetricCard + variant" usage={20}>
+                <MetricCard title="نجاح" value="128" variant="success" size="sm" />
+              </MiniCompare>
+              <MiniCompare name="MetricCard + variant" usage={8}>
+                <MetricCard title="تحذير" value="128" variant="warning" size="sm" />
+              </MiniCompare>
+            </div>
+          </OverlapGroup>
+
+          {/* ── 2. بطاقات هيكلية (Containers) ── */}
+          <OverlapGroup
+            title="2. بطاقات هيكلية (Containers)"
+            recommendation="استخدم SurfaceCard — المعيار المعتمد (100+)"
+            action="remove"
+            removeItems="ShowcaseCard → SurfaceCard يغطي نفس الاستخدام"
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <MiniCompare name="SurfaceCard" usage={100} keep>
+                <SurfaceCard title="محتوى"><p className="text-sm text-portal-note-text">أي محتوى</p></SurfaceCard>
+              </MiniCompare>
+              <MiniCompare name="AlertCard" usage={2}>
+                <AlertCard variant="info" title="معلومات">نص التنبيه</AlertCard>
+              </MiniCompare>
+              <MiniCompare name="ShowcaseCard" usage={0} remove>
+                <ShowcaseCard title="عرض" body={<p className="text-sm text-portal-note-text">محتوى</p>} />
+              </MiniCompare>
+              <MiniCompare name="QuickLinkCard" usage={0}>
+                <QuickLinkCard href="#" title="تقارير" icon={BarChart3} />
+              </MiniCompare>
+              <MiniCompare name="PmCard" usage={0}>
+                <PmCard name="أحمد" role="مدير مشاريع" status="online" />
+              </MiniCompare>
+            </div>
+          </OverlapGroup>
+
+          {/* ── 3. العملات ── */}
+          <OverlapGroup
+            title="3. العملات"
+            recommendation="استخدم MetricCard مع amount — يعرض العملة تلقائياً"
+            action="none"
+          >
+            <div className="grid gap-3 sm:grid-cols-3">
+              <MiniCompare name="MetricCard + amount" usage={5}>
+                <MetricCard title="الإيرادات" amount={128000} size="sm" />
+              </MiniCompare>
+              <MiniCompare name="KpiCurrency (تصدير)" usage={3} keep>
+                <MetricCard title="KpiCurrency" value={<KpiCurrency amount={128000} />} size="sm" />
+              </MiniCompare>
+              <MiniCompare name="CurrencySymbol" usage={12}>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-portal-note-text">
+                  يستخدم داخلياً عبر useCurrency
+                </div>
+              </MiniCompare>
+            </div>
+          </OverlapGroup>
+
+          {/* ── 4. القوائم الجانبية ── */}
+          <OverlapGroup
+            title="4. القوائم الجانبية (Sidebars)"
+            recommendation="ادمج في AppSidebar واحد مع nav source قابل للتبديل"
+            action="merge"
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MiniCompare name="Sidebar" usage={1} merge>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-portal-note-text">
+                  <p className="font-semibold text-natural-100 mb-1">Portail</p>
+                  <p>nav من portal-navigation.ts · 336px</p>
+                </div>
+              </MiniCompare>
+              <MiniCompare name="DashboardSidebar" usage={1} merge>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-portal-note-text">
+                  <p className="font-semibold text-natural-100 mb-1">Dashboard</p>
+                  <p>nav من navigation.ts · 336px · 98% تطابق</p>
+                </div>
+              </MiniCompare>
+            </div>
+          </OverlapGroup>
+
+          {/* ── 5. الرؤوس العلوية ── */}
+          <OverlapGroup
+            title="5. الرؤوس العلوية (Headers)"
+            recommendation="ادمج في AppHeader واحد مع onMenuToggle اختياري"
+            action="merge"
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MiniCompare name="AppHeader" usage={1} merge>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-portal-note-text">
+                  <p className="font-semibold text-natural-100 mb-1">Portal Header</p>
+                  <p>100px · NotificationBell</p>
+                </div>
+              </MiniCompare>
+              <MiniCompare name="DashboardAppHeader" usage={1} merge>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-portal-note-text">
+                  <p className="font-semibold text-natural-100 mb-1">Dashboard Header</p>
+                  <p>100px · DashboardNotificationBell · Menu hamburger</p>
+                </div>
+              </MiniCompare>
+            </div>
+          </OverlapGroup>
+
+          {/* ── 6. الإشعارات (Bells + Dropdowns) ── */}
+          <OverlapGroup
+            title="6. الإشعارات (Bells + Dropdowns)"
+            recommendation="ادمج NotificationBell/DashboardNotificationBell بمكون واحد · احذف common/ (كود ميت)"
+            action="merge"
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <MiniCompare name="NotificationBell" usage={1} merge>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-portal-note-text">
+                  يتطلب Redux
+                </div>
+              </MiniCompare>
+              <MiniCompare name="DashboardNotifBell" usage={1} merge>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-portal-note-text">
+                  يتطلب Redux
+                </div>
+              </MiniCompare>
+              <MiniCompare name="common/NotifBell" usage={0} remove>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-danger-500">
+                  كود ميت
+                </div>
+              </MiniCompare>
+              <MiniCompare name="common/NotifDropdown" usage={0} remove>
+                <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-3 text-sm text-danger-500">
+                  كود ميت (util فقط مستخدم)
+                </div>
+              </MiniCompare>
+            </div>
+          </OverlapGroup>
+
+          {/* ── 7. المدخلات والنماذج ── */}
+          <OverlapGroup
+            title="7. المدخلات والنماذج"
+            recommendation="لا تغيير — تصميم 3-tier مقصود: Input لأشرطة الأدوات، FormInput لحقول بسيطة، FormInputControl لـ shadcn Form"
+            action="none"
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <MiniCompare name="Input" usage={20}>
+                <Input placeholder="بحث …" size="md" />
+              </MiniCompare>
+              <MiniCompare name="FormInput" usage={6}>
+                <FormInput label="الاسم" placeholder="أدخل …" />
+              </MiniCompare>
+              <MiniCompare name="Select" usage={5}>
+                <Select placeholder="اختر">
+                  <SelectItem value="1">خيار</SelectItem>
+                </Select>
+              </MiniCompare>
+              <MiniCompare name="FormTextarea" usage={3}>
+                <FormTextarea label="ملاحظات" placeholder="اكتب …" />
+              </MiniCompare>
+            </div>
+            <p className="text-xs text-portal-note-text mt-2">
+              FormInputControl (23) · FormTextareaControl (9) · FormSelectControl (12) — مكونات داخلية لـ shadcn FormControl، لا تعرض بشكل مستقل
+            </p>
+          </OverlapGroup>
+
+          {/* ── 8. أخرى ── */}
+          <OverlapGroup
+            title="8. أخرى"
+            recommendation="احذف MetricSwitcher و CountChip (غير مستخدمين)"
+            action="remove"
+            removeItems="MetricSwitcher (0), CountChip (0)"
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <MiniCompare name="Pill" usage={25} keep>
+                <Pill tone="success">مكتمل</Pill>
+              </MiniCompare>
+              <MiniCompare name="Popover" usage={5}>
+                <Popover trigger={<ActionButton variant="outline">فتح</ActionButton>}>
+                  <p className="p-2 text-sm">محتوى</p>
+                </Popover>
+              </MiniCompare>
+              <MiniCompare name="FilterBar" usage={1}>
+                <FilterBar groups={[{ key: "s", label: "حالة", options: [{ label: "نشط", value: "active" }] }]} activeFilters={{}} onFilterChange={() => {}} />
+              </MiniCompare>
+              <MiniCompare name="TimeRangeSelector" usage={1}>
+                <TimeRangeSelector value="last30days" onChange={() => {}} />
+              </MiniCompare>
+              <MiniCompare name="MetricSwitcher" usage={0} remove>
+                <MetricSwitcher value="all" onChange={() => {}} />
+              </MiniCompare>
+              <MiniCompare name="CountChip" usage={0} remove>
+                <CountChip hasFilter={false} total={42} visible={42} unfilteredLabel="كل السجلات" icon={<FileText className="h-4 w-4" />} />
+              </MiniCompare>
+            </div>
+          </OverlapGroup>
+        </div>
+      </SurfaceCard>
       </div>
     </main>
+  );
+}
+
+function OverlapGroup({
+  title,
+  recommendation,
+  action,
+  removeItems,
+  children,
+}: {
+  title: string;
+  recommendation: string;
+  action: "keep" | "remove" | "merge" | "none";
+  removeItems?: string;
+  children: React.ReactNode;
+}) {
+  const actionStyles = {
+    keep: "bg-success-500/10 text-success-600 border-success-200",
+    remove: "bg-danger-500/10 text-danger-600 border-danger-200",
+    merge: "bg-warning-500/10 text-warning-600 border-warning-200",
+    none: "bg-blue-500/10 text-blue-600 border-blue-200",
+  };
+  const actionLabels: Record<string, string> = {
+    keep: "احتفظ",
+    remove: "احذف",
+    merge: "ادمج",
+    none: "لا تغيير",
+  };
+
+  return (
+    <div className="rounded-2xl border border-portal-card-border bg-portal-bg p-4">
+      <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-semibold text-natural-100">{title}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${actionStyles[action]}`}>
+            {actionLabels[action]}
+          </span>
+          <span className="text-xs text-portal-note-text">{recommendation}</span>
+        </div>
+      </div>
+      {children}
+      {removeItems && (
+        <p className="text-xs text-danger-500 mt-2">
+          🗑 {removeItems}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function MiniCompare({
+  name,
+  usage,
+  keep,
+  remove,
+  merge,
+  children,
+}: {
+  name: string;
+  usage: number;
+  keep?: boolean;
+  remove?: boolean;
+  merge?: boolean;
+  children: React.ReactNode;
+}) {
+  const badge = keep ? "✅ " : remove ? "" : merge ? "🔄 " : "";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-mono text-natural-100">{badge}{name}</span>
+        <span className={`text-xs font-semibold ${usage === 0 ? "text-danger-500" : usage <= 3 ? "text-warning-500" : "text-success-500"}`}>
+          {usage}
+        </span>
+      </div>
+      {children}
+    </div>
   );
 }
 

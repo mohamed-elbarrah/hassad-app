@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { TeamTaskKanban } from "@/components/dashboard/team/TeamTaskKanban";
 import { EmptyState } from "@/components/common/EmptyState";
 import {
@@ -80,10 +80,10 @@ export default function TeamDashboardPage() {
         </div>
       ) : stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="إجمالي المهام" value={stats.total} />
-          <StatCard title="قيد التنفيذ" value={stats.inProgress} />
-          <StatCard title="متأخرة" value={stats.overdue} variant="danger" />
-          <StatCard title="منجزة" value={stats.done} variant="success" />
+          <MetricCard title="إجمالي المهام" value={stats.total} />
+          <MetricCard title="قيد التنفيذ" value={stats.inProgress} />
+          <MetricCard title="متأخرة" value={stats.overdue} variant="danger" />
+          <MetricCard title="منجزة" value={stats.done} variant="success" />
         </div>
       ) : null}
 

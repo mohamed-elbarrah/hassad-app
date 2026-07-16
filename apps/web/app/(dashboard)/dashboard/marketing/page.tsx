@@ -2,7 +2,7 @@
 
 import { useAppSelector } from "@/lib/hooks";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton } from "@/components/design-system/Skeleton";
@@ -214,7 +214,7 @@ export default function MarketingDashboardPage() {
 
       {/* ── Stats Overview ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <StatCard
+        <MetricCard
           title="المهام النشطة"
           value={taskStats?.inProgress ?? 0}
           icon={Zap}
@@ -222,13 +222,13 @@ export default function MarketingDashboardPage() {
           trend="neutral"
           trendValue={`${taskStats?.todo ?? 0} للتنفيذ`}
         />
-        <StatCard
+        <MetricCard
           title="الحملات النشطة"
           value={campaignStats?.activeCampaigns ?? 0}
           icon={Activity}
           variant="success"
         />
-        <StatCard
+        <MetricCard
           title="إجمالي الإنفاق"
           value={formatCurrency(campaignStats?.totalBudgetUsed)}
           icon={Wallet}
@@ -236,7 +236,7 @@ export default function MarketingDashboardPage() {
           trend={budgetUtilization > 90 ? "down" : "neutral"}
           trendValue={`${budgetUtilization}% من الميزانية`}
         />
-        <StatCard
+        <MetricCard
           title="متوسط ROAS"
           value={
             campaignStats?.avgRoas != null
@@ -248,13 +248,13 @@ export default function MarketingDashboardPage() {
           trend="up"
           trendValue="عائد على الإنفاق"
         />
-        <StatCard
+        <MetricCard
           title="التحويلات"
           value={formatNumber(totalConversions)}
           icon={MousePointerClick}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="مهام متأخرة"
           value={taskStats?.overdue ?? 0}
           icon={AlertTriangle}

@@ -6,7 +6,7 @@ import { FinanceStatusBadge } from "@/components/dashboard/finance/FinanceStatus
 import { FinancePageHeader } from "@/components/dashboard/finance/shared/FinancePageHeader";
 import { FinanceListToolbar } from "@/components/dashboard/finance/shared/FinanceListToolbar";
 import { DataTable } from "@/components/design-system/DataTable";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pagination } from "@/components/design-system/Pagination";
 import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
@@ -132,19 +132,19 @@ export default function PaymentsPage() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
+        <MetricCard
           title="إجمالي العمليات"
           value={stats.count.toLocaleString()}
           icon={FileText}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="الناجحة"
           value={<CurrencyDisplay amount={stats.successfulAmount} />}
           icon={CheckCircle2}
           variant="success"
         />
-        <StatCard
+        <MetricCard
           title="فاشلة / مسترجعة"
           value={stats.failedCount + stats.refundedCount}
           icon={AlertTriangle}
@@ -152,7 +152,7 @@ export default function PaymentsPage() {
             stats.failedCount + stats.refundedCount > 0 ? "danger" : "default"
           }
         />
-        <StatCard
+        <MetricCard
           title="نسبة النجاح"
           value={`${stats.rate}%`}
           icon={TrendingUp}

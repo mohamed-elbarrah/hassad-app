@@ -8,11 +8,10 @@ import { cn } from "@/lib/utils";
 
 // Design-system
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { KpiPill } from "@/components/design-system/KpiPill";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { Skeleton } from "@/components/design-system/Skeleton";
@@ -505,7 +504,7 @@ export default function CampaignDetailPage() {
 
       {/* ── Stats Row ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
+        <MetricCard
           title="الربح الصافي"
           value={formatCurrency(m.profit)}
           icon={DollarSign}
@@ -513,19 +512,19 @@ export default function CampaignDetailPage() {
             m.profit > 0 ? "success" : m.profit < 0 ? "danger" : "default"
           }
         />
-        <StatCard
+        <MetricCard
           title="الـ ROAS"
           value={m.roas > 0 ? `${m.roas.toFixed(2)}x` : "—"}
           icon={TrendingUp}
           variant={isRoasGood ? "success" : isRoasBad ? "danger" : "default"}
         />
-        <StatCard
+        <MetricCard
           title="التحويلات"
           value={formatNumber(m.conversions)}
           icon={Target}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="الـ CTR"
           value={m.ctr > 0 ? `${m.ctr.toFixed(2)}%` : "—"}
           icon={Gauge}
@@ -543,9 +542,10 @@ export default function CampaignDetailPage() {
           >
             <div className="grid grid-cols-2 gap-3">
               {section.metrics.map((metric) => (
-                <KpiPill
+                <MetricCard
                   key={metric.label}
-                  label={metric.label}
+                  size="sm"
+                  title={metric.label}
                   value={
                     <span
                       className={cn(

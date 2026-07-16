@@ -11,7 +11,7 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import type { PillTone } from "@/components/design-system/Pill";
 import { formatNumber, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -53,7 +53,7 @@ export function KpiGrid({ items, columns = 4, className }: KpiGridProps) {
   return (
     <div className={cn("grid gap-4", columnsMap[columns], className)}>
       {items.map((card) => (
-        <StatCard
+        <MetricCard
           key={card.key}
           title={card.title}
           value={card.value}
@@ -65,7 +65,8 @@ export function KpiGrid({ items, columns = 4, className }: KpiGridProps) {
           sparklineData={card.sparklineData}
           sparklineColor={card.sparklineColor}
           href={card.href}
-          pill={card.pill}
+          pillText={card.pill?.text}
+          pillTone={card.pill?.tone}
         />
       ))}
     </div>

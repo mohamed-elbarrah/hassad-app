@@ -25,7 +25,7 @@ import { TopClientsTable } from "@/components/dashboard/finance/TopClientsTable"
 import { ModuleQuickCard } from "@/components/dashboard/finance/ModuleQuickCard";
 import { FinancePageHeader } from "@/components/dashboard/finance/shared/FinancePageHeader";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { DataTable } from "@/components/design-system/DataTable";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
@@ -125,7 +125,7 @@ export default function FinanceDashboardPage() {
 
       {/* ── KPI Row 1 ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+        <MetricCard
           title="الإيرادات"
           value={<CurrencyDisplay amount={metrics?.revenue ?? 0} />}
           icon={DollarSign}
@@ -135,19 +135,19 @@ export default function FinanceDashboardPage() {
           }
           trendValue={`${Math.abs(metrics?.revenueChange ?? 0).toFixed(2)}%`}
         />
-        <StatCard
+        <MetricCard
           title="المبالغ المستحقة"
           value={<CurrencyDisplay amount={metrics?.pending ?? 0} />}
           icon={Clock}
           variant="warning"
         />
-        <StatCard
+        <MetricCard
           title="نسبة التحصيل"
           value={`${(metrics?.collectionRate ?? 0).toFixed(1)}%`}
           icon={TrendingUp}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="صافي الربح"
           value={<CurrencyDisplay amount={metrics?.netProfit ?? 0} />}
           icon={Wallet}
@@ -163,7 +163,7 @@ export default function FinanceDashboardPage() {
 
       {/* ── KPI Row 2 ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+        <MetricCard
           title="المدفوعات الفاشلة"
           value={<CurrencyDisplay amount={metrics?.failedPaymentsValue ?? 0} />}
           icon={AlertTriangle}
@@ -171,19 +171,19 @@ export default function FinanceDashboardPage() {
             (metrics?.failedPaymentsCount ?? 0) > 0 ? "danger" : "default"
           }
         />
-        <StatCard
+        <MetricCard
           title="متوسط قيمة الفاتورة"
           value={<CurrencyDisplay amount={metrics?.averageInvoice ?? 0} />}
           icon={Receipt}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="العملاء النشطون"
           value={metrics?.activeClients ?? 0}
           icon={Users}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="إجمالي الرواتب"
           value={<CurrencyDisplay amount={metrics?.salariesTotal ?? 0} />}
           icon={CreditCard}

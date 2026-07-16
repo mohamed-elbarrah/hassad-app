@@ -8,11 +8,10 @@ import { cn } from "@/lib/utils";
 
 // Design-system components
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { KpiPill } from "@/components/design-system/KpiPill";
 import { IconCircle } from "@/components/design-system/IconCircle";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow";
@@ -512,13 +511,13 @@ export default function MarketingTaskDetailPage() {
           <div className="space-y-6">
             {/* Stat cards row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard
+              <MetricCard
                 title="إجمالي الميزانية"
                 value={formatCurrency(aggregated.budgetTotal)}
                 icon={Wallet}
                 variant="default"
               />
-              <StatCard
+              <MetricCard
                 title="إجمالي الإنفاق"
                 value={formatCurrency(aggregated.spend)}
                 icon={TrendingUp}
@@ -526,13 +525,13 @@ export default function MarketingTaskDetailPage() {
                 trend={budgetPct > 90 ? "down" : "neutral"}
                 trendValue={`${budgetPct}% من الميزانية`}
               />
-              <StatCard
+              <MetricCard
                 title="إجمالي التحويلات"
                 value={formatNumber(aggregated.conv)}
                 icon={MousePointerClick}
                 variant="default"
               />
-              <StatCard
+              <MetricCard
                 title="متوسط ROAS"
                 value={totalRoas > 0 ? `${totalRoas.toFixed(2)}x` : "—"}
                 icon={Zap}
@@ -667,20 +666,24 @@ export default function MarketingTaskDetailPage() {
 
               <SurfaceCard title="مؤشرات التفاعل" icon={Gauge}>
                 <div className="grid grid-cols-2 gap-3">
-                  <KpiPill
-                    label="الظهورات"
+                  <MetricCard
+                    size="sm"
+                    title="الظهورات"
                     value={formatNumber(aggregated.impressions)}
                   />
-                  <KpiPill
-                    label="النقرات"
+                  <MetricCard
+                    size="sm"
+                    title="النقرات"
                     value={formatNumber(aggregated.clicks)}
                   />
-                  <KpiPill
-                    label="معدل CTR"
+                  <MetricCard
+                    size="sm"
+                    title="معدل CTR"
                     value={totalCtr > 0 ? `${totalCtr.toFixed(2)}%` : "—"}
                   />
-                  <KpiPill
-                    label="CPC"
+                  <MetricCard
+                    size="sm"
+                    title="CPC"
                     value={totalCpc > 0 ? formatCurrency(totalCpc) : "—"}
                   />
                 </div>

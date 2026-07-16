@@ -2,7 +2,8 @@
 
 import { Wallet } from "lucide-react";
 import { Skeleton } from "@/components/design-system/Skeleton";
-import { KpiPill, KpiCurrency } from "@/components/design-system/KpiPill";
+import { MetricCard } from "@/components/design-system/MetricCard";
+import { KpiCurrency } from "@/components/design-system/MetricCard";
 import { cn } from "@/lib/utils";
 import type { PortalFinanceSummary } from "@/features/portal/portalApi";
 import { formatShortDateLong } from "@/lib/format";
@@ -46,27 +47,24 @@ export function FinanceSummaryKpis({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <KpiPill
-        label="إجمالي المفوتر"
-        value={<KpiCurrency amount={summary.totalInvoiced} />}
+      <MetricCard
+        size="sm"
+        title="إجمالي المفوتر"
+        amount={summary.totalInvoiced}
       />
       <RemainingKpi amount={summary.totalRemaining} />
-      <KpiPill
-        label="إجمالي المدفوع"
-        value={<KpiCurrency amount={summary.totalPaid} />}
+      <MetricCard
+        size="sm"
+        title="إجمالي المدفوع"
+        amount={summary.totalPaid}
       />
-      <KpiPill
-        label="الفاتورة القادمة"
-        value={
-          nextDate ? (
-            <NextDueDateDisplay
-              date={nextDate}
-              amount={summary.nextInvoiceAmount}
-            />
-          ) : (
-            <KpiCurrency amount={summary.nextInvoiceAmount} />
-          )
-        }
+      <MetricCard
+        size="sm"
+        title="الفاتورة القادمة"
+        {...(nextDate
+          ? { value: <NextDueDateDisplay date={nextDate} amount={summary.nextInvoiceAmount} /> }
+          : { amount: summary.nextInvoiceAmount }
+        )}
       />
     </div>
   );

@@ -5,7 +5,7 @@ import { useGetLedgerQuery } from "@/features/finance/financeApi";
 import { FinancePageHeader } from "@/components/dashboard/finance/shared/FinancePageHeader";
 import { FinanceListToolbar } from "@/components/dashboard/finance/shared/FinanceListToolbar";
 import { DataTable } from "@/components/design-system/DataTable";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pagination } from "@/components/design-system/Pagination";
 import { Popover } from "@/components/design-system/Popover";
@@ -141,25 +141,25 @@ export default function LedgerPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
+        <MetricCard
           title="إجمالي العمليات"
           value={stats.total.toLocaleString()}
           icon={FileText}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="عمليات اليوم"
           value={stats.todayCount}
           icon={Clock}
           variant="success"
         />
-        <StatCard
+        <MetricCard
           title="تعديلات حساسة"
           value={stats.sensitive}
           icon={AlertTriangle}
           variant={stats.sensitive > 0 ? "warning" : "default"}
         />
-        <StatCard
+        <MetricCard
           title="نظام التدقيق"
           value="نشط"
           icon={CheckCircle2}

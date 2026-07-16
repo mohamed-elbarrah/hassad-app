@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FilterBar } from "@/components/design-system/FilterBar";
@@ -249,31 +249,31 @@ export default function MarketingTasksListPage() {
 
       {/* ── Stats Row ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard
+        <MetricCard
           title="إجمالي المهام"
           value={stats.total}
           icon={ClipboardList}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="قيد التنفيذ"
           value={stats.inProgress}
           icon={Zap}
           variant="warning"
         />
-        <StatCard
+        <MetricCard
           title="متأخرة"
           value={stats.overdue}
           icon={AlertTriangle}
           variant={stats.overdue > 0 ? "danger" : "default"}
         />
-        <StatCard
+        <MetricCard
           title="مكتملة"
           value={stats.done}
           icon={CheckCircle2}
           variant="success"
         />
-        <StatCard
+        <MetricCard
           title="الحملات"
           value={stats.totalCampaigns}
           icon={Megaphone}

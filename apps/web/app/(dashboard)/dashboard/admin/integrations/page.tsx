@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
@@ -78,20 +78,20 @@ function SyncStatusSection() {
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard title="الإجمالي" value={summary.total} icon={Cable} />
-        <StatCard
+        <MetricCard title="الإجمالي" value={summary.total} icon={Cable} />
+        <MetricCard
           title="سليم"
           value={summary.healthy}
           icon={CheckCircle}
           variant="success"
         />
-        <StatCard
+        <MetricCard
           title="منخفض"
           value={summary.degraded}
           icon={AlertTriangle}
           variant="warning"
         />
-        <StatCard
+        <MetricCard
           title="متوقف"
           value={summary.down}
           icon={XCircle}

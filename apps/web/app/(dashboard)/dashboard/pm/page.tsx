@@ -11,7 +11,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { PageIntro } from "@/components/design-system/PageIntro";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import {
   DataTable,
   type DataTableColumn,
@@ -197,7 +197,7 @@ export default function PMWorkspacePage() {
 
       {/* ── Stats Overview ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+        <MetricCard
           title="المشاريع النشطة"
           value={activeProjects}
           icon={FolderKanban}
@@ -205,19 +205,19 @@ export default function PMWorkspacePage() {
           trend="neutral"
           trendValue={`${completedProjects} مكتملة`}
         />
-        <StatCard
+        <MetricCard
           title="المهام قيد التنفيذ"
           value={pmStats?.inProgress ?? 0}
           icon={Clock}
           variant="warning"
         />
-        <StatCard
+        <MetricCard
           title="بانتظار المراجعة"
           value={pmStats?.inReview ?? 0}
           icon={Inbox}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="مهام متأخرة"
           value={pmStats?.overdue ?? 0}
           icon={AlertTriangle}

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import {
@@ -62,12 +62,12 @@ function SalesSection() {
     <SurfaceCard title="المبيعات" icon={BarChart3}>
       <div className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard
+          <MetricCard
             title="إجمالي العملاء المتوقعين"
             value={data.totalLeads}
             icon={Users}
           />
-          <StatCard
+          <MetricCard
             title="معدل التحويل"
             value={"٪" + data.conversionRate}
             icon={TrendingUp}
@@ -163,12 +163,12 @@ function RevenueSection() {
     <SurfaceCard title="الإيرادات" icon={DollarSign}>
       <div className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard
+          <MetricCard
             title="متوسط قيمة الفاتورة"
             value={formatSAR(data.avgInvoiceValue)}
             icon={CreditCard}
           />
-          <StatCard
+          <MetricCard
             title="المدفوع"
             value={data.paidVsUnpaid.paid.count + " فاتورة"}
             icon={DollarSign}
@@ -288,23 +288,23 @@ function ProjectsSection() {
     <SurfaceCard title="المشاريع" icon={FolderKanban}>
       <div className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard
+          <MetricCard
             title="إجمالي المشاريع"
             value={data.total}
             icon={FolderKanban}
           />
-          <StatCard
+          <MetricCard
             title="معدل الإنجاز"
             value={"٪" + data.completionRate}
             icon={TrendingUp}
             variant={data.completionRate > 70 ? "success" : "warning"}
           />
-          <StatCard
+          <MetricCard
             title="متوسط المدة (أيام)"
             value={data.avgDuration}
             icon={Clock}
           />
-          <StatCard
+          <MetricCard
             title="متأخر"
             value={data.overdueCount}
             icon={AlertTriangle}
@@ -368,7 +368,7 @@ function SatisfactionSection() {
   return (
     <SurfaceCard title="رضا العملاء" icon={Smile}>
       <div className="space-y-5">
-        <StatCard
+        <MetricCard
           title="متوسط التقييم"
           value={data.avgScore.toFixed(1) + " / 5"}
           icon={Star}

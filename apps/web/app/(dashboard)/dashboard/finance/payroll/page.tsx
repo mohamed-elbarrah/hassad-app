@@ -13,7 +13,7 @@ import { FinancePageHeader } from "@/components/dashboard/finance/shared/Finance
 import { PayrollPreviewModal } from "@/components/dashboard/finance/PayrollPreviewModal";
 import { EmployeeModal } from "@/components/dashboard/finance/EmployeeModal";
 import { DataTable } from "@/components/design-system/DataTable";
-import { StatCard } from "@/components/design-system/StatCard";
+import { MetricCard } from "@/components/design-system/MetricCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
@@ -217,25 +217,25 @@ export default function PayrollPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
+        <MetricCard
           title="الموظفين"
           value={stats.total}
           icon={Users}
           variant="default"
         />
-        <StatCard
+        <MetricCard
           title="معلقة للصرف"
           value={stats.pending}
           icon={Clock}
           variant={stats.pending > 0 ? "warning" : "default"}
         />
-        <StatCard
+        <MetricCard
           title="تم الصرف"
           value={stats.paid}
           icon={CheckCircle2}
           variant="success"
         />
-        <StatCard
+        <MetricCard
           title="إجمالي التكلفة"
           value={<CurrencyDisplay amount={stats.totalCost} />}
           icon={DollarSign}
