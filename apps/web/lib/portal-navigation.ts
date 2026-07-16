@@ -11,6 +11,7 @@ import {
   MessageSquare,
   TrendingUp,
   Settings,
+  Scale,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,6 +51,7 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
       { label: "المحادثات", href: "/portal/chat", icon: MessageSquare },
       { label: "الإشعارات", href: "/portal/notifications", icon: Bell },
       { label: "إجراءاتي", href: "/portal/actions", icon: CheckCircle2 },
+      { label: "النزاعات", href: "/portal/disputes", icon: Scale },
     ],
   },
   {
@@ -88,6 +90,7 @@ export const PORTAL_BOTTOM_PRIMARY: PortalNavItem[] = [
   { label: "المشاريع", href: "/portal/projects", icon: FolderOpen },
   { label: "الفواتير", href: "/portal/finance", icon: Receipt },
   { label: "إجراءاتي", href: "/portal/actions", icon: CheckCircle2 },
+  { label: "النزاعات", href: "/portal/disputes", icon: Scale },
 ];
 
 export const PORTAL_MORE_ITEMS: PortalNavItem[] = [
@@ -99,6 +102,7 @@ export const PORTAL_MORE_ITEMS: PortalNavItem[] = [
   { label: "مراجعة التسليمات", href: "/portal/deliverables", icon: Inbox },
   { label: "الحملات", href: "/portal/campaigns", icon: TrendingUp },
   { label: "التقارير", href: "/portal/reports", icon: BarChart3 },
+  { label: "النزاعات", href: "/portal/disputes", icon: Scale },
 ];
 
 export function isPortalActiveLink(href: string, pathname: string) {

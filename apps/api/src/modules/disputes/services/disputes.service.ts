@@ -416,15 +416,26 @@ export class DisputesService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { openedAt: "desc" },
-        include: {
-          project: { select: { id: true, name: true } },
-          client: { select: { id: true, companyName: true } },
-          messages: {
-            take: 1,
-            orderBy: { createdAt: "desc" },
+        select: {
+            id: true,
+            ticketNumber: true,
+            clientId: true,
+            pmId: true,
+            projectId: true,
+            title: true,
+            category: true,
+            status: true,
+            priority: true,
+            openedAt: true,
+            deadlineAt: true,
+            project: { select: { id: true, name: true } },
+            client: { select: { id: true, companyName: true, user: { select: { name: true } } } },
+            messages: {
+              take: 1,
+              orderBy: { createdAt: "desc" },
+            },
+            _count: { select: { messages: true } },
           },
-          _count: { select: { messages: true } },
-        },
       }),
       this.prisma.disputeTicket.count({ where: whereClause }),
     ]);
@@ -447,10 +458,10 @@ export class DisputesService {
     const dispute = await this.prisma.disputeTicket.findFirst({
       where: { id: disputeId, pmId },
       include: {
-        project: { select: { id: true, name: true } },
-        client: { select: { id: true, companyName: true } },
-        messages: {
-          where: { isInternal: false }, // PM cannot see internal admin notes
+          project: { select: { id: true, name: true } },
+          client: { select: { id: true, companyName: true, user: { select: { name: true } } } },
+          messages: {
+            where: { isInternal: false }, // PM cannot see internal admin notes
           orderBy: { createdAt: "asc" },
           include: {
             author: { select: { id: true, name: true, avatarUrl: true } },

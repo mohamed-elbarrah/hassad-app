@@ -141,6 +141,38 @@ export interface AdminDisputeDetail {
   _count: { messages: number };
 }
 
+export interface ApproveDisputeInput {
+  priority: string;
+  notes?: string;
+}
+
+export interface RejectDisputeInput {
+  reason: string;
+}
+
+export interface ChangePmInput {
+  newPmId: string;
+  reason: string;
+}
+
+export interface CloseDisputeInput {
+  resolution: string;
+}
+
+export interface AddMessageInput {
+  content: string;
+}
+
+export interface PmDisputeStats {
+  userId: string;
+  userName: string;
+  totalDisputes: number;
+  resolvedDisputes: number;
+  escalatedDisputes: number;
+  pmChangedCount: number;
+  avgResolutionDays: number;
+}
+
 export const adminDisputesApi = createApi({
   reducerPath: "adminDisputesApi",
   baseQuery,
@@ -177,6 +209,84 @@ export const adminDisputesApi = createApi({
       query: () => "/admin/disputes/stats",
       providesTags: ["AdminDisputeStats"],
     }),
+
+    approveDispute: builder.mutation<
+      void,
+      { id: string; input: ApproveDisputeInput }
+    >({
+      query: ({ id, input }) => ({
+        url: `/admin/disputes/${id}/approve`,
+        method: "POST",
+        body: input,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminDispute", id },
+        "AdminDisputes",
+        "AdminDisputeStats",
+      ],
+    }),
+
+    rejectDispute: builder.mutation<
+      void,
+      { id: string; input: RejectDisputeInput }
+    >({
+      query: ({ id, input }) => ({
+        url: `/admin/disputes/${id}/reject`,
+        method: "POST",
+        body: input,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminDispute", id },
+        "AdminDisputes",
+        "AdminDisputeStats",
+      ],
+    }),
+
+    changePm: builder.mutation<
+      void,
+      { id: string; input: ChangePmInput }
+    >({
+      query: ({ id, input }) => ({
+        url: `/admin/disputes/${id}/change-pm`,
+        method: "POST",
+        body: input,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminDispute", id },
+        "AdminDisputes",
+        "AdminDisputeStats",
+      ],
+    }),
+
+    closeDispute: builder.mutation<
+      void,
+      { id: string; input: CloseDisputeInput }
+    >({
+      query: ({ id, input }) => ({
+        url: `/admin/disputes/${id}/close`,
+        method: "POST",
+        body: input,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminDispute", id },
+        "AdminDisputes",
+        "AdminDisputeStats",
+      ],
+    }),
+
+    addAdminDisputeMessage: builder.mutation<
+      AdminDisputeMessage,
+      { disputeId: string; input: AddMessageInput }
+    >({
+      query: ({ disputeId, input }) => ({
+        url: `/admin/disputes/${disputeId}/messages`,
+        method: "POST",
+        body: { ...input, isInternal: true },
+      }),
+      invalidatesTags: (_result, _error, { disputeId }) => [
+        { type: "AdminDispute", id: disputeId },
+      ],
+    }),
   }),
 });
 
@@ -184,4 +294,9 @@ export const {
   useGetAdminDisputesQuery,
   useGetAdminDisputeByIdQuery,
   useGetAdminDisputeStatsQuery,
+  useApproveDisputeMutation,
+  useRejectDisputeMutation,
+  useChangePmMutation,
+  useCloseDisputeMutation,
+  useAddAdminDisputeMessageMutation,
 } = adminDisputesApi;

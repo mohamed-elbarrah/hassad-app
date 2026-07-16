@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { User, BarChart3, Clock, AlertTriangle, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { PmDisputeStats } from "@/features/disputes/pmDisputesApi";
+import type { PmDisputeStats } from "@/features/admin/adminDisputesApi";
 import { Skeleton } from "@/components/design-system/Skeleton";
 
 interface PmStatsPanelProps {

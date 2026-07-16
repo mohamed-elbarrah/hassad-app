@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
-import { useChangePmMutation } from "@/features/disputes/pmDisputesApi";
+import { useChangePmMutation } from "@/features/admin/adminDisputesApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
 import { UserRole } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
