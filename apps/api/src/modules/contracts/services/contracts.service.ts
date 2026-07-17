@@ -78,10 +78,6 @@ export class ContractsService {
       where: { id: contractId },
       include: {
         client: {
-          // Personal identity (name, email, phone) now lives on the
-          // `User` table — we must include it here to use it below.
-          // The old `contactName` field on Client was removed as part
-          // of the unification migration.
           include: {
             user: {
               select: {
@@ -91,13 +87,6 @@ export class ContractsService {
                 phoneWhatsapp: true,
               },
             },
-          },
-          select: {
-            id: true,
-            companyName: true,
-            accountManager: true,
-            userId: true,
-            // FK to the linked User; included above via `include: { user }`.
           },
         },
         proposal: {
