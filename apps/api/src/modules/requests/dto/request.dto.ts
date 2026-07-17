@@ -10,7 +10,13 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { BusinessType, ClientSource, RequestStatus } from "@hassad/shared";
+import {
+  BusinessType,
+  ClientSource,
+  ContactLogType,
+  ContactLogResult,
+  RequestStatus,
+} from "@hassad/shared";
 
 export class RequestServiceItemDto {
   @IsString()
@@ -67,4 +73,16 @@ export class UpdateRequestStatusDto {
   @IsOptional()
   @IsString()
   note?: string;
+}
+
+export class CreateRequestContactLogDto {
+  @IsEnum(ContactLogType)
+  type: ContactLogType;
+
+  @IsEnum(ContactLogResult)
+  result: ContactLogResult;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

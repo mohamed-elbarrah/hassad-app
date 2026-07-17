@@ -1,17 +1,46 @@
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
-  PipelineStage,
-  ProposalStatus,
   ContractStatus,
   ClientStatus,
+  PipelineStage,
+  ProposalStatus,
+  RequestStatus,
 } from "@hassad/shared";
 
 @Injectable()
 export class SalesService {
   constructor(private prisma: PrismaService) {}
 
-  async getMetrics() {
+  async getMetrics(period?: string) {
+    const now = new Date();
+    let since: Date | undefined;
+
+    switch (period) {
+      case "last7days":
+        since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "last30days":
+        since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "lastYear":
+        since = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        break;
+      default:
+        since = undefined;
+    }
+
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const requestWhere: Prisma.RequestWhereInput = {};
+    const contractWhere: Prisma.ContractWhereInput = {};
+
+    if (since) {
+      requestWhere.createdAt = { gte: since };
+      contractWhere.signedAt = { gte: since };
+    }
+
     const [
       totalLeads,
       activeClients,
@@ -20,21 +49,86 @@ export class SalesService {
       proposalsSent,
       signedContracts,
       stageRows,
+      activeDeals,
+      staleDeals,
+      signedInPeriod,
+      pipelineValueAgg,
+      avgDealSizeAgg,
+      dealsByStatusRows,
+      valueByStageRows,
     ] = await Promise.all([
-      this.prisma.lead.count({ where: { isActive: true } }),
+      this.prisma.lead.count({
+        where: { isActive: true, ...(since ? { createdAt: { gte: since } } : {}) },
+      }),
       this.prisma.client.count({ where: { status: ClientStatus.ACTIVE } }),
       this.prisma.client.count({ where: { status: ClientStatus.STOPPED } }),
       this.prisma.lead.count({
-        where: { pipelineStage: PipelineStage.MEETING_SCHEDULED },
+        where: {
+          pipelineStage: PipelineStage.MEETING_SCHEDULED,
+          ...(since ? { createdAt: { gte: since } } : {}),
+        },
       }),
       this.prisma.proposal.count({
-        where: { status: { not: ProposalStatus.DRAFT } },
+        where: {
+          status: { not: ProposalStatus.DRAFT },
+          ...(since ? { createdAt: { gte: since } } : {}),
+        },
       }),
-      this.prisma.contract.count({ where: { status: ContractStatus.SIGNED } }),
+      this.prisma.contract.count({
+        where: { status: ContractStatus.SIGNED, ...contractWhere },
+      }),
       this.prisma.lead.groupBy({
         by: ["pipelineStage"],
         _count: { pipelineStage: true },
-        where: { isActive: true },
+        where: { isActive: true, ...(since ? { createdAt: { gte: since } } : {}) },
+      }),
+      this.prisma.request.count({
+        where: {
+          ...requestWhere,
+          status: {
+            notIn: [RequestStatus.CANCELLED, RequestStatus.PROJECT_CREATED],
+          },
+        },
+      }),
+      this.prisma.request.count({
+        where: {
+          ...requestWhere,
+          updatedAt: { lt: sevenDaysAgo },
+          status: {
+            notIn: [RequestStatus.CANCELLED, RequestStatus.PROJECT_CREATED],
+          },
+        },
+      }),
+      this.prisma.contract.count({
+        where: { status: ContractStatus.SIGNED, ...contractWhere },
+      }),
+      this.prisma.contract.aggregate({
+        _sum: { totalValue: true },
+        where: { status: ContractStatus.SIGNED, ...contractWhere },
+      }),
+      this.prisma.contract.aggregate({
+        _avg: { totalValue: true },
+        where: { status: ContractStatus.SIGNED, ...contractWhere },
+      }),
+      this.prisma.request.groupBy({
+        by: ["status"],
+        _count: { status: true },
+        where: {
+          ...requestWhere,
+          status: {
+            notIn: [RequestStatus.CANCELLED, RequestStatus.PROJECT_CREATED],
+          },
+        },
+      }),
+      this.prisma.contract.groupBy({
+        by: ["status"],
+        _sum: { totalValue: true },
+        where: {
+          status: {
+            in: [ContractStatus.SIGNED, ContractStatus.ACTIVE, ContractStatus.ON_HOLD],
+          },
+          ...contractWhere,
+        },
       }),
     ]);
 
@@ -48,6 +142,16 @@ export class SalesService {
       stageBreakdown[row.pipelineStage] = row._count.pipelineStage;
     }
 
+    const dealsByStage: Record<string, number> = {};
+    for (const row of dealsByStatusRows) {
+      dealsByStage[row.status] = row._count.status;
+    }
+
+    const valueByStage: Record<string, number> = {};
+    for (const row of valueByStageRows) {
+      valueByStage[row.status] = row._sum.totalValue ?? 0;
+    }
+
     return {
       totals: { totalLeads, activeClients, stoppedClients },
       meetingsScheduled,
@@ -55,6 +159,15 @@ export class SalesService {
       signedContracts,
       closeRate,
       stageBreakdown,
+      pipelineValue: pipelineValueAgg._sum.totalValue ?? 0,
+      activeDeals,
+      staleDeals,
+      signedThisMonth: signedInPeriod,
+      avgDealSize: avgDealSizeAgg._avg.totalValue
+        ? Math.round(avgDealSizeAgg._avg.totalValue * 100) / 100
+        : 0,
+      dealsByStage,
+      valueByStage,
     };
   }
 

@@ -60,6 +60,7 @@ model User {
   internalRatings      InternalRating[]          @relation("RatedBy")
   createdInvoices      Invoice[]
   contactLogs          LeadContactLog[]
+  requestContactLogs   RequestContactLog[]
   leadHistory          LeadPipelineHistory[]
   assignedLeads        Lead[]                    @relation("LeadAssignee")
   createdLeads         Lead[]                    @relation("LeadCreator")
@@ -451,19 +452,22 @@ model Request {
   businessType    BusinessType           @map("business_type")
   source          ClientSource
   notes           String?
-  internalNotes   String?                @map("internal_notes")
-  status          RequestStatus          @default(SUBMITTED)
-  createdAt       DateTime               @default(now()) @map("created_at")
-  updatedAt       DateTime               @updatedAt @map("updated_at")
-  contracts       Contract[]
-  lead            Lead?
-  project         Project?
-  proposals       Proposal[]
-  services        RequestService[]
-  statusHistory   RequestStatusHistory[]
-  assignee        User?                  @relation("RequestAssignee", fields: [assignedSalesId], references: [id])
-  client          Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  submitter       User?                  @relation("RequestSubmitter", fields: [submittedBy], references: [id])
+  internalNotes       String?                @map("internal_notes")
+  status              RequestStatus          @default(SUBMITTED)
+  contactAttemptCount Int                    @default(0) @map("contact_attempt_count")
+  lastContactAt       DateTime?              @map("last_contact_at")
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
+  contracts           Contract[]
+  lead                Lead?
+  project             Project?
+  proposals           Proposal[]
+  services            RequestService[]
+  statusHistory       RequestStatusHistory[]
+  contactLogs         RequestContactLog[]
+  assignee            User?                  @relation("RequestAssignee", fields: [assignedSalesId], references: [id])
+  client              Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  submitter           User?                  @relation("RequestSubmitter", fields: [submittedBy], references: [id])
 
   @@index([clientId])
   @@index([submittedBy])
@@ -503,6 +507,23 @@ model RequestStatusHistory {
   @@index([requestId])
   @@index([changedAt])
   @@map("request_status_history")
+}
+
+model RequestContactLog {
+  id          String           @id @default(uuid())
+  requestId   String           @map("request_id")
+  userId      String           @map("user_id")
+  type        ContactLogType
+  result      ContactLogResult
+  notes       String?
+  contactedAt DateTime         @map("contacted_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  request     Request          @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id])
+
+  @@index([requestId])
+  @@index([userId])
+  @@map("request_contact_logs")
 }
 
 model LeadService {
@@ -1960,6 +1981,7 @@ enum ContactLogResult {
   RESPONDED
   BUSY
   WRONG_NUMBER
+  NOT_INTERESTED
 }
 
 enum AutomationStatus {

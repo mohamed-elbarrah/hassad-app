@@ -11,7 +11,11 @@ import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermissions } from "../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../common/guards/permissions.guard";
-import { CreateRequestDto, UpdateRequestStatusDto } from "./dto/request.dto";
+import {
+  CreateRequestContactLogDto,
+  CreateRequestDto,
+  UpdateRequestStatusDto,
+} from "./dto/request.dto";
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
 import { RequestsService } from "./requests.service";
 
@@ -54,6 +58,22 @@ export class RequestsController {
       user.id,
       dto.note,
     );
+  }
+
+  @Post(":id/contact-log")
+  @RequirePermissions("leads.update")
+  addContactLog(
+    @Param("id") id: string,
+    @CurrentUser() user: any,
+    @Body() dto: CreateRequestContactLogDto,
+  ) {
+    return this.requestsService.addContactLog(id, user.id, dto);
+  }
+
+  @Get(":id/contact-log")
+  @RequirePermissions("leads.read")
+  getContactLogs(@Param("id") id: string) {
+    return this.requestsService.getContactLogs(id);
   }
 
   @Post("for-client")

@@ -172,6 +172,7 @@ export enum ContactLogResult {
   RESPONDED = "RESPONDED",
   BUSY = "BUSY",
   WRONG_NUMBER = "WRONG_NUMBER",
+  NOT_INTERESTED = "NOT_INTERESTED",
 }
 
 export enum AutomationStatus {

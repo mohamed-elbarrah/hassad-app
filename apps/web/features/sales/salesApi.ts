@@ -1,6 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
-import type { PipelineStage } from "@hassad/shared";
+import type { PipelineStage, RequestStatus } from "@hassad/shared";
 
 export interface SalesMetrics {
   totals: {
@@ -13,6 +13,13 @@ export interface SalesMetrics {
   signedContracts: number;
   closeRate: number;
   stageBreakdown: Partial<Record<PipelineStage, number>>;
+  pipelineValue: number;
+  activeDeals: number;
+  staleDeals: number;
+  signedThisMonth: number;
+  avgDealSize: number;
+  dealsByStage: Partial<Record<RequestStatus, number>>;
+  valueByStage: Record<string, number>;
 }
 
 export const salesApi = createApi({
@@ -20,8 +27,11 @@ export const salesApi = createApi({
   baseQuery,
   tagTypes: ["SalesMetrics"],
   endpoints: (builder) => ({
-    getSalesMetrics: builder.query<SalesMetrics, void>({
-      query: () => ({ url: "/sales/metrics" }),
+    getSalesMetrics: builder.query<SalesMetrics, string | void>({
+      query: (period) => ({
+        url: "/sales/metrics",
+        params: period ? { period } : {},
+      }),
       providesTags: [{ type: "SalesMetrics", id: "SUMMARY" }],
     }),
   }),

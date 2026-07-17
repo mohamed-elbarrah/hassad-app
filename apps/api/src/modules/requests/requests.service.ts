@@ -4,15 +4,30 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { PipelineStage, RequestStatus, UserRole } from "@hassad/shared";
+import {
+  ContactLogType,
+  ContactLogResult,
+  PipelineStage,
+  RequestStatus,
+  UserRole,
+} from "@hassad/shared";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CanonicalClientService } from "./canonical-client.service";
 import { NotificationsService } from "../notifications/services/notifications.service";
 import { SalesAssignmentService } from "./sales-assignment.service";
-import { CreateRequestDto } from "./dto/request.dto";
+import {
+  CreateRequestContactLogDto,
+  CreateRequestDto,
+} from "./dto/request.dto";
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
+
+const USER_SUMMARY_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+} as const;
 
 const REQUEST_TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
   [RequestStatus.SUBMITTED]: [
@@ -136,7 +151,6 @@ export class RequestsService {
           select: {
             id: true,
             companyName: true,
-
             userId: true,
             totalProjects: true,
             activeProjects: true,
@@ -164,12 +178,25 @@ export class RequestsService {
           select: {
             id: true,
             status: true,
+            totalPrice: true,
           },
         },
         contracts: {
           select: {
             id: true,
             status: true,
+            totalValue: true,
+          },
+        },
+        contactLogs: {
+          take: 1,
+          orderBy: { contactedAt: "desc" },
+          select: {
+            id: true,
+            type: true,
+            result: true,
+            contactedAt: true,
+            notes: true,
           },
         },
         project: {
@@ -733,5 +760,59 @@ export class RequestsService {
     }
 
     throw new BadRequestException("A request reference is required");
+  }
+
+  async addContactLog(
+    requestId: string,
+    userId: string,
+    dto: CreateRequestContactLogDto,
+  ) {
+    const request = await this.prisma.request.findUnique({
+      where: { id: requestId },
+      select: { id: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException("Request not found");
+    }
+
+    const log = await this.prisma.requestContactLog.create({
+      data: {
+        requestId,
+        userId,
+        type: dto.type as ContactLogType,
+        result: dto.result as ContactLogResult,
+        notes: dto.notes,
+        contactedAt: new Date(),
+      },
+      include: { user: { select: USER_SUMMARY_SELECT } },
+    });
+
+    await this.prisma.request.update({
+      where: { id: requestId },
+      data: {
+        contactAttemptCount: { increment: 1 },
+        lastContactAt: new Date(),
+      },
+    });
+
+    return log;
+  }
+
+  async getContactLogs(requestId: string) {
+    const request = await this.prisma.request.findUnique({
+      where: { id: requestId },
+      select: { id: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException("Request not found");
+    }
+
+    return this.prisma.requestContactLog.findMany({
+      where: { requestId },
+      include: { user: { select: USER_SUMMARY_SELECT } },
+      orderBy: { contactedAt: "desc" },
+    });
   }
 }

@@ -12,18 +12,37 @@ import {
   FileText,
   PenLine,
   History,
+  PhoneCall,
 } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function parseDescription(notes?: string | null): string | null {
-  if (!notes) return null;
-  try {
-    const parsed = JSON.parse(notes) as { description?: string };
-    return parsed.description?.trim() || null;
-  } catch {
-    return notes.trim() || null;
+function getDealValue(request: RequestItem): number | null {
+  if (request.contracts?.length) {
+    const signed = request.contracts.find(
+      (c) => c.totalValue && c.totalValue > 0,
+    );
+    if (signed) return signed.totalValue;
   }
+  if (request.proposals?.length) {
+    const sent = request.proposals.find(
+      (p) => p.totalPrice && p.totalPrice > 0,
+    );
+    if (sent) return sent.totalPrice;
+  }
+  return null;
+}
+
+function getStalenessDays(dateStr: string): number {
+  return Math.floor(
+    (Date.now() - new Date(dateStr).getTime()) / 86_400_000,
+  );
+}
+
+function getStalenessConfig(days: number) {
+  if (days <= 1) return { color: "#22C55E" };
+  if (days <= 3) return { color: "#EAB308" };
+  if (days <= 7) return { color: "#F97316" };
+  return { color: "#EF4444" };
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -43,8 +62,6 @@ function formatRelativeTime(dateStr: string): string {
   }).format(new Date(dateStr));
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 interface SalesPipelineCardContentProps {
   request: RequestItem;
   onCreateProposal?: (request: RequestItem) => void;
@@ -53,12 +70,6 @@ interface SalesPipelineCardContentProps {
   onEditContract?: (request: RequestItem) => void;
 }
 
-/**
- * Card content for the sales pipeline kanban.
- *
- * Renders client info, description, phone, last activity, and
- * stage-specific action buttons (create/edit proposal/contract).
- */
 export function SalesPipelineCardContent({
   request,
   onCreateProposal,
@@ -67,7 +78,11 @@ export function SalesPipelineCardContent({
   onEditContract,
 }: SalesPipelineCardContentProps) {
   const router = useRouter();
-  const description = parseDescription(request.notes);
+  const { fmtAmount } = useCurrency();
+  const dealValue = getDealValue(request);
+  const staleDays = getStalenessDays(request.updatedAt);
+  const staleness = getStalenessConfig(staleDays);
+  const lastLog = request.contactLogs?.[0];
 
   function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -76,6 +91,17 @@ export function SalesPipelineCardContent({
 
   return (
     <div onClick={handleClick}>
+      {/* ── Deal Value ──────────────────────────────────────────────── */}
+      {dealValue != null ? (
+        <p className="text-sm font-bold text-natural-100 leading-tight tabular-nums mb-1.5">
+          {fmtAmount(dealValue)}
+        </p>
+      ) : (
+        <p className="text-xs text-portal-note-text leading-tight mb-1.5">
+          لا يوجد عرض
+        </p>
+      )}
+
       {/* ── Header: Name + Drag Handle ─────────────────────────────── */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -83,7 +109,7 @@ export function SalesPipelineCardContent({
             className="text-sm font-semibold leading-tight truncate"
             style={{ color: "#000000" }}
           >
-            {request.client?.contactName || request.contactName}
+            {request.contactName}
           </p>
           {(request.client?.companyName || request.companyName) && (
             <div className="flex items-center gap-1 mt-1">
@@ -116,40 +142,65 @@ export function SalesPipelineCardContent({
         />
       </div>
 
-      {/* ── Short Description ──────────────────────────────────────── */}
-      {description && (
-        <p
-          className="text-xs mt-3 line-clamp-2 leading-relaxed"
-          style={{
-            color: "rgba(0, 0, 0, 0.5)",
-            borderTop: "1.5px solid #ECEEF2",
-            paddingTop: 10,
-          }}
+      {/* ── Contact Activity ────────────────────────────────────────── */}
+      {request.contactAttemptCount > 0 && (
+        <div
+          className="flex items-center gap-1.5 text-xs mt-2"
+          style={{ color: "#A8ABB2" }}
         >
-          {description}
-        </p>
+          <PhoneCall className="w-3 h-3 shrink-0" />
+          <span>
+            {request.contactAttemptCount} محاولات
+            {lastLog && (
+              <>
+                {" | "}
+                <span
+                  className={
+                    lastLog.result === "RESPONDED"
+                      ? "text-success-600"
+                      : lastLog.result === "NOT_INTERESTED"
+                        ? "text-danger-600"
+                        : ""
+                  }
+                >
+                  {lastLog.result === "NO_RESPONSE"
+                    ? "لا رد"
+                    : lastLog.result === "RESPONDED"
+                      ? "تم الرد"
+                      : lastLog.result === "BUSY"
+                        ? "مشغول"
+                        : lastLog.result === "WRONG_NUMBER"
+                          ? "رقم خطأ"
+                          : lastLog.result === "NOT_INTERESTED"
+                            ? "غير مهتم"
+                            : lastLog.result}
+                </span>
+              </>
+            )}
+          </span>
+        </div>
       )}
 
-      {/* ── Footer: Phone + Last Activity ─────────────────────────── */}
+      {/* ── Footer: Staleness + Phone + Last Activity ──────────────── */}
       <div className="flex items-center justify-between mt-3 pt-2 gap-2">
-        <div className="flex items-center gap-1 text-xs min-w-0">
-          <Phone
-            className="w-3.5 h-3.5 shrink-0"
-            style={{ color: "#A8ABB2" }}
+        <div className="flex items-center gap-1.5 text-xs min-w-0">
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ backgroundColor: staleness.color }}
           />
-          <span dir="ltr" className="truncate" style={{ color: "#A8ABB2" }}>
-            {request.client?.phoneWhatsapp || request.phoneWhatsapp}
+          <span className="text-xs font-medium" style={{ color: staleness.color }}>
+            {staleDays > 7 ? "متأخر" : formatRelativeTime(request.updatedAt)}
           </span>
         </div>
         <div className="flex items-center gap-1 text-xs shrink-0">
-          <Clock className="w-3.5 h-3.5" style={{ color: "#A8ABB2" }} />
-          <span style={{ color: "#A8ABB2" }}>
-            {formatRelativeTime(request.updatedAt)}
+          <Phone className="w-3.5 h-3.5" style={{ color: "#A8ABB2" }} />
+          <span dir="ltr" className="truncate" style={{ color: "#A8ABB2" }}>
+            {request.phoneWhatsapp}
           </span>
         </div>
       </div>
 
-      {/* ── Pipeline Action Buttons ───────────────────────────────── */}
+      {/* ── Pipeline Action Buttons ─────────────────────────────────── */}
       {request.status === RequestStatus.PROPOSAL_IN_PROGRESS &&
         onCreateProposal && (
           <button

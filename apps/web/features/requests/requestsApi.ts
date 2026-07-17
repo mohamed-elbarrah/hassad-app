@@ -29,11 +29,6 @@ export interface RequestAssignee {
 export interface RequestClientSummary {
   id: string;
   companyName: string;
-  contactName: string;
-  phoneWhatsapp?: string;
-  email?: string | null;
-  businessName?: string;
-  businessType?: BusinessType;
   userId?: string | null;
   totalProjects?: number;
   activeProjects?: number;
@@ -42,6 +37,22 @@ export interface RequestClientSummary {
 export interface RequestWorkflowItem {
   id: string;
   status: string;
+  totalPrice?: number;
+  totalValue?: number;
+}
+
+export interface RequestContactLogItem {
+  id: string;
+  type: string;
+  result: string;
+  notes?: string | null;
+  contactedAt: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export interface RequestServiceSummary {
@@ -70,6 +81,8 @@ export interface RequestItem {
   source: ClientSource;
   notes?: string | null;
   status: RequestStatus;
+  contactAttemptCount: number;
+  lastContactAt?: string | null;
   createdAt: string;
   updatedAt: string;
   client?: RequestClientSummary;
@@ -77,6 +90,13 @@ export interface RequestItem {
   services?: RequestServiceSummary[];
   proposals?: RequestWorkflowItem[];
   contracts?: RequestWorkflowItem[];
+  contactLogs?: Array<{
+    id: string;
+    type: string;
+    result: string;
+    notes?: string | null;
+    contactedAt: string;
+  }>;
   project?: RequestWorkflowItem | null;
 }
 
@@ -92,16 +112,19 @@ export interface RequestStatusHistoryItem {
 
 export interface RequestDetail extends RequestItem {
   statusHistory: RequestStatusHistoryItem[];
+  contactLogs: RequestContactLogItem[];
   proposals: Array<{
     id: string;
     title: string;
     status: string;
+    totalPrice?: number;
     createdAt: string;
   }>;
   contracts: Array<{
     id: string;
     title: string;
     status: string;
+    totalValue?: number;
     createdAt: string;
   }>;
   project?: {
@@ -124,6 +147,12 @@ export interface RequestFilters {
 export interface CreateRequestForClientPayload {
   clientId: string;
   services: RequestServiceItem[];
+  notes?: string;
+}
+
+export interface CreateRequestContactLogPayload {
+  type: string;
+  result: string;
   notes?: string;
 }
 
@@ -210,6 +239,27 @@ export const requestsApi = createApi({
       }),
       invalidatesTags: [{ type: "Request", id: "LIST" }],
     }),
+
+    /** POST /v1/requests/:id/contact-log — log a contact attempt */
+    addRequestContactLog: builder.mutation<
+      RequestContactLogItem,
+      { id: string; body: CreateRequestContactLogPayload }
+    >({
+      query: ({ id, body }) => ({
+        url: `/requests/${id}/contact-log`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_, __, { id }) => [
+        { type: "Request", id },
+        { type: "Request", id: "LIST" },
+      ],
+    }),
+
+    /** GET /v1/requests/:id/contact-log — get contact logs for a request */
+    getRequestContactLogs: builder.query<RequestContactLogItem[], string>({
+      query: (id) => ({ url: `/requests/${id}/contact-log` }),
+    }),
   }),
 });
 
@@ -219,4 +269,6 @@ export const {
   useCreateRequestMutation,
   useUpdateRequestStatusMutation,
   useCreateRequestForClientMutation,
+  useAddRequestContactLogMutation,
+  useGetRequestContactLogsQuery,
 } = requestsApi;

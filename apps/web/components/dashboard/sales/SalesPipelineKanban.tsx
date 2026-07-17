@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { RequestStatus } from "@hassad/shared";
 import type { RequestItem } from "@/features/requests/requestsApi";
@@ -33,7 +33,13 @@ function resolveKanbanError(error: unknown): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function SalesPipelineKanban() {
+interface SalesPipelineKanbanProps {
+  filters?: Record<string, string>;
+}
+
+export function SalesPipelineKanban({
+  filters: externalFilters,
+}: SalesPipelineKanbanProps = {}) {
   const [updateRequestStatus] = useUpdateRequestStatusMutation();
 
   // ── Pipeline dialog state ────────────────────────────────────────────
@@ -45,8 +51,13 @@ export function SalesPipelineKanban() {
     contractId?: string;
   } | null>(null);
 
+  const queryParams = useMemo(
+    () => ({ limit: 100, ...externalFilters }),
+    [externalFilters],
+  );
+
   const { data, isLoading, isError, error } = useGetRequestsQuery(
-    { limit: 100 },
+    queryParams,
     { pollingInterval: 30_000 },
   );
 

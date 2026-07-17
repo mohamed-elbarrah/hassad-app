@@ -19,15 +19,21 @@ import {
   Clock,
   UserCheck,
   ArrowLeft,
+  Plus,
+  PhoneCall,
+  X,
 } from "lucide-react";
-import { RequestStatus } from "@hassad/shared";
+import { ContactLogType, ContactLogResult, RequestStatus } from "@hassad/shared";
 import {
   useGetRequestByIdQuery,
-  type RequestDetail,
+  useAddRequestContactLogMutation,
+  useGetRequestContactLogsQuery,
 } from "@/features/requests/requestsApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { Dialog } from "@/components/design-system/Dialog";
+import { Pill } from "@/components/design-system/Pill";
 import { SalesDetailBreadcrumb } from "@/components/dashboard/sales/shared/SalesDetailBreadcrumb";
 import { SalesDetailError } from "@/components/dashboard/sales/shared/SalesDetailError";
 import { SalesDetailSkeleton } from "@/components/dashboard/sales/shared/SalesDetailSkeleton";
@@ -68,6 +74,36 @@ const STATUS_LABELS: Record<string, string> = {
   [RequestStatus.SIGNED]: "تم التوقيع",
   [RequestStatus.PROJECT_CREATED]: "تحول إلى مشروع",
   [RequestStatus.CANCELLED]: "ملغي",
+};
+
+const CONTACT_TYPE_OPTIONS = [
+  { value: ContactLogType.CALL, label: "اتصال هاتفي" },
+  { value: ContactLogType.WHATSAPP, label: "واتساب" },
+  { value: ContactLogType.MEETING, label: "اجتماع" },
+  { value: ContactLogType.EMAIL, label: "بريد إلكتروني" },
+];
+
+const CONTACT_RESULT_OPTIONS = [
+  { value: ContactLogResult.RESPONDED, label: "تم الرد" },
+  { value: ContactLogResult.NO_RESPONSE, label: "لا رد" },
+  { value: ContactLogResult.BUSY, label: "مشغول" },
+  { value: ContactLogResult.WRONG_NUMBER, label: "رقم خطأ" },
+  { value: ContactLogResult.NOT_INTERESTED, label: "غير مهتم" },
+];
+
+const CONTACT_TYPE_AR: Record<string, string> = {
+  CALL: "اتصال هاتفي",
+  WHATSAPP: "واتساب",
+  MEETING: "اجتماع",
+  EMAIL: "بريد إلكتروني",
+};
+
+const CONTACT_RESULT_AR: Record<string, { label: string; tone: "success" | "warning" | "danger" | "neutral" }> = {
+  RESPONDED: { label: "تم الرد", tone: "success" },
+  NO_RESPONSE: { label: "لا رد", tone: "warning" },
+  BUSY: { label: "مشغول", tone: "warning" },
+  WRONG_NUMBER: { label: "رقم خطأ", tone: "danger" },
+  NOT_INTERESTED: { label: "غير مهتم", tone: "danger" },
 };
 
 function parseNotes(notes?: string | null): {
@@ -137,7 +173,7 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
-function RelatedRecords({ request }: { request: RequestDetail }) {
+function RelatedRecords({ request }: { request: any }) {
   const hasProposals = request.proposals.length > 0;
   const hasContracts = request.contracts.length > 0;
 
@@ -149,7 +185,7 @@ function RelatedRecords({ request }: { request: RequestDetail }) {
         السجل المرتبط
       </p>
       <div className="space-y-3">
-        {request.proposals.map((proposal) => (
+        {request.proposals.map((proposal: any) => (
           <Link
             key={proposal.id}
             href={`/dashboard/sales/proposals`}
@@ -171,7 +207,7 @@ function RelatedRecords({ request }: { request: RequestDetail }) {
           </Link>
         ))}
 
-        {request.contracts.map((contract) => (
+        {request.contracts.map((contract: any) => (
           <Link
             key={contract.id}
             href={`/dashboard/sales/contracts/${contract.id}`}
@@ -221,6 +257,117 @@ function RelatedRecords({ request }: { request: RequestDetail }) {
   );
 }
 
+function ContactLogDialog({
+  requestId,
+  open,
+  onOpenChange,
+}: {
+  requestId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [addContactLog, { isLoading }] = useAddRequestContactLogMutation();
+  const [type, setType] = useState<string>(ContactLogType.CALL);
+  const [result, setResult] = useState<string>(ContactLogResult.RESPONDED);
+  const [notes, setNotes] = useState("");
+
+  async function handleSubmit() {
+    try {
+      await addContactLog({
+        id: requestId,
+        body: { type, result, notes: notes.trim() || undefined },
+      }).unwrap();
+      toast.success("تم تسجيل التواصل");
+      onOpenChange(false);
+      setNotes("");
+    } catch {
+      toast.error("فشل تسجيل التواصل");
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="تسجيل تواصل"
+      icon={PhoneCall}
+      footer={
+        <div className="flex items-center gap-2 mr-auto">
+          <ActionButton variant="outline" size="md" onClick={() => onOpenChange(false)}>
+            إلغاء
+          </ActionButton>
+          <ActionButton
+            variant="primary"
+            size="md"
+            onClick={handleSubmit}
+            loading={isLoading}
+          >
+            تسجيل
+          </ActionButton>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-natural-100 mb-2">
+            نوع التواصل
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {CONTACT_TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setType(opt.value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${
+                  type === opt.value
+                    ? "bg-secondary-500 text-white border-secondary-500"
+                    : "bg-natural-0 text-portal-icon border-portal-card-border hover:bg-badge-gray-bg"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-natural-100 mb-2">
+            النتيجة
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {CONTACT_RESULT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setResult(opt.value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${
+                  result === opt.value
+                    ? "bg-secondary-500 text-white border-secondary-500"
+                    : "bg-natural-0 text-portal-icon border-portal-card-border hover:bg-badge-gray-bg"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-natural-100 mb-2">
+            ملاحظات
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="ملاحظات حول التواصل..."
+            className="w-full rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 px-3 py-2 text-sm text-natural-100 placeholder:text-neutral-300 outline-none resize-none h-20"
+          />
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
 export default function RequestDetailPage({
   params,
 }: {
@@ -234,6 +381,8 @@ export default function RequestDetailPage({
     error,
     refetch,
   } = useGetRequestByIdQuery(id);
+  const { data: contactLogs = [] } = useGetRequestContactLogsQuery(id);
+  const [contactLogOpen, setContactLogOpen] = useState(false);
 
   if (isLoading) return <SalesDetailSkeleton variant="request" />;
 
@@ -258,12 +407,11 @@ export default function RequestDetailPage({
   if (!request) return null;
 
   const client = request.client;
-  const contactName = client?.contactName || request.contactName;
   const companyName = client?.companyName || request.companyName;
-  const phoneWhatsapp = client?.phoneWhatsapp || request.phoneWhatsapp;
-  const email = client?.email || request.email;
-  const businessName = client?.businessName || request.businessName;
-  const businessType = client?.businessType || request.businessType;
+  const phoneWhatsapp = request.phoneWhatsapp;
+  const email = request.email;
+  const businessName = request.businessName;
+  const businessType = request.businessType;
 
   const { description } = parseNotes(request.notes);
   const selectedServices =
@@ -278,12 +426,12 @@ export default function RequestDetailPage({
       <SalesDetailBreadcrumb
         backHref="/dashboard/sales/pipeline"
         backLabel="لوحة المبيعات"
-        title={contactName || companyName || "طلب"}
+        title={request.contactName || companyName || "طلب"}
       />
 
-      {/* ── Main card — everything inside ─────────────────────────────── */}
+      {/* ── Main card ──────────────────────────────────────────────── */}
       <SurfaceCard
-        title={contactName || "طلب"}
+        title={request.contactName || "طلب"}
         icon={User}
         action={<SalesStatusBadge domain="request" status={request.status} />}
       >
@@ -404,13 +552,86 @@ export default function RequestDetailPage({
             </InfoPanel>
           )}
 
-          {/* ── 5. Status Timeline ───────────────────────────────────── */}
+          {/* ── 5. Contact Log ───────────────────────────────────────── */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium text-natural-100">
+                سجل التواصل
+                {request.contactAttemptCount > 0 && (
+                  <span className="mr-2 text-xs text-portal-note-text">
+                    ({request.contactAttemptCount} محاولة)
+                  </span>
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => setContactLogOpen(true)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-secondary-500 hover:text-secondary-600 transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                تسجيل تواصل
+              </button>
+            </div>
+
+            {contactLogs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center rounded-xl border border-dashed border-portal-card-border">
+                <MessageSquare className="w-8 h-8 text-portal-note-text mb-2" />
+                <p className="text-sm text-portal-note-text">
+                  لا يوجد سجل تواصل بعد
+                </p>
+                <p className="text-xs text-portal-note-text mt-1">
+                  سجّل أول محاولة تواصل مع العميل
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {contactLogs.map((log) => {
+                  const resultConfig = CONTACT_RESULT_AR[log.result] ?? {
+                    label: log.result,
+                    tone: "neutral" as const,
+                  };
+                  return (
+                    <div
+                      key={log.id}
+                      className="flex items-start gap-3 p-3 rounded-xl border border-portal-card-border"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-100 shrink-0">
+                        <PhoneCall className="h-4 w-4 text-secondary-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-natural-100">
+                            {CONTACT_TYPE_AR[log.type] ?? log.type}
+                          </span>
+                          <Pill tone={resultConfig.tone as any}>
+                            {resultConfig.label}
+                          </Pill>
+                        </div>
+                        {log.notes && (
+                          <p className="text-sm text-portal-note-text mt-1">
+                            {log.notes}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-portal-note-text mt-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>{formatDate(log.contactedAt)}</span>
+                          <span>•</span>
+                          <span>{log.user.name}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── 6. Status Timeline ───────────────────────────────────── */}
           <div>
             <p className="text-sm font-medium text-natural-100 mb-4">
               مسار حالة الطلب
             </p>
             <div className="space-y-0">
-              {/* First step — request creation */}
               <div className="flex gap-3">
                 <div className="flex flex-col items-center">
                   <div className="w-3 h-3 rounded-full border-2 border-portal-card-border bg-natural-0 shrink-0 mt-1" />
@@ -428,14 +649,13 @@ export default function RequestDetailPage({
                 </div>
               </div>
 
-              {/* Status history steps */}
               {[...request.statusHistory]
                 .sort(
-                  (a, b) =>
+                  (a: any, b: any) =>
                     new Date(a.changedAt).getTime() -
                     new Date(b.changedAt).getTime(),
                 )
-                .map((entry, idx) => {
+                .map((entry: any, idx: number) => {
                   const isLast = idx === request.statusHistory.length - 1;
                   return (
                     <div key={entry.id} className="flex gap-3">
@@ -484,10 +704,16 @@ export default function RequestDetailPage({
             </div>
           </div>
 
-          {/* ── 6. Related Records ────────────────────────────────────── */}
+          {/* ── 7. Related Records ────────────────────────────────────── */}
           <RelatedRecords request={request} />
         </div>
       </SurfaceCard>
+
+      <ContactLogDialog
+        requestId={id}
+        open={contactLogOpen}
+        onOpenChange={setContactLogOpen}
+      />
     </div>
   );
 }
