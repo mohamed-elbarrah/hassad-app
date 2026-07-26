@@ -7,6 +7,6 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, className = "" }: PageLayoutProps) {
   return (
-    <div className={`flex flex-col gap-6 p-6 ${className}`}>{children}</div>
+    <div className={`page-shell p-6 ${className}`}>{children}</div>
   );
 }

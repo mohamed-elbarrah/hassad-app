@@ -3,10 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
-import {
-  useGetClientsQuery,
-  type ClientFilters,
-} from "@/features/clients/clientsApi";
+import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import { DataTable } from "@/components/design-system/DataTable";
 import { Pagination } from "@/components/design-system/Pagination";
 import { renderClientRowCells } from "@/components/dashboard/sales/ClientRow";
@@ -74,7 +71,7 @@ export default function SalesClientsPage() {
   const hasActiveFilter = search || statusFilter;
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <SalesPageHeader
         title="العملاء"
         description={`إدارة العملاء — إجمالي ${total} عميل`}

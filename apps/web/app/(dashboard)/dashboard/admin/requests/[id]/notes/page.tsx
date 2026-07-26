@@ -53,7 +53,7 @@ export default function RequestNotesTab({
           </div>
         ) : (
           <div className="space-y-3">
-            {request.services.map((svc, idx) => (
+            {request.services.map((svc, _idx) => (
               <div
                 key={svc.id}
                 className="p-4 rounded-xl border border-portal-card-border"

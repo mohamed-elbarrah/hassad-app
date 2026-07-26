@@ -11,7 +11,7 @@ export function ClientsTableSkeleton() {
       </div>
 
       {/* Rows */}
-      <div className="rounded-[30px] border-[1.5px] border-portal-card-border overflow-hidden">
+      <div className="rounded-card border border-border-default overflow-hidden">
         {/* Header row */}
         <div className="flex items-center gap-4 border-b-[1.5px] border-portal-divider p-3">
           {[120, 160, 100, 90, 100, 110, 80].map((w, i) => (

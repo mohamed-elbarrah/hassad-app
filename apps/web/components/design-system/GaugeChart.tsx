@@ -11,7 +11,7 @@ interface GaugeChartProps {
    - Radius: 66
    - stroke-width: 18
    - Track: #f5f7fa
-   - Fill: #121936
+   - Fill: var(--color-brand)
    - Value text: x=75, y=70, 32px, weight 800
    - Label text: x=75, y=85, 16px, weight 200
 ─────────────────────────────────────────────────────────────────────────── */
@@ -19,7 +19,7 @@ export function GaugeChart({ value = 70, max = 100 }: GaugeChartProps) {
   const radius = 66;
   const strokeWidth = 18;
   const centerX = 75;
-  const centerY = 93;
+
 
   // Exact arc path
   const arcPath = `M 141 93 A 66 66 0 0 0 9 93`;
@@ -45,11 +45,11 @@ export function GaugeChart({ value = 70, max = 100 }: GaugeChartProps) {
           strokeLinecap="round"
         />
 
-        {/* Fill (navy arc #121936) */}
+        {/* Fill (navy arc var(--color-brand)) */}
         <path
           d={arcPath}
           fill="none"
-          stroke="#121936"
+          stroke="var(--color-brand)"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={`${fillLength} ${totalLength}`}

@@ -1,15 +1,15 @@
 "use client";
 
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Ticket, Search, Plus, Filter, AlertCircle } from "lucide-react";
+import { Ticket, Search, Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   useGetClientDisputesQuery,
   useCreateDisputeMutation,
 } from "@/features/portal/portalApi";
-import { DISPUTE_STATUS_AR, DisputeStatus } from "@hassad/shared";
+import { DisputeStatus } from "@hassad/shared";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pagination } from "@/components/design-system/Pagination";
@@ -70,7 +70,7 @@ export default function PortalDisputesPage() {
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
 
   const disputes = data?.data ?? [];
-  const total = data?.meta?.total ?? 0;
+
   const totalPages = data?.meta?.totalPages ?? 1;
 
   const handleFilterChange = useCallback(
@@ -111,7 +111,7 @@ export default function PortalDisputesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="نزاعاتي"
         description="تتبع جميع تذاكر النزاع الخاصة بك، راقب حالتها، وتواصل مع فريق المشروع."

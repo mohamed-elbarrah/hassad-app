@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+
 import { useGetAdminProjectByIdQuery } from "@/features/admin/adminProjectsApi";
-import { cn } from "@/lib/utils";
+
 
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat("ar-SA", {
@@ -36,11 +36,11 @@ export default function ProjectFinanceTab({
     .filter((p) => p.status === "SUCCESS")
     .reduce((s, p) => s + p.amount, 0);
 
-  const totalInvoiced = project.invoices
+  void project.invoices
     .filter((inv) => inv.status !== "VOID")
     .reduce((s, inv) => s + inv.amount, 0);
 
-  const overdueInvoices = project.invoices.filter(
+  void project.invoices.filter(
     (inv) =>
       inv.status === "LATE" ||
       (inv.status === "PENDING" &&

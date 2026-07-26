@@ -48,20 +48,20 @@ export function DashboardNotificationBell() {
         style={{
           width: 56,
           height: 56,
-          border: "1.5px solid #E2E2E2",
+          border: "1.5px solid var(--color-border-default)",
           borderRadius: 9999,
         }}
         onClick={() => dispatch(toggleDropdown())}
         aria-label="الإشعارات"
       >
-        <Bell style={{ width: 24, height: 24, color: "#000000" }} />
+        <Bell style={{ width: 24, height: 24, color: "var(--color-text)" }} />
         {displayCount !== null && (
           <span
             className="absolute flex items-center justify-center text-white font-semibold"
             style={{
               width: 27,
               height: 27,
-              background: "#FB3748",
+              background: "var(--color-notification-badge)",
               borderRadius: 9999,
               fontSize: 14,
               fontWeight: 600,

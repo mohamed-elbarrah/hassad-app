@@ -9,7 +9,7 @@ interface PmCardProps {
 
 export function PmCard({ name, role, status }: PmCardProps) {
   return (
-    <div className="p-5 bg-white space-y-5 border-[1.5px] border-portal-card-border rounded-[16px]">
+    <div className="p-5 bg-white space-y-5 border-[1.5px] border-portal-card-border rounded-card-sm">
       <div className="flex items-center gap-4">
         <div className="flex-1 text-right">
           <div className="flex items-center justify-end gap-1.5">
@@ -17,7 +17,7 @@ export function PmCard({ name, role, status }: PmCardProps) {
               {name}
             </h4>
             {status === "online" && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-badge-green-bg rounded-xl text-[14px] font-medium leading-[21px] text-badge-green-text">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-badge-green-bg rounded-xl text-sm font-medium leading-[21px] text-badge-green-text">
                 متاح الآن
                 <span className="w-2 h-2 rounded-full bg-badge-green-text" />
               </span>
@@ -34,7 +34,7 @@ export function PmCard({ name, role, status }: PmCardProps) {
         variant="pm"
         size="xl"
         fullWidth
-        className="text-[16px] font-semibold"
+        className="text-base font-semibold"
       >
         تواصل معه
       </ActionButton>

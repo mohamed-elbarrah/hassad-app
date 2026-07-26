@@ -16,7 +16,7 @@ export function AdminDetailError({
   backLabel,
 }: AdminDetailErrorProps) {
   return (
-    <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
+    <div className="page-shell max-w-4xl" dir="rtl">
       {backHref && (
         <AdminDetailBreadcrumb
           backHref={backHref}

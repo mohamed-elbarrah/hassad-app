@@ -161,7 +161,7 @@ export default function AiSettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الذكاء الاصطناعي"
         description="إدارة مزودي الذكاء الاصطناعي — أضف مفتاح API وسيتم استخدامه تلقائياً"
@@ -452,7 +452,7 @@ function InlineModelEditor({
   onCancel: () => void;
 }) {
   const [models, setModels] = useState<string[]>(provider.models);
-  const [editing, setEditing] = useState(false);
+  const [editing] = useState(false);
 
   if (!editing) {
     return (

@@ -1,17 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  AlertCircle,
-  Calendar,
-  CheckCircle2,
-  ChevronDown,
-  Clock,
-  ExternalLink,
-  FileText,
-  PenTool,
-  User,
-} from "lucide-react";
+import { Calendar, CheckCircle2, ChevronDown, Clock, ExternalLink, FileText, PenTool, User } from "lucide-react";
 import Link from "next/link";
 import type { PortalRequestSummary } from "@/features/portal/portalApi";
 import { StatusBadge } from "@/components/design-system/StatusBadge";

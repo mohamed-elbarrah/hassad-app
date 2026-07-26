@@ -103,7 +103,7 @@ export default function AdminProposalsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="عروض الأسعار"
         description="إدارة جميع عروض الأسعار في المنصة"

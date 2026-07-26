@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/design-system/Skeleton";
  */
 export function SalesPageLoading() {
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <Skeleton className="h-9 w-64 rounded-lg" />
       <Skeleton className="h-5 w-80 rounded-lg" />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

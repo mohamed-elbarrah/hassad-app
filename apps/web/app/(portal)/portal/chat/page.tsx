@@ -24,7 +24,7 @@ import type { Conversation, Message } from "@/features/chat/chatApi";
 import { MessageSquare } from "lucide-react";
 
 export default function PortalChatPage() {
-  const { user } = useAppSelector((s) => s.auth);
+  void useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -171,7 +171,7 @@ export default function PortalChatPage() {
   );
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="المحادثات"
         description="من هنا يمكنك التواصل مع المشرفين ومدراء المشاريع المسؤولين عن حسابك."

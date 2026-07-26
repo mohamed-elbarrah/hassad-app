@@ -4,7 +4,7 @@ import { SalesPageError } from "@/components/dashboard/sales/shared/SalesPageErr
 
 export default function ContractsError({
   error,
-  reset,
+  reset: _reset,
 }: {
   error: Error;
   reset: () => void;
@@ -12,7 +12,7 @@ export default function ContractsError({
   return (
     <SalesPageError
       error={error}
-      reset={reset}
+      reset={_reset}
       backHref="/dashboard/sales/contracts"
       backLabel="العقود"
     />

@@ -67,12 +67,8 @@ export default function PortalAccountPage() {
       avatarUrl?: string;
     };
   }) => {
-    try {
-      const updatedUser = await updateUserMutation({ id, body }).unwrap();
-      dispatch(updateUser(updatedUser));
-    } catch (error) {
-      throw error;
-    }
+    const updatedUser = await updateUserMutation({ id, body }).unwrap();
+    dispatch(updateUser(updatedUser));
   };
 
   const handleUploadAvatar = async (file: File): Promise<string> => {
@@ -193,7 +189,7 @@ export default function PortalAccountPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الإعدادات"
         description="إدارة بيانات حسابك والملف التعريفي لنشاطك التجاري."

@@ -39,7 +39,7 @@ export default function AdminWebhookLogsPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <AdminEmptyState
           icon={Webhook}
           title="حدث خطأ أثناء تحميل سجلات Webhook"
@@ -50,7 +50,7 @@ export default function AdminWebhookLogsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="سجلات Webhook"
         description="مراقبة ومعالجة أحداث Webhook من مزودي الدفع"

@@ -17,30 +17,15 @@ import {
   TASK_PRIORITY_LABELS,
 } from "@/lib/utils/task-status";
 import { TaskStatus, TaskPriority } from "@hassad/shared";
-import { formatDate, daysUntil, formatNumber } from "@/lib/format";
+import { formatDate, daysUntil } from "@/lib/format";
 import Link from "next/link";
-import {
-  Calendar,
-  ArrowUpRight,
-  LayoutGrid,
-  List,
-  Search,
-  ClipboardList,
-  Zap,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Megaphone,
-  ChevronDown,
-  X,
-  SlidersHorizontal,
-} from "lucide-react";
+import { Calendar, ArrowUpRight, LayoutGrid, List, Search, ClipboardList, Zap, AlertTriangle, CheckCircle2, Megaphone, ChevronDown, X, SlidersHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/design-system/Primitives";
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -216,7 +201,7 @@ export default function MarketingTasksListPage() {
       };
 
   return (
-    <div className="flex flex-col gap-6 pb-10" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -52,11 +52,7 @@ import {
   FilePurpose,
 } from "@hassad/shared";
 import { toast } from "sonner";
-import {
-  TASK_STATUS_LABELS,
-  TASK_STATUS_COLOR,
-  TASK_PRIORITY_LABELS,
-} from "@/lib/utils/task-status";
+import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from "@/lib/utils/task-status";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -172,7 +168,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="page-shell">
         <DSSkeleton className="h-8 w-48" />
         <DSSkeleton className="h-24 rounded-2xl" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -275,7 +271,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="page-shell">
       {/* ── Header ───────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

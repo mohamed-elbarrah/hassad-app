@@ -34,7 +34,7 @@ export default function AdminPaymentEventsPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <AdminEmptyState
           icon={Activity}
           title="حدث خطأ أثناء تحميل أحداث الدفع"
@@ -45,7 +45,7 @@ export default function AdminPaymentEventsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="أحداث الدفع"
         description="سجل أحداث الدفع من مزودي الدفع"

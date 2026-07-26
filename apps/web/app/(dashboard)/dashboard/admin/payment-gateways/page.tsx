@@ -338,7 +338,7 @@ export default function AdminPaymentGatewaysPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro title="بوابات الدفع" description="إدارة بوابات الدفع" icon={CreditCard} />
 
       <div className="flex items-center justify-between mb-3">
@@ -392,7 +392,7 @@ export default function AdminPaymentGatewaysPage() {
                 try {
                   if (row.isStripe) await deleteGw("stripe").unwrap();
                   else await deleteBa(row.id).unwrap();
-                } catch {}
+                } catch { /* best-effort operation; the UI remains usable without this refresh */ }
                 setDeleting(null);
               }} disabled={deleting === row.id}
                 className="inline-flex items-center gap-1 text-xs text-danger-500 hover:text-danger-600 font-medium disabled:opacity-50">

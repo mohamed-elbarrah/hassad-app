@@ -33,11 +33,11 @@ export function PageIntro({
         )}
 
         <div className="space-y-2">
-          <h1 className="text-[28px] font-semibold leading-[1.2] text-natural-100 lg:text-[32px]">
+          <h1 className="page-title">
             {title}
           </h1>
           {description && (
-            <p className="max-w-3xl text-base leading-7 text-portal-note-text">
+            <p className="body-text max-w-3xl text-base">
               {description}
             </p>
           )}

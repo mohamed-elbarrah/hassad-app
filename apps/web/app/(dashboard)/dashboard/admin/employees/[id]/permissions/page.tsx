@@ -3,8 +3,8 @@
 import { use } from "react";
 import { useGetAdminUserByIdQuery } from "@/features/admin/adminUsersApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
-import { Shield } from "lucide-react";
+
+
 import { USER_ROLE_AR } from "@hassad/shared";
 
 export default function EmployeePermissionsTab({

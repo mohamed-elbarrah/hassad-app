@@ -11,25 +11,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/design-system/Form";
+import { Form, FormField, FormItem, FormLabel } from "@/components/design-system/Form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
-import { X, Plus, Check, Ban, Package } from "lucide-react";
+
+
+
+import { X, Plus, Check, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductInfoSchema } from "@hassad/shared";
-import {
-  SectionLayout,
-  NavigationButtons,
-  SectionSubtitle,
-} from "../SectionLayout";
+import { SectionLayout, NavigationButtons } from "../SectionLayout";
 import type { ProfileMode } from "../types";
 
 type ProductForm = z.infer<typeof ProductInfoSchema>;

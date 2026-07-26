@@ -4,7 +4,7 @@ import { use } from "react";
 import { useGetAdminUserByIdQuery } from "@/features/admin/adminUsersApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
-import { Monitor, Smartphone } from "lucide-react";
+import { Monitor } from "lucide-react";
 
 export default function EmployeeSessionsTab({
   params,

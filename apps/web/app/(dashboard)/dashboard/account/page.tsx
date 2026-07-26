@@ -5,7 +5,7 @@ import { UserRole, TaskDepartment } from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { Pill } from "@/components/design-system/Pill";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@/components/design-system/Primitives";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { User, Mail, Briefcase } from "lucide-react";
 

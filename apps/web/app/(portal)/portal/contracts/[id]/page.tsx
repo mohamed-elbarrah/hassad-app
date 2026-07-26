@@ -17,7 +17,7 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInput } from "@/components/design-system/FormInput";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import Link from "next/link";
+
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { StatusBanner } from "@/components/design-system/StatusBanner";
 import { InfoPanel } from "@/components/design-system/InfoPanel";
@@ -113,7 +113,7 @@ function PortalContractDetailInner({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <DetailBreadcrumb
         backHref="/portal/contracts"
         backLabel="العقود"

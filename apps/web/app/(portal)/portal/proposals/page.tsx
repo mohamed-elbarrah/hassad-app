@@ -50,7 +50,7 @@ export default function PortalProposalsPage() {
     Object.values(activeFilters).some((v) => v.length > 0);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="العروض الفنية"
         description="استعرض العروض الفنية المقدّمة لك وراجع تفاصيلها قبل الموافقة."

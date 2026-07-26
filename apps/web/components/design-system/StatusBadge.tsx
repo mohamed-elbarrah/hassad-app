@@ -431,7 +431,7 @@ export interface StatusBadgeProps {
 export function StatusBadge({ status, label, className }: StatusBadgeProps) {
   // Debug: Log unknown statuses in development
   if (process.env.NODE_ENV === "development" && !STATUS_MAP[status]) {
-    console.warn(`[StatusBadge] Unknown status: "${status}"`);
+    globalThis.console.warn(`[StatusBadge] Unknown status: "${status}"`);
   }
 
   const style = STATUS_MAP[status] ?? STATUS_MAP.DRAFT;

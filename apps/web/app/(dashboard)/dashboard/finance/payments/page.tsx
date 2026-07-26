@@ -10,21 +10,9 @@ import { MetricCard } from "@/components/design-system/MetricCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Pagination } from "@/components/design-system/Pagination";
 import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
-import {
-  Search,
-  Download,
-  ExternalLink,
-  CreditCard,
-  Banknote,
-  Landmark,
-  FileText,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-} from "lucide-react";
+import { Search, Download, ExternalLink, CreditCard, Banknote, Landmark, FileText, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+
 import { PaymentStatus } from "@hassad/shared";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 

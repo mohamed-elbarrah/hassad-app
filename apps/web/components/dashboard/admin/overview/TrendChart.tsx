@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { MiniPeriodFilter, periodToDateRange } from "./MiniPeriodFilter";
+import { MiniPeriodFilter } from "./MiniPeriodFilter";
 import type { PeriodKey } from "./MiniPeriodFilter";
 import { cn } from "@/lib/utils";
 import { formatCompactNumber, formatCurrency } from "@/lib/format";

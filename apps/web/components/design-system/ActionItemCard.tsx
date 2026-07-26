@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { ActionButton } from "./ActionButton";
-import { cn } from "@/lib/utils";
+
 
 interface ActionItemCardProps {
   title: string;
@@ -24,7 +24,7 @@ export function ActionItemCard({
   primaryColor = "purple",
 }: ActionItemCardProps) {
   return (
-    <div className="p-5 bg-white space-y-4 border-[1.5px] border-portal-card-border rounded-[16px]">
+    <div className="p-5 bg-white space-y-4 border-[1.5px] border-portal-card-border rounded-card-sm">
       <div className="flex items-start gap-4">
         <div className="flex items-center justify-center shrink-0 w-[64px] h-[64px] rounded-full bg-badge-gray-bg">
           {icon}
@@ -44,7 +44,7 @@ export function ActionItemCard({
           variant="outline"
           size="lg"
           onClick={onSecondary}
-          className="flex-1 text-[16px] font-semibold text-action-gray-text border-[1.5px] border-portal-card-border rounded-[16px]"
+          className="flex-1 text-base font-semibold text-action-gray-text border-[1.5px] border-portal-card-border rounded-card-sm"
         >
           {secondaryAction}
         </ActionButton>
@@ -52,7 +52,7 @@ export function ActionItemCard({
           variant={primaryColor === "purple" ? "action-purple" : "action-blue"}
           size="lg"
           onClick={onPrimary}
-          className="flex-1 text-[16px] font-semibold text-white rounded-[16px]"
+          className="flex-1 text-base font-semibold text-white rounded-card-sm"
         >
           {primaryAction}
         </ActionButton>

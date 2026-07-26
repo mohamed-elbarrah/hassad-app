@@ -2,14 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import {
-  FileText,
-  Building2,
-  User,
-  DollarSign,
-  FileCheck,
-  ClipboardList,
-} from "lucide-react";
+import { Building2, User, DollarSign, FileCheck, ClipboardList } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { AdminDetailBreadcrumb } from "@/components/dashboard/admin/shared/AdminDetailBreadcrumb";
@@ -26,7 +19,7 @@ export default function AdminProposalDetailPage({
   if (!proposal) return null;
 
   return (
-    <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
+    <div className="page-shell max-w-4xl" dir="rtl">
       <AdminDetailBreadcrumb
         backHref="/dashboard/admin/proposals"
         backLabel="عروض الأسعار"

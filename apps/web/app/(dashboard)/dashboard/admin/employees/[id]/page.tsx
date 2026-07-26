@@ -5,7 +5,7 @@ import { User, Mail, Shield, Calendar } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { useGetAdminUserByIdQuery } from "@/features/admin/adminUsersApi";
-import { USER_ROLE_AR } from "@hassad/shared";
+
 
 export default function EmployeeProfileTab({
   params,

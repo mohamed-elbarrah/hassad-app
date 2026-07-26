@@ -12,7 +12,7 @@ import { MetricCard } from "@/components/design-system/MetricCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { InfoPanel } from "@/components/design-system/InfoPanel";
+
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -288,7 +288,7 @@ export default function CampaignDetailPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 pb-10" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
       <Link
         href={backHref}

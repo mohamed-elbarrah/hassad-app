@@ -89,7 +89,7 @@ export default function ClientDetailLayout({
 }) {
   const { id } = use(params);
   const pathname = usePathname();
-  const router = useRouter();
+  void useRouter();
   const {
     data: client,
     isLoading,
@@ -113,7 +113,7 @@ export default function ClientDetailLayout({
     return "";
   }, [pathname, id]);
 
-  const handleAction = async (reason: string) => {
+  const handleAction = async (_reason: string) => {
     if (!actionModal) return;
     try {
       if (actionModal.type === "suspend") {
@@ -125,7 +125,7 @@ export default function ClientDetailLayout({
       } else if (actionModal.type === "regenerate-token") {
         await regenerateToken(id).unwrap();
       }
-    } catch {}
+    } catch { /* best-effort operation; the UI remains usable without this refresh */ }
     setActionModal(null);
   };
 
@@ -143,7 +143,7 @@ export default function ClientDetailLayout({
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <div className="flex items-center justify-between">
         <AdminDetailBreadcrumb
           backHref="/dashboard/admin/clients"

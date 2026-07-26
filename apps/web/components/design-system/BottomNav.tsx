@@ -26,7 +26,7 @@ export function BottomNav() {
   return (
     <>
       <nav
-        className="lg:hidden fixed bottom-0 right-0 left-0 z-40 bg-white border-t border-[#E1E4EA] px-2 pt-2 pb-4"
+        className="lg:hidden fixed bottom-0 right-0 left-0 z-40 bg-white border-t border-border-default px-2 pt-2 pb-4"
         style={{ borderTopWidth: 1.5 }}
       >
         <div className="flex items-center justify-around">
@@ -39,7 +39,7 @@ export function BottomNav() {
                 href={item.href}
                 className={cn(
                   "flex flex-1 flex-col items-center gap-1 py-1 px-2 rounded-lg transition-colors",
-                  active ? "text-[#121936]" : "text-[#A8ABB2]",
+                  active ? "text-brand" : "text-[var(--color-portal-nav-inactive)]",
                 )}
               >
                 <Icon
@@ -47,13 +47,13 @@ export function BottomNav() {
                   style={{
                     width: 22,
                     height: 22,
-                    color: active ? "#121936" : "#A8ABB2",
+                    color: active ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
                   }}
                 />
                 <span
-                  className="text-[10px] font-medium"
+                  className="text-xs font-medium"
                   style={{
-                    color: active ? "#121936" : "#A8ABB2",
+                    color: active ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
                   }}
                 >
                   {item.label}
@@ -68,7 +68,7 @@ export function BottomNav() {
             onClick={toggleMore}
             className={cn(
               "flex flex-1 flex-col items-center gap-1 py-1 px-2 rounded-lg transition-colors",
-              isMoreActive || moreOpen ? "text-[#121936]" : "text-[#A8ABB2]",
+              isMoreActive || moreOpen ? "text-brand" : "text-[var(--color-portal-nav-inactive)]",
             )}
           >
             <Menu
@@ -76,13 +76,13 @@ export function BottomNav() {
               style={{
                 width: 22,
                 height: 22,
-                color: isMoreActive || moreOpen ? "#121936" : "#A8ABB2",
+                color: isMoreActive || moreOpen ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
               }}
             />
             <span
-              className="text-[10px] font-medium"
+              className="text-xs font-medium"
               style={{
-                color: isMoreActive || moreOpen ? "#121936" : "#A8ABB2",
+                color: isMoreActive || moreOpen ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
               }}
             >
               المزيد

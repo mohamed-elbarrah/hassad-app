@@ -39,7 +39,7 @@ export function InvoiceChatWidget({
     userId: string;
     userName: string;
   } | null>(null);
-  const user = useAppSelector((s) => s.auth.user);
+  void useAppSelector((s) => s.auth.user);
 
   // Find conversation for this client
   const { data: conversationsData, isLoading: convLoading } =
@@ -90,7 +90,7 @@ export function InvoiceChatWidget({
   }, [messagesData, localMessages]);
 
   const handleSend = useCallback(
-    async (content: string, files?: File[]) => {
+    async (content: string, _files?: File[]) => {
       if (!conversationId) {
         // Create conversation first if we have the client's user ID
         if (clientUserId) {
@@ -118,9 +118,7 @@ export function InvoiceChatWidget({
   const handleStartConversation = useCallback(async () => {
     if (clientUserId) {
       try {
-        const newConv = await createConversation({
-          userId: clientUserId,
-        }).unwrap();
+
         toast.success("تم إنشاء المحادثة");
         // Expand the widget to show the new conversation
         setIsExpanded(true);

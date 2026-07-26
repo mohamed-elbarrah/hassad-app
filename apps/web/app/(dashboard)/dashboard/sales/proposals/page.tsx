@@ -48,7 +48,7 @@ export default function ProposalsPage() {
   });
 
   const proposals = data?.items ?? [];
-  const total = data?.total ?? 0;
+
   const totalPages = data?.totalPages ?? 1;
 
   // ── Dialogs ──────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ export default function ProposalsPage() {
   const hasActiveFilter = search || statusFilter;
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <SalesPageHeader
         title="العروض الفنية"
         description="إدارة العروض الفنية للعملاء، تتبع حالتها، وإنشاء العقود من العروض المعتمدة."

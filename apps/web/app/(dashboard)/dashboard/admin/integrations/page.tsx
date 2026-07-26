@@ -260,7 +260,7 @@ function GatewaysSection() {
 
 export default function AdminIntegrationsPage() {
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="التكاملات"
         description="مراقبة حالة الخدمات المتصلة وبوابات الدفع"

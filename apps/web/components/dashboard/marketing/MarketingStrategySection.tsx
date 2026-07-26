@@ -2,13 +2,7 @@
 
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import {
-  useGetTaskStrategyQuery,
-  useUploadStrategyMutation,
-  useSendStrategyToClientMutation,
-  useResubmitStrategyMutation,
-  useGetStrategyDownloadUrlQuery,
-} from "@/features/marketing/marketingApi";
+import { useGetTaskStrategyQuery, useUploadStrategyMutation, useSendStrategyToClientMutation, useResubmitStrategyMutation } from "@/features/marketing/marketingApi";
 import {
   MarketingStrategyStatus,
   MARKETING_STRATEGY_STATUS_AR,
@@ -68,7 +62,7 @@ export function MarketingStrategySection({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const revisionFileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  void useState<File | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

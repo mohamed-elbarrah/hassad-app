@@ -1,17 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  CheckCircle2,
-  Clock,
-  FileText,
-  FolderKanban,
-  AlertCircle,
-  User,
-  Upload,
-  RefreshCw,
-} from "lucide-react";
-import { formatRelativeTime, formatShortDate } from "@/lib/format";
+import { CheckCircle2, Clock, FileText, FolderKanban, AlertCircle, Upload, RefreshCw } from "lucide-react";
+import { formatRelativeTime } from "@/lib/format";
 import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
 import { TaskStatus } from "@hassad/shared";
 import type { ProjectFile } from "@/features/projects/projectsApi";

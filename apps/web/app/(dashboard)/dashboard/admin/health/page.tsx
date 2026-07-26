@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+
 import {
   HeartPulse,
   Database,
@@ -31,7 +31,7 @@ export default function AdminHealthPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <AdminEmptyState
           icon={HeartPulse}
           title="حدث خطأ أثناء تحميل معلومات الصحة"
@@ -44,12 +44,11 @@ export default function AdminHealthPage() {
   const statusColor =
     data?.status === "healthy" ? "bg-success-500" : "bg-danger-500";
   const statusText = data?.status === "healthy" ? "سليم" : "تدهور";
-  const dbColor =
-    data?.database === "connected" ? "bg-success-500" : "bg-danger-500";
+
   const dbText = data?.database === "connected" ? "متصل" : "منفصل";
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="صحة النظام"
         description="مراقبة أداء النظام وحالة الخدمات"

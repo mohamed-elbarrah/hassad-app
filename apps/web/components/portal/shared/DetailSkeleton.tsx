@@ -15,7 +15,7 @@ interface DetailSkeletonProps {
 
 export function DetailSkeleton({ variant }: DetailSkeletonProps) {
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <Skeleton className="h-5 w-48 rounded-lg" />
       <Skeleton className="h-8 w-64 rounded-lg" />
       <div className="grid gap-5 md:grid-cols-2">

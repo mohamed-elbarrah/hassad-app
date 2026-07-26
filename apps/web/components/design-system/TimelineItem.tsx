@@ -8,7 +8,7 @@ interface TimelineItemProps {
 
 export function TimelineItem({ date, text, icon }: TimelineItemProps) {
   return (
-    <div className="flex items-center gap-4 p-5 bg-white border-[1.5px] border-portal-card-border rounded-[16px]">
+    <div className="flex items-center gap-4 p-5 bg-white border-[1.5px] border-portal-card-border rounded-card-sm">
       <div className="flex w-full gap-4 ">
         <div className="flex items-center justify-center shrink-0 w-[64px] h-[64px] rounded-full bg-badge-gray-bg">
           {icon}

@@ -32,7 +32,7 @@ const COLORS = [
 ];
 
 function ChartTooltip({ active, payload }: any) {
-  const { fmtAmount, currency } = useCurrency();
+  const { fmtAmount } = useCurrency();
   if (!active || !payload?.length) return null;
   const item = payload[0].payload as PaymentMethodItem;
   return (
@@ -54,7 +54,7 @@ function ChartTooltip({ active, payload }: any) {
 }
 
 export function PaymentMethodChart({ data, isLoading }: Props) {
-  const total = useMemo(() => data.reduce((s, d) => s + d.amount, 0), [data]);
+  void useMemo(() => data.reduce((s, d) => s + d.amount, 0), [data]);
   const totalCount = useMemo(
     () => data.reduce((s, d) => s + d.count, 0),
     [data],

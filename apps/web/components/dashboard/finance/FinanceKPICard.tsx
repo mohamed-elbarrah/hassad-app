@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { formatNumber } from "@/lib/format";
-import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 interface FinanceKPICardProps {
   title: string;
@@ -35,7 +35,7 @@ export function FinanceKPICard({
     <div
       onClick={onClick}
       className={cn(
-        "rounded-2xl border border-portal-card-border bg-natural-0 shadow-sm",
+        "rounded-card border border-border-default bg-surface shadow-sm",
         "p-5 transition-all hover:shadow-md hover:border-portal-card-border",
         onClick && "cursor-pointer",
         className,
@@ -66,8 +66,8 @@ export function FinanceKPICard({
             className={cn(
               "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-semibold",
               isPositive
-                ? "bg-success-50 text-success-600"
-                : "bg-danger-50 text-danger-600",
+                ? "bg-success-100 text-success-600"
+                : "bg-danger-100 text-danger-600",
             )}
           >
             {isPositive ? (

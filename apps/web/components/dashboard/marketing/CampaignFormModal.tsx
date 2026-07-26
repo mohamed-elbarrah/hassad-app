@@ -26,7 +26,7 @@ export function CampaignFormModal({
   onClose,
   taskId,
 }: CampaignFormModalProps) {
-  const [createCampaign, { isLoading }] = useCreateCampaignMutation();
+  const [createCampaign] = useCreateCampaignMutation();
   const [formData, setFormData] = useState({
     name: "",
     platform: CampaignPlatform.GOOGLE,
@@ -43,7 +43,7 @@ export function CampaignFormModal({
       }).unwrap();
       toast.success("تم إنشاء الحملة بنجاح");
       onClose();
-    } catch (err) {
+    } catch {
       toast.error("فشل إنشاء الحملة");
     }
   };

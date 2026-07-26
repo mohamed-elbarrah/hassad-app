@@ -3,7 +3,7 @@ import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import "@/app/globals.css";
 import { Providers } from "@/providers/Providers";
 import { AuthInitializer } from "@/components/auth/AuthInitializer";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/design-system/Primitives";
 
 const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],

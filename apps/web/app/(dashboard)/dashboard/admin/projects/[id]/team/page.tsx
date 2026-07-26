@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { User, Calendar, Shield, Users } from "lucide-react";
+import { User, Calendar, Users } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
@@ -17,8 +17,7 @@ export default function ProjectTeamTab({
 
   if (!project) return null;
 
-  const teamByRole = (role: string) =>
-    project.members.filter((m) => m.role === role);
+
 
   const pm = project.manager;
 

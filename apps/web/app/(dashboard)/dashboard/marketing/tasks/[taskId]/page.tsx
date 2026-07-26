@@ -142,7 +142,7 @@ export default function MarketingTaskDetailPage() {
   const { data: campaigns = [] } = useGetCampaignsByTaskQuery(taskId);
   const { data: strategy } = useGetTaskStrategyQuery(taskId);
   const strategyApproved = strategy?.status === "APPROVED";
-  const isMarketer = true; // The marketing task page is only accessible by marketers/PMs
+   // The marketing task page is only accessible by marketers/PMs
 
   const clientId = task?.project?.clientId ?? "";
   const { data: teamView } = useGetClientTeamViewQuery(clientId, {

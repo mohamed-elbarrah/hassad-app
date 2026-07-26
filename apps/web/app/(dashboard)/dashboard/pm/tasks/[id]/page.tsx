@@ -2,34 +2,12 @@
 
 import { use, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  X,
-  RotateCcw,
-  Send,
-  Paperclip,
-  Upload,
-  Download,
-  Trash2,
-  File,
-  FileImage,
-  FileText,
-  MessageSquare,
-  User,
-  Clock,
-  Calendar,
-  FolderKanban,
-  AlertTriangle,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, X, RotateCcw, Send, Paperclip, Upload, Download, Trash2, File, FileImage, FileText, MessageSquare, User, Clock, FolderKanban, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import { ProgressBar } from "@/components/design-system/ProgressBar";
+
 import {
   Tabs,
   TabsList,
@@ -321,7 +299,7 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
   const totalFiles = files?.length ?? 0;
 
   return (
-    <div className="flex flex-col gap-5  " dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
       <PmDetailBreadcrumb
         backHref={backHref}

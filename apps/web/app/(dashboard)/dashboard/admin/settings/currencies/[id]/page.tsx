@@ -20,7 +20,7 @@ export default function AdminEditCurrencyPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 rounded-[30px]" />
       </div>
@@ -29,7 +29,7 @@ export default function AdminEditCurrencyPage() {
 
   if (isError || !data) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <PageIntro
           title="تعديل العملة"
           description="تعذر تحميل بيانات العملة"
@@ -47,7 +47,7 @@ export default function AdminEditCurrencyPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title={`تعديل العملة: ${data.name}`}
         description={`${data.code} - ${data.name}`}

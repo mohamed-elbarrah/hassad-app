@@ -4,7 +4,7 @@ import { FinancePageError } from "@/components/dashboard/finance/shared/FinanceP
 
 export default function FinanceError({
   error,
-  reset,
+  reset: _reset,
 }: {
   error: Error;
   reset: () => void;
@@ -12,7 +12,7 @@ export default function FinanceError({
   return (
     <FinancePageError
       error={error}
-      reset={reset}
+      reset={_reset}
       message="حدث خطأ في لوحة التحكم المالية"
       hint="يرجى المحاولة مرة أخرى أو العودة لاحقاً."
     />

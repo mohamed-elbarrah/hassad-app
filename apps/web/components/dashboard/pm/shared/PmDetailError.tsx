@@ -16,7 +16,7 @@ export function PmDetailError({
   backLabel,
 }: PmDetailErrorProps) {
   return (
-    <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
+    <div className="page-shell max-w-4xl" dir="rtl">
       {backHref && (
         <PmDetailBreadcrumb
           backHref={backHref}

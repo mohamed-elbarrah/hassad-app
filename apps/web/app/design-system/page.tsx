@@ -28,7 +28,7 @@ import type { LucideIcon } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { AlertCard } from "@/components/design-system/AlertCard";
 import { CountChip } from "@/components/design-system/CountChip";
-import { DashboardCard } from "@/components/design-system/DashboardCard";
+
 import {
   DataTable,
   type DataTableColumn,

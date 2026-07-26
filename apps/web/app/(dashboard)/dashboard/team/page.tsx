@@ -67,7 +67,7 @@ export default function TeamDashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="page-shell">
       {/* Header */}
       <h1 className="text-3xl font-bold tracking-tight">قائمة المهام</h1>
 

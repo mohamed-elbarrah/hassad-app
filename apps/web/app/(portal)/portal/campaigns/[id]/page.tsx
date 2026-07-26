@@ -2,7 +2,7 @@
 
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { use } from "react";
-import Link from "next/link";
+
 import { TrendingUp } from "lucide-react";
 import { DetailBreadcrumb } from "@/components/portal/shared/DetailBreadcrumb";
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
@@ -11,7 +11,7 @@ import {
   useGetPortalCampaignQuery,
   type PortalCampaignDetail,
 } from "@/features/portal/portalApi";
-import { ActionButton } from "@/components/design-system/ActionButton";
+
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { MetricCard } from "@/components/design-system/MetricCard";
@@ -39,7 +39,7 @@ function formatDate(dateStr: string): string {
 
 export default function PortalCampaignDetailPage({ params }: PageProps) {
   const { id } = use(params);
-  const { fmtAmount, fmtNumber, currency } = useCurrency();
+  void useCurrency();
   const {
     data: campaign,
     isLoading,
@@ -69,7 +69,7 @@ export default function PortalCampaignDetailPage({ params }: PageProps) {
   const chronologicalSnapshots = [...snapshots].reverse();
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <DetailBreadcrumb
         backHref="/portal/campaigns"
         backLabel="الحملات"

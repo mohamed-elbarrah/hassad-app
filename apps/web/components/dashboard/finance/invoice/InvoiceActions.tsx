@@ -12,10 +12,7 @@ import {
 } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import {
-  useSendInvoiceMutation,
-  useSendInvoiceReminderMutation,
-} from "@/features/finance/financeApi";
+import { useSendInvoiceReminderMutation } from "@/features/finance/financeApi";
 import { RegisterPaymentModal } from "./modals/RegisterPaymentModal";
 import { SendInvoiceModal } from "./modals/SendInvoiceModal";
 import { UpdateStatusModal } from "./modals/UpdateStatusModal";

@@ -199,7 +199,7 @@ export default function PortalProjectPeriodsPage() {
 
   if (periodsLoading || projectLoading) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <Skeleton className="h-12 w-full rounded-2xl" />
         <Skeleton className="h-48 w-full rounded-[30px]" />
         <Skeleton className="h-16 w-full rounded-2xl" />
@@ -217,7 +217,7 @@ export default function PortalProjectPeriodsPage() {
       if (projectError) void refetchProject();
     };
     return (
-      <div className="flex flex-col gap-6" dir="rtl">
+      <div className="page-shell" dir="rtl">
         {project && <ProjectHeader project={project} />}
         <SurfaceCard>
           <div className="flex flex-col items-center gap-4 py-16 text-center">
@@ -248,7 +248,7 @@ export default function PortalProjectPeriodsPage() {
 
   if (!periods || periods.length === 0) {
     return (
-      <div className="flex flex-col gap-6" dir="rtl">
+      <div className="page-shell" dir="rtl">
         {project && <ProjectHeader project={project} />}
         <SurfaceCard>
           <div className="flex flex-col items-center gap-3 py-16 text-center text-portal-note-text">
@@ -262,7 +262,7 @@ export default function PortalProjectPeriodsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {project && <ProjectHeader project={project} />}
 
       {selectedPeriod && (

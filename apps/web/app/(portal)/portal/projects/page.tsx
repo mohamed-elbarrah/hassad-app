@@ -83,7 +83,7 @@ export default function PortalProjectsPage() {
     : projects;
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="مشاريعي"
         description="تتبع جميع مشاريعك، راقب الحالة الحالية، واستعرض نسبة التقدم لكل مشروع."
@@ -149,7 +149,7 @@ export default function PortalProjectsPage() {
             {filtered.map((project) => (
               <div
                 key={project.id}
-                className="group relative flex flex-col rounded-[30px] border-[1.5px] border-portal-divider bg-natural-0 p-5 transition-all hover:border-secondary-500/30 hover:shadow-sm"
+                className="group relative flex flex-col rounded-card border border-border-default bg-surface p-5 transition-all hover:border-secondary-500/30 hover:shadow-sm"
               >
                 {/* Card Header */}
                 <div className="flex items-start justify-between gap-3">

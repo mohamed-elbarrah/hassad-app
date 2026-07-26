@@ -111,7 +111,7 @@ export default function EmployeeDetailLayout({
     return "";
   }, [pathname, id]);
 
-  const handleAction = async (reason: string) => {
+  const handleAction = async (_reason: string) => {
     if (!actionModal) return;
     try {
       if (actionModal.type === "suspend") {
@@ -123,7 +123,7 @@ export default function EmployeeDetailLayout({
       } else if (actionModal.type === "revoke-sessions") {
         await revokeSessions(id).unwrap();
       }
-    } catch {}
+    } catch { /* best-effort operation; the UI remains usable without this refresh */ }
     setActionModal(null);
   };
 
@@ -141,7 +141,7 @@ export default function EmployeeDetailLayout({
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <div className="flex items-center justify-between">
         <AdminDetailBreadcrumb
           backHref="/dashboard/admin/employees"

@@ -9,7 +9,7 @@ import {
   type DataTableColumn,
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
-import { ActionButton } from "@/components/design-system/ActionButton";
+
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
@@ -37,7 +37,7 @@ const EMPTY_STATE: DataTableEmptyState = {
 
 export default function AdminSessionsPage() {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
@@ -70,7 +70,7 @@ export default function AdminSessionsPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <AdminEmptyState
           icon={LogIn}
           title="حدث خطأ أثناء تحميل الجلسات"
@@ -81,7 +81,7 @@ export default function AdminSessionsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الجلسات"
         description="إدارة جلسات تسجيل دخول المستخدمين"

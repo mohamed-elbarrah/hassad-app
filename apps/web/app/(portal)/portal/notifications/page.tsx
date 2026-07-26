@@ -265,7 +265,7 @@ export default function PortalNotificationsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الإشعارات"
         description="جميع الإشعارات الواردة، الإجراءات المطلوبة منك، والمعلومات العامة حول مشاريعك."

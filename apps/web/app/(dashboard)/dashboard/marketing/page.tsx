@@ -51,13 +51,7 @@ import {
   FolderKanban,
 } from "lucide-react";
 
-import {
-  CAMPAIGN_STATUS_LABELS,
-  CAMPAIGN_STATUS_BADGE,
-  PLATFORM_LABELS,
-  PLATFORM_COLORS,
-  PLATFORM_BG_COLORS,
-} from "@/lib/utils/campaign-constants";
+import { PLATFORM_LABELS, PLATFORM_COLORS } from "@/lib/utils/campaign-constants";
 
 const NOTIFICATION_ICON_MAP: Record<string, React.ElementType> = {
   MARKETING_CAMPAIGN_CREATED: Megaphone,

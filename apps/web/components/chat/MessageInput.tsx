@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ActionButton } from "@/components/design-system/ActionButton";
+
 import { toast } from "sonner";
 import { Send, Paperclip, X, FileText, Smile } from "lucide-react";
 

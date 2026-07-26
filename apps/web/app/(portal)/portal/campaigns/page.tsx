@@ -68,7 +68,7 @@ export default function PortalCampaignsPage() {
 
   if (!clientId) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <PageIntro
           title="الحملات الإعلانية"
           description="جميع الحملات الإعلانية المرتبطة بحسابك مع مؤشرات الأداء الرئيسية لكل حملة."
@@ -84,7 +84,7 @@ export default function PortalCampaignsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الحملات الإعلانية"
         description="جميع الحملات الإعلانية المرتبطة بحسابك مع مؤشرات الأداء الرئيسية لكل حملة."

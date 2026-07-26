@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { MessageSquare, Calendar, ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import type { DisputeSummary } from "@/features/portal/portalApi";
 import { DisputeStatusBadge } from "./DisputeStatusBadge";
 import { DisputeCategoryIcon } from "./DisputeCategoryIcon";

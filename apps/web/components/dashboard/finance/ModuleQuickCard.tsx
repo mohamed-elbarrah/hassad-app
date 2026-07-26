@@ -25,32 +25,32 @@ interface Props {
 
 const tintMap = {
   blue: {
-    iconBg: "bg-[#EFF6FF]",
-    iconText: "text-[#3B82F6]",
-    bar: "bg-[#3B82F6]",
-    barTrack: "bg-[#DBEAFE]",
-    badge: "bg-[#EFF6FF] text-[#3B82F6]",
+    iconBg: "bg-action-blue-soft",
+    iconText: "text-action-blue",
+    bar: "bg-action-blue",
+    barTrack: "bg-action-blue-soft",
+    badge: "bg-action-blue-soft text-action-blue",
   },
   amber: {
-    iconBg: "bg-[#FFFBEB]",
-    iconText: "text-[#F59E0B]",
-    bar: "bg-[#F59E0B]",
-    barTrack: "bg-[#FEF3C7]",
-    badge: "bg-[#FFFBEB] text-[#F59E0B]",
+    iconBg: "bg-alert-100/50",
+    iconText: "text-alert-500",
+    bar: "bg-alert-500",
+    barTrack: "bg-alert-100",
+    badge: "bg-alert-100/50 text-alert-500",
   },
   rose: {
-    iconBg: "bg-[#FFF1F2]",
-    iconText: "text-[#F43F5E]",
-    bar: "bg-[#F43F5E]",
-    barTrack: "bg-[#FFE4E6]",
-    badge: "bg-[#FFF1F2] text-[#F43F5E]",
+    iconBg: "bg-danger-100",
+    iconText: "text-danger-500",
+    bar: "bg-danger-500",
+    barTrack: "bg-danger-100",
+    badge: "bg-danger-100 text-danger-500",
   },
   slate: {
-    iconBg: "bg-[#F8FAFC]",
-    iconText: "text-[#64748B]",
-    bar: "bg-[#64748B]",
-    barTrack: "bg-[#E2E8F0]",
-    badge: "bg-[#F8FAFC] text-[#64748B]",
+    iconBg: "bg-badge-gray-bg",
+    iconText: "text-portal-icon",
+    bar: "bg-portal-icon",
+    barTrack: "bg-secondary-100",
+    badge: "bg-badge-gray-bg text-portal-icon",
   },
 };
 
@@ -79,7 +79,7 @@ export function ModuleQuickCard({
     <Link href={href} className={cn("block h-full", className)}>
       <div
         className={cn(
-          "h-full rounded-2xl border border-portal-card-border bg-natural-0",
+          "h-full rounded-card border border-border-default bg-surface",
           "shadow-sm hover:shadow-lg hover:border-secondary-200",
           "hover:-translate-y-1 transition-all duration-300",
           "group cursor-pointer flex flex-col p-5",

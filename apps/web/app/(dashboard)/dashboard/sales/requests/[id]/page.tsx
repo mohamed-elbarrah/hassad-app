@@ -2,27 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import {
-  Building2,
-  Phone,
-  Mail,
-  User,
-  Calendar,
-  Tag,
-  MessageSquare,
-  FileSignature,
-  FileText,
-  FolderKanban,
-  Copy,
-  CheckCheck,
-  ExternalLink,
-  Clock,
-  UserCheck,
-  ArrowLeft,
-  Plus,
-  PhoneCall,
-  X,
-} from "lucide-react";
+import { Building2, Phone, Mail, User, Calendar, Tag, MessageSquare, FileSignature, FileText, FolderKanban, Copy, CheckCheck, ExternalLink, Clock, UserCheck, ArrowLeft, Plus, PhoneCall } from "lucide-react";
 import { ContactLogType, ContactLogResult, RequestStatus } from "@hassad/shared";
 import {
   useGetRequestByIdQuery,
@@ -422,7 +402,7 @@ export default function RequestDetailPage({
       : [];
 
   return (
-    <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
+    <div className="page-shell max-w-4xl" dir="rtl">
       <SalesDetailBreadcrumb
         backHref="/dashboard/sales/pipeline"
         backLabel="لوحة المبيعات"

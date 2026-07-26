@@ -6,7 +6,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import { useGetAdminLeadByIdQuery } from "@/features/admin/adminLeadsApi";
-import { PROPOSAL_STATUS_AR } from "@hassad/shared";
+
 
 export default function LeadProposalsTab({
   params,

@@ -5,7 +5,7 @@ import { Clock, ArrowLeft } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { useGetAdminRequestByIdQuery } from "@/features/admin/adminRequestsApi";
-import { REQUEST_STATUS_AR } from "@hassad/shared";
+
 import { cn } from "@/lib/utils";
 
 export default function RequestTimelineTab({

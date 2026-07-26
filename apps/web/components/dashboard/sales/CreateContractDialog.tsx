@@ -5,15 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import {
-  FileText,
-  Copy,
-  CheckCheck,
-  X,
-  Calculator,
-  Calendar,
-  Clock,
-} from "lucide-react";
+import { FileText, CheckCheck, X, Calculator, Calendar, Clock } from "lucide-react";
 import { Dialog } from "@/components/design-system/Dialog";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import {
@@ -55,18 +47,7 @@ const TYPE_LABELS: Record<ContractType, string> = {
   [ContractType.FIXED_PROJECT]: "مشروع محدد",
 };
 
-const REQUEST_STATUS_LABELS: Record<string, string> = {
-  SUBMITTED: "طلب جديد",
-  QUALIFYING: "مراجعة المبيعات",
-  PROPOSAL_IN_PROGRESS: "إعداد العرض",
-  PROPOSAL_SENT: "تم إرسال العرض",
-  NEGOTIATION: "تفاوض",
-  CONTRACT_PREPARATION: "إعداد العقد",
-  CONTRACT_SENT: "العقد مرسل",
-  SIGNED: "تم التوقيع",
-  PROJECT_CREATED: "تحول إلى مشروع",
-  CANCELLED: "ملغي",
-};
+
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 
@@ -374,7 +355,7 @@ export function CreateContractDialog({
       const msg =
         (err as { data?: { message?: string } })?.data?.message ??
         (isEdit ? "فشل تحديث العقد" : "فشل إنشاء العقد");
-      console.error("contract error:", err);
+      globalThis.console.error("contract error:", err);
       toast.error(msg);
     }
   }

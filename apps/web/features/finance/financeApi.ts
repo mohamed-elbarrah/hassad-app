@@ -1,17 +1,7 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
 import { getApiBaseUrl } from "@/lib/utils";
-import type {
-  Invoice,
-  Payment,
-  PaymentTicket,
-  Employee,
-  Salary,
-  Ledger,
-  InvoiceStatus,
-  PaymentMethod,
-  TicketStatus,
-} from "@hassad/shared";
+import type { Invoice, Payment, PaymentTicket, Employee, Salary, Ledger, InvoiceStatus, PaymentMethod } from "@hassad/shared";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

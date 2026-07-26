@@ -104,10 +104,10 @@ export default function PortalPage() {
     useGetProjectProgressQuery(undefined, {
       pollingInterval: PORTAL_POLLING_INTERVAL_MS,
     });
-  const { data: activity } = useGetActivityFeedQuery(undefined, {
+  void useGetActivityFeedQuery(undefined, {
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
-  const { data: requests } = useGetPortalRequestsQuery(undefined, {
+  void useGetPortalRequestsQuery(undefined, {
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
   const { data: actionItemsData, error: actionItemsError } =

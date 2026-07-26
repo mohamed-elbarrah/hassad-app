@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+
 import { useGetPortalInvoiceDetailQuery } from "@/features/portal/portalApi";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -62,7 +62,7 @@ function fmtDateTime(iso?: string | null) {
 
 export default function PortalInvoiceDetailPage() {
   const params = useParams();
-  const router = useRouter();
+  void useRouter();
   const id = (params?.id as string) ?? "";
   const { fmtAmount } = useCurrency();
 
@@ -119,7 +119,7 @@ export default function PortalInvoiceDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <DetailBreadcrumb
         backHref="/portal/finance"
         backLabel="المالية"

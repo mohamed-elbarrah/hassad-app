@@ -20,13 +20,13 @@ import {
 import { Pagination } from "@/components/design-system/Pagination";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+
 import {
   useGetAdminDisputesQuery,
   useGetAdminDisputeStatsQuery,
 } from "@/features/admin/adminDisputesApi";
 import { cn } from "@/lib/utils";
-import { DISPUTE_CATEGORY_AR, DISPUTE_PRIORITY_AR } from "@hassad/shared";
+import { DISPUTE_PRIORITY_AR } from "@hassad/shared";
 
 const COLUMNS: DataTableColumn[] = [
   { id: "ticketNumber", label: "رقم التذكرة", align: "right" },
@@ -150,7 +150,7 @@ export default function AdminDisputesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="النزاعات"
         description="إدارة نزاعات العملاء ومشاكل المشاريع"

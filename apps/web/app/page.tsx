@@ -1,4 +1,4 @@
-import Link from "next/link";
+
 import { ActionButton } from "@/components/design-system/ActionButton";
 
 export default function HomePage() {

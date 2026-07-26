@@ -4,7 +4,7 @@ import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageErr
 
 export default function Error({
   error,
-  reset,
+  reset: _reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;

@@ -4,7 +4,7 @@ import { FinancePageError } from "@/components/dashboard/finance/shared/FinanceP
 
 export default function RouteError({
   error,
-  reset,
+  reset: _reset,
 }: {
   error: Error;
   reset: () => void;
@@ -12,7 +12,7 @@ export default function RouteError({
   return (
     <FinancePageError
       error={error}
-      reset={reset}
+      reset={_reset}
       message="حدث خطأ غير متوقع"
       hint="يرجى المحاولة مرة أخرى."
     />

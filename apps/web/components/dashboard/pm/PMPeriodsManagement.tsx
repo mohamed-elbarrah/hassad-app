@@ -111,7 +111,7 @@ function PeriodCard({
       await openPeriod(period.id).unwrap();
       onRefresh();
     } catch (e) {
-      console.error("Failed to open period:", e);
+      globalThis.console.error("Failed to open period:", e);
     }
   };
 
@@ -121,7 +121,7 @@ function PeriodCard({
       setShowCloseModal(false);
       onRefresh();
     } catch (e) {
-      console.error("Failed to close period:", e);
+      globalThis.console.error("Failed to close period:", e);
     }
   };
 
@@ -132,7 +132,7 @@ function PeriodCard({
       setShowExtendModal(false);
       onRefresh();
     } catch (e) {
-      console.error("Failed to extend period:", e);
+      globalThis.console.error("Failed to extend period:", e);
     }
   };
 
@@ -141,7 +141,7 @@ function PeriodCard({
       await saveSummary({ periodId: period.id, summary }).unwrap();
       onRefresh();
     } catch (e) {
-      console.error("Failed to save summary:", e);
+      globalThis.console.error("Failed to save summary:", e);
     }
   };
 
@@ -151,7 +151,7 @@ function PeriodCard({
       setShowGoalsEditor(false);
       onRefresh();
     } catch (e) {
-      console.error("Failed to save goals:", e);
+      globalThis.console.error("Failed to save goals:", e);
     }
   };
 
@@ -164,7 +164,7 @@ function PeriodCard({
         completionPercentage: clamped,
       }).unwrap();
     } catch (e) {
-      console.error("Failed to update completion:", e);
+      globalThis.console.error("Failed to update completion:", e);
     }
   };
 
@@ -173,7 +173,7 @@ function PeriodCard({
       await uploadReport({ periodId: period.id, file }).unwrap();
       onRefresh();
     } catch (e) {
-      console.error("Failed to upload report:", e);
+      globalThis.console.error("Failed to upload report:", e);
     }
   };
 
@@ -182,7 +182,7 @@ function PeriodCard({
       const res = await triggerReportDownload(period.id);
       if (res.data?.url) window.open(res.data.url, "_blank");
     } catch (e) {
-      console.error("Failed to download report:", e);
+      globalThis.console.error("Failed to download report:", e);
     }
   };
 
@@ -580,7 +580,7 @@ export function PMPeriodsManagement({
       await createExtraPeriod(projectId).unwrap();
       refetch();
     } catch (e) {
-      console.error("Failed to create extra period:", e);
+      globalThis.console.error("Failed to create extra period:", e);
     }
   };
 
@@ -589,7 +589,7 @@ export function PMPeriodsManagement({
       await generatePeriods(projectId).unwrap();
       refetch();
     } catch (e) {
-      console.error("Failed to generate periods:", e);
+      globalThis.console.error("Failed to generate periods:", e);
     }
   };
 

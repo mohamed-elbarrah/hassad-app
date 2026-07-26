@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { ProgressBar } from "@/components/design-system/ProgressBar";
+
 import { TrendingUp, ChevronLeft } from "lucide-react";
 
 interface TopClient {

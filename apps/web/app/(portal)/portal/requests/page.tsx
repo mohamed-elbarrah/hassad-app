@@ -88,7 +88,7 @@ export default function PortalRequestsPage() {
     filters.statusGroups.length > 0 || filters.query.length > 0;
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* Header */}
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-natural-100">طلباتي</h1>

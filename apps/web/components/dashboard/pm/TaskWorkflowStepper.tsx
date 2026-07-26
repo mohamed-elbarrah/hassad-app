@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, RotateCcw, ArrowLeft } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskStatus } from "@hassad/shared";
-import { TASK_STATUS_COLOR, TASK_STATUS_LABELS } from "@/lib/utils/task-status";
+import { TASK_STATUS_LABELS } from "@/lib/utils/task-status";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

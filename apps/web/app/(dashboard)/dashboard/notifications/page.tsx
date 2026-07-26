@@ -13,7 +13,7 @@ import {
 } from "@/features/notifications/notificationsApi";
 import type { NotificationItem } from "@/features/notifications/notificationsApi";
 import { useAppSelector } from "@/lib/hooks";
-import { UserRole } from "@hassad/shared";
+
 import { formatRelativeTime } from "@/lib/format";
 import { resolveEntityUrl } from "@/components/common/NotificationsDropdown";
 

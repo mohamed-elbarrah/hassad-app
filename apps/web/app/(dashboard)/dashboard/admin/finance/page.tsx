@@ -1,19 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  DollarSign,
-  FileText,
-  Clock,
-  AlertTriangle,
-  CreditCard,
-  TrendingUp,
-  Users,
-  PiggyBank,
-  AlertCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { DollarSign, FileText, Clock, AlertTriangle, CreditCard, PiggyBank, AlertCircle, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import {
@@ -52,20 +40,9 @@ const OVERDUE_EMPTY_STATE: DataTableEmptyState = {
   hint: "جميع الفواتير مدفوعة في الوقت المحدد.",
 };
 
-const INVOICE_COLUMNS: DataTableColumn[] = [
-  { label: "رقم الفاتورة", id: "invoiceNumber", align: "right" },
-  { label: "العميل", id: "clientName", align: "right" },
-  { label: "المبلغ", id: "amount", align: "right" },
-  { label: "الحالة", id: "status", align: "right" },
-  { label: "تاريخ الاستحقاق", id: "dueDate", align: "right" },
-];
 
-const WEBHOOK_COLUMNS: DataTableColumn[] = [
-  { label: "المزود", id: "provider" },
-  { label: "الحدث", id: "eventType" },
-  { label: "الحالة", id: "status" },
-  { label: "التاريخ", id: "createdAt" },
-];
+
+
 
 function ChangeBadge({ value, good }: { value: number; good?: "up" | "down" }) {
   const isGood =
@@ -140,7 +117,7 @@ export default function AdminFinancePage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <AdminEmptyState
           icon={DollarSign}
           title="حدث خطأ أثناء تحميل البيانات المالية"
@@ -151,7 +128,7 @@ export default function AdminFinancePage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="المالية"
         description="نظرة عامة على الإيرادات والفواتير والمدفوعات"

@@ -49,7 +49,7 @@ export default function ContractsPage() {
   });
 
   const contracts = data?.items ?? [];
-  const total = data?.total ?? 0;
+
   const totalPages = data?.totalPages ?? 1;
 
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
@@ -70,7 +70,7 @@ export default function ContractsPage() {
   const hasActiveFilter = search || statusFilter;
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <SalesPageHeader
         title="العقود"
         description="إدارة العقود، تتبع حالتها، ومشاركة روابط التوقيع مع العملاء."

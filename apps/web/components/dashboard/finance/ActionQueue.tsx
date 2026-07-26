@@ -45,7 +45,7 @@ const typeConfig = {
     icon: RefreshCcw,
     iconBg: "bg-alert-50 text-alert-600",
     actionLabel: "مراجعة",
-    href: (id: string) => `/dashboard/finance/payments`,
+    href: (_id: string) => `/dashboard/finance/payments`,
   },
   PENDING_SALARY: {
     icon: Wallet,

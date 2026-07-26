@@ -43,8 +43,7 @@ export function ProjectKanbanCardContent({
           {project.name}
         </p>
         <GripVertical
-          className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity"
-          style={{ color: "#A8ABB2" }}
+          className="h-4 w-4 shrink-0 mt-0.5 text-text-subtle opacity-0 transition-opacity group-hover:opacity-40"
         />
       </div>
 
@@ -56,10 +55,9 @@ export function ProjectKanbanCardContent({
           onClick={(e) => e.stopPropagation()}
         >
           <Building2
-            className="w-3.5 h-3.5 shrink-0"
-            style={{ color: "#A8ABB2" }}
+            className="w-3.5 h-3.5 shrink-0 text-text-subtle"
           />
-          <span className="text-xs truncate" style={{ color: "#A8ABB2" }}>
+          <span className="text-xs truncate text-text-subtle">
             {project.client.companyName}
           </span>
         </Link>
@@ -68,14 +66,13 @@ export function ProjectKanbanCardContent({
       {/* ── Progress Bar ─────────────────────────────────────────── */}
       <div className="mt-3">
         <div className="flex items-center justify-between text-xs mb-1">
-          <span style={{ color: "#A8ABB2" }}>التقدم</span>
-          <span className="font-semibold" style={{ color: "#000000" }}>
+          <span className="text-text-subtle">التقدم</span>
+          <span className="font-semibold text-text">
             {progressValue}%
           </span>
         </div>
         <div
-          className="h-1.5 rounded-full overflow-hidden"
-          style={{ backgroundColor: "#F1F5F9" }}
+          className="h-1.5 overflow-hidden rounded-full bg-surface-subtle"
         >
           <div
             className="h-full rounded-full transition-all"
@@ -89,8 +86,7 @@ export function ProjectKanbanCardContent({
 
       {/* ── Date Range ────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-1 mt-3 text-xs"
-        style={{ color: "#A8ABB2" }}
+        className="mt-3 flex items-center gap-1 text-xs text-text-subtle"
       >
         <Calendar className="w-3.5 h-3.5 shrink-0" />
         <span>

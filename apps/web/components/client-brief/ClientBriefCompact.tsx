@@ -10,25 +10,7 @@ import { formatDate } from "@/lib/format";
 import { useCurrency } from "@/hooks/useCurrency";
 import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import type { ClientBriefView } from "./ClientBrief";
-import {
-  Building2,
-  Mail,
-  Phone,
-  User,
-  Calendar,
-  Clock,
-  Crown,
-  Target,
-  Globe,
-  MessageCircle,
-  FileText,
-  Banknote,
-  Link as LinkIcon,
-  Hash,
-  Palette,
-  ExternalLink,
-  AlertCircle,
-} from "lucide-react";
+import { Building2, Mail, Phone, User, Calendar, Clock, Crown, Target, Globe, MessageCircle, FileText, Banknote, Hash, Palette, ExternalLink, AlertCircle } from "lucide-react";
 
 interface ClientBriefCompactProps {
   client: Client;

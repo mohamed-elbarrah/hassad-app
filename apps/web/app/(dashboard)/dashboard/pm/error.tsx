@@ -4,7 +4,7 @@ import { ErrorFallback } from "@/components/common/ErrorFallback";
 
 export default function PmError({
   error,
-  reset,
+  reset: _reset,
 }: {
   error: Error;
   reset: () => void;
@@ -12,7 +12,7 @@ export default function PmError({
   return (
     <ErrorFallback
       error={error}
-      reset={reset}
+      reset={_reset}
       backHref="/dashboard/pm"
       backLabel="العودة للوحة المشاريع"
     />

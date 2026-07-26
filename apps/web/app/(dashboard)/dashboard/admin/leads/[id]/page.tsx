@@ -17,11 +17,7 @@ import {
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { useGetAdminLeadByIdQuery } from "@/features/admin/adminLeadsApi";
-import {
-  PIPELINE_STAGE_AR,
-  CLIENT_SOURCE_AR,
-  BUSINESS_TYPE_AR,
-} from "@hassad/shared";
+import { CLIENT_SOURCE_AR, BUSINESS_TYPE_AR } from "@hassad/shared";
 
 const CONTACT_LOG_TYPE_AR: Record<string, string> = {
   CALL: "اتصال هاتفي",
@@ -30,12 +26,7 @@ const CONTACT_LOG_TYPE_AR: Record<string, string> = {
   EMAIL: "بريد إلكتروني",
 };
 
-const CONTACT_LOG_RESULT_AR: Record<string, string> = {
-  NO_RESPONSE: "لا رد",
-  RESPONDED: "تم الرد",
-  BUSY: "مشغول",
-  WRONG_NUMBER: "رقم خطأ",
-};
+
 
 export default function LeadOverviewTab({
   params,

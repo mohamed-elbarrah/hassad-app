@@ -1,7 +1,7 @@
 "use client";
 
 import { EmptyState } from "@/components/design-system/EmptyState";
-import type { LucideIcon } from "lucide-react";
+
 
 interface FinancePageErrorProps {
   error?: Error;

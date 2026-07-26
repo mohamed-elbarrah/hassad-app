@@ -5,9 +5,9 @@ import {
   FetchArgs,
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
-import type { RootState } from "@/lib/store";
-import type { LoginDto, RegisterDto, User } from "@hassad/shared";
-import { logout, setCredentials } from "./authSlice";
+
+import type { LoginDto, User } from "@hassad/shared";
+import { logout } from "./authSlice";
 import { getApiBaseUrl } from "@/lib/utils";
 
 interface AuthResponse {

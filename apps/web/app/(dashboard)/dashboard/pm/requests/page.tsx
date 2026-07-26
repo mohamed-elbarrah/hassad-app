@@ -120,7 +120,7 @@ export default function PMChangeRequestsPage() {
   const projectEntries = Object.entries(groupedByProject);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="طلبات التعديل"
         description="طلبات التعديل الواردة من العملاء على التسليمات في مشاريعك."

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MessageBubble } from "./MessageBubble";
-import { Loader2, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/features/chat/chatApi";
 

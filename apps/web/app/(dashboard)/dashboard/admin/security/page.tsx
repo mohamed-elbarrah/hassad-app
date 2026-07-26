@@ -99,7 +99,7 @@ export default function AdminSecurityPage() {
   );
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الأمان"
         description="مراقبة الأحداث الأمنية والجلسات النشطة"

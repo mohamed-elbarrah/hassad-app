@@ -4,16 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { RequestItem } from "@/features/requests/requestsApi";
 import { RequestStatus } from "@hassad/shared";
-import {
-  Building2,
-  Clock,
-  GripVertical,
-  Phone,
-  FileText,
-  PenLine,
-  History,
-  PhoneCall,
-} from "lucide-react";
+import { Building2, GripVertical, Phone, FileText, PenLine, History, PhoneCall } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
 
 function getDealValue(request: RequestItem): number | null {

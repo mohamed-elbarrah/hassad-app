@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+
 import {
   BarChart3,
   DollarSign,
@@ -436,7 +436,7 @@ function SatisfactionSection() {
 
 export default function AdminReportsPage() {
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="التقارير"
         description="نظرة شاملة على أداء المنصة: المبيعات، الإيرادات، المشاريع، ورضا العملاء"

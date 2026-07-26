@@ -59,7 +59,7 @@ export default function ClientHistoryTab({
       <div className="relative">
         <div className="absolute right-3 top-0 bottom-0 w-0.5 bg-portal-divider" />
         <div className="space-y-0">
-          {logs.map((log, idx) => (
+          {logs.map((log, _idx) => (
             <div key={log.id} className="relative flex items-start gap-4 pb-6">
               <div className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-badge-gray-bg text-xs">
                 {EVENT_ICONS[log.eventType] || "📌"}

@@ -51,7 +51,7 @@ export function TopCampaignsTable({ campaigns }: TopCampaignsTableProps) {
         <div className="text-xs text-muted-foreground">عرض الكل</div>
       </div>
 
-      <div className="flex items-center gap-1 text-[10px] text-neutral-300 px-2 py-1 bg-neutral-50 rounded-lg">
+      <div className="flex items-center gap-1 text-xs text-neutral-300 px-2 py-1 bg-neutral-50 rounded-lg">
         <button
           className={`flex-1 text-center py-1 rounded ${sortKey === "conversions" ? "bg-white shadow-sm text-natural-100 font-medium" : ""}`}
           onClick={() => handleSort("conversions")}
@@ -94,7 +94,7 @@ export function TopCampaignsTable({ campaigns }: TopCampaignsTableProps) {
                 onClick={() => toggleSelect(c.id)}
                 className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
                   selected.has(c.id)
-                    ? "bg-[#121936] border-[#121936]"
+                    ? "bg-[var(--color-brand)] border-[var(--color-brand)]"
                     : "border-neutral-300"
                 }`}
               >

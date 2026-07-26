@@ -81,7 +81,7 @@ function deltaToTrend(
 
 export function buildAdminKpiConfigs(
   stats: AdminStats | undefined,
-  trends: AdminTrendsResponse | undefined,
+  _trends: AdminTrendsResponse | undefined,
 ): KpiConfig[] {
   if (!stats) return [];
 

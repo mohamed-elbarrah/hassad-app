@@ -4,7 +4,7 @@ import { ErrorFallback } from "@/components/common/ErrorFallback";
 
 export default function MarketingError({
   error,
-  reset,
+  reset: _reset,
 }: {
   error: Error;
   reset: () => void;
@@ -12,7 +12,7 @@ export default function MarketingError({
   return (
     <ErrorFallback
       error={error}
-      reset={reset}
+      reset={_reset}
       backHref="/dashboard/marketing"
       backLabel="العودة للوحة التسويق"
     />

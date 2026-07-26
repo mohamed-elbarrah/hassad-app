@@ -97,7 +97,7 @@ export default function AdminClientsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="العملاء"
         description="إدارة العملاء والعملاء المحتملين"

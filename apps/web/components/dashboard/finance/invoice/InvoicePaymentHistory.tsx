@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, CreditCard, ImageIcon, X } from "lucide-react";
+import { Plus, CreditCard, X } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { DataTable } from "@/components/design-system/DataTable";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";

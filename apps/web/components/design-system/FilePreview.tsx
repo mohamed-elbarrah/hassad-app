@@ -27,7 +27,7 @@ export function FilePreview({ filePath, title, className }: FilePreviewProps) {
     return (
       <div
         className={cn(
-          "group relative h-40 overflow-hidden rounded-[24px] bg-portal-bg",
+          "group relative h-40 overflow-hidden rounded-dialog bg-portal-bg",
           className,
         )}
       >
@@ -48,7 +48,7 @@ export function FilePreview({ filePath, title, className }: FilePreviewProps) {
     return (
       <div
         className={cn(
-          "group relative h-40 overflow-hidden rounded-[24px] bg-[#10172f]",
+          "group relative h-40 overflow-hidden rounded-dialog bg-file-preview-dark",
           className,
         )}
       >
@@ -83,7 +83,7 @@ export function FilePreview({ filePath, title, className }: FilePreviewProps) {
   return (
     <div
       className={cn(
-        "flex h-40 flex-col justify-between rounded-[24px] border-[1.5px] border-portal-card-border bg-portal-bg p-4",
+        "flex h-40 flex-col justify-between rounded-dialog border-[1.5px] border-portal-card-border bg-portal-bg p-4",
         className,
       )}
     >

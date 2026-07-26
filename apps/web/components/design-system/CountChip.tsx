@@ -36,7 +36,7 @@ export function CountChip({
         className={cn(
           "inline-flex h-9 items-center gap-1 rounded-lg px-2.5",
           "bg-badge-gray-bg text-secondary-500",
-          "text-[12px] font-semibold tabular-nums whitespace-nowrap",
+          "text-xs font-semibold tabular-nums whitespace-nowrap",
         )}
       >
         <span>{visible}</span>
@@ -51,7 +51,7 @@ export function CountChip({
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5",
         "bg-primary-100 text-primary-700 ring-1 ring-inset ring-primary-200",
-        "text-[12px] font-semibold whitespace-nowrap",
+        "text-xs font-semibold whitespace-nowrap",
       )}
     >
       {icon && (

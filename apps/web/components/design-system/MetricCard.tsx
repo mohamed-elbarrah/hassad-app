@@ -57,7 +57,7 @@ function MetricCardInner({
   return (
     <div
       className={cn(
-        "rounded-[30px] border-[1.5px] px-6 py-7 transition-shadow hover:shadow-sm",
+        "rounded-card border-[1.5px] px-6 py-7 transition-shadow hover:shadow-sm",
         variantStyles[variant ?? "default"],
         className,
       )}

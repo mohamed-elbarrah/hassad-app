@@ -53,7 +53,7 @@ export default function ContractDetailLayout({
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <div className="flex items-center justify-between">
         <AdminDetailBreadcrumb
           backHref="/dashboard/admin/contracts"

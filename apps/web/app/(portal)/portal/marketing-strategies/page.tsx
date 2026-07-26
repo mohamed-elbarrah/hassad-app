@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import {
-  useGetClientStrategiesQuery,
-  useApproveStrategyMutation,
-  useRequestStrategyRevisionMutation,
-} from "@/features/portal/portalApi";
+
+import { useGetClientStrategiesQuery } from "@/features/portal/portalApi";
 import {
   MARKETING_STRATEGY_STATUS_AR,
   MarketingStrategyStatus,
 } from "@hassad/shared";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
+
 import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { IconCircle } from "@/components/design-system/IconCircle";
 import Link from "next/link";
@@ -77,7 +73,7 @@ export default function MarketingStrategiesPage() {
               MARKETING_STRATEGY_STATUS_AR[
                 strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR
               ] ?? strategy.status;
-            const color = STATUS_COLOR[strategy.status] ?? "gray";
+
 
             return (
               <Link

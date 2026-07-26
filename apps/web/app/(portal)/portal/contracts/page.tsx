@@ -46,7 +46,7 @@ export default function PortalContractsPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="العقود"
         description="استعرض جميع عقودك الحالية، حالة كل عقد، القيمة، وتواريخ البدء والانتهاء."

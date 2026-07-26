@@ -4,7 +4,7 @@ import { SalesPageError } from "@/components/dashboard/sales/shared/SalesPageErr
 
 export default function RequestsError({
   error,
-  reset,
+  reset: _reset,
 }: {
   error: Error;
   reset: () => void;
@@ -12,7 +12,7 @@ export default function RequestsError({
   return (
     <SalesPageError
       error={error}
-      reset={reset}
+      reset={_reset}
       backHref="/dashboard/sales/pipeline"
       backLabel="لوحة المبيعات"
     />

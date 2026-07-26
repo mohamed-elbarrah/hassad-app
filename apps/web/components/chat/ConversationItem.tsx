@@ -5,7 +5,7 @@ import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { formatRelativeTime } from "@/lib/format";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
-import { useMemo } from "react";
+
 import { CheckCheck, Users } from "lucide-react";
 
 interface ConversationItemProps {

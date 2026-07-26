@@ -143,7 +143,7 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         width: 40,
         height: 40,
         background: "rgba(18, 25, 54, 0.08)",
-        color: "#121936",
+        color: "var(--color-brand)",
       }}
     >
       <svg
@@ -244,7 +244,7 @@ const ENTITY_ICONS: Record<string, React.ReactElement> = {
         width: 40,
         height: 40,
         background: "rgba(18, 25, 54, 0.08)",
-        color: "#121936",
+        color: "var(--color-brand)",
       }}
     >
       <svg
@@ -294,10 +294,10 @@ function NotificationListItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <p
-              className="text-[14px] truncate text-right"
+              className="text-sm truncate text-right"
               style={{
                 fontWeight: notification.isRead ? 400 : 600,
-                color: "#000000",
+                color: "var(--color-text)",
                 lineHeight: "21px",
               }}
             >
@@ -306,7 +306,7 @@ function NotificationListItem({
             {!notification.isRead && (
               <span
                 className="mt-1.5 h-2 w-2 rounded-full shrink-0"
-                style={{ backgroundColor: "#121936" }}
+                style={{ backgroundColor: "var(--color-brand)" }}
               />
             )}
           </div>
@@ -318,7 +318,7 @@ function NotificationListItem({
           </p>
           <p
             className="text-xs text-right mt-1"
-            style={{ color: "#A8ABB2", lineHeight: "18px" }}
+            style={{ color: "var(--color-portal-nav-inactive)", lineHeight: "18px" }}
           >
             {formatRelativeTime(notification.createdAt)}
           </p>
@@ -394,7 +394,7 @@ export function NotificationDropdown({
               fontSize: 18,
               fontWeight: 600,
               lineHeight: "27px",
-              color: "#000000",
+              color: "var(--color-text)",
             }}
           >
             الإشعارات
@@ -405,7 +405,7 @@ export function NotificationDropdown({
               style={{
                 fontSize: 14,
                 fontWeight: 500,
-                color: "#525866",
+                color: "var(--color-portal-icon)",
                 lineHeight: "21px",
               }}
               onClick={() => onMarkAllAsRead()}
@@ -435,7 +435,7 @@ export function NotificationDropdown({
           ) : notifications.length === 0 ? (
             <div
               className="flex flex-col items-center justify-center py-10"
-              style={{ color: "#A8ABB2" }}
+              style={{ color: "var(--color-portal-nav-inactive)" }}
             >
               <BellOff style={{ width: 40, height: 40, marginBottom: 8 }} />
               <p style={{ fontSize: 16, lineHeight: "24px" }}>
@@ -460,7 +460,7 @@ export function NotificationDropdown({
             style={{
               fontSize: 16,
               fontWeight: 500,
-              color: "#121936",
+              color: "var(--color-brand)",
               lineHeight: "24px",
             }}
             onClick={onClose}
@@ -495,7 +495,7 @@ export function NotificationDropdown({
                   fontSize: 20,
                   fontWeight: 600,
                   lineHeight: "30px",
-                  color: "#000000",
+                  color: "var(--color-text)",
                 }}
               >
                 {selectedNotification.title}
@@ -505,7 +505,7 @@ export function NotificationDropdown({
                 style={{
                   fontSize: 14,
                   lineHeight: "21px",
-                  color: "#A8ABB2",
+                  color: "var(--color-portal-nav-inactive)",
                 }}
               >
                 {formatRelativeTime(selectedNotification.createdAt)}
@@ -529,7 +529,7 @@ export function NotificationDropdown({
                 <button
                   className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white cursor-pointer transition-colors hover:bg-[#1a234a]"
                   style={{
-                    backgroundColor: "#121936",
+                    backgroundColor: "var(--color-brand)",
                     fontSize: 16,
                     fontWeight: 500,
                     lineHeight: "24px",
@@ -545,7 +545,7 @@ export function NotificationDropdown({
                 style={{
                   backgroundColor: "#F9FAFB",
                   border: "1.5px solid #E1E4EA",
-                  color: "#525866",
+                  color: "var(--color-portal-icon)",
                   fontSize: 16,
                   fontWeight: 500,
                   lineHeight: "24px",

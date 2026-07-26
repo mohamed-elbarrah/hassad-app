@@ -11,11 +11,7 @@ import {
   useAddDisputeMessageMutation,
   useConfirmDisputeResolutionMutation,
 } from "@/features/portal/portalApi";
-import {
-  DISPUTE_STATUS_AR,
-  DISPUTE_PRIORITY_AR,
-  DisputeStatus,
-} from "@hassad/shared";
+import { DISPUTE_PRIORITY_AR, DisputeStatus } from "@hassad/shared";
 import { DetailErrorState } from "@/components/portal/shared/DetailErrorState";
 import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -118,7 +114,7 @@ export default function PortalDisputeDetailPage({
   ].includes(dispute.status as DisputeStatus);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4">
         <Link

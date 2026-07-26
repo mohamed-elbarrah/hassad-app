@@ -88,7 +88,7 @@ export function UserAvatar({
       <AvatarFallback
         className={cn(variantClass, config.fontSize, "font-semibold")}
         style={{
-          backgroundColor: "#121936",
+          backgroundColor: "var(--color-brand)",
           color: "#fff",
         }}
       >
@@ -161,7 +161,7 @@ export function UserInfoCard({
               fontSize: size === "lg" ? 22 : 18,
               fontWeight: 600,
               lineHeight: size === "lg" ? "33px" : "27px",
-              color: "#000000",
+              color: "var(--color-text)",
             }}
           >
             {name}
@@ -232,7 +232,7 @@ export function UserHeaderDisplay({
             fontSize: 26,
             fontWeight: 600,
             lineHeight: "39px",
-            color: "#000000",
+            color: "var(--color-text)",
           }}
         >
           مرحبًا {firstName}
@@ -242,7 +242,7 @@ export function UserHeaderDisplay({
             fontSize: 20,
             fontWeight: 400,
             lineHeight: "30px",
-            color: "#525866",
+            color: "var(--color-portal-icon)",
           }}
         >
           مشروعك يسير بشكل جيد 🚀

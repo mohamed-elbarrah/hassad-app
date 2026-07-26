@@ -3,24 +3,12 @@
 import type { Client, ClientProfile } from "@hassad/shared";
 import { BriefCard } from "./BriefCard";
 import { ClientBriefStatCard } from "./ClientBriefStatCard";
-import { ClientBriefField } from "./ClientBriefField";
+
 import { formatRelativeTime } from "@/lib/format";
 import { useCurrency } from "@/hooks/useCurrency";
 import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
 import type { ClientBriefView } from "./ClientBrief";
-import {
-  Briefcase,
-  TrendingUp,
-  CheckCircle2,
-  XCircle,
-  DollarSign,
-  CreditCard,
-  Globe,
-  Activity,
-  Clock,
-  AlertCircle,
-  Hash,
-} from "lucide-react";
+import { Briefcase, TrendingUp, CheckCircle2, XCircle, DollarSign, CreditCard, Globe, Activity, AlertCircle, Hash } from "lucide-react";
 
 interface ClientBriefOverviewProps {
   client: Client;

@@ -2,7 +2,7 @@
 
 import { useState, useRef, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, Upload, Loader2, Save, X, Ban } from "lucide-react";
+import { Eye, Upload, Save, X, Ban } from "lucide-react";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FormInput } from "@/components/design-system/FormInput";
 import { Select, SelectItem } from "@/components/design-system/Select";
@@ -257,7 +257,7 @@ export default function CurrencyForm({ initialData, mode }: CurrencyFormProps) {
   const isSubmitting = isCreating || isUpdating;
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* Main form */}
       <SurfaceCard
         title={mode === "create" ? "إضافة عملة جديدة" : "تعديل العملة"}

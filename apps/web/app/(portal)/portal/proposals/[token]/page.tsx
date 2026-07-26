@@ -90,7 +90,7 @@ export default function PortalProposalDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <DetailBreadcrumb
         backHref="/portal/proposals"
         backLabel="الطلبات"

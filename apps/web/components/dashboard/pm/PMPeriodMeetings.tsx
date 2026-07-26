@@ -1,19 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Calendar,
-  CheckCircle2,
-  XCircle,
-  Edit3,
-  Plus,
-  Save,
-  X,
-  Clock,
-  Video,
-  MapPin,
-  Loader2,
-} from "lucide-react";
+import { Calendar, CheckCircle2, XCircle, Edit3, Plus, Save, Clock, Video, MapPin, Loader2 } from "lucide-react";
 import { MeetingStatus } from "@hassad/shared";
 import {
   useCreateMeetingMutation,
@@ -85,7 +73,7 @@ function CreateMeetingForm({
       }).unwrap();
       onDone();
     } catch (e) {
-      console.error("Failed to create meeting:", e);
+      globalThis.console.error("Failed to create meeting:", e);
     }
   };
 
@@ -192,7 +180,7 @@ function MeetingRow({
       }).unwrap();
       setEditing(false);
     } catch (e) {
-      console.error("Failed to update meeting:", e);
+      globalThis.console.error("Failed to update meeting:", e);
     }
   };
 
@@ -204,7 +192,7 @@ function MeetingRow({
         body: { status },
       }).unwrap();
     } catch (e) {
-      console.error("Failed to update meeting status:", e);
+      globalThis.console.error("Failed to update meeting status:", e);
     }
   };
 
@@ -217,7 +205,7 @@ function MeetingRow({
       }).unwrap();
       setShowNotes(false);
     } catch (e) {
-      console.error("Failed to save notes:", e);
+      globalThis.console.error("Failed to save notes:", e);
     }
   };
 

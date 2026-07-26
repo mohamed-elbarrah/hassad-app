@@ -60,14 +60,14 @@ export function MonthlyComparisonBarChart({
       >
         <XAxis
           dataKey="name"
-          tick={{ fontSize: 11, fill: "#9CA3AF" }}
+          tick={{ fontSize: 11, fill: "var(--color-text-subtle)" }}
           axisLine={false}
           tickLine={false}
           reversed
         />
         <YAxis
           tickFormatter={fmtCompact}
-          tick={{ fontSize: 11, fill: "#9CA3AF" }}
+          tick={{ fontSize: 11, fill: "var(--color-text-subtle)" }}
           axisLine={false}
           tickLine={false}
           orientation="right"
@@ -82,12 +82,12 @@ export function MonthlyComparisonBarChart({
           contentStyle={{
             fontSize: 12,
             borderRadius: 8,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--color-border-default)",
             backgroundColor: "#fff",
           }}
           cursor={{ fill: "rgba(18,25,54,0.04)" }}
         />
-        <Bar dataKey={dataKey} fill="#121936" barSize={28} />
+        <Bar dataKey={dataKey} fill="var(--color-brand)" barSize={28} />
       </BarChart>
     </ResponsiveContainer>
   );

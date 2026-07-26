@@ -47,7 +47,7 @@ export function InvoiceContractCard({ contract }: InvoiceContractCardProps) {
       return acc + (inv.payments?.reduce((s, p) => s + p.amount, 0) ?? 0);
     }, 0) ?? 0;
 
-  const remaining = contract.totalValue - totalPaid;
+
   const collectionRate =
     contract.totalValue > 0
       ? Math.round((totalPaid / contract.totalValue) * 100)

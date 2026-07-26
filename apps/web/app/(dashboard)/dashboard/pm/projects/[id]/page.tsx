@@ -3,25 +3,7 @@
 import { use, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  Building2,
-  Calendar,
-  User,
-  TrendingUp,
-  Eye,
-  AlertTriangle,
-  Upload,
-  Trash2,
-  Download,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  FolderKanban,
-  FileText,
-  Plus,
-  Layers,
-} from "lucide-react";
+import { Building2, Calendar, User, TrendingUp, Eye, AlertTriangle, Upload, Trash2, Download, CheckCircle2, Clock, AlertCircle, FolderKanban, FileText, Plus, Layers } from "lucide-react";
 import { buildPortalFileUrl } from "@/lib/portal-files";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
@@ -58,11 +40,8 @@ import { useLazyGetProjectGroupChatQuery } from "@/features/chat/chatApi";
 import { useGetClientTeamViewQuery } from "@/features/clients/clientsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus, TaskStatus } from "@hassad/shared";
-import { formatDate, formatShortDate, daysUntil } from "@/lib/format";
-import {
-  PROJECT_STATUS_LABELS,
-  type ProjectWithMeta,
-} from "@/lib/utils/project-status";
+import { formatShortDate, daysUntil } from "@/lib/format";
+import { type ProjectWithMeta } from "@/lib/utils/project-status";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -275,7 +254,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const HealthIcon = health.icon;
 
   return (
-    <div className="flex flex-col gap-5  " dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* ── Breadcrumb ─────────────────────────────────────────────────────── */}
       <PmDetailBreadcrumb
         backHref="/dashboard/pm/projects"
@@ -352,7 +331,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
             if (!file) return;
             try {
               await uploadFile({ projectId: id, file }).unwrap();
-            } catch {}
+            } catch { /* best-effort operation; the UI remains usable without this refresh */ }
             if (fileInputRef.current) fileInputRef.current.value = "";
           }}
         />
@@ -746,7 +725,7 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                                   projectId: id,
                                   fileId: file.id,
                                 }).unwrap();
-                              } catch {}
+                              } catch { /* best-effort operation; the UI remains usable without this refresh */ }
                             }}
                             icon={<Trash2 className="size-4" />}
                           >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { useUpdateInvoiceMutation } from "@/features/finance/financeApi";
 import { toast } from "sonner";

@@ -1,6 +1,6 @@
 "use client";
 
-import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+
 import { DEFAULT_LOCALE } from "@/lib/format";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -115,7 +115,7 @@ export default function MarketingStrategyDetailPage() {
     MARKETING_STRATEGY_STATUS_AR[
       strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR
     ] ?? strategy.status;
-  const color = STATUS_COLOR[strategy.status] ?? "gray";
+
 
   return (
     <div className="space-y-6 p-6" dir="rtl">

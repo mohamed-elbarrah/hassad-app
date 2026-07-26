@@ -10,19 +10,9 @@ import { TaskPriority } from "@hassad/shared";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const PRIORITY_MAP: Record<TaskPriority, string> = {
-  [TaskPriority.LOW]: "neutral",
-  [TaskPriority.NORMAL]: "neutral",
-  [TaskPriority.HIGH]: "warning",
-  [TaskPriority.URGENT]: "danger",
-};
 
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  [TaskPriority.LOW]: "منخفض",
-  [TaskPriority.NORMAL]: "عادي",
-  [TaskPriority.HIGH]: "عالي",
-  [TaskPriority.URGENT]: "عاجل",
-};
+
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

@@ -18,6 +18,7 @@ import {
   type FilterGroup,
 } from "@/components/design-system/FilterBar";
 import { PageIntro } from "@/components/design-system/PageIntro";
+import { PageSection } from "@/components/design-system/PageSection";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import { ClipboardList } from "lucide-react";
 import { TaskStatus, TaskPriority } from "@hassad/shared";
@@ -195,7 +196,7 @@ export default function PMTasksPage() {
   }, [tasks, activeFilters]);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="مهام المشاريع"
         description="جميع المهام في مشاريعك، تابع تقدم الفريق ووافق على المراجعات."
@@ -203,7 +204,8 @@ export default function PMTasksPage() {
       />
 
       {/* ── Stat Cards ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <PageSection title="ملخص المهام">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {STAT_TONES.map((tone) => {
           const value =
             tone.key === "total"
@@ -230,7 +232,8 @@ export default function PMTasksPage() {
             </div>
           );
         })}
-      </div>
+        </div>
+      </PageSection>
 
       {/* ── Task Table ───────────────────────────────────────────────────── */}
       <SurfaceCard

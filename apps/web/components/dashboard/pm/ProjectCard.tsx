@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Calendar, Users, TrendingUp } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
+
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import { type ProjectWithMeta } from "@/lib/utils/project-status";

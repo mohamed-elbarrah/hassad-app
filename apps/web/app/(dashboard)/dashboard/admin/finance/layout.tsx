@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DollarSign } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -33,7 +33,7 @@ export default function FinanceLayout({
   }, [pathname]);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <div className="flex items-center gap-4 border-b border-portal-divider">
         {TABS.map((tab) => {
           const href = tab.key

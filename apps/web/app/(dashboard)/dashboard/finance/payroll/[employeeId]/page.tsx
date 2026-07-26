@@ -16,19 +16,7 @@ import { ActionButton } from "@/components/design-system/ActionButton";
 import { UserAvatar } from "@/components/design-system/UserAvatar";
 import { DataTable } from "@/components/design-system/DataTable";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
-import {
-  Wallet,
-  History,
-  ArrowUp,
-  ArrowDown,
-  DollarSign,
-  Calendar,
-  Hash,
-  Pencil,
-  FileText,
-  CheckCircle2,
-  Loader2,
-} from "lucide-react";
+import { Wallet, History, ArrowUp, ArrowDown, DollarSign, Calendar, Hash, Pencil, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -36,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/design-system/Primitives";
 
 const MONTHS = [
   "يناير",

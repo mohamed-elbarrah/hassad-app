@@ -51,7 +51,7 @@ export function PerformanceTrendLineChart({
 
   const dataKey =
     visibleDataset?.metric || timeline.datasets[0]?.metric || "impressions";
-  const color = "#121936";
+  const color = "var(--color-brand)";
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -61,14 +61,14 @@ export function PerformanceTrendLineChart({
       >
         <XAxis
           dataKey="name"
-          tick={{ fontSize: 11, fill: "#9CA3AF" }}
+          tick={{ fontSize: 11, fill: "var(--color-text-subtle)" }}
           axisLine={false}
           tickLine={false}
           reversed
         />
         <YAxis
           tickFormatter={fmtCompact}
-          tick={{ fontSize: 11, fill: "#9CA3AF" }}
+          tick={{ fontSize: 11, fill: "var(--color-text-subtle)" }}
           axisLine={false}
           tickLine={false}
           orientation="right"
@@ -85,7 +85,7 @@ export function PerformanceTrendLineChart({
             textAlign: "right",
             fontSize: 12,
             borderRadius: 8,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--color-border-default)",
             backgroundColor: "#fff",
           }}
         />

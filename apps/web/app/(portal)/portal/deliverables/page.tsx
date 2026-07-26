@@ -125,7 +125,7 @@ export default function PortalDeliverablesPage() {
 
   if (!clientId) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <PageIntro
           title="مراجعة المشاريع"
           description="المشاريع الجاهزة للمراجعة والموافقة."
@@ -141,7 +141,7 @@ export default function PortalDeliverablesPage() {
   const totalCount = reviewProjects?.length ?? 0;
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="مراجعة المشاريع"
         description="راجع أعمال فريقك ووافق عليها أو اطلب تعديلات."

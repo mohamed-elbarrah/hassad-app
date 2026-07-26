@@ -28,7 +28,7 @@ export function SurfaceCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0",
+        "overflow-hidden rounded-card border border-border-default bg-surface",
         className,
       )}
     >
@@ -41,12 +41,12 @@ export function SurfaceCard({
 
             <div className="space-y-1">
               {title && (
-                <h2 className="text-2xl font-medium leading-9 text-natural-100">
+                <h2 className="section-title font-medium">
                   {title}
                 </h2>
               )}
               {description && (
-                <p className="text-sm leading-6 text-portal-note-text">
+                <p className="body-text">
                   {description}
                 </p>
               )}

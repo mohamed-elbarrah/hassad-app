@@ -10,17 +10,7 @@ import { MetricCard } from "@/components/design-system/MetricCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { Popover } from "@/components/design-system/Popover";
 import { Pagination } from "@/components/design-system/Pagination";
-import {
-  Plus,
-  Eye,
-  MoreHorizontal,
-  FileText,
-  Search,
-  TrendingUp,
-  Clock,
-  AlertTriangle,
-  DollarSign,
-} from "lucide-react";
+import { Plus, Eye, MoreHorizontal, FileText, Search, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
 import type { StatusFilter } from "@/components/dashboard/finance/InvoiceToolbar";
 import Link from "next/link";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";

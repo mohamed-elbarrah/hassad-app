@@ -76,7 +76,7 @@ export default function FinanceDashboardPage() {
   }, [range]);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
-  const { data: metrics, isLoading: metricsLoading } =
+  const { data: metrics, /* metrics loading intentionally unused */ } =
     useGetFinanceMetricsQuery(params);
 
   const { data: trend, isLoading: trendLoading } = useGetRevenueTrendQuery({
@@ -101,16 +101,9 @@ export default function FinanceDashboardPage() {
     page: 1,
   });
 
-  const { data: invoicesData } = useGetInvoicesQuery({ limit: 1 });
+  void useGetInvoicesQuery({ limit: 1 });
 
-  const isLoading =
-    metricsLoading ||
-    trendLoading ||
-    agingLoading ||
-    actionsLoading ||
-    clientsLoading ||
-    methodsLoading ||
-    ledgerLoading;
+
 
   return (
     <div className="space-y-5 animate-in fade-in duration-500">

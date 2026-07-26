@@ -8,7 +8,7 @@ import {
 } from "@/features/finance/financeApi";
 import { Dialog } from "./Dialog";
 import { ActionButton } from "./ActionButton";
-import { CreditCard, Landmark, Loader2, ChevronRight } from "lucide-react";
+import { CreditCard, Landmark, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface PaymentModalProps {
@@ -45,13 +45,13 @@ export function PaymentModal({
       } else {
         toast.error("فشل في الحصول على رابط الدفع");
       }
-    } catch (err) {
+    } catch {
       toast.error("حدث خطأ أثناء بدء عملية الدفع");
     }
   };
 
   const footer = (
-    <div className="text-[10px] text-portal-icon text-center w-full">
+    <div className="text-xs text-portal-icon text-center w-full">
       جميع المدفوعات مشفرة وآمنة 100%
     </div>
   );
@@ -164,7 +164,7 @@ export function PaymentModal({
                   <Landmark className="w-4 h-4 text-portal-icon" />
                 </div>
                 <div className="grid gap-1">
-                  <span className="text-[10px] text-portal-icon uppercase">
+                  <span className="text-xs text-portal-icon uppercase">
                     اسم الحساب
                   </span>
                   <span className="text-sm font-semibold">
@@ -172,7 +172,7 @@ export function PaymentModal({
                   </span>
                 </div>
                 <div className="grid gap-1">
-                  <span className="text-[10px] text-portal-icon uppercase">
+                  <span className="text-xs text-portal-icon uppercase">
                     IBAN
                   </span>
                   <span className="text-sm font-mono bg-white p-2 rounded border select-all text-center">

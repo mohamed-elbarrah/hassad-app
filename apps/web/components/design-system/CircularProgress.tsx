@@ -17,8 +17,8 @@ export function CircularProgress({
   value,
   size = 120,
   strokeWidth = 10,
-  color = "#10b981",
-  trackColor = "#e5e7eb",
+  color = "var(--color-success-500)",
+  trackColor = "var(--color-border-default)",
   className,
   showPercentage = true,
   label,
@@ -71,7 +71,7 @@ export function CircularProgress({
               {Math.round(clampedValue)}%
             </span>
             {label && (
-              <span className="text-[10px] text-portal-note-text mt-0.5">
+              <span className="text-xs text-portal-note-text mt-0.5">
                 {label}
               </span>
             )}

@@ -42,7 +42,7 @@ const EMPTY_STATE: DataTableEmptyState = {
 
 export default function AdminLeadsPage() {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
@@ -71,7 +71,7 @@ export default function AdminLeadsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="العملاء المتوقعون"
         description="إدارة جميع العملاء المتوقعين وفرص البيع"

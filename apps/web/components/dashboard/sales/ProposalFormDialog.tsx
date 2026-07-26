@@ -2,18 +2,12 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { toast } from "sonner";
-import { Paperclip, X, Copy, CheckCheck, Plus } from "lucide-react";
-import { DurationUnit, type RequestStatus } from "@hassad/shared";
+import { Paperclip, X, CheckCheck, Plus } from "lucide-react";
+import { DurationUnit } from "@hassad/shared";
 import { Dialog } from "@/components/design-system/Dialog";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import {
-  FormSelect,
-  FormSelectContent,
-  FormSelectItem,
-  FormSelectTrigger,
-  FormSelectValue,
-} from "@/components/design-system/FormSelectControl";
+
 import {
   useCreateProposalMutation,
   useUpdateProposalMutation,

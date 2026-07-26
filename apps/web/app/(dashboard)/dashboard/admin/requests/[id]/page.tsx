@@ -16,7 +16,7 @@ import {
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { useGetAdminRequestByIdQuery } from "@/features/admin/adminRequestsApi";
-import { REQUEST_STATUS_AR } from "@hassad/shared";
+
 
 export default function RequestOverviewTab({
   params,

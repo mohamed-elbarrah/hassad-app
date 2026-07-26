@@ -5,13 +5,13 @@ import type { ReportPlatformDistribution } from "@/features/portal/portalApi";
 import { formatCompactNumber } from "@/lib/format";
 
 const PLATFORM_COLORS: Record<string, string> = {
-  جوجل: "#e7be52",
-  ميتا: "#121936",
-  تيكتوك: "#10B981",
+  جوجل: "var(--color-primary-500)",
+  ميتا: "var(--color-brand)",
+  تيكتوك: "var(--color-success-500)",
   "سناب شات": "#6366f1",
 };
 
-const FALLBACK_COLORS = ["#121936", "#e7be52", "#10B981", "#6366f1", "#F43F5E"];
+const FALLBACK_COLORS = ["var(--color-brand)", "var(--color-primary-500)", "var(--color-success-500)", "#6366f1", "#F43F5E"];
 
 interface SpendDistributionDonutChartProps {
   data: ReportPlatformDistribution[];
@@ -68,17 +68,17 @@ export function SpendDistributionDonutChart({
                 textAlign: "right",
                 fontSize: 12,
                 borderRadius: 8,
-                border: "1px solid #e5e7eb",
+                border: "1px solid var(--color-border-default)",
                 backgroundColor: "#fff",
               }}
             />
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-xl font-bold" style={{ color: "#121936" }}>
+          <p className="text-xl font-bold" style={{ color: "var(--color-brand)" }}>
             ﷼{fmtSpend(totalSpend)}
           </p>
-          <p className="text-[11px] text-muted-foreground">إجمالي الإنفاق</p>
+          <p className="text-xs text-muted-foreground">إجمالي الإنفاق</p>
         </div>
       </div>
 

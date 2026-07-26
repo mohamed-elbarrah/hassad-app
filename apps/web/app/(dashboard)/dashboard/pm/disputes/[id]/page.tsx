@@ -1,17 +1,8 @@
 "use client";
 
 import { use, useState } from "react";
-import Link from "next/link";
-import {
-  ArrowRight,
-  MessageSquare,
-  History,
-  Clock,
-  User,
-  Building2,
-  Play,
-  CheckCircle,
-} from "lucide-react";
+
+import { MessageSquare, History, Clock, User, Building2, Play, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   useGetPmDisputeDetailQuery,
@@ -19,24 +10,15 @@ import {
   useAddPmDisputeMessageMutation,
   useResolveDisputeMutation,
 } from "@/features/disputes/pmDisputesApi";
-import {
-  DISPUTE_STATUS_AR,
-  DISPUTE_PRIORITY_AR,
-  type DisputeStatus,
-} from "@hassad/shared";
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { DISPUTE_PRIORITY_AR } from "@hassad/shared";
+
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
 import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
 import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
-import {
-  DisputeStatusBadge,
-  DisputeCategoryIcon,
-  DisputeMessageThread,
-  PmResolveDialog,
-} from "@/components/disputes";
+import { DisputeCategoryIcon, DisputeMessageThread, PmResolveDialog } from "@/components/disputes";
 import { DisputeResolutionTimer } from "@/components/disputes/DisputeResolutionTimer";
 
 interface PmDisputeDetailPageProps {
@@ -130,7 +112,7 @@ export default function PmDisputeDetailPage({
   );
 
   return (
-    <div className="flex flex-col gap-5 max-w-4xl" dir="rtl">
+    <div className="page-shell max-w-4xl" dir="rtl">
       {/* ── Breadcrumb ─────────────────────────────────────────────────────── */}
       <PmDetailBreadcrumb
         backHref="/dashboard/pm/disputes"

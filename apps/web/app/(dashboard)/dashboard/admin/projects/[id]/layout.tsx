@@ -7,12 +7,7 @@ import { AdminDetailBreadcrumb } from "@/components/dashboard/admin/shared/Admin
 import { AdminDetailSkeleton } from "@/components/dashboard/admin/shared/AdminDetailSkeleton";
 import { AdminDetailError } from "@/components/dashboard/admin/shared/AdminDetailError";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import {
-  useGetAdminProjectByIdQuery,
-  useReassignAdminProjectPMMutation,
-  useArchiveAdminProjectMutation,
-  useUnarchiveAdminProjectMutation,
-} from "@/features/admin/adminProjectsApi";
+import { useGetAdminProjectByIdQuery, useArchiveAdminProjectMutation, useUnarchiveAdminProjectMutation } from "@/features/admin/adminProjectsApi";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -111,7 +106,7 @@ export default function ProjectDetailLayout({
     return "";
   }, [pathname, id]);
 
-  const handleAction = async (reason: string) => {
+  const handleAction = async (_reason: string) => {
     if (!actionModal) return;
     try {
       if (actionModal.type === "archive") {
@@ -119,7 +114,7 @@ export default function ProjectDetailLayout({
       } else if (actionModal.type === "unarchive") {
         await unarchive(id).unwrap();
       }
-    } catch {}
+    } catch { /* best-effort operation; the UI remains usable without this refresh */ }
     setActionModal(null);
   };
 
@@ -137,7 +132,7 @@ export default function ProjectDetailLayout({
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <div className="flex items-center justify-between">
         <AdminDetailBreadcrumb
           backHref="/dashboard/admin/projects"

@@ -6,7 +6,7 @@ import CurrencyForm from "@/components/dashboard/admin/settings/CurrencyForm";
 
 export default function AdminNewCurrencyPage() {
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="إضافة عملة جديدة"
         description="أضف عملة جديدة لاستخدامها في النظام مع إمكانية رفع رمز SVG"

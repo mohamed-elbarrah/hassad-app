@@ -92,7 +92,7 @@ export default function PortalFinancePage() {
     searchQuery.trim().length > 0 || statusFilter !== "ALL";
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الفواتير والمدفوعات"
         description="استعرض جميع فواتيرك، حالة الدفع، المبالغ المستحقة، وقم بالدفع مباشرة."

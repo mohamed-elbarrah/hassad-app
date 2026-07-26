@@ -18,7 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/design-system/Primitives";
 import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Client } from "@hassad/shared";
 import { ClientStatus } from "@hassad/shared";
@@ -173,7 +173,7 @@ export function ClientsTable({
 
   return (
     <>
-      <div className="rounded-[30px] border-[1.5px] border-portal-card-border overflow-hidden">
+      <div className="rounded-card border border-border-default overflow-hidden">
         <Table>
           <TableHeader className="[tr]:border-b-[1.5px] [tr]:border-portal-divider">
             {table.getHeaderGroups().map((headerGroup) => (

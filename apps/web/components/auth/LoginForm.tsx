@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { LoginSchema, UserRole } from "@hassad/shared";
+import { UserRole } from "@hassad/shared";
 import { useLoginMutation } from "@/features/auth/authApi";
 import { useAppDispatch } from "@/lib/hooks";
 import { setCredentials } from "@/features/auth/authSlice";
@@ -11,9 +11,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { AuthInput } from "./AuthInput";
 import { AuthButton } from "./AuthButton";
-import { AuthDivider } from "./AuthDivider";
-import { AuthSocialRow } from "./AuthSocialRow";
-import { AuthFooter } from "./AuthFooter";
+
+
+
 import { Link } from "./AuthLink";
 
 // We'll define our own schema since LoginSchema from shared might not match
@@ -32,12 +32,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [globalError, setGlobalError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-  } = useForm<LoginFormValues>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: { email: "", password: "", rememberMe: false },
   });

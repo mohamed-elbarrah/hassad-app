@@ -169,7 +169,7 @@ export default function PortalActionsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="إجراءات تتطلب تدخلك"
         description="جميع الإجراءات التي تحتاج مراجعتك أو موافقتك ضمن نفس تجربة العميل الموحدة."

@@ -99,9 +99,8 @@ export default function DashboardLayout({
 
   return (
     <div
-      className="h-screen overflow-hidden flex w-full"
+      className="flex h-screen w-full overflow-hidden bg-surface-muted"
       dir="rtl"
-      style={{ background: "#F9FAFB" }}
     >
       {/* Desktop sidebar */}
       <div className="hidden lg:block">

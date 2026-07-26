@@ -9,7 +9,7 @@ import {
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/design-system/Primitives";
 import { ContractPaymentSummary } from "@/components/shared/ContractPaymentSummary";
 import { toast } from "sonner";
 import {

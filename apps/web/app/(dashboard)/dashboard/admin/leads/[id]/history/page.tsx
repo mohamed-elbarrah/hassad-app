@@ -6,7 +6,7 @@ import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import { useGetAdminLeadByIdQuery } from "@/features/admin/adminLeadsApi";
-import { PIPELINE_STAGE_AR } from "@hassad/shared";
+
 
 export default function LeadHistoryTab({
   params,

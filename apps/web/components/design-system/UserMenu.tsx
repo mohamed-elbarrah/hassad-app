@@ -58,10 +58,10 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
           className="rounded-lg py-3 px-3 cursor-pointer text-base"
           onClick={onLogout}
         >
-          <LogOut className="w-5 h-5" style={{ color: "#FF6161" }} />
+          <LogOut className="w-5 h-5" style={{ color: "var(--color-logout-text)" }} />
           <span
             className="font-medium transition-colors"
-            style={{ color: "#FF6161" }}
+            style={{ color: "var(--color-logout-text)" }}
           >
             تسجيل الخروج
           </span>

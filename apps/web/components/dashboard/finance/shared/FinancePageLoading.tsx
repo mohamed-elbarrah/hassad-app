@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/design-system/Skeleton";
 
 export function FinancePageLoading() {
   return (
-    <div className="flex flex-col gap-5 pb-10" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <Skeleton className="h-9 w-64" />
       <Skeleton className="h-5 w-96 mt-1" />
 

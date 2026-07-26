@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { useUpsertClientProfileV2Mutation } from "@/features/clients/clientsApi";
 import type { IntakeFormV2Input } from "@hassad/shared";
 import { ActionButton } from "@/components/design-system/ActionButton";

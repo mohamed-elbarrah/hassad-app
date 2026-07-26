@@ -12,10 +12,7 @@ import {
   buildAdminKpiConfigs,
 } from "@/components/dashboard/admin/overview/KpiGrid";
 import { AlertPanel } from "@/components/dashboard/admin/overview/AlertPanel";
-import type {
-  AlertCategory,
-  AlertCategoryItem,
-} from "@/components/dashboard/admin/overview/AlertPanel";
+import type { AlertCategory } from "@/components/dashboard/admin/overview/AlertPanel";
 import { TrendChart } from "@/components/dashboard/admin/overview/TrendChart";
 import type { TrendMetricOption } from "@/components/dashboard/admin/overview/TrendChart";
 import { FunnelChart } from "@/components/dashboard/admin/overview/FunnelChart";
@@ -261,7 +258,7 @@ export default function AdminOverviewPage() {
 
   if (statsLoading) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -276,7 +273,7 @@ export default function AdminOverviewPage() {
 
   if (statsError) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <PageIntro title="لوحة التحكم" icon={LayoutDashboard} />
         <AdminEmptyState
           icon={AlertTriangle}
@@ -288,7 +285,7 @@ export default function AdminOverviewPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* Row 1 — Header */}
       <PageIntro
         title="لوحة التحكم"

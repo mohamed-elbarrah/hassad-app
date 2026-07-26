@@ -1,23 +1,14 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  Ticket,
-  Search,
-  AlertTriangle,
-  Clock,
-  CheckCircle,
-} from "lucide-react";
+import { Ticket, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { useGetPmDisputesQuery } from "@/features/disputes/pmDisputesApi";
 import type { DisputeStatus } from "@hassad/shared";
-import { DISPUTE_STATUS_AR } from "@hassad/shared";
+
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { Pagination } from "@/components/design-system/Pagination";
-import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
-import { Input } from "@/components/design-system/Input";
+import { type FilterGroup } from "@/components/design-system/FilterBar";
+
 import { Skeleton } from "@/components/design-system/Skeleton";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { PmDisputeCard } from "@/components/disputes/PmDisputeCard";
@@ -68,7 +59,7 @@ export default function PmDisputesPage() {
 
   const statusFilter = activeFilters["status"]?.[0] ?? activeTab ?? "";
 
-  const { data, isLoading, refetch } = useGetPmDisputesQuery(
+  const { data, isLoading } = useGetPmDisputesQuery(
     {
       status: statusFilter as DisputeStatus | undefined,
       page,
@@ -113,7 +104,7 @@ export default function PmDisputesPage() {
     : disputes;
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="النزاعات"
         description="عرض وإدارة النزاعات المفتوحة ضدك من قبل العملاء. تابع التذاكر ورد على استفسارات العملاء."

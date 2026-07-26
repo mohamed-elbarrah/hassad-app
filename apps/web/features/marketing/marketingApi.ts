@@ -1,11 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "../../lib/baseQuery";
-import {
-  Campaign,
-  CreateCampaignInput,
-  UpdateCampaignMetricsInput,
-  UpdateCampaignStatusInput,
-} from "@hassad/shared";
+import { Campaign, CreateCampaignInput, UpdateCampaignMetricsInput } from "@hassad/shared";
 
 export interface MarketingStrategy {
   id: string;

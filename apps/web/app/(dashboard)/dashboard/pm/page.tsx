@@ -18,7 +18,7 @@ import {
   type DataTableEmptyState,
 } from "@/components/design-system/DataTable";
 import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { TableCell } from "@/components/ui/table";
+import { TableCell } from "@/components/design-system/Primitives";
 import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import { formatShortDate, formatRelativeTime } from "@/lib/format";
@@ -171,7 +171,7 @@ export default function PMWorkspacePage() {
   }
 
   return (
-    <div className="flex flex-col gap-5 pb-10" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* ── Header Section ─────────────────────────────────────────────── */}
       <PageIntro
         title="لوحة تحكم مدير المشاريع"
@@ -550,7 +550,7 @@ export default function PMWorkspacePage() {
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-5 pb-10" dir="rtl">
+    <div className="page-shell" dir="rtl">
       {/* PageIntro skeleton */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-4">

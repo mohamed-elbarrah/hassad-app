@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+
 import { toast } from "sonner";
 import { Pencil, FileText, Send, Link2, AlertCircle } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -11,7 +11,7 @@ import { useGetProfileQuery } from "@/features/auth/authApi";
 import { formatShortDate } from "@/lib/format";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 import { SalesStatusBadge } from "./shared/SalesStatusBadge";
-import { cn } from "@/lib/utils";
+
 
 const EDITABLE_STATUSES = new Set<ProposalStatus>([
   ProposalStatus.DRAFT,

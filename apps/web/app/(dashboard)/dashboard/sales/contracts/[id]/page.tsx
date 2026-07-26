@@ -76,7 +76,7 @@ export default function SalesContractDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <SalesDetailBreadcrumb
         backHref="/dashboard/sales/contracts"
         backLabel="العقود"

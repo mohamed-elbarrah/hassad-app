@@ -1,14 +1,8 @@
 "use client";
 
 import { use } from "react";
-import Link from "next/link";
-import {
-  DollarSign,
-  TrendingUp,
-  PieChart,
-  FileText,
-  Download,
-} from "lucide-react";
+
+import { FileText, Download } from "lucide-react";
 import { useGetContractByIdQuery } from "@/features/contracts/contractsApi";
 import { ContractServicesTable } from "@/components/shared/ContractServicesTable";
 import { ContractInvoicesList } from "@/components/shared/ContractInvoicesList";

@@ -32,7 +32,7 @@ interface PageProps {
 
 export default function ClientProfilePage({ params }: PageProps) {
   const { id } = use(params);
-  const router = useRouter();
+  void useRouter();
   const [newRequestOpen, setNewRequestOpen] = useState(false);
 
   const {
@@ -65,7 +65,7 @@ export default function ClientProfilePage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <SalesDetailBreadcrumb
         backHref="/dashboard/sales/clients"
         backLabel="العملاء"

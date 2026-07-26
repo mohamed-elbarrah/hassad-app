@@ -10,7 +10,7 @@ import { FinanceDetailError } from "@/components/dashboard/finance/shared/Financ
 import { DataTable } from "@/components/design-system/DataTable";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { ActionButton } from "@/components/design-system/ActionButton";
-import { InfoPanel } from "@/components/design-system/InfoPanel";
+
 import { ProgressBar } from "@/components/design-system/ProgressBar";
 import {
   Tabs,
@@ -18,14 +18,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/design-system/Tabs";
-import {
-  FileText,
-  CreditCard,
-  Building2,
-  TrendingUp,
-  History,
-  Download,
-} from "lucide-react";
+import { FileText, CreditCard, Building2, History, Download } from "lucide-react";
 import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
 
 export default function ClientFinanceDetailPage({
@@ -68,7 +61,7 @@ export default function ClientFinanceDetailPage({
         0),
     0,
   );
-  const remaining = totalValue - totalPaid;
+
   const collectionRate = totalValue > 0 ? (totalPaid / totalValue) * 100 : 0;
 
   return (

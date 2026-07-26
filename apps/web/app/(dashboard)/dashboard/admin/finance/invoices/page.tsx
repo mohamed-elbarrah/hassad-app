@@ -124,7 +124,7 @@ export default function AdminFinanceInvoicesPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <AdminEmptyState
           icon={FileText}
           title="حدث خطأ أثناء تحميل الفواتير"
@@ -135,7 +135,7 @@ export default function AdminFinanceInvoicesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الفواتير"
         description="إدارة جميع الفواتير المالية"

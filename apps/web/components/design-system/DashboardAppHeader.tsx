@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Moon, Menu } from "lucide-react";
+import { Moon, Menu } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { DashboardNotificationBell } from "./DashboardNotificationBell";
 import { UserHeaderDisplay } from "./UserAvatar";
@@ -17,7 +17,7 @@ export function DashboardAppHeader({ onMenuToggle }: DashboardAppHeaderProps) {
       className="flex items-center justify-between px-6 shrink-0 bg-white"
       style={{
         height: 100,
-        borderBottom: "1.5px solid #ECEEF2",
+        borderBottom: "1.5px solid var(--color-border-subtle)",
       }}
     >
       {/* Left side (RTL): User welcome + avatar */}
@@ -29,12 +29,12 @@ export function DashboardAppHeader({ onMenuToggle }: DashboardAppHeaderProps) {
             style={{
               width: 48,
               height: 48,
-              border: "1.5px solid #E2E2E2",
+              border: "1.5px solid var(--color-border-default)",
               borderRadius: 9999,
             }}
             aria-label="القائمة"
           >
-            <Menu style={{ width: 24, height: 24, color: "#000000" }} />
+            <Menu style={{ width: 24, height: 24, color: "var(--color-text)" }} />
           </button>
         )}
         {user && (
@@ -48,8 +48,8 @@ export function DashboardAppHeader({ onMenuToggle }: DashboardAppHeaderProps) {
         {/* <div
           className="hidden lg:flex items-center gap-2 px-3 py-2 w-[373px]"
           style={{
-            background: "#F9FAFB",
-            border: "1px solid #E2E2E2",
+            background: "var(--color-surface-muted)",
+            border: "1px solid var(--color-border-default)",
             borderRadius: 16,
             height: 56,
           }}
@@ -66,7 +66,7 @@ export function DashboardAppHeader({ onMenuToggle }: DashboardAppHeaderProps) {
             <span
               className="text-sm"
               style={{
-                color: "#000000",
+                color: "var(--color-text)",
                 fontWeight: 400,
                 fontSize: 14,
                 lineHeight: "120%",
@@ -98,11 +98,11 @@ export function DashboardAppHeader({ onMenuToggle }: DashboardAppHeaderProps) {
           style={{
             width: 56,
             height: 56,
-            border: "1.5px solid #E2E2E2",
+            border: "1.5px solid var(--color-border-default)",
             borderRadius: 9999,
           }}
         >
-          <Moon style={{ width: 24, height: 24, color: "#000000" }} />
+          <Moon style={{ width: 24, height: 24, color: "var(--color-text)" }} />
         </button>
 
         <DashboardNotificationBell />

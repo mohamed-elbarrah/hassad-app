@@ -13,7 +13,7 @@ import {
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+
 import {
   useGetAdminUsersQuery,
   type AdminUserFilters,
@@ -99,7 +99,7 @@ export default function AdminEmployeesPage() {
   }, [data, users]);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الموظفون"
         description="إدارة جميع موظفي المنصة: الأدوار، الأقسام، والصلاحيات"

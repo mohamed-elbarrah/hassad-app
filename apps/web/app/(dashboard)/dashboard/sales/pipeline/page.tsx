@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import {
-  Kanban,
-  DollarSign,
-  Briefcase,
-  TrendingUp,
-  FileCheck,
-  Search,
-  CalendarDays,
-} from "lucide-react";
+import { Kanban, DollarSign, Briefcase, TrendingUp, FileCheck, Search } from "lucide-react";
 import { SalesPipelineKanban } from "@/components/dashboard/sales/SalesPipelineKanban";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { ActionButton } from "@/components/design-system/ActionButton";
@@ -75,7 +67,7 @@ export default function PipelinePage() {
   );
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="لوحة خط المبيعات"
         description="تتبّع حالة الطلبات من الاستقبال حتى التحويل إلى مشروع. اسحب البطاقات بين الأعمدة لتحديث الحالة."

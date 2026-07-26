@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/design-system/Primitives";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { useSendInvoiceMutation } from "@/features/finance/financeApi";
 import { toast } from "sonner";

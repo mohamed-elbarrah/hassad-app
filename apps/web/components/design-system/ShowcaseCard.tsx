@@ -24,7 +24,7 @@ export function ShowcaseCard({
   return (
     <article
       className={cn(
-        "rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0 p-5",
+        "rounded-card border-[1.5px] border-portal-card-border bg-natural-0 p-5",
         className,
       )}
     >

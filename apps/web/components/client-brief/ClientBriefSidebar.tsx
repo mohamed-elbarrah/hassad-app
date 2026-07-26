@@ -22,8 +22,7 @@ export function ClientBriefSidebar({
   const legacyBrandAssets = profile?.brandAssets;
 
   const brandAssets = v2BrandAssets ?? legacyBrandAssets;
-  const hasVisualIdentity =
-    profile?.visualIdentityInfo?.hasVisualIdentity ?? !!brandAssets?.logoUrl;
+
 
   return (
     <div className="space-y-5">

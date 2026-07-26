@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LogOut, Settings, ChevronDown, ChevronLeft, type LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -31,7 +31,6 @@ function isActiveLink(href: string, pathname: string) {
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const [logoutMutation] = useLogoutMutation();
@@ -123,13 +122,13 @@ export function DashboardSidebar() {
 
   const linkBase =
     "flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors";
-  const linkActive = "bg-badge-gray-bg text-[#121936] font-bold";
-  const linkInactive = "text-[#A8ABB2] hover:text-[#121936]";
+  const linkActive = "bg-badge-gray-bg text-brand font-bold";
+  const linkInactive = "text-portal-nav-inactive hover:text-brand";
 
   const iconStyle = (active: boolean) => ({
     width: 20,
     height: 20,
-    color: active ? "#121936" : "#A8ABB2",
+    color: active ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
   });
 
   const textStyle = (active: boolean) => ({
@@ -143,7 +142,7 @@ export function DashboardSidebar() {
       className="h-screen bg-white flex flex-col shrink-0 sticky top-0 overflow-hidden"
       style={{
         width: 336,
-        borderLeft: "1.5px solid #E1E4EA",
+        borderLeft: "1.5px solid var(--color-border-default)",
       }}
     >
       <div className="flex items-center justify-center py-6">
@@ -204,7 +203,7 @@ export function DashboardSidebar() {
                     style={{
                       width: 20,
                       height: 20,
-                      color: hasActiveItem ? "#121936" : "#A8ABB2",
+                      color: hasActiveItem ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
                     }}
                   />
                 ) : (
@@ -213,7 +212,7 @@ export function DashboardSidebar() {
                     style={{
                       width: 20,
                       height: 20,
-                      color: hasActiveItem ? "#121936" : "#A8ABB2",
+                      color: hasActiveItem ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
                     }}
                   />
                 )}
@@ -250,7 +249,7 @@ export function DashboardSidebar() {
       </nav>
 
       <div className="px-8 pb-6">
-        <div className="my-4" style={{ borderTop: "1.5px solid #ECEEF2" }} />
+        <div className="my-4" style={{ borderTop: "1.5px solid var(--color-border-subtle)" }} />
 
         <Link
           href={settingsUrl}
@@ -272,11 +271,11 @@ export function DashboardSidebar() {
             linkBase,
             "w-full text-right cursor-pointer hover:bg-danger-100",
           )}
-          style={{ color: "#FF6161" }}
+          style={{ color: "var(--color-logout-text)" }}
         >
           <LogOut
             className="shrink-0"
-            style={{ width: 20, height: 20, color: "#FF6161" }}
+            style={{ width: 20, height: 20, color: "var(--color-logout-text)" }}
           />
           <span>تسجيل الخروج</span>
         </button>

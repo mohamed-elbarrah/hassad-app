@@ -13,10 +13,10 @@ import {
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+
 import { useGetAdminTasksQuery } from "@/features/admin/adminTasksApi";
 import { cn } from "@/lib/utils";
-import { TASK_STATUS_AR, TASK_PRIORITY_AR } from "@hassad/shared";
+import { TASK_PRIORITY_AR } from "@hassad/shared";
 
 const COLUMNS: DataTableColumn[] = [
   { id: "title", label: "المهمة", align: "right" },
@@ -51,7 +51,7 @@ function getPriorityVariant(priority: string): string {
 
 export default function AdminTasksPage() {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
@@ -79,7 +79,7 @@ export default function AdminTasksPage() {
   }, [data, tasks]);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="المهام"
         description="إدارة جميع مهام المنصة"

@@ -13,7 +13,7 @@ import {
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+
 import { useGetAdminContractsQuery } from "@/features/admin/adminContractsApi";
 
 const CONTRACT_TYPE_AR: Record<string, string> = {
@@ -48,7 +48,7 @@ function formatCurrency(value: number): string {
 
 export default function AdminContractsPage() {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
@@ -74,7 +74,7 @@ export default function AdminContractsPage() {
   }, [data, contracts]);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="العقود"
         description="إدارة جميع عقود المنصة: العقود النشطة والمسودات"

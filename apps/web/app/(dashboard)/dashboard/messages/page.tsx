@@ -16,11 +16,11 @@ import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
 import { MessageInput } from "@/components/chat/MessageInput";
 import type { Conversation, Message } from "@/features/chat/chatApi";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/design-system/Primitives";
 import { Menu, Info, X } from "lucide-react";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+
 
 export default function MessagesPage() {
   const searchParams = useSearchParams();
@@ -29,7 +29,7 @@ export default function MessagesPage() {
     [searchParams],
   );
 
-  const { user } = useAppSelector((s) => s.auth);
+  void useAppSelector((s) => s.auth);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialConversationId,
   );
@@ -54,7 +54,7 @@ export default function MessagesPage() {
   const [sendMessage] = useSendMessageMutation();
   const [sendMessageWithFiles] = useSendMessageWithFilesMutation();
 
-  const { isConnected, onNewMessage, emitTyping, emitStopTyping } =
+  const { onNewMessage, emitTyping, emitStopTyping } =
     useChatSocket(selectedId ?? undefined);
 
   const [typingUser, setTypingUser] = useState<{

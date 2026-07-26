@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Banknote, Search } from "lucide-react";
+import { Banknote } from "lucide-react";
 import { PageIntro } from "@/components/design-system/PageIntro";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
@@ -44,7 +44,7 @@ export default function AdminFinancePaymentsPage() {
 
   if (isError) {
     return (
-      <div className="flex flex-col gap-5" dir="rtl">
+      <div className="page-shell" dir="rtl">
         <AdminEmptyState
           icon={Banknote}
           title="حدث خطأ أثناء تحميل المدفوعات"
@@ -55,7 +55,7 @@ export default function AdminFinancePaymentsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="المدفوعات"
         description="إدارة جميع المدفوعات والمعاملات المالية"

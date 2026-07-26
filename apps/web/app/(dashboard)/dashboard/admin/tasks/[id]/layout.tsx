@@ -8,7 +8,7 @@ import { AdminDetailSkeleton } from "@/components/dashboard/admin/shared/AdminDe
 import { AdminDetailError } from "@/components/dashboard/admin/shared/AdminDetailError";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { useGetAdminTaskByIdQuery } from "@/features/admin/adminTasksApi";
-import { TASK_PRIORITY_AR } from "@hassad/shared";
+
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -54,7 +54,7 @@ export default function TaskDetailLayout({
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <div className="flex items-center justify-between">
         <AdminDetailBreadcrumb
           backHref="/dashboard/admin/tasks"

@@ -11,30 +11,16 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/design-system/Form";
+import { Form, FormField, FormItem, FormLabel } from "@/components/design-system/Form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { FileDropzone } from "@/components/shared/FileDropzone";
-import { ActionButton } from "@/components/design-system/ActionButton";
+
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { ColorPickerControl } from "@/components/design-system/ColorPickerControl";
 import { cn } from "@/lib/utils";
-import {
-  Palette,
-  Image,
-  Camera,
-  Eye,
-  Plus,
-  Check,
-  ExternalLink,
-} from "lucide-react";
-import { VisualIdentityInfoSchema } from "@hassad/shared";
+import { Palette, Image, Camera, Eye, Plus, ExternalLink } from "lucide-react";
+
 import {
   SectionLayout,
   NavigationButtons,

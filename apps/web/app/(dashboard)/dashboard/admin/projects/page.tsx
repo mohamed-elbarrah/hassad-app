@@ -13,7 +13,7 @@ import {
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+
 import { useGetAdminProjectsQuery } from "@/features/admin/adminProjectsApi";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ const EMPTY_STATE: DataTableEmptyState = {
 
 export default function AdminProjectsPage() {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
@@ -77,7 +77,7 @@ export default function AdminProjectsPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="المشاريع"
         description="إدارة جميع المشاريع على المنصة"

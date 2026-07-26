@@ -1,26 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import {
-  Scale,
-  Ticket,
-  User,
-  Building2,
-  FolderKanban,
-  Tag,
-  Flag,
-  Calendar,
-  Clock,
-  MessageSquare,
-  Paperclip,
-  Activity,
-  CheckCircle,
-  AlertTriangle,
-  Check,
-  X,
-  ArrowRightLeft,
-  Send,
-} from "lucide-react";
+import { Ticket, User, Building2, FolderKanban, Tag, Flag, Calendar, Clock, Paperclip, Activity, CheckCircle, AlertTriangle, Check, X, ArrowRightLeft, Send } from "lucide-react";
 import { toast } from "sonner";
 import { SurfaceCard } from "@/components/design-system/SurfaceCard";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
@@ -30,11 +11,7 @@ import {
   useAddAdminDisputeMessageMutation,
   useCloseDisputeMutation,
 } from "@/features/admin/adminDisputesApi";
-import {
-  DISPUTE_STATUS_AR,
-  DISPUTE_CATEGORY_AR,
-  DISPUTE_PRIORITY_AR,
-} from "@hassad/shared";
+import { DISPUTE_CATEGORY_AR, DISPUTE_PRIORITY_AR } from "@hassad/shared";
 import { cn } from "@/lib/utils";
 import {
   DisputeApprovalDialog,
@@ -42,7 +19,7 @@ import {
 } from "@/components/disputes";
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { FormInput } from "@/components/design-system/FormInput";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/design-system/Primitives";
 import { Dialog } from "@/components/design-system/Dialog";
 
 const priorityBadgeClass = (priority: string) => {
@@ -181,7 +158,7 @@ export default function AdminDisputeDetailPage({
   }
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <AdminDetailBreadcrumb
         backHref="/dashboard/admin/disputes"
         backLabel="النزاعات"

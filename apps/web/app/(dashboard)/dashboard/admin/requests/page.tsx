@@ -13,7 +13,7 @@ import {
 import { ActionButton } from "@/components/design-system/ActionButton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
+
 import { useGetAdminRequestsQuery } from "@/features/admin/adminRequestsApi";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,7 @@ const EMPTY_STATE: DataTableEmptyState = {
 
 export default function AdminRequestsPage() {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
     {},
   );
@@ -73,7 +73,7 @@ export default function AdminRequestsPage() {
   }, [data, requests]);
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="الطلبات"
         description="إدارة طلبات العملاء الجديدة وطلبات الخدمات"

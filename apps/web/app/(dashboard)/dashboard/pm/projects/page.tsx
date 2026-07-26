@@ -18,6 +18,7 @@ import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
 import { ProjectStatus } from "@hassad/shared";
 import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
 import { PageIntro } from "@/components/design-system/PageIntro";
+import { PageToolbar } from "@/components/design-system/PageToolbar";
 import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
 import { FolderKanban } from "lucide-react";
 
@@ -87,7 +88,7 @@ export default function ProjectsPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col gap-5" dir="rtl">
+    <div className="page-shell" dir="rtl">
       <PageIntro
         title="المشاريع"
         description="إدارة ومتابعة جميع المشاريع تحت إدارتك"
@@ -96,7 +97,7 @@ export default function ProjectsPage() {
       />
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <PageToolbar>
         <div className="flex-1">
           <Input
             placeholder="ابحث عن مشروع..."
@@ -137,7 +138,7 @@ export default function ProjectsPage() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-      </div>
+      </PageToolbar>
 
       {/* Content */}
       {view === "kanban" && (

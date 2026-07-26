@@ -50,13 +50,13 @@ export function Sidebar() {
 
   const linkBase =
     "flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors";
-  const linkActive = "bg-badge-gray-bg text-[#121936] font-bold";
-  const linkInactive = "text-[#A8ABB2] hover:text-[#121936]";
+  const linkActive = "bg-badge-gray-bg text-brand font-bold";
+  const linkInactive = "text-portal-nav-inactive hover:text-brand";
 
   const iconStyle = (active: boolean) => ({
     width: 20,
     height: 20,
-    color: active ? "#121936" : "#A8ABB2",
+    color: active ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
   });
 
   const textStyle = (active: boolean) => ({
@@ -70,7 +70,7 @@ export function Sidebar() {
       className="h-screen bg-white flex flex-col shrink-0 sticky top-0 overflow-hidden"
       style={{
         width: 336,
-        borderLeft: "1.5px solid #E1E4EA",
+        borderLeft: "1.5px solid var(--color-border-default)",
       }}
     >
       {/* ── Logo ──────────────────────────────────────────────────── */}
@@ -133,7 +133,7 @@ export function Sidebar() {
                     style={{
                       width: 20,
                       height: 20,
-                      color: hasActiveItem ? "#121936" : "#A8ABB2",
+                      color: hasActiveItem ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
                     }}
                   />
                 ) : (
@@ -142,7 +142,7 @@ export function Sidebar() {
                     style={{
                       width: 20,
                       height: 20,
-                      color: hasActiveItem ? "#121936" : "#A8ABB2",
+                      color: hasActiveItem ? "var(--color-brand)" : "var(--color-portal-nav-inactive)",
                     }}
                   />
                 )}
@@ -181,7 +181,7 @@ export function Sidebar() {
 
       {/* ── Bottom section ─────────────────────────────────────────── */}
       <div className="px-8 pb-6">
-        <div className="my-4" style={{ borderTop: "1.5px solid #ECEEF2" }} />
+        <div className="my-4" style={{ borderTop: "1.5px solid var(--color-border-subtle)" }} />
 
         {user && <UserMenu user={user} onLogout={handleLogout} />}
       </div>

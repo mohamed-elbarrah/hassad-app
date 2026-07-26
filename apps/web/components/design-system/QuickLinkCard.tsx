@@ -22,7 +22,7 @@ export function QuickLinkCard({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-4 rounded-[30px] border-[1.5px] border-portal-card-border bg-natural-0 p-5",
+        "flex items-center gap-4 rounded-card border-[1.5px] border-portal-card-border bg-natural-0 p-5",
         "hover:bg-badge-gray-bg transition-colors duration-200",
         className,
       )}
