@@ -10,13 +10,12 @@ import {
   X,
   ArrowRight,
 } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { FormInput } from "@/components/design-system/FormInput";
-import { FormTextarea } from "@/components/design-system/FormTextarea";
-import { Checkbox } from "@/components/design-system/Checkbox";
-import { Input } from "@/components/design-system/Input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
 import { SalesPageHeader } from "@/components/dashboard/sales/shared/SalesPageHeader";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { useCreateRequestForClientMutation } from "@/features/requests/requestsApi";
 import {
   useCreateClientMutation,
@@ -205,10 +204,11 @@ export default function NewOrderPage() {
         {mode === "existing" && (
           <div className="flex flex-col gap-4" ref={searchRef}>
             <div>
-              <label className="block text-sm font-medium text-natural-100 mb-1.5">
-                ابحث عن عميل <span className="text-danger-600">*</span>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                ابحث عن عميل <span className="text-destructive">*</span>
               </label>
               <div className="relative">
+                <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchInput}
                   onChange={(e) => {
@@ -218,14 +218,13 @@ export default function NewOrderPage() {
                   }}
                   onFocus={() => setShowDropdown(true)}
                   placeholder="ابحث باسم العميل أو الشركة..."
-                  icon={<Search className="w-4 h-4" />}
-                  className={cn(selectedClient && "border-success-400")}
+                  className={cn("pr-10", selectedClient && "border-success")}
                 />
                 {selectedClient && (
                   <button
                     type="button"
                     onClick={handleClearClient}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-portal-note-text hover:text-danger-600 transition-colors"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-destructive"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -235,23 +234,23 @@ export default function NewOrderPage() {
               {showDropdown && !selectedClient && (
                 <div
                   ref={dropdownRef}
-                  className="mt-1 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 shadow-lg max-h-48 overflow-y-auto"
+                  className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-background shadow-lg"
                 >
                   {debouncedSearch.length >= 1 &&
                   filteredClients.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-sm text-portal-note-text">
-                      <UserPlus className="w-6 h-6 mx-auto mb-2 text-portal-note-text" />
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <UserPlus className="mx-auto mb-2 size-6 text-muted-foreground" />
                       <p>لا توجد نتائج</p>
                       <button
                         type="button"
                         onClick={() => setMode("new")}
-                        className="mt-2 text-secondary-500 hover:underline font-medium"
+                        className="mt-2 font-medium text-primary hover:underline"
                       >
                         أنشئ عميلاً جديداً
                       </button>
                     </div>
                   ) : debouncedSearch.length < 1 ? (
-                    <div className="px-4 py-3 text-sm text-portal-note-text">
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
                       اكتب حرفاً واحداً على الأقل للبحث
                     </div>
                   ) : (
@@ -260,13 +259,13 @@ export default function NewOrderPage() {
                         key={client.id}
                         type="button"
                         onClick={() => handleSelectClient(client)}
-                        className="w-full px-4 py-2.5 text-right text-sm hover:bg-portal-bg transition-colors border-b border-portal-divider last:border-0"
+                        className="w-full border-b border-border px-4 py-2.5 text-right text-sm transition-colors hover:bg-muted last:border-0"
                       >
-                        <span className="font-medium text-natural-100">
+                        <span className="font-medium text-foreground">
                           {client.companyName || client.user?.name}
                         </span>
                         {client.user?.name && (
-                          <span className="text-portal-note-text mr-2">
+                          <span className="mr-2 text-muted-foreground">
                             {client.user.name}
                           </span>
                         )}
@@ -277,15 +276,15 @@ export default function NewOrderPage() {
               )}
 
               {selectedClient && (
-                <div className="mt-3 rounded-xl border-[1.5px] border-success-200 bg-success-100/30 p-3">
+                <div className="mt-3 rounded-xl border border-success/30 bg-success/10 p-3">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-success-600 shrink-0" />
-                    <span className="text-sm font-medium text-natural-100">
+                    <CheckCircle2 className="size-4 shrink-0 text-success" />
+                    <span className="text-sm font-medium text-foreground">
                       {selectedClient.companyName || selectedClient.user?.name}
                     </span>
                   </div>
                   {selectedClient.user?.name && (
-                    <p className="text-xs text-portal-note-text mr-6 mt-0.5">
+                    <p className="mr-6 mt-0.5 text-xs text-muted-foreground">
                       {selectedClient.user.name}
                     </p>
                   )}
@@ -298,51 +297,64 @@ export default function NewOrderPage() {
         {/* ── New Client Form ─────────────────────── */}
         {mode === "new" && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-portal-note-text">
+            <p className="text-sm text-muted-foreground">
               أنشئ حساباً مبدئياً للعميل. سيتمكن من إكمال بياناته لاحقاً عبر
               بوابة العميل.
             </p>
-            <FormInput
-              label="رقم الهاتف (واتساب)"
-              required
-              type="tel"
-              dir="ltr"
-              value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
-              placeholder="+966 5X XXX XXXX"
-            />
-            <FormInput
-              label="البريد الإلكتروني"
-              type="email"
-              dir="ltr"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="example@email.com"
-            />
-            <FormInput
-              label="كلمة المرور"
-              required
-              type="password"
-              dir="ltr"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="8 أحرف على الأقل"
-              error={
-                newPassword && newPassword.length < 8
-                  ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل"
-                  : undefined
-              }
-            />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">
+                رقم الهاتف (واتساب) <span className="text-destructive">*</span>
+              </label>
+              <Input
+                type="tel"
+                dir="ltr"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="+966 5X XXX XXXX"
+                className="h-11 rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">
+                البريد الإلكتروني
+              </label>
+              <Input
+                type="email"
+                dir="ltr"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="example@email.com"
+                className="h-11 rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">
+                كلمة المرور <span className="text-destructive">*</span>
+              </label>
+              <Input
+                type="password"
+                dir="ltr"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="8 أحرف على الأقل"
+                className="h-11 rounded-xl"
+              />
+              {newPassword && newPassword.length < 8 ? (
+                <p className="text-xs text-destructive">
+                  كلمة المرور يجب أن تكون 8 أحرف على الأقل
+                </p>
+              ) : null}
+            </div>
           </div>
         )}
 
         {/* ── Divider ─────────────────────────────── */}
-        <div className="border-t border-portal-divider" />
+        <div className="border-t border-border" />
 
         {/* ── Services ────────────────────────────── */}
         <div>
-          <label className="block text-sm font-medium text-natural-100 mb-3">
-            الخدمات المطلوبة <span className="text-danger-600">*</span>
+          <label className="mb-3 block text-sm font-medium text-foreground">
+            الخدمات المطلوبة <span className="text-destructive">*</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(activeServices.length > 0
@@ -370,60 +382,63 @@ export default function NewOrderPage() {
               <label
                 key={service.id}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl border-[1.5px] p-3 transition-all text-right cursor-pointer",
+                  "flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-right transition-all",
                   selectedServices.includes(service.id)
-                    ? "border-secondary-500 bg-secondary-50/30"
-                    : "border-portal-card-border hover:bg-portal-bg",
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted",
                 )}
               >
                 <Checkbox
                   checked={selectedServices.includes(service.id)}
                   onCheckedChange={() => toggleService(service.id)}
                 />
-                <span className="text-sm text-natural-100 select-none">
+                <span className="select-none text-sm text-foreground">
                   {service.nameAr || service.name}
                 </span>
               </label>
             ))}
           </div>
           {selectedServices.length === 0 && (
-            <p className="text-xs text-portal-note-text mt-2">
+            <p className="mt-2 text-xs text-muted-foreground">
               اختر خدمة واحدة على الأقل
             </p>
           )}
         </div>
 
         {/* ── Notes ───────────────────────────────── */}
-        <FormTextarea
-          label="ملاحظات (اختياري)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="أخبرنا باختصار عن احتياج العميل..."
-          rows={4}
-        />
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-foreground">
+            ملاحظات (اختياري)
+          </label>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="أخبرنا باختصار عن احتياج العميل..."
+            rows={4}
+            className="rounded-xl"
+          />
+        </div>
 
         {/* ── Submit ──────────────────────────────── */}
-        <div className="flex items-center justify-between pt-4 border-t border-portal-divider gap-3">
-          <ActionButton
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+          <Button
             type="button"
             variant="ghost"
             onClick={() => router.back()}
             disabled={isSubmitting}
           >
             إلغاء
-          </ActionButton>
+          </Button>
 
-          <ActionButton
+          <Button
             type="button"
-            variant="primary"
             onClick={handleSubmit}
             disabled={!canSubmit || isSubmitting}
-            loading={isSubmitting}
-            icon={<ArrowRight className="w-4 h-4" />}
-            iconPosition="right"
+            className="gap-2"
           >
             {isSubmitting ? "جاري الإنشاء..." : "إنشاء الطلب"}
-          </ActionButton>
+            <ArrowRight className="size-4" />
+          </Button>
         </div>
       </div>
     </div>

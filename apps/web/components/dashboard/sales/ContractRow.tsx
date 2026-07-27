@@ -3,12 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Eye, Link2, CheckCheck } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { CheckCheck, Eye, Link2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ContractStatus } from "@hassad/shared";
 import type { ContractItem as ContractListItem } from "@/features/contracts/contractsApi";
-import { formatShortDate } from "@/lib/format";
-import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 import { SalesStatusBadge } from "./shared/SalesStatusBadge";
 
 /**
@@ -28,11 +27,9 @@ export function renderContractRowCells(
 
     // Total value
     <td key="totalValue" className="px-5 py-3.5 align-middle">
-      <CurrencyDisplay
-        amount={contract.totalValue}
-        size="sm"
-        className="text-sm font-semibold text-natural-100 tabular-nums"
-      />
+      <span className="text-sm font-semibold tabular-nums text-foreground">
+        {formatCurrency(contract.totalValue)}
+      </span>
     </td>,
 
     // Period
@@ -75,27 +72,28 @@ function ContractActionsCell({ contract }: { contract: ContractListItem }) {
 
   return (
     <div className="flex justify-end gap-2 items-center">
-      <Link href={`/dashboard/sales/contracts/${contract.id}`}>
-        <ActionButton size="sm" variant="ghost" title="عرض العقد">
-          <Eye className="w-4 h-4" />
-        </ActionButton>
-      </Link>
+      <Button asChild size="icon" variant="ghost" className="size-8 rounded-lg" title="عرض العقد">
+        <Link href={`/dashboard/sales/contracts/${contract.id}`}>
+          <Eye className="size-4" />
+        </Link>
+      </Button>
 
       {contract.status === ContractStatus.SENT && (
-        <ActionButton
+        <Button
           size="sm"
           variant="outline"
           onClick={() => handleCopyLink(contract.shareLinkToken, contract.id)}
           disabled={!contract.shareLinkToken}
           title="نسخ رابط التوقيع للعميل"
+          className="rounded-lg"
         >
           {copiedId === contract.id ? (
-            <CheckCheck className="w-4 h-4 ml-1 text-success-600" />
+            <CheckCheck className="ml-1 size-4 text-success" />
           ) : (
-            <Link2 className="w-4 h-4 ml-1" />
+            <Link2 className="ml-1 size-4" />
           )}
           {copiedId === contract.id ? "تم النسخ" : "نسخ الرابط"}
-        </ActionButton>
+        </Button>
       )}
     </div>
   );

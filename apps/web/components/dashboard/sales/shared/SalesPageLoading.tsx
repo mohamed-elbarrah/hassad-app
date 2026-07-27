@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Route‑level loading skeleton for sales pages.

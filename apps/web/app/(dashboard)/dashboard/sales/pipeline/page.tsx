@@ -1,15 +1,33 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { Kanban, DollarSign, Briefcase, TrendingUp, FileCheck, Search } from "lucide-react";
+import Link from "next/link";
+import {
+  Kanban,
+  DollarSign,
+  Briefcase,
+  TrendingUp,
+  FileCheck,
+  Search,
+  type LucideIcon,
+} from "lucide-react";
+
 import { SalesPipelineKanban } from "@/components/dashboard/sales/SalesPipelineKanban";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { MetricCard } from "@/components/design-system/MetricCard";
-import { Input } from "@/components/design-system/Input";
-import { Select, SelectItem } from "@/components/design-system/Select";
-import { FilterBar, type FilterGroup } from "@/components/design-system/FilterBar";
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { SalesFilterBar, type SalesFilterGroup } from "@/components/dashboard/sales/shared/SalesFilterBar";
+import { SalesPageHeader } from "@/components/dashboard/sales/shared/SalesPageHeader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useGetSalesMetricsQuery } from "@/features/sales/salesApi";
 
 const PERIOD_OPTIONS = [
@@ -19,7 +37,7 @@ const PERIOD_OPTIONS = [
   { value: "lastYear", label: "آخر سنة" },
 ];
 
-const STATUS_FILTER_GROUP: FilterGroup = {
+const STATUS_FILTER_GROUP: SalesFilterGroup = {
   key: "status",
   label: "الحالة",
   options: [
@@ -68,96 +86,99 @@ export default function PipelinePage() {
 
   return (
     <div className="page-shell" dir="rtl">
-      <PageIntro
+      <SalesPageHeader
         title="لوحة خط المبيعات"
         description="تتبّع حالة الطلبات من الاستقبال حتى التحويل إلى مشروع. اسحب البطاقات بين الأعمدة لتحديث الحالة."
         icon={Kanban}
         actions={
           <>
-            <ActionButton
-              variant="outline"
-              size="md"
-              href="/dashboard/sales/clients"
-            >
-              العملاء
-            </ActionButton>
-            <ActionButton
-              variant="outline"
-              size="md"
-              href="/dashboard/sales/proposals"
-            >
-              العروض الفنية
-            </ActionButton>
-            <ActionButton
-              variant="outline"
-              size="md"
-              href="/dashboard/sales/contracts"
-            >
-              العقود
-            </ActionButton>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/sales/clients">العملاء</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/sales/proposals">العروض الفنية</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/sales/contracts">العقود</Link>
+            </Button>
           </>
         }
       />
 
       {/* ── Metrics Row ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {metricsLoading ? (
           <>
-            <Skeleton className="h-[132px] rounded-[30px]" />
-            <Skeleton className="h-[132px] rounded-[30px]" />
-            <Skeleton className="h-[132px] rounded-[30px]" />
-            <Skeleton className="h-[132px] rounded-[30px]" />
+            <Skeleton className="h-32 rounded-3xl" />
+            <Skeleton className="h-32 rounded-3xl" />
+            <Skeleton className="h-32 rounded-3xl" />
+            <Skeleton className="h-32 rounded-3xl" />
           </>
         ) : (
           <>
-            <MetricCard
+            <SalesMetricCard
               title="قيمة الصفقات"
-              amount={metrics?.pipelineValue ?? 0}
+              value={new Intl.NumberFormat("ar-SA-u-nu-latn").format(
+                metrics?.pipelineValue ?? 0,
+              )}
+              suffix="ر.س"
               icon={DollarSign}
             />
-            <MetricCard
+            <SalesMetricCard
               title="الصفقات النشطة"
               value={metrics?.activeDeals ?? 0}
               icon={Briefcase}
             />
-            <MetricCard
+            <SalesMetricCard
               title="نسبة التحويل"
               value={`${metrics?.closeRate ?? 0}%`}
               icon={TrendingUp}
-              variant={metrics && metrics.closeRate > 20 ? "success" : metrics && metrics.closeRate > 10 ? "warning" : "default"}
+              tone={
+                metrics && metrics.closeRate > 20
+                  ? "success"
+                  : metrics && metrics.closeRate > 10
+                    ? "warning"
+                    : "default"
+              }
             />
-            <MetricCard
+            <SalesMetricCard
               title="الموقعة هذا الشهر"
               value={metrics?.signedThisMonth ?? 0}
               icon={FileCheck}
-              variant={metrics && metrics.signedThisMonth > 0 ? "success" : "default"}
+              tone={
+                metrics && metrics.signedThisMonth > 0 ? "success" : "default"
+              }
             />
           </>
         )}
       </div>
 
       {/* ── Search + Filter Toolbar ──────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative max-w-sm flex-1">
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            icon={<Search className="w-4 h-4" />}
             placeholder="بحث باسم العميل أو الشركة..."
             value={search}
             onChange={handleSearchChange}
+            className="pr-10"
           />
         </div>
-        <Select
-          value={period}
-          onValueChange={setPeriod}
-          triggerClassName="w-[130px] h-10 rounded-xl border border-portal-card-border bg-natural-0 text-sm text-natural-100 font-medium"
-        >
-          {PERIOD_OPTIONS.map((opt) => (
-            <SelectItem key={opt.label} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
+        <Select value={period} onValueChange={setPeriod}>
+          <SelectTrigger className="w-full rounded-xl lg:w-[130px]">
+            <SelectValue placeholder="الفترة" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {PERIOD_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
         </Select>
-        <FilterBar
+        <SalesFilterBar
           groups={[STATUS_FILTER_GROUP]}
           activeFilters={activeFilters}
           onFilterChange={handleFilterChange}
@@ -166,5 +187,54 @@ export default function PipelinePage() {
 
       <SalesPipelineKanban filters={filters} />
     </div>
+  );
+}
+
+function SalesMetricCard({
+  title,
+  value,
+  icon: Icon,
+  tone = "default",
+  suffix,
+}: {
+  title: string;
+  value: string | number;
+  icon: LucideIcon;
+  tone?: "default" | "success" | "warning";
+  suffix?: string;
+}) {
+  const toneClasses = {
+    default: "bg-muted text-primary",
+    success: "bg-success/15 text-success",
+    warning: "bg-warning/15 text-warning",
+  };
+
+  return (
+    <Card className="rounded-3xl border-border-default shadow-none">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+        <div className="space-y-1">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-bold text-foreground">{value}</span>
+            {suffix ? (
+              <span className="text-sm font-medium text-muted-foreground">
+                {suffix}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div
+          className={cn(
+            "flex size-11 items-center justify-center rounded-2xl",
+            toneClasses[tone],
+          )}
+        >
+          <Icon className="size-5" />
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0" />
+    </Card>
   );
 }

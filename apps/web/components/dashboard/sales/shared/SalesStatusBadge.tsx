@@ -1,16 +1,14 @@
 "use client";
 
-import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
   mapContractStatusToUI,
-  mapProposalStatusToUI,
-  mapProjectStatusToUI,
   mapFinanceStatusToUI,
+  mapProjectStatusToUI,
+  mapProposalStatusToUI,
 } from "@/lib/utils/statusMapping";
 
-/**
- * Domains that the sales dashboard uses for status display.
- */
 export type SalesDomain =
   | "contract"
   | "proposal"
@@ -19,38 +17,43 @@ export type SalesDomain =
   | "project"
   | "invoice";
 
+type SalesStatusTone =
+  | "neutral"
+  | "warning"
+  | "info"
+  | "review"
+  | "success"
+  | "danger";
+
 interface SalesStatusBadgeProps {
   domain: SalesDomain;
   status: string;
   label?: string;
 }
 
-/**
- * Maps every sales domain + status to the correct `StatusBadge`.
- *
- * This is the **single source of truth** for status display in the
- * sales dashboard. Every page that previously defined its own
- * `STATUS_META` / `STATUS_TONE` / `STATUS_LABELS` map should use
- * this component instead.
- *
- * Supported domains:
- * - `contract`  → uses `mapContractStatusToUI`
- * - `proposal`  → uses `mapProposalStatusToUI`
- * - `project`   → uses `mapProjectStatusToUI`
- * - `invoice`   → uses `mapFinanceStatusToUI`
- * - `request`   → custom mapping (not in shared statusMapping yet)
- * - `client`    → custom mapping
- */
+const SALES_STATUS_STYLES: Record<SalesStatusTone, string> = {
+  neutral: "border-border bg-muted text-muted-foreground",
+  warning: "border-warning/20 bg-warning/15 text-warning",
+  info: "border-info/20 bg-info/15 text-info",
+  review: "border-primary/15 bg-primary/10 text-primary",
+  success: "border-success/20 bg-success/15 text-success",
+  danger: "border-destructive/20 bg-destructive/15 text-destructive",
+};
+
 export function SalesStatusBadge({
   domain,
   status,
   label,
 }: SalesStatusBadgeProps) {
   const uiStatus = resolveUIStatus(domain, status);
-  return <StatusBadge status={uiStatus} label={label} />;
-}
+  const meta = resolveStatusMeta(uiStatus);
 
-// ── Internal helpers ─────────────────────────────────────────────────────────
+  return (
+    <Badge className={cn("font-medium", SALES_STATUS_STYLES[meta.tone])}>
+      {label ?? meta.label}
+    </Badge>
+  );
+}
 
 function resolveUIStatus(domain: SalesDomain, status: string) {
   switch (domain) {
@@ -71,10 +74,29 @@ function resolveUIStatus(domain: SalesDomain, status: string) {
   }
 }
 
-/**
- * Request status → UI status mapping.
- * These are the pipeline stages visible in the sales Kanban.
- */
+function resolveStatusMeta(status: string): {
+  tone: SalesStatusTone;
+  label: string;
+} {
+  switch (status) {
+    case "pending":
+      return { tone: "warning", label: "معلق" };
+    case "in-progress":
+      return { tone: "info", label: "قيد التنفيذ" };
+    case "awaiting-review":
+      return { tone: "review", label: "بانتظار المراجعة" };
+    case "active":
+      return { tone: "success", label: "نشط" };
+    case "completed":
+      return { tone: "success", label: "مكتمل" };
+    case "cancelled":
+      return { tone: "danger", label: "ملغي" };
+    case "draft":
+    default:
+      return { tone: "neutral", label: "مسودة" };
+  }
+}
+
 function mapRequestStatusToUI(status: string) {
   switch (status) {
     case "SUBMITTED":
@@ -98,9 +120,6 @@ function mapRequestStatusToUI(status: string) {
   }
 }
 
-/**
- * Client status → UI status mapping.
- */
 function mapClientStatusToUI(status: string) {
   switch (status) {
     case "ACTIVE":

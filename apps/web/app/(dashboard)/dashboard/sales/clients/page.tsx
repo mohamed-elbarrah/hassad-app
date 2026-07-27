@@ -4,17 +4,17 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
 import { useGetClientsQuery } from "@/features/clients/clientsApi";
-import { DataTable } from "@/components/design-system/DataTable";
-import { Pagination } from "@/components/design-system/Pagination";
+import { SalesDataTable } from "@/components/dashboard/sales/shared/SalesDataTable";
+import { SalesPagination } from "@/components/dashboard/sales/shared/SalesPagination";
 import { renderClientRowCells } from "@/components/dashboard/sales/ClientRow";
 import { SalesPageHeader } from "@/components/dashboard/sales/shared/SalesPageHeader";
 import { SalesListToolbar } from "@/components/dashboard/sales/shared/SalesListToolbar";
-import type { FilterGroup } from "@/components/design-system/FilterBar";
+import type { SalesFilterGroup } from "@/components/dashboard/sales/shared/SalesFilterBar";
 import { ClientStatus } from "@hassad/shared";
 
 const PAGE_SIZE = 20;
 
-const STATUS_FILTERS: FilterGroup[] = [
+const STATUS_FILTERS: SalesFilterGroup[] = [
   {
     key: "status",
     label: "الحالة",
@@ -89,7 +89,7 @@ export default function SalesClientsPage() {
         count={clients.length}
       />
 
-      <DataTable
+      <SalesDataTable
         columns={[
           { id: "companyName", label: "الشركة" },
           { id: "contactName", label: "المسؤول" },
@@ -120,7 +120,7 @@ export default function SalesClientsPage() {
       />
 
       {!isLoading && !isError && totalPages > 1 && (
-        <Pagination
+        <SalesPagination
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}

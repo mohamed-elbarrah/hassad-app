@@ -1,6 +1,6 @@
 "use client";
 
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SalesDetailVariant = "contract" | "proposal" | "request" | "client";
 
@@ -8,11 +8,9 @@ interface SalesDetailSkeletonProps {
   variant: SalesDetailVariant;
 }
 
-/**
- * Loading skeleton for sales detail pages.
- * Mirrors the portal `DetailSkeleton` pattern with sales‑specific variants.
- */
-export function SalesDetailSkeleton({ variant }: SalesDetailSkeletonProps) {
+export function SalesDetailSkeleton({
+  variant: _variant,
+}: SalesDetailSkeletonProps) {
   return (
     <div className="page-shell" dir="rtl">
       <Skeleton className="h-5 w-48 rounded-lg" />

@@ -4,19 +4,19 @@ import { useState, useCallback } from "react";
 import { FileText } from "lucide-react";
 import { useGetProposalsQuery } from "@/features/proposals/proposalsApi";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";
-import { DataTable } from "@/components/design-system/DataTable";
-import { Pagination } from "@/components/design-system/Pagination";
+import { SalesDataTable } from "@/components/dashboard/sales/shared/SalesDataTable";
+import { SalesPagination } from "@/components/dashboard/sales/shared/SalesPagination";
 import { ProposalFormDialog } from "@/components/dashboard/sales/ProposalFormDialog";
 import { CreateContractDialog } from "@/components/dashboard/sales/CreateContractDialog";
 import { renderProposalRowCells } from "@/components/dashboard/sales/ProposalRow";
 import { SalesPageHeader } from "@/components/dashboard/sales/shared/SalesPageHeader";
 import { SalesListToolbar } from "@/components/dashboard/sales/shared/SalesListToolbar";
-import type { FilterGroup } from "@/components/design-system/FilterBar";
+import type { SalesFilterGroup } from "@/components/dashboard/sales/shared/SalesFilterBar";
 import { ProposalStatus } from "@hassad/shared";
 
 const PAGE_SIZE = 20;
 
-const STATUS_FILTERS: FilterGroup[] = [
+const STATUS_FILTERS: SalesFilterGroup[] = [
   {
     key: "status",
     label: "الحالة",
@@ -103,7 +103,7 @@ export default function ProposalsPage() {
         count={proposals.length}
       />
 
-      <DataTable
+      <SalesDataTable
         columns={[
           { id: "client", label: "العميل / العميل المحتمل" },
           { id: "price", label: "السعر" },
@@ -134,7 +134,7 @@ export default function ProposalsPage() {
       />
 
       {!isLoading && !isError && totalPages > 1 && (
-        <Pagination
+        <SalesPagination
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}

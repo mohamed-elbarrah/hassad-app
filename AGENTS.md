@@ -8,8 +8,10 @@
 | `.agent/NESTJS_API_V2.md`   | Full API spec: module structure, all endpoints, permission keys, workflow rules.                                               |
 | `.agent/DATA_BASE_V2.md`    | Prisma schema spec. **Stale** — actual schema has 50 models with payments, payroll, ledger, and bank accounts not in this doc. |
 | `.agent/PROBLEM_SOLVING.md` | Required debugging protocol and commit message format.                                                                         |
+| `.agent/UI_STRICT_RULES.md` | Mandatory UI rules: shadcn/ui is the primitive source of truth, no new wrapper layer, no hardcoded visual styling.            |
+| `.agent/UI_REFACTOR_PLAN.md` | Step-by-step UI cleanup and migration plan by dashboard.                                                                      |
 
-Always read the relevant `.agent/` spec before touching API or DB code. Validate spec claims against actual code — some endpoints/paths/methods differ.
+Always read the relevant `.agent/` spec before touching API, DB, or UI code. Validate spec claims against actual code — some endpoints/paths/methods differ.
 
 ---
 
@@ -216,6 +218,43 @@ features/       Feature planning markdown docs
 - `lib/store.ts` — Redux store; `lib/baseQuery.ts` — shared base query with envelope unwrap + auto token refresh
 - **No `middleware.ts` exists** — Next.js 16 uses `apps/web/proxy.ts` instead. It verifies JWT at the Edge using `jose`, redirects unauthenticated users.
 - Path alias `@/*` maps to the root of `apps/web/` (not `src/`)
+
+### UI rules (`apps/web/`) — mandatory
+
+- Read `.agent/UI_STRICT_RULES.md` before any UI change.
+- Follow `.agent/UI_REFACTOR_PLAN.md` for migration order and cleanup strategy.
+- `apps/web/components/ui/*` is the **only primitive UI source of truth**.
+- `apps/web/app/globals.css` is the **only token/theme source of truth**.
+- Do **not** add new files to `apps/web/components/design-system/*`.
+- Do **not** guess shadcn APIs, composition, theming, or variants.
+- Do **not** build shared UI from hardcoded HTML + inline style when shadcn already provides the primitive.
+- Before implementing any UI primitive/pattern, use the installed shadcn skill at `.agents/skills/shadcn/` and the shadcn CLI/docs.
+
+### Required shadcn workflow for every UI task
+
+From `apps/web/` run these before implementing UI:
+
+```bash
+npx shadcn@latest info --json
+npx shadcn@latest docs <component>
+```
+
+Use these when needed:
+
+```bash
+npx shadcn@latest search <query>
+npx shadcn@latest view <component-or-registry-item>
+npx shadcn@latest add <component>
+```
+
+Rules:
+
+1. Check installed components and project context first via `info --json`.
+2. Read docs for every component you will use; do not rely on memory.
+3. Prefer shadcn composition over custom wrappers.
+4. Shared app patterns must be composed from shadcn primitives only.
+5. No hardcoded visual values in TSX unless first tokenized in `app/globals.css`.
+6. No inline visual styles for colors, spacing, radii, borders, shadows, or sizing in shared UI.
 
 ---
 

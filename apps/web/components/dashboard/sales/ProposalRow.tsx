@@ -2,14 +2,20 @@
 
 
 import { toast } from "sonner";
-import { Pencil, FileText, Send, Link2, AlertCircle } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import {
+  AlertCircle,
+  FileText,
+  Link2,
+  Loader2,
+  Pencil,
+  Send,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ProposalStatus } from "@hassad/shared";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";
 import { useSendProposalMutation } from "@/features/proposals/proposalsApi";
 import { useGetProfileQuery } from "@/features/auth/authApi";
-import { formatShortDate } from "@/lib/format";
-import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 import { SalesStatusBadge } from "./shared/SalesStatusBadge";
 
 
@@ -62,11 +68,9 @@ export function renderProposalRowCells(
 
     // Price
     <td key="price" className="px-5 py-3.5 align-middle">
-      <CurrencyDisplay
-        amount={proposal.totalPrice}
-        size="sm"
-        className="text-sm font-semibold text-natural-100 tabular-nums"
-      />
+      <span className="text-sm font-semibold tabular-nums text-foreground">
+        {formatCurrency(proposal.totalPrice)}
+      </span>
     </td>,
 
     // Created date
@@ -142,63 +146,66 @@ function ProposalActionsCell({
   return (
     <div className="flex justify-end gap-2 items-center">
       {canEdit(proposal) && onEdit && (
-        <ActionButton
-          size="sm"
+        <Button
+          size="icon"
           variant="ghost"
           title="تعديل العرض"
           onClick={() => onEdit(proposal)}
+          className="size-8 rounded-lg"
         >
-          <Pencil className="w-4 h-4" />
-        </ActionButton>
+          <Pencil className="size-4" />
+        </Button>
       )}
 
       {proposal.status === ProposalStatus.APPROVED && onCreateContract && (
-        <ActionButton
+        <Button
           size="sm"
-          variant="primary"
           onClick={() => onCreateContract(proposal.id)}
+          className="rounded-lg"
         >
-          <FileText className="w-4 h-4 ml-1" />
+          <FileText className="ml-1 size-4" />
           إنشاء عقد
-        </ActionButton>
+        </Button>
       )}
 
       {SENDABLE_STATUSES.has(proposal.status) && (
-        <ActionButton
+        <Button
           size="sm"
-          variant="action-blue"
           onClick={() => handleSend(proposal.id)}
-          loading={sending}
+          disabled={sending}
           title="إرسال العرض للعميل"
+          className="rounded-lg"
         >
-          <Send className="w-4 h-4 ml-1" />
+          {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="ml-1 size-4" />}
           إرسال
-        </ActionButton>
+        </Button>
       )}
 
       {proposal.status === ProposalStatus.SENT && (
-        <ActionButton
+        <Button
           size="sm"
           variant="outline"
           onClick={() => handleCopy(proposal.shareLinkToken)}
           disabled={!proposal.shareLinkToken}
           title="نسخ رابط العرض"
+          className="rounded-lg"
         >
-          <Link2 className="w-4 h-4 ml-1" />
+          <Link2 className="ml-1 size-4" />
           نسخ الرابط
-        </ActionButton>
+        </Button>
       )}
 
       {proposal.status === ProposalStatus.REJECTED && onEdit && (
-        <ActionButton
+        <Button
           size="sm"
           variant="outline"
           onClick={() => onEdit(proposal)}
           title="تعديل وإعادة إرسال"
+          className="rounded-lg"
         >
-          <AlertCircle className="w-4 h-4 ml-1" />
+          <AlertCircle className="ml-1 size-4" />
           تعديل وإعادة إرسال
-        </ActionButton>
+        </Button>
       )}
     </div>
   );

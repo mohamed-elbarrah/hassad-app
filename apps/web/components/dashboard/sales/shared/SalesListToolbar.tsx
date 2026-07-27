@@ -2,17 +2,18 @@
 
 import type { ReactNode } from "react";
 import { Search } from "lucide-react";
-import { Input } from "@/components/design-system/Input";
+
+import { Input } from "@/components/ui/input";
 import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
+  SalesFilterBar,
+  type SalesFilterGroup,
+} from "@/components/dashboard/sales/shared/SalesFilterBar";
 
 interface SalesListToolbarProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
-  filterGroups?: FilterGroup[];
+  filterGroups?: SalesFilterGroup[];
   activeFilters?: Record<string, string[]>;
   onFilterChange?: (groupKey: string, values: string[]) => void;
   countLabel: string;
@@ -20,10 +21,6 @@ interface SalesListToolbarProps {
   actions?: ReactNode;
 }
 
-/**
- * Search + filter + count toolbar for sales list pages.
- * Mirrors the portal `QueueToolbar` pattern.
- */
 export function SalesListToolbar({
   searchValue,
   onSearchChange,
@@ -37,28 +34,28 @@ export function SalesListToolbar({
 }: SalesListToolbarProps) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-portal-icon" />
+          <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full h-12 pr-10 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 text-sm"
+            className="h-11 rounded-xl pr-10"
           />
         </div>
         {actions}
-        <span className="text-sm text-portal-note-text whitespace-nowrap">
+        <span className="whitespace-nowrap text-sm text-muted-foreground">
           {count} {countLabel}
         </span>
       </div>
-      {filterGroups && activeFilters && onFilterChange && (
-        <FilterBar
+      {filterGroups && activeFilters && onFilterChange ? (
+        <SalesFilterBar
           groups={filterGroups}
           activeFilters={activeFilters}
           onFilterChange={onFilterChange}
         />
-      )}
+      ) : null}
     </div>
   );
 }
