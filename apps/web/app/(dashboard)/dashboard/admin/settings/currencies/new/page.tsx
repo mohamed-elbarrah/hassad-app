@@ -1,18 +1,7 @@
-"use client";
-
-import { DollarSign } from "lucide-react";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import CurrencyForm from "@/components/dashboard/admin/settings/CurrencyForm";
-
-export default function AdminNewCurrencyPage() {
+export default function SettingsCurrenciesNew() {
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="إضافة عملة جديدة"
-        description="أضف عملة جديدة لاستخدامها في النظام مع إمكانية رفع رمز SVG"
-        icon={DollarSign}
-      />
-      <CurrencyForm mode="create" />
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <h1 className="text-2xl font-bold text-muted-foreground">Settings / Currencies / New</h1>
     </div>
   );
 }

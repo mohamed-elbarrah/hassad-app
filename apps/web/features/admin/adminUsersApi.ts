@@ -137,6 +137,26 @@ export interface AdminTeamWorkload {
   summary: AdminTeamWorkloadSummary;
 }
 
+export interface CreateAdminUserPayload {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  phoneWhatsapp?: string;
+  department?: TaskDepartment;
+}
+
+export interface SuspendAdminUserPayload {
+  id: string;
+  reason: string;
+  suspendedUntil?: string;
+}
+
+export interface ReactivateAdminUserPayload {
+  id: string;
+  reason: string;
+}
+
 export const adminUsersApi = createApi({
   reducerPath: "adminUsersApi",
   baseQuery,
@@ -186,7 +206,7 @@ export const adminUsersApi = createApi({
       providesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
-    createAdminUser: builder.mutation<AdminUserItem, Partial<AdminUserItem>>({
+    createAdminUser: builder.mutation<AdminUserItem, CreateAdminUserPayload>({
       query: (body) => ({ url: "/admin/users", method: "POST", body }),
       invalidatesTags: ["AdminUsers"],
     }),
@@ -214,20 +234,28 @@ export const adminUsersApi = createApi({
       invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }],
     }),
 
-    suspendAdminUser: builder.mutation<void, string>({
-      query: (id) => ({
+    suspendAdminUser: builder.mutation<void, SuspendAdminUserPayload>({
+      query: ({ id, reason, suspendedUntil }) => ({
         url: `/admin/users/${id}/suspend`,
         method: "POST",
+        body: { reason, suspendedUntil },
       }),
-      invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }, "AdminUsers"],
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminUser", id },
+        "AdminUsers",
+      ],
     }),
 
-    reactivateAdminUser: builder.mutation<void, string>({
-      query: (id) => ({
+    reactivateAdminUser: builder.mutation<void, ReactivateAdminUserPayload>({
+      query: ({ id, reason }) => ({
         url: `/admin/users/${id}/reactivate`,
         method: "POST",
+        body: { reason },
       }),
-      invalidatesTags: (_result, _error, id) => [{ type: "AdminUser", id }, "AdminUsers"],
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "AdminUser", id },
+        "AdminUsers",
+      ],
     }),
 
     impersonateAdminUser: builder.mutation<
