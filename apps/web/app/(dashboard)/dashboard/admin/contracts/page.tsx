@@ -3,16 +3,13 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { FileText, Plus, Download } from "lucide-react";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import {
-  DataTable,
-  type DataTableColumn,
-  type DataTableEmptyState,
-} from "@/components/design-system/DataTable";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 
 import { useGetAdminContractsQuery } from "@/features/admin/adminContractsApi";
 
@@ -20,22 +17,6 @@ const CONTRACT_TYPE_AR: Record<string, string> = {
   MONTHLY_RETAINER: "اشتراك شهري",
   FIXED_PROJECT: "مشروع ثابت",
   ONE_TIME_SERVICE: "خدمة لمرة واحدة",
-};
-
-const COLUMNS: DataTableColumn[] = [
-  { id: "title", label: "العنوان", align: "right" },
-  { id: "clientName", label: "العميل", align: "right" },
-  { id: "type", label: "النوع", align: "right" },
-  { id: "status", label: "الحالة", align: "right" },
-  { id: "monthlyValue", label: "القيمة الشهرية", align: "right" },
-  { id: "totalValue", label: "القيمة الإجمالية", align: "right" },
-  { id: "startDate", label: "تاريخ البداية", align: "right" },
-];
-
-const EMPTY_STATE: DataTableEmptyState = {
-  icon: FileText,
-  message: "لا يوجد عقود",
-  hint: "لم يتم إضافة أي عقود بعد.",
 };
 
 function formatCurrency(value: number): string {
@@ -73,138 +54,157 @@ export default function AdminContractsPage() {
     return { total, active, draft };
   }, [data, contracts]);
 
+  const cards = [
+    { label: "الإجمالي", value: statCards.total },
+    { label: "نشط", value: statCards.active },
+    { label: "مسودة", value: statCards.draft },
+  ];
+
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="العقود"
-        description="إدارة جميع عقود المنصة: العقود النشطة والمسودات"
-        icon={FileText}
-        actions={
-          <ActionButton variant="primary" size="md">
-            <Plus className="h-4 w-4" />
-            إضافة عقد
-          </ActionButton>
-        }
-      />
+    <div className="space-y-6" dir="rtl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">العقود</h1>
+          <p className="text-muted-foreground">إدارة جميع عقود المنصة: العقود النشطة والمسودات</p>
+        </div>
+        <Button>
+          <Plus className="size-4" />
+          إضافة عقد
+        </Button>
+      </div>
 
       <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "الإجمالي", value: statCards.total, className: "" },
-          {
-            label: "نشط",
-            value: statCards.active,
-            className: "bg-success-100/50 border-success-200 text-success-600",
-          },
-          {
-            label: "مسودة",
-            value: statCards.draft,
-            className: "bg-warning-100/50 border-warning-200 text-warning-600",
-          },
-        ].map((card) => (
-          <div
-            key={card.label}
-            className={`rounded-[30px] border-[1.5px] border-portal-card-border p-5 ${card.className}`}
-          >
-            <p className="text-sm text-portal-note-text">{card.label}</p>
-            <p className="text-2xl font-semibold text-natural-100 mt-2">
+        {cards.map((card) => (
+          <Card key={card.label} className="p-5">
+            <p className="text-sm text-muted-foreground">{card.label}</p>
+            <p className="text-2xl font-semibold mt-2">
               {isLoading ? "—" : card.value}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 
-      <SurfaceCard
-        title="قائمة العقود"
-        action={
-          <ActionButton variant="outline" size="sm">
-            <Download className="h-4 w-4" />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>قائمة العقود</CardTitle>
+          <Button variant="outline" size="sm">
+            <Download className="size-4" />
             تصدير CSV
-          </ActionButton>
-        }
-      >
-        <div className="mb-4">
-          <AdminListToolbar
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="بحث بالعنوان أو اسم العميل..."
-            filterGroups={[
-              {
-                key: "status",
-                label: "الحالة",
-                options: [
-                  { label: "مسودة", value: "DRAFT" },
-                  { label: "مرسل", value: "SENT" },
-                  { label: "موقّع", value: "SIGNED" },
-                  { label: "نشط", value: "ACTIVE" },
-                  { label: "معلق", value: "ON_HOLD" },
-                  { label: "مكتمل", value: "COMPLETED" },
-                  { label: "منتهي", value: "EXPIRED" },
-                  { label: "ملغي", value: "CANCELLED" },
-                ],
-              },
-              {
-                key: "type",
-                label: "النوع",
-                options: [
-                  { label: "اشتراك شهري", value: "MONTHLY_RETAINER" },
-                  { label: "مشروع ثابت", value: "FIXED_PROJECT" },
-                  { label: "خدمة لمرة واحدة", value: "ONE_TIME_SERVICE" },
-                ],
-              },
-            ]}
-            activeFilters={activeFilters}
-            onFilterChange={(key, values) =>
-              setActiveFilters((prev) => ({ ...prev, [key]: values }))
-            }
-          />
-        </div>
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="px-6 pb-4">
+            <AdminListToolbar
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="بحث بالعنوان أو اسم العميل..."
+              filterGroups={[
+                {
+                  key: "status",
+                  label: "الحالة",
+                  options: [
+                    { label: "مسودة", value: "DRAFT" },
+                    { label: "مرسل", value: "SENT" },
+                    { label: "موقّع", value: "SIGNED" },
+                    { label: "نشط", value: "ACTIVE" },
+                    { label: "معلق", value: "ON_HOLD" },
+                    { label: "مكتمل", value: "COMPLETED" },
+                    { label: "منتهي", value: "EXPIRED" },
+                    { label: "ملغي", value: "CANCELLED" },
+                  ],
+                },
+                {
+                  key: "type",
+                  label: "النوع",
+                  options: [
+                    { label: "اشتراك شهري", value: "MONTHLY_RETAINER" },
+                    { label: "مشروع ثابت", value: "FIXED_PROJECT" },
+                    { label: "خدمة لمرة واحدة", value: "ONE_TIME_SERVICE" },
+                  ],
+                },
+              ]}
+              activeFilters={activeFilters}
+              onFilterChange={(key, values) =>
+                setActiveFilters((prev) => ({ ...prev, [key]: values }))
+              }
+            />
+          </div>
 
-        <DataTable
-          columns={COLUMNS}
-          data={contracts}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage="حدث خطأ أثناء تحميل العقود."
-          emptyState={EMPTY_STATE}
-          renderRow={(contract) => (
-            <tr
-              key={contract.id}
-              className="border-b border-portal-divider last:border-0"
-            >
-              <td className="py-3 px-2 text-right">
-                <Link
-                  href={`/dashboard/admin/contracts/${contract.id}`}
-                  className="hover:underline text-secondary-500 font-medium text-sm"
-                >
-                  {contract.title}
-                </Link>
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {contract.clientName}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {CONTRACT_TYPE_AR[contract.type] || contract.type}
-              </td>
-              <td className="py-3 px-2 text-right">
-                <AdminStatusBadge domain="contract" status={contract.status} />
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {contract.monthlyValue > 0
-                  ? formatCurrency(contract.monthlyValue)
-                  : "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {formatCurrency(contract.totalValue)}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {contract.startDate
-                  ? new Date(contract.startDate).toLocaleDateString("ar-SA")
-                  : "—"}
-              </td>
-            </tr>
+          {isLoading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={FileText}
+                title="حدث خطأ"
+                description="حدث خطأ أثناء تحميل العقود."
+              />
+            </div>
+          ) : contracts.length === 0 ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={FileText}
+                title="لا يوجد عقود"
+                description="لم يتم إضافة أي عقود بعد."
+              />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">العنوان</TableHead>
+                  <TableHead className="text-right">العميل</TableHead>
+                  <TableHead className="text-right">النوع</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-right">القيمة الشهرية</TableHead>
+                  <TableHead className="text-right">القيمة الإجمالية</TableHead>
+                  <TableHead className="text-right">تاريخ البداية</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contracts.map((contract) => (
+                  <TableRow key={contract.id}>
+                    <TableCell className="text-right">
+                      <Link
+                        href={`/dashboard/admin/contracts/${contract.id}`}
+                        className="text-primary font-medium text-sm hover:underline"
+                      >
+                        {contract.title}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {contract.clientName}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {CONTRACT_TYPE_AR[contract.type] || contract.type}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <AdminStatusBadge domain="contract" status={contract.status} />
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {contract.monthlyValue > 0
+                        ? formatCurrency(contract.monthlyValue)
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {formatCurrency(contract.totalValue)}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {contract.startDate
+                        ? new Date(contract.startDate).toLocaleDateString("ar-SA")
+                        : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        />
-      </SurfaceCard>
+        </CardContent>
+      </Card>
     </div>
   );
 }

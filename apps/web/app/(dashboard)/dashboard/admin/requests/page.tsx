@@ -3,34 +3,15 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ClipboardList, Download } from "lucide-react";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import {
-  DataTable,
-  type DataTableColumn,
-  type DataTableEmptyState,
-} from "@/components/design-system/DataTable";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 
 import { useGetAdminRequestsQuery } from "@/features/admin/adminRequestsApi";
-import { cn } from "@/lib/utils";
-
-const COLUMNS: DataTableColumn[] = [
-  { id: "clientName", label: "اسم العميل", align: "right" },
-  { id: "assignee", label: "المسؤول", align: "right" },
-  { id: "status", label: "الحالة", align: "right" },
-  { id: "services", label: "الخدمات", align: "center" },
-  { id: "age", label: "العمر (أيام)", align: "center" },
-  { id: "createdAt", label: "تاريخ الطلب", align: "right" },
-];
-
-const EMPTY_STATE: DataTableEmptyState = {
-  icon: ClipboardList,
-  message: "لا يوجد طلبات",
-  hint: "لم يتم تقديم أي طلبات بعد.",
-};
 
 export default function AdminRequestsPage() {
   const [search, setSearch] = useState("");
@@ -73,120 +54,135 @@ export default function AdminRequestsPage() {
   }, [data, requests]);
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="الطلبات"
-        description="إدارة طلبات العملاء الجديدة وطلبات الخدمات"
-        icon={ClipboardList}
-      />
+    <div className="space-y-6" dir="rtl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">الطلبات</h1>
+          <p className="text-muted-foreground">إدارة طلبات العملاء الجديدة وطلبات الخدمات</p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "الإجمالي", value: statCards.total, className: "" },
-          {
-            label: "قيد التنفيذ",
-            value: statCards.pending,
-            className: "bg-amber-100/50 border-amber-200 text-amber-600",
-          },
-          {
-            label: "مكتمل",
-            value: statCards.completed,
-            className: "bg-success-100/50 border-success-200 text-success-600",
-          },
+          { label: "الإجمالي", value: statCards.total },
+          { label: "قيد التنفيذ", value: statCards.pending },
+          { label: "مكتمل", value: statCards.completed },
         ].map((card) => (
-          <div
-            key={card.label}
-            className={cn(
-              "rounded-[30px] border-[1.5px] border-portal-card-border p-5",
-              card.className,
-            )}
-          >
-            <p className="text-sm text-portal-note-text">{card.label}</p>
-            <p className="text-2xl font-semibold text-natural-100 mt-2">
+          <Card key={card.label} className="p-5">
+            <p className="text-sm text-muted-foreground">{card.label}</p>
+            <p className="text-2xl font-semibold mt-2">
               {isLoading ? "—" : card.value}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 
-      <SurfaceCard
-        title="قائمة الطلبات"
-        action={
-          <ActionButton variant="outline" size="sm">
-            <Download className="h-4 w-4" />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>قائمة الطلبات</CardTitle>
+          <Button variant="outline" size="sm">
+            <Download className="size-4" />
             تصدير CSV
-          </ActionButton>
-        }
-      >
-        <div className="mb-4">
-          <AdminListToolbar
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="بحث باسم العميل..."
-            filterGroups={[
-              {
-                key: "status",
-                label: "الحالة",
-                options: [
-                  { label: "مقدم", value: "SUBMITTED" },
-                  { label: "قيد التأهيل", value: "QUALIFYING" },
-                  { label: "إعداد العرض", value: "PROPOSAL_IN_PROGRESS" },
-                  { label: "أرسل العرض", value: "PROPOSAL_SENT" },
-                  { label: "تفاوض", value: "NEGOTIATION" },
-                  { label: "إعداد العقد", value: "CONTRACT_PREPARATION" },
-                  { label: "أرسل العقد", value: "CONTRACT_SENT" },
-                  { label: "موقّع", value: "SIGNED" },
-                  { label: "تم إنشاء المشروع", value: "PROJECT_CREATED" },
-                  { label: "ملغي", value: "CANCELLED" },
-                ],
-              },
-            ]}
-            activeFilters={activeFilters}
-            onFilterChange={(key, values) =>
-              setActiveFilters((prev) => ({ ...prev, [key]: values }))
-            }
-          />
-        </div>
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="px-6 pb-4">
+            <AdminListToolbar
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="بحث باسم العميل..."
+              filterGroups={[
+                {
+                  key: "status",
+                  label: "الحالة",
+                  options: [
+                    { label: "مقدم", value: "SUBMITTED" },
+                    { label: "قيد التأهيل", value: "QUALIFYING" },
+                    { label: "إعداد العرض", value: "PROPOSAL_IN_PROGRESS" },
+                    { label: "أرسل العرض", value: "PROPOSAL_SENT" },
+                    { label: "تفاوض", value: "NEGOTIATION" },
+                    { label: "إعداد العقد", value: "CONTRACT_PREPARATION" },
+                    { label: "أرسل العقد", value: "CONTRACT_SENT" },
+                    { label: "موقّع", value: "SIGNED" },
+                    { label: "تم إنشاء المشروع", value: "PROJECT_CREATED" },
+                    { label: "ملغي", value: "CANCELLED" },
+                  ],
+                },
+              ]}
+              activeFilters={activeFilters}
+              onFilterChange={(key, values) =>
+                setActiveFilters((prev) => ({ ...prev, [key]: values }))
+              }
+            />
+          </div>
 
-        <DataTable
-          columns={COLUMNS}
-          data={requests}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage="حدث خطأ أثناء تحميل الطلبات."
-          emptyState={EMPTY_STATE}
-          renderRow={(request) => (
-            <tr
-              key={request.id}
-              className="border-b border-portal-divider last:border-0"
-            >
-              <td className="py-3 px-2 text-right">
-                <Link
-                  href={`/dashboard/admin/requests/${request.id}`}
-                  className="hover:underline text-secondary-500 font-medium text-sm"
-                >
-                  {request.clientName}
-                </Link>
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {request.assigneeName || "—"}
-              </td>
-              <td className="py-3 px-2 text-right">
-                <AdminStatusBadge domain="request" status={request.status} />
-              </td>
-              <td className="py-3 px-2 text-center text-sm text-portal-note-text">
-                {request.servicesCount}
-              </td>
-              <td className="py-3 px-2 text-center text-sm text-portal-note-text">
-                {request.ageDays}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {new Date(request.createdAt).toLocaleDateString("ar-SA")}
-              </td>
-            </tr>
+          {isLoading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={ClipboardList}
+                title="حدث خطأ"
+                description="حدث خطأ أثناء تحميل الطلبات."
+              />
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={ClipboardList}
+                title="لا يوجد طلبات"
+                description="لم يتم تقديم أي طلبات بعد."
+              />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">اسم العميل</TableHead>
+                  <TableHead className="text-right">المسؤول</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-center">الخدمات</TableHead>
+                  <TableHead className="text-center">العمر (أيام)</TableHead>
+                  <TableHead className="text-right">تاريخ الطلب</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {requests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell className="text-right">
+                      <Link
+                        href={`/dashboard/admin/requests/${request.id}`}
+                        className="text-primary font-medium text-sm hover:underline"
+                      >
+                        {request.clientName}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {request.assigneeName || "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <AdminStatusBadge domain="request" status={request.status} />
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">
+                      {request.servicesCount}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground">
+                      {request.ageDays}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {new Date(request.createdAt).toLocaleDateString("ar-SA")}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        />
-      </SurfaceCard>
+        </CardContent>
+      </Card>
     </div>
   );
 }

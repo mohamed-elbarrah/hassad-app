@@ -2,47 +2,21 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Scale,
-  MessageSquareWarning,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import {
-  DataTable,
-  type DataTableColumn,
-  type DataTableEmptyState,
-} from "@/components/design-system/DataTable";
-import { Pagination } from "@/components/design-system/Pagination";
+import { Scale, MessageSquareWarning, Clock, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 
 import {
   useGetAdminDisputesQuery,
   useGetAdminDisputeStatsQuery,
 } from "@/features/admin/adminDisputesApi";
-import { cn } from "@/lib/utils";
 import { DISPUTE_PRIORITY_AR } from "@hassad/shared";
-
-const COLUMNS: DataTableColumn[] = [
-  { id: "ticketNumber", label: "رقم التذكرة", align: "right" },
-  { id: "title", label: "العنوان", align: "right" },
-  { id: "client", label: "العميل", align: "right" },
-  { id: "project", label: "المشروع", align: "right" },
-  { id: "status", label: "الحالة", align: "right" },
-  { id: "priority", label: "الأولوية", align: "right" },
-  { id: "pm", label: "مدير المشروع", align: "right" },
-];
-
-const EMPTY_STATE: DataTableEmptyState = {
-  icon: Scale,
-  message: "لا يوجد نزاعات",
-  hint: "لم يتم تسجيل أي نزاعات حتى الآن.",
-};
 
 const CATEGORY_OPTIONS = [
   { label: "تأخير", value: "DELAY" },
@@ -71,6 +45,21 @@ const PRIORITY_OPTIONS = [
   { label: "عالي", value: "HIGH" },
   { label: "عاجل", value: "URGENT" },
 ];
+
+function getPriorityVariant(priority: string): "default" | "secondary" | "destructive" | "outline" {
+  switch (priority) {
+    case "URGENT":
+      return "destructive";
+    case "HIGH":
+      return "secondary";
+    case "NORMAL":
+      return "default";
+    case "LOW":
+      return "outline";
+    default:
+      return "outline";
+  }
+}
 
 export default function AdminDisputesPage() {
   const [search, setSearch] = useState("");
@@ -101,182 +90,180 @@ export default function AdminDisputesPage() {
   const statCards = useMemo(() => {
     if (!stats) return [];
     return [
-      {
-        label: "بانتظار الموافقة",
-        value: stats.pendingApproval,
-        icon: Clock,
-        className: "bg-alert-100/50 border-alert-200 text-alert-600",
-      },
-      {
-        label: "نشط",
-        value: stats.active,
-        icon: MessageSquareWarning,
-        className: "bg-primary-100/50 border-primary-200 text-primary-600",
-      },
-      {
-        label: "مصعّد",
-        value: stats.escalated,
-        icon: AlertTriangle,
-        className: "bg-danger-100/50 border-danger-200 text-danger-600",
-      },
-      {
-        label: "محلول",
-        value: stats.resolved,
-        icon: CheckCircle,
-        className: "bg-success-100/50 border-success-200 text-success-600",
-      },
-      {
-        label: "مغلق",
-        value: stats.closed,
-        icon: XCircle,
-        className: "bg-neutral-100/50 border-neutral-200 text-neutral-600",
-      },
+      { label: "بانتظار الموافقة", value: stats.pendingApproval },
+      { label: "نشط", value: stats.active },
+      { label: "مصعّد", value: stats.escalated },
+      { label: "محلول", value: stats.resolved },
+      { label: "مغلق", value: stats.closed },
     ];
   }, [stats]);
 
-  const priorityBadgeClass = (priority: string) => {
-    switch (priority) {
-      case "URGENT":
-        return "bg-danger-100 text-danger-600 border-danger-200";
-      case "HIGH":
-        return "bg-alert-100 text-alert-600 border-alert-200";
-      case "NORMAL":
-        return "bg-primary-100 text-primary-600 border-primary-200";
-      case "LOW":
-        return "bg-neutral-100 text-neutral-600 border-neutral-200";
-      default:
-        return "bg-neutral-100 text-neutral-600 border-neutral-200";
-    }
-  };
-
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="النزاعات"
-        description="إدارة نزاعات العملاء ومشاكل المشاريع"
-        icon={Scale}
-      />
+    <div className="space-y-6" dir="rtl">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">النزاعات</h1>
+        <p className="text-muted-foreground">إدارة نزاعات العملاء ومشاكل المشاريع</p>
+      </div>
 
       <div className="grid grid-cols-5 gap-4">
         {statCards.map((card) => (
-          <div
-            key={card.label}
-            className={cn(
-              "rounded-[30px] border-[1.5px] border-portal-card-border p-5",
-              card.className,
-            )}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <card.icon className="h-4 w-4" />
-              <p className="text-sm text-portal-note-text">{card.label}</p>
-            </div>
-            <p className="text-2xl font-semibold text-natural-100 mt-2">
+          <Card key={card.label} className="p-5">
+            <p className="text-sm text-muted-foreground">{card.label}</p>
+            <p className="text-2xl font-semibold mt-2">
               {statsLoading ? "—" : card.value}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 
-      <SurfaceCard title="قائمة النزاعات" description={`${total} نزاع`}>
-        <div className="mb-4">
-          <AdminListToolbar
-            search={search}
-            onSearchChange={(v) => {
-              setSearch(v);
-              setPage(1);
-            }}
-            searchPlaceholder="بحث برقم التذكرة أو العنوان..."
-            filterGroups={[
-              {
-                key: "status",
-                label: "الحالة",
-                options: STATUS_OPTIONS,
-              },
-              {
-                key: "category",
-                label: "التصنيف",
-                options: CATEGORY_OPTIONS,
-              },
-              {
-                key: "priority",
-                label: "الأولوية",
-                options: PRIORITY_OPTIONS,
-              },
-            ]}
-            activeFilters={activeFilters}
-            onFilterChange={(key, values) =>
-              setActiveFilters((prev) => ({ ...prev, [key]: values }))
-            }
-          />
-        </div>
-
-        <DataTable
-          columns={COLUMNS}
-          data={disputes}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage="حدث خطأ أثناء تحميل النزاعات."
-          emptyState={EMPTY_STATE}
-          renderRow={(dispute) => (
-            <tr
-              key={dispute.id}
-              className="border-b border-portal-divider last:border-0"
-            >
-              <td className="py-3 px-2 text-right">
-                <Link
-                  href={`/dashboard/admin/disputes/${dispute.id}`}
-                  className="hover:underline text-secondary-500 font-medium text-sm"
-                >
-                  #{dispute.ticketNumber}
-                </Link>
-              </td>
-              <td className="py-3 px-2 text-right">
-                <Link
-                  href={`/dashboard/admin/disputes/${dispute.id}`}
-                  className="hover:underline text-natural-100 font-medium text-sm"
-                >
-                  {dispute.title}
-                </Link>
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {dispute.client.companyName}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {dispute.project.name}
-              </td>
-              <td className="py-3 px-2 text-right">
-                <AdminStatusBadge domain="dispute" status={dispute.status} />
-              </td>
-              <td className="py-3 px-2 text-right">
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                    priorityBadgeClass(dispute.priority),
-                  )}
-                >
-                  {DISPUTE_PRIORITY_AR[
-                    dispute.priority as keyof typeof DISPUTE_PRIORITY_AR
-                  ] || dispute.priority}
-                </span>
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {dispute.pm.name}
-              </td>
-            </tr>
-          )}
-        />
-
-        {!isLoading && !isError && totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-portal-note-text">إجمالي {total} نزاع</p>
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
+      <Card>
+        <CardHeader>
+          <CardTitle>قائمة النزاعات</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="px-6 pb-4">
+            <AdminListToolbar
+              search={search}
+              onSearchChange={(v) => {
+                setSearch(v);
+                setPage(1);
+              }}
+              searchPlaceholder="بحث برقم التذكرة أو العنوان..."
+              filterGroups={[
+                {
+                  key: "status",
+                  label: "الحالة",
+                  options: STATUS_OPTIONS,
+                },
+                {
+                  key: "category",
+                  label: "التصنيف",
+                  options: CATEGORY_OPTIONS,
+                },
+                {
+                  key: "priority",
+                  label: "الأولوية",
+                  options: PRIORITY_OPTIONS,
+                },
+              ]}
+              activeFilters={activeFilters}
+              onFilterChange={(key, values) =>
+                setActiveFilters((prev) => ({ ...prev, [key]: values }))
+              }
             />
           </div>
-        )}
-      </SurfaceCard>
+
+          {isLoading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={Scale}
+                title="حدث خطأ"
+                description="حدث خطأ أثناء تحميل النزاعات."
+              />
+            </div>
+          ) : disputes.length === 0 ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={Scale}
+                title="لا يوجد نزاعات"
+                description="لم يتم تسجيل أي نزاعات حتى الآن."
+              />
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">رقم التذكرة</TableHead>
+                    <TableHead className="text-right">العنوان</TableHead>
+                    <TableHead className="text-right">العميل</TableHead>
+                    <TableHead className="text-right">المشروع</TableHead>
+                    <TableHead className="text-right">الحالة</TableHead>
+                    <TableHead className="text-right">الأولوية</TableHead>
+                    <TableHead className="text-right">مدير المشروع</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {disputes.map((dispute) => (
+                    <TableRow key={dispute.id}>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/dashboard/admin/disputes/${dispute.id}`}
+                          className="text-primary font-medium text-sm hover:underline"
+                        >
+                          #{dispute.ticketNumber}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link
+                          href={`/dashboard/admin/disputes/${dispute.id}`}
+                          className="font-medium text-sm hover:underline"
+                        >
+                          {dispute.title}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {dispute.client.companyName}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {dispute.project.name}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <AdminStatusBadge domain="dispute" status={dispute.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={getPriorityVariant(dispute.priority)}>
+                          {DISPUTE_PRIORITY_AR[
+                            dispute.priority as keyof typeof DISPUTE_PRIORITY_AR
+                          ] || dispute.priority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {dispute.pm.name}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {!isLoading && !isError && totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4">
+                  <p className="text-sm text-muted-foreground">إجمالي {total} نزاع</p>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            isActive={page === p}
+                            onClick={() => setPage(p)}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

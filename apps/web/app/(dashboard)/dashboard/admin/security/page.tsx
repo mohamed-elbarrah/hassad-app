@@ -1,42 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Shield,
-  AlertTriangle,
-  UserX,
-  Key,
-  Users,
-  ShieldCheck,
-} from "lucide-react";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import {
-  DataTable,
-  type DataTableColumn,
-  type DataTableEmptyState,
-} from "@/components/design-system/DataTable";
-import { Pagination } from "@/components/design-system/Pagination";
+import { Shield, AlertTriangle, UserX, Key, Users, ShieldCheck } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
-import { Input } from "@/components/design-system/Input";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import {
   useGetAdminSecurityEventsQuery,
   useGetAdminSecurityStatsQuery,
 } from "@/features/admin/adminUsersApi";
-
-const COLUMNS: DataTableColumn[] = [
-  { id: "type", label: "النوع", align: "right" },
-  { id: "userName", label: "المستخدم", align: "right" },
-  { id: "userEmail", label: "البريد الإلكتروني", align: "right" },
-  { id: "ip", label: "عنوان IP", align: "right" },
-  { id: "createdAt", label: "التاريخ", align: "right" },
-];
-
-const EMPTY_STATE: DataTableEmptyState = {
-  icon: Shield,
-  message: "لا يوجد أحداث أمنية",
-  hint: "لم يتم تسجيل أي أحداث أمنية بعد.",
-};
 
 const EVENT_TYPE_OPTIONS = [
   { label: "محاولة دخول فاشلة", value: "FAILED_LOGIN" },
@@ -68,133 +44,158 @@ export default function AdminSecurityPage() {
 
   const statCards = useMemo(
     () => [
-      { label: "إجمالي الأحداث", value: stats?.totalEvents ?? 0, icon: Shield },
-      {
-        label: "محاولات دخول فاشلة (24 ساعة)",
-        value: stats?.failedLogins24h ?? 0,
-        icon: AlertTriangle,
-      },
-      {
-        label: "انتحال شخصية (7 أيام)",
-        value: stats?.impersonations7d ?? 0,
-        icon: UserX,
-      },
-      {
-        label: "إعادة تعيين كلمة المرور (7 أيام)",
-        value: stats?.passwordResets7d ?? 0,
-        icon: Key,
-      },
-      {
-        label: "الجلسات النشطة",
-        value: stats?.activeSessions ?? 0,
-        icon: Users,
-      },
-      {
-        label: "المصادقة الثنائية",
-        value: stats?.twoFactorEnabled ?? 0,
-        icon: ShieldCheck,
-      },
+      { label: "إجمالي الأحداث", value: stats?.totalEvents ?? 0 },
+      { label: "محاولات دخول فاشلة (24 ساعة)", value: stats?.failedLogins24h ?? 0 },
+      { label: "انتحال شخصية (7 أيام)", value: stats?.impersonations7d ?? 0 },
+      { label: "إعادة تعيين كلمة المرور (7 أيام)", value: stats?.passwordResets7d ?? 0 },
+      { label: "الجلسات النشطة", value: stats?.activeSessions ?? 0 },
+      { label: "المصادقة الثنائية", value: stats?.twoFactorEnabled ?? 0 },
     ],
     [stats],
   );
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="الأمان"
-        description="مراقبة الأحداث الأمنية والجلسات النشطة"
-        icon={Shield}
-      />
+    <div className="space-y-6" dir="rtl">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">الأمان</h1>
+        <p className="text-muted-foreground">مراقبة الأحداث الأمنية والجلسات النشطة</p>
+      </div>
 
       <div className="grid grid-cols-6 gap-4">
         {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-[30px] border-[1.5px] border-portal-card-border p-5"
-          >
-            <p className="text-sm text-portal-note-text">{card.label}</p>
-            <p className="text-2xl font-semibold text-natural-100 mt-2">
+          <Card key={card.label} className="p-5">
+            <p className="text-sm text-muted-foreground">{card.label}</p>
+            <p className="text-2xl font-semibold mt-2">
               {isLoading ? "—" : card.value}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 
-      <SurfaceCard title="الأحداث الأمنية">
-        <div className="mb-4 flex flex-col gap-3">
-          <AdminListToolbar
-            search=""
-            onSearchChange={() => {}}
-            searchPlaceholder=""
-            filterGroups={[
-              {
-                key: "type",
-                label: "النوع",
-                options: EVENT_TYPE_OPTIONS,
-              },
-            ]}
-            activeFilters={activeFilters}
-            onFilterChange={(key, values) =>
-              setActiveFilters((prev) => ({ ...prev, [key]: values }))
-            }
-          />
-          <div className="flex gap-3">
-            <Input
-              placeholder="من تاريخ (YYYY-MM-DD)"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
+      <Card>
+        <CardHeader>
+          <CardTitle>الأحداث الأمنية</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="px-6 pb-4 space-y-3">
+            <AdminListToolbar
+              search=""
+              onSearchChange={() => {}}
+              searchPlaceholder=""
+              filterGroups={[
+                {
+                  key: "type",
+                  label: "النوع",
+                  options: EVENT_TYPE_OPTIONS,
+                },
+              ]}
+              activeFilters={activeFilters}
+              onFilterChange={(key, values) =>
+                setActiveFilters((prev) => ({ ...prev, [key]: values }))
+              }
             />
-            <Input
-              placeholder="إلى تاريخ (YYYY-MM-DD)"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
+            <div className="flex gap-3">
+              <Input
+                placeholder="من تاريخ (YYYY-MM-DD)"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+              <Input
+                placeholder="إلى تاريخ (YYYY-MM-DD)"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
 
-        <DataTable
-          columns={COLUMNS}
-          data={events}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage="حدث خطأ أثناء تحميل الأحداث الأمنية."
-          emptyState={EMPTY_STATE}
-          renderRow={(event) => (
-            <tr
-              key={event.id}
-              className="border-b border-portal-divider last:border-0"
-            >
-              <td className="py-3 px-2 text-right">
-                <span className="text-sm font-medium text-natural-100">
-                  {event.type}
-                </span>
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {event.userName || "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {event.userEmail || "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text font-mono">
-                {event.ip || "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {new Date(event.createdAt).toLocaleDateString("ar-SA")}
-              </td>
-            </tr>
+          {isLoading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={Shield}
+                title="حدث خطأ"
+                description="حدث خطأ أثناء تحميل الأحداث الأمنية."
+              />
+            </div>
+          ) : events.length === 0 ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={Shield}
+                title="لا يوجد أحداث أمنية"
+                description="لم يتم تسجيل أي أحداث أمنية بعد."
+              />
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">النوع</TableHead>
+                    <TableHead className="text-right">المستخدم</TableHead>
+                    <TableHead className="text-right">البريد الإلكتروني</TableHead>
+                    <TableHead className="text-right">عنوان IP</TableHead>
+                    <TableHead className="text-right">التاريخ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {events.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell className="text-right font-medium">
+                        {event.type}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {event.userName || "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {event.userEmail || "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground font-mono">
+                        {event.ip || "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {new Date(event.createdAt).toLocaleDateString("ar-SA")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {data && data.totalPages > 1 && (
+                <div className="flex justify-center py-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((p) => (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            isActive={page === p}
+                            onClick={() => setPage(p)}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </>
           )}
-        />
-
-        {data && data.totalPages > 1 && (
-          <div className="mt-4 flex justify-center">
-            <Pagination
-              page={page}
-              totalPages={data.totalPages}
-              onPageChange={setPage}
-            />
-          </div>
-        )}
-      </SurfaceCard>
+        </CardContent>
+      </Card>
     </div>
   );
 }

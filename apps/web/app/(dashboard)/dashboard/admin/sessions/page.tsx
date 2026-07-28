@@ -2,14 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { LogIn, XCircle } from "lucide-react";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import {
-  DataTable,
-  type DataTableColumn,
-  type DataTableEmptyState,
-} from "@/components/design-system/DataTable";
-
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
 import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
@@ -17,23 +13,6 @@ import {
   useGetAdminSessionsQuery,
   useRevokeAdminSessionMutation,
 } from "@/features/admin/adminUsersApi";
-
-const COLUMNS: DataTableColumn[] = [
-  { id: "userName", label: "المستخدم", align: "right" },
-  { id: "userEmail", label: "البريد الإلكتروني", align: "right" },
-  { id: "userAgent", label: "المتصفح", align: "right" },
-  { id: "ip", label: "IP", align: "right" },
-  { id: "createdAt", label: "تاريخ البدء", align: "right" },
-  { id: "expiresAt", label: "تاريخ الانتهاء", align: "right" },
-  { id: "status", label: "الحالة", align: "right" },
-  { id: "actions", label: "إجراء", align: "center" },
-];
-
-const EMPTY_STATE: DataTableEmptyState = {
-  icon: LogIn,
-  message: "لا توجد جلسات نشطة",
-  hint: "لم يتم تسجيل أي جلسات دخول بعد.",
-};
 
 export default function AdminSessionsPage() {
   const [search, setSearch] = useState("");
@@ -70,7 +49,7 @@ export default function AdminSessionsPage() {
 
   if (isError) {
     return (
-      <div className="page-shell" dir="rtl">
+      <div className="space-y-6" dir="rtl">
         <AdminEmptyState
           icon={LogIn}
           title="حدث خطأ أثناء تحميل الجلسات"
@@ -81,114 +60,129 @@ export default function AdminSessionsPage() {
   }
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="الجلسات"
-        description="إدارة جلسات تسجيل دخول المستخدمين"
-        icon={LogIn}
-      />
+    <div className="space-y-6" dir="rtl">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">الجلسات</h1>
+        <p className="text-muted-foreground">إدارة جلسات تسجيل دخول المستخدمين</p>
+      </div>
 
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "الإجمالي", value: statCards.total, className: "" },
-          {
-            label: "نشط",
-            value: statCards.active,
-            className: "bg-success-100/50 border-success-200 text-success-600",
-          },
-          {
-            label: "منتهي",
-            value: statCards.expired,
-            className: "bg-portal-card-border/50 text-portal-note-text",
-          },
+          { label: "الإجمالي", value: statCards.total },
+          { label: "نشط", value: statCards.active },
+          { label: "منتهي", value: statCards.expired },
         ].map((card) => (
-          <div
-            key={card.label}
-            className={`rounded-[30px] border-[1.5px] border-portal-card-border p-5 ${card.className}`}
-          >
-            <p className="text-sm text-portal-note-text">{card.label}</p>
-            <p className="text-2xl font-semibold text-natural-100 mt-2">
+          <Card key={card.label} className="p-5">
+            <p className="text-sm text-muted-foreground">{card.label}</p>
+            <p className="text-2xl font-semibold mt-2">
               {isLoading ? "—" : card.value}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 
-      <SurfaceCard title="قائمة الجلسات">
-        <div className="mb-4">
-          <AdminListToolbar
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="بحث بالاسم أو البريد الإلكتروني..."
-            filterGroups={[
-              {
-                key: "status",
-                label: "الحالة",
-                options: [
-                  { label: "نشط", value: "active" },
-                  { label: "منتهي", value: "expired" },
-                ],
-              },
-            ]}
-            activeFilters={activeFilters}
-            onFilterChange={(key, values) =>
-              setActiveFilters((prev) => ({ ...prev, [key]: values }))
-            }
-          />
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>قائمة الجلسات</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="px-6 pb-4">
+            <AdminListToolbar
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="بحث بالاسم أو البريد الإلكتروني..."
+              filterGroups={[
+                {
+                  key: "status",
+                  label: "الحالة",
+                  options: [
+                    { label: "نشط", value: "active" },
+                    { label: "منتهي", value: "expired" },
+                  ],
+                },
+              ]}
+              activeFilters={activeFilters}
+              onFilterChange={(key, values) =>
+                setActiveFilters((prev) => ({ ...prev, [key]: values }))
+              }
+            />
+          </div>
 
-        <DataTable
-          columns={COLUMNS}
-          data={sessions}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage="حدث خطأ أثناء تحميل الجلسات."
-          emptyState={EMPTY_STATE}
-          renderRow={(session) => (
-            <tr
-              key={session.id}
-              className="border-b border-portal-divider last:border-0"
-            >
-              <td className="py-3 px-2 text-right text-sm font-medium text-natural-100">
-                {session.userName}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {session.userEmail}
-              </td>
-              <td className="py-3 px-2 text-right text-xs text-portal-note-text max-w-[180px] truncate">
-                {session.userAgent || "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {session.ip || "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {new Date(session.createdAt).toLocaleDateString("ar-SA")}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {new Date(session.expiresAt).toLocaleDateString("ar-SA")}
-              </td>
-              <td className="py-3 px-2 text-right">
-                <AdminStatusBadge
-                  domain="client"
-                  status={session.isActive ? "ACTIVE" : "STOPPED"}
-                />
-              </td>
-              <td className="py-3 px-2 text-center">
-                {session.isActive && (
-                  <button
-                    onClick={() => handleRevoke(session.id)}
-                    disabled={isRevoking}
-                    className="inline-flex items-center gap-1 rounded-lg bg-danger-500/10 px-2.5 py-1.5 text-xs font-medium text-danger-500 transition-colors hover:bg-danger-500/20 disabled:opacity-50"
-                  >
-                    <XCircle className="h-3.5 w-3.5" />
-                    إنهاء
-                  </button>
-                )}
-              </td>
-            </tr>
+          {isLoading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={LogIn}
+                title="لا توجد جلسات نشطة"
+                description="لم يتم تسجيل أي جلسات دخول بعد."
+              />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">المستخدم</TableHead>
+                  <TableHead className="text-right">البريد الإلكتروني</TableHead>
+                  <TableHead className="text-right">المتصفح</TableHead>
+                  <TableHead className="text-right">IP</TableHead>
+                  <TableHead className="text-right">تاريخ البدء</TableHead>
+                  <TableHead className="text-right">تاريخ الانتهاء</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-center">إجراء</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sessions.map((session) => (
+                  <TableRow key={session.id}>
+                    <TableCell className="text-right font-medium">
+                      {session.userName}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {session.userEmail}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground max-w-[180px] truncate">
+                      {session.userAgent || "—"}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {session.ip || "—"}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {new Date(session.createdAt).toLocaleDateString("ar-SA")}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
+                      {new Date(session.expiresAt).toLocaleDateString("ar-SA")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <AdminStatusBadge
+                        domain="client"
+                        status={session.isActive ? "ACTIVE" : "STOPPED"}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {session.isActive && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRevoke(session.id)}
+                          disabled={isRevoking}
+                        >
+                          <XCircle className="size-3.5" />
+                          إنهاء
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        />
-      </SurfaceCard>
+        </CardContent>
+      </Card>
     </div>
   );
 }

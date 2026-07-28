@@ -2,36 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { ScrollText } from "lucide-react";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import {
-  DataTable,
-  type DataTableColumn,
-  type DataTableEmptyState,
-} from "@/components/design-system/DataTable";
-import { Pagination } from "@/components/design-system/Pagination";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AdminListToolbar } from "@/components/dashboard/admin/shared/AdminListToolbar";
 import { AdminStatusBadge } from "@/components/dashboard/admin/shared/AdminStatusBadge";
-import { Input } from "@/components/design-system/Input";
+import { AdminEmptyState } from "@/components/dashboard/admin/shared/AdminEmptyState";
 import {
   useGetAdminAuditLogQuery,
   useGetAdminAuditLogFiltersQuery,
 } from "@/features/admin/adminApi";
-
-const COLUMNS: DataTableColumn[] = [
-  { id: "actionAr", label: "الإجراء", align: "right" },
-  { id: "entityAr", label: "الكيان", align: "right" },
-  { id: "entityId", label: "معرف الكيان", align: "right" },
-  { id: "userName", label: "المستخدم", align: "right" },
-  { id: "userEmail", label: "البريد الإلكتروني", align: "right" },
-  { id: "createdAt", label: "التاريخ", align: "right" },
-];
-
-const EMPTY_STATE: DataTableEmptyState = {
-  icon: ScrollText,
-  message: "لا يوجد سجل تدقيق",
-  hint: "لم يتم تسجيل أي أحداث تدقيق بعد.",
-};
 
 export default function AdminAuditPage() {
   const [search, setSearch] = useState("");
@@ -57,104 +39,155 @@ export default function AdminAuditPage() {
   const auditLogs = useMemo(() => data?.items ?? [], [data]);
 
   const actionOptions = useMemo(
-    () => (filtersData?.actions ?? []).map((a) => ({ label: a, value: a })),
+    () => (filtersData?.actions ?? []).map((a: string) => ({ label: a, value: a })),
     [filtersData],
   );
 
   const entityOptions = useMemo(
-    () => (filtersData?.entityTypes ?? []).map((e) => ({ label: e, value: e })),
+    () => (filtersData?.entityTypes ?? []).map((e: string) => ({ label: e, value: e })),
     [filtersData],
   );
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="سجل التدقيق"
-        description="تتبع جميع الأحداث والتغييرات في المنصة"
-        icon={ScrollText}
-      />
+    <div className="space-y-6" dir="rtl">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">سجل التدقيق</h1>
+        <p className="text-muted-foreground">تتبع جميع الأحداث والتغييرات في المنصة</p>
+      </div>
 
-      <SurfaceCard title="سجل الأحداث">
-        <div className="mb-4 flex flex-col gap-3">
-          <AdminListToolbar
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="بحث في سجل التدقيق..."
-            filterGroups={[
-              {
-                key: "action",
-                label: "الإجراء",
-                options: actionOptions,
-              },
-              {
-                key: "entity",
-                label: "الكيان",
-                options: entityOptions,
-              },
-            ]}
-            activeFilters={activeFilters}
-            onFilterChange={(key, values) =>
-              setActiveFilters((prev) => ({ ...prev, [key]: values }))
-            }
-          />
-          <div className="flex gap-3">
-            <Input
-              placeholder="من تاريخ (YYYY-MM-DD)"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
+      <Card>
+        <CardHeader>
+          <CardTitle>سجل الأحداث</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="px-6 pb-4 space-y-3">
+            <AdminListToolbar
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="بحث في سجل التدقيق..."
+              filterGroups={[
+                {
+                  key: "action",
+                  label: "الإجراء",
+                  options: actionOptions,
+                },
+                {
+                  key: "entity",
+                  label: "الكيان",
+                  options: entityOptions,
+                },
+              ]}
+              activeFilters={activeFilters}
+              onFilterChange={(key, values) =>
+                setActiveFilters((prev) => ({ ...prev, [key]: values }))
+              }
             />
-            <Input
-              placeholder="إلى تاريخ (YYYY-MM-DD)"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
+            <div className="flex gap-3">
+              <Input
+                placeholder="من تاريخ (YYYY-MM-DD)"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+              <Input
+                placeholder="إلى تاريخ (YYYY-MM-DD)"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
 
-        <DataTable
-          columns={COLUMNS}
-          data={auditLogs}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage="حدث خطأ أثناء تحميل سجل التدقيق."
-          emptyState={EMPTY_STATE}
-          renderRow={(entry) => (
-            <tr
-              key={entry.id}
-              className="border-b border-portal-divider last:border-0"
-            >
-              <td className="py-3 px-2 text-right">
-                <AdminStatusBadge domain="audit" status={entry.action} />
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {entry.entityAr || entry.entity}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text font-mono">
-                {entry.entityId.slice(0, 8)}...
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {entry.userName || "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {entry.userEmail || "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {new Date(entry.createdAt).toLocaleDateString("ar-SA")}
-              </td>
-            </tr>
+          {isLoading ? (
+            <div className="space-y-2 px-6 pb-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={ScrollText}
+                title="حدث خطأ"
+                description="حدث خطأ أثناء تحميل سجل التدقيق."
+              />
+            </div>
+          ) : auditLogs.length === 0 ? (
+            <div className="px-6 pb-4">
+              <AdminEmptyState
+                icon={ScrollText}
+                title="لا يوجد سجل تدقيق"
+                description="لم يتم تسجيل أي أحداث تدقيق بعد."
+              />
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">الإجراء</TableHead>
+                    <TableHead className="text-right">الكيان</TableHead>
+                    <TableHead className="text-right">معرف الكيان</TableHead>
+                    <TableHead className="text-right">المستخدم</TableHead>
+                    <TableHead className="text-right">البريد الإلكتروني</TableHead>
+                    <TableHead className="text-right">التاريخ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {auditLogs.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="text-right">
+                        <AdminStatusBadge domain="audit" status={entry.action} />
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {entry.entityAr || entry.entity}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground font-mono">
+                        {entry.entityId.slice(0, 8)}...
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {entry.userName || "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {entry.userEmail || "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {new Date(entry.createdAt).toLocaleDateString("ar-SA")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {data && data.totalPages > 1 && (
+                <div className="flex justify-center py-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: data.totalPages }, (_, i) => i + 1).map((p) => (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            isActive={page === p}
+                            onClick={() => setPage(p)}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </>
           )}
-        />
-
-        {data && data.totalPages > 1 && (
-          <div className="mt-4 flex justify-center">
-            <Pagination
-              page={page}
-              totalPages={data.totalPages}
-              onPageChange={setPage}
-            />
-          </div>
-        )}
-      </SurfaceCard>
+        </CardContent>
+      </Card>
     </div>
   );
 }
