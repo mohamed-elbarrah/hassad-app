@@ -4,7 +4,7 @@ import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageErr
 
 export default function Error({
   error,
-  reset: _reset,
+  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
@@ -16,6 +16,7 @@ export default function Error({
         error.message ||
         "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
       }
+      onRetry={reset}
     />
   );
 }

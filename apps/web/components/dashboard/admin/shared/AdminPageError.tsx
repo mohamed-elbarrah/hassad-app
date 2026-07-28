@@ -1,28 +1,36 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
+import { AlertTriangle, RefreshCcw } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AdminPageErrorProps {
   title?: string;
   description?: string;
+  onRetry?: () => void;
 }
 
 export function AdminPageError({
   title = "حدث خطأ",
   description = "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى.",
+  onRetry,
 }: AdminPageErrorProps) {
   return (
-    <div
-      className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-portal-card-border bg-portal-bg p-12 text-center"
-      dir="rtl"
-    >
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-danger-100">
-        <AlertCircle className="h-7 w-7 text-danger-600" />
-      </div>
-      <div>
-        <h2 className="text-lg font-semibold text-natural-100">{title}</h2>
-        <p className="text-sm text-portal-note-text mt-1">{description}</p>
-      </div>
-    </div>
+    <Card className="border-destructive/30 bg-destructive/5">
+      <CardHeader className="items-center text-center">
+        <div className="rounded-full bg-destructive/10 p-3 text-destructive">
+          <AlertTriangle className="h-6 w-6" />
+        </div>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex justify-center gap-2">
+        <Button variant="outline" onClick={onRetry}>
+          <RefreshCcw className="h-4 w-4" />
+          إعادة المحاولة
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
