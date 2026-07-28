@@ -12,6 +12,7 @@ Migrate the frontend from the current legacy wrapper/design-token setup to a cle
 - theme-driven
 - page-by-page migratable
 - safe to keep the old UI until the very end
+- strict enough that future work does not reintroduce the same mess
 
 ---
 
@@ -41,6 +42,23 @@ This is not a rewrite candidate. It is a **migration**.
 5. **Shared patterns must be composed from shadcn primitives only.**
 6. **No hardcoded visual styling in new shared UI.**
 7. **Always check shadcn docs/CLI before adding or changing primitives.**
+8. **If a shadcn primitive exists, do not replace it with raw HTML.**
+9. **If a value is visual, it must come from tokens or an approved shadcn variant.**
+10. **Legacy wrapper code is migration-only; it must be deleted or retired after replacement.**
+
+---
+
+## Operating rules for every UI change
+
+Before editing any file in `apps/web`:
+
+1. decide whether the change is **primitive**, **shared pattern**, or **feature/page UI**
+2. check shadcn docs for every component you will use
+3. reuse an existing shadcn primitive whenever possible
+4. use semantic tokens/utilities from `app/globals.css`
+5. avoid raw hex colors, spacing constants, border widths, radii, shadows, and sizing in TSX
+6. avoid creating a new wrapper API unless it is truly shared and narrow
+7. delete the legacy version after the replacement lands
 
 ---
 
@@ -97,10 +115,12 @@ Owns:
 - stop introducing new legacy wrapper APIs
 - stop adding new route-specific tokens in shared foundation code
 - mark the old design-system README as legacy
+- treat legacy wrappers as read-only migration adapters
 
 ### Exit criteria
 - all new UI work goes through shadcn primitives
 - no new legacy wrapper files are added
+- no new hardcoded visual styling is introduced in shared UI
 
 ---
 
@@ -228,6 +248,7 @@ This order matters. Do not jump straight into small details before the shell is 
 ### Exit criteria
 - `components/design-system/*` is empty or only contains temporary migration leftovers
 - all active UI comes from shadcn primitives or shared shadcn-based patterns
+- no page still imports legacy wrappers when a shadcn primitive/pattern exists
 
 ---
 
@@ -300,5 +321,6 @@ When working on the frontend, always ask:
 2. Does shadcn already provide it?
 3. Can I compose it from existing primitives?
 4. Can I delete the old version after replacing it?
+5. Did I introduce any hardcoded visual value that should be tokenized instead?
 
 If the answer is unclear, stop and simplify.

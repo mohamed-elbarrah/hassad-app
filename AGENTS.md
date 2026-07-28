@@ -8,10 +8,24 @@
 | `.agent/NESTJS_API_V2.md`   | Full API spec: module structure, all endpoints, permission keys, workflow rules.                                               |
 | `.agent/DATA_BASE_V2.md`    | Prisma schema spec. **Stale** — actual schema has 50 models with payments, payroll, ledger, and bank accounts not in this doc. |
 | `.agent/PROBLEM_SOLVING.md` | Required debugging protocol and commit message format.                                                                         |
-| `.agent/UI_STRICT_RULES.md` | Mandatory UI rules: shadcn/ui is the primitive source of truth, no new wrapper layer, no hardcoded visual styling.            |
+| `.agent/UI_STRICT_RULES.md` | Mandatory UI rules: shadcn/ui is the only primitive source of truth, no new wrapper layer, no hardcoded visual styling.      |
 | `.agent/UI_REFACTOR_PLAN.md` | Step-by-step UI cleanup and migration plan by dashboard.                                                                      |
+| `.agent/UI_MIGRATION_ROADMAP.md` | Active migration sequence and enforcement rules for replacing the legacy UI layer.                                        |
 
 Always read the relevant `.agent/` spec before touching API, DB, or UI code. Validate spec claims against actual code — some endpoints/paths/methods differ.
+
+### UI migration policy (mandatory for `apps/web`)
+
+- `apps/web/components/ui/*` is the only primitive UI source of truth.
+- `apps/web/app/globals.css` is the only token/theme source of truth.
+- `apps/web/components/design-system/*` is legacy migration code only; do not add new files there.
+- New UI must be built from shadcn primitives and semantic utilities/tokens only.
+- Do not hardcode visual values in shared UI: no raw colors, borders, radii, shadows, spacing, sizing, or typography decisions in TSX unless tokenized first.
+- Do not build shared UI with raw HTML if a shadcn primitive exists.
+- Before any UI change: run shadcn context/docs commands and read the relevant component docs.
+- If a page or feature needs a reusable pattern, compose it from shadcn primitives and keep the API small.
+- Old UI stays until migration is complete, but no new work should depend on the old wrapper layer.
+- When in doubt, choose the simplest shadcn primitive composition and delete the legacy version after replacement.
 
 ---
 

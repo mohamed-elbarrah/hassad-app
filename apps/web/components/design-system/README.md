@@ -1,10 +1,12 @@
 # Design System Components
 
-## Rule
+## Status
 
-**All UI across the entire app — client dashboard (`/portal/*`) and internal dashboards (`/dashboard/*`) — must import from `@/components/design-system/*`.**
+**Legacy migration layer only. Do not add new UI here.**
 
-Raw `@/components/ui/*` imports are **only** allowed inside wrapper component definitions (the files in this directory that re-export or wrap shadcn primitives).
+All new frontend UI must use `@/components/ui/*` primitives directly or approved shared patterns composed from them.
+
+Raw `@/components/ui/*` imports are allowed in app/feature code because this repo is migrating to shadcn as the single source of truth.
 
 ## Available Wrappers
 
@@ -42,10 +44,11 @@ Raw `@/components/ui/*` imports are **only** allowed inside wrapper component de
 
 ## Creating a New Page or Feature
 
-1. Import from `@/components/design-system/*` only.
-2. If you need a primitive that doesn't have a wrapper yet, create one in this directory first.
-3. Never import `@/components/ui/*` in page files, dashboard pages, or feature components.
+1. Prefer `@/components/ui/*` primitives directly.
+2. If a shared pattern is needed, compose it from shadcn primitives in a dedicated shared pattern file.
+3. Do not create new wrappers in this directory unless you are temporarily migrating existing legacy code.
+4. Do not import this directory from new UI work.
 
-## Enforcement (Optional)
+## Enforcement
 
-Add an ESLint `no-restricted-imports` rule targeting `app/(portal)/`, `app/(dashboard)/`, `components/dashboard/`, and `components/design-system/` to block `@/components/ui/*` imports automatically in consumer code.
+Add an ESLint `no-restricted-imports` rule if needed to prevent *legacy* imports from spreading further, but do not block `@/components/ui/*` in consumer code.
