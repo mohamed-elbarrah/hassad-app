@@ -1,6 +1,6 @@
 "use client";
 
-import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import {
   ProjectStatus,
   TaskStatus,
@@ -37,14 +37,6 @@ type AdminDomain =
   | "revision"
   | "audit";
 
-const REVISION_STATUS_BADGE: Record<string, string> = {
-  TODO: "PENDING",
-  IN_PROGRESS: "ACTIVE",
-  IN_REVIEW: "WARNING",
-  DONE: "COMPLETED",
-  REVISION: "DANGER",
-};
-
 const REVISION_STATUS_LABELS: Record<string, string> = {
   TODO: "معلّق",
   IN_PROGRESS: "جارٍ",
@@ -53,110 +45,27 @@ const REVISION_STATUS_LABELS: Record<string, string> = {
   REVISION: "يحتاج تعديل",
 };
 
-const DISPUTE_STATUS_BADGE: Record<string, string> = {
-  PENDING_APPROVAL: "PENDING",
-  REJECTED: "CANCELLED",
-  APPROVED: "ACTIVE",
-  IN_PROGRESS: "ACTIVE",
-  PENDING_CLIENT: "WARNING",
-  ESCALATED: "DANGER",
-  RESOLVED: "COMPLETED",
-  CLOSED: "COMPLETED",
-};
+function resolveVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+  const successStates = ["ACTIVE", "COMPLETED", "DONE", "SIGNED", "APPROVED", "PAID", "SUCCESS", "IN_PROGRESS"];
+  const dangerStates = ["CANCELLED", "REJECTED", "EXPIRED", "OVERDUE", "STOPPED", "FAILED", "REFUNDED", "CANCELLED"];
+  const warningStates = ["PENDING", "ON_HOLD", "NEEDS_REVISION", "REVISION", "PAUSED", "WARNING", "DANGER", "OVERLOADED", "SENT", "UNDER_REVIEW"];
 
-const CLIENT_STATUS_BADGE: Record<string, string> = {
-  LEAD: "PENDING",
-  ACTIVE: "ACTIVE",
-  STOPPED: "CANCELLED",
-};
-
-const CONTRACT_STATUS_BADGE: Record<string, string> = {
-  DRAFT: "DRAFT",
-  SENT: "SENT",
-  SIGNED: "SIGNED",
-  ACTIVE: "ACTIVE",
-  COMPLETED: "COMPLETED",
-  CANCELLED: "CANCELLED",
-};
-
-const LEAD_STAGE_BADGE: Record<string, string> = {
-  NEW: "NEW",
-  CONTACTED: "ACTIVE",
-  QUALIFIED: "ACTIVE",
-  PROPOSAL: "WARNING",
-  NEGOTIATION: "WARNING",
-  CLOSED_WON: "COMPLETED",
-  CLOSED_LOST: "CANCELLED",
-};
-
-const REQUEST_STATUS_BADGE: Record<string, string> = {
-  NEW: "NEW",
-  PENDING_QUALIFICATION: "PENDING",
-  QUALIFIED: "ACTIVE",
-  PROPOSAL_SENT: "SENT",
-  APPROVED: "APPROVED",
-  REJECTED: "REJECTED",
-  CANCELLED: "CANCELLED",
-};
-
-const INVOICE_STATUS_BADGE: Record<string, string> = {
-  DRAFT: "DRAFT",
-  SENT: "SENT",
-  PAID: "PAID",
-  PARTIAL: "PARTIAL",
-  OVERDUE: "OVERDUE",
-  CANCELLED: "CANCELLED",
-  REFUNDED: "CANCELLED",
-};
-
-const PAYMENT_STATUS_BADGE: Record<string, string> = {
-  PENDING: "PENDING",
-  SUCCESS: "COMPLETED",
-  FAILED: "CANCELLED",
-  REFUNDED: "CANCELLED",
-};
-
-const WORKLOAD_STATUS_BADGE: Record<string, string> = {
-  AVAILABLE: "COMPLETED",
-  BUSY: "ACTIVE",
-  OVERLOADED: "DANGER",
-};
-
-const CAMPAIGN_STATUS_BADGE: Record<string, string> = {
-  PLANNING: "DRAFT",
-  ACTIVE: "ACTIVE",
-  PAUSED: "PAUSED",
-  COMPLETED: "COMPLETED",
-  CANCELLED: "CANCELLED",
-};
-
-const AUDIT_ACTION_BADGE: Record<string, string> = {
-  CREATE: "COMPLETED",
-  UPDATE: "ACTIVE",
-  DELETE: "CANCELLED",
-  ADMIN_INTERVENE: "DANGER",
-  IMPERSONATE: "WARNING",
-};
-
-const PROPOSAL_STATUS_BADGE: Record<string, string> = {
-  DRAFT: "DRAFT",
-  SENT: "SENT",
-  UNDER_REVIEW: "WARNING",
-  ACCEPTED: "COMPLETED",
-  REJECTED: "REJECTED",
-  CANCELLED: "CANCELLED",
-};
+  if (successStates.includes(status)) return "default";
+  if (dangerStates.includes(status)) return "destructive";
+  if (warningStates.includes(status)) return "secondary";
+  return "outline";
+}
 
 function resolveBadgeKey(domain: AdminDomain, status: string): string {
   switch (domain) {
     case "project": {
       const map: Record<string, string> = {
-        PLANNING: "DRAFT",
+        PLANNING: "PLANNING",
         ACTIVE: "ACTIVE",
-        ON_HOLD: "STOPPED",
+        ON_HOLD: "ON_HOLD",
         PENDING_ACTIVATION: "PENDING",
         AWAITING_REVIEW: "PENDING",
-        NEEDS_REVISION: "REJECTED",
+        NEEDS_REVISION: "NEEDS_REVISION",
         COMPLETED: "COMPLETED",
         CANCELLED: "CANCELLED",
       };
@@ -164,35 +73,102 @@ function resolveBadgeKey(domain: AdminDomain, status: string): string {
     }
     case "task": {
       if (status === "DONE") return "COMPLETED";
-      if (status === "IN_REVIEW") return "WARNING";
-      if (status === "REVISION") return "DANGER";
-      if (status === "IN_PROGRESS") return "ACTIVE";
+      if (status === "IN_REVIEW") return "UNDER_REVIEW";
+      if (status === "REVISION") return "REVISION";
+      if (status === "IN_PROGRESS") return "IN_PROGRESS";
       return "PENDING";
     }
-    case "revision":
-      return REVISION_STATUS_BADGE[status] || "PENDING";
-    case "dispute":
-      return DISPUTE_STATUS_BADGE[status] || "PENDING";
-    case "client":
-      return CLIENT_STATUS_BADGE[status] || "PENDING";
+    case "revision": {
+      const map: Record<string, string> = {
+        TODO: "PENDING",
+        IN_PROGRESS: "ACTIVE",
+        IN_REVIEW: "UNDER_REVIEW",
+        DONE: "COMPLETED",
+        REVISION: "REVISION",
+      };
+      return map[status] || "PENDING";
+    }
+    case "dispute": {
+      const map: Record<string, string> = {
+        PENDING_APPROVAL: "PENDING",
+        REJECTED: "CANCELLED",
+        APPROVED: "ACTIVE",
+        IN_PROGRESS: "IN_PROGRESS",
+        PENDING_CLIENT: "PENDING",
+        ESCALATED: "DANGER",
+        RESOLVED: "COMPLETED",
+        CLOSED: "COMPLETED",
+      };
+      return map[status] || "PENDING";
+    }
+    case "client": {
+      const map: Record<string, string> = {
+        LEAD: "PENDING",
+        ACTIVE: "ACTIVE",
+        STOPPED: "STOPPED",
+      };
+      return map[status] || "PENDING";
+    }
     case "contract":
-      return CONTRACT_STATUS_BADGE[status] || "PENDING";
-    case "lead":
-      return LEAD_STAGE_BADGE[status] || "PENDING";
-    case "request":
-      return REQUEST_STATUS_BADGE[status] || "PENDING";
+      return status;
+    case "lead": {
+      const map: Record<string, string> = {
+        NEW: "NEW",
+        CONTACTED: "ACTIVE",
+        QUALIFIED: "ACTIVE",
+        PROPOSAL: "UNDER_REVIEW",
+        NEGOTIATION: "UNDER_REVIEW",
+        CLOSED_WON: "COMPLETED",
+        CLOSED_LOST: "CANCELLED",
+      };
+      return map[status] || "PENDING";
+    }
+    case "request": {
+      const map: Record<string, string> = {
+        NEW: "NEW",
+        PENDING_QUALIFICATION: "PENDING",
+        QUALIFIED: "ACTIVE",
+        PROPOSAL_SENT: "SENT",
+        APPROVED: "APPROVED",
+        REJECTED: "REJECTED",
+        CANCELLED: "CANCELLED",
+      };
+      return map[status] || "PENDING";
+    }
     case "invoice":
-      return INVOICE_STATUS_BADGE[status] || "PENDING";
+      return status;
     case "payment":
-      return PAYMENT_STATUS_BADGE[status] || "PENDING";
-    case "team":
-      return WORKLOAD_STATUS_BADGE[status] || "PENDING";
-    case "campaign":
-      return CAMPAIGN_STATUS_BADGE[status] || "PENDING";
+      return status;
+    case "team": {
+      const map: Record<string, string> = {
+        AVAILABLE: "COMPLETED",
+        BUSY: "ACTIVE",
+        OVERLOADED: "DANGER",
+      };
+      return map[status] || "PENDING";
+    }
+    case "campaign": {
+      const map: Record<string, string> = {
+        PLANNING: "DRAFT",
+        ACTIVE: "ACTIVE",
+        PAUSED: "PAUSED",
+        COMPLETED: "COMPLETED",
+        CANCELLED: "CANCELLED",
+      };
+      return map[status] || "PENDING";
+    }
+    case "audit": {
+      const map: Record<string, string> = {
+        CREATE: "COMPLETED",
+        UPDATE: "ACTIVE",
+        DELETE: "CANCELLED",
+        ADMIN_INTERVENE: "DANGER",
+        IMPERSONATE: "UNDER_REVIEW",
+      };
+      return map[status] || "PENDING";
+    }
     case "proposal":
-      return PROPOSAL_STATUS_BADGE[status] || "PENDING";
-    case "audit":
-      return AUDIT_ACTION_BADGE[status] || "PENDING";
+      return status;
     default:
       return "PENDING";
   }
@@ -246,11 +222,12 @@ export function AdminStatusBadge({
   status,
   className,
 }: AdminStatusBadgeProps) {
+  const badgeKey = resolveBadgeKey(domain, status);
+  const label = resolveLabel(domain, status);
+
   return (
-    <StatusBadge
-      status={resolveBadgeKey(domain, status)}
-      label={resolveLabel(domain, status)}
-      className={className}
-    />
+    <Badge variant={resolveVariant(badgeKey)} className={className}>
+      {label}
+    </Badge>
   );
 }

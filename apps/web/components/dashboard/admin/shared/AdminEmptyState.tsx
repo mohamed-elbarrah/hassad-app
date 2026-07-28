@@ -1,7 +1,8 @@
 "use client";
 
-import { EmptyState } from "@/components/design-system/EmptyState";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 
 interface AdminEmptyStateProps {
@@ -14,7 +15,7 @@ interface AdminEmptyStateProps {
 }
 
 export function AdminEmptyState({
-  icon,
+  icon: Icon,
   title,
   description,
   actionLabel,
@@ -22,23 +23,27 @@ export function AdminEmptyState({
   actionHref,
 }: AdminEmptyStateProps) {
   return (
-    <EmptyState
-      icon={icon}
-      title={title}
-      hint={description}
-      action={
-        actionLabel ? (
-          actionHref ? (
-            <ActionButton href={actionHref} variant="outline" size="sm">
-              {actionLabel}
-            </ActionButton>
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icon />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+      </EmptyHeader>
+      {actionLabel && (
+        <EmptyContent>
+          {actionHref ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={actionHref}>{actionLabel}</Link>
+            </Button>
           ) : onAction ? (
-            <ActionButton onClick={onAction} variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={onAction}>
               {actionLabel}
-            </ActionButton>
-          ) : undefined
-        ) : undefined
-      }
-    />
+            </Button>
+          ) : null}
+        </EmptyContent>
+      )}
+    </Empty>
   );
 }

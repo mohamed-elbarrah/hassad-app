@@ -1,16 +1,16 @@
 "use client";
 
-import { Skeleton } from "@/components/design-system/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AdminDetailSkeletonProps {
   variant?: string;
 }
 
 export function AdminDetailSkeleton({
-  variant: variant,
+  variant: _variant,
 }: AdminDetailSkeletonProps) {
   return (
-    <div className="page-shell max-w-4xl" dir="rtl">
+    <div className="max-w-4xl space-y-6" dir="rtl">
       <Skeleton className="h-5 w-48" />
       <Skeleton className="h-8 w-64" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

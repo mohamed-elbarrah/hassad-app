@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface AdminDetailBreadcrumbProps {
   backHref: string;
@@ -19,26 +25,28 @@ export function AdminDetailBreadcrumb({
   parentLabel,
 }: AdminDetailBreadcrumbProps) {
   return (
-    <nav className="flex items-center gap-1.5 text-xs text-portal-note-text">
-      <Link
-        href={backHref}
-        className="hover:text-secondary-500 transition-colors"
-      >
-        {backLabel}
-      </Link>
-      {parentHref && parentLabel && (
-        <>
-          <ChevronRight className="w-3 h-3" />
-          <Link
-            href={parentHref}
-            className="hover:text-secondary-500 transition-colors"
-          >
-            {parentLabel}
-          </Link>
-        </>
-      )}
-      <ChevronRight className="w-3 h-3" />
-      <span className="text-natural-100 truncate max-w-[200px]">{title}</span>
-    </nav>
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+            <Link href={backHref}>{backLabel}</Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        {parentHref && parentLabel && (
+          <>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href={parentHref}>{parentLabel}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+          </>
+        )}
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <span className="truncate max-w-[200px]">{title}</span>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
   );
 }
