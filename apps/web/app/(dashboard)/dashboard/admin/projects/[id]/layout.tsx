@@ -3,6 +3,19 @@
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { AdminDetailBreadcrumb } from "@/components/dashboard/admin/shared/AdminDetailBreadcrumb";
 import { AdminDetailSkeleton } from "@/components/dashboard/admin/shared/AdminDetailSkeleton";
 import { AdminDetailError } from "@/components/dashboard/admin/shared/AdminDetailError";
@@ -19,62 +32,6 @@ const TABS = [
   { key: "/team", label: "الفريق" },
   { key: "/finance", label: "المالية" },
 ];
-
-function ActionModal({
-  open,
-  title,
-  description,
-  confirmLabel,
-  confirmVariant,
-  onConfirm,
-  onCancel,
-}: {
-  open: boolean;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  confirmVariant?: "danger" | "warning" | "primary";
-  onConfirm: (reason: string) => void;
-  onCancel: () => void;
-}) {
-  const [reason, setReason] = useState("");
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl" dir="rtl">
-        <h3 className="text-lg font-semibold text-natural-100 mb-2">{title}</h3>
-        <p className="text-sm text-portal-note-text mb-4">{description}</p>
-        <textarea
-          className="w-full rounded-xl border border-portal-card-border p-3 text-sm resize-none h-24"
-          placeholder="سبب الإجراء (مطلوب)"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-        <div className="flex items-center gap-3 mt-4">
-          <button
-            onClick={() => reason.trim() && onConfirm(reason.trim())}
-            disabled={!reason.trim()}
-            className={`flex-1 rounded-xl py-2.5 text-sm font-medium text-white disabled:opacity-50 ${
-              confirmVariant === "danger"
-                ? "bg-danger-500 hover:bg-danger-600"
-                : confirmVariant === "warning"
-                  ? "bg-warning-500 hover:bg-warning-600"
-                  : "bg-secondary-500 hover:bg-secondary-600"
-            }`}
-          >
-            {confirmLabel}
-          </button>
-          <button
-            onClick={onCancel}
-            className="flex-1 rounded-xl py-2.5 text-sm font-medium border border-portal-card-border text-portal-note-text hover:text-natural-100"
-          >
-            إلغاء
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function ProjectDetailLayout({
   children,
@@ -98,6 +55,7 @@ export default function ProjectDetailLayout({
   const [actionModal, setActionModal] = useState<{
     type: "archive" | "unarchive";
   } | null>(null);
+  const [reason, setReason] = useState("");
 
   const currentTab = useMemo(() => {
     for (const tab of TABS) {
@@ -106,16 +64,17 @@ export default function ProjectDetailLayout({
     return "";
   }, [pathname, id]);
 
-  const handleAction = async (_reason: string) => {
-    if (!actionModal) return;
+  const handleAction = async () => {
+    if (!actionModal || !reason.trim()) return;
     try {
       if (actionModal.type === "archive") {
         await archive(id).unwrap();
       } else if (actionModal.type === "unarchive") {
         await unarchive(id).unwrap();
       }
-    } catch { /* best-effort operation; the UI remains usable without this refresh */ }
+    } catch { /* best-effort */ }
     setActionModal(null);
+    setReason("");
   };
 
   if (isLoading) return <AdminDetailSkeleton />;
@@ -132,7 +91,7 @@ export default function ProjectDetailLayout({
   }
 
   return (
-    <div className="page-shell" dir="rtl">
+    <div className="space-y-6" dir="rtl">
       <div className="flex items-center justify-between">
         <AdminDetailBreadcrumb
           backHref="/dashboard/admin/projects"
@@ -140,7 +99,7 @@ export default function ProjectDetailLayout({
           title={project.name}
         />
         <div className="flex items-center gap-2">
-          <span className="text-sm text-portal-note-text">
+          <span className="text-sm text-muted-foreground">
             {project.client.companyName}
           </span>
           <AdminStatusBadge domain="project" status={project.status} />
@@ -148,83 +107,117 @@ export default function ProjectDetailLayout({
       </div>
 
       <div className="flex items-center gap-2">
-        <Link
-          href={`/dashboard/admin/clients/${project.client.id}`}
-          className="px-3 py-1.5 text-sm rounded-xl border border-portal-card-border text-portal-note-text hover:text-natural-100"
-        >
-          عرض العميل
-        </Link>
-        {project.contractId && (
-          <Link
-            href={`/dashboard/admin/contracts/${project.contractId}`}
-            className="px-3 py-1.5 text-sm rounded-xl border border-portal-card-border text-portal-note-text hover:text-natural-100"
-          >
-            عرض العقد
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/dashboard/admin/clients/${project.client.id}`}>
+            عرض العميل
           </Link>
+        </Button>
+        {project.contractId && (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/dashboard/admin/contracts/${project.contractId}`}>
+              عرض العقد
+            </Link>
+          </Button>
         )}
         {project.isArchived ? (
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setActionModal({ type: "unarchive" })}
-            className="px-3 py-1.5 text-sm rounded-xl bg-success-100 text-success-700 hover:bg-success-200"
           >
             إلغاء الأرشفة
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setActionModal({ type: "archive" })}
-            className="px-3 py-1.5 text-sm rounded-xl bg-warning-100 text-warning-700 hover:bg-warning-200"
           >
             أرشفة
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="flex items-center gap-4 border-b border-portal-divider">
-        {TABS.map((tab) => {
-          const href = tab.key
-            ? `/dashboard/admin/projects/${id}${tab.key}`
-            : `/dashboard/admin/projects/${id}`;
-          const isActive = currentTab === tab.key;
-          return (
-            <Link
-              key={tab.key}
-              href={href}
-              className={cn(
-                "pb-3 text-sm font-medium border-b-2 transition-colors",
-                isActive
-                  ? "border-secondary-500 text-secondary-500"
-                  : "border-transparent text-portal-note-text hover:text-natural-100",
-              )}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </div>
+      <Tabs value={currentTab} className="w-full">
+        <TabsList className="w-full justify-start border-b rounded-none bg-transparent p-0 h-auto">
+          {TABS.map((tab) => {
+            const href = tab.key
+              ? `/dashboard/admin/projects/${id}${tab.key}`
+              : `/dashboard/admin/projects/${id}`;
+            return (
+              <TabsTrigger
+                key={tab.key}
+                value={tab.key}
+                asChild
+                className={cn(
+                  "rounded-none border-b-2 px-4 pb-3 pt-0 text-sm font-medium data-[state=active]:shadow-none",
+                  "data-[state=active]:border-primary data-[state=active]:text-primary",
+                  "data-[state=inactive]:border-transparent data-[state=inactive]:text-muted-foreground",
+                  "h-auto",
+                )}
+              >
+                <Link href={href}>{tab.label}</Link>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </Tabs>
 
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">{children}</div>
       </div>
 
-      <ActionModal
+      <AlertDialog
         open={actionModal?.type === "archive"}
-        title="أرشفة المشروع"
-        description="سيتم أرشفة المشروع. لن يظهر في القوائم النشطة."
-        confirmLabel="أرشفة"
-        confirmVariant="warning"
-        onConfirm={handleAction}
-        onCancel={() => setActionModal(null)}
-      />
+        onOpenChange={(open) => !open && setActionModal(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>أرشفة المشروع</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم أرشفة المشروع. لن يظهر في القوائم النشطة.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="سبب الإجراء (مطلوب)"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="min-h-[96px]"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setReason("")}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAction} disabled={!reason.trim()}>
+              أرشفة
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <ActionModal
+      <AlertDialog
         open={actionModal?.type === "unarchive"}
-        title="إلغاء أرشفة المشروع"
-        description="سيتم إعادة المشروع إلى الحالة النشطة."
-        confirmLabel="إلغاء الأرشفة"
-        confirmVariant="primary"
-        onConfirm={handleAction}
-        onCancel={() => setActionModal(null)}
-      />
+        onOpenChange={(open) => !open && setActionModal(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>إلغاء أرشفة المشروع</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم إعادة المشروع إلى الحالة النشطة.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="سبب الإجراء (مطلوب)"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="min-h-[96px]"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setReason("")}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAction} disabled={!reason.trim()}>
+              إلغاء الأرشفة
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
