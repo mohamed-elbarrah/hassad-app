@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,13 +22,18 @@ export default function Error({
               <Users />
             </EmptyMedia>
             <EmptyHeader>
-              <EmptyTitle>تعذر تحميل العملاء</EmptyTitle>
+              <EmptyTitle>تعذر تحميل تفاصيل الموظف</EmptyTitle>
               <EmptyDescription>
-                {error.message || "حدث خطأ أثناء جلب بيانات العملاء."}
+                {error.message || "حدث خطأ غير متوقع أثناء جلب بيانات الموظف."}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button onClick={reset}>إعادة المحاولة</Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button onClick={reset}>إعادة المحاولة</Button>
+                <Button variant="outline" asChild>
+                  <Link href="/dashboard/admin/employees">العودة للقائمة</Link>
+                </Button>
+              </div>
             </EmptyContent>
           </Empty>
         </CardContent>

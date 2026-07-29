@@ -1,5 +1,5 @@
-import { AdminPageLoading } from "@/components/dashboard/admin/shared/AdminPageLoading";
+import { OverviewLoading } from "./_components/overview-loading";
 
 export default function Loading() {
-  return <AdminPageLoading />;
+  return <OverviewLoading />;
 }

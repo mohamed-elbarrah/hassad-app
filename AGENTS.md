@@ -2,17 +2,33 @@
 
 ## Read first
 
-| File                        | What it covers                                                                                                                 |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `ROADMAP.md`                | Full 7-phase improvement plan. Check this before making any change — your task may be part of a phase.                         |
-| `.agent/NESTJS_API_V2.md`   | Full API spec: module structure, all endpoints, permission keys, workflow rules.                                               |
-| `.agent/DATA_BASE_V2.md`    | Prisma schema spec. **Stale** — actual schema has 50 models with payments, payroll, ledger, and bank accounts not in this doc. |
-| `.agent/PROBLEM_SOLVING.md` | Required debugging protocol and commit message format.                                                                         |
-| `.agent/UI_STRICT_RULES.md` | Mandatory UI rules: shadcn/ui is the only primitive source of truth, no new wrapper layer, no hardcoded visual styling.      |
-| `.agent/UI_REFACTOR_PLAN.md` | Step-by-step UI cleanup and migration plan by dashboard.                                                                      |
-| `.agent/UI_MIGRATION_ROADMAP.md` | Active migration sequence and enforcement rules for replacing the legacy UI layer.                                        |
+| File | What it covers |
+| --- | --- |
+| `apps/api/src/app.module.ts` | Current backend module wiring. Inspect this before changing backend boundaries or registrations. |
+| `apps/api/src/main.ts` | Backend bootstrap, global prefix, validation, CORS, and interceptors. |
+| `apps/api/prisma/schema.prisma` | Current Prisma schema and database model source of truth. |
+| `apps/web/components/ui/*` | shadcn primitives. Read the relevant component docs before changing UI. |
+| `apps/web/app/globals.css` | Theme tokens and semantic styling source of truth. |
+| `apps/web/proxy.ts` | Edge auth and route-guard behavior for the web app. |
+| `apps/web/components/design-system/README.md` | Legacy migration layer rules. Read only to avoid extending the old system. |
 
-Always read the relevant `.agent/` spec before touching API, DB, or UI code. Validate spec claims against actual code — some endpoints/paths/methods differ.
+Always inspect the relevant source files before touching API, DB, or UI code. Validate assumptions against the codebase itself - routes, modules, and behaviors can drift from older notes.
+
+### Backend engineering standards (mandatory for `apps/api`)
+
+- Treat NestJS, Prisma, and PostgreSQL as production infrastructure, not a place for quick fixes.
+- Prefer clean module boundaries, explicit DTOs, transactions where needed, and clear error handling.
+- Do not silence errors, bypass validation, or ship brittle one-off code just to make something pass.
+- Preserve existing business rules, permissions, and state-machine behavior unless a change explicitly requires otherwise.
+- Use Prisma migrations for schema changes and data changes.
+
+### Frontend engineering standards (mandatory for `apps/web`)
+
+- Treat Next.js App Router code as long-lived product code. Optimize for maintainability, readability, and predictable data flow.
+- Use shadcn primitives and the installed shadcn skill/docs before adding or changing UI.
+- Prefer semantic tokens, reusable patterns, and clean composition over ad-hoc wrappers or inline visual styling.
+- Do not ship UI that only "works". Ship code that is consistent with the existing architecture and easy to extend.
+- When a shared pattern is needed, compose it from shadcn primitives and keep the API small.
 
 ### UI migration policy (mandatory for `apps/web`)
 
@@ -212,31 +228,30 @@ apps/api/       NestJS REST API — global prefix /v1, port 3001
 apps/web/       Next.js App Router — port 3000
 packages/shared @hassad/shared — shared enums, schemas, types
 docker-compose.yml  PostgreSQL 17 only (no Docker images for apps)
-.agent/         Agent spec docs (not runtime code)
+.agents/        Agent spec docs (not runtime code)
 features/       Feature planning markdown docs
 ```
 
 ### API internals (`apps/api/src/`)
 
 - `main.ts` — bootstrap: global `/v1` prefix, cookie-parser, CORS, `ValidationPipe(whitelist:true, forbidNonWhitelisted:true)`
-- `app.module.ts` — wires all 14 modules
+- `app.module.ts` — wires the current application modules; inspect before changing module registration
 - `common/` — global `ResponseInterceptor`, `HttpExceptionFilter`, `PermissionsGuard`, decorators
 - `modules/` — grouped: `core/`, `crm/`, `proposals/`, `contracts/`, `projects/`, `tasks/`, `portal/`, `marketing/`, `finance/`, `chat/`, `notifications/`, `ai/`, `sales/`
 
 ### Web internals (`apps/web/`)
 
-- `app/(dashboard)/` — auth-protected; sub-routes per role: `sales/`, `pm/`, `employee/`, `marketing/`, `accountant/`, `admin/`
+- `app/(dashboard)/` — authenticated dashboard routes grouped by feature area
 - `app/(portal)/` — client portal
 - `app/contract/[token]` and `app/proposal/[token]` — public token-based share pages
 - `features/<domain>/` — RTK Query API slices (not in `lib/`)
 - `lib/store.ts` — Redux store; `lib/baseQuery.ts` — shared base query with envelope unwrap + auto token refresh
-- **No `middleware.ts` exists** — Next.js 16 uses `apps/web/proxy.ts` instead. It verifies JWT at the Edge using `jose`, redirects unauthenticated users.
+- `apps/web/proxy.ts` — edge auth and role routing for protected paths
 - Path alias `@/*` maps to the root of `apps/web/` (not `src/`)
 
 ### UI rules (`apps/web/`) — mandatory
 
-- Read `.agent/UI_STRICT_RULES.md` before any UI change.
-- Follow `.agent/UI_REFACTOR_PLAN.md` for migration order and cleanup strategy.
+- Follow the UI rules in this file before any UI change.
 - `apps/web/components/ui/*` is the **only primitive UI source of truth**.
 - `apps/web/app/globals.css` is the **only token/theme source of truth**.
 - Do **not** add new files to `apps/web/components/design-system/*`.
@@ -310,9 +325,11 @@ Both `apps/api` and `apps/web` use `strict: false`, `strictNullChecks: false`, `
 
 ---
 
-## No test suite
+## Testing
 
-There are no tests anywhere in this repo — no jest, no vitest, no test scripts. Verify changes by running `npm run verify` then `turbo build` for final confirmation.
+- Backend has Vitest scenario/e2e coverage under `apps/api/src/test/**`.
+- Frontend currently has no dedicated test suite.
+- Verify changes with `npm run verify`; run `turbo build` for final integration confirmation when needed.
 
 ---
 
@@ -322,7 +339,7 @@ There are no tests anywhere in this repo — no jest, no vitest, no test scripts
 
 ---
 
-## Commit message format (from `.agent/PROBLEM_SOLVING.md`)
+## Commit message format
 
 ```
 fix(module): short description

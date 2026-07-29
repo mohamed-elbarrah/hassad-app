@@ -3,14 +3,7 @@
 import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 export default function Error({
   error,
@@ -20,7 +13,7 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div dir="rtl" className="flex flex-col gap-6">
+    <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
       <Card>
         <CardContent className="p-8">
           <Empty>
@@ -28,9 +21,9 @@ export default function Error({
               <Users />
             </EmptyMedia>
             <EmptyHeader>
-              <EmptyTitle>حدث خطأ أثناء تحميل الموظفين</EmptyTitle>
+              <EmptyTitle>تعذر تحميل قائمة الموظفين</EmptyTitle>
               <EmptyDescription>
-                {error.message || "تعذر تحميل البيانات. حاول مرة أخرى."}
+                {error.message || "حدث خطأ غير متوقع أثناء جلب البيانات."}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

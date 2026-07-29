@@ -1,6 +1,6 @@
 "use client";
 
-import { AdminPageError } from "@/components/dashboard/admin/shared/AdminPageError";
+import { OverviewError } from "./_components/overview-error";
 
 export default function Error({
   error,
@@ -9,14 +9,5 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  return (
-    <AdminPageError
-      title="حدث خطأ في لوحة التحكم"
-      description={
-        error.message ||
-        "تعذر تحميل البيانات. يرجى تحديث الصفحة والمحاولة مرة أخرى."
-      }
-      onRetry={reset}
-    />
-  );
+  return <OverviewError error={error} reset={reset} />;
 }

@@ -4,9 +4,8 @@
 
 **Legacy migration layer only. Do not add new UI here.**
 
-All new frontend UI must use `@/components/ui/*` primitives directly or approved shared patterns composed from them.
-
-Raw `@/components/ui/*` imports are allowed in app/feature code because this repo is migrating to shadcn as the single source of truth.
+`@/components/ui/*` is the only source of truth for new UI.
+This folder exists only to document and retire legacy wrappers during migration.
 
 ## Available Wrappers
 
@@ -46,7 +45,7 @@ Raw `@/components/ui/*` imports are allowed in app/feature code because this rep
 
 1. Prefer `@/components/ui/*` primitives directly.
 2. If a shared pattern is needed, compose it from shadcn primitives in a dedicated shared pattern file.
-3. Do not create new wrappers in this directory unless you are temporarily migrating existing legacy code.
+3. Do not create new wrappers in this directory.
 4. Do not import this directory from new UI work.
 
 ## Enforcement
