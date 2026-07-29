@@ -151,13 +151,14 @@ Both apps have `predev`/`prebuild` scripts that build shared automatically. When
 
 ### Per-task verification (each subagent)
 
-- `npm run verify --filter=<package>` — lint + typecheck only. Fast and cached.
-- Avoid `turbo build --filter=<package>` during work — builds are slow and only needed at integration.
-- Only build (`turbo build --filter=<package>`) if you need to test the compiled output.
+- Prefer package-local `typecheck` and targeted tests for subagent verification.
+- Use package-local `lint` only when you intentionally want that package's lint behavior; do not treat it as a build step.
+- Do not run `turbo build --filter=<package>` during work unless you specifically need compiled output.
+- Reserve `turbo build` for final integration after all subagents return.
 
 ### Integration (after all subagents return)
 
-- One `turbo build` (full) — runs lint + typecheck then builds everything.
+- One `turbo build` (full) — final integration gate for the whole repo.
 - If it fails: fix only the broken package, preserve other packages' work.
 - If it passes: phase complete.
 
@@ -329,7 +330,9 @@ Both `apps/api` and `apps/web` use `strict: false`, `strictNullChecks: false`, `
 
 - Backend has Vitest scenario/e2e coverage under `apps/api/src/test/**`.
 - Frontend currently has no dedicated test suite.
-- Verify changes with `npm run verify`; run `turbo build` for final integration confirmation when needed.
+- For subagent work, prefer package-local `typecheck` and targeted tests.
+- `npm run verify` is the repo-level lint/typecheck check, but do not treat it as a no-build subagent gate because Turbo may still run upstream build prerequisites.
+- Run `turbo build` once at final integration confirmation when needed.
 
 ---
 
