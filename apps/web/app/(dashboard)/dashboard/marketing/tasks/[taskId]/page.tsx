@@ -42,7 +42,10 @@ import {
   useGetTaskStrategyQuery,
 } from "@/features/marketing/marketingApi";
 import { CampaignFormModal } from "@/components/dashboard/marketing/CampaignFormModal";
-import { ClientBriefCompact } from "@/components/client-brief";
+import {
+  buildDefaultClientStats,
+  ClientContextPanel,
+} from "@/components/client-detail/ClientDetailPattern";
 import { MarketingStrategySection } from "@/components/dashboard/marketing/MarketingStrategySection";
 import { downloadTaskFile } from "@/lib/downloadFile";
 import { formatFileSize } from "@/lib/format";
@@ -696,10 +699,11 @@ export default function MarketingTaskDetailPage() {
         {/* ===== Tab 5: Client Details ===== */}
         <TabsContent value="client" className="space-y-6">
           {teamView ? (
-            <ClientBriefCompact
+            <ClientContextPanel
               client={teamView.client}
               profile={teamView.profile}
-              viewAs="internal"
+              mode="internal"
+              stats={buildDefaultClientStats(teamView.client, "internal")}
             />
           ) : (
             <Skeleton className="h-96 rounded-xl" />

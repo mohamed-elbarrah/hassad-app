@@ -15,7 +15,10 @@ import {
   TabsContent,
 } from "@/components/design-system/Tabs";
 import { TaskWorkflowStepper } from "@/components/dashboard/pm/TaskWorkflowStepper";
-import { ClientBriefCompact } from "@/components/client-brief";
+import {
+  buildDefaultClientStats,
+  ClientContextPanel,
+} from "@/components/client-detail/ClientDetailPattern";
 import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
 import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
 import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
@@ -733,10 +736,11 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             {/* Client Tab */}
             <TabsContent value="client" className="space-y-5">
               {teamView ? (
-                <ClientBriefCompact
+                <ClientContextPanel
                   client={teamView.client}
                   profile={teamView.profile}
-                  viewAs="internal"
+                  mode="internal"
+                  stats={buildDefaultClientStats(teamView.client, "internal")}
                 />
               ) : (
                 <DSSkeleton className="h-96 rounded-xl" />

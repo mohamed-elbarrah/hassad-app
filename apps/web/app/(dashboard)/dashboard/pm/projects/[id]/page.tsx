@@ -22,7 +22,10 @@ import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
 import { ProjectActivityFeed } from "@/components/dashboard/pm/ProjectActivityFeed";
-import { ClientBrief } from "@/components/client-brief";
+import {
+  buildDefaultClientStats,
+  ClientContextPanel,
+} from "@/components/client-detail/ClientDetailPattern";
 import { PMPeriodsManagement } from "@/components/dashboard/pm/PMPeriodsManagement";
 import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
 import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
@@ -743,10 +746,11 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
           {/* ── Client Tab ─────────────────────────────────────────────────── */}
           <TabsContent value="client" className="space-y-5">
             {teamView ? (
-              <ClientBrief
+              <ClientContextPanel
                 client={teamView.client}
                 profile={teamView.profile}
-                viewAs="internal"
+                mode="internal"
+                stats={buildDefaultClientStats(teamView.client, "internal")}
               />
             ) : (
               <DSSkeleton className="h-96 rounded-xl" />

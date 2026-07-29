@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "@/lib/baseQuery";
+import type { ClientProfile } from "@hassad/shared";
 
 export interface AdminClientItem {
   id: string;
@@ -95,7 +96,27 @@ export interface ClientUserFilters {
 export interface AdminClientFullDetail extends AdminClientDetail {
   source: string | null;
   managerName: string | null;
+  portalToken: string | null;
+  portalTokenExpiresAt: string | null;
+  hasPortalAccess: boolean;
+  intakeCompleted?: boolean;
+  avatarUrl?: string | null;
+  avgSatisfactionScore?: number | null;
+  totalContractValue?: number | null;
+  totalInvoiced?: number | null;
+  totalPaid?: number | null;
+  activeProjects?: number | null;
+  completedProjects?: number | null;
+  totalProjects?: number | null;
   overdueInvoicesCount: number;
+  profile: ClientProfile | null;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    phoneWhatsapp: string | null;
+    avatarUrl: string | null;
+  } | null;
   counters: {
     contracts: number;
     projects: number;
@@ -127,9 +148,18 @@ export interface AdminClientFullDetail extends AdminClientDetail {
     id: string;
     invoiceNumber: string;
     amount: number;
+    remainingAmount: number;
     status: string;
+    issueDate: string | null;
     dueDate: string | null;
+    paidAt: string | null;
     createdAt: string;
+    payments: Array<{
+      id: string;
+      amount: number;
+      status: string;
+      createdAt: string;
+    }>;
   }>;
   payments: Array<{
     id: string;
@@ -137,13 +167,22 @@ export interface AdminClientFullDetail extends AdminClientDetail {
     method: string;
     status: string;
     createdAt: string;
+    invoiceNumber: string | null;
+    invoiceId: string | null;
   }>;
   historyLogs: Array<{
     id: string;
     eventType: string;
-    description: string;
+    description: string | null;
+    userId: string | null;
     userName: string | null;
     occurredAt: string;
+  }>;
+  satRatings?: Array<{
+    id: string;
+    score: number;
+    comment: string | null;
+    createdAt: string;
   }>;
 }
 

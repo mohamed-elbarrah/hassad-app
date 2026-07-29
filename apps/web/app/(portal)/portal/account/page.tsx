@@ -18,9 +18,9 @@ import {
   TabsContent,
 } from "@/components/design-system/Tabs";
 import { Skeleton } from "@/components/design-system/Skeleton";
-import { ClientBriefV2 } from "@/components/client-brief/ClientBriefV2";
 import { ProfileEditV2 } from "@/components/portal/ProfileEditV2";
 import { ActionButton } from "@/components/design-system/ActionButton";
+import { ClientContextPanel } from "@/components/client-detail/ClientDetailPattern";
 import { Settings, User, Pencil, ArrowRight } from "lucide-react";
 
 export default function PortalAccountPage() {
@@ -168,20 +168,19 @@ export default function PortalAccountPage() {
             onSuccess={handleEditSuccess}
           />
         ) : (
-          <ClientBriefV2
-            client={client}
+          <ClientContextPanel
+            client={{
+              ...client,
+              user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phoneWhatsapp: user.phoneWhatsapp,
+                avatarUrl: user.avatarUrl,
+              },
+            }}
             profile={profile ?? null}
-            user={
-              user
-                ? {
-                    name: user.name,
-                    email: user.email,
-                    phoneWhatsapp: user.phoneWhatsapp,
-                    avatarUrl: user.avatarUrl,
-                  }
-                : null
-            }
-            role={user.role}
+            mode="portal"
           />
         )}
       </div>

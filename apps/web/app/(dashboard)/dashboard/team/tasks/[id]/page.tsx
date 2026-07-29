@@ -28,7 +28,10 @@ import {
 } from "@/components/design-system/Tabs";
 import { FileItem } from "@/components/dashboard/team/FileItem";
 import { CommentItem } from "@/components/dashboard/team/CommentItem";
-import { ClientBriefCompact } from "@/components/client-brief";
+import {
+  buildDefaultClientStats,
+  ClientContextPanel,
+} from "@/components/client-detail/ClientDetailPattern";
 import {
   useGetTaskByIdQuery,
   useStartTaskMutation,
@@ -597,10 +600,11 @@ export default function TaskDetailPage({ params }: TaskDetailPageProps) {
             {/* ── Client Tab ─────────────────────────────────────────────── */}
             <TabsContent value="client" className="space-y-6">
               {teamView ? (
-                <ClientBriefCompact
+                <ClientContextPanel
                   client={teamView.client}
                   profile={teamView.profile}
-                  viewAs="internal"
+                  mode="internal"
+                  stats={buildDefaultClientStats(teamView.client, "internal")}
                 />
               ) : (
                 <DSSkeleton className="h-96 rounded-xl" />
