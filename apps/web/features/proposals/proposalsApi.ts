@@ -11,6 +11,10 @@ import type {
 
 export interface ProposalListItem extends Proposal {
   filePath?: string | null;
+  client?: {
+    id: string;
+    companyName: string;
+  } | null;
   request?: {
     id: string;
     companyName: string;

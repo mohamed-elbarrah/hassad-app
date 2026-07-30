@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import type { InvoiceSummary } from "@/features/contracts/contractsApi";
 import type { ServiceItem } from "@hassad/shared";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
   InlinePaymentCard,
   type PayableInvoice,
@@ -66,51 +69,46 @@ export function ContractPaymentSummary({
   });
 
   return (
-    <div className="rounded-xl border bg-card" dir="rtl">
-      <div className="p-4 border-b bg-badge-gray-bg/20">
-        <h3 className="text-sm font-bold flex items-center gap-2">
-          <FileText className="w-4 h-4 text-secondary-500" />
-          ملخص العقد والدفع
-        </h3>
-      </div>
-
-      <div className="p-4 space-y-4">
-        {/* Services */}
-        <div className="space-y-2">
-          <p className="text-xs text-portal-note-text font-medium">
-            الخدمات المشمولة
-          </p>
-          <div className="rounded-lg border divide-y">
-            {services.map((service, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between px-3 py-2 text-sm"
-              >
-                <span className="text-natural-100">{service.name}</span>
-                <span className="text-portal-note-text font-medium tabular-nums">
-                  {service.price.toLocaleString("en-US")} ر.س
-                </span>
-              </div>
-            ))}
-            <div className="flex items-center justify-between px-3 py-2.5 text-sm font-bold bg-badge-gray-bg/20">
-              <span>الإجمالي</span>
-              <span className="tabular-nums">
-                {totalValue.toLocaleString("en-US")} ر.س
-              </span>
-            </div>
+    <Card dir="rtl">
+      <CardHeader className="gap-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <FileText />
+          الفوترة والدفع
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          <div className="text-sm font-medium">الخدمات</div>
+          <div className="overflow-hidden rounded-lg border">
+            <Table>
+              <TableBody>
+                {services.map((service, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell className="font-medium">{service.name}</TableCell>
+                    <TableCell className="text-left tabular-nums">
+                      {service.price.toLocaleString("en-US")} ر.س
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow>
+                  <TableCell className="font-semibold">الإجمالي</TableCell>
+                  <TableCell className="text-left font-semibold tabular-nums">
+                    {totalValue.toLocaleString("en-US")} ر.س
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
         </div>
 
-        {/* Invoices list with inline forms inside each row */}
-        <div className="space-y-2">
-          <p className="text-xs text-portal-note-text font-medium">الفواتير</p>
-
-          <div className="rounded-lg border">
+        <div className="flex flex-col gap-3">
+          <div className="text-sm font-medium">الفواتير</div>
+          <div className="flex flex-col gap-3">
             {invoices.map((invoice) => {
               const config = STATUS_CONFIG[invoice.status] ?? {
                 label: invoice.status,
                 icon: Clock,
-                color: "text-portal-note-text",
+                color: "text-muted-foreground",
               };
               const Icon = config.icon;
               const isPaid = invoice.status === "PAID";
@@ -118,45 +116,37 @@ export function ContractPaymentSummary({
                 showPayButton && PAYABLE_STATUSES.has(invoice.status);
 
               return (
-                <div key={invoice.id} className="border-b last:border-b-0">
-                  {/* Invoice info row */}
-                  <div className="flex items-center justify-between px-3 py-2.5 text-sm">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Icon className={`w-4 h-4 shrink-0 ${config.color}`} />
-                      <span className="text-natural-100 truncate font-medium">
-                        {invoice.invoiceNumber}
-                      </span>
-                      <span
-                        className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
-                          isPaid
-                            ? "bg-success-50 text-success-700"
-                            : "bg-alert-50 text-alert-700"
-                        }`}
-                      >
-                        {config.label}
-                      </span>
+                <Card key={invoice.id}>
+                  <CardContent className="flex flex-col gap-4 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Icon className={config.color} />
+                        <span className="truncate text-sm font-medium">
+                          {invoice.invoiceNumber}
+                        </span>
+                        <Badge variant={isPaid ? "secondary" : "outline"}>
+                          {config.label}
+                        </Badge>
+                      </div>
+                      <div className="text-sm font-semibold tabular-nums">
+                        {invoice.amount.toLocaleString("en-US")} ر.س
+                      </div>
                     </div>
-                    <span className="font-semibold tabular-nums shrink-0">
-                      {invoice.amount.toLocaleString("en-US")} ر.س
-                    </span>
-                  </div>
 
-                  {/* Inline payment form — inside the same card, no extra border */}
-                  {isPayable && (
-                    <div className="px-3 pb-4">
+                    {isPayable ? (
                       <InlinePaymentCard
                         invoice={toPayable(invoice)}
                         onPaymentComplete={onPaymentComplete}
                         compact
                       />
-                    </div>
-                  )}
-                </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

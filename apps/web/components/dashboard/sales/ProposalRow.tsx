@@ -1,6 +1,7 @@
 "use client";
 
 
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -61,9 +62,12 @@ export function renderProposalRowCells(
   return [
     // Client name
     <td key="client" className="px-5 py-3.5 align-middle">
-      <span className="text-sm font-medium text-natural-100">
+      <Link
+        href={`/dashboard/sales/proposals/${proposal.id}`}
+        className="text-sm font-medium text-natural-100 transition-colors hover:text-primary"
+      >
         {getProposalDisplayName(proposal)}
-      </span>
+      </Link>
     </td>,
 
     // Price

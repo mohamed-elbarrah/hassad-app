@@ -22,7 +22,11 @@ import {
   X,
   ShieldCheck,
 } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
   useCreateElementPaymentIntentMutation,
@@ -83,7 +87,7 @@ export function InlinePaymentCard({
   stripeKey: stripeKeyProp,
   bankAccounts: bankAccountsProp,
   onPaymentComplete,
-  compact = false,
+  compact: _compact = false,
 }: InlinePaymentProps) {
   const { data: activeGateways = [] } = useGetPublicGatewaysQuery(undefined);
   const { data: stripeConfig } = useGetStripePublishableKeyQuery(undefined, {
@@ -115,39 +119,32 @@ export function InlinePaymentCard({
 
   return (
     <div className="space-y-4" dir="rtl">
-      {/* Invoice summary */}
-      <div className="flex items-center justify-between rounded-xl border border-portal-divider bg-portal-bg p-4">
+      <div className="flex items-center justify-between rounded-lg border bg-muted/20 p-4">
         <div className="space-y-0.5">
-          <p className="text-sm font-medium text-natural-100">
-            {invoice.invoiceNumber}
-          </p>
-          <p className="text-xs text-portal-note-text">المبلغ المستحق</p>
+          <p className="text-sm font-medium">{invoice.invoiceNumber}</p>
+          <p className="text-xs text-muted-foreground">المبلغ المستحق</p>
         </div>
-        <p className="text-lg font-bold text-natural-100">
+        <p className="text-lg font-bold">
           {fmtAmount(invoice.amount)}{" "}
-          <span className="text-sm font-normal text-portal-note-text">ر.س</span>
+          <span className="text-sm font-normal text-muted-foreground">ر.س</span>
         </p>
       </div>
 
-      {/* Payment method tabs */}
       {showTabs && (
-        <div className="flex gap-1 rounded-xl bg-portal-bg p-1">
+        <div className="flex gap-2">
           {resolvedMethods.map((m) => {
             const Icon = m.icon;
             return (
-              <button
+              <Button
                 key={m.key}
                 onClick={() => setSelectedMethod(m.key)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-                  selectedMethod === m.key
-                    ? "bg-natural-0 text-natural-100 shadow-sm"
-                    : "text-portal-note-text hover:text-natural-100",
-                )}
+                type="button"
+                variant={selectedMethod === m.key ? "default" : "outline"}
+                className="flex-1"
               >
-                <Icon className="w-4 h-4" />
+                <Icon data-icon="inline-start" />
                 {m.label}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -155,10 +152,8 @@ export function InlinePaymentCard({
 
       {loadingGateways ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-          <p className="text-sm text-portal-note-text">
-            جاري تحميل طرق الدفع...
-          </p>
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">جاري تحميل طرق الدفع...</p>
         </div>
       ) : (
         <>
@@ -385,26 +380,26 @@ function StripePaymentForm({
         </p>
       )}
 
-      <ActionButton
+      <Button
         type="submit"
         disabled={!stripe || processing}
-        className="w-full h-11 rounded-2xl gap-2 text-sm font-medium"
+        className="w-full"
       >
         {processing ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 data-icon="inline-start" className="animate-spin" />
             جاري تأكيد الدفع...
           </>
         ) : (
           <>
-            <CreditCard className="w-4 h-4" />
+            <CreditCard data-icon="inline-start" />
             تأكيد الدفع
           </>
         )}
-      </ActionButton>
+      </Button>
 
-      <div className="flex items-center justify-center gap-1.5 text-[10px] text-portal-note-text">
-        <ShieldCheck className="w-3 h-3" />
+      <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+        <ShieldCheck className="size-3" />
         جميع المدفوعات مشفرة وآمنة 100%
       </div>
     </form>
@@ -459,75 +454,61 @@ export function BankTransferForm({
 
   return (
     <div className="space-y-4">
-      {/* Bank accounts */}
       {bankAccounts.length > 0 ? (
-        <div className="space-y-3">
+        <div className="overflow-hidden rounded-lg border">
+          <Table>
+            <TableBody>
           {bankAccounts.map((acc: any) => (
-            <div
-              key={acc.id}
-              className="rounded-xl border border-portal-divider bg-portal-bg p-4 space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-secondary-500">
+            <TableRow key={acc.id}>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  <Landmark className="size-4 text-muted-foreground" />
                   {acc.bankName}
-                </span>
-                <Landmark className="w-4 h-4 text-portal-icon" />
-              </div>
-              <div>
-                <p className="text-[10px] text-portal-note-text">اسم الحساب</p>
-                <p className="text-sm font-semibold text-natural-100">
-                  {acc.accountName}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] text-portal-note-text">IBAN</p>
-                <p className="text-sm font-mono bg-natural-0 p-2 rounded-lg border border-portal-divider select-all text-center text-natural-100">
-                  {acc.iban}
-                </p>
-              </div>
-            </div>
+                </div>
+              </TableCell>
+              <TableCell>{acc.accountName}</TableCell>
+              <TableCell className="font-mono text-left select-all">{acc.iban}</TableCell>
+            </TableRow>
           ))}
+            </TableBody>
+          </Table>
         </div>
       ) : (
-        <p className="text-sm text-portal-note-text text-center py-4">
+        <p className="py-4 text-center text-sm text-muted-foreground">
           لا توجد حسابات بنكية متاحة حالياً
         </p>
       )}
 
-      {/* Instructions */}
-      <div className="rounded-xl bg-alert-50 border border-alert-200 p-3 text-xs text-alert-800 space-y-1">
-        <p className="font-bold">تعليمات التحويل:</p>
-        <p>
+      <div className="flex gap-3 rounded-lg border p-4">
+        <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <p className="text-xs leading-6 text-muted-foreground">
+          <span className="font-semibold text-foreground">تعليمات التحويل:</span>{" "}
           قم بتحويل المبلغ{" "}
-          <span className="font-bold">{fmtAmount(invoice.amount)} ر.س</span> إلى
-          أحد الحسابات أعلاه. يرجى إرفاق رقم الفاتورة{" "}
-          <span className="font-bold">{invoice.invoiceNumber}</span> في ملاحظات
-          التحويل.
+          <span className="font-semibold text-foreground">
+            {fmtAmount(invoice.amount)} ر.س
+          </span>{" "}
+          إلى أحد الحسابات أعلاه. يرجى إرفاق رقم الفاتورة{" "}
+          <span className="font-semibold text-foreground">
+            {invoice.invoiceNumber}
+          </span>{" "}
+          في ملاحظات التحويل.
         </p>
       </div>
 
-      {/* Receipt upload */}
       <div className="space-y-2">
-        <label className="text-xs font-medium text-portal-note-text">
-          إرفاق صورة الإيصال
-        </label>
+        <Label className="text-xs">إرفاق صورة الإيصال</Label>
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
             onClick={() =>
               document.getElementById(`receipt-${invoice.id}`)?.click()
             }
-            className={cn(
-              "flex items-center gap-2 rounded-xl border-[1.5px] px-4 py-2.5 text-sm transition-colors cursor-pointer",
-              receiptFile
-                ? "border-success-500 bg-success-50 text-success-700"
-                : "border-portal-card-border bg-natural-0 text-portal-icon hover:bg-badge-gray-bg",
-            )}
+            variant={receiptFile ? "secondary" : "outline"}
           >
-            <Upload className="w-4 h-4" />
+            <Upload data-icon="inline-start" />
             {receiptFile ? receiptFile.name : "اختيار ملف"}
-          </button>
-          <input
+          </Button>
+          <Input
             id={`receipt-${invoice.id}`}
             type="file"
             accept="image/*"
@@ -539,30 +520,30 @@ export function BankTransferForm({
             }}
           />
           {receiptFile && (
-            <span className="text-xs text-portal-note-text">
+            <Badge variant="outline">
               {(receiptFile.size / 1024 / 1024).toFixed(1)} MB
-            </span>
+            </Badge>
           )}
         </div>
       </div>
 
-      <ActionButton
+      <Button
         onClick={handleConfirm}
         disabled={confirming || !receiptFile}
-        className="w-full h-11 rounded-2xl gap-2 text-sm font-medium"
+        className="w-full"
       >
         {confirming ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 data-icon="inline-start" className="animate-spin" />
             جاري التأكيد...
           </>
         ) : (
           <>
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 data-icon="inline-start" />
             تأكيد الدفع
           </>
         )}
-      </ActionButton>
+      </Button>
     </div>
   );
 }
