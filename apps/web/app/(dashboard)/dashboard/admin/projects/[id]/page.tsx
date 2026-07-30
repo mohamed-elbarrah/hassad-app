@@ -1,259 +1,437 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use } from "react";
 import Link from "next/link";
+import { ArrowLeft, BadgeAlert, FolderKanban } from "lucide-react";
 import {
-  ArrowLeft,
-  Building2,
-  CalendarDays,
-  CircleDollarSign,
-  FileClock,
-  FolderKanban,
-  History,
-  Layers3,
-  NotebookTabs,
-  Users,
-} from "lucide-react";
+  PROJECT_STATUS_AR,
+  TASK_PRIORITY_AR,
+  TaskPriority,
+} from "@hassad/shared";
+import { useGetAdminProjectByIdQuery } from "@/features/admin/adminProjectsApi";
+import {
+  buildAdminProjectStats,
+  buildProjectCommercialFields,
+  buildProjectOperationsFields,
+  buildProjectSignals,
+  ProjectDetailLoading,
+  ProjectFilesTable,
+  ProjectHistoryTable,
+  ProjectInvoicesTable,
+  ProjectMeetingsTable,
+  ProjectOverviewCard,
+  ProjectPaymentsTable,
+  ProjectPeriodsTable,
+  ProjectPreviewHeader,
+  ProjectRecordsTabs,
+  ProjectSignalsCard,
+  ProjectSummaryCard,
+  ProjectTasksTable,
+  ProjectTeamTable,
+  ProjectStatsGrid,
+} from "@/components/project-detail/ProjectDetailPattern";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { formatCurrency, formatDateTime, formatPortalDate, formatNumber } from "@/lib/format";
-import { PROJECT_STATUS_AR, TaskPriority, TASK_PRIORITY_AR, TASK_STATUS_AR } from "@hassad/shared";
-import { useGetAdminProjectByIdQuery } from "@/features/admin/adminProjectsApi";
-import type { AdminProjectDetail } from "@/features/admin/adminProjectsApi";
 
-function statusVariant(status: string) {
-  switch (status) {
-    case "ACTIVE":
-    case "COMPLETED":
-      return "secondary";
-    case "CANCELLED":
-      return "destructive";
-    default:
-      return "outline";
-  }
+function isOverdue(date?: string | null) {
+  if (!date) return false;
+  return new Date(date).getTime() < Date.now();
 }
 
-function priorityVariant(priority: string) {
-  switch (priority) {
-    case TaskPriority.URGENT:
-      return "destructive";
-    case TaskPriority.HIGH:
-      return "secondary";
-    default:
-      return "outline";
-  }
+function sortByDateAsc<T extends { dueDate?: string | null; scheduledAt?: string | null }>(
+  items: T[],
+  key: "dueDate" | "scheduledAt",
+) {
+  return [...items].sort((a, b) => {
+    const left = a[key] ? new Date(a[key] as string).getTime() : Number.MAX_SAFE_INTEGER;
+    const right = b[key] ? new Date(b[key] as string).getTime() : Number.MAX_SAFE_INTEGER;
+    return left - right;
+  });
 }
 
-function ProjectDetailLoading() {
-  return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-9 w-60" />
-            <Skeleton className="h-4 w-full max-w-xl" />
-          </div>
-          <div className="flex gap-2"><Skeleton className="h-10 w-24" /><Skeleton className="h-10 w-28" /></div>
-        </CardHeader>
-      </Card>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <Card><CardContent className="flex gap-4 p-6"><Skeleton className="size-20 rounded-lg" /><div className="flex flex-1 flex-col gap-3"><Skeleton className="h-7 w-48" /><Skeleton className="h-4 w-40" /><div className="flex flex-wrap gap-2"><Skeleton className="h-8 w-28" /><Skeleton className="h-8 w-32" /><Skeleton className="h-8 w-24" /></div></div></CardContent></Card>
-        <div className="grid gap-4 md:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <Card key={index}><CardContent className="flex items-start justify-between gap-4 p-5"><div className="flex flex-col gap-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-7 w-20" /><Skeleton className="h-4 w-32" /></div><Skeleton className="size-10 rounded-lg" /></CardContent></Card>)}</div>
-      </div>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <Card><CardHeader className="gap-2"><Skeleton className="h-6 w-36" /><Skeleton className="h-4 w-72" /></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">{Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-24 rounded-lg" />)}</CardContent></Card>
-        <Card><CardHeader className="gap-2"><Skeleton className="h-6 w-36" /><Skeleton className="h-4 w-64" /></CardHeader><CardContent className="space-y-3">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-14 rounded-lg" />)}</CardContent></Card>
-      </div>
-      <Card><CardHeader className="gap-2"><Skeleton className="h-6 w-36" /><Skeleton className="h-4 w-64" /></CardHeader><CardContent className="overflow-hidden rounded-lg border"><Table><TableHeader><TableRow>{Array.from({ length: 4 }).map((_, index) => <TableHead key={index}><Skeleton className="h-4 w-full" /></TableHead>)}</TableRow></TableHeader><TableBody>{Array.from({ length: 4 }).map((_, row) => <TableRow key={row}>{Array.from({ length: 4 }).map((_, cell) => <TableCell key={cell}><Skeleton className="h-5 w-full" /></TableCell>)}</TableRow>)}</TableBody></Table></CardContent></Card>
-    </div>
-  );
-}
-
-function field(label: string, value?: string | number | null) {
-  return (
-    <div className="rounded-lg border p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-2 text-sm font-medium">{value ?? "—"}</p>
-    </div>
-  );
-}
-
-export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }>; }) {
+export default function ProjectDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
   const { data: project, isLoading, isError } = useGetAdminProjectByIdQuery(id);
 
-  const sortedTasks = useMemo(() => [...(project?.tasks ?? [])].sort((a, b) => a.title.localeCompare(b.title)), [project]);
-
-  if (isLoading) return <ProjectDetailLoading />;
+  if (isLoading) {
+    return <ProjectDetailLoading />;
+  }
 
   if (isError || !project) {
     return (
-      <div dir="rtl" className="p-4 sm:p-6 lg:p-8">
-        <Card><CardContent className="p-8"><Empty><EmptyMedia variant="icon"><FolderKanban /></EmptyMedia><EmptyHeader><EmptyTitle>المشروع غير موجود</EmptyTitle><EmptyDescription>لم نتمكن من العثور على بيانات هذا المشروع.</EmptyDescription></EmptyHeader><EmptyContent><Button asChild><Link href="/dashboard/admin/projects"><ArrowLeft />العودة إلى المشاريع</Link></Button></EmptyContent></Empty></CardContent></Card>
+      <div className="p-4 sm:p-6 lg:p-8" dir="rtl">
+        <Card>
+          <CardContent className="p-8">
+            <Empty>
+              <EmptyMedia variant="icon">
+                <FolderKanban />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle>المشروع غير موجود</EmptyTitle>
+                <EmptyDescription>
+                  لم نتمكن من العثور على بيانات هذا المشروع.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button asChild>
+                  <Link href="/dashboard/admin/projects">
+                    <ArrowLeft data-icon="inline-start" />
+                    العودة إلى المشاريع
+                  </Link>
+                </Button>
+              </EmptyContent>
+            </Empty>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  const overdueTasks = project.tasks.filter(
+    (task) => task.status !== "DONE" && isOverdue(task.dueDate),
+  );
+  const unassignedTasks = project.tasks.filter((task) => !task.assignedTo);
+  const inReviewTasks = project.tasks.filter((task) => task.status === "IN_REVIEW");
+  const completedTasks = project.tasks.filter((task) => task.status === "DONE");
+  const pendingInvoices = project.invoices.filter((invoice) => invoice.status !== "PAID");
+  const collectedValue = project.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const sortedOpenTasks = sortByDateAsc(
+    project.tasks.filter((task) => task.status !== "DONE"),
+    "dueDate",
+  );
+  const nextDueTask = sortedOpenTasks.find((task) => task.dueDate);
+  const upcomingMeetings = sortByDateAsc(
+    project.meetings.filter(
+      (meeting) => new Date(meeting.scheduledAt).getTime() >= Date.now(),
+    ),
+    "scheduledAt",
+  );
+  const nextMeeting = upcomingMeetings[0];
+  const completedPeriods = project.periods.filter(
+    (period) => period.status === "COMPLETED" || period.completionPercentage === 100,
+  ).length;
+  const tasksPreview = [...project.tasks]
+    .sort((a, b) => {
+      const overdueDiff = Number(isOverdue(b.dueDate)) - Number(isOverdue(a.dueDate));
+      if (overdueDiff !== 0) return overdueDiff;
+      return (
+        new Date(a.dueDate || "2999-12-31").getTime() -
+        new Date(b.dueDate || "2999-12-31").getTime()
+      );
+    })
+    .slice(0, 6);
+  const periodsPreview = [...project.periods]
+    .sort((a, b) => b.periodNumber - a.periodNumber)
+    .slice(0, 5);
+  const historyPreview = [...project.history]
+    .sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 6);
+  const invoicesPreview = (pendingInvoices.length > 0 ? pendingInvoices : project.invoices).slice(
+    0,
+    5,
+  );
+  const paymentsPreview = [...project.payments]
+    .sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 5);
+  const filesPreview = [...project.files]
+    .sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+    )
+    .slice(0, 5);
+  const meetingsPreview = (upcomingMeetings.length > 0 ? upcomingMeetings : project.meetings)
+    .slice(0, 4);
+
+  const stats = buildAdminProjectStats({
+    tasksCount: project.tasks.length,
+    overdueTasksCount: overdueTasks.length,
+    membersCount: project.members.length,
+    pendingInvoicesCount: pendingInvoices.length,
+    completionPercentage: project.completionPercentage,
+    totalValue: project.totalValue,
+    collectedValue,
+  });
+
+  const operationsFields = buildProjectOperationsFields({
+    clientName: project.client.companyName,
+    managerName: project.manager?.name || "غير محدد",
+    startDate: formatPortalDate(project.startDate) || "—",
+    endDate: formatPortalDate(project.endDate) || "—",
+    updatedAt: formatDateTime(project.updatedAt),
+    archiveLabel: project.isArchived ? "مؤرشف" : "نشط",
+    completionLabel: `${formatNumber(project.completionPercentage)}%`,
+    nextDueLabel: nextDueTask
+      ? `${nextDueTask.title} - ${formatPortalDate(nextDueTask.dueDate) || "—"}`
+      : "لا يوجد موعد قريب",
+  });
+
+  const commercialFields = buildProjectCommercialFields({
+    contractValue: project.contract ? formatCurrency(project.contract.totalValue) : "—",
+    monthlyValue: formatCurrency(project.contract?.monthlyValue ?? project.monthlyValue),
+    totalValue: formatCurrency(project.totalValue),
+    collectedValue: formatCurrency(collectedValue),
+    pendingInvoicesCount: `${formatNumber(pendingInvoices.length)} فاتورة`,
+    periodsCount: `${formatNumber(project.periods.length)} فترة`,
+    meetingsCount: `${formatNumber(project.meetings.length)} اجتماع`,
+    tasksCount: `${formatNumber(project.tasks.length)} مهمة`,
+  });
+
+  const signals = buildProjectSignals({
+    overdueTasksCount: overdueTasks.length,
+    unassignedTasksCount: unassignedTasks.length,
+    inReviewTasksCount: inReviewTasks.length,
+    nextDueLabel: nextDueTask
+      ? formatPortalDate(nextDueTask.dueDate) || "—"
+      : "لا يوجد",
+    nextMeetingLabel: nextMeeting
+      ? formatDateTime(nextMeeting.scheduledAt)
+      : "لا يوجد اجتماع مجدول",
+    completedPeriods,
+    totalPeriods: project.periods.length,
+  });
+
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-3">
-            <Breadcrumb><BreadcrumbList><BreadcrumbItem><BreadcrumbLink asChild><Link href="/dashboard">الرئيسية</Link></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink asChild><Link href="/dashboard/admin/projects">المشاريع</Link></BreadcrumbLink></BreadcrumbItem><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbPage>{project.name}</BreadcrumbPage></BreadcrumbItem></BreadcrumbList></Breadcrumb>
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FolderKanban /></div>
-              <div className="flex flex-col gap-1"><CardTitle className="text-2xl">تفاصيل المشروع</CardTitle><CardDescription>معلومات تشغيلية ومالية ومتابعة الفريق في صفحة واحدة.</CardDescription></div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild><Link href="/dashboard/admin/projects"><ArrowLeft />العودة</Link></Button>
-            <Button variant="outline" size="sm" asChild><Link href={`/dashboard/admin/clients/${project.clientId}`}><Building2 />العميل</Link></Button>
-          </div>
-        </CardHeader>
-      </Card>
+    <div className="flex flex-col gap-6" dir="rtl">
+      <ProjectSummaryCard
+        project={project}
+        badges={[
+          <Badge key="priority" variant="outline">
+            الأولوية:{" "}
+            {TASK_PRIORITY_AR[project.priority as TaskPriority] || project.priority}
+          </Badge>,
+          <Badge key="window" variant="outline">
+            {formatPortalDate(project.startDate) || "—"} إلى{" "}
+            {formatPortalDate(project.endDate) || "—"}
+          </Badge>,
+          pendingInvoices.length > 0 ? (
+            <Badge key="finance-alert" variant="destructive">
+              {formatNumber(pendingInvoices.length)} فواتير مفتوحة
+            </Badge>
+          ) : null,
+        ].filter(Boolean)}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <Card>
-          <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-start">
-            <div className="flex size-20 items-center justify-center rounded-lg bg-muted text-muted-foreground"><FolderKanban className="size-10" /></div>
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2"><h2 className="text-2xl font-semibold tracking-tight">{project.name}</h2><Badge variant={statusVariant(project.status)}>{PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] || project.status}</Badge></div>
-              <p className="text-sm text-muted-foreground">{project.description || "لا توجد ملاحظات وصفية إضافية."}</p>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">الأولوية: {TASK_PRIORITY_AR[project.priority as TaskPriority] || project.priority}</Badge>
-                <Badge variant="outline">التقدم: {formatNumber(project.completionPercentage)}%</Badge>
-                <Badge variant="outline">المهام: {formatNumber(project.tasks.length)}</Badge>
+      <ProjectStatsGrid stats={stats} />
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+        <ProjectOverviewCard
+          operationsFields={operationsFields}
+          commercialFields={commercialFields}
+        />
+        <ProjectSignalsCard items={signals} />
+      </div>
+
+      <ProjectRecordsTabs
+        title="العمليات المرتبطة"
+        description="معاينة سريعة لأهم العناصر داخل المشروع قبل الدخول إلى التبويبات التفصيلية."
+        defaultValue="tasks"
+        tabs={[
+          {
+            value: "tasks",
+            label: "المهام",
+            count: project.tasks.length,
+            content: (
+              <div className="flex flex-col gap-4">
+                <ProjectPreviewHeader
+                  title={`منها ${formatNumber(completedTasks.length)} منجزة و${formatNumber(
+                    overdueTasks.length,
+                  )} متأخرة فعليًا.`}
+                  href={`/dashboard/admin/projects/${id}/tasks`}
+                />
+                <ProjectTasksTable tasks={tasksPreview} />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            ),
+          },
+          {
+            value: "team",
+            label: "الفريق",
+            count: project.members.length,
+            content: (
+              <div className="flex flex-col gap-4">
+                <ProjectPreviewHeader
+                  title="الأعضاء المشاركون فعليًا في التنفيذ."
+                  href={`/dashboard/admin/projects/${id}/team`}
+                />
+                <ProjectTeamTable members={project.members} />
+              </div>
+            ),
+          },
+          {
+            value: "periods",
+            label: "الفترات",
+            count: project.periods.length,
+            content: (
+              <div className="flex flex-col gap-4">
+                <ProjectPreviewHeader
+                  title={`تم إكمال ${formatNumber(completedPeriods)} من أصل ${formatNumber(
+                    project.periods.length,
+                  )} فترات.`}
+                  href={`/dashboard/admin/projects/${id}/periods`}
+                />
+                <ProjectPeriodsTable periods={periodsPreview} />
+              </div>
+            ),
+          },
+          {
+            value: "finance",
+            label: "المالية",
+            count: project.invoices.length + project.payments.length,
+            content: (
+              <div className="flex flex-col gap-6">
+                <ProjectPreviewHeader
+                  title="تركيز على التحصيل والفواتير المفتوحة بدل المعرّفات الفنية."
+                  href={`/dashboard/admin/projects/${id}/finance`}
+                />
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {[
+                    {
+                      label: "قيمة العقد",
+                      value: project.contract
+                        ? formatCurrency(project.contract.totalValue)
+                        : "—",
+                    },
+                    {
+                      label: "المحصل",
+                      value: formatCurrency(collectedValue),
+                    },
+                    {
+                      label: "الفواتير المفتوحة",
+                      value: formatNumber(pendingInvoices.length),
+                    },
+                    {
+                      label: "الدفعات المسجلة",
+                      value: formatNumber(project.payments.length),
+                    },
+                  ].map((item) => (
+                    <Card key={item.label}>
+                      <CardContent className="flex flex-col gap-2 p-4">
+                        <span className="text-sm text-muted-foreground">{item.label}</span>
+                        <span className="text-base font-semibold">{item.value}</span>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <div className="flex flex-col gap-4">
+                    <p className="text-sm text-muted-foreground">الفواتير الأهم حاليًا</p>
+                    <ProjectInvoicesTable invoices={invoicesPreview} />
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    <p className="text-sm text-muted-foreground">آخر الدفعات المسجلة</p>
+                    <ProjectPaymentsTable payments={paymentsPreview} />
+                  </div>
+                </div>
+              </div>
+            ),
+          },
+          {
+            value: "assets",
+            label: "الملفات والاجتماعات",
+            count: project.files.length + project.meetings.length,
+            content: (
+              <div className="flex flex-col gap-6">
+                <ProjectPreviewHeader title="ملفات العمل والاجتماعات القادمة أو الأحدث." />
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <div className="flex flex-col gap-4">
+                    <p className="text-sm text-muted-foreground">أحدث الملفات</p>
+                    <ProjectFilesTable
+                      files={filesPreview.map((file) => ({
+                        id: file.id,
+                        fileName: file.fileName,
+                        uploadedBy: file.uploadedBy,
+                        uploadedAt: file.uploadedAt,
+                      }))}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    <p className="text-sm text-muted-foreground">الاجتماعات</p>
+                    <ProjectMeetingsTable meetings={meetingsPreview} />
+                  </div>
+                </div>
+              </div>
+            ),
+          },
+          {
+            value: "history",
+            label: "السجل",
+            count: project.history.length,
+            content: (
+              <div className="flex flex-col gap-4">
+                <ProjectPreviewHeader
+                  title="آخر الحركات الإدارية الأكثر صلة بمتابعة المشروع."
+                  href={`/dashboard/admin/projects/${id}/timeline`}
+                />
+                <ProjectHistoryTable history={historyPreview} />
+              </div>
+            ),
+          },
+        ]}
+      />
 
-        <div className="grid gap-4 md:grid-cols-2">
+      <Card>
+        <CardHeader className="gap-2">
+          <CardTitle>قراءة إدارية سريعة</CardTitle>
+          <CardDescription>
+            هذا الملخص يستبعد المعرفات الداخلية ويركز على ما يساعد في القرار والمتابعة.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: "إجمالي القيمة", value: formatCurrency(project.totalValue), icon: CircleDollarSign },
-            { label: "القيمة الشهرية", value: formatCurrency(project.monthlyValue), icon: CalendarDays },
-            { label: "المهام", value: formatNumber(project.tasks.length), icon: NotebookTabs },
-            { label: "المهام المتأخرة", value: formatNumber(project.tasks.filter((task) => task.status !== "DONE").length), icon: History },
-          ].map((item) => <Card key={item.label}><CardContent className="flex items-start justify-between gap-4 p-5"><div className="flex flex-col gap-2"><span className="text-sm text-muted-foreground">{item.label}</span><span className="text-lg font-semibold">{item.value}</span></div><div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><item.icon /></div></CardContent></Card>)}
-        </div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <Card>
-          <CardHeader className="gap-2"><CardTitle>البيانات الأساسية</CardTitle><CardDescription>المرجع الإداري المرتبط بالمشروع.</CardDescription></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {field("العميل", project.client.companyName)}
-            {field("مدير المشروع", project.manager?.name || "غير محدد")}
-            {field("تاريخ البداية", formatPortalDate(project.startDate) || "—")}
-            {field("تاريخ النهاية", formatPortalDate(project.endDate) || "—")}
-            {field("المعرفة الداخلية", project.id)}
-            {field("معرف الطلب", project.requestId || "—")}
-            {field("معرف العقد", project.contractId || "—")}
-            {field("آخر تحديث", formatDateTime(project.updatedAt))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="gap-2"><CardTitle>مؤشرات تشغيلية</CardTitle><CardDescription>قراءة سريعة لصحة التنفيذ داخل المشروع.</CardDescription></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {field("التقدم", `${formatNumber(project.completionPercentage)}%`)}
-            {field("الأرشفة", project.isArchived ? "مؤرشف" : "نشط")}
-            {field("عدد الفترات", formatNumber(project.periods.length))}
-            {field("المستحقات", formatCurrency(project.contract ? project.contract.totalValue - project.totalValue : project.totalValue))}
-            {field("الفواتير", formatNumber(project.invoices.length))}
-            {field("المدفوعات", formatNumber(project.payments.length))}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Card>
-          <CardHeader className="gap-2"><CardTitle>أعضاء الفريق</CardTitle><CardDescription>المشاركون الفعليون في المشروع مع أدوارهم.</CardDescription></CardHeader>
-          <CardContent className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader><TableRow><TableHead>العضو</TableHead><TableHead>الدور</TableHead><TableHead>تاريخ الانضمام</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {project.members.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">لا يوجد أعضاء مضافون</TableCell></TableRow> : project.members.map((member) => <TableRow key={member.id}><TableCell>{member.user.name}<div className="text-xs text-muted-foreground">{member.user.email}</div></TableCell><TableCell>{member.role}</TableCell><TableCell>{formatDateTime(member.joinedAt)}</TableCell></TableRow>)}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="gap-2"><CardTitle>العقد والدفعات</CardTitle><CardDescription>الملف المالي المرتبط بالمشروع.</CardDescription></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">{field("العقد", project.contract ? `${formatCurrency(project.contract.totalValue)} / ${formatCurrency(project.contract.monthlyValue)}` : "—")}{field("الطلبات", project.requestId || "—")}{field("إجمالي القيمة", formatCurrency(project.totalValue))}{field("القيمة الشهرية", formatCurrency(project.monthlyValue))}</CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="gap-2"><CardTitle>المهام</CardTitle><CardDescription>تفاصيل مختصرة عن المهام المرتبطة بالمشروع.</CardDescription></CardHeader>
-        <CardContent className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader><TableRow><TableHead>العنوان</TableHead><TableHead>الحالة</TableHead><TableHead>الأولوية</TableHead><TableHead>الموعد</TableHead><TableHead>المكلّف</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {sortedTasks.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد مهام</TableCell></TableRow> : sortedTasks.map((task) => <TableRow key={task.id}><TableCell>{task.title}</TableCell><TableCell><Badge variant={statusVariant(task.status)}>{TASK_STATUS_AR[task.status as keyof typeof TASK_STATUS_AR] || task.status}</Badge></TableCell><TableCell><Badge variant={priorityVariant(task.priority)}>{TASK_PRIORITY_AR[task.priority as TaskPriority] || task.priority}</Badge></TableCell><TableCell>{formatPortalDate(task.dueDate) || "—"}</TableCell><TableCell>{task.assignedTo || "—"}</TableCell></TableRow>)}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Card>
-          <CardHeader className="gap-2"><CardTitle>الملفات والاجتماعات</CardTitle><CardDescription>ملفات المشروع ومحاضره المجدولة.</CardDescription></CardHeader>
-          <CardContent className="space-y-6">
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>الملف</TableHead><TableHead>النوع</TableHead><TableHead>الرفع</TableHead></TableRow></TableHeader>
-                <TableBody>{project.files.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">لا توجد ملفات</TableCell></TableRow> : project.files.map((file) => <TableRow key={file.id}><TableCell>{file.fileName}</TableCell><TableCell>{file.filePath}</TableCell><TableCell>{formatDateTime(file.uploadedAt)}</TableCell></TableRow>)}</TableBody>
-              </Table>
+            {
+              label: "حالة المشروع",
+              value:
+                PROJECT_STATUS_AR[project.status as keyof typeof PROJECT_STATUS_AR] ||
+                project.status,
+              hint: project.isArchived ? "المشروع مؤرشف حاليًا" : "المشروع داخل الدورة النشطة",
+            },
+            {
+              label: "تغطية الفريق",
+              value: `${formatNumber(project.members.length)} أعضاء`,
+              hint:
+                unassignedTasks.length > 0
+                  ? `${formatNumber(unassignedTasks.length)} مهام تحتاج إسناد`
+                  : "لا توجد مهام غير مسندة",
+            },
+            {
+              label: "المراجعات الحالية",
+              value: `${formatNumber(inReviewTasks.length)} مهام`,
+              hint:
+                inReviewTasks.length > 0
+                  ? "توجد عناصر تنتظر قرارًا أو اعتمادًا"
+                  : "لا توجد عناصر معلقة في المراجعة",
+            },
+            {
+              label: "الاجتماع القادم",
+              value: nextMeeting ? formatPortalDate(nextMeeting.scheduledAt) || "—" : "لا يوجد",
+              hint: nextMeeting?.title || "لم يتم جدولة اجتماع جديد بعد",
+            },
+          ].map((item) => (
+            <div key={item.label} className="rounded-lg border p-4">
+              <div className="flex items-center gap-2">
+                <BadgeAlert className="size-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{item.label}</span>
+              </div>
+              <p className="mt-3 text-base font-semibold">{item.value}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{item.hint}</p>
             </div>
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>الاجتماع</TableHead><TableHead>الموعد</TableHead><TableHead>الملاحظات</TableHead></TableRow></TableHeader>
-                <TableBody>{project.meetings.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">لا توجد اجتماعات</TableCell></TableRow> : project.meetings.map((meeting) => <TableRow key={meeting.id}><TableCell>{meeting.title}</TableCell><TableCell>{formatDateTime(meeting.scheduledAt)}</TableCell><TableCell>{meeting.notes || "—"}</TableCell></TableRow>)}</TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="gap-2"><CardTitle>الفترات والفواتير</CardTitle><CardDescription>سجل التواريخ والمحاسبة داخل المشروع.</CardDescription></CardHeader>
-          <CardContent className="space-y-6">
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>الفترة</TableHead><TableHead>الحالة</TableHead><TableHead>النطاق</TableHead><TableHead>الإنجاز</TableHead></TableRow></TableHeader>
-                <TableBody>{project.periods.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">لا توجد فترات</TableCell></TableRow> : project.periods.map((period) => <TableRow key={period.id}><TableCell>{period.periodNumber}</TableCell><TableCell>{period.status}</TableCell><TableCell>{formatPortalDate(period.startDate) || "—"} ← {formatPortalDate(period.endDate) || "—"}</TableCell><TableCell>{formatNumber(period.completionPercentage)}%</TableCell></TableRow>)}</TableBody>
-              </Table>
-            </div>
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>الفاتورة</TableHead><TableHead>القيمة</TableHead><TableHead>الحالة</TableHead><TableHead>الاستحقاق</TableHead></TableRow></TableHeader>
-                <TableBody>{project.invoices.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">لا توجد فواتير</TableCell></TableRow> : project.invoices.map((invoice) => <TableRow key={invoice.id}><TableCell>{invoice.invoiceNumber}</TableCell><TableCell>{formatCurrency(invoice.amount)}</TableCell><TableCell>{invoice.status}</TableCell><TableCell>{formatPortalDate(invoice.dueDate) || "—"}</TableCell></TableRow>)}</TableBody>
-              </Table>
-            </div>
-            <div className="overflow-hidden rounded-lg border">
-              <Table>
-                <TableHeader><TableRow><TableHead>الدفعة</TableHead><TableHead>القيمة</TableHead><TableHead>الحالة</TableHead><TableHead>التاريخ</TableHead></TableRow></TableHeader>
-                <TableBody>{project.payments.length === 0 ? <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">لا توجد دفعات</TableCell></TableRow> : project.payments.map((payment) => <TableRow key={payment.id}><TableCell>{payment.id}</TableCell><TableCell>{formatCurrency(payment.amount)}</TableCell><TableCell>{payment.status}</TableCell><TableCell>{formatDateTime(payment.createdAt)}</TableCell></TableRow>)}</TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="gap-2"><CardTitle>سجل التغييرات</CardTitle><CardDescription>كل حركة إدارية على المشروع.</CardDescription></CardHeader>
-        <CardContent className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader><TableRow><TableHead>الإجراء</TableHead><TableHead>المستخدم</TableHead><TableHead>التاريخ</TableHead></TableRow></TableHeader>
-            <TableBody>{project.history.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">لا يوجد سجل</TableCell></TableRow> : project.history.map((entry) => <TableRow key={entry.id}><TableCell>{entry.action}</TableCell><TableCell>{entry.userName}</TableCell><TableCell>{formatDateTime(entry.createdAt)}</TableCell></TableRow>)}</TableBody>
-          </Table>
+          ))}
         </CardContent>
       </Card>
     </div>

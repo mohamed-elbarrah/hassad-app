@@ -3,21 +3,45 @@
 import { use, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, Calendar, User, TrendingUp, Eye, AlertTriangle, Upload, Trash2, Download, CheckCircle2, Clock, AlertCircle, FolderKanban, FileText, Plus, Layers } from "lucide-react";
+import {
+  Building2,
+  Calendar,
+  User,
+  TrendingUp,
+  Eye,
+  AlertTriangle,
+  Upload,
+  Trash2,
+  Download,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  FolderKanban,
+  FileText,
+  Plus,
+  Layers,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { buildPortalFileUrl } from "@/lib/portal-files";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import { ProgressBar } from "@/components/design-system/ProgressBar";
-import { AlertCard } from "@/components/design-system/AlertCard";
-import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow";
-import { InfoPanel } from "@/components/design-system/InfoPanel";
+import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-} from "@/components/design-system/Tabs";
+} from "@/components/ui/tabs";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
 import { TaskForm } from "@/components/dashboard/pm/TaskForm";
 import { TaskKanban } from "@/components/dashboard/pm/TaskKanban";
@@ -30,7 +54,6 @@ import { PMPeriodsManagement } from "@/components/dashboard/pm/PMPeriodsManageme
 import { PmDetailBreadcrumb } from "@/components/dashboard/pm/shared/PmDetailBreadcrumb";
 import { PmDetailError } from "@/components/dashboard/pm/shared/PmDetailError";
 import { PmDetailSkeleton } from "@/components/dashboard/pm/shared/PmDetailSkeleton";
-import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import {
   useGetProjectByIdQuery,
@@ -45,6 +68,12 @@ import { useAppSelector } from "@/lib/hooks";
 import { ProjectStatus, TaskStatus } from "@hassad/shared";
 import { formatShortDate, daysUntil } from "@/lib/format";
 import { type ProjectWithMeta } from "@/lib/utils/project-status";
+import {
+  ProjectStatsGrid,
+  ProjectSummaryCard,
+  type ProjectDetailEntity,
+  type ProjectStatItem,
+} from "@/components/project-detail/ProjectDetailPattern";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -57,6 +86,31 @@ interface ProjectDetailPageProps {
 interface UpcomingDeadlinesProps {
   tasks?: { id: string; title: string; dueDate: string; status: string }[];
   projectEndDate?: string;
+}
+
+function PageEmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Empty className="border bg-muted/30 p-10">
+      <EmptyMedia variant="icon">
+        <Icon />
+      </EmptyMedia>
+      <EmptyHeader>
+        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyDescription>{description}</EmptyDescription>
+      </EmptyHeader>
+      {action}
+    </Empty>
+  );
 }
 
 function UpcomingDeadlines({
@@ -95,7 +149,7 @@ function UpcomingDeadlines({
 
   if (sortedDeadlines.length === 0) {
     return (
-      <PmEmptyState
+      <PageEmptyState
         icon={Clock}
         title="لا توجد مواعيد قريبة"
         description="جميع المهام محدثة ولا توجد مواعيد استحقاق قريبة."
@@ -121,45 +175,44 @@ function UpcomingDeadlines({
       {sortedDeadlines.map((item) => {
         const { text, tone } = daysLeft(item.date);
         return (
-          <div
-            key={item.id}
-            className="flex items-center gap-3 p-3 rounded-xl border border-portal-card-border bg-white hover:shadow-sm transition-all"
-          >
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                item.type === "milestone"
-                  ? "bg-secondary-100 text-secondary-600"
-                  : "bg-badge-gray-bg text-portal-note-text"
-              }`}
-            >
+          <Card key={item.id}>
+            <CardContent className="flex items-center gap-3 p-3">
+              <div
+                className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
+                  item.type === "milestone"
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
               {item.type === "milestone" ? (
                 <Clock className="w-5 h-5" />
               ) : (
                 <CheckCircle2 className="w-5 h-5" />
               )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-natural-100 truncate">
-                {item.title}
-              </p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-portal-note-text">
-                  {formatShortDate(item.date)}
-                </span>
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    tone === "danger"
-                      ? "bg-danger-100 text-danger-600"
-                      : tone === "warning"
-                        ? "bg-alert-100 text-alert-600"
-                        : "bg-badge-gray-bg text-portal-note-text"
-                  }`}
-                >
-                  {text}
-                </span>
               </div>
-            </div>
-          </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                {item.title}
+                </p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                  {formatShortDate(item.date)}
+                  </span>
+                  <Badge
+                    variant={
+                      tone === "danger"
+                        ? "destructive"
+                        : tone === "warning"
+                          ? "secondary"
+                          : "outline"
+                    }
+                  >
+                    {text}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         );
       })}
     </div>
@@ -254,7 +307,61 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
     return { label: "في البداية", tone: "neutral" as const, icon: Clock };
   };
   const health = getHealthStatus();
-  const HealthIcon = health.icon;
+  const projectEntity: ProjectDetailEntity = {
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    status: project.status,
+    priority: p.priority,
+    clientId: project.clientId,
+    startDate: String(project.startDate),
+    endDate: String(project.endDate),
+    completionPercentage: progressValue,
+    updatedAt: String(project.updatedAt),
+    isArchived: false,
+    client: {
+      id: p.client?.id ?? project.clientId,
+      companyName: p.client?.companyName ?? "—",
+    },
+    manager: p.manager
+      ? {
+          id: p.manager.id,
+          name: p.manager.name,
+          email: undefined,
+        }
+      : null,
+    contract: p.contract ? {} : null,
+  };
+
+  const overviewStats: ProjectStatItem[] = [
+    {
+      label: "المهام المنجزة",
+      value: `${completedTasks}/${totalTasks}`,
+      hint:
+        totalTasks > 0
+          ? `${Math.round((completedTasks / totalTasks) * 100)}% اكتمال`
+          : "لا توجد مهام بعد",
+      icon: FolderKanban,
+    },
+    {
+      label: "المهام المتأخرة",
+      value: String(overdueTasks),
+      hint: overdueTasks > 0 ? "تحتاج متابعة مباشرة" : "لا يوجد تأخير حاليًا",
+      icon: AlertTriangle,
+    },
+    {
+      label: "الوقت المتبقي",
+      value: String(daysUntil(project.endDate) ?? "—"),
+      hint: formatShortDate(project.endDate),
+      icon: Calendar,
+    },
+    {
+      label: "الملفات",
+      value: String(files?.length ?? 0),
+      hint: "مرفق بالمشروع",
+      icon: FileText,
+    },
+  ];
 
   return (
     <div className="page-shell" dir="rtl">
@@ -266,16 +373,16 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
       />
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl font-bold text-natural-100">{project.name}</h1>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-xl font-semibold">{project.name}</h1>
           <PmStatusBadge domain="project" status={project.status} />
           {p.client && (
             <Link
               href={`/dashboard/sales/clients/${p.client.id}`}
-              className="text-sm text-secondary-500 hover:underline transition-colors flex items-center gap-1"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              <Building2 className="w-4 h-4" />
+              <Building2 className="size-4" />
               {p.client.companyName}
             </Link>
           )}
@@ -285,46 +392,60 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
 
       {/* Status Banners */}
       {project.status === ProjectStatus.AWAITING_REVIEW && (
-        <AlertCard variant="warning" className="flex items-center gap-3">
-          <Eye className="size-5 shrink-0" />
-          <span>هذا المشروع بانتظار مراجعة العميل والموافقة.</span>
-        </AlertCard>
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex items-center gap-3 p-4">
+            <Eye className="size-5 shrink-0 text-primary" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">بانتظار المراجعة</p>
+              <p className="text-sm text-muted-foreground">
+                هذا المشروع بانتظار مراجعة العميل والموافقة.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
       {project.status === ProjectStatus.NEEDS_REVISION && (
-        <AlertCard variant="danger" className="flex items-center gap-3">
-          <AlertTriangle className="size-5 shrink-0" />
-          <span>طلب العميل تعديلات على هذا المشروع.</span>
-        </AlertCard>
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 p-4">
+            <AlertTriangle className="size-5 shrink-0 text-destructive" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium">تعديلات مطلوبة</p>
+              <p className="text-sm text-muted-foreground">
+                طلب العميل تعديلات على هذا المشروع.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Quick Actions Bar */}
       <div className="flex flex-wrap items-center gap-2">
-        <ActionButton
+        <Button
           size="sm"
           onClick={() => {
             setActiveTab("tasks");
             setTaskFormOpen(true);
           }}
-          icon={<Plus className="w-4 h-4" />}
         >
+          <Plus data-icon="inline-start" />
           مهمة جديدة
-        </ActionButton>
-        <ActionButton
+        </Button>
+        <Button
           variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
-          icon={<Upload className="w-4 h-4" />}
         >
+          <Upload data-icon="inline-start" />
           رفع ملف
-        </ActionButton>
-        <ActionButton
+        </Button>
+        <Button
           variant="outline"
           size="sm"
           onClick={openGroupChat}
-          loading={isLoadingGroupChat}
+          disabled={isLoadingGroupChat}
         >
           محادثة الفريق
-        </ActionButton>
+        </Button>
         <input
           ref={fileInputRef}
           type="file"
@@ -340,214 +461,192 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
         />
       </div>
 
+      <ProjectSummaryCard
+        project={projectEntity}
+        badges={[
+          <Badge key="status" variant="outline">
+            {health.label}
+          </Badge>,
+          <Badge key="progress" variant="secondary">
+            التقدم {progressValue}%
+          </Badge>,
+          p.client ? (
+            <Badge key="client" variant="outline">
+              {p.client.companyName}
+            </Badge>
+          ) : null,
+        ].filter(Boolean)}
+      />
+
+      <ProjectStatsGrid stats={overviewStats} />
+
       {/* Tabs Navigation */}
       <div dir="rtl">
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-          <TabsList className="w-full sm:w-auto">
+          <TabsList className="grid h-auto w-full grid-cols-2 sm:w-auto sm:grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
-              <TrendingUp className="w-4 h-4" />
+              <TrendingUp />
               نظرة عامة
             </TabsTrigger>
             <TabsTrigger value="tasks" className="gap-2">
-              <FolderKanban className="w-4 h-4" />
+              <FolderKanban />
               المهام
               {totalTasks > 0 && (
-                <span className="ms-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">
+                <span className="text-xs text-muted-foreground">
                   {completedTasks}/{totalTasks}
                 </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="files" className="gap-2">
-              <FileText className="w-4 h-4" />
+              <FileText />
               الملفات
               {files && files.length > 0 && (
-                <span className="ms-1 text-xs bg-badge-gray-bg px-1.5 py-0.5 rounded-full text-portal-note-text">
+                <span className="text-xs text-muted-foreground">
                   {files.length}
                 </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="client" className="gap-2">
-              <User className="w-4 h-4" />
+              <User />
               تفاصيل العميل
             </TabsTrigger>
             <TabsTrigger value="periods" className="gap-2">
-              <Layers className="w-4 h-4" />
+              <Layers />
               الفترات
             </TabsTrigger>
           </TabsList>
 
           {/* ── Overview Tab ───────────────────────────────────────────────── */}
           <TabsContent value="overview" className="space-y-5">
-            {/* Quick Stats Grid using InfoPanel */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <InfoPanel variant="default" title="حالة المشروع">
-                <div className="flex items-center gap-2">
-                  <HealthIcon
-                    className={`w-5 h-5 ${
-                      health.tone === "danger"
-                        ? "text-danger-600"
-                        : health.tone === "success"
-                          ? "text-success-600"
-                          : health.tone === "info"
-                            ? "text-action-blue"
-                            : "text-portal-note-text"
-                    }`}
-                  />
-                  <span className="text-sm font-semibold text-natural-100">
-                    {health.label}
-                  </span>
-                </div>
-              </InfoPanel>
-              <InfoPanel variant="default" title="المهام المنجزة">
-                <p className="text-sm font-semibold text-natural-100">
-                  {completedTasks}/{totalTasks}
-                </p>
-                {totalTasks > 0 && (
-                  <p className="text-xs text-portal-note-text">
-                    {Math.round((completedTasks / totalTasks) * 100)}% اكتمال
-                  </p>
-                )}
-              </InfoPanel>
-              <InfoPanel variant="default" title="الوقت المتبقي">
-                <p className="text-sm font-semibold text-natural-100">
-                  {daysUntil(project.endDate) ?? "—"}
-                </p>
-                <p className="text-xs text-portal-note-text">
-                  {formatShortDate(project.endDate)}
-                </p>
-              </InfoPanel>
-              <InfoPanel variant="default" title="التقدم العام">
-                <p className="text-sm font-semibold text-natural-100">
-                  {progressValue}%
-                </p>
-              </InfoPanel>
-            </div>
-
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
               {/* Left Column - Activity & Deadlines */}
-              <div className="lg:col-span-2 space-y-5">
+              <div className="space-y-5 lg:col-span-2">
                 {/* Timeline Summary */}
-                <SurfaceCard
-                  title="الجدول الزمني"
-                  icon={Calendar}
-                  action={
-                    <span className="text-sm text-portal-note-text font-medium">
-                      من {formatShortDate(project.startDate)} إلى{" "}
-                      {formatShortDate(project.endDate)}
-                    </span>
-                  }
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-portal-note-text">التقدم</span>
-                      <span className="font-medium text-natural-100">
-                        {progressValue}%
-                      </span>
+                <Card>
+                  <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+                    <div className="space-y-1">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Calendar className="size-4 text-muted-foreground" />
+                        الجدول الزمني
+                      </CardTitle>
+                      <CardDescription>
+                        من {formatShortDate(project.startDate)} إلى{" "}
+                        {formatShortDate(project.endDate)}
+                      </CardDescription>
                     </div>
-                    <ProgressBar
-                      value={progressValue}
-                      variant="default"
-                      size="md"
-                    />
-                    <div className="flex items-center justify-between text-xs text-portal-note-text">
-                      <span>{formatShortDate(project.startDate)}</span>
-                      <span>{formatShortDate(project.endDate)}</span>
+                    <Badge variant="outline">{progressValue}% إنجاز</Badge>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">التقدم</span>
+                        <span className="font-medium">{progressValue}%</span>
+                      </div>
+                      <Progress value={progressValue} />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{formatShortDate(project.startDate)}</span>
+                        <span>{formatShortDate(project.endDate)}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-portal-divider">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-natural-100">
-                        {inProgressTasks}
-                      </p>
-                      <p className="text-xs text-portal-note-text mt-1">
-                        قيد التنفيذ
-                      </p>
+                    <div className="grid grid-cols-3 gap-3 border-t pt-6">
+                      <div className="flex flex-col items-center gap-1 text-center">
+                        <p className="text-2xl font-semibold">{inProgressTasks}</p>
+                        <p className="text-xs text-muted-foreground">قيد التنفيذ</p>
+                      </div>
+                      <div className="flex flex-col items-center gap-1 border-s text-center">
+                        <p
+                          className={cn(
+                            "text-2xl font-semibold",
+                            overdueTasks > 0 && "text-destructive",
+                          )}
+                        >
+                          {overdueTasks}
+                        </p>
+                        <p className="text-xs text-muted-foreground">متأخرة</p>
+                      </div>
+                      <div className="flex flex-col items-center gap-1 border-s text-center">
+                        <p className="text-2xl font-semibold">
+                          {files?.length ?? 0}
+                        </p>
+                        <p className="text-xs text-muted-foreground">ملفات</p>
+                      </div>
                     </div>
-                    <div className="text-center border-e border-portal-divider">
-                      <p
-                        className={`text-2xl font-bold ${overdueTasks > 0 ? "text-danger-600" : "text-natural-100"}`}
-                      >
-                        {overdueTasks}
-                      </p>
-                      <p className="text-xs text-portal-note-text mt-1">
-                        متأخرة
-                      </p>
-                    </div>
-                    <div className="text-center border-e border-portal-divider">
-                      <p className="text-2xl font-bold text-natural-100">
-                        {files?.length ?? 0}
-                      </p>
-                      <p className="text-xs text-portal-note-text mt-1">
-                        ملفات
-                      </p>
-                    </div>
-                  </div>
-                </SurfaceCard>
+                  </CardContent>
+                </Card>
 
                 {/* Recent Activity */}
-                <SurfaceCard title="النشاط الأخير" icon={Clock}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Clock className="size-4 text-muted-foreground" />
+                      النشاط الأخير
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                   <ProjectActivityFeed
                     projectStatus={project.status}
                     files={files}
                     tasks={tasks}
                     projectManagerName={p.manager?.name}
                   />
-                </SurfaceCard>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Right Column - Deadlines & Team */}
               <div className="space-y-5">
                 {/* Upcoming Deadlines */}
-                <SurfaceCard
-                  title="المواعيد القادمة"
-                  icon={AlertCircle}
-                  action={
-                    <ActionButton
+                <Card>
+                  <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+                    <div className="space-y-1">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <AlertCircle className="size-4 text-muted-foreground" />
+                        المواعيد القادمة
+                      </CardTitle>
+                      <CardDescription>أقرب العناصر التي تحتاج متابعة.</CardDescription>
+                    </div>
+                    <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setActiveTab("tasks")}
                     >
                       عرض الكل
-                    </ActionButton>
-                  }
-                >
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
                   <UpcomingDeadlines
                     tasks={tasks as any}
                     projectEndDate={String(project.endDate)}
                   />
-                </SurfaceCard>
+                  </CardContent>
+                </Card>
 
                 {/* Team Members */}
-                <SurfaceCard
-                  title="فريق المشروع"
-                  icon={User}
-                  action={
-                    <ActionButton
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {}}
-                      disabled
-                    >
+                <Card>
+                  <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+                    <div className="space-y-1">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <User className="size-4 text-muted-foreground" />
+                        فريق المشروع
+                      </CardTitle>
+                      <CardDescription>الأعضاء المشاركون في تنفيذ المشروع.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="sm" disabled>
                       إدارة
-                    </ActionButton>
-                  }
-                >
-                  <div className="space-y-3">
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3">
                     {/* Project Manager */}
                     {p.manager ? (
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary-50 border border-secondary-100">
-                        <div className="w-10 h-10 rounded-full bg-secondary-500 text-white flex items-center justify-center font-semibold text-sm">
+                      <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3">
+                        <div className="flex size-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                           {p.manager.name.charAt(0)}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-natural-100">
-                            {p.manager.name}
-                          </p>
-                          <p className="text-xs text-secondary-600">
-                            مدير المشروع
-                          </p>
+                          <p className="text-sm font-medium">{p.manager.name}</p>
+                          <p className="text-xs text-muted-foreground">مدير المشروع</p>
                         </div>
                       </div>
                     ) : null}
@@ -587,34 +686,34 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
 
                       if (assignees.length === 0) {
                         return (
-                          <div className="text-center py-6 border border-dashed border-portal-card-border rounded-xl">
-                            <p className="text-sm text-portal-note-text">
-                              لا يوجد أعضاء فريق مسندة لهم مهام
-                            </p>
-                          </div>
+                          <PageEmptyState
+                            icon={User}
+                            title="لا يوجد أعضاء فريق"
+                            description="لا توجد مهام مسندة لأعضاء الفريق بعد."
+                          />
                         );
                       }
 
                       return (
-                        <div className="space-y-2">
+                        <div className="flex flex-col gap-2">
                           {assignees.map((member) => (
                             <div
                               key={member.id}
-                              className="flex items-center gap-3 p-3 rounded-xl bg-white border border-portal-card-border hover:shadow-sm transition-all"
+                              className="flex items-center gap-3 rounded-xl border p-3"
                             >
-                              <div className="w-10 h-10 rounded-full bg-badge-gray-bg text-portal-note-text flex items-center justify-center font-semibold text-sm">
+                              <div className="flex size-10 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
                                 {member.name.charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-natural-100 truncate">
+                                <p className="truncate text-sm font-medium">
                                   {member.name}
                                 </p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-xs text-portal-note-text">
+                                <div className="mt-0.5 flex items-center gap-2">
+                                  <span className="text-xs text-muted-foreground">
                                     {member.taskCount} مهمة
                                   </span>
                                   {member.statusCounts[TaskStatus.DONE] > 0 && (
-                                    <span className="text-xs text-success-600">
+                                    <span className="text-xs text-primary">
                                       ({member.statusCounts[TaskStatus.DONE]}{" "}
                                       منجزة)
                                     </span>
@@ -626,102 +725,122 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                         </div>
                       );
                     })()}
-                  </div>
-                </SurfaceCard>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </TabsContent>
 
           {/* ── Tasks Tab ──────────────────────────────────────────────────── */}
           <TabsContent value="tasks">
-            <SurfaceCard
-              title="المهام"
-              description="إدارة وتوزيع مهام المشروع"
-              icon={FolderKanban}
-              action={
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FolderKanban className="size-4 text-muted-foreground" />
+                    المهام
+                  </CardTitle>
+                  <CardDescription>إدارة وتوزيع مهام المشروع</CardDescription>
+                </div>
                 <TaskForm
                   projectId={id}
                   open={taskFormOpen}
                   onOpenChange={setTaskFormOpen}
                 />
-              }
-            >
+              </CardHeader>
+              <CardContent>
               {tasksLoading ? (
-                <div className="h-96 flex items-center justify-center">
-                  <DSSkeleton className="h-full w-full" />
+                <div className="flex h-96 items-center justify-center">
+                  <Skeleton className="h-full w-full rounded-xl" />
                 </div>
               ) : totalTasks === 0 ? (
-                <PmEmptyState
+                <PageEmptyState
                   icon={FolderKanban}
                   title="لا توجد مهام"
                   description="ابدأ بإنشاء أول مهمة لهذا المشروع"
-                  actionLabel="مهمة جديدة"
-                  onAction={() => setTaskFormOpen(true)}
+                  action={
+                    <Button onClick={() => setTaskFormOpen(true)}>
+                      <Plus data-icon="inline-start" />
+                      مهمة جديدة
+                    </Button>
+                  }
                 />
               ) : (
                 <TaskKanban projectId={id} />
               )}
-            </SurfaceCard>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ── Files Tab ───────────────────────────────────────────────────── */}
           <TabsContent value="files">
-            <SurfaceCard
-              title="ملفات المشروع"
-              description="المستندات والمرفقات المتعلقة بالمشروع"
-              icon={FileText}
-              action={
-                <ActionButton
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="size-4 text-muted-foreground" />
+                    ملفات المشروع
+                  </CardTitle>
+                  <CardDescription>
+                    المستندات والمرفقات المتعلقة بالمشروع
+                  </CardDescription>
+                </div>
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  icon={<Upload className="size-4" />}
                   disabled={isUploading}
                 >
+                  <Upload data-icon="inline-start" />
                   {isUploading ? "جارٍ الرفع..." : "رفع ملف"}
-                </ActionButton>
-              }
-            >
+                </Button>
+              </CardHeader>
+              <CardContent>
               {filesLoading ? (
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <DSSkeleton key={i} className="h-14 rounded-lg" />
+                    <Skeleton key={i} className="h-14 rounded-lg" />
                   ))}
                 </div>
               ) : !files || files.length === 0 ? (
-                <PmEmptyState
+                <PageEmptyState
                   icon={FileText}
                   title="لا توجد ملفات"
                   description="ارفع ملفات المشروع لتتمكن من مشاركتها مع الفريق والعميل"
-                  actionLabel="رفع ملف"
-                  onAction={() => fileInputRef.current?.click()}
+                  action={
+                    <Button onClick={() => fileInputRef.current?.click()}>
+                      <Upload data-icon="inline-start" />
+                      رفع ملف
+                    </Button>
+                  }
                 />
               ) : (
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   {files.map((file) => (
-                    <FileAttachmentRow
-                      key={file.id}
-                      filename={file.fileName}
-                      size={`${(file.fileSize / 1024).toFixed(0)} KB`}
-                      action={
+                    <Card key={file.id}>
+                      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {file.fileName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {(file.fileSize / 1024).toFixed(0)} KB
+                          </p>
+                        </div>
                         <div className="flex items-center gap-2">
-                          <a
-                            href={file.url || buildPortalFileUrl(file.filePath)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ActionButton
-                              variant="ghost"
-                              size="sm"
-                              icon={<Download className="size-4" />}
+                          <Button variant="ghost" size="sm" asChild>
+                            <a
+                              href={file.url || buildPortalFileUrl(file.filePath)}
+                              target="_blank"
+                              rel="noopener noreferrer"
                             >
+                              <Download data-icon="inline-start" />
                               تحميل
-                            </ActionButton>
-                          </a>
-                          <ActionButton
+                            </a>
+                          </Button>
+                          <Button
                             variant="ghost"
                             size="sm"
-                            className="text-danger-600 hover:text-danger-700"
                             onClick={async () => {
                               try {
                                 await deleteFile({
@@ -730,17 +849,18 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                                 }).unwrap();
                               } catch { /* best-effort operation; the UI remains usable without this refresh */ }
                             }}
-                            icon={<Trash2 className="size-4" />}
                           >
+                            <Trash2 data-icon="inline-start" />
                             حذف
-                          </ActionButton>
+                          </Button>
                         </div>
-                      }
-                    />
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               )}
-            </SurfaceCard>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ── Client Tab ─────────────────────────────────────────────────── */}
@@ -753,22 +873,29 @@ export default function ProjectDetailPage({ params }: ProjectDetailPageProps) {
                 stats={buildDefaultClientStats(teamView.client, "internal")}
               />
             ) : (
-              <DSSkeleton className="h-96 rounded-xl" />
+              <Skeleton className="h-96 rounded-xl" />
             )}
           </TabsContent>
 
           {/* ── Periods Tab ─────────────────────────────────────────────────── */}
           <TabsContent value="periods">
-            <SurfaceCard
-              title="إدارة الفترات الشهرية"
-              description="إدارة الفترات والأهداف لكل شهر من المشروع"
-              icon={Layers}
-            >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Layers className="size-4 text-muted-foreground" />
+                  إدارة الفترات الشهرية
+                </CardTitle>
+                <CardDescription>
+                  إدارة الفترات والأهداف لكل شهر من المشروع
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
               <PMPeriodsManagement
                 projectId={id}
                 contractType={p.contract?.type}
               />
-            </SurfaceCard>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

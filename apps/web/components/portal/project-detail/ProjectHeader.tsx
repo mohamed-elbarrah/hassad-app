@@ -6,9 +6,9 @@ import { ArrowRight, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import type { PortalProjectDetail } from "@/features/portal/portalApi";
 import type { CreateDisputeInput } from "@hassad/shared";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { ProjectSummaryCard, type ProjectDetailEntity } from "@/components/project-detail/ProjectDetailPattern";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { NewDisputeDialog } from "@/components/disputes";
 import { useCreateDisputeMutation } from "@/features/portal/portalApi";
 
@@ -36,6 +36,31 @@ interface ProjectHeaderProps {
 export function ProjectHeader({ project }: ProjectHeaderProps) {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
+  const projectEntity: ProjectDetailEntity = {
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    status: project.status,
+    priority: project.priority,
+    clientId: project.client.id,
+    startDate: project.startDate,
+    endDate: project.endDate,
+    completionPercentage: project.completionPercentage,
+    updatedAt: project.updatedAt,
+    isArchived: false,
+    client: {
+      id: project.client.id,
+      companyName: project.client.companyName,
+    },
+    manager: project.manager
+      ? {
+          id: project.manager.id,
+          name: project.manager.name,
+          email: undefined,
+        }
+      : null,
+    contract: null,
+  };
 
   const handleCreateDispute = async (
     data: CreateDisputeInput,
@@ -56,52 +81,40 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
 
   return (
     <div className="flex flex-col gap-4" dir="rtl">
-      {/* ── Breadcrumb (standard portal detail-page pattern) ────────── */}
       <div className="flex items-center gap-2">
-        <Link href="/portal/projects">
-          <ActionButton
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-portal-note-text hover:text-natural-100"
-          >
-            <ArrowRight className="h-4 w-4" />
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/portal/projects">
+            <ArrowRight data-icon="inline-start" />
             المشاريع
-          </ActionButton>
-        </Link>
-        <span className="text-portal-note-text">/</span>
-        <span className="max-w-xs truncate text-sm font-medium text-natural-100">
+          </Link>
+        </Button>
+        <span className="text-muted-foreground">/</span>
+        <span className="max-w-xs truncate text-sm font-medium">
           {project.name}
         </span>
       </div>
 
-      {/* ── Title + primary action row ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-natural-100">
-            {project.name}
-          </h1>
-          <StatusBadge status={mapProjectStatusToUI(project.status)} />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <ActionButton
+      <ProjectSummaryCard
+        project={projectEntity}
+        badges={[
+          <Badge key="portal" variant="outline">
+            بوابة العميل
+          </Badge>,
+          <Badge key="progress" variant="secondary">
+            التقدم {project.completionPercentage}%
+          </Badge>,
+        ]}
+        actions={
+          <Button
             variant="outline"
             size="sm"
             onClick={() => setDisputeOpen(true)}
-            className="h-10 rounded-xl border text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500 gap-2"
           >
-            <Ticket className="h-4 w-4" />
+            <Ticket data-icon="inline-start" />
             فتح تذكرة
-          </ActionButton>
-        </div>
-      </div>
-
-      {/* ── Client company line ────────────────────────────────────── */}
-      {project.client?.companyName && (
-        <p className="-mt-2 text-sm text-portal-note-text">
-          {project.client.companyName}
-        </p>
-      )}
+          </Button>
+        }
+      />
 
       <NewDisputeDialog
         isOpen={disputeOpen}
