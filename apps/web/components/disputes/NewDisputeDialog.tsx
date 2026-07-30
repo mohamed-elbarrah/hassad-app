@@ -11,17 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { DisputeCategoryIcon } from "./DisputeCategoryIcon";
-import {
-  FormSelect,
-  FormSelectContent,
-  FormSelectItem,
-  FormSelectTrigger,
-  FormSelectValue,
-} from "@/components/design-system/FormSelectControl";
-import { Skeleton } from "@/components/design-system/Skeleton";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { useGetPortalProjectsQuery } from "@/features/portal/portalApi";
 
@@ -170,24 +167,24 @@ export function NewDisputeDialog({
                 </p>
               ) : (
                 <>
-                  <FormSelect
+                  <Select
                     value={selectedProjectId || ""}
                     onValueChange={(value) => {
                       setSelectedProjectId(value);
                       setErrors((e) => ({ ...e, project: "" }));
                     }}
                   >
-                    <FormSelectTrigger className="w-full">
-                      <FormSelectValue placeholder="اختر المشروع..." />
-                    </FormSelectTrigger>
-                    <FormSelectContent>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="اختر المشروع..." />
+                    </SelectTrigger>
+                    <SelectContent>
                       {projects.map((project) => (
-                        <FormSelectItem key={project.id} value={project.id}>
+                        <SelectItem key={project.id} value={project.id}>
                           {project.name}
-                        </FormSelectItem>
+                        </SelectItem>
                       ))}
-                    </FormSelectContent>
-                  </FormSelect>
+                    </SelectContent>
+                  </Select>
                   {errors.project && (
                     <p className="flex items-center gap-1 text-xs text-danger-600">
                       <AlertCircle className="h-3 w-3" />
@@ -240,8 +237,7 @@ export function NewDisputeDialog({
             <label className="text-sm font-medium text-natural-100">
               عنوان النزاع *
             </label>
-            <input
-              type="text"
+            <Input
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
@@ -249,12 +245,7 @@ export function NewDisputeDialog({
               }}
               placeholder="أدخل عنوان مختصر للمشكلة..."
               disabled={isLoading}
-              className={cn(
-                "w-full rounded-xl border-[1.5px] bg-natural-0 px-4 py-3 text-sm text-natural-100 placeholder:text-portal-placeholder focus:border-secondary-500 focus:outline-none",
-                errors.title
-                  ? "border-danger-300 focus:border-danger-500"
-                  : "border-portal-divider",
-              )}
+              className={cn(errors.title ? "border-destructive" : undefined)}
             />
             {errors.title && (
               <p className="flex items-center gap-1 text-xs text-danger-600">
@@ -269,7 +260,7 @@ export function NewDisputeDialog({
             <label className="text-sm font-medium text-natural-100">
               تفاصيل النزاع *
             </label>
-            <textarea
+            <Textarea
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
@@ -278,12 +269,7 @@ export function NewDisputeDialog({
               placeholder="اشرح المشكلة بالتفصيل..."
               disabled={isLoading}
               rows={4}
-              className={cn(
-                "w-full resize-none rounded-xl border-[1.5px] bg-natural-0 px-4 py-3 text-sm text-natural-100 placeholder:text-portal-placeholder focus:border-secondary-500 focus:outline-none",
-                errors.description
-                  ? "border-danger-300 focus:border-danger-500"
-                  : "border-portal-divider",
-              )}
+              className={cn("resize-none", errors.description ? "border-destructive" : undefined)}
             />
             {errors.description && (
               <p className="flex items-center gap-1 text-xs text-danger-600">
@@ -310,13 +296,12 @@ export function NewDisputeDialog({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-portal-divider p-4">
+        <DialogFooter className="flex-row-reverse gap-3 border-t p-4 sm:justify-start">
           <Button
             variant="outline"
             onClick={handleClose}
             disabled={isLoading}
-            className="rounded-xl border-portal-divider px-6"
+            className="px-6"
           >
             إلغاء
           </Button>
@@ -329,7 +314,7 @@ export function NewDisputeDialog({
               !description ||
               (showProjectSelector && !selectedProjectId)
             }
-            className="rounded-xl bg-secondary-500 px-6 hover:bg-secondary-600"
+            className="px-6"
           >
             {isLoading ? (
               <>
@@ -340,7 +325,7 @@ export function NewDisputeDialog({
               "إرسال التذكرة"
             )}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

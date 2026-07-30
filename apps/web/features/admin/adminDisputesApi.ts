@@ -138,7 +138,15 @@ export interface AdminDisputeDetail {
   messages: AdminDisputeMessage[];
   attachments: AdminDisputeAttachment[];
   history: AdminDisputeHistoryEntry[];
-  _count: { messages: number };
+  _count?: { messages?: number };
+  pmStats?: {
+    userId: string;
+    totalDisputes: number;
+    resolvedDisputes: number;
+    escalatedDisputes: number;
+    pmChangedCount: number;
+    avgResolutionDays: number;
+  };
 }
 
 export interface ApproveDisputeInput {

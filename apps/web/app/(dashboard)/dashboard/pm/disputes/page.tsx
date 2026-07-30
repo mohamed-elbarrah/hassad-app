@@ -1,235 +1,146 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Ticket, AlertTriangle, Clock, CheckCircle } from "lucide-react";
-import { useGetPmDisputesQuery } from "@/features/disputes/pmDisputesApi";
+import { useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, ShieldAlert, Ticket } from "lucide-react";
 import type { DisputeStatus } from "@hassad/shared";
-
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { Pagination } from "@/components/design-system/Pagination";
-import { type FilterGroup } from "@/components/design-system/FilterBar";
-
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { PmDisputeCard } from "@/components/disputes/PmDisputeCard";
+import { useGetPmDisputesQuery } from "@/features/disputes/pmDisputesApi";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DisputeEmptyState } from "@/components/disputes/DisputeEmptyState";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/design-system/Tabs";
-import { PmListToolbar } from "@/components/dashboard/pm/shared/PmListToolbar";
-
-const STATUS_GROUPS: FilterGroup[] = [
-  {
-    key: "status",
-    label: "الحالة",
-    options: [
-      { label: "الكل", value: "" },
-      { label: "بانتظار البدء", value: "APPROVED" },
-      { label: "قيد المعالجة", value: "IN_PROGRESS" },
-      { label: "بانتظار تأكيد العميل", value: "PENDING_CLIENT" },
-      { label: "تم التصعيد", value: "ESCALATED" },
-      { label: "تم الحل", value: "RESOLVED" },
-      { label: "مغلق", value: "CLOSED" },
-    ],
-  },
-];
+import { PmDisputeCard } from "@/components/disputes/PmDisputeCard";
 
 const PAGE_SIZE = 9;
 
-// ─── Tab Configuration ────────────────────────────────────────────────────────
-
 const TABS = [
   { value: "", label: "الكل", icon: Ticket },
-  { value: "APPROVED", label: "جديدة", icon: Clock },
-  { value: "IN_PROGRESS", label: "قيد المعالجة", icon: Clock },
-  { value: "ESCALATED", label: "تم التصعيد", icon: AlertTriangle },
-  { value: "RESOLVED", label: "تم الحل", icon: CheckCircle },
+  { value: "APPROVED", label: "جديدة", icon: Clock3 },
+  { value: "IN_PROGRESS", label: "قيد المعالجة", icon: Clock3 },
+  { value: "ESCALATED", label: "مصعدة", icon: AlertTriangle },
+  { value: "RESOLVED", label: "تم حلها", icon: CheckCircle2 },
 ] as const;
 
 export default function PmDisputesPage() {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState("");
+  const [page, setPage] = useState(1);
 
-  const statusFilter = activeFilters["status"]?.[0] ?? activeTab ?? "";
-
-  const { data, isLoading } = useGetPmDisputesQuery(
+  const { data, isLoading, refetch, isFetching } = useGetPmDisputesQuery(
     {
-      status: statusFilter as DisputeStatus | undefined,
+      status: (activeTab || undefined) as DisputeStatus | undefined,
       page,
       limit: PAGE_SIZE,
     },
     { pollingInterval: 60_000 },
   );
 
-  const disputes = data?.data ?? [];
+  const disputes = useMemo(() => data?.data ?? [], [data?.data]);
   const total = data?.meta?.total ?? 0;
-  const totalPages = data?.meta?.totalPages ?? 1;
 
-  // Count by status for tab badges
-  const statusCounts = {
-    APPROVED: disputes.filter((d) => d.status === "APPROVED").length,
-    IN_PROGRESS: disputes.filter((d) => d.status === "IN_PROGRESS").length,
-    ESCALATED: disputes.filter((d) => d.status === "ESCALATED").length,
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return disputes;
+    return disputes.filter((item) =>
+      [item.title, item.client.name, item.project.name]
+        .some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [disputes, search]);
+
+  const metrics = {
+    active: disputes.filter((item) => ["APPROVED", "IN_PROGRESS"].includes(item.status)).length,
+    escalated: disputes.filter((item) => item.status === "ESCALATED").length,
+    resolved: disputes.filter((item) => ["RESOLVED", "CLOSED"].includes(item.status)).length,
   };
-
-  const handleFilterChange = useCallback(
-    (groupKey: string, values: string[]) => {
-      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-      setPage(1);
-    },
-    [],
-  );
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    setActiveFilters({});
-    setPage(1);
-  };
-
-  // Filter by search locally
-  const filtered = search
-    ? disputes.filter(
-        (d) =>
-          d.title.toLowerCase().includes(search.toLowerCase()) ||
-          d.client.name.toLowerCase().includes(search.toLowerCase()) ||
-          d.project.name.toLowerCase().includes(search.toLowerCase()),
-      )
-    : disputes;
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="النزاعات"
-        description="عرض وإدارة النزاعات المفتوحة ضدك من قبل العملاء. تابع التذاكر ورد على استفسارات العملاء."
-        icon={Ticket}
-      />
+    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <Card>
+        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ShieldAlert />
+            </div>
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-2xl">نزاعاتي</CardTitle>
+              <CardDescription>
+                راقب التذاكر المفتوحة ضد مشاريعك وتعامل معها من مساحة موحدة.
+              </CardDescription>
+            </div>
+          </div>
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw data-icon="inline-start" />
+            {isFetching ? "جارٍ التحديث" : "تحديث"}
+          </Button>
+        </CardHeader>
+      </Card>
 
-      {/* ── Quick Stats ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <SurfaceCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-action-blue-soft">
-              <Clock className="h-5 w-5 text-action-blue" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-natural-100">
-                {statusCounts.APPROVED + statusCounts.IN_PROGRESS}
-              </p>
-              <p className="text-sm text-portal-note-text">تذاكر نشطة</p>
-            </div>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger-100">
-              <AlertTriangle className="h-5 w-5 text-danger-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-natural-100">
-                {statusCounts.ESCALATED}
-              </p>
-              <p className="text-sm text-portal-note-text">تم التصعيد</p>
-            </div>
-          </div>
-        </SurfaceCard>
-        <SurfaceCard className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-100">
-              <CheckCircle className="h-5 w-5 text-success-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-natural-100">
-                {total -
-                  statusCounts.APPROVED -
-                  statusCounts.IN_PROGRESS -
-                  statusCounts.ESCALATED}
-              </p>
-              <p className="text-sm text-portal-note-text">تم الحل / مغلق</p>
-            </div>
-          </div>
-        </SurfaceCard>
+      <div className="grid gap-4 md:grid-cols-3">
+        {[
+          { label: "نشطة", value: metrics.active, icon: Clock3 },
+          { label: "مصعدة", value: metrics.escalated, icon: AlertTriangle },
+          { label: "تم حلها / مغلقة", value: metrics.resolved, icon: CheckCircle2 },
+        ].map((item) => (
+          <Card key={item.label}>
+            <CardContent className="flex items-start justify-between gap-4 p-5">
+              <div>
+                <p className="text-sm text-muted-foreground">{item.label}</p>
+                <p className="mt-2 text-2xl font-semibold">{item.value}</p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                <item.icon className="text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* ── Tabs ────────────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList>
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const count =
-              tab.value === ""
-                ? total
-                : disputes.filter((d) => d.status === tab.value).length;
-            return (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-                <Icon className="h-4 w-4" />
-                {tab.label}
-                {count > 0 && (
-                  <span className="rounded-full bg-secondary-100 px-2 py-0.5 text-xs text-secondary-600">
-                    {count}
-                  </span>
-                )}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+      <Card>
+        <CardHeader className="gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setPage(1); }}>
+              <TabsList className="h-auto flex-wrap">
+                {TABS.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
 
-        <TabsContent value={activeTab} className="mt-4">
-          {/* ── Toolbar ────────────────────────────────────────────────────── */}
-          <div className="mb-4">
-            <PmListToolbar
-              search={search}
-              onSearchChange={(v) => {
-                setSearch(v);
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
                 setPage(1);
               }}
-              searchPlaceholder="ابحث في التذاكر..."
-              filterGroups={STATUS_GROUPS}
-              activeFilters={activeFilters}
-              onFilterChange={handleFilterChange}
+              placeholder="ابحث في النزاعات..."
+              className="w-full lg:max-w-sm"
             />
           </div>
-
-          {/* ── Disputes Grid ────────────────────────────────────────────── */}
+        </CardHeader>
+        <CardContent>
           {isLoading ? (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-48 rounded-[24px]" />
+                <Skeleton key={i} className="h-48 rounded-xl" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <DisputeEmptyState
-              hasFilter={!!search || !!statusFilter}
-              canCreate={false}
-            />
+            <DisputeEmptyState hasFilter={!!search || !!activeTab} canCreate={false} />
           ) : (
-            <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filtered.map((dispute) => (
-                  <PmDisputeCard key={dispute.id} dispute={dispute} />
-                ))}
-              </div>
-
-              {/* ── Pagination ──────────────────────────────────────────── */}
-              {totalPages > 1 && (
-                <div className="flex justify-center mt-6">
-                  <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
-                  />
-                </div>
-              )}
-            </>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((dispute) => (
+                <PmDisputeCard key={dispute.id} dispute={dispute} />
+              ))}
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+          {!isLoading && filtered.length > 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">إجمالي النتائج: {total}</p>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }

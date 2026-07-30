@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { CheckCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/design-system/Dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PmResolveDialogProps {
   open: boolean;
@@ -34,37 +42,14 @@ export function PmResolveDialog({
   const isValid = message.trim().length >= 10;
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={handleClose}
-      title="تأكيد حل المشكلة"
-      description="أخبر العميل كيف تم حل المشكلة"
-      footer={
-        <>
-          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-            إلغاء
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isLoading || !isValid}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {isLoading ? (
-              <>
-                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                جارٍ...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 ml-2" />
-                إرسال للتأكيد
-              </>
-            )}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4" dir="rtl">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent dir="rtl">
+        <DialogHeader>
+          <DialogTitle>تأكيد حل المشكلة</DialogTitle>
+          <DialogDescription>أخبر العميل كيف تم حل المشكلة.</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="h-5 w-5 text-green-600" />
@@ -79,8 +64,8 @@ export function PmResolveDialog({
           <label className="text-sm font-medium text-natural-100">
             رسالة الحل <span className="text-red-500">*</span>
           </label>
-          <textarea
-            className="w-full min-h-[120px] rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-secondary-500 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 resize-none"
+          <Textarea
+            className="min-h-[120px]"
             placeholder="اشرح كيف تم حل المشكلة للعميل..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -100,7 +85,22 @@ export function PmResolveDialog({
             <span className="text-portal-note-text">الحد الأقصى 1000 حرف</span>
           </div>
         </div>
-      </div>
+
+        <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+            إلغاء
+          </Button>
+          <Button onClick={handleSubmit} disabled={isLoading || !isValid}>
+            {isLoading ? "جارٍ..." : (
+              <>
+                <Send data-icon="inline-start" />
+                إرسال للتأكيد
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+        </div>
+      </DialogContent>
     </Dialog>
   );
 }

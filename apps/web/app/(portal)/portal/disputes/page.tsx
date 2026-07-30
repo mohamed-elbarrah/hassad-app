@@ -1,66 +1,47 @@
 "use client";
 
-import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
-import { useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Ticket, Search, Plus, AlertCircle } from "lucide-react";
+import { Plus, RefreshCw, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import {
-  useGetClientDisputesQuery,
-  useCreateDisputeMutation,
-} from "@/features/portal/portalApi";
 import { DisputeStatus } from "@hassad/shared";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { Pagination } from "@/components/design-system/Pagination";
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
-import { Input } from "@/components/design-system/Input";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import {
-  DisputeCard,
-  DisputeEmptyState,
-  NewDisputeDialog,
-} from "@/components/disputes";
-
-const STATUS_GROUPS: FilterGroup[] = [
-  {
-    key: "status",
-    label: "الحالة",
-    options: [
-      { label: "الكل", value: "" },
-      { label: "بانتظار الموافقة", value: DisputeStatus.PENDING_APPROVAL },
-      { label: "تمت الموافقة", value: DisputeStatus.APPROVED },
-      { label: "قيد المعالجة", value: DisputeStatus.IN_PROGRESS },
-      { label: "بانتظار تأكيدي", value: DisputeStatus.PENDING_CLIENT },
-      { label: "تم التصعيد", value: DisputeStatus.ESCALATED },
-      { label: "تم الحل", value: DisputeStatus.RESOLVED },
-      { label: "مغلق", value: DisputeStatus.CLOSED },
-    ],
-  },
-];
+  useCreateDisputeMutation,
+  useGetClientDisputesQuery,
+} from "@/features/portal/portalApi";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DisputeCard } from "@/components/disputes/DisputeCard";
+import { DisputeEmptyState } from "@/components/disputes/DisputeEmptyState";
+import { NewDisputeDialog } from "@/components/disputes/NewDisputeDialog";
 
 const PAGE_SIZE = 9;
+
+const STATUS_TABS = [
+  { value: "", label: "الكل" },
+  { value: DisputeStatus.PENDING_APPROVAL, label: "بانتظار الموافقة" },
+  { value: DisputeStatus.IN_PROGRESS, label: "قيد المعالجة" },
+  { value: DisputeStatus.PENDING_CLIENT, label: "بانتظار تأكيدي" },
+  { value: DisputeStatus.ESCALATED, label: "تم التصعيد" },
+  { value: DisputeStatus.RESOLVED, label: "تم الحل" },
+] as const;
 
 export default function PortalDisputesPage() {
   const searchParams = useSearchParams();
   const projectIdFromUrl = searchParams.get("projectId") || undefined;
 
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("");
   const [isNewDisputeOpen, setIsNewDisputeOpen] = useState(!!projectIdFromUrl);
 
-  const statusFilter = activeFilters["status"]?.[0] ?? "";
-
-  const { data, isLoading, isError, refetch } = useGetClientDisputesQuery(
+  const { data, isLoading, isError, refetch, isFetching } = useGetClientDisputesQuery(
     {
-      status: statusFilter as DisputeStatus | undefined,
+      status: (activeTab || undefined) as DisputeStatus | undefined,
       page,
       limit: PAGE_SIZE,
     },
@@ -68,27 +49,17 @@ export default function PortalDisputesPage() {
   );
 
   const [createDispute, { isLoading: isCreating }] = useCreateDisputeMutation();
+  const disputes = useMemo(() => data?.data ?? [], [data?.data]);
 
-  const disputes = data?.data ?? [];
-
-  const totalPages = data?.meta?.totalPages ?? 1;
-
-  const handleFilterChange = useCallback(
-    (groupKey: string, values: string[]) => {
-      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-      setPage(1);
-    },
-    [],
-  );
-
-  // Filter by search locally
-  const filtered = search
-    ? disputes.filter(
-        (d) =>
-          d.title.toLowerCase().includes(search.toLowerCase()) ||
-          d.project.name.toLowerCase().includes(search.toLowerCase()),
-      )
-    : disputes;
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return disputes;
+    return disputes.filter((item) =>
+      [item.title, item.project.name].some((value) =>
+        value.toLowerCase().includes(query),
+      ),
+    );
+  }, [disputes, search]);
 
   const handleCreateDispute = async (
     input: import("@hassad/shared").CreateDisputeInput,
@@ -96,107 +67,92 @@ export default function PortalDisputesPage() {
   ) => {
     try {
       await createDispute({ ...input, files }).unwrap();
-      toast.success("تم إرسال التذكرة", {
-        description: "تم استلام تذكرتك. سيتم مراجعتها من قبل الإدارة.",
-      });
+      toast.success("تم إرسال التذكرة");
       setIsNewDisputeOpen(false);
       refetch();
-    } catch (error) {
-      const message =
-        error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
-      toast.error("خطأ", {
-        description: message,
-      });
+    } catch (error: any) {
+      const message = error?.data?.error?.message || "حدث خطأ أثناء إرسال التذكرة";
+      toast.error(message);
     }
   };
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="نزاعاتي"
-        description="تتبع جميع تذاكر النزاع الخاصة بك، راقب حالتها، وتواصل مع فريق المشروع."
-        icon={Ticket}
-      />
-
-      {/* ── Toolbar ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start">
-        <div className="relative flex-1 w-full sm:w-auto">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-portal-icon" />
-          <Input
-            placeholder="ابحث في التذاكر..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="pr-9 h-10"
-          />
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <FilterBar
-            groups={STATUS_GROUPS}
-            activeFilters={activeFilters}
-            onFilterChange={handleFilterChange}
-          />
-          <ActionButton
-            variant="primary"
-            size="sm"
-            onClick={() => setIsNewDisputeOpen(true)}
-            className="h-10 rounded-xl px-4 gap-2 shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-            تذكرة جديدة
-          </ActionButton>
-        </div>
-      </div>
-
-      {/* ── Disputes Grid ──────────────────────────────────────────────────── */}
-      {isError ? (
-        <SurfaceCard>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <AlertCircle className="w-12 h-12 text-danger-500 mb-4" />
-            <p className="text-lg font-medium text-natural-100 mb-2">
-              تعذر تحميل التذاكر
-            </p>
-            <ActionButton variant="primary" onClick={() => refetch()}>
-              إعادة المحاولة
-            </ActionButton>
+    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+      <Card>
+        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ShieldAlert />
+            </div>
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-2xl">نزاعاتي</CardTitle>
+              <CardDescription>
+                افتح تذكرة جديدة أو تابع حالة التذاكر الحالية من شاشة واحدة.
+              </CardDescription>
+            </div>
           </div>
-        </SurfaceCard>
-      ) : isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-[24px]" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <DisputeEmptyState
-          hasFilter={!!search || !!statusFilter}
-          onCreateNew={() => setIsNewDisputeOpen(true)}
-          canCreate={true}
-        />
-      ) : (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((dispute) => (
-              <DisputeCard key={dispute.id} dispute={dispute} />
-            ))}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw data-icon="inline-start" />
+              {isFetching ? "جارٍ التحديث" : "تحديث"}
+            </Button>
+            <Button onClick={() => setIsNewDisputeOpen(true)}>
+              <Plus data-icon="inline-start" />
+              تذكرة جديدة
+            </Button>
           </div>
+        </CardHeader>
+      </Card>
 
-          {/* ── Pagination ──────────────────────────────────────────────── */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-6">
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-              />
+      <Card>
+        <CardHeader className="gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setPage(1); }}>
+              <TabsList className="h-auto flex-wrap">
+                {STATUS_TABS.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
+            <Input
+              placeholder="ابحث في التذاكر..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="w-full lg:max-w-sm"
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isError ? (
+            <DisputeEmptyState hasFilter canCreate={false} />
+          ) : isLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-48 rounded-xl" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <DisputeEmptyState
+              hasFilter={!!search || !!activeTab}
+              onCreateNew={() => setIsNewDisputeOpen(true)}
+              canCreate
+            />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filtered.map((dispute) => (
+                <DisputeCard key={dispute.id} dispute={dispute} />
+              ))}
             </div>
           )}
-        </>
-      )}
+        </CardContent>
+      </Card>
 
-      {/* ── New Dispute Dialog ─────────────────────────────────────────────── */}
       <NewDisputeDialog
         isOpen={isNewDisputeOpen}
         onClose={() => setIsNewDisputeOpen(false)}

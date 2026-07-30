@@ -10,15 +10,17 @@ import {
 } from "@/features/admin/adminDisputesApi";
 import { DisputePriority, DISPUTE_PRIORITY_AR } from "@hassad/shared";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/design-system/Dialog";
-import { FormInput } from "@/components/design-system/FormInput";
 import {
-  FormSelect,
-  FormSelectContent,
-  FormSelectItem,
-  FormSelectTrigger,
-  FormSelectValue,
-} from "@/components/design-system/FormSelectControl";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DisputeApprovalDialogProps {
   open: boolean;
@@ -111,81 +113,39 @@ export function DisputeApprovalDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={handleClose}
-      title={mode === "approve" ? "الموافقة على التذكرة" : "رفض التذكرة"}
-      description={`التذكرة: ${disputeTitle}`}
-      footer={
-        <>
-          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-            إلغاء
-          </Button>
-          {mode === "approve" ? (
-            <Button
-              onClick={handleApprove}
-              disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isLoading ? (
-                "جارٍ..."
-              ) : (
-                <>
-                  <Check className="h-4 w-4 ml-2" />
-                  موافقة
-                </>
-              )}
-            </Button>
-          ) : (
-            <Button
-              onClick={handleReject}
-              disabled={isLoading || reason.trim().length < 10}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isLoading ? (
-                "جارٍ..."
-              ) : (
-                <>
-                  <X className="h-4 w-4 ml-2" />
-                  رفض
-                </>
-              )}
-            </Button>
-          )}
-        </>
-      }
-    >
-      <div className="space-y-4" dir="rtl">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent dir="rtl">
+        <DialogHeader>
+          <DialogTitle>{mode === "approve" ? "الموافقة على التذكرة" : "رفض التذكرة"}</DialogTitle>
+          <DialogDescription>{`التذكرة: ${disputeTitle}`}</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
         {mode === "approve" ? (
           <>
-            {/* Priority Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-natural-100">
                 الأولوية
               </label>
-              <FormSelect
-                value={priority}
-                onValueChange={(v) => setPriority(v as DisputePriority)}
-              >
-                <FormSelectTrigger className="w-full">
-                  <FormSelectValue placeholder="اختر الأولوية" />
-                </FormSelectTrigger>
-                <FormSelectContent>
+              <Select value={priority} onValueChange={(v) => setPriority(v as DisputePriority)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="اختر الأولوية" />
+                </SelectTrigger>
+                <SelectContent>
                   {PRIORITIES.map((p) => (
-                    <FormSelectItem key={p} value={p}>
+                    <SelectItem key={p} value={p}>
                       {DISPUTE_PRIORITY_AR[p]}
-                    </FormSelectItem>
+                    </SelectItem>
                   ))}
-                </FormSelectContent>
-              </FormSelect>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Optional Notes */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-natural-100">
                 ملاحظات (اختياري)
               </label>
-              <FormInput
+              <Input
                 placeholder="ملاحظات داخلية..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -204,13 +164,12 @@ export function DisputeApprovalDialog({
           </>
         ) : (
           <>
-            {/* Rejection Reason */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-natural-100">
                 سبب الرفض <span className="text-red-500">*</span>
               </label>
-              <textarea
-                className="w-full min-h-[120px] rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-secondary-500 focus:outline-none focus:border-secondary-500 focus:ring-1 focus:ring-secondary-500/20 resize-none"
+              <Textarea
+                className="min-h-[120px]"
                 placeholder="اشرح سبب رفض التذكرة..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -228,7 +187,33 @@ export function DisputeApprovalDialog({
             </div>
           </>
         )}
-      </div>
+
+        <DialogFooter className="flex-row-reverse gap-2 sm:justify-start">
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+            إلغاء
+          </Button>
+          {mode === "approve" ? (
+            <Button onClick={handleApprove} disabled={isLoading}>
+              {isLoading ? "جارٍ..." : (
+                <>
+                  <Check data-icon="inline-start" />
+                  موافقة
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button onClick={handleReject} disabled={isLoading || reason.trim().length < 10} variant="destructive">
+              {isLoading ? "جارٍ..." : (
+                <>
+                  <X data-icon="inline-start" />
+                  رفض
+                </>
+              )}
+            </Button>
+          )}
+        </DialogFooter>
+        </div>
+      </DialogContent>
     </Dialog>
   );
 }

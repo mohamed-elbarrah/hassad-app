@@ -1,7 +1,9 @@
 "use client";
 
 import { Ticket } from "lucide-react";
-import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 interface DisputeEmptyStateProps {
   hasFilter?: boolean;
@@ -15,22 +17,27 @@ export function DisputeEmptyState({
   canCreate = true,
 }: DisputeEmptyStateProps) {
   return (
-    <div className="flex min-h-56 flex-col items-center justify-center rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
-      <PortalEmptyState
-        icon={Ticket}
-        title={hasFilter ? "لا توجد تذاكر تطابق بحثك" : "لا توجد تذاكر نزاع"}
-        description={
-          hasFilter
-            ? "حاول تغيير الفلتر لعرض نتائج أكثر."
-            : "ستظهر هنا جميع تذاكر النزاع الخاصة بك. يمكنك فتح تذكرة جديدة إذا كان لديك مشكلة مع أحد مشاريعك."
-        }
-        actionLabel={
-          canCreate && onCreateNew && !hasFilter ? "فتح تذكرة جديدة" : undefined
-        }
-        onAction={
-          canCreate && onCreateNew && !hasFilter ? onCreateNew : undefined
-        }
-      />
-    </div>
+    <Card>
+      <CardContent className="p-8">
+        <Empty>
+          <EmptyMedia variant="icon">
+            <Ticket />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle>{hasFilter ? "لا توجد تذاكر تطابق بحثك" : "لا توجد تذاكر نزاع"}</EmptyTitle>
+            <EmptyDescription>
+              {hasFilter
+                ? "حاول تعديل البحث أو الفلاتر لعرض نتائج أكثر."
+                : "ستظهر هنا جميع تذاكر النزاع الخاصة بك عند إنشائها أو استلامها."}
+            </EmptyDescription>
+          </EmptyHeader>
+          {canCreate && onCreateNew && !hasFilter ? (
+            <EmptyContent>
+              <Button onClick={onCreateNew}>فتح تذكرة جديدة</Button>
+            </EmptyContent>
+          ) : null}
+        </Empty>
+      </CardContent>
+    </Card>
   );
 }

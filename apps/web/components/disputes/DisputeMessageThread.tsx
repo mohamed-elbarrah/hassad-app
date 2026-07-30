@@ -5,6 +5,9 @@ import { Send, User, EyeOff, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Textarea } from "@/components/ui/textarea";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 
 // Generic message type that works for both portal and admin
@@ -26,6 +29,7 @@ interface DisputeMessageThreadProps {
   isLoading?: boolean;
   canSendMessage?: boolean;
   showInternalBadge?: boolean;
+  currentAudience?: "admin" | "pm" | "client";
 }
 
 export function DisputeMessageThread({
@@ -34,6 +38,7 @@ export function DisputeMessageThread({
   isLoading = false,
   canSendMessage = true,
   showInternalBadge = false,
+  currentAudience = "client",
 }: DisputeMessageThreadProps) {
   const [newMessage, setNewMessage] = useState("");
   const [attachFiles, setAttachFiles] = useState<File[]>([]);
@@ -67,60 +72,64 @@ export function DisputeMessageThread({
 
   return (
     <div className="flex flex-col gap-4" dir="rtl">
-      {/* Messages List */}
-      <div
-        ref={scrollRef}
-        className="flex max-h-[400px] min-h-[200px] flex-col gap-4 overflow-y-auto rounded-2xl border-[1.5px] border-portal-divider bg-portal-bg p-4"
-      >
+      <Card>
+        <CardContent
+          ref={scrollRef}
+          className="flex max-h-[420px] min-h-[220px] flex-col gap-4 overflow-y-auto p-4"
+        >
         {messages.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-portal-note-text">
-            <User className="h-8 w-8 opacity-50" />
-            <p className="text-sm">لا توجد رسائل بعد</p>
-            <p className="text-xs">سيتم عرض الرسائل هنا بمجرد بدء المحادثة</p>
-          </div>
+          <Empty>
+            <EmptyMedia variant="icon">
+              <User />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>لا توجد رسائل بعد</EmptyTitle>
+              <EmptyDescription>سيتم عرض المحادثة هنا فور بدء التواصل.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           messages.map((message) => (
             <MessageBubble
               key={message.id}
               message={message}
               showInternalBadge={showInternalBadge}
+              currentAudience={currentAudience}
             />
           ))
         )}
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Input Area */}
       {canSendMessage && (
         <div className="flex flex-col gap-2">
           {showAttach && (
-            <div className="rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
+            <Card>
+              <CardContent className="p-3">
               <FileDropzone
                 files={attachFiles}
                 onFilesChange={setAttachFiles}
                 maxFiles={5}
                 maxSizeMB={10}
               />
-            </div>
+              </CardContent>
+            </Card>
           )}
-          <div className="flex items-end gap-2 rounded-2xl border-[1.5px] border-portal-divider bg-natural-0 p-3">
-            <button
-              type="button"
-              onClick={() => setShowAttach(!showAttach)}
-              className={cn(
-                "h-9 w-9 shrink-0 flex items-center justify-center rounded-full transition-colors",
-                showAttach
-                  ? "bg-secondary-100 text-secondary-600"
-                  : "text-portal-icon hover:bg-badge-gray-bg",
-              )}
-            >
-              <Paperclip className="h-4 w-4" />
-            </button>
-            <textarea
+          <Card>
+            <CardContent className="flex items-end gap-2 p-3">
+              <Button
+                type="button"
+                variant={showAttach ? "secondary" : "outline"}
+                size="icon"
+                onClick={() => setShowAttach(!showAttach)}
+              >
+                <Paperclip />
+              </Button>
+            <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="اكتب رسالتك هنا..."
-              className="flex-1 resize-none border-0 bg-transparent text-sm text-natural-100 placeholder:text-portal-placeholder focus:outline-none focus:ring-0 min-h-[40px] max-h-[120px]"
+              className="min-h-[44px] max-h-[120px] flex-1 resize-none"
               rows={1}
               disabled={isLoading}
             />
@@ -129,11 +138,12 @@ export function DisputeMessageThread({
               disabled={
                 (!newMessage.trim() && !attachFiles.length) || isLoading
               }
-              className="h-9 w-9 shrink-0 rounded-full bg-secondary-500 p-0 hover:bg-secondary-600 disabled:opacity-50"
+              size="icon"
             >
-              <Send className="h-4 w-4" />
+              <Send />
             </Button>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
@@ -143,22 +153,27 @@ export function DisputeMessageThread({
 interface MessageBubbleProps {
   message: Message;
   showInternalBadge?: boolean;
+  currentAudience?: "admin" | "pm" | "client";
 }
 
 function MessageBubble({
   message,
   showInternalBadge = false,
+  currentAudience = "client",
 }: MessageBubbleProps) {
-  // For now, we assume the current user is the client
-  // In a real implementation, you'd check against the current user ID
-  const isClient = message.author.name !== "مدير المشروع"; // Simple heuristic for demo
+  const isCurrentUserMessage =
+    currentAudience === "client"
+      ? !message.isInternal && message.author.name !== "مدير المشروع"
+      : currentAudience === "pm"
+        ? message.author.name === "مدير المشروع"
+        : !!message.isInternal;
   const isAdminInternal = message.isInternal && showInternalBadge;
 
   return (
     <div
       className={cn(
         "flex w-full gap-3",
-        isClient ? "flex-row" : "flex-row-reverse",
+        isCurrentUserMessage ? "flex-row" : "flex-row-reverse",
       )}
     >
       <Avatar className="h-8 w-8 shrink-0">
@@ -172,18 +187,18 @@ function MessageBubble({
         className={cn(
           "flex max-w-[80%] flex-col gap-1 rounded-2xl px-4 py-2.5",
           isAdminInternal
-            ? "rounded-tl-none bg-gray-100 border border-gray-300 text-gray-800"
-            : isClient
-              ? "rounded-tr-none bg-secondary-500 text-white"
-              : "rounded-tl-none bg-natural-100/10 border border-portal-divider text-natural-100",
+            ? "rounded-tl-none border bg-muted text-foreground"
+            : isCurrentUserMessage
+              ? "rounded-tr-none bg-primary text-primary-foreground"
+              : "rounded-tl-none border bg-background text-foreground",
         )}
       >
         <div className="flex items-center gap-2 text-xs opacity-80">
           <span className="font-medium">{message.author.name}</span>
           {isAdminInternal && (
             <>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
-                <EyeOff className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1 rounded bg-background/70 px-1.5 py-0.5">
+                <EyeOff className="size-3" />
                 داخلي
               </span>
             </>
