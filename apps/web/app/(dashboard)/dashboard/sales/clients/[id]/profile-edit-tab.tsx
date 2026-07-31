@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Save } from "lucide-react";
 import { useUpsertClientProfileV2Mutation } from "@/features/clients/clientsApi";
 import type { IntakeFormV2Input } from "@hassad/shared";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 // Shared section components
 import {
@@ -78,14 +79,14 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-natural-100">
+          <h2 className="text-lg font-bold text-foreground">
             تعديل الملف التعريفي
           </h2>
-          <p className="text-sm text-gray-500 mt-1">قم بتحديث معلومات العميل</p>
+          <p className="mt-1 text-sm text-muted-foreground">قم بتحديث معلومات العميل</p>
         </div>
-        {isDirty && (
-          <span className="text-xs text-red-500">لديك تغييرات غير محفوظة</span>
-        )}
+        {isDirty ? (
+          <span className="text-xs text-destructive">لديك تغييرات غير محفوظة</span>
+        ) : null}
       </div>
 
       {/* Section 1: Communication */}
@@ -168,17 +169,18 @@ export function ProfileEditTab({ clientId, profile }: ProfileEditTabProps) {
       />
 
       {/* Global Save Button */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex items-center justify-end gap-3">
-        <ActionButton
-          type="button"
-          variant="primary"
-          onClick={handleSave}
-          disabled={!isDirty}
-          loading={isSaving}
-          icon={isSaving ? undefined : <Save className="w-4 h-4" />}
-        >
-          {isSaving ? "جاري الحفظ..." : "حفظ التغييرات"}
-        </ActionButton>
+      <Separator />
+      <div className="sticky bottom-0 flex items-center justify-end gap-3 bg-background p-4">
+        <Button type="button" onClick={handleSave} disabled={!isDirty || isSaving}>
+          {isSaving ? (
+            "جاري الحفظ..."
+          ) : (
+            <>
+              <Save data-icon="inline-start" />
+              حفظ التغييرات
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );

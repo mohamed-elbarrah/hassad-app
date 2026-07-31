@@ -5,16 +5,12 @@
  *
  * ```tsx
  * import { KanbanBoard } from "@/components/dashboard/kanban";
- * import { SALES_PIPELINE_CONFIG } from "@/components/dashboard/kanban/configs/sales-pipeline";
- * import { SalesPipelineCardContent } from "@/components/dashboard/kanban/cards/SalesPipelineCardContent";
  *
  * <KanbanBoard
- *   config={SALES_PIPELINE_CONFIG}
- *   items={requests}
- *   getItemStage={(r) => r.status}
- *   renderCard={(request, { isOverlay }) => (
- *     <SalesPipelineCardContent request={request} />
- *   )}
+ *   config={config}
+ *   items={items}
+ *   getItemStage={(item) => item.status}
+ *   renderCard={(item, { isOverlay }) => <CardContent item={item} />}
  *   onDragEnd={handleDragEnd}
  * />
  * ```
