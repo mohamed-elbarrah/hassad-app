@@ -1,7 +1,13 @@
+import { FileBarChart } from "lucide-react";
+
+import { FinancePagePlaceholder } from "@/components/dashboard/finance/finance-page-placeholder";
+
 export default function FinanceInvoiceDetailPage() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-center">
-      <h1 className="text-xl font-semibold tracking-tight">تفاصيل الفاتورة</h1>
-    </div>
+    <FinancePagePlaceholder
+      title="تفاصيل الفاتورة"
+      description="تفاصيل فاتورة محددة وسجل مدفوعاتها."
+      icon={FileBarChart}
+    />
   );
 }

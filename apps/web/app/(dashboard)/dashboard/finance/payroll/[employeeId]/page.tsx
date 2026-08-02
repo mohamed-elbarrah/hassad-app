@@ -1,7 +1,13 @@
+import { User } from "lucide-react";
+
+import { FinancePagePlaceholder } from "@/components/dashboard/finance/finance-page-placeholder";
+
 export default function FinanceEmployeeSalaryPage() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-center">
-      <h1 className="text-xl font-semibold tracking-tight">راتب الموظف</h1>
-    </div>
+    <FinancePagePlaceholder
+      title="راتب الموظف"
+      description="تفاصيل راتب موظف محدد وتاريخه."
+      icon={User}
+    />
   );
 }

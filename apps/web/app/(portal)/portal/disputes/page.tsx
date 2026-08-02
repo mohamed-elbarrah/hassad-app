@@ -1,8 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  MessageSquare,
+  Plus,
+  RefreshCw,
+  ShieldAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 import { DisputeStatus } from "@hassad/shared";
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
@@ -11,12 +19,27 @@ import {
   useGetClientDisputesQuery,
 } from "@/features/portal/portalApi";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DisputeCard } from "@/components/disputes/DisputeCard";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { DisputeCategoryIcon } from "@/components/disputes/DisputeCategoryIcon";
 import { DisputeEmptyState } from "@/components/disputes/DisputeEmptyState";
+import { DisputeStatusBadge } from "@/components/disputes/DisputeStatusBadge";
 import { NewDisputeDialog } from "@/components/disputes/NewDisputeDialog";
 
 const PAGE_SIZE = 9;
@@ -77,7 +100,7 @@ export default function PortalDisputesPage() {
   };
 
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <main dir="rtl" className="flex flex-col gap-6">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-3">
@@ -128,29 +151,90 @@ export default function PortalDisputesPage() {
             />
           </div>
         </CardHeader>
-        <CardContent>
-          {isError ? (
+        {isError ? (
+          <CardContent className="pt-6">
             <DisputeEmptyState hasFilter canCreate={false} />
-          ) : isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-48 rounded-xl" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
+          </CardContent>
+        ) : isLoading ? (
+          <CardContent className="flex flex-col gap-3 pt-6">
+            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+              <Skeleton key={i} className="h-14 w-full" />
+            ))}
+          </CardContent>
+        ) : filtered.length === 0 ? (
+          <CardContent className="pt-6">
             <DisputeEmptyState
               hasFilter={!!search || !!activeTab}
               onCreateNew={() => setIsNewDisputeOpen(true)}
               canCreate
             />
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          </CardContent>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>التذكرة</TableHead>
+                <TableHead>العنوان</TableHead>
+                <TableHead>التصنيف</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead>فتحت في</TableHead>
+                <TableHead>الرسائل</TableHead>
+                <TableHead className="text-end">
+                  <span className="sr-only">الإجراء</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filtered.map((dispute) => (
-                <DisputeCard key={dispute.id} dispute={dispute} />
+                <TableRow key={dispute.id}>
+                  <TableCell className="font-medium text-muted-foreground">
+                    #{dispute.ticketNumber.toString().padStart(3, "0")}
+                  </TableCell>
+                  <TableCell>
+                    <p className="line-clamp-2 font-medium">{dispute.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {dispute.project.name}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    <DisputeCategoryIcon
+                      category={dispute.category}
+                      size="sm"
+                      showLabel
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <DisputeStatusBadge status={dispute.status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="size-3.5" />
+                      {new Date(dispute.openedAt).toLocaleDateString("ar-SA")}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {dispute._count && dispute._count.messages > 0 ? (
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="size-3.5" />
+                        {dispute._count.messages}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/portal/disputes/${dispute.id}`}>
+                        <ArrowLeft />
+                        استعراض
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          )}
-        </CardContent>
+            </TableBody>
+          </Table>
+        )}
       </Card>
 
       <NewDisputeDialog
@@ -160,6 +244,6 @@ export default function PortalDisputesPage() {
         isLoading={isCreating}
         projectId={projectIdFromUrl || undefined}
       />
-    </div>
+    </main>
   );
 }

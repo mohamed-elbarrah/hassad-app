@@ -1,77 +1,94 @@
 "use client";
 
-import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Settings,
+  AlertCircle,
+  Bell,
+  BellOff,
+  CalendarClock,
   CheckCircle2,
   Clock,
   ExternalLink,
-  BellOff,
-  Bell,
   Hourglass,
-  CalendarClock,
-  AlertCircle,
+  Settings,
 } from "lucide-react";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { Pagination } from "@/components/design-system/Pagination";
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
-import { Pill } from "@/components/design-system/Pill";
-import { DataTable } from "@/components/design-system/DataTable";
-import { ActionButton } from "@/components/design-system/ActionButton";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/design-system/Tabs";
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSnoozeActionItem } from "@/hooks/useSnoozeActionItem";
 import { useAppSelector } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
 import {
   useGetActionItemsQuery,
   useGetSnoozedActionItemsQuery,
   type SnoozedActionItem,
 } from "@/features/portal/portalApi";
 
-const FILTER_GROUPS: FilterGroup[] = [
-  {
-    key: "type",
-    label: "النوع",
-    options: [
-      { label: "الكل", value: "" },
-      { label: "مراجعة تسليمات", value: "DELIVERABLE_APPROVAL" },
-      { label: "دفع فواتير", value: "INVOICE_PAYMENT" },
-      { label: "مراجعة عروض", value: "PROPOSAL_REVIEW" },
-      { label: "توقيع عقود", value: "CONTRACT_SIGN" },
-      { label: "مراجعة دراسة تسويقية", value: "STRATEGY_REVIEW" },
-    ],
-  },
+const TYPE_FILTER_OPTIONS = [
+  { value: "all", label: "الكل" },
+  { value: "DELIVERABLE_APPROVAL", label: "مراجعة تسليمات" },
+  { value: "INVOICE_PAYMENT", label: "دفع فواتير" },
+  { value: "PROPOSAL_REVIEW", label: "مراجعة عروض" },
+  { value: "CONTRACT_SIGN", label: "توقيع عقود" },
+  { value: "STRATEGY_REVIEW", label: "مراجعة دراسة تسويقية" },
 ];
 
-const TYPE_CONFIG: Record<string, { label: string; color: "purple" | "blue" }> =
-  {
-    DELIVERABLE_APPROVAL: { label: "مراجعة تسليم", color: "purple" },
-    INVOICE_PAYMENT: { label: "دفع فاتورة", color: "blue" },
-    PROPOSAL_REVIEW: { label: "مراجعة عرض", color: "purple" },
-    CONTRACT_SIGN: { label: "توقيع عقد", color: "blue" },
-    STRATEGY_REVIEW: { label: "مراجعة دراسة تسويقية", color: "purple" },
-  };
+const TYPE_CONFIG: Record<string, string> = {
+  DELIVERABLE_APPROVAL: "مراجعة تسليم",
+  INVOICE_PAYMENT: "دفع فاتورة",
+  PROPOSAL_REVIEW: "مراجعة عرض",
+  CONTRACT_SIGN: "توقيع عقد",
+  STRATEGY_REVIEW: "مراجعة دراسة تسويقية",
+};
 
-const PRIORITY_PILL: Record<
+const PRIORITY_CONFIG: Record<
   string,
-  { label: string; tone: "danger" | "neutral" | "warning" }
+  { label: string; variant: "destructive" | "secondary" | "outline" }
 > = {
-  high: { label: "عاجل", tone: "danger" },
-  normal: { label: "عادي", tone: "neutral" },
-  low: { label: "منخفض", tone: "warning" },
+  high: { label: "عاجل", variant: "destructive" },
+  normal: { label: "عادي", variant: "secondary" },
+  low: { label: "منخفض", variant: "outline" },
 };
 
 const PAGE_SIZE = 6;
+
+function getTypeLabel(type: string): string {
+  return TYPE_CONFIG[type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
+}
 
 /** Friendly "23 Aug 2026, 14:30" formatter using Arabic-locale Latin digits. */
 function formatReminderTime(iso: string): string {
@@ -83,37 +100,19 @@ function formatReminderTime(iso: string): string {
   });
 }
 
-/**
- * Portal actions page.
- *
- * Two tabs:
- *   - "الآن"          → pending action items the client still needs to act on.
- *   - "المؤجلة"       → items the client snoozed. Each row shows the
- *                       countdown until the reminder fires and offers an
- *                       "إلغاء التأجيل" affordance.
- *
- * The dashboard card (`/portal`) deep-links here too. We keep the same
- * `Type` filter for both tabs because users want to narrow both lists by
- * the same criteria.
- */
 export default function PortalActionsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"now" | "snoozed">("now");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  // Per-row busy state so only one row shows the spinner at a time.
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  const typeFilter = activeFilters["type"]?.[0] ?? "";
 
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
 
   const { data, isLoading, isError, refetch } = useGetActionItemsQuery(
     {
-      type: typeFilter || undefined,
+      type: typeFilter === "all" ? undefined : typeFilter,
       page,
       limit: PAGE_SIZE,
     },
@@ -127,6 +126,7 @@ export default function PortalActionsPage() {
     data: snoozedData,
     isLoading: snoozedLoading,
     isError: snoozedError,
+    refetch: refetchSnoozed,
   } = useGetSnoozedActionItemsQuery(
     { activeOnly: true },
     {
@@ -141,14 +141,6 @@ export default function PortalActionsPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const snoozedItems = snoozedData ?? [];
-
-  const handleFilterChange = useCallback(
-    (groupKey: string, values: string[]) => {
-      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-      setPage(1);
-    },
-    [],
-  );
 
   /** Snooze an item from the "الآن" tab. */
   const handleSnooze = async (item: {
@@ -169,264 +161,340 @@ export default function PortalActionsPage() {
   };
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="إجراءات تتطلب تدخلك"
-        description="جميع الإجراءات التي تحتاج مراجعتك أو موافقتك ضمن نفس تجربة العميل الموحدة."
-        icon={CheckCircle2}
-      />
+    <main dir="rtl" className="flex flex-col gap-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <CheckCircle2 />
+            </div>
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-2xl">إجراءات تتطلب تدخلك</CardTitle>
+              <CardDescription>
+                جميع الإجراءات التي تحتاج مراجعتك أو موافقتك ضمن نفس تجربة
+                العميل الموحدة.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => setActiveTab(v as "now" | "snoozed")}
-        dir="rtl"
-      >
-        <TabsList className="self-start">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "now" | "snoozed")}>
+        <TabsList className="h-auto w-fit flex-wrap [&_svg]:size-4">
           <TabsTrigger value="now" className="gap-2">
-            <Bell className="h-4 w-4" />
+            <Bell />
             الآن
             {!isLoading && items.length > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary-500 px-1.5 text-xs font-semibold text-white">
-                {items.length}
-              </span>
+              <Badge className="px-1.5 py-0">{items.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="snoozed" className="gap-2">
-            <Hourglass className="h-4 w-4" />
+            <Hourglass />
             المؤجلة
             {!snoozedLoading && snoozedItems.length > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-portal-note-text/20 px-1.5 text-xs font-semibold text-portal-note-text">
+              <Badge variant="secondary" className="px-1.5 py-0">
                 {snoozedItems.length}
-              </span>
+              </Badge>
             )}
           </TabsTrigger>
         </TabsList>
 
-        {/* ── Tab: الآن ───────────────────────────────────────────────── */}
-        {isError ? (
-          <SurfaceCard>
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <AlertCircle className="w-12 h-12 text-danger-500 mb-4" />
-              <p className="text-lg font-medium text-natural-100 mb-2">
-                تعذر تحميل الإجراءات
-              </p>
-              <ActionButton variant="primary" onClick={() => refetch()}>
-                إعادة المحاولة
-              </ActionButton>
-            </div>
-          </SurfaceCard>
-        ) : (
-          <TabsContent value="now" className="mt-4">
-            <SurfaceCard
-              title="الإجراءات المعلقة"
-              description="راجع ما يتطلب تدخلك واتخذ الإجراء المناسب"
-              icon={Settings}
-              action={
-                <FilterBar
-                  groups={FILTER_GROUPS}
-                  activeFilters={activeFilters}
-                  onFilterChange={handleFilterChange}
+        <TabsContent value="now" className="mt-4 flex flex-col gap-6">
+          <Card>
+            <CardHeader className="gap-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3">
+                  <Settings className="size-5 text-muted-foreground" />
+                  <div className="flex flex-col gap-1">
+                    <CardTitle className="text-lg">الإجراءات المعلقة</CardTitle>
+                    <CardDescription>
+                      راجع ما يتطلب تدخلك واتخذ الإجراء المناسب
+                    </CardDescription>
+                  </div>
+                </div>
+                <Select
+                  value={typeFilter}
+                  onValueChange={(value) => {
+                    setTypeFilter(value);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full lg:w-[220px]">
+                    <SelectValue placeholder="كل الأنواع" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TYPE_FILTER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+
+            {isLoading ? (
+              <CardContent className="flex flex-col gap-3 pt-6">
+                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 w-full" />
+                ))}
+              </CardContent>
+            ) : isError ? (
+              <CardContent className="pt-6">
+                <PortalEmptyState
+                  icon={AlertCircle}
+                  title="تعذر تحميل الإجراءات"
+                  description="حدث خطأ أثناء تحميل الإجراءات."
+                  actionLabel="إعادة المحاولة"
+                  onAction={() => refetch()}
                 />
-              }
-            >
-              <DataTable
-                columns={[
-                  { id: "title", label: "الإجراء" },
-                  { id: "subtitle", label: "التفاصيل" },
-                  { id: "priority", label: "الأولوية" },
-                  { id: "type", label: "النوع" },
-                  { id: "dueDate", label: "تاريخ الاستحقاق" },
-                  { id: "action", label: "الإجراء" },
-                ]}
-                data={items}
-                isLoading={isLoading}
-                isError={isError}
-                errorMessage="حدث خطأ أثناء تحميل الإجراءات."
-                emptyState={{
-                  icon: CheckCircle2,
-                  message: "لا توجد إجراءات معلقة.",
-                  hint: "ستظهر هنا جميع الإجراءات التي تتطلب مراجعتك وموافقتك.",
-                }}
-                renderRow={(item) => {
-                  const config =
-                    TYPE_CONFIG[item.type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
-                  const priorityCfg =
-                    PRIORITY_PILL[item.priority] ?? PRIORITY_PILL.normal;
-                  const isBusy = busyId === item.id;
-                  return (
-                    <tr
-                      key={item.id}
-                      className="border-b-[1.5px] border-portal-divider transition-colors hover:bg-portal-bg/40"
-                    >
-                      <td className="px-5 py-4 font-medium text-sm text-natural-100">
-                        {item.title}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-portal-note-text truncate max-w-[200px]">
-                        {item.subtitle}
-                      </td>
-                      <td className="px-5 py-4">
-                        <Pill tone={priorityCfg.tone}>{priorityCfg.label}</Pill>
-                      </td>
-                      <td className="px-5 py-4">
-                        <Pill
-                          tone={config.color === "purple" ? "purple" : "blue"}
-                        >
-                          {config.label}
-                        </Pill>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-portal-note-text">
-                        {item.dueDate ? (
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            <span>
+              </CardContent>
+            ) : items.length === 0 ? (
+              <CardContent className="pt-6">
+                <PortalEmptyState
+                  icon={CheckCircle2}
+                  title="لا توجد إجراءات معلقة"
+                  description="ستظهر هنا جميع الإجراءات التي تتطلب مراجعتك وموافقتك."
+                />
+              </CardContent>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>الإجراء</TableHead>
+                    <TableHead>التفاصيل</TableHead>
+                    <TableHead>الأولوية</TableHead>
+                    <TableHead>النوع</TableHead>
+                    <TableHead>تاريخ الاستحقاق</TableHead>
+                    <TableHead className="text-end">
+                      <span className="sr-only">الإجراء</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item) => {
+                    const priorityCfg =
+                      PRIORITY_CONFIG[item.priority] ?? PRIORITY_CONFIG.normal;
+                    const isBusy = busyId === item.id;
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">
+                          {item.title}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                          {item.subtitle}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={priorityCfg.variant}>
+                            {priorityCfg.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {getTypeLabel(item.type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {item.dueDate ? (
+                            <span className="flex items-center gap-1">
+                              <Clock className="size-3.5" />
                               {new Date(item.dueDate).toLocaleDateString(
                                 "ar-SA-u-nu-latn",
                               )}
                             </span>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSnooze(item)}
+                              disabled={isBusy}
+                              title="تأجيل التذكير 24 ساعة"
+                            >
+                              <BellOff data-icon="inline-start" />
+                              {isBusy ? "جاري التأجيل..." : "ذكرني لاحقاً"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => router.push(item.actionUrl)}
+                            >
+                              <ExternalLink data-icon="inline-start" />
+                              اتخاذ إجراء
+                            </Button>
                           </div>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <ActionButton
-                            variant="outline"
-                            size="md"
-                            onClick={() => handleSnooze(item)}
-                            disabled={isBusy}
-                            title="تأجيل التذكير 24 ساعة"
-                            className="gap-1.5 border-[1.5px] border-portal-card-border bg-natural-0 text-portal-note-text hover:bg-badge-gray-bg hover:text-secondary-500"
-                          >
-                            <BellOff className="h-3.5 w-3.5" />
-                            {isBusy ? "جاري التأجيل..." : "ذكرني لاحقاً"}
-                          </ActionButton>
-                          <ActionButton
-                            variant="primary"
-                            size="md"
-                            onClick={() => router.push(item.actionUrl)}
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                            اتخاذ إجراء
-                          </ActionButton>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }}
-              />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
 
-              {!isLoading && !isError && items.length > 0 && (
-                <div className="mt-6">
-                  <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
+          {!isLoading && !isError && totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    text="السابق"
+                    disabled={page === 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
                   />
-                </div>
-              )}
-            </SurfaceCard>
-          </TabsContent>
-        )}
-
-        {/* ── Tab: المؤجلة ────────────────────────────────────────────── */}
-        <TabsContent value="snoozed" className="mt-4">
-          <SurfaceCard
-            title="الإجراءات المؤجلة"
-            description="إجراءات أخّرتها مؤقتاً. سيتم تذكيرك عند انتهاء مدة التأجيل."
-            icon={Hourglass}
-          >
-            <DataTable
-              columns={[
-                { id: "title", label: "الإجراء" },
-                { id: "subtitle", label: "التفاصيل" },
-                { id: "type", label: "النوع" },
-                { id: "snoozedUntil", label: "التذكير" },
-                { id: "action", label: "الإجراء" },
-              ]}
-              data={snoozedItems}
-              isLoading={snoozedLoading}
-              isError={snoozedError}
-              errorMessage="حدث خطأ أثناء تحميل الإجراءات المؤجلة."
-              emptyState={{
-                icon: Hourglass,
-                message: "لا توجد إجراءات مؤجلة.",
-                hint: "عند تأجيل أي إجراء سيظهر هنا مع موعد التذكير.",
-              }}
-              renderRow={(item) => {
-                const config =
-                  TYPE_CONFIG[item.type] ?? TYPE_CONFIG.DELIVERABLE_APPROVAL;
-                const isBusy = busyId === item.id;
-                const reminderLabel = item.reminderSentAt
-                  ? "تم إرسال التذكير"
-                  : formatReminderTime(item.snoozedUntil);
-                return (
-                  <tr
-                    key={item.id}
-                    className="border-b-[1.5px] border-portal-divider transition-colors hover:bg-portal-bg/40"
-                  >
-                    <td className="px-5 py-4 font-medium text-sm text-natural-100">
-                      {item.title}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-portal-note-text truncate max-w-[200px]">
-                      {item.subtitle}
-                    </td>
-                    <td className="px-5 py-4">
-                      <Pill
-                        tone={config.color === "purple" ? "purple" : "blue"}
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (number) => (
+                    <PaginationItem key={number}>
+                      <PaginationLink
+                        isActive={page === number}
+                        onClick={() => setPage(number)}
                       >
-                        {config.label}
-                      </Pill>
-                    </td>
-                    <td className="px-5 py-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <CalendarClock
-                          className={`h-3.5 w-3.5 ${item.reminderSentAt ? "text-portal-note-text" : "text-secondary-500"}`}
-                        />
-                        <span
-                          className={
-                            item.reminderSentAt
-                              ? "text-portal-note-text line-through"
-                              : "text-natural-100"
-                          }
-                        >
-                          {reminderLabel}
-                        </span>
-                        {item.reminderSentAt && (
-                          <Pill tone="neutral">مُنبّه</Pill>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <ActionButton
-                          variant="outline"
-                          size="md"
-                          onClick={() => handleUnsnooze(item)}
-                          disabled={isBusy}
-                          title="إلغاء التأجيل وإعادة الإجراء للقائمة"
-                          className="gap-1.5 border-[1.5px] border-portal-card-border bg-natural-0 text-portal-note-text hover:bg-badge-gray-bg hover:text-secondary-500"
-                        >
-                          <Bell className="h-3.5 w-3.5" />
-                          {isBusy ? "جاري الإلغاء..." : "إلغاء التأجيل"}
-                        </ActionButton>
-                        <ActionButton
-                          variant="primary"
-                          size="md"
-                          onClick={() => router.push(item.actionUrl)}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                          اتخاذ إجراء
-                        </ActionButton>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }}
-            />
-          </SurfaceCard>
+                        {number}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ),
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    text="التالي"
+                    disabled={page === totalPages}
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </TabsContent>
+
+        <TabsContent value="snoozed" className="mt-4 flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Hourglass className="size-5 text-muted-foreground" />
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="text-lg">الإجراءات المؤجلة</CardTitle>
+                  <CardDescription>
+                    إجراءات أخّرتها مؤقتاً. سيتم تذكيرك عند انتهاء مدة التأجيل.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            {snoozedLoading ? (
+              <CardContent className="flex flex-col gap-3 pt-6">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 w-full" />
+                ))}
+              </CardContent>
+            ) : snoozedError ? (
+              <CardContent className="pt-6">
+                <PortalEmptyState
+                  icon={AlertCircle}
+                  title="تعذر تحميل الإجراءات المؤجلة"
+                  description="حدث خطأ أثناء تحميل الإجراءات المؤجلة."
+                  actionLabel="إعادة المحاولة"
+                  onAction={() => refetchSnoozed()}
+                />
+              </CardContent>
+            ) : snoozedItems.length === 0 ? (
+              <CardContent className="pt-6">
+                <PortalEmptyState
+                  icon={Hourglass}
+                  title="لا توجد إجراءات مؤجلة"
+                  description="عند تأجيل أي إجراء سيظهر هنا مع موعد التذكير."
+                />
+              </CardContent>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>الإجراء</TableHead>
+                    <TableHead>التفاصيل</TableHead>
+                    <TableHead>النوع</TableHead>
+                    <TableHead>التذكير</TableHead>
+                    <TableHead className="text-end">
+                      <span className="sr-only">الإجراء</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {snoozedItems.map((item) => {
+                    const isBusy = busyId === item.id;
+                    const reminderLabel = item.reminderSentAt
+                      ? "تم إرسال التذكير"
+                      : formatReminderTime(item.snoozedUntil);
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">
+                          {item.title}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                          {item.subtitle}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {getTypeLabel(item.type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <CalendarClock
+                              className={cn(
+                                "size-4",
+                                item.reminderSentAt
+                                  ? "text-muted-foreground"
+                                  : "text-primary",
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                item.reminderSentAt
+                                  ? "text-muted-foreground line-through"
+                                  : "font-medium",
+                              )}
+                            >
+                              {reminderLabel}
+                            </span>
+                            {item.reminderSentAt && (
+                              <Badge variant="secondary">مُنبّه</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleUnsnooze(item)}
+                              disabled={isBusy}
+                              title="إلغاء التأجيل وإعادة الإجراء للقائمة"
+                            >
+                              <Bell data-icon="inline-start" />
+                              {isBusy ? "جاري الإلغاء..." : "إلغاء التأجيل"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => router.push(item.actionUrl)}
+                            >
+                              <ExternalLink data-icon="inline-start" />
+                              اتخاذ إجراء
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </main>
   );
 }

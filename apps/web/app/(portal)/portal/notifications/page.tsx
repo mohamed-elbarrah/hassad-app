@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
@@ -9,105 +9,54 @@ import {
   CreditCard,
   ExternalLink,
   FileText,
+  Inbox,
   Layout,
   MessageSquare,
   Package,
   Receipt,
   TrendingUp,
 } from "lucide-react";
-import { toast } from "sonner"; // NEW
+import { toast } from "sonner";
+import { NotificationEventType } from "@hassad/shared";
 import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useGetMyNotificationsQuery,
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
   type PortalNotificationItem,
 } from "@/features/portal-notifications/portalNotificationsApi";
+import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/format";
-import { NotificationEventType } from "@hassad/shared";
-
-const FILTER_GROUPS: FilterGroup[] = [
-  {
-    key: "filter",
-    label: "نوع الإشعار",
-    options: [
-      { label: "الكل", value: "all" },
-      { label: "إجراءات مطلوبة", value: "action" },
-      { label: "معلومات عامة", value: "info" },
-    ],
-  },
-];
 
 type FilterTab = "all" | "action" | "info";
 
-const ENTITY_ICON_MAP: Record<
-  string,
-  { bg: string; color: string; icon: React.ReactNode }
-> = {
-  proposal: {
-    bg: "bg-action-purple-soft",
-    color: "text-action-purple",
-    icon: <FileText className="w-5 h-5" />,
-  },
-  contract: {
-    bg: "bg-action-blue-soft",
-    color: "text-action-blue",
-    icon: <FileText className="w-5 h-5" />,
-  },
-  invoice: {
-    bg: "bg-action-blue-soft",
-    color: "text-action-blue",
-    icon: <Receipt className="w-5 h-5" />,
-  },
-  INVOICE: {
-    bg: "bg-action-blue-soft",
-    color: "text-action-blue",
-    icon: <Receipt className="w-5 h-5" />,
-  },
-  deliverable: {
-    bg: "bg-action-purple-soft",
-    color: "text-action-purple",
-    icon: <Package className="w-5 h-5" />,
-  },
-  project: {
-    bg: "bg-badge-gray-bg",
-    color: "text-badge-gray-text",
-    icon: <Layout className="w-5 h-5" />,
-  },
-  campaign: {
-    bg: "bg-badge-green-bg",
-    color: "text-badge-green-text",
-    icon: <TrendingUp className="w-5 h-5" />,
-  },
-  conversation: {
-    bg: "bg-action-cyan-soft",
-    color: "text-action-cyan",
-    icon: <MessageSquare className="w-5 h-5" />,
-  },
-  payment: {
-    bg: "bg-badge-green-bg",
-    color: "text-badge-green-text",
-    icon: <CreditCard className="w-5 h-5" />,
-  },
-  PAYMENT: {
-    bg: "bg-badge-green-bg",
-    color: "text-badge-green-text",
-    icon: <CreditCard className="w-5 h-5" />,
-  },
-  default: {
-    bg: "bg-badge-gray-bg",
-    color: "text-badge-gray-text",
-    icon: <AlertCircle className="w-5 h-5" />,
-  },
+const ENTITY_ICON_MAP: Record<string, React.ReactNode> = {
+  proposal: <FileText />,
+  contract: <FileText />,
+  invoice: <Receipt />,
+  INVOICE: <Receipt />,
+  deliverable: <Package />,
+  project: <Layout />,
+  campaign: <TrendingUp />,
+  conversation: <MessageSquare />,
+  payment: <CreditCard />,
+  PAYMENT: <CreditCard />,
+  default: <AlertCircle />,
 };
 
-function getEntityConfig(entityType: string | null | undefined) {
+function getEntityIcon(entityType: string | null | undefined) {
   if (!entityType) return ENTITY_ICON_MAP.default;
   return ENTITY_ICON_MAP[entityType] ?? ENTITY_ICON_MAP.default;
 }
@@ -143,15 +92,6 @@ function getPrimaryActionLabel(entityType: string | null | undefined): string {
   return "عرض التفاصيل";
 }
 
-function getActionColor(entityType: string | null | undefined): {
-  bg: string;
-  text: string;
-} {
-  if (entityType === "invoice" || entityType === "INVOICE")
-    return { bg: "rgba(38, 132, 252, 0.12)", text: "#2684FC" };
-  return { bg: "rgba(122, 19, 232, 0.12)", text: "#7A13E8" };
-}
-
 function isActionRequired(
   entityType: string | null | undefined,
   eventType: string | null | undefined,
@@ -182,21 +122,85 @@ function isActionRequired(
   return false;
 }
 
+function NotificationRow({
+  notification,
+  isExpanded,
+  onToggle,
+  onNavigate,
+}: {
+  notification: PortalNotificationItem;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onNavigate: () => void;
+}) {
+  const isAction = notification.eventType
+    ? isActionRequired(notification.entityType, notification.eventType)
+    : isActionRequired(notification.entityType, null);
+
+  return (
+    <div className={cn("px-6 py-4", !notification.isRead && "bg-muted/50")}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start gap-3 text-right"
+      >
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">
+          {getEntityIcon(notification.entityType)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <p
+              className={cn(
+                "min-w-0 text-base leading-snug",
+                notification.isRead
+                  ? "font-normal text-muted-foreground"
+                  : "font-medium",
+              )}
+            >
+              {notification.title}
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              {isAction && (
+                <Badge variant="outline" className="text-info">
+                  مطلوب إجراء
+                </Badge>
+              )}
+              {!notification.isRead && (
+                <span
+                  aria-hidden="true"
+                  className="size-2 rounded-full bg-primary"
+                />
+              )}
+            </div>
+          </div>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            {isExpanded
+              ? notification.body
+              : notification.body.length > 120
+                ? notification.body.substring(0, 117) + "..."
+                : notification.body}
+          </p>
+        </div>
+      </button>
+      <div className="mt-2 flex items-center justify-between ps-14">
+        <p className="text-xs text-muted-foreground">
+          {formatRelativeTime(notification.createdAt)}
+        </p>
+        {isAction && (
+          <Button variant="ghost" size="sm" onClick={onNavigate}>
+            <ExternalLink data-icon="inline-end" />
+            {getPrimaryActionLabel(notification.entityType)}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PortalNotificationsPage() {
   const router = useRouter();
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
+  const [filter, setFilter] = useState<FilterTab>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const filter = (activeFilters["filter"]?.[0] ?? "all") as FilterTab;
-
-  const handleFilterChange = useCallback(
-    (groupKey: string, values: string[]) => {
-      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-    },
-    [],
-  );
 
   const isReadFilter =
     filter === "action" ? false : filter === "info" ? true : undefined;
@@ -223,15 +227,10 @@ export default function PortalNotificationsPage() {
   const filteredNotifications = notifications.filter(
     (n: PortalNotificationItem) => {
       if (filter === "all") return true;
-      if (filter === "action")
-        return n.eventType
-          ? isActionRequired(n.entityType, n.eventType)
-          : isActionRequired(n.entityType, null);
-      if (filter === "info")
-        return !(n.eventType
-          ? isActionRequired(n.entityType, n.eventType)
-          : isActionRequired(n.entityType, null));
-      return true;
+      const requiresAction = n.eventType
+        ? isActionRequired(n.entityType, n.eventType)
+        : isActionRequired(n.entityType, null);
+      return filter === "action" ? requiresAction : !requiresAction;
     },
   );
 
@@ -249,173 +248,106 @@ export default function PortalNotificationsPage() {
     if (url) router.push(url);
   }
 
-  const actions = (
-    <div className="flex items-center gap-3">
-      {unreadCount > 0 && (
-        <button
-          type="button"
-          className="flex items-center gap-1.5 h-12 rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 px-5 text-base font-medium text-portal-icon transition-colors hover:bg-badge-gray-bg"
-          onClick={() => markAllAsRead()}
-        >
-          <CheckCheck style={{ width: 18, height: 18 }} />
-          تعليم الكل كمقروء
-        </button>
-      )}
-    </div>
-  );
+  function handleToggle(n: PortalNotificationItem) {
+    if (!n.isRead) void handleMarkRead(n.id);
+    setExpandedId((current) => (current === n.id ? null : n.id));
+  }
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="الإشعارات"
-        description="جميع الإشعارات الواردة، الإجراءات المطلوبة منك، والمعلومات العامة حول مشاريعك."
-        icon={Bell}
-        actions={actions}
-      />
+    <main dir="rtl" className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Bell />
+            </div>
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-2xl">الإشعارات</CardTitle>
+              <CardDescription>
+                جميع الإشعارات الواردة، الإجراءات المطلوبة منك، والمعلومات
+                العامة حول مشاريعك.
+              </CardDescription>
+            </div>
+          </div>
+          {unreadCount > 0 && (
+            <Button variant="outline" onClick={() => markAllAsRead()}>
+              <CheckCheck data-icon="inline-start" />
+              تعليم الكل كمقروء
+            </Button>
+          )}
+        </CardHeader>
+      </Card>
 
-      <SurfaceCard
-        title="صندوق الوارد"
-        description={
-          unreadCount > 0
-            ? `${unreadCount} إشعار غير مقروء`
-            : "لا يوجد إشعارات غير مقروءة"
-        }
-        icon={Bell}
-        action={
-          <FilterBar
-            groups={FILTER_GROUPS}
-            activeFilters={activeFilters}
-            onFilterChange={handleFilterChange}
-          />
-        }
-      >
+      <Card>
+        <CardHeader className="gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <Inbox className="size-5 text-muted-foreground" />
+              <div className="flex flex-col gap-1">
+                <CardTitle className="text-lg">صندوق الوارد</CardTitle>
+                <CardDescription>
+                  {unreadCount > 0
+                    ? `${unreadCount} إشعار غير مقروء`
+                    : "لا يوجد إشعارات غير مقروءة"}
+                </CardDescription>
+              </div>
+            </div>
+            <Tabs
+              value={filter}
+              onValueChange={(value) => setFilter(value as FilterTab)}
+            >
+              <TabsList className="h-auto flex-wrap">
+                <TabsTrigger value="all">الكل</TabsTrigger>
+                <TabsTrigger value="action">إجراءات مطلوبة</TabsTrigger>
+                <TabsTrigger value="info">معلومات عامة</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardHeader>
+
         {isLoading ? (
-          <div className="p-8 space-y-4">
+          <CardContent className="flex flex-col gap-3 pt-6">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="animate-pulse flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-portal-divider shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-5 bg-portal-divider rounded w-2/3" />
-                  <div className="h-4 bg-portal-bg rounded w-full" />
-                  <div className="h-3 bg-portal-bg rounded w-1/4" />
+              <div key={i} className="flex items-start gap-3">
+                <Skeleton className="size-11 shrink-0 rounded-full" />
+                <div className="flex flex-1 flex-col gap-2">
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-1/4" />
                 </div>
               </div>
             ))}
-          </div>
+          </CardContent>
         ) : filteredNotifications.length === 0 ? (
-          <PortalEmptyState
-            icon={Bell}
-            title={
-              filter === "action" ? "لا توجد إجراءات مطلوبة" : "لا توجد إشعارات"
-            }
-            description={
-              filter === "all"
-                ? "ستظهر هنا جميع الإشعارات المتعلقة بمشاريعك"
-                : undefined
-            }
-          />
+          <CardContent className="pt-6">
+            <PortalEmptyState
+              icon={Bell}
+              title={
+                filter === "action" ? "لا توجد إجراءات مطلوبة" : "لا توجد إشعارات"
+              }
+              description={
+                filter === "all"
+                  ? "ستظهر هنا جميع الإشعارات المتعلقة بمشاريعك"
+                  : undefined
+              }
+            />
+          </CardContent>
         ) : (
-          <div className="divide-y-[1.5px] border-portal-divider">
-            {filteredNotifications.map((n) => {
-              const entityConfig = getEntityConfig(n.entityType);
-              const isAction = n.eventType
-                ? isActionRequired(n.entityType, n.eventType)
-                : isActionRequired(n.entityType, null);
-              const isExpanded = expandedId === n.id;
-              const actionColor = getActionColor(n.entityType);
-
-              return (
-                <div
-                  key={n.id}
-                  className="transition-colors"
-                  style={{
-                    backgroundColor: !n.isRead
-                      ? "rgba(18, 25, 54, 0.03)"
-                      : undefined,
-                  }}
-                >
-                  <button
-                    className="w-full text-right p-5 hover:bg-badge-gray-bg/30 transition-colors border-0 bg-transparent cursor-pointer"
-                    onClick={async () => {
-                      if (!n.isRead) await handleMarkRead(n.id);
-                      setExpandedId(isExpanded ? null : n.id);
-                    }}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`flex items-center justify-center rounded-full shrink-0 ${entityConfig.bg} ${entityConfig.color}`}
-                        style={{ width: 44, height: 44 }}
-                      >
-                        {entityConfig.icon}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <p
-                            className="text-right font-medium text-base text-natural-100"
-                            style={{
-                              fontWeight: n.isRead ? 400 : 600,
-                            }}
-                          >
-                            {n.title}
-                          </p>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {isAction && (
-                              <span
-                                className="px-2.5 py-0.5 rounded-2xl text-xs font-medium"
-                                style={{
-                                  backgroundColor: actionColor.bg,
-                                  color: actionColor.text,
-                                }}
-                              >
-                                مطلوب إجراء
-                              </span>
-                            )}
-                            {!n.isRead && (
-                              <span className="h-2.5 w-2.5 rounded-full bg-secondary-500" />
-                            )}
-                          </div>
-                        </div>
-
-                        <p className="text-right mt-1 text-sm leading-6 text-portal-note-text">
-                          {isExpanded
-                            ? n.body
-                            : n.body.length > 120
-                              ? n.body.substring(0, 117) + "..."
-                              : n.body}
-                        </p>
-
-                        <div className="flex items-center justify-between mt-2 pt-1">
-                          <p className="text-xs text-portal-note-text">
-                            {formatRelativeTime(n.createdAt)}
-                          </p>
-
-                          {isAction && (
-                            <span
-                              className="flex items-center gap-1 px-3 py-1 rounded-2xl text-xs font-medium cursor-pointer hover:underline"
-                              style={{
-                                backgroundColor: actionColor.bg,
-                                color: actionColor.text,
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleNavigate(n);
-                              }}
-                            >
-                              <ExternalLink style={{ width: 14, height: 14 }} />
-                              {getPrimaryActionLabel(n.entityType)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              );
-            })}
+          <div>
+            {filteredNotifications.map((n, index) => (
+              <div key={n.id}>
+                {index > 0 && <Separator />}
+                <NotificationRow
+                  notification={n}
+                  isExpanded={expandedId === n.id}
+                  onToggle={() => handleToggle(n)}
+                  onNavigate={() => handleNavigate(n)}
+                />
+              </div>
+            ))}
           </div>
         )}
-      </SurfaceCard>
-    </div>
+      </Card>
+    </main>
   );
 }

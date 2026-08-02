@@ -1,7 +1,13 @@
+import { Banknote } from "lucide-react";
+
+import { FinancePagePlaceholder } from "@/components/dashboard/finance/finance-page-placeholder";
+
 export default function FinancePayrollPage() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-center">
-      <h1 className="text-xl font-semibold tracking-tight">الرواتب والأجور</h1>
-    </div>
+    <FinancePagePlaceholder
+      title="الرواتب والأجور"
+      description="إدارة رواتب الموظفين والأجور الشهرية."
+      icon={Banknote}
+    />
   );
 }

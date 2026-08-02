@@ -1,6 +1,5 @@
 export { DisputeStatusBadge } from "./DisputeStatusBadge";
 export { DisputeCategoryIcon } from "./DisputeCategoryIcon";
-export { DisputeCard } from "./DisputeCard";
 export { DisputeMessageThread } from "./DisputeMessageThread";
 export { NewDisputeDialog } from "./NewDisputeDialog";
 export { DisputeConfirmationDialog } from "./DisputeConfirmationDialog";
