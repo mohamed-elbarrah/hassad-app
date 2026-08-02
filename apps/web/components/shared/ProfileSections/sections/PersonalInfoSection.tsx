@@ -33,9 +33,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/design-system/Form";
+} from "@/components/ui/form";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Button } from "@/components/ui/button";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import { User, Mail, Phone } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
@@ -155,11 +155,11 @@ export function PersonalInfoSection({
               ),
           )}
           {user?.email && (
-            <p className="text-xs text-portal-note-text pt-2">
+            <p className="text-xs text-muted-foreground pt-2">
               لتعديل بياناتك الشخصية، انتقل إلى{" "}
               <a
                 href="/portal/account"
-                className="text-secondary-500 underline"
+                className="text-primary underline"
               >
                 الحساب الشخصي
               </a>
@@ -194,7 +194,7 @@ export function PersonalInfoSection({
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm">
-                  <User className="w-4 h-4 text-portal-icon" />
+                  <User className="w-4 h-4 text-muted-foreground" />
                   الاسم
                   <span className="text-danger-500">*</span>
                 </FormLabel>
@@ -210,7 +210,7 @@ export function PersonalInfoSection({
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4 text-portal-icon" />
+                  <Mail className="w-4 h-4 text-muted-foreground" />
                   البريد الإلكتروني
                 </FormLabel>
                 <FormInputControl
@@ -231,7 +231,7 @@ export function PersonalInfoSection({
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm">
-                  <Phone className="w-4 h-4 text-portal-icon" />
+                  <Phone className="w-4 h-4 text-muted-foreground" />
                   رقم التواصل (واتساب)
                 </FormLabel>
                 <FormInputControl
@@ -253,9 +253,9 @@ export function PersonalInfoSection({
           )}
 
           {hideNavigation && (
-            <ActionButton type="submit" variant="primary" className="w-full">
+            <Button type="submit" className="w-full">
               حفظ البيانات الشخصية
-            </ActionButton>
+            </Button>
           )}
         </form>
       </Form>

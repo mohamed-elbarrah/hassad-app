@@ -24,17 +24,17 @@ export function ClientBriefField({
 
   const content = (
     <div className={cn("flex items-start gap-3", className)}>
-      <div className="shrink-0 w-9 h-9 rounded-lg bg-secondary-50 flex items-center justify-center">
-        <Icon className="h-4 w-4 text-secondary-500" />
+      <div className="shrink-0 w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center">
+        <Icon className="h-4 w-4 text-primary" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] uppercase tracking-wide text-neutral-300 font-medium">
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
           {label}
         </p>
         <p
           className={cn(
-            "text-sm font-medium text-natural-100 mt-0.5",
-            href && "text-secondary-500 hover:underline cursor-pointer",
+            "text-sm font-medium text-foreground mt-0.5",
+            href && "text-primary hover:underline cursor-pointer",
           )}
           dir={dir}
         >

@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel } from "@/components/design-system/Form";
+import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
@@ -207,14 +207,14 @@ export function PerformanceSection({
               <SectionSubtitle>الميزانية</SectionSubtitle>
               {data.budgetInfo?.budgetRange && (
                 <div className="flex items-start gap-3">
-                  <div className="shrink-0 w-9 h-9 rounded-lg bg-secondary-50 flex items-center justify-center">
-                    <DollarSign className="h-4 w-4 text-secondary-500" />
+                  <div className="shrink-0 w-9 h-9 rounded-lg bg-primary/5 flex items-center justify-center">
+                    <DollarSign className="h-4 w-4 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] uppercase tracking-wide text-neutral-300 font-medium">
                       الميزانية الشهرية
                     </p>
-                    <p className="text-sm font-medium text-natural-100 mt-0.5">
+                    <p className="text-sm font-medium text-foreground mt-0.5">
                       {fmtAmount(data.budgetInfo.budgetRange)}{" "}
                       <CurrencySymbol className="inline-block" />
                     </p>
@@ -224,7 +224,7 @@ export function PerformanceSection({
               {data.budgetInfo?.previousReports &&
                 data.budgetInfo.previousReports.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
+                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                       <FileText className="w-4 h-4" aria-hidden="true" />
                       التقارير السابقة
                     </p>
@@ -232,7 +232,7 @@ export function PerformanceSection({
                       {data.budgetInfo.previousReports.map((report, i) => (
                         <span
                           key={i}
-                          className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
+                          className="px-3 py-1.5 rounded-lg text-sm bg-primary/10 text-foreground"
                         >
                           {report}
                         </span>
@@ -273,7 +273,7 @@ export function PerformanceSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-portal-icon" />
+                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
                   أفضل الحملات السابقة
                 </FormLabel>
                 <FormTextareaControl
@@ -291,7 +291,7 @@ export function PerformanceSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-portal-icon" />
+                  <BarChart3 className="w-4 h-4 text-muted-foreground" />
                   أداء الحملات السابقة
                 </FormLabel>
                 <FormTextareaControl
@@ -310,7 +310,7 @@ export function PerformanceSection({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm flex items-center gap-2">
-                    <Link2 className="w-4 h-4 text-portal-icon" />
+                    <Link2 className="w-4 h-4 text-muted-foreground" />
                     الربط
                   </FormLabel>
                   <FormSelect
@@ -339,7 +339,7 @@ export function PerformanceSection({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-portal-icon" />
+                    <DollarSign className="w-4 h-4 text-muted-foreground" />
                     الميزانية (شهرياً)
                   </FormLabel>
                   <FormInputControl
@@ -359,8 +359,8 @@ export function PerformanceSection({
           </div>
 
           <div className="space-y-3">
-            <span className="text-sm font-medium text-natural-100 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-portal-icon" />
+            <span className="text-sm font-medium text-foreground flex items-center gap-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
               التقارير السابقة
             </span>
             <FileDropzone

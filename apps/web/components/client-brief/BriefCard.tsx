@@ -28,22 +28,22 @@ export function BriefCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-2xl border border-portal-card-border bg-natural-0 shadow-sm",
+        "overflow-hidden rounded-2xl border border-border bg-background shadow-sm",
         className,
       )}
     >
       {hasHeader && (
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-portal-divider">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2.5 min-w-0">
-            {Icon && <Icon className="h-5 w-5 shrink-0 text-secondary-500" />}
+            {Icon && <Icon className="h-5 w-5 shrink-0 text-primary" />}
             <div className="min-w-0">
               {title && (
-                <h3 className="text-base font-semibold text-natural-100 truncate">
+                <h3 className="text-base font-semibold text-foreground truncate">
                   {title}
                 </h3>
               )}
               {description && (
-                <p className="text-xs text-portal-note-text truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {description}
                 </p>
               )}

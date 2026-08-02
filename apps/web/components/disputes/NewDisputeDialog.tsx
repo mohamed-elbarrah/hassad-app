@@ -142,21 +142,21 @@ export function NewDisputeDialog({
         }}
       >
         <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="text-xl font-semibold text-natural-100">
+          <DialogTitle className="text-xl font-semibold text-foreground">
             فتح تذكرة نزاع جديدة
           </DialogTitle>
           {selectedProjectName && !showProjectSelector && (
-            <DialogDescription className="text-portal-note-text">
+            <DialogDescription className="text-muted-foreground">
               المشروع: {selectedProjectName}
             </DialogDescription>
           )}
         </DialogHeader>
 
-        <div className="p-6 space-y-6">
+        <div className="flex flex-col gap-6 p-6">
           {/* Project Selection (only if no initial projectId) */}
           {showProjectSelector && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-natural-100">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">
                 المشروع *
               </label>
               {isLoadingProjects ? (
@@ -197,8 +197,8 @@ export function NewDisputeDialog({
           )}
 
           {/* Category Selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-natural-100">
+          <div className="flex flex-col gap-3">
+            <label className="text-sm font-medium text-foreground">
               نوع النزاع *
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -214,13 +214,13 @@ export function NewDisputeDialog({
                   className={cn(
                     "flex items-center gap-2 rounded-xl border-[1.5px] p-3 text-right transition-all",
                     category === cat.value
-                      ? "border-secondary-500 bg-secondary-50/50"
-                      : "border-portal-divider hover:border-secondary-300",
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/40",
                     isLoading && "opacity-50 cursor-not-allowed",
                   )}
                 >
                   <DisputeCategoryIcon category={cat.value} size="sm" />
-                  <span className="text-sm text-natural-100">{cat.label}</span>
+                  <span className="text-sm text-foreground">{cat.label}</span>
                 </button>
               ))}
             </div>
@@ -233,8 +233,8 @@ export function NewDisputeDialog({
           </div>
 
           {/* Title Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-natural-100">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">
               عنوان النزاع *
             </label>
             <Input
@@ -256,8 +256,8 @@ export function NewDisputeDialog({
           </div>
 
           {/* Description Input */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-natural-100">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">
               تفاصيل النزاع *
             </label>
             <Textarea
@@ -277,14 +277,14 @@ export function NewDisputeDialog({
                 {errors.description}
               </p>
             )}
-            <p className="text-xs text-portal-note-text">
+            <p className="text-xs text-muted-foreground">
               يجب أن يكون الوصف 20 حرف على الأقل
             </p>
           </div>
 
           {/* File Attachments */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-natural-100">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">
               المرفقات (اختياري)
             </label>
             <FileDropzone

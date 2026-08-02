@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
 import type { Message } from "@/features/chat/chatApi";
 
 interface ChatWindowProps {
@@ -84,7 +86,7 @@ export function ChatWindow({
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col gap-3 p-5 overflow-y-auto">
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-5">
         {/* Skeleton messages */}
         {Array.from({ length: 5 }).map((_, i) => (
           <div
@@ -95,16 +97,16 @@ export function ChatWindow({
             )}
           >
             {i % 2 !== 0 && (
-              <div className="w-8 h-8 rounded-full bg-badge-gray-bg animate-pulse shrink-0 mt-1" />
+              <div className="mt-1 h-8 w-8 shrink-0 animate-pulse rounded-full bg-muted" />
             )}
             <div className="space-y-2">
               <div
                 className={cn(
-                  "h-10 rounded-2xl bg-badge-gray-bg animate-pulse",
+                  "h-10 animate-pulse rounded-2xl bg-muted",
                   i % 2 === 0 ? "w-64" : "w-48",
                 )}
               />
-              <div className="h-3 w-16 bg-badge-gray-bg animate-pulse rounded" />
+              <div className="h-3 w-16 animate-pulse rounded bg-muted" />
             </div>
           </div>
         ))}
@@ -114,27 +116,15 @@ export function ChatWindow({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center px-6">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary-500/10 flex items-center justify-center">
-            <svg
-              className="w-8 h-8 text-secondary-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
+      <div className="flex flex-1 items-center justify-center">
+        <div className="px-6 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <MessageSquare className="h-8 w-8 text-primary" />
           </div>
-          <p className="text-base font-medium text-natural-100 mb-1">
+          <p className="mb-1 text-base font-medium text-foreground">
             لا توجد رسائل بعد
           </p>
-          <p className="text-sm text-portal-note-text">
+          <p className="text-sm text-muted-foreground">
             أرسل أول رسالة لبدء المحادثة 👋
           </p>
         </div>
@@ -143,7 +133,7 @@ export function ChatWindow({
   }
 
   return (
-    <div className="flex-1 relative">
+    <div className="relative flex-1">
       <div
         ref={containerRef}
         onScroll={checkIfAtBottom}
@@ -158,12 +148,12 @@ export function ChatWindow({
               <div key={msg.id}>
                 {showDate && (
                   <div className="flex items-center justify-center py-3">
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="flex-1 h-px bg-portal-divider" />
-                      <span className="shrink-0 text-[11px] text-portal-note-text bg-natural-0 px-3 py-1 rounded-full border border-portal-divider">
+                    <div className="flex w-full items-center gap-3">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="shrink-0 rounded-full border border-border bg-background px-3 py-1 text-[11px] text-muted-foreground">
                         {formatDateSeparator(msg.createdAt)}
                       </span>
-                      <div className="flex-1 h-px bg-portal-divider" />
+                      <div className="h-px flex-1 bg-border" />
                     </div>
                   </div>
                 )}
@@ -175,16 +165,16 @@ export function ChatWindow({
           {/* Typing indicator */}
           {typingUser && (
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-badge-gray-bg flex items-center justify-center shrink-0">
-                <span className="text-xs font-medium text-portal-note-text">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                <span className="text-xs font-medium text-muted-foreground">
                   {typingUser.userName.charAt(0)}
                 </span>
               </div>
-              <div className="bg-natural-0 border border-portal-card-border rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+              <div className="rounded-2xl rounded-bl-md border border-border bg-background px-4 py-3 shadow-sm">
                 <div className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-portal-note-text animate-bounce [animation-delay:0ms]" />
-                  <span className="w-2 h-2 rounded-full bg-portal-note-text animate-bounce [animation-delay:150ms]" />
-                  <span className="w-2 h-2 rounded-full bg-portal-note-text animate-bounce [animation-delay:300ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
                 </div>
               </div>
             </div>
@@ -196,12 +186,14 @@ export function ChatWindow({
 
       {/* Scroll to bottom button */}
       {showScrollButton && (
-        <button
+        <Button
           onClick={scrollToBottom}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 p-2.5 rounded-full bg-natural-0 border border-portal-card-border shadow-lg hover:shadow-xl hover:bg-badge-gray-bg transition-all text-portal-note-text hover:text-secondary-500 z-10"
+          variant="outline"
+          size="icon"
+          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border-border bg-background text-muted-foreground shadow-lg transition-all hover:bg-muted hover:text-primary"
         >
-          <ChevronDown className="w-4 h-4" />
-        </button>
+          <ChevronDown className="h-4 w-4" />
+        </Button>
       )}
     </div>
   );

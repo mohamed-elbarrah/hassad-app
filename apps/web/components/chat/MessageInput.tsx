@@ -137,8 +137,8 @@ export function MessageInput({
     <div
       ref={dropZoneRef}
       className={cn(
-        "border-t border-portal-divider bg-natural-0 p-4 transition-colors",
-        isDragging && "bg-secondary-500/5",
+        "relative border-t border-border bg-background p-4 transition-colors",
+        isDragging && "bg-primary/5",
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -146,8 +146,8 @@ export function MessageInput({
     >
       {/* Drag & drop overlay */}
       {isDragging && (
-        <div className="absolute inset-0 rounded-2xl border-2 border-dashed border-secondary-500 bg-secondary-500/5 flex items-center justify-center z-20">
-          <p className="text-sm font-medium text-secondary-500">
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary bg-primary/5">
+          <p className="text-sm font-medium text-primary">
             أفلت الملفات هنا
           </p>
         </div>
@@ -155,13 +155,13 @@ export function MessageInput({
 
       {/* File previews */}
       {files.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="mb-3 flex flex-wrap gap-2">
           {files.map((file, i) => {
             const preview = getFilePreview(file);
             return (
               <div
                 key={`${file.name}-${i}`}
-                className="group relative flex items-center gap-2 rounded-xl border border-portal-card-border bg-badge-gray-bg px-3 py-2 text-xs"
+                className="group relative flex items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-xs"
               >
                 {preview.type === "image" && preview.url ? (
                   <>
@@ -169,27 +169,27 @@ export function MessageInput({
                     <img
                       src={preview.url}
                       alt={file.name}
-                      className="w-8 h-8 rounded-lg object-cover"
+                      className="h-8 w-8 rounded-lg object-cover"
                     />
                     <div className="min-w-0">
-                      <p className="truncate max-w-[100px] text-natural-100">
+                      <p className="max-w-[100px] truncate text-foreground">
                         {file.name}
                       </p>
-                      <p className="text-portal-note-text">
+                      <p className="text-muted-foreground">
                         {(file.size / 1024).toFixed(0)} KB
                       </p>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="p-1.5 rounded-lg bg-natural-0">
-                      <FileText className="w-4 h-4 text-portal-note-text" />
+                    <div className="rounded-lg bg-background p-1.5">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate max-w-[100px] text-natural-100">
+                      <p className="max-w-[100px] truncate text-foreground">
                         {file.name}
                       </p>
-                      <p className="text-portal-note-text">
+                      <p className="text-muted-foreground">
                         {(file.size / 1024).toFixed(0)} KB
                       </p>
                     </div>
@@ -198,9 +198,9 @@ export function MessageInput({
                 <button
                   type="button"
                   onClick={() => removeFile(i)}
-                  className="shrink-0 p-0.5 rounded-full text-portal-note-text hover:text-danger-500 hover:bg-danger-100 transition-colors"
+                  className="shrink-0 rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-danger-100 hover:text-danger-600"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             );
@@ -224,10 +224,10 @@ export function MessageInput({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
-          className="flex items-center justify-center h-10 w-10 shrink-0 rounded-xl text-portal-note-text hover:text-secondary-500 hover:bg-secondary-500/10 transition-all disabled:opacity-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary disabled:opacity-50"
           title="إرفاق ملف"
         >
-          <Paperclip className="w-4 h-4" />
+          <Paperclip className="h-4 w-4" />
         </button>
 
         {/* Emoji button */}
@@ -235,10 +235,10 @@ export function MessageInput({
           type="button"
           onClick={() => toast.info("إضافة رموز تعبيرية قريباً")}
           disabled={disabled}
-          className="flex items-center justify-center h-10 w-10 shrink-0 rounded-xl text-portal-note-text hover:text-secondary-500 hover:bg-secondary-500/10 transition-all disabled:opacity-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary disabled:opacity-50"
           title="إضافة رمز تعبيري"
         >
-          <Smile className="w-4 h-4" />
+          <Smile className="h-4 w-4" />
         </button>
 
         {/* Textarea */}
@@ -252,12 +252,11 @@ export function MessageInput({
           placeholder={isDragging ? "أفلت الملفات هنا..." : placeholder}
           rows={1}
           className={cn(
-            "flex-1 resize-none rounded-xl border border-portal-card-border bg-badge-gray-bg px-4 py-2.5 text-sm text-natural-100",
-            "focus:outline-none focus:ring-2 focus:ring-secondary-500/30 focus:border-secondary-500",
+            "flex-1 resize-none rounded-xl border border-border bg-muted px-4 py-2.5 text-sm text-foreground transition-all",
+            "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30",
             "max-h-[120px]",
-            "placeholder:text-portal-note-text",
+            "placeholder:text-muted-foreground",
             "disabled:cursor-not-allowed disabled:opacity-50",
-            "transition-all",
           )}
           dir="rtl"
         />
@@ -268,15 +267,15 @@ export function MessageInput({
           onClick={handleSend}
           disabled={disabled || (!text.trim() && files.length === 0)}
           className={cn(
-            "flex items-center justify-center h-10 w-10 shrink-0 rounded-xl transition-all",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all",
             text.trim() || files.length > 0
-              ? "bg-secondary-500 text-white hover:bg-secondary-600 shadow-sm"
-              : "bg-badge-gray-bg text-portal-note-text",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
+              ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary"
+              : "bg-muted text-muted-foreground",
+            "disabled:cursor-not-allowed disabled:opacity-50",
           )}
           title="إرسال"
         >
-          <Send className="w-4 h-4" />
+          <Send className="h-4 w-4" />
         </button>
       </div>
     </div>

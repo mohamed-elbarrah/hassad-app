@@ -11,7 +11,7 @@ import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel } from "@/components/design-system/Form";
+import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
@@ -133,7 +133,7 @@ export function JourneySection({
                   return (
                     <span
                       key={method}
-                      className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
+                      className="px-3 py-1.5 rounded-lg text-sm bg-primary/10 text-foreground"
                     >
                       {label}
                     </span>
@@ -172,8 +172,8 @@ export function JourneySection({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-3">
-            <span className="text-sm font-medium text-natural-100 flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4 text-portal-icon" />
+            <span className="text-sm font-medium text-foreground flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4 text-muted-foreground" />
               طريقة الطلب
             </span>
             <div className="flex flex-wrap gap-2">
@@ -187,8 +187,8 @@ export function JourneySection({
                     className={cn(
                       "px-4 py-2 rounded-xl text-sm border transition-colors",
                       selected
-                        ? "bg-secondary-500 text-white border-secondary-500"
-                        : "bg-natural-0 text-portal-icon border-portal-divider hover:border-secondary-300",
+                        ? "bg-primary text-white border-secondary-500"
+                        : "bg-background text-muted-foreground border-border hover:border-secondary-300",
                     )}
                   >
                     {method.label}
@@ -204,7 +204,7 @@ export function JourneySection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4 text-portal-icon" />
+                  <ClipboardList className="w-4 h-4 text-muted-foreground" />
                   أدوات المتابعة
                 </FormLabel>
                 <FormTextareaControl

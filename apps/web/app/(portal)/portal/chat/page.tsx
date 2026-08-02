@@ -19,7 +19,7 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
 import { MessageInput } from "@/components/chat/MessageInput";
-import { PageIntro } from "@/components/design-system/PageIntro";
+import { Button } from "@/components/ui/button";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { MessageSquare } from "lucide-react";
 
@@ -171,16 +171,20 @@ export default function PortalChatPage() {
   );
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="المحادثات"
-        description="من هنا يمكنك التواصل مع المشرفين ومدراء المشاريع المسؤولين عن حسابك."
-        icon={MessageSquare}
-      />
+    <main dir="rtl" className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <MessageSquare className="h-6 w-6 text-primary" />
+          المحادثات
+        </h1>
+        <p className="text-muted-foreground">
+          من هنا يمكنك التواصل مع المشرفين ومدراء المشاريع المسؤولين عن حسابك.
+        </p>
+      </div>
 
       <div className="h-[calc(100vh-15rem)] lg:h-[calc(100vh-13rem)]">
         {conversations.length === 0 && !convLoading ? (
-          <div className="flex h-full flex-col items-center justify-center rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg">
+          <div className="flex h-full flex-col items-center justify-center rounded-2xl border-[1.5px] border-dashed border-border bg-muted/30">
             <PortalEmptyState
               icon={MessageSquare}
               title="لا توجد محادثات"
@@ -191,11 +195,11 @@ export default function PortalChatPage() {
           <div className="flex h-full gap-4">
             {/* Conversation list — always visible on desktop, hidden on mobile when a conversation is selected */}
             <div
-              className={`w-full shrink-0 md:w-80 md:block ${
+              className={`w-full shrink-0 md:block md:w-80 ${
                 selectedId ? "hidden md:block" : ""
               }`}
             >
-              <div className="h-full overflow-hidden rounded-2xl border-portal-card-border border bg-natural-0">
+              <div className="h-full overflow-hidden rounded-2xl border border-border bg-card">
                 <ConversationList
                   conversations={conversations}
                   activeId={selectedId ?? undefined}
@@ -208,7 +212,7 @@ export default function PortalChatPage() {
             {/* Chat area */}
             {selectedConversation ? (
               <div
-                className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border-portal-card-border border bg-natural-0 ${
+                className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card ${
                   selectedId ? "" : "hidden md:flex"
                 }`}
               >
@@ -229,7 +233,7 @@ export default function PortalChatPage() {
               </div>
             ) : (
               <div className="hidden min-w-0 flex-1 md:flex">
-                <div className="flex h-full w-full flex-col items-center justify-center rounded-2xl border-portal-card-border border bg-natural-0">
+                <div className="flex h-full w-full flex-col items-center justify-center rounded-2xl border border-border bg-card">
                   <PortalEmptyState
                     icon={MessageSquare}
                     title="ابدأ محادثة"
@@ -243,14 +247,14 @@ export default function PortalChatPage() {
 
         {/* Mobile back button when viewing a conversation */}
         {selectedId && (
-          <button
+          <Button
             onClick={() => setSelectedId(null)}
             className="fixed bottom-24 right-4 z-50 flex h-10 items-center gap-1 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground shadow-lg md:hidden"
           >
             ← المحادثات
-          </button>
+          </Button>
         )}
       </div>
-    </div>
+    </main>
   );
 }

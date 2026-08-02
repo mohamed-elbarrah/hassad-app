@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel } from "@/components/design-system/Form";
+import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import { FileDropzone } from "@/components/shared/FileDropzone";
@@ -226,12 +226,12 @@ export function VisualSection({
                   <img
                     src={data.brandAssets.logoUrl}
                     alt="الشعار"
-                    className="w-12 h-12 rounded-lg object-contain border border-portal-card-border bg-white"
+                    className="w-12 h-12 rounded-lg object-contain border border-border bg-white"
                   />
                   <div className="min-w-0">
                     <p className="text-xs text-neutral-300">الشعار</p>
                     <p
-                      className="text-xs text-portal-note-text truncate"
+                      className="text-xs text-muted-foreground truncate"
                       dir="ltr"
                     >
                       {data.brandAssets.logoUrl}
@@ -243,20 +243,20 @@ export function VisualSection({
               {data.brandAssets?.brandColors &&
                 data.brandAssets.brandColors.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-portal-icon">
+                    <p className="text-xs font-medium text-muted-foreground">
                       ألوان العلامة
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {data.brandAssets.brandColors.map((color, i) => (
                         <div
                           key={i}
-                          className="flex items-center gap-2 rounded-lg border border-portal-card-border px-2 py-1.5"
+                          className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5"
                         >
                           <span
-                            className="w-5 h-5 rounded-full border border-portal-card-border"
+                            className="w-5 h-5 rounded-full border border-border"
                             style={{ backgroundColor: color }}
                           />
-                          <span className="text-xs text-natural-100" dir="ltr">
+                          <span className="text-xs text-foreground" dir="ltr">
                             {color}
                           </span>
                         </div>
@@ -278,7 +278,7 @@ export function VisualSection({
                   href={data.brandAssets.guidelinesUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-secondary-500 hover:underline"
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
                 >
                   <ExternalLink className="h-4 w-4" aria-hidden="true" />
                   دليل الهوية البصرية
@@ -298,7 +298,7 @@ export function VisualSection({
 
             {data.productPhotos && data.productPhotos.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                   <Camera className="w-4 h-4" aria-hidden="true" />
                   صور المنتج ({data.productPhotos.length} ملفات)
                 </p>
@@ -306,13 +306,13 @@ export function VisualSection({
                   {data.productPhotos.slice(0, 5).map((photo, i) => (
                     <span
                       key={i}
-                      className="px-2 py-1 rounded text-xs bg-secondary-100 text-secondary-700"
+                      className="px-2 py-1 rounded text-xs bg-primary/10 text-foreground"
                     >
                       {photo}
                     </span>
                   ))}
                   {data.productPhotos.length > 5 && (
-                    <span className="px-2 py-1 text-xs text-portal-note-text">
+                    <span className="px-2 py-1 text-xs text-muted-foreground">
                       +{data.productPhotos.length - 5} أخرى
                     </span>
                   )}
@@ -322,7 +322,7 @@ export function VisualSection({
 
             {data.visualDirection && data.visualDirection.some((v) => v) && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-portal-icon flex items-center gap-2">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                   <Eye className="w-4 h-4" aria-hidden="true" />
                   التوجه البصري
                 </p>
@@ -332,7 +332,7 @@ export function VisualSection({
                     .map((account, i) => (
                       <span
                         key={i}
-                        className="px-3 py-1.5 rounded-lg text-sm bg-secondary-100 text-secondary-700"
+                        className="px-3 py-1.5 rounded-lg text-sm bg-primary/10 text-foreground"
                       >
                         {account}
                       </span>
@@ -366,8 +366,8 @@ export function VisualSection({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-3">
-            <span className="text-sm font-medium text-natural-100 flex items-center gap-2">
-              <Palette className="w-4 h-4 text-portal-icon" />
+            <span className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Palette className="w-4 h-4 text-muted-foreground" />
               هل عندك هوية بصرية جاهزة؟
             </span>
             <div className="flex gap-3">
@@ -377,8 +377,8 @@ export function VisualSection({
                 className={cn(
                   "px-6 py-3 rounded-xl text-sm font-medium border transition-colors",
                   hasIdentity
-                    ? "bg-secondary-500 text-white border-secondary-500"
-                    : "bg-natural-0 text-portal-icon border-portal-divider hover:border-secondary-300",
+                    ? "bg-primary text-white border-secondary-500"
+                    : "bg-background text-muted-foreground border-border hover:border-secondary-300",
                 )}
               >
                 نعم
@@ -389,8 +389,8 @@ export function VisualSection({
                 className={cn(
                   "px-6 py-3 rounded-xl text-sm font-medium border transition-colors",
                   !hasIdentity
-                    ? "bg-secondary-500 text-white border-secondary-500"
-                    : "bg-natural-0 text-portal-icon border-portal-divider hover:border-secondary-300",
+                    ? "bg-primary text-white border-secondary-500"
+                    : "bg-background text-muted-foreground border-border hover:border-secondary-300",
                 )}
               >
                 لا
@@ -419,7 +419,7 @@ export function VisualSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <Image className="w-4 h-4 text-portal-icon" />
+                  <Image className="w-4 h-4 text-muted-foreground" />
                   تصاميم سابقة
                 </FormLabel>
                 <FormTextareaControl
@@ -432,8 +432,8 @@ export function VisualSection({
           />
 
           <div className="space-y-3">
-            <span className="text-sm font-medium text-natural-100 flex items-center gap-2">
-              <Camera className="w-4 h-4 text-portal-icon" />
+            <span className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Camera className="w-4 h-4 text-muted-foreground" />
               صور المنتج
             </span>
             <FileDropzone
@@ -491,13 +491,13 @@ function BrandAssetsForm({
   onFontInputChange: (value: string) => void;
 }) {
   return (
-    <div className="rounded-2xl bg-secondary-50 border border-secondary-100 p-4 sm:p-6 space-y-5">
-      <p className="text-sm font-medium text-secondary-700">
+    <div className="rounded-2xl bg-primary/5 border border-secondary-100 p-4 sm:p-6 space-y-5">
+      <p className="text-sm font-medium text-foreground">
         ملفات براندك البصرية
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div className="space-y-2">
-          <span className="text-xs font-medium text-natural-100">الشعار</span>
+          <span className="text-xs font-medium text-foreground">الشعار</span>
           <FileDropzone
             files={logoFiles}
             onFilesChange={onLogoFilesChange}
@@ -508,7 +508,7 @@ function BrandAssetsForm({
         </div>
 
         <div className="space-y-2">
-          <span className="text-xs font-medium text-natural-100">
+          <span className="text-xs font-medium text-foreground">
             دليل الهوية
           </span>
           <FileDropzone
@@ -521,7 +521,7 @@ function BrandAssetsForm({
         </div>
 
         <div className="space-y-2">
-          <span className="text-xs font-medium text-natural-100">
+          <span className="text-xs font-medium text-foreground">
             ألوان العلامة التجارية
           </span>
           <div className="flex flex-wrap gap-2 mt-1">
@@ -540,7 +540,7 @@ function BrandAssetsForm({
             <button
               type="button"
               onClick={onAddColor}
-              className="w-9 h-9 rounded-lg border border-dashed border-portal-divider flex items-center justify-center text-portal-icon hover:border-secondary-300 transition-colors"
+              className="w-9 h-9 rounded-lg border border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-secondary-300 transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -548,13 +548,13 @@ function BrandAssetsForm({
         </div>
 
         <div className="space-y-2">
-          <span className="text-xs font-medium text-natural-100">الخطوط</span>
+          <span className="text-xs font-medium text-foreground">الخطوط</span>
           <FormInputControl
             placeholder="أسماء الخطوط المستخدمة"
             value={fontInput}
             onChange={(e) => onFontInputChange(e.target.value)}
           />
-          <p className="text-xs text-portal-note-text">
+          <p className="text-xs text-muted-foreground">
             اكتب أسماء الخطوط مفصولة بفاصلة (،)
           </p>
         </div>
@@ -574,8 +574,8 @@ function VisualDirectionForm({
 }) {
   return (
     <div className="space-y-3">
-      <span className="text-sm font-medium text-natural-100 flex items-center gap-2">
-        <Eye className="w-4 h-4 text-portal-icon" />
+      <span className="text-sm font-medium text-foreground flex items-center gap-2">
+        <Eye className="w-4 h-4 text-muted-foreground" />
         التوجه البصري — 3 حسابات يعجبك ستايلها
       </span>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

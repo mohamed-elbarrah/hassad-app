@@ -4,9 +4,15 @@ import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGetDeliverableRedirectQuery } from "@/features/portal/portalApi";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ArrowRight, AlertCircle, PackageOpen } from "lucide-react";
 
 /**
@@ -51,32 +57,36 @@ export default function PortalDeliverableDetailPage() {
     return (
       <div className="flex flex-col gap-4" dir="rtl">
         <Link href="/portal/deliverables">
-          <ActionButton
+          <Button
             variant="ghost"
             size="sm"
-            className="gap-2 text-portal-note-text hover:text-natural-100"
+            data-icon="inline-start"
+            className="gap-2 text-muted-foreground"
           >
             <ArrowRight className="h-4 w-4" />
             مراجعة المشاريع
-          </ActionButton>
+          </Button>
         </Link>
-        <SurfaceCard title="تعذر العثور على التسليم" icon={AlertCircle}>
-          <p className="text-sm text-portal-note-text">
-            ربما تمت الموافقة على هذا التسليم أو إخفاؤه بالفعل. ارجع إلى قائمة
-            المراجعة للاطلاع على المشاريع بانتظار مراجعتك.
-          </p>
-          <div className="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-danger-600" />
+              تعذر العثور على التسليم
+            </CardTitle>
+            <CardDescription>
+              ربما تمت الموافقة على هذا التسليم أو إخفاؤه بالفعل. ارجع إلى قائمة
+              المراجعة للاطلاع على المشاريع بانتظار مراجعتك.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <Link href="/portal/deliverables">
-              <ActionButton
-                variant="primary"
-                icon={<PackageOpen className="h-4 w-4" />}
-                className="gap-2"
-              >
+              <Button data-icon="inline-start" className="gap-2">
+                <PackageOpen className="h-4 w-4" />
                 قائمة المراجعة
-              </ActionButton>
+              </Button>
             </Link>
-          </div>
-        </SurfaceCard>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -84,8 +94,8 @@ export default function PortalDeliverableDetailPage() {
   // Resolved but the redirect hasn't fired yet (should be near-instant).
   return (
     <div className="flex items-center justify-center min-h-[40vh]" dir="rtl">
-      <div className="flex flex-col items-center gap-3 text-portal-note-text">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary-500" />
+      <div className="flex flex-col items-center gap-3 text-muted-foreground">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         <p className="text-sm">جارٍ التحويل إلى المشروع...</p>
       </div>
     </div>

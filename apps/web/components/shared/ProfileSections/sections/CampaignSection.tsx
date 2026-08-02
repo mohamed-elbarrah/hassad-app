@@ -11,7 +11,7 @@ import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel } from "@/components/design-system/Form";
+import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 
@@ -165,7 +165,7 @@ export function CampaignSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <Target className="w-4 h-4 text-portal-icon" />
+                  <Target className="w-4 h-4 text-muted-foreground" />
                   الهدف
                 </FormLabel>
                 <FormTextareaControl
@@ -183,7 +183,7 @@ export function CampaignSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <Megaphone className="w-4 h-4 text-portal-icon" />
+                  <Megaphone className="w-4 h-4 text-muted-foreground" />
                   تفاصيل الحملة الإعلانية
                 </FormLabel>
                 <FormTextareaControl
@@ -201,7 +201,7 @@ export function CampaignSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <Gift className="w-4 h-4 text-portal-icon" />
+                  <Gift className="w-4 h-4 text-muted-foreground" />
                   العرض في الحملة
                 </FormLabel>
                 <FormTextareaControl
@@ -219,7 +219,7 @@ export function CampaignSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-portal-icon" />
+                  <ShieldCheck className="w-4 h-4 text-muted-foreground" />
                   الضمانات
                 </FormLabel>
                 <FormTextareaControl
@@ -237,7 +237,7 @@ export function CampaignSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-portal-icon" />
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
                   المناسبة / الموسم
                 </FormLabel>
                 <FormInputControl
@@ -254,7 +254,7 @@ export function CampaignSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-sm flex items-center gap-2">
-                  <Users className="w-4 h-4 text-portal-icon" />
+                  <Users className="w-4 h-4 text-muted-foreground" />
                   المنافسون
                 </FormLabel>
                 <FormTextareaControl

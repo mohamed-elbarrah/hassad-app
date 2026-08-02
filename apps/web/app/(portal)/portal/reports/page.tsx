@@ -185,7 +185,7 @@ export default function PortalReportsPage() {
   );
 
   return (
-    <div className="page-shell" dir="rtl">
+    <main dir="rtl" className="flex flex-col gap-6">
       <Card>
         <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
@@ -389,6 +389,6 @@ export default function PortalReportsPage() {
           )}
         </>
       )}
-    </div>
+    </main>
   );
 }

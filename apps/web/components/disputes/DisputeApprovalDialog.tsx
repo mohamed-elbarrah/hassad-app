@@ -124,7 +124,7 @@ export function DisputeApprovalDialog({
         {mode === "approve" ? (
           <>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-natural-100">
+              <label className="text-sm font-medium text-foreground">
                 الأولوية
               </label>
               <Select value={priority} onValueChange={(v) => setPriority(v as DisputePriority)}>
@@ -142,7 +142,7 @@ export function DisputeApprovalDialog({
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-natural-100">
+              <label className="text-sm font-medium text-foreground">
                 ملاحظات (اختياري)
               </label>
               <Input
@@ -150,7 +150,7 @@ export function DisputeApprovalDialog({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
-              <p className="text-xs text-portal-note-text">
+              <p className="text-xs text-muted-foreground">
                 هذه الملاحظات داخلية فقط ولن يراها العميل أو المدير.
               </p>
             </div>
@@ -165,7 +165,7 @@ export function DisputeApprovalDialog({
         ) : (
           <>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-natural-100">
+              <label className="text-sm font-medium text-foreground">
                 سبب الرفض <span className="text-red-500">*</span>
               </label>
               <Textarea
@@ -175,7 +175,7 @@ export function DisputeApprovalDialog({
                 onChange={(e) => setReason(e.target.value)}
                 dir="rtl"
               />
-              <p className="text-xs text-portal-note-text">
+              <p className="text-xs text-muted-foreground">
                 {reason.trim().length}/10 أحرف على الأقل
               </p>
             </div>

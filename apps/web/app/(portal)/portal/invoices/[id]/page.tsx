@@ -4,11 +4,23 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { useGetPortalInvoiceDetailQuery } from "@/features/portal/portalApi";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { StatusBanner } from "@/components/design-system/StatusBanner";
-import { InfoPanel } from "@/components/design-system/InfoPanel";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   PaymentSheet,
   type PayableInvoice,
@@ -27,6 +39,40 @@ import { DetailSkeleton } from "@/components/portal/shared/DetailSkeleton";
 import { mapFinanceStatusToUI } from "@/lib/utils/statusMapping";
 import { useCurrency } from "@/hooks/useCurrency";
 import { InvoiceStatus } from "@hassad/shared";
+
+const INVOICE_UI_STATUS: Record<
+  string,
+  { label: string; className: string }
+> = {
+  completed: {
+    label: "مدفوع",
+    className: "border-success-200 bg-success-100 text-success-600",
+  },
+  pending: {
+    label: "معلق",
+    className: "border-warning-200 bg-warning-100 text-warning-600",
+  },
+  revision: {
+    label: "مستحق",
+    className: "border-warning-200 bg-warning-100 text-warning-600",
+  },
+  active: {
+    label: "مرسل",
+    className: "border-info/20 bg-info/10 text-info",
+  },
+  overdue: {
+    label: "متأخر",
+    className: "border-danger-200 bg-danger-100 text-danger-600",
+  },
+  cancelled: {
+    label: "ملغي",
+    className: "border-neutral-200 bg-neutral-100 text-neutral-600",
+  },
+  unpaid: {
+    label: "غير مدفوع",
+    className: "border-danger-200 bg-danger-100 text-danger-600",
+  },
+};
 
 const PAYABLE_STATUSES = new Set([
   InvoiceStatus.DUE,
@@ -118,127 +164,141 @@ export default function PortalInvoiceDetailPage() {
     }
   }
 
+  const uiStatus = mapFinanceStatusToUI(invoice.status);
+  const invoiceBadge = INVOICE_UI_STATUS[uiStatus] ?? {
+    label: uiStatus,
+    className: "border-neutral-200 bg-neutral-100 text-neutral-600",
+  };
+
   return (
-    <div className="page-shell" dir="rtl">
+    <main dir="rtl" className="flex flex-col gap-6">
       <DetailBreadcrumb
         backHref="/portal/finance"
         backLabel="المالية"
         title={`فاتورة #${invoice.invoiceNumber}`}
       />
 
-      <SurfaceCard
-        title={`فاتورة ${invoice.invoiceNumber}`}
-        icon={Receipt}
-        action={<StatusBadge status={mapFinanceStatusToUI(invoice.status)} />}
-      >
-        <div className="space-y-5">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-muted-foreground" />
+            فاتورة {invoice.invoiceNumber}
+          </CardTitle>
+          <Badge variant="outline" className={invoiceBadge.className}>
+            {invoiceBadge.label}
+          </Badge>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
           {invoice.contract?.title && (
-            <p className="text-sm text-portal-note-text">
+            <p className="text-sm text-muted-foreground">
               العقد: {invoice.contract.title}
             </p>
           )}
 
           {/* Top metrics */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <InfoPanel variant="default" title="المبلغ الإجمالي">
-              <p className="font-semibold text-natural-100">
+            <div className="rounded-xl border border-border bg-muted/50 p-4">
+              <p className="text-xs text-muted-foreground">المبلغ الإجمالي</p>
+              <p className="mt-1 font-semibold text-foreground">
                 {fmtAmount(invoice.amount)}
               </p>
-            </InfoPanel>
-            <InfoPanel variant="default" title="المدفوع">
-              <p className="font-semibold text-success-600">
+            </div>
+            <div className="rounded-xl border border-border bg-muted/50 p-4">
+              <p className="text-xs text-muted-foreground">المدفوع</p>
+              <p className="mt-1 font-semibold text-success-600">
                 {fmtAmount(invoice.paidAmount)}
               </p>
-            </InfoPanel>
-            <InfoPanel variant="default" title="المتبقي">
+            </div>
+            <div className="rounded-xl border border-border bg-muted/50 p-4">
+              <p className="text-xs text-muted-foreground">المتبقي</p>
               <p
                 className={
                   invoice.remainingAmount > 0
-                    ? "font-semibold text-danger-600"
-                    : "font-semibold text-natural-100"
+                    ? "mt-1 font-semibold text-danger-600"
+                    : "mt-1 font-semibold text-foreground"
                 }
               >
                 {fmtAmount(invoice.remainingAmount)}
               </p>
-            </InfoPanel>
-            <InfoPanel variant="default" title="تاريخ الاستحقاق">
-              <p className="font-semibold text-natural-100 flex items-center gap-1">
+            </div>
+            <div className="rounded-xl border border-border bg-muted/50 p-4">
+              <p className="text-xs text-muted-foreground">تاريخ الاستحقاق</p>
+              <p className="mt-1 flex items-center gap-1 font-semibold text-foreground">
                 <Clock className="h-3 w-3" />
                 {fmtDate(invoice.dueDate)}
               </p>
-            </InfoPanel>
+            </div>
           </div>
 
           {isPaid && (
-            <StatusBanner
-              variant="success"
-              title="تم سداد هذه الفاتورة بالكامل."
-            >
+            <Alert variant="default" className="border-success-200 bg-success-100">
+              <CheckCircle2 className="h-4 w-4 text-success-600" />
+              <AlertTitle>تم سداد هذه الفاتورة بالكامل.</AlertTitle>
               {invoice.payments?.length
                 ? `آخر دفعة: ${fmtDateTime(invoice.payments[invoice.payments.length - 1]?.createdAt)}`
                 : null}
-            </StatusBanner>
+            </Alert>
           )}
 
           {isPartial && (
-            <StatusBanner
-              variant="warning"
-              title={`دفعت جزءاً من الفاتورة. المتبقي ${fmtAmount(invoice.remainingAmount)}.`}
-            />
+            <Alert className="border-warning-200 bg-warning-100">
+              <AlertTitle>
+                دفعت جزءاً من الفاتورة. المتبقي{" "}
+                {fmtAmount(invoice.remainingAmount)}.
+              </AlertTitle>
+            </Alert>
           )}
 
           {invoice.status === InvoiceStatus.LATE && (
-            <StatusBanner variant="danger" title="هذه الفاتورة متأخرة السداد.">
+            <Alert className="border-danger-200 bg-danger-100">
+              <AlertTitle>هذه الفاتورة متأخرة السداد.</AlertTitle>
               يرجى السداد في أقرب وقت لتجنب إيقاف الخدمات.
-            </StatusBanner>
+            </Alert>
           )}
 
           {/* Items breakdown */}
           {invoice.items && invoice.items.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-natural-100 mb-3">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">
                 بنود الفاتورة
               </h3>
-              <div className="overflow-hidden rounded-2xl border-[1.5px] border-portal-divider">
-                <table className="w-full text-sm" dir="rtl">
-                  <thead className="bg-portal-bg text-portal-note-text">
-                    <tr>
-                      <th className="px-4 py-3 text-right font-medium">
+              <div className="overflow-hidden rounded-xl border border-border">
+                <Table>
+                  <TableHeader className="bg-muted">
+                    <TableRow>
+                      <TableHead className="text-right font-medium">
                         الوصف
-                      </th>
-                      <th className="px-4 py-3 text-center font-medium">
+                      </TableHead>
+                      <TableHead className="text-center font-medium">
                         الكمية
-                      </th>
-                      <th className="px-4 py-3 text-center font-medium">
+                      </TableHead>
+                      <TableHead className="text-center font-medium">
                         سعر الوحدة
-                      </th>
-                      <th className="px-4 py-3 text-center font-medium">
+                      </TableHead>
+                      <TableHead className="text-center font-medium">
                         الإجمالي
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {invoice.items.map((it) => (
-                      <tr
-                        key={it.id}
-                        className="border-t-[1.5px] border-portal-divider"
-                      >
-                        <td className="px-4 py-3 text-natural-100">
+                      <TableRow key={it.id}>
+                        <TableCell className="text-foreground">
                           {it.description}
-                        </td>
-                        <td className="px-4 py-3 text-center text-portal-note-text">
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground">
                           {it.quantity}
-                        </td>
-                        <td className="px-4 py-3 text-center text-portal-note-text">
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground">
                           {fmtAmount(it.unitPrice)}
-                        </td>
-                        <td className="px-4 py-3 text-center font-medium text-natural-100">
+                        </TableCell>
+                        <TableCell className="text-center font-medium text-foreground">
                           {fmtAmount(it.total)}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
           )}
@@ -246,33 +306,33 @@ export default function PortalInvoiceDetailPage() {
           {/* Payment history */}
           {invoice.payments && invoice.payments.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-natural-100 mb-3">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">
                 سجل المدفوعات ({invoice.payments.length})
               </h3>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 {invoice.payments.map((p) => (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between rounded-xl border-[1.5px] border-portal-divider px-4 py-3"
+                    className="flex items-center justify-between rounded-xl border border-border px-4 py-3"
                   >
                     <div className="flex items-center gap-3">
                       <CheckCircle2
                         className={
                           p.status === "SUCCESS"
                             ? "h-4 w-4 text-success-600"
-                            : "h-4 w-4 text-portal-note-text"
+                            : "h-4 w-4 text-muted-foreground"
                         }
                       />
                       <div>
-                        <p className="text-sm text-natural-100">
+                        <p className="text-sm text-foreground">
                           {fmtAmount(p.amount)}
                         </p>
-                        <p className="text-xs text-portal-note-text">
+                        <p className="text-xs text-muted-foreground">
                           {fmtDateTime(p.createdAt)}
                         </p>
                       </div>
                     </div>
-                    <span className="text-xs text-portal-note-text">
+                    <span className="text-xs text-muted-foreground">
                       {p.status === "SUCCESS" ? "ناجحة" : p.status}
                     </span>
                   </div>
@@ -283,35 +343,34 @@ export default function PortalInvoiceDetailPage() {
 
           {/* Actions */}
           <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-            <ActionButton
+            <Button
+              data-icon="inline-start"
               variant="outline"
-              size="md"
-              icon={<Download className="h-4 w-4" />}
-              className="gap-2 border-[1.5px] border-portal-card-border bg-natural-0"
+              className="gap-2"
               onClick={handleDownload}
             >
+              <Download className="h-4 w-4" />
               تحميل الفاتورة
-            </ActionButton>
+            </Button>
             {isPayable && (
-              <ActionButton
-                variant="primary"
-                size="md"
-                icon={<CreditCard className="h-4 w-4" />}
-                className="gap-2 bg-secondary-500 hover:bg-secondary-600"
+              <Button
+                data-icon="inline-start"
+                className="gap-2"
                 onClick={() => setIsPaymentSheetOpen(true)}
               >
+                <CreditCard className="h-4 w-4" />
                 ادفع الآن ({fmtAmount(invoice.remainingAmount)})
-              </ActionButton>
+              </Button>
             )}
           </div>
-        </div>
-      </SurfaceCard>
+        </CardContent>
+      </Card>
 
       <PaymentSheet
         invoice={payable}
         open={isPaymentSheetOpen}
         onOpenChange={setIsPaymentSheetOpen}
       />
-    </div>
+    </main>
   );
 }

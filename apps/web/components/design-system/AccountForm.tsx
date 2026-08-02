@@ -5,11 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { User, Mail, Phone, Lock } from "lucide-react";
-import { ActionButton } from "./ActionButton";
-import { Divider } from "./Divider";
+import { User, Mail, Phone, Lock, Camera, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FormInput } from "./FormInput";
-import { UserInfoCard } from "./UserAvatar";
 
 // Form schema
 const AccountFormSchema = z
@@ -80,6 +80,14 @@ interface AccountFormProps {
   onUploadAvatar?: (file: File) => Promise<string>;
   isLoading?: boolean;
   isUploading?: boolean;
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return (name[0] ?? "?").toUpperCase();
 }
 
 export function AccountForm({
@@ -205,18 +213,41 @@ export function AccountForm({
   const combinedIsUploading = isUploading || externalIsUploading;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Avatar Section - Using unified UserInfoCard */}
-      <div className="pb-6 border-b-[1.5px] border-portal-divider">
-        <UserInfoCard
-          name={user.name}
-          email={user.email}
-          avatarUrl={previewUrl}
-          showVerified={true}
-          size="lg"
-          onAvatarClick={onUploadAvatar ? handleAvatarClick : undefined}
-          isUploading={combinedIsUploading}
-        />
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+      {/* Avatar Section */}
+      <div className="border-b border-border pb-6">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={onUploadAvatar ? handleAvatarClick : undefined}
+            disabled={combinedIsUploading}
+            className="group relative shrink-0 cursor-pointer"
+          >
+            <Avatar className="h-16 w-16 rounded-full">
+              {previewUrl && (
+                <AvatarImage src={previewUrl} alt={user.name} />
+              )}
+              <AvatarFallback className="bg-muted text-xl text-foreground">
+                {getInitials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            {onUploadAvatar && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                {combinedIsUploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                ) : (
+                  <Camera className="h-6 w-6 text-white" />
+                )}
+              </div>
+            )}
+          </button>
+          <div className="min-w-0 text-right">
+            <p className="truncate text-xl font-semibold text-foreground">
+              {user.name}
+            </p>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
+          </div>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -227,10 +258,10 @@ export function AccountForm({
       </div>
 
       {/* Form Fields */}
-      <div className="space-y-5">
+      <div className="flex flex-col gap-5">
         <FormInput
           label="الاسم الكامل"
-          icon={<User className="h-5 w-5 text-portal-icon" />}
+          icon={<User className="h-5 w-5 text-muted-foreground" />}
           {...register("name")}
           error={errors.name?.message}
         />
@@ -238,7 +269,7 @@ export function AccountForm({
         <FormInput
           label="البريد الإلكتروني"
           type="email"
-          icon={<Mail className="h-5 w-5 text-portal-icon" />}
+          icon={<Mail className="h-5 w-5 text-muted-foreground" />}
           {...register("email")}
           error={errors.email?.message}
         />
@@ -246,20 +277,22 @@ export function AccountForm({
         <FormInput
           label="رقم الواتساب"
           type="tel"
-          icon={<Phone className="h-5 w-5 text-portal-icon" />}
+          icon={<Phone className="h-5 w-5 text-muted-foreground" />}
           placeholder="مثال: 966501234567"
           {...register("phoneWhatsapp")}
           error={errors.phoneWhatsapp?.message}
         />
 
-        <Divider className="my-6" />
+        <Separator className="my-6" />
 
         {/* Password Section - Always Visible */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-secondary-500 mb-2">
+        <div className="flex flex-col gap-4">
+          <div className="mb-2 flex items-center gap-2 text-foreground">
             <Lock className="h-5 w-5" />
             <span className="font-medium">تغيير كلمة المرور</span>
-            <span className="text-sm text-neutral-400 mr-auto">(اختياري)</span>
+            <span className="mr-auto text-sm text-muted-foreground">
+              (اختياري)
+            </span>
           </div>
 
           <FormInput
@@ -293,16 +326,15 @@ export function AccountForm({
 
       {/* Submit Button */}
       <div className="pt-4">
-        <ActionButton
+        <Button
           type="submit"
-          variant="submit"
           size="lg"
-          fullWidth
-          loading={isLoading}
+          className="w-full"
+          isLoading={isLoading}
           disabled={!isDirty}
         >
           {isLoading ? "جاري الحفظ..." : "حفظ التغييرات"}
-        </ActionButton>
+        </Button>
       </div>
     </form>
   );

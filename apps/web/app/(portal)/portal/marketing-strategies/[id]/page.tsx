@@ -1,6 +1,5 @@
 "use client";
 
-
 import { DEFAULT_LOCALE } from "@/lib/format";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -13,10 +12,16 @@ import {
   MARKETING_STRATEGY_STATUS_AR,
   MarketingStrategyStatus,
 } from "@hassad/shared";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { IconCircle } from "@/components/design-system/IconCircle";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -38,15 +43,30 @@ const STATUS_ICON: Record<string, LucideIcon> = {
   REJECTED: XCircle,
 };
 
-const STATUS_COLOR: Record<
+const STATUS_CLASSES: Record<
   string,
-  "blue" | "amber" | "green" | "red" | "gray"
+  { icon: string; badge: string }
 > = {
-  DRAFT: "gray",
-  SENT: "amber",
-  APPROVED: "green",
-  REVISION_REQUESTED: "red",
-  REJECTED: "red",
+  DRAFT: {
+    icon: "bg-neutral-100 text-neutral-600",
+    badge: "border-neutral-200 bg-neutral-100 text-neutral-600",
+  },
+  SENT: {
+    icon: "bg-info/10 text-info",
+    badge: "border-info/20 bg-info/10 text-info",
+  },
+  APPROVED: {
+    icon: "bg-success-100 text-success-600",
+    badge: "border-success-200 bg-success-100 text-success-600",
+  },
+  REVISION_REQUESTED: {
+    icon: "bg-warning-100 text-warning-600",
+    badge: "border-warning-200 bg-warning-100 text-warning-600",
+  },
+  REJECTED: {
+    icon: "bg-danger-100 text-danger-600",
+    badge: "border-danger-200 bg-danger-100 text-danger-600",
+  },
 };
 
 export default function MarketingStrategyDetailPage() {
@@ -96,18 +116,18 @@ export default function MarketingStrategyDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 p-6">
-        <div className="h-8 bg-muted rounded w-48 animate-pulse" />
-        <div className="h-64 bg-muted rounded animate-pulse" />
-      </div>
+      <main dir="rtl" className="flex flex-col gap-6 p-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </main>
     );
   }
 
   if (!strategy) {
     return (
-      <div className="p-6 text-center">
+      <main dir="rtl" className="flex flex-col gap-6 p-6">
         <p className="text-muted-foreground">الدراسة التسويقية غير موجودة</p>
-      </div>
+      </main>
     );
   }
 
@@ -116,42 +136,52 @@ export default function MarketingStrategyDetailPage() {
       strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR
     ] ?? strategy.status;
 
+  const statusClass =
+    STATUS_CLASSES[strategy.status ?? MarketingStrategyStatus.DRAFT];
 
   return (
-    <div className="space-y-6 p-6" dir="rtl">
+    <main dir="rtl" className="flex flex-col gap-6 p-6">
       {/* Back button */}
       <button
         onClick={() => router.push("/portal/marketing-strategies")}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowRight className="h-4 w-4" />
         العودة للدراسات التسويقية
       </button>
 
-      <SurfaceCard>
-        <div className="p-6 space-y-6">
+      <Card>
+        <CardContent className="flex flex-col gap-6 p-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between p-0">
             <div className="flex items-center gap-3">
-              <IconCircle icon={STATUS_ICON[strategy.status] ?? FileText} />
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${statusClass?.icon}`}
+              >
+                {(() => {
+                  const Icon = STATUS_ICON[strategy.status] ?? FileText;
+                  return <Icon className="h-5 w-5" />;
+                })()}
+              </div>
               <div>
-                <h1 className="text-xl font-semibold">الدراسة التسويقية</h1>
+                <CardTitle className="text-xl font-semibold">
+                  الدراسة التسويقية
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   {strategy.task?.project?.name ?? ""} —{" "}
                   {strategy.task?.title ?? ""}
                 </p>
               </div>
             </div>
-            <StatusBadge
-              status={strategy.status ?? MarketingStrategyStatus.DRAFT}
-              label={statusLabel}
-            />
-          </div>
+            <Badge variant="outline" className={statusClass?.badge}>
+              {statusLabel}
+            </Badge>
+          </CardHeader>
 
           {/* File info */}
-          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+          <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-4">
             <FileText className="h-8 w-8 text-primary" />
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="font-medium truncate">{strategy.fileName}</p>
               <p className="text-sm text-muted-foreground">
                 {(strategy.fileSize / 1024).toFixed(1)} KB ·{" "}
@@ -160,63 +190,67 @@ export default function MarketingStrategyDetailPage() {
                 )}
               </p>
             </div>
-            <ActionButton
-              icon={<Download className="h-4 w-4" />}
+            <Button
+              data-icon="inline-start"
               onClick={handleDownload}
               variant="outline"
               size="sm"
+              className="gap-2"
             >
+              <Download className="h-4 w-4" />
               تحميل PDF
-            </ActionButton>
+            </Button>
           </div>
 
           {/* Status-specific messages and actions */}
           {strategy.status === MarketingStrategyStatus.SENT && (
-            <div className="space-y-4">
-              <div className="p-4 border border-alert-200 bg-alert-100 rounded-lg">
-                <p className="text-sm text-alert-700">
+            <div className="flex flex-col gap-4">
+              <div className="rounded-lg border border-warning-200 bg-warning-100 p-4">
+                <p className="text-sm text-warning-800">
                   📋 الدراسة التسويقية بانتظار مراجعتك وموافقتك.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap">
-                <ActionButton
-                  icon={<CheckCircle2 className="h-4 w-4" />}
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  data-icon="inline-start"
                   onClick={handleApprove}
-                  loading={isApproving}
-                  variant="primary"
+                  isLoading={isApproving}
+                  className="gap-2"
                 >
+                  <CheckCircle2 className="h-4 w-4" />
                   موافقة
-                </ActionButton>
-                <ActionButton
-                  icon={<MessageSquare className="h-4 w-4" />}
+                </Button>
+                <Button
+                  data-icon="inline-start"
                   onClick={() => setShowRevisionForm(true)}
                   variant="outline"
+                  className="gap-2"
                 >
+                  <MessageSquare className="h-4 w-4" />
                   طلب تعديل
-                </ActionButton>
+                </Button>
               </div>
 
               {showRevisionForm && (
-                <div className="p-4 border border-gray-200 rounded-lg space-y-3">
+                <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
                   <p className="text-sm font-medium">ملاحظات التعديل:</p>
-                  <textarea
-                    className="w-full border rounded-lg p-3 text-sm min-h-[100px] resize-none"
+                  <Textarea
+                    className="min-h-[100px] resize-none"
                     placeholder="اكتب ملاحظاتك للتعديل المطلوب..."
                     value={revisionComment}
                     onChange={(e) => setRevisionComment(e.target.value)}
                     dir="rtl"
                   />
                   <div className="flex items-center gap-2">
-                    <ActionButton
+                    <Button
                       onClick={handleRequestRevision}
-                      loading={isRequestingRevision}
-                      variant="primary"
+                      isLoading={isRequestingRevision}
                       size="sm"
                     >
                       إرسال طلب التعديل
-                    </ActionButton>
-                    <ActionButton
+                    </Button>
+                    <Button
                       onClick={() => {
                         setShowRevisionForm(false);
                         setRevisionComment("");
@@ -225,7 +259,7 @@ export default function MarketingStrategyDetailPage() {
                       size="sm"
                     >
                       إلغاء
-                    </ActionButton>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -233,8 +267,8 @@ export default function MarketingStrategyDetailPage() {
           )}
 
           {strategy.status === MarketingStrategyStatus.APPROVED && (
-            <div className="p-4 border border-green-200 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-800">
+            <div className="rounded-lg border border-success-200 bg-success-100 p-4">
+              <p className="text-sm text-success-800">
                 ✅ تمت الموافقة على هذه الدراسة التسويقية — يمكن الآن بدء
                 الحملات الإعلانية.
               </p>
@@ -242,34 +276,36 @@ export default function MarketingStrategyDetailPage() {
           )}
 
           {strategy.status === "REVISION_REQUESTED" && (
-            <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
-              <p className="text-sm font-medium text-red-800 mb-1">طلب تعديل</p>
-              <p className="text-sm text-red-700">
+            <div className="rounded-lg border border-danger-200 bg-danger-100 p-4">
+              <p className="mb-1 text-sm font-medium text-danger-800">
+                طلب تعديل
+              </p>
+              <p className="text-sm text-danger-700">
                 {strategy.revisionNote || "تم طلب تعديل على الدراسة"}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="mt-2 text-xs text-muted-foreground">
                 يتم حالياً معالجة التعديلات وسيتم إعادة إرسال الدراسة المحدثة.
               </p>
             </div>
           )}
 
           {strategy.status === MarketingStrategyStatus.REJECTED && (
-            <div className="p-4 border border-red-200 bg-red-50 rounded-lg">
-              <p className="text-sm text-red-800">
+            <div className="rounded-lg border border-danger-200 bg-danger-100 p-4">
+              <p className="text-sm text-danger-800">
                 ❌ تم رفض الدراسة التسويقية.
               </p>
             </div>
           )}
 
           {strategy.status === MarketingStrategyStatus.DRAFT && (
-            <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-100 p-4">
+              <p className="text-sm text-neutral-700">
                 الدراسة في مرحلة الإعداد ولم يتم إرسالها بعد.
               </p>
             </div>
           )}
-        </div>
-      </SurfaceCard>
-    </div>
+        </CardContent>
+      </Card>
+    </main>
   );
 }

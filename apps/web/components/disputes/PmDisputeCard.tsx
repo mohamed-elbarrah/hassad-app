@@ -29,12 +29,12 @@ export function PmDisputeCard({ dispute }: PmDisputeCardProps) {
   return (
     <Link
       href={`/dashboard/pm/disputes/${dispute.id}`}
-      className="group relative flex flex-col rounded-[24px] border-[1.5px] border-portal-divider bg-natural-0 p-5 transition-all hover:border-secondary-500/30 hover:shadow-sm"
+      className="group relative flex flex-col rounded-[24px] border-[1.5px] border-border bg-background p-5 transition-all hover:border-secondary-500/30 hover:shadow-sm"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-secondary-500">
+          <span className="text-xs font-medium text-primary">
             #{dispute.ticketNumber.toString().padStart(3, "0")}
           </span>
           <DisputeStatusBadge status={dispute.status} />
@@ -51,12 +51,12 @@ export function PmDisputeCard({ dispute }: PmDisputeCardProps) {
       </div>
 
       {/* Title */}
-      <h3 className="mt-3 text-base font-semibold text-natural-100 line-clamp-2 group-hover:text-secondary-500 transition-colors">
+      <h3 className="mt-3 text-base font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
         {dispute.title}
       </h3>
 
       {/* Client & Project Info */}
-      <div className="mt-2 flex items-center gap-3 text-sm text-portal-note-text">
+      <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <User className="h-3.5 w-3.5" />
           <span className="truncate">{dispute.client.name}</span>
@@ -76,8 +76,8 @@ export function PmDisputeCard({ dispute }: PmDisputeCardProps) {
       )}
 
       {/* Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-portal-divider pt-3">
-        <div className="flex items-center gap-3 text-xs text-portal-note-text">
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5" />
             {new Date(dispute.openedAt).toLocaleDateString("ar-SA")}
@@ -90,7 +90,7 @@ export function PmDisputeCard({ dispute }: PmDisputeCardProps) {
           )}
         </div>
 
-        <span className="flex items-center gap-1 text-xs font-medium text-secondary-500 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="flex items-center gap-1 text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
           عرض التفاصيل
           <ArrowLeft className="h-3.5 w-3.5" />
         </span>

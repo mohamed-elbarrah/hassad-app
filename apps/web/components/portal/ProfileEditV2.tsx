@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Button } from "@/components/ui/button";
 import {
   useGetClientProfileV2Query,
   useUpsertClientProfileV2Mutation,
@@ -103,20 +103,20 @@ export function ProfileEditV2({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-natural-100">
+          <h2 className="text-xl font-bold text-foreground">
             تعديل الملف التعريفي
           </h2>
-          <p className="text-sm text-portal-note-text mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             قم بتحديث معلومات نشاطك التجاري
           </p>
         </div>
@@ -217,27 +217,28 @@ export function ProfileEditV2({
       />
 
       {/* Global Save Button */}
-      <div className="sticky bottom-0 bg-natural-0 border-t border-portal-divider p-4 flex items-center justify-end gap-3">
+      <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-border bg-background p-4">
         {onCancel && (
-          <ActionButton
+          <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             disabled={isSaving}
           >
             إلغاء
-          </ActionButton>
+          </Button>
         )}
-        <ActionButton
+        <Button
           type="button"
-          variant="primary"
           onClick={handleSave}
           disabled={!isDirty}
-          loading={isSaving}
-          icon={isSaving ? undefined : <Save className="w-4 h-4" />}
+          isLoading={isSaving}
+          data-icon="inline-start"
+          className="gap-2"
         >
+          {!isSaving && <Save className="h-4 w-4" />}
           {isSaving ? "جاري الحفظ..." : "حفظ التغييرات"}
-        </ActionButton>
+        </Button>
       </div>
     </div>
   );

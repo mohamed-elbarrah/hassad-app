@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel } from "@/components/design-system/Form";
+import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 
 
@@ -157,10 +157,10 @@ export function ProductSection({
             (f) =>
               f.value && (
                 <div key={f.label}>
-                  <p className="text-xs font-medium text-portal-icon">
+                  <p className="text-xs font-medium text-muted-foreground">
                     {f.label}
                   </p>
-                  <p className="text-sm text-natural-100 mt-1 leading-relaxed">
+                  <p className="text-sm text-foreground mt-1 leading-relaxed">
                     {f.value}
                   </p>
                 </div>
@@ -169,12 +169,12 @@ export function ProductSection({
 
           {data.benefits && data.benefits.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-portal-icon">الفوائد</p>
+              <p className="text-xs font-medium text-muted-foreground">الفوائد</p>
               <div className="flex flex-wrap gap-2">
                 {data.benefits.map((benefit, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1.5 rounded-full text-sm bg-secondary-100 text-secondary-700"
+                    className="px-3 py-1.5 rounded-full text-sm bg-primary/10 text-foreground"
                   >
                     {benefit}
                   </span>
@@ -269,10 +269,10 @@ export function ProductSection({
           />
 
           <div className="space-y-3">
-            <span className="text-sm font-medium text-natural-100">
+            <span className="text-sm font-medium text-foreground">
               الفوائد
             </span>
-            <p className="text-xs text-portal-note-text">
+            <p className="text-xs text-muted-foreground">
               وش بيستفيد العميل؟ زبونك وش بيتغير في حياته أو يومه بعد ما يجرب
               منتجك أو خدمتك؟
             </p>
@@ -287,8 +287,8 @@ export function ProductSection({
                     className={cn(
                       "px-3 py-1.5 rounded-full text-sm border transition-colors",
                       selected
-                        ? "bg-secondary-500 text-white border-secondary-500"
-                        : "bg-natural-0 text-portal-icon border-portal-divider hover:border-secondary-300",
+                        ? "bg-primary text-white border-secondary-500"
+                        : "bg-background text-muted-foreground border-border hover:border-secondary-300",
                     )}
                   >
                     {benefit}
@@ -309,7 +309,7 @@ export function ProductSection({
                     type="button"
                     onClick={addCustomBenefit}
                     disabled={!customInputValue.trim()}
-                    className="p-1.5 rounded-full text-portal-icon hover:text-secondary-600 hover:bg-secondary-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-primary/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Check className="w-4 h-4" />
                   </button>
@@ -319,7 +319,7 @@ export function ProductSection({
                       setCustomInputValue("");
                       setShowCustomInput(false);
                     }}
-                    className="p-1.5 rounded-full text-portal-icon hover:text-danger-500 hover:bg-danger-50 transition-colors"
+                    className="p-1.5 rounded-full text-muted-foreground hover:text-danger-500 hover:bg-danger-50 transition-colors"
                   >
                     <Ban className="w-4 h-4" />
                   </button>
@@ -328,7 +328,7 @@ export function ProductSection({
                 <button
                   type="button"
                   onClick={() => setShowCustomInput(true)}
-                  className="px-3 py-1.5 rounded-full text-sm border border-dashed border-portal-divider text-portal-icon hover:border-secondary-300 transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-full text-sm border border-dashed border-border text-muted-foreground hover:border-secondary-300 transition-colors flex items-center gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   إضافة
@@ -340,7 +340,7 @@ export function ProductSection({
                 {benefits.map((benefit) => (
                   <span
                     key={benefit}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm bg-secondary-100 text-secondary-700"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm bg-primary/10 text-foreground"
                   >
                     {benefit}
                     <button

@@ -10,6 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DisputeConfirmationDialogProps {
   isOpen: boolean;
@@ -56,29 +57,29 @@ export function DisputeConfirmationDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md p-0 overflow-hidden" dir="rtl">
         <DialogHeader className="p-6 pb-0 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-cyan-50">
-            <AlertTriangle className="h-8 w-8 text-cyan-600" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-warning-100">
+            <AlertTriangle className="h-8 w-8 text-warning-600" />
           </div>
-          <DialogTitle className="text-xl font-semibold text-natural-100">
+          <DialogTitle className="text-xl font-semibold text-foreground">
             هل تم حل المشكلة؟
           </DialogTitle>
-          <DialogDescription className="text-portal-note-text">
+          <DialogDescription className="text-muted-foreground">
             {pmName} أشار إلى أن المشكلة قد تم حلها. هل توافق على ذلك؟
           </DialogDescription>
         </DialogHeader>
 
-        <div className="p-6 space-y-6">
+        <div className="flex flex-col gap-6 p-6">
           {!showFeedback ? (
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
                 onClick={() => setShowFeedback("escalate")}
                 disabled={isLoading}
-                className="h-auto flex-col gap-2 rounded-xl border-danger-300 p-4 hover:bg-danger-50 hover:text-danger-700"
+                className="h-auto flex-col gap-2 rounded-xl border-danger-300 p-4 hover:bg-danger-100/60 hover:text-danger-800"
               >
                 <XCircle className="h-6 w-6 text-danger-500" />
                 <span className="text-sm font-medium">لم يتم الحل</span>
-                <span className="text-xs text-portal-note-text">
+                <span className="text-xs text-muted-foreground">
                   سيتم تصعيد التذكرة للإدارة
                 </span>
               </Button>
@@ -96,14 +97,14 @@ export function DisputeConfirmationDialog({
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="rounded-xl bg-portal-bg p-4">
-                <p className="text-sm font-medium text-natural-100 mb-2">
+            <div className="flex flex-col gap-4">
+              <div className="rounded-xl bg-muted p-4">
+                <p className="text-sm font-medium text-foreground mb-2">
                   {showFeedback === "confirm"
                     ? "ملاحظاتك على الحل (اختياري)"
                     : "سبب عدم الحل (اختياري)"}
                 </p>
-                <textarea
+                <Textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder={
@@ -113,7 +114,7 @@ export function DisputeConfirmationDialog({
                   }
                   disabled={isLoading}
                   rows={3}
-                  className="w-full resize-none rounded-xl border-[1.5px] border-portal-divider bg-natural-0 px-4 py-3 text-sm text-natural-100 placeholder:text-portal-placeholder focus:border-secondary-500 focus:outline-none"
+                  className="resize-none"
                 />
               </div>
 

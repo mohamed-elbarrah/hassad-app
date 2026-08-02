@@ -178,7 +178,7 @@ function MessageBubble({
     >
       <Avatar className="h-8 w-8 shrink-0">
         <AvatarImage src={message.author.avatarUrl || undefined} />
-        <AvatarFallback className="bg-secondary-100 text-secondary-700 text-xs">
+        <AvatarFallback className="bg-primary/10 text-xs text-primary">
           {message.author.name.charAt(0)}
         </AvatarFallback>
       </Avatar>

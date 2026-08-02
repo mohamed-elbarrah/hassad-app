@@ -22,7 +22,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/design-system/Form";
+} from "@/components/ui/form";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
   FormSelect,
@@ -163,7 +163,7 @@ export function CommunicationSection({
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm">
-                  <Building2 className="w-4 h-4 text-portal-icon" />
+                  <Building2 className="w-4 h-4 text-muted-foreground" />
                   اسم النشاط
                   <span className="text-danger-500">*</span>
                 </FormLabel>
@@ -179,7 +179,7 @@ export function CommunicationSection({
             render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="flex items-center gap-2 text-sm">
-                  <Briefcase className="w-4 h-4 text-portal-icon" />
+                  <Briefcase className="w-4 h-4 text-muted-foreground" />
                   مجال النشاط
                   <span className="text-danger-500">*</span>
                 </FormLabel>

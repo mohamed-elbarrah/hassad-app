@@ -1,15 +1,13 @@
 "use client";
 
-
 import { useGetClientStrategiesQuery } from "@/features/portal/portalApi";
 import {
   MARKETING_STRATEGY_STATUS_AR,
   MarketingStrategyStatus,
 } from "@hassad/shared";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { IconCircle } from "@/components/design-system/IconCircle";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -28,15 +26,30 @@ const STATUS_ICON: Record<string, LucideIcon> = {
   REJECTED: XCircle,
 };
 
-const STATUS_COLOR: Record<
+const STATUS_CLASSES: Record<
   string,
-  "blue" | "amber" | "green" | "red" | "gray"
+  { icon: string; badge: string }
 > = {
-  DRAFT: "gray",
-  SENT: "amber",
-  APPROVED: "green",
-  REVISION_REQUESTED: "red",
-  REJECTED: "red",
+  DRAFT: {
+    icon: "bg-neutral-100 text-neutral-600",
+    badge: "border-neutral-200 bg-neutral-100 text-neutral-600",
+  },
+  SENT: {
+    icon: "bg-info/10 text-info",
+    badge: "border-info/20 bg-info/10 text-info",
+  },
+  APPROVED: {
+    icon: "bg-success-100 text-success-600",
+    badge: "border-success-200 bg-success-100 text-success-600",
+  },
+  REVISION_REQUESTED: {
+    icon: "bg-warning-100 text-warning-600",
+    badge: "border-warning-200 bg-warning-100 text-warning-600",
+  },
+  REJECTED: {
+    icon: "bg-danger-100 text-danger-600",
+    badge: "border-danger-200 bg-danger-100 text-danger-600",
+  },
 };
 
 export default function MarketingStrategiesPage() {
@@ -44,48 +57,61 @@ export default function MarketingStrategiesPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 p-6">
-        <div className="h-8 bg-muted rounded w-48 animate-pulse" />
-        <div className="h-32 bg-muted rounded animate-pulse" />
-      </div>
+      <main dir="rtl" className="flex flex-col gap-6 p-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+      </main>
     );
   }
 
   return (
-    <div className="space-y-6 p-6" dir="rtl">
+    <main dir="rtl" className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">الدراسات التسويقية</h1>
       </div>
 
       {strategies.length === 0 ? (
-        <SurfaceCard>
-          <div className="p-8 text-center">
+        <Card>
+          <CardContent className="p-8 text-center">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground">
               لا توجد دراسات تسويقية حالياً
             </p>
-          </div>
-        </SurfaceCard>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           {strategies.map((strategy) => {
             const statusLabel =
               MARKETING_STRATEGY_STATUS_AR[
                 strategy.status as keyof typeof MARKETING_STRATEGY_STATUS_AR
               ] ?? strategy.status;
 
+            const iconClass =
+              STATUS_CLASSES[strategy.status ?? MarketingStrategyStatus.DRAFT]
+                ?.icon ?? "bg-neutral-100 text-neutral-600";
+            const badgeClass =
+              STATUS_CLASSES[strategy.status ?? MarketingStrategyStatus.DRAFT]
+                ?.badge ??
+              "border-neutral-200 bg-neutral-100 text-neutral-600";
 
             return (
               <Link
                 key={strategy.id}
                 href={`/portal/marketing-strategies/${strategy.id}`}
               >
-                <SurfaceCard className="cursor-pointer hover:border-primary/30 transition-colors">
-                  <div className="p-4 flex items-center gap-4">
-                    <IconCircle
-                      icon={STATUS_ICON[strategy.status] ?? FileText}
-                    />
-                    <div className="flex-1 min-w-0">
+                <Card className="cursor-pointer transition-colors hover:border-primary/30">
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${iconClass}`}
+                    >
+                      {(() => {
+                        const Icon =
+                          STATUS_ICON[strategy.status] ?? FileText;
+                        return <Icon className="h-5 w-5" />;
+                      })()}
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <p className="font-medium truncate">
                         {strategy.fileName}
                       </p>
@@ -94,17 +120,16 @@ export default function MarketingStrategiesPage() {
                         {strategy.task?.title ?? "—"}
                       </p>
                     </div>
-                    <StatusBadge
-                      status={strategy.status ?? MarketingStrategyStatus.DRAFT}
-                      label={statusLabel}
-                    />
-                  </div>
-                </SurfaceCard>
+                    <Badge variant="outline" className={badgeClass}>
+                      {statusLabel}
+                    </Badge>
+                  </CardContent>
+                </Card>
               </Link>
             );
           })}
         </div>
       )}
-    </div>
+    </main>
   );
 }

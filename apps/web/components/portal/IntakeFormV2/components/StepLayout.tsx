@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { SkipForward } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface StepLayoutProps {
   stepNumber: number;
@@ -23,34 +23,35 @@ export function StepLayout({
   children,
 }: StepLayoutProps) {
   return (
-    <SurfaceCard className="shadow-none" contentClassName="p-6">
-      <div className="space-y-3">
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col gap-3 p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-portal-icon mb-1">
+            <p className="mb-1 text-sm font-medium text-muted-foreground">
               الخطوة {stepNumber}
             </p>
-            <h3 className="text-xl font-bold text-natural-100">{title}</h3>
+            <h3 className="text-xl font-bold text-foreground">{title}</h3>
           </div>
           {isOptional && onSkip && (
-            <ActionButton
+            <Button
               variant="ghost"
               size="sm"
               onClick={onSkip}
-              icon={<SkipForward className="w-4 h-4" />}
-              iconPosition="left"
+              data-icon="inline-start"
+              className="gap-2"
             >
+              <SkipForward className="h-4 w-4" />
               تخطي
-            </ActionButton>
+            </Button>
           )}
         </div>
 
-        <p className="text-sm leading-relaxed text-secondary-700 mb-6">
+        <p className="mb-6 text-sm leading-relaxed text-foreground">
           {instructions.join(" ")}
         </p>
 
         {children}
-      </div>
-    </SurfaceCard>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { UserAvatar } from "@/components/design-system/UserAvatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Conversation } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
@@ -72,19 +72,31 @@ function getHeaderInfo(
   };
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return (name[0] ?? "?").toUpperCase();
+}
+
 export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
   const user = useAppSelector((s) => s.auth.user);
   const info = getHeaderInfo(conversation, user?.id, user?.role);
 
   return (
-    <div className="flex items-center gap-3 border-b border-portal-divider px-5 py-3.5 bg-natural-0">
+    <div className="flex items-center gap-3 border-b border-border bg-background px-5 py-3.5">
       {/* Avatar with online status */}
       <div className="relative shrink-0">
-        <UserAvatar name={info.avatarName} size="sm" />
+        <Avatar className="h-6 w-6 rounded-lg">
+          <AvatarFallback className="bg-muted text-xs text-foreground">
+            {getInitials(info.avatarName)}
+          </AvatarFallback>
+        </Avatar>
         <span
           className={cn(
-            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-            "bg-success-500",
+            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
+            "bg-success",
           )}
         />
       </div>
@@ -92,11 +104,11 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
       {/* Name + subtitle */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-natural-100">
+          <span className="truncate text-sm font-semibold text-foreground">
             {info.name}
           </span>
           {info.otherUserRole && (
-            <span className="shrink-0 text-[10px] text-portal-note-text bg-badge-gray-bg px-1.5 py-0.5 rounded-md">
+            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
               {info.otherUserRole === "PM"
                 ? "مدير مشروع"
                 : info.otherUserRole === "SALES"
@@ -117,23 +129,23 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
         {isTyping ? (
           <div className="flex items-center gap-1.5">
             <span className="flex items-center gap-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary-500 animate-bounce [animation-delay:0ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary-500 animate-bounce [animation-delay:150ms]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary-500 animate-bounce [animation-delay:300ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
             </span>
-            <span className="text-xs text-secondary-500">
+            <span className="text-xs text-primary">
               {isTyping.userName} يكتب...
             </span>
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="truncate text-xs text-portal-note-text">
+            <span className="truncate text-xs text-muted-foreground">
               {info.subtitle || "متصل"}
             </span>
             {info.projectLink && (
               <Link
                 href={info.projectLink}
-                className="flex items-center gap-1 text-xs text-secondary-500 hover:text-secondary-600 transition-colors shrink-0"
+                className="flex shrink-0 items-center gap-1 text-xs text-primary transition-colors hover:text-primary"
               >
                 <ExternalLink className="w-3 h-3" />
                 {info.projectName}
@@ -147,21 +159,21 @@ export function ChatHeader({ conversation, isTyping }: ChatHeaderProps) {
       <div className="flex items-center gap-1">
         <button
           onClick={() => toast.info("البحث في المحادثة قريباً")}
-          className="p-2 rounded-xl text-portal-note-text hover:text-secondary-500 hover:bg-secondary-500/10 transition-all"
+          className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="بحث في المحادثة"
         >
           <Search className="w-4 h-4" />
         </button>
         <button
           onClick={() => toast.info("المكالمات الصوتية قريباً")}
-          className="p-2 rounded-xl text-portal-note-text hover:text-secondary-500 hover:bg-secondary-500/10 transition-all"
+          className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="مكالمة"
         >
           <Phone className="w-4 h-4" />
         </button>
         <button
           onClick={() => toast.info("خيارات إضافية قريباً")}
-          className="p-2 rounded-xl text-portal-note-text hover:text-secondary-500 hover:bg-secondary-500/10 transition-all"
+          className="rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="المزيد"
         >
           <MoreHorizontal className="w-4 h-4" />

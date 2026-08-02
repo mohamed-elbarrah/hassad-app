@@ -14,8 +14,8 @@ import {
   AlertCircle,
   Edit3,
 } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface ReviewSection {
@@ -197,14 +197,14 @@ function renderFieldValue(key: string, value: unknown): ReactNode {
         {value.map((pair: Record<string, unknown>, i) => (
           <div
             key={i}
-            className="text-xs bg-secondary-50 rounded-lg p-2 space-y-1"
+            className="text-xs bg-primary/5 rounded-lg p-2 space-y-1"
           >
             <p>
-              <span className="font-medium text-natural-100">س: </span>
+              <span className="font-medium text-foreground">س: </span>
               {String(pair.question ?? "")}
             </p>
             <p>
-              <span className="font-medium text-natural-100">ج: </span>
+              <span className="font-medium text-foreground">ج: </span>
               {String(pair.answer ?? "")}
             </p>
           </div>
@@ -225,9 +225,9 @@ function renderFieldValue(key: string, value: unknown): ReactNode {
           {value.map((name, i) => (
             <p
               key={i}
-              className="text-xs flex items-center gap-1.5 text-portal-note-text"
+              className="text-xs flex items-center gap-1.5 text-muted-foreground"
             >
-              <FileText className="w-3 h-3 text-portal-icon shrink-0" />
+              <FileText className="w-3 h-3 text-muted-foreground shrink-0" />
               {name}
             </p>
           ))}
@@ -240,7 +240,7 @@ function renderFieldValue(key: string, value: unknown): ReactNode {
         {value.map((item, i) => (
           <span
             key={i}
-            className="px-2 py-0.5 rounded-full text-xs bg-secondary-50 text-secondary-700"
+            className="px-2 py-0.5 rounded-full text-xs bg-primary/5 text-primary"
           >
             {item}
           </span>
@@ -259,13 +259,13 @@ function renderFieldValue(key: string, value: unknown): ReactNode {
     if (subKeys.length === 0) return null;
 
     return (
-      <div className="space-y-2 pr-2 border-r-2 border-portal-divider">
+      <div className="space-y-2 pr-2 border-r-2 border-border">
         {subKeys.map((subKey) => {
           const subValue = renderFieldValue(subKey, obj[subKey]);
           if (!subValue) return null;
           return (
             <div key={subKey}>
-              <span className="text-xs font-medium text-natural-100">
+              <span className="text-xs font-medium text-foreground">
                 {FIELD_LABELS[subKey] || subKey}:
               </span>{" "}
               {subValue}
@@ -295,29 +295,29 @@ export function Step8_Review({
   }).length;
 
   return (
-    <SurfaceCard className="shadow-none" contentClassName="p-6">
-      <div className="space-y-6">
+    <Card className="shadow-none">
+      <CardContent className="flex flex-col gap-6 p-6">
         <div>
-          <p className="text-sm font-medium text-portal-icon mb-1">الخطوة 8</p>
-          <h3 className="text-xl font-bold text-natural-100">
+          <p className="text-sm font-medium text-muted-foreground mb-1">الخطوة 8</p>
+          <h3 className="text-xl font-bold text-foreground">
             المراجعة والإرسال
           </h3>
-          <p className="text-sm text-portal-note-text mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             راجع بياناتك قبل إرسالها. يمكنك العودة لأي قسم وتعديله.
           </p>
         </div>
 
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-portal-icon">اكتمال البيانات:</span>
+          <span className="text-muted-foreground">اكتمال البيانات:</span>
           <div className="flex-1 h-2 bg-portal-divider rounded-full overflow-hidden max-w-[200px]">
             <div
-              className="h-full bg-secondary-500 rounded-full transition-all"
+              className="h-full bg-primary/50 rounded-full transition-all"
               style={{
                 width: `${(filledCount / SECTIONS.length) * 100}%`,
               }}
             />
           </div>
-          <span className="font-medium text-secondary-700">
+          <span className="font-medium text-primary">
             {filledCount} / {SECTIONS.length}
           </span>
         </div>
@@ -334,14 +334,14 @@ export function Step8_Review({
                 className={cn(
                   "rounded-2xl border p-4",
                   hasData
-                    ? "border-portal-card-border"
-                    : "border-dashed border-portal-divider bg-portal-bg",
+                    ? "border-border"
+                    : "border-dashed border-border bg-muted",
                 )}
               >
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
-                    <section.icon className="w-5 h-5 text-portal-icon" />
-                    <h4 className="font-semibold text-sm text-natural-100">
+                    <section.icon className="w-5 h-5 text-muted-foreground" />
+                    <h4 className="font-semibold text-sm text-foreground">
                       {section.title}
                     </h4>
                   </div>
@@ -349,12 +349,12 @@ export function Step8_Review({
                     {hasData ? (
                       <CheckCircle2 className="w-4 h-4 text-success-500" />
                     ) : (
-                      <AlertCircle className="w-4 h-4 text-alert-500" />
+                      <AlertCircle className="w-4 h-4 text-warning-600" />
                     )}
                     <button
                       type="button"
                       onClick={() => onEdit(section.stepIndex)}
-                      className="text-portal-icon hover:text-secondary-500 transition-colors"
+                      className="text-muted-foreground hover:text-primary transition-colors"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
@@ -367,7 +367,7 @@ export function Step8_Review({
                       .filter((key) => hasValue(data![key]))
                       .map((key) => (
                         <div key={key}>
-                          <span className="text-xs font-medium text-natural-100">
+                          <span className="text-xs font-medium text-foreground">
                             {FIELD_LABELS[key] || key}:
                           </span>{" "}
                           {renderFieldValue(key, data![key])}
@@ -375,7 +375,7 @@ export function Step8_Review({
                       ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-portal-note-text">
+                  <p className="text-xs text-muted-foreground">
                     {section.isOptional
                       ? "لم يتم التعبئة — يمكنك العودة لاحقاً"
                       : "مطلوب لإكمال التسجيل"}
@@ -386,27 +386,26 @@ export function Step8_Review({
           })}
         </div>
 
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
-          <ActionButton
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+          <Button
             type="button"
             variant="outline"
             onClick={() => onEdit(7)}
           >
             السابق
-          </ActionButton>
-          <ActionButton
+          </Button>
+          <Button
             type="button"
-            variant="primary"
             size="lg"
             onClick={handleSubmit}
             disabled={!formData.communicationInfo || isSubmitting}
-            loading={isSubmitting}
+            isLoading={isSubmitting}
             className="min-w-[140px]"
           >
             {isSubmitting ? "جاري الإرسال..." : "إرسال"}
-          </ActionButton>
+          </Button>
         </div>
-      </div>
-    </SurfaceCard>
+      </CardContent>
+    </Card>
   );
 }

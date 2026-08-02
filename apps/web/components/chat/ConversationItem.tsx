@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { UserAvatar } from "@/components/design-system/UserAvatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { formatRelativeTime } from "@/lib/format";
 import type { Conversation, Message } from "@/features/chat/chatApi";
 import { useAppSelector } from "@/lib/hooks";
@@ -84,6 +84,14 @@ function getDisplayInfo(
   };
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return (name[0] ?? "?").toUpperCase();
+}
+
 export function ConversationItem({
   conversation,
   isActive,
@@ -104,26 +112,30 @@ export function ConversationItem({
       onClick={onClick}
       className={cn(
         "group relative flex w-full items-start gap-3 px-4 py-3.5 text-right transition-all duration-200",
-        "hover:bg-secondary-500/5",
-        isActive && "bg-secondary-500/10",
+        "hover:bg-primary/5",
+        isActive && "bg-primary/10",
       )}
     >
       {/* Active indicator bar */}
       <div
         className={cn(
-          "absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full transition-all duration-200",
-          isActive ? "bg-secondary-500" : "bg-transparent",
+          "absolute right-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full transition-all duration-200",
+          isActive ? "bg-primary" : "bg-transparent",
         )}
       />
 
       {/* Avatar with online status */}
-      <div className="relative shrink-0 mt-0.5">
-        <UserAvatar name={info.avatarName} size="sm" />
+      <div className="relative mt-0.5 shrink-0">
+        <Avatar className="h-6 w-6 rounded-lg">
+          <AvatarFallback className="bg-muted text-xs text-foreground">
+            {getInitials(info.avatarName)}
+          </AvatarFallback>
+        </Avatar>
         {/* Online status dot */}
         <span
           className={cn(
-            "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-            "bg-success-500", // would be dynamic based on real status
+            "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background",
+            "bg-success",
           )}
         />
       </div>
@@ -131,23 +143,23 @@ export function ConversationItem({
       {/* Content */}
       <div className="min-w-0 flex-1">
         {/* Top row: name + time + pin */}
-        <div className="flex items-center justify-between gap-2 mb-0.5">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="mb-0.5 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <span
               className={cn(
                 "truncate text-sm font-medium",
-                isActive ? "text-secondary-700" : "text-natural-100",
+                isActive ? "text-primary" : "text-foreground",
               )}
             >
               {info.name}
             </span>
             {info.meta && (
-              <span className="shrink-0 text-[10px] text-portal-note-text bg-badge-gray-bg px-1.5 py-0.5 rounded-md">
+              <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                 {info.meta}
               </span>
             )}
           </div>
-          <span className="shrink-0 text-[11px] text-portal-note-text">
+          <span className="shrink-0 text-[11px] text-muted-foreground">
             {lastMessage
               ? formatRelativeTime(lastMessage.createdAt)
               : formatRelativeTime(conversation.createdAt)}
@@ -156,46 +168,46 @@ export function ConversationItem({
 
         {/* Subtitle row */}
         {info.subtitle && !lastMessage && (
-          <p className="text-xs text-portal-note-text mb-1 truncate">
+          <p className="mb-1 truncate text-xs text-muted-foreground">
             {info.subtitle}
           </p>
         )}
 
         {/* Bottom row: last message preview + unread */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
             {isLastMessageOwn && lastMessage && (
-              <CheckCheck className="w-3.5 h-3.5 shrink-0 text-secondary-500" />
+              <CheckCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
             )}
-            <p className="truncate text-xs text-portal-note-text">
+            <p className="truncate text-xs text-muted-foreground">
               {lastMessage ? (
                 <>
                   {conversation.type === "GROUP" && lastMessage.sender && (
-                    <span className="font-medium text-natural-100">
+                    <span className="font-medium text-foreground">
                       {lastMessage.sender.name}:{" "}
                     </span>
                   )}
                   {lastMessage.content}
                 </>
               ) : (
-                <span className="text-portal-note-text">
+                <span className="text-muted-foreground">
                   {info.subtitle || "لا توجد رسائل بعد"}
                 </span>
               )}
             </p>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex shrink-0 items-center gap-1.5">
             {/* Unread badge */}
             {unreadCount > 0 && (
-              <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-secondary-500 text-[10px] font-bold text-white px-1">
+              <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
 
             {/* Type icon */}
             {conversation.type === "GROUP" && (
-              <Users className="w-3.5 h-3.5 text-portal-note-text" />
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
             )}
           </div>
         </div>

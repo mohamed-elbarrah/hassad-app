@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel } from "@/components/design-system/Form";
+import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { FormTextareaControl } from "@/components/design-system/FormTextareaControl";
 import { FormInputControl } from "@/components/design-system/FormInputControl";
 import {
@@ -244,28 +244,28 @@ export function AudienceSection({
               <SectionSubtitle icon={Users}>تحليل الجمهور</SectionSubtitle>
               {data.customerAnalysis && (
                 <div>
-                  <p className="text-xs font-medium text-portal-icon">
+                  <p className="text-xs font-medium text-muted-foreground">
                     تحليل العملاء
                   </p>
-                  <p className="text-sm text-natural-100 mt-1 leading-relaxed">
+                  <p className="text-sm text-foreground mt-1 leading-relaxed">
                     {data.customerAnalysis}
                   </p>
                 </div>
               )}
               {data.faq && data.faq.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-xs font-medium text-portal-icon">
+                  <p className="text-xs font-medium text-muted-foreground">
                     الأسئلة الشائعة
                   </p>
                   {data.faq.map((pair, i) => (
                     <div
                       key={i}
-                      className="rounded-lg border border-portal-divider p-3"
+                      className="rounded-lg border border-border p-3"
                     >
-                      <p className="text-sm font-medium text-natural-100">
+                      <p className="text-sm font-medium text-foreground">
                         {pair.question}
                       </p>
-                      <p className="text-sm text-portal-note-text mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {pair.answer}
                       </p>
                     </div>
@@ -300,8 +300,8 @@ export function AudienceSection({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Brand Voice Section */}
           <div className="space-y-5">
-            <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-portal-icon" />
+            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-muted-foreground" />
               الرسائل والهوية
             </h4>
 
@@ -338,7 +338,7 @@ export function AudienceSection({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm flex items-center gap-2">
-                      <Video className="w-4 h-4 text-portal-icon" />
+                      <Video className="w-4 h-4 text-muted-foreground" />
                       طريقة الظهور
                     </FormLabel>
                     <FormSelect
@@ -368,7 +368,7 @@ export function AudienceSection({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm flex items-center gap-2">
-                    <Hash className="w-4 h-4 text-portal-icon" />
+                    <Hash className="w-4 h-4 text-muted-foreground" />
                     الشعار اللفظي
                   </FormLabel>
                   <FormInputControl
@@ -385,7 +385,7 @@ export function AudienceSection({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-portal-icon" />
+                    <ShieldCheck className="w-4 h-4 text-muted-foreground" />
                     الحدود / العوائق
                   </FormLabel>
                   <FormTextareaControl
@@ -400,8 +400,8 @@ export function AudienceSection({
 
           {/* Audience Section */}
           <div className="space-y-5">
-            <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2">
-              <Users className="w-4 h-4 text-portal-icon" />
+            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Users className="w-4 h-4 text-muted-foreground" />
               تحليل الجمهور
             </h4>
 
@@ -486,14 +486,14 @@ function FaqEditor({
 }) {
   return (
     <div className="space-y-3">
-      <span className="text-sm font-medium text-natural-100">
+      <span className="text-sm font-medium text-foreground">
         الأسئلة الشائعة
       </span>
 
       {faqPairs.map((pair, index) => (
         <div
           key={index}
-          className="rounded-xl border border-portal-divider p-4 space-y-3"
+          className="rounded-xl border border-border p-4 space-y-3"
         >
           <div className="flex items-center gap-2">
             <FormInputControl
@@ -505,7 +505,7 @@ function FaqEditor({
             <button
               type="button"
               onClick={() => onRemove(index)}
-              className="p-1.5 rounded-full text-portal-icon hover:text-danger-500 hover:bg-danger-50 transition-colors shrink-0"
+              className="p-1.5 rounded-full text-muted-foreground hover:text-danger-500 hover:bg-danger-50 transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -523,7 +523,7 @@ function FaqEditor({
       <button
         type="button"
         onClick={onAdd}
-        className="w-full px-4 py-2 rounded-xl text-sm border border-dashed border-portal-divider text-portal-icon hover:border-secondary-300 transition-colors flex items-center gap-2 justify-center"
+        className="w-full px-4 py-2 rounded-xl text-sm border border-dashed border-border text-muted-foreground hover:border-secondary-300 transition-colors flex items-center gap-2 justify-center"
       >
         <Plus className="w-4 h-4" />
         إضافة سؤال وجواب

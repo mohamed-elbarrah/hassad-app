@@ -214,8 +214,8 @@ export function CardPaymentForm({
   if (!clientSecret) {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-500" />
-        <p className="text-sm text-portal-note-text">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">
           جاري تجهيز نموذج الدفع...
         </p>
       </div>
@@ -309,10 +309,10 @@ function StripePaymentForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Card number */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-portal-note-text">
+        <label className="text-xs font-medium text-muted-foreground">
           رقم البطاقة
         </label>
-        <div className="rounded-xl border border-portal-divider bg-natural-0 px-4 py-3">
+        <div className="rounded-xl border border-border bg-background px-4 py-3">
           <CardNumberElement
             options={{
               style: {
@@ -332,10 +332,10 @@ function StripePaymentForm({
       {/* Expiry + CVC in a grid */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-portal-note-text">
+          <label className="text-xs font-medium text-muted-foreground">
             تاريخ الانتهاء
           </label>
-          <div className="rounded-xl border border-portal-divider bg-natural-0 px-4 py-3">
+          <div className="rounded-xl border border-border bg-background px-4 py-3">
             <CardExpiryElement
               options={{
                 style: {
@@ -352,10 +352,10 @@ function StripePaymentForm({
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-portal-note-text">
+          <label className="text-xs font-medium text-muted-foreground">
             رمز الأمان (CVV)
           </label>
-          <div className="rounded-xl border border-portal-divider bg-natural-0 px-4 py-3">
+          <div className="rounded-xl border border-border bg-background px-4 py-3">
             <CardCvcElement
               options={{
                 style: {
@@ -609,24 +609,24 @@ export function PaymentSheet({
           onClick={() => onOpenChange(false)}
         >
           <div
-            className="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-[30px] sm:rounded-[30px] bg-natural-0 shadow-xl"
+            className="relative w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-[30px] sm:rounded-[30px] bg-background shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-natural-0 border-b border-portal-divider px-6 py-4">
+            <div className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-secondary-500" />
-                  <h2 className="text-base font-semibold text-natural-100">
+                  <Receipt className="w-5 h-5 text-primary" />
+                  <h2 className="text-base font-semibold text-foreground">
                     دفع الفاتورة
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-badge-gray-bg transition-colors cursor-pointer"
+                  className="flex items-center justify-center h-8 w-8 rounded-full hover:bg-muted transition-colors cursor-pointer"
                 >
-                  <X className="h-4 w-4 text-portal-icon" />
+                  <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
             </div>
@@ -634,18 +634,18 @@ export function PaymentSheet({
             {/* Content */}
             <div className="p-6 space-y-4">
               {/* Invoice summary */}
-              <div className="flex items-center justify-between rounded-xl border border-portal-divider bg-portal-bg p-4">
+              <div className="flex items-center justify-between rounded-xl border border-border bg-portal-bg p-4">
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium text-natural-100">
+                  <p className="text-sm font-medium text-foreground">
                     {invoice.invoiceNumber}
                   </p>
-                  <p className="text-xs text-portal-note-text">
+                  <p className="text-xs text-muted-foreground">
                     المبلغ المستحق
                   </p>
                 </div>
-                <p className="text-lg font-bold text-natural-100">
+                <p className="text-lg font-bold text-foreground">
                   {fmtAmount(invoice.amount)}{" "}
-                  <span className="text-sm font-normal text-portal-note-text">
+                  <span className="text-sm font-normal text-muted-foreground">
                     ر.س
                   </span>
                 </p>
@@ -663,8 +663,8 @@ export function PaymentSheet({
                         className={cn(
                           "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer",
                           selectedMethod === m.key
-                            ? "bg-natural-0 text-natural-100 shadow-sm"
-                            : "text-portal-note-text hover:text-natural-100",
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
                         )}
                       >
                         <Icon className="w-4 h-4" />

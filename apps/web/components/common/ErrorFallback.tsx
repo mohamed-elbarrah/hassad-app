@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle, RefreshCw, ArrowRight } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Button } from "@/components/ui/button";
 
 interface ErrorFallbackProps {
   error: Error;
@@ -18,14 +19,14 @@ export function ErrorFallback({
 }: ErrorFallbackProps) {
   return (
     <div
-      className="flex flex-col items-center justify-center min-h-[50vh] gap-6 p-8"
+      className="flex min-h-[50vh] flex-col items-center justify-center gap-6 p-8"
       dir="rtl"
     >
       <div className="rounded-full bg-destructive/10 p-4">
-        <AlertTriangle className="h-8 w-8 text-destructive" />
+        <AlertTriangle className="size-8 text-destructive" />
       </div>
 
-      <div className="text-center space-y-2 max-w-md">
+      <div className="flex max-w-md flex-col items-center gap-2 text-center">
         <h2 className="text-xl font-semibold">حدث خطأ غير متوقع</h2>
         <p className="text-sm text-muted-foreground">
           {error.message || "تعذر تحميل هذه الصفحة. يرجى المحاولة مرة أخرى."}
@@ -34,23 +35,18 @@ export function ErrorFallback({
 
       <div className="flex items-center gap-3">
         {reset && (
-          <ActionButton
-            onClick={reset}
-            icon={<RefreshCw className="h-4 w-4" />}
-            className="gap-2"
-          >
+          <Button onClick={reset}>
+            <RefreshCw data-icon="inline-start" />
             إعادة المحاولة
-          </ActionButton>
+          </Button>
         )}
         {backHref && (
-          <ActionButton
-            href={backHref}
-            variant="outline"
-            icon={<ArrowRight className="h-4 w-4" />}
-            className="gap-2"
-          >
-            {backLabel || "العودة"}
-          </ActionButton>
+          <Button asChild variant="outline">
+            <Link href={backHref}>
+              <ArrowRight data-icon="inline-start" />
+              {backLabel || "العودة"}
+            </Link>
+          </Button>
         )}
       </div>
     </div>

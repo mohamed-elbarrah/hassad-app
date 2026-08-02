@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -15,18 +13,18 @@ export function DetailBreadcrumb({
   title,
 }: DetailBreadcrumbProps) {
   return (
-    <div className="flex items-center gap-2 text-sm text-portal-note-text">
+    <nav className="flex items-center gap-2 text-sm text-muted-foreground">
       <Link
         href={backHref}
-        className="flex items-center gap-1 hover:text-secondary-500 transition-colors"
+        className="flex items-center gap-1 transition-colors hover:text-foreground"
       >
-        <ArrowRight className="w-4 h-4" />
+        <ArrowRight className="size-4" />
         {backLabel}
       </Link>
-      <span>/</span>
-      <span className="text-natural-100 font-medium truncate max-w-[300px]">
+      <span aria-hidden="true">/</span>
+      <span className="max-w-[300px] truncate font-medium text-foreground">
         {title}
       </span>
-    </div>
+    </nav>
   );
 }

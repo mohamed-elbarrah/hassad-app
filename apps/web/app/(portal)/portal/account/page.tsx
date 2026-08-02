@@ -8,18 +8,17 @@ import {
   useGetPortalClientProfileQuery,
   useGetPortalClientByIdQuery,
 } from "@/features/portal/portalApi";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { AccountForm } from "@/components/design-system/AccountForm";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-} from "@/components/design-system/Tabs";
-import { Skeleton } from "@/components/design-system/Skeleton";
+} from "@/components/ui/tabs";
+import { AccountForm } from "@/components/design-system/AccountForm";
 import { ProfileEditV2 } from "@/components/portal/ProfileEditV2";
-import { ActionButton } from "@/components/design-system/ActionButton";
 import { ClientContextPanel } from "@/components/client-detail/ClientDetailPattern";
 import { Settings, User, Pencil, ArrowRight } from "lucide-react";
 
@@ -96,8 +95,8 @@ export default function PortalAccountPage() {
   const renderBusinessInfo = () => {
     if (!clientId) {
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 py-10">
-          <p className="text-lg text-portal-note-text">
+        <div className="flex h-full flex-col items-center justify-center gap-4 py-10">
+          <p className="text-lg text-muted-foreground">
             لم يتم ربط حسابك بملف عميل. يرجى التواصل مع الإدارة.
           </p>
         </div>
@@ -109,13 +108,13 @@ export default function PortalAccountPage() {
 
     if (isLoadingProfile) {
       return (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <Skeleton className="h-8 w-48 rounded" />
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
             <div className="lg:col-span-4 xl:col-span-3">
               <Skeleton className="h-80 rounded-2xl" />
             </div>
-            <div className="lg:col-span-8 xl:col-span-9 space-y-4">
+            <div className="flex flex-col gap-4 lg:col-span-8 xl:col-span-9">
               <Skeleton className="h-40 rounded-2xl" />
               <Skeleton className="h-64 rounded-2xl" />
             </div>
@@ -126,8 +125,8 @@ export default function PortalAccountPage() {
 
     if (isErrorProfile || !client) {
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 py-10">
-          <p className="text-base text-portal-note-text">
+        <div className="flex h-full flex-col items-center justify-center gap-4 py-10">
+          <p className="text-base text-muted-foreground">
             لا توجد معلومات إضافية. يمكنك تحديث ملفك من خلال فريق المبيعات.
           </p>
         </div>
@@ -137,27 +136,31 @@ export default function PortalAccountPage() {
     return (
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-natural-100">
+          <h1 className="text-xl font-bold text-foreground">
             {isEditing ? "تعديل الملف التعريفي" : "الملف التعريفي"}
           </h1>
           {isEditing ? (
-            <ActionButton
+            <Button
               variant="outline"
               size="sm"
               onClick={() => setIsEditing(false)}
-              icon={<ArrowRight className="h-4 w-4" />}
+              data-icon="inline-start"
+              className="gap-2"
             >
+              <ArrowRight className="h-4 w-4" />
               العودة للعرض
-            </ActionButton>
+            </Button>
           ) : (
-            <ActionButton
+            <Button
               variant="outline"
               size="sm"
               onClick={() => setIsEditing(true)}
-              icon={<Pencil className="h-4 w-4" />}
+              data-icon="inline-start"
+              className="gap-2"
             >
+              <Pencil className="h-4 w-4" />
               تعديل الملف
-            </ActionButton>
+            </Button>
           )}
         </div>
 
@@ -188,12 +191,16 @@ export default function PortalAccountPage() {
   };
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="الإعدادات"
-        description="إدارة بيانات حسابك والملف التعريفي لنشاطك التجاري."
-        icon={Settings}
-      />
+    <main dir="rtl" className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <Settings className="h-6 w-6 text-primary" />
+          الإعدادات
+        </h1>
+        <p className="text-muted-foreground">
+          إدارة بيانات حسابك والملف التعريفي لنشاطك التجاري.
+        </p>
+      </div>
 
       <Tabs defaultValue="credentials" dir="rtl">
         <TabsList>
@@ -208,27 +215,29 @@ export default function PortalAccountPage() {
         </TabsList>
 
         <TabsContent value="credentials" className="mt-5">
-          <SurfaceCard>
-            <AccountForm
-              user={{
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                phoneWhatsapp: user.phoneWhatsapp,
-                avatarUrl: user.avatarUrl,
-                role: user.role,
-              }}
-              onUpdate={handleUpdate}
-              onUploadAvatar={handleUploadAvatar}
-              isLoading={isLoading || isUploading}
-            />
-          </SurfaceCard>
+          <Card>
+            <CardContent className="p-5">
+              <AccountForm
+                user={{
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  phoneWhatsapp: user.phoneWhatsapp,
+                  avatarUrl: user.avatarUrl,
+                  role: user.role,
+                }}
+                onUpdate={handleUpdate}
+                onUploadAvatar={handleUploadAvatar}
+                isLoading={isLoading || isUploading}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="business" className="mt-5">
           {renderBusinessInfo()}
         </TabsContent>
       </Tabs>
-    </div>
+    </main>
   );
 }

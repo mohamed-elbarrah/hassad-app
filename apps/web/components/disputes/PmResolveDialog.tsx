@@ -61,7 +61,7 @@ export function PmResolveDialog({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-natural-100">
+          <label className="text-sm font-medium text-foreground">
             رسالة الحل <span className="text-red-500">*</span>
           </label>
           <Textarea
@@ -77,12 +77,12 @@ export function PmResolveDialog({
               className={
                 message.trim().length >= 10
                   ? "text-green-600"
-                  : "text-portal-note-text"
+                  : "text-muted-foreground"
               }
             >
               {message.trim().length}/10 أحرف على الأقل
             </span>
-            <span className="text-portal-note-text">الحد الأقصى 1000 حرف</span>
+            <span className="text-muted-foreground">الحد الأقصى 1000 حرف</span>
           </div>
         </div>
 

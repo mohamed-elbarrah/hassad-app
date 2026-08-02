@@ -14,7 +14,7 @@
 import type { ReactNode } from "react";
 import { SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Button } from "@/components/ui/button";
 import { BriefCard } from "@/components/client-brief/BriefCard";
 import { ClientBriefField } from "@/components/client-brief/ClientBriefField";
 import type { LucideIcon } from "lucide-react";
@@ -57,27 +57,28 @@ export function SectionLayout({
           <div className="flex items-start justify-between gap-4">
             <div>
               {stepNumber !== undefined && (
-                <p className="text-sm font-medium text-portal-icon mb-1">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
                   الخطوة {stepNumber}
                 </p>
               )}
-              <h3 className="text-xl font-bold text-natural-100">{title}</h3>
+              <h3 className="text-xl font-bold text-foreground">{title}</h3>
             </div>
             {isOptional && onSkip && (
-              <ActionButton
+              <Button
                 variant="ghost"
                 size="sm"
                 onClick={onSkip}
-                icon={<SkipForward className="w-4 h-4" />}
-                iconPosition="left"
+                data-icon="inline-start"
+                className="gap-2"
               >
+                <SkipForward className="h-4 w-4" />
                 تخطي
-              </ActionButton>
+              </Button>
             )}
           </div>
 
           {instructions && instructions.length > 0 && (
-            <p className="text-sm leading-relaxed text-secondary-700 mb-6">
+            <p className="text-sm leading-relaxed text-foreground mb-6">
               {instructions.join(" ")}
             </p>
           )}
@@ -93,7 +94,7 @@ export function SectionLayout({
     return (
       <BriefCard className={className} contentClassName="p-6">
         <div className="space-y-5">
-          <h3 className="text-lg font-bold text-natural-100">{title}</h3>
+          <h3 className="text-lg font-bold text-foreground">{title}</h3>
           {children}
         </div>
       </BriefCard>
@@ -104,7 +105,7 @@ export function SectionLayout({
   return (
     <BriefCard className={className} contentClassName="p-6">
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-natural-100">{title}</h3>
+        <h3 className="text-lg font-bold text-foreground">{title}</h3>
         {children}
       </div>
     </BriefCard>
@@ -126,15 +127,15 @@ export function NavigationButtons({
   submitLabel = "التالي",
 }: NavigationButtonsProps) {
   return (
-    <div className="flex items-center justify-between gap-3 pt-4 border-t border-portal-divider">
+    <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
       {onBack && (
-        <ActionButton type="button" variant="outline" onClick={onBack}>
+        <Button type="button" variant="outline" onClick={onBack}>
           السابق
-        </ActionButton>
+        </Button>
       )}
-      <ActionButton type="submit" variant="primary" className="mr-auto">
+      <Button type="submit" className="mr-auto">
         {submitLabel}
-      </ActionButton>
+      </Button>
     </div>
   );
 }
@@ -212,8 +213,8 @@ export function SectionSubtitle({
   children,
 }: SectionSubtitleProps) {
   return (
-    <h4 className="text-sm font-semibold text-natural-100 flex items-center gap-2 mb-4">
-      {Icon && <Icon className="w-4 h-4 text-portal-icon" aria-hidden="true" />}
+    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
+      {Icon && <Icon className="w-4 h-4 text-muted-foreground" aria-hidden="true" />}
       {children}
     </h4>
   );

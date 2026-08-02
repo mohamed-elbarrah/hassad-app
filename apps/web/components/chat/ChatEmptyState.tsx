@@ -4,30 +4,30 @@ import { MessageSquare } from "lucide-react";
 
 export function ChatEmptyState() {
   return (
-    <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-natural-0 to-badge-gray-bg/30">
-      <div className="text-center px-8 max-w-sm">
+    <div className="flex flex-1 items-center justify-center bg-gradient-to-b from-background to-muted/30">
+      <div className="max-w-sm px-8 text-center">
         {/* Illustration */}
-        <div className="relative mx-auto mb-6 w-24 h-24">
-          <div className="absolute inset-0 rounded-full bg-secondary-500/10 animate-pulse" />
-          <div className="relative w-24 h-24 rounded-full bg-secondary-500/10 flex items-center justify-center">
-            <MessageSquare className="w-10 h-10 text-secondary-500" />
+        <div className="relative mx-auto mb-6 h-24 w-24">
+          <div className="absolute inset-0 animate-pulse rounded-full bg-primary/10" />
+          <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
+            <MessageSquare className="h-10 w-10 text-primary" />
           </div>
         </div>
 
-        <h3 className="text-xl font-semibold text-natural-100 mb-2">
+        <h3 className="mb-2 text-xl font-semibold text-foreground">
           مرحباً بك في المحادثات
         </h3>
-        <p className="text-sm text-portal-note-text leading-relaxed mb-6">
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
           اختر محادثة من القائمة لبدء المراسلة، أو أنشئ محادثة جديدة للتواصل مع
           فريقك وعملائك.
         </p>
 
         {/* Feature hints */}
         <div className="space-y-3 text-right">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-badge-gray-bg">
-            <div className="w-8 h-8 rounded-lg bg-secondary-500/10 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3 rounded-xl bg-muted p-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <svg
-                className="w-4 h-4 text-secondary-500"
+                className="h-4 w-4 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -40,14 +40,14 @@ export function ChatEmptyState() {
                 />
               </svg>
             </div>
-            <p className="text-xs text-portal-note-text">
+            <p className="text-xs text-muted-foreground">
               تواصل مع فريق العمل والعملاء بشكل مباشر
             </p>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-badge-gray-bg">
-            <div className="w-8 h-8 rounded-lg bg-secondary-500/10 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3 rounded-xl bg-muted p-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <svg
-                className="w-4 h-4 text-secondary-500"
+                className="h-4 w-4 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -60,14 +60,14 @@ export function ChatEmptyState() {
                 />
               </svg>
             </div>
-            <p className="text-xs text-portal-note-text">
+            <p className="text-xs text-muted-foreground">
               أرفق الملفات والصور بسهولة
             </p>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-badge-gray-bg">
-            <div className="w-8 h-8 rounded-lg bg-secondary-500/10 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3 rounded-xl bg-muted p-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <svg
-                className="w-4 h-4 text-secondary-500"
+                className="h-4 w-4 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -80,7 +80,7 @@ export function ChatEmptyState() {
                 />
               </svg>
             </div>
-            <p className="text-xs text-portal-note-text">
+            <p className="text-xs text-muted-foreground">
               استلم إشعارات فورية عند وصول رسائل جديدة
             </p>
           </div>
