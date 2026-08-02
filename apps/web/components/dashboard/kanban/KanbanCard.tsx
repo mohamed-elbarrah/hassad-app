@@ -2,6 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 interface KanbanCardProps {
   id: string;
@@ -38,12 +39,12 @@ export function KanbanCard({
   });
 
   return (
-    <div
+    <Card
       ref={setNodeRef}
       className={cn(
-        "group bg-white rounded-2xl border-[1.5px] border-portal-card-border p-4 transition-all duration-150",
+        "group border-border p-4 transition-all duration-150",
         canDrag &&
-          "cursor-grab active:cursor-grabbing hover:border-secondary-500/20",
+          "cursor-grab active:cursor-grabbing hover:border-secondary-500/20 hover:shadow-sm",
         !canDrag && "cursor-default opacity-80",
         (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
         isOverlay && "shadow-lg",
@@ -52,6 +53,6 @@ export function KanbanCard({
       onClick={onClick}
     >
       {children}
-    </div>
+    </Card>
   );
 }

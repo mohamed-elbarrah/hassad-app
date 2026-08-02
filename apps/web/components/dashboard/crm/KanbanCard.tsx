@@ -8,29 +8,26 @@ import { cn } from "@/lib/utils";
 import {
   Building2,
   Clock,
-  GripVertical,
-  Phone,
   FileText,
-  PenLine,
+  GripVertical,
   History,
+  PenLine,
+  Phone,
 } from "lucide-react";
 import { RequestStatus } from "@hassad/shared";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface KanbanCardProps {
   client: RequestItem;
   isOverlay?: boolean;
-  accentColor?: string;
-  /** Called when user clicks "Create Proposal" (PROPOSAL_IN_PROGRESS stage) */
   onCreateProposal?: (request: RequestItem) => void;
-  /** Called when user clicks "Edit Proposal" (PROPOSAL_SENT stage) */
   onEditProposal?: (request: RequestItem) => void;
-  /** Called when user clicks "Create Contract" (CONTRACT_PREPARATION stage) */
   onCreateContract?: (request: RequestItem) => void;
-  /** Called when user clicks "Edit Contract" (CONTRACT_SENT stage) */
   onEditContract?: (request: RequestItem) => void;
 }
 
-/** Parse a short description from the notes JSON (if any) */
 function parseDescription(notes?: string | null): string | null {
   if (!notes) return null;
   try {
@@ -41,7 +38,6 @@ function parseDescription(notes?: string | null): string | null {
   }
 }
 
-/** Format relative "last activity" time in Arabic */
 function formatRelativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diff / 60_000);
@@ -59,10 +55,56 @@ function formatRelativeTime(dateStr: string): string {
   }).format(new Date(dateStr));
 }
 
+function getPrimaryAction(request: RequestItem) {
+  const proposalId = request.proposals?.[0]?.id;
+  const contractId = request.contracts?.[0]?.id;
+
+  switch (request.status) {
+    case RequestStatus.PROPOSAL_IN_PROGRESS:
+      return {
+        href: proposalId
+          ? `/dashboard/sales/proposals/${proposalId}`
+          : `/dashboard/sales/requests/${request.id}`,
+        label: proposalId ? "فتح العرض" : "إكمال العرض",
+        icon: FileText,
+      };
+    case RequestStatus.PROPOSAL_SENT:
+    case RequestStatus.NEGOTIATION:
+      return {
+        href: proposalId
+          ? `/dashboard/sales/proposals/${proposalId}`
+          : `/dashboard/sales/requests/${request.id}`,
+        label: proposalId ? "مراجعة العرض" : "متابعة العرض",
+        icon: FileText,
+      };
+    case RequestStatus.CONTRACT_PREPARATION:
+      return {
+        href: contractId
+          ? `/dashboard/sales/contracts/${contractId}`
+          : `/dashboard/sales/requests/${request.id}`,
+        label: contractId ? "فتح العقد" : "تجهيز العقد",
+        icon: FileText,
+      };
+    case RequestStatus.CONTRACT_SENT:
+      return {
+        href: contractId
+          ? `/dashboard/sales/contracts/${contractId}`
+          : `/dashboard/sales/requests/${request.id}`,
+        label: contractId ? "مراجعة العقد" : "متابعة العقد",
+        icon: PenLine,
+      };
+    default:
+      return {
+        href: `/dashboard/sales/requests/${request.id}`,
+        label: "فتح الطلب",
+        icon: History,
+      };
+  }
+}
+
 export function KanbanCard({
   client: request,
   isOverlay = false,
-  accentColor = "#E1E4EA",
   onCreateProposal,
   onEditProposal,
   onCreateContract,
@@ -73,8 +115,8 @@ export function KanbanCard({
     id: request.id,
     data: { status: request.status },
   });
-
   const description = parseDescription(request.notes);
+  const action = getPrimaryAction(request);
 
   function handleClick(e: React.MouseEvent) {
     if (isDragging) return;
@@ -83,175 +125,150 @@ export function KanbanCard({
   }
 
   return (
-    <div
+    <Card
       ref={setNodeRef}
       className={cn(
-        "group bg-white rounded-2xl border-[1.5px] border-portal-card-border p-4 cursor-grab active:cursor-grabbing transition-all duration-150",
-        "hover:border-secondary-500/20",
-        (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
+        "group cursor-grab border-border p-4 transition-all duration-150 active:cursor-grabbing hover:border-secondary-500/20 hover:shadow-sm",
+        (isDragging || isOverlay) && "rotate-1 scale-[1.02] opacity-60",
+        isOverlay && "shadow-lg",
       )}
-      style={
-        isOverlay
-          ? {
-              boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
-              borderLeft: ``,
-              borderColor: "#121936",
-            }
-          : {
-              borderLeft: ``,
-            }
-      }
       {...attributes}
       {...listeners}
       onClick={handleClick}
     >
-      {/* ── Header: Name + Drag Handle ─────────────────────────────── */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p
-            className="text-sm font-semibold leading-tight truncate"
-            style={{ color: "#000000" }}
-          >
-            {request.contactName}
-          </p>
-          {(request.client?.companyName || request.companyName) && (
-            <div className="flex items-center gap-1 mt-1">
-              <Building2
-                className="w-3.5 h-3.5 shrink-0"
-                style={{ color: "#A8ABB2" }}
-              />
-              <p className="text-xs truncate" style={{ color: "#A8ABB2" }}>
-                {request.client?.companyName || request.companyName}
-              </p>
-            </div>
-          )}
-
-          {/* Returning client indicator */}
-          {request.client?.totalProjects != null &&
-            request.client.totalProjects > 0 && (
-              <Link
-                href={`/dashboard/sales/clients/${request.clientId}`}
-                className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <History className="w-3 h-3" />
-                {request.client.totalProjects} مشاريع سابقة
-              </Link>
+      <CardHeader className="p-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold leading-tight text-foreground">
+              {request.contactName}
+            </p>
+            {(request.client?.companyName || request.companyName) && (
+              <div className="mt-1 flex items-center gap-1">
+                <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <p className="truncate text-xs text-muted-foreground">
+                  {request.client?.companyName || request.companyName}
+                </p>
+              </div>
             )}
+            {request.client?.totalProjects != null &&
+              request.client.totalProjects > 0 && (
+                <Link
+                  href={`/dashboard/sales/clients/${request.clientId}`}
+                  className="mt-1 flex items-center gap-1 text-xs text-primary hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <History className="h-3 w-3" />
+                  {request.client.totalProjects} مشاريع سابقة
+                </Link>
+              )}
+          </div>
+          <GripVertical className="mt-0.5 h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-40 text-muted-foreground" />
         </div>
-        <GripVertical
-          className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity"
-          style={{ color: "#A8ABB2" }}
-        />
-      </div>
+      </CardHeader>
 
-      {/* ── Short Description ──────────────────────────────────────── */}
       {description && (
-        <p
-          className="text-xs mt-3 line-clamp-2 leading-relaxed"
-          style={{
-            color: "rgba(0, 0, 0, 0.5)",
-            borderTop: "1.5px solid #ECEEF2",
-            paddingTop: 10,
-          }}
-        >
-          {description}
-        </p>
+        <>
+          <Separator className="my-3" />
+          <CardContent className="p-0">
+            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+          </CardContent>
+        </>
       )}
 
-      {/* ── Footer: Phone + Last Activity ─────────────────────────── */}
-      <div className="flex items-center justify-between mt-3 pt-2 gap-2">
-        <div className="flex items-center gap-1 text-xs min-w-0">
-          <Phone
-            className="w-3.5 h-3.5 shrink-0"
-            style={{ color: "#A8ABB2" }}
-          />
-          <span dir="ltr" className="truncate" style={{ color: "#A8ABB2" }}>
+      <Separator className="my-3" />
+
+      <CardContent className="flex items-center justify-between gap-2 p-0 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-1">
+          <Phone className="h-3.5 w-3.5 shrink-0" />
+          <span dir="ltr" className="truncate">
             {request.phoneWhatsapp}
           </span>
         </div>
-        <div className="flex items-center gap-1 text-xs shrink-0">
-          <Clock className="w-3.5 h-3.5" style={{ color: "#A8ABB2" }} />
-          <span style={{ color: "#A8ABB2" }}>
-            {formatRelativeTime(request.updatedAt)}
-          </span>
+        <div className="flex shrink-0 items-center gap-1">
+          <Clock className="h-3.5 w-3.5" />
+          <span>{formatRelativeTime(request.updatedAt)}</span>
         </div>
-      </div>
+      </CardContent>
 
-      {/* ── Pipeline Action Buttons ───────────────────────────────── */}
-      {request.status === RequestStatus.PROPOSAL_IN_PROGRESS &&
-        onCreateProposal && (
-          <button
+      <CardFooter className="mt-3 flex flex-col gap-2 p-0">
+        {request.status === RequestStatus.PROPOSAL_IN_PROGRESS &&
+          onCreateProposal && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full justify-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateProposal(request);
+              }}
+            >
+              <FileText data-icon="inline-start" />
+              إنشاء عرض فني
+            </Button>
+          )}
+        {request.status === RequestStatus.PROPOSAL_SENT && onEditProposal && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full justify-center"
             onClick={(e) => {
               e.stopPropagation();
-              onCreateProposal(request);
-            }}
-            className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
-            style={{
-              backgroundColor: "#EFF6FF",
-              color: "#1D4ED8",
-              border: "1px solid #BFDBFE",
+              onEditProposal(request);
             }}
           >
-            <FileText className="w-3.5 h-3.5" />
-            إنشاء عرض فني
-          </button>
+            <PenLine data-icon="inline-start" />
+            تعديل العرض
+          </Button>
         )}
-
-      {request.status === RequestStatus.PROPOSAL_SENT && onEditProposal && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditProposal(request);
-          }}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
-          style={{
-            backgroundColor: "#FFFBEB",
-            color: "#92400E",
-            border: "1px solid #FDE68A",
-          }}
-        >
-          <PenLine className="w-3.5 h-3.5" />
-          تعديل العرض
-        </button>
-      )}
-
-      {request.status === RequestStatus.CONTRACT_PREPARATION &&
-        onCreateContract && (
-          <button
+        {request.status === RequestStatus.CONTRACT_PREPARATION &&
+          onCreateContract && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full justify-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateContract(request);
+              }}
+            >
+              <FileText data-icon="inline-start" />
+              إنشاء عقد
+            </Button>
+          )}
+        {request.status === RequestStatus.CONTRACT_SENT && onEditContract && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full justify-center"
             onClick={(e) => {
               e.stopPropagation();
-              onCreateContract(request);
-            }}
-            className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
-            style={{
-              backgroundColor: "#F5F3FF",
-              color: "#6D28D9",
-              border: "1px solid #DDD6FE",
+              onEditContract(request);
             }}
           >
-            <FileText className="w-3.5 h-3.5" />
-            إنشاء عقد
-          </button>
+            <PenLine data-icon="inline-start" />
+            تعديل العقد
+          </Button>
         )}
-
-      {request.status === RequestStatus.CONTRACT_SENT && onEditContract && (
-        <button
+        <Button
+          type="button"
+          variant={request.status === RequestStatus.SIGNED ? "secondary" : "default"}
+          size="sm"
+          className="w-full justify-center"
           onClick={(e) => {
             e.stopPropagation();
-            onEditContract(request);
-          }}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
-          style={{
-            backgroundColor: "#ECFEFF",
-            color: "#155E75",
-            border: "1px solid #CFFAFE",
+            router.push(action.href);
           }}
         >
-          <PenLine className="w-3.5 h-3.5" />
-          تعديل العقد
-        </button>
-      )}
-    </div>
+          <action.icon data-icon="inline-start" />
+          {action.label}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

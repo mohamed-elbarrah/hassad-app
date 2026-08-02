@@ -1,15 +1,15 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-
-interface PortalEmptyStateProps {
-  icon: LucideIcon;
-  title: string;
-  description?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 export function PortalEmptyState({
   icon: Icon,
@@ -17,21 +17,27 @@ export function PortalEmptyState({
   description,
   actionLabel,
   onAction,
-}: PortalEmptyStateProps) {
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-badge-gray-bg flex items-center justify-center">
-        <Icon className="w-8 h-8 text-secondary-500" />
-      </div>
-      <p className="text-base font-medium text-natural-100 mb-1">{title}</p>
-      {description && (
-        <p className="text-sm text-portal-note-text mb-4">{description}</p>
-      )}
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icon />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+      </EmptyHeader>
       {actionLabel && onAction && (
-        <ActionButton variant="primary" onClick={onAction}>
-          {actionLabel}
-        </ActionButton>
+        <EmptyContent>
+          <Button onClick={onAction}>{actionLabel}</Button>
+        </EmptyContent>
       )}
-    </div>
+    </Empty>
   );
 }

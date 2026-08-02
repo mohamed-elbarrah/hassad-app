@@ -1,10 +1,15 @@
 "use client";
 
-import { Calendar } from "lucide-react";
-import { Popover } from "@/components/design-system/Popover";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { QueueToolbar } from "@/components/portal/shared/QueueToolbar";
-import { cn } from "@/lib/utils";
+import { Calendar, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { formatShortDateLong } from "@/lib/format";
 
 export interface DateRange {
@@ -12,178 +17,127 @@ export interface DateRange {
   to?: Date;
 }
 
-interface ContractsToolbarProps {
-  search: string;
-  onSearchChange: (v: string) => void;
-  dateRange: DateRange;
-  onDateRangeChange: (range: DateRange) => void;
-  totalCount: number;
-  visibleCount: number;
-}
-
 export function ContractsToolbar({
   search,
   onSearchChange,
   dateRange,
   onDateRangeChange,
-  totalCount,
-  visibleCount,
-}: ContractsToolbarProps) {
-  return (
-    <QueueToolbar
-      searchValue={search}
-      onSearchChange={onSearchChange}
-      searchPlaceholder="ابحث باسم العقد…"
-      countLabel="عقد"
-      count={visibleCount}
-      actions={
-        <DateRangePopover value={dateRange} onChange={onDateRangeChange} />
-      }
-    />
-  );
-}
-
-// ─── Date range popover ──────────────────────────────────────────────────────
-
-function DateRangePopover({
-  value,
-  onChange,
 }: {
-  value: DateRange;
-  onChange: (range: DateRange) => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+  dateRange: DateRange;
+  onDateRangeChange: (range: DateRange) => void;
+  totalCount: number;
+  visibleCount: number;
 }) {
-  const hasRange = !!value.from || !!value.to;
-  const label = hasRange
-    ? `${formatShortDateLong(value.from?.toISOString() ?? null)} → ${formatShortDateLong(value.to?.toISOString() ?? null)}`
-    : "اختر التاريخ";
-
+  const label =
+    dateRange.from || dateRange.to
+      ? `${formatShortDateLong(dateRange.from?.toISOString() ?? null)} - ${formatShortDateLong(dateRange.to?.toISOString() ?? null)}`
+      : "اختر التاريخ";
+  const toDate = (date?: Date) => (date ? date.toISOString().slice(0, 10) : "");
   return (
-    <Popover
-      align="start"
-      contentClassName="w-auto p-0"
-      trigger={
-        <ActionButton
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "h-9 rounded-lg border px-3 text-[12.5px] font-medium gap-1.5",
-            hasRange
-              ? "border-primary-300 bg-primary-100 text-primary-700"
-              : "border-portal-card-border bg-natural-0 text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500",
-          )}
-        >
-          <Calendar className="h-3.5 w-3.5" />
-          <span className="tabular-nums">{label}</span>
-        </ActionButton>
-      }
+    <div
+      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      dir="rtl"
     >
-      <DateRangePanel value={value} onChange={onChange} />
-    </Popover>
-  );
-}
-
-function DateRangePanel({
-  value,
-  onChange,
-}: {
-  value: DateRange;
-  onChange: (range: DateRange) => void;
-}) {
-  function presetLast7() {
-    onChange({
-      from: new Date(new Date().setDate(new Date().getDate() - 7)),
-      to: new Date(),
-    });
-  }
-  function presetToday() {
-    onChange({ from: new Date(), to: new Date() });
-  }
-  function updateFrom(iso: string) {
-    onChange({ ...value, from: iso ? new Date(iso) : undefined });
-  }
-  function updateTo(iso: string) {
-    onChange({ ...value, to: iso ? new Date(iso) : undefined });
-  }
-
-  return (
-    <div className="p-3 flex flex-col gap-3 w-[280px]">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-natural-100">
-          تحديد الفترة
-        </span>
-        <button
-          type="button"
-          onClick={() => onChange({})}
-          className="text-xs font-medium text-portal-note-text hover:text-secondary-500 transition-colors"
-        >
-          مسح
-        </button>
-      </div>
-
-      <div className="flex gap-2">
-        <ActionButton
-          variant="ghost"
-          size="sm"
-          onClick={presetLast7}
-          className="flex-1 h-8 rounded-lg border border-portal-card-border bg-natural-0 text-[12px] font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
-        >
-          آخر 7 أيام
-        </ActionButton>
-        <ActionButton
-          variant="ghost"
-          size="sm"
-          onClick={presetToday}
-          className="flex-1 h-8 rounded-lg border border-portal-card-border bg-natural-0 text-[12px] font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
-        >
-          اليوم
-        </ActionButton>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <DateField
-          label="من"
-          value={value.from ? toInputDate(value.from) : ""}
-          onChange={updateFrom}
+      <div className="relative w-full sm:max-w-md">
+        <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="ps-9 pe-9"
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="ابحث باسم العقد..."
         />
-        <DateField
-          label="إلى"
-          value={value.to ? toInputDate(value.to) : ""}
-          onChange={updateTo}
-        />
+        {search ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute end-1 top-1/2 size-8 -translate-y-1/2"
+            onClick={() => onSearchChange("")}
+            aria-label="مسح البحث"
+          >
+            <X />
+          </Button>
+        ) : null}
       </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline">
+            <Calendar />
+            {label}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="flex flex-col gap-3" dir="rtl">
+          <div className="flex items-center justify-between">
+            <p className="font-medium">تحديد الفترة</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDateRangeChange({})}
+            >
+              مسح
+            </Button>
+          </div>
+          <Separator />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                onDateRangeChange({
+                  from: new Date(new Date().setDate(new Date().getDate() - 7)),
+                  to: new Date(),
+                })
+              }
+            >
+              آخر 7 أيام
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                onDateRangeChange({ from: new Date(), to: new Date() })
+              }
+            >
+              اليوم
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="contract-date-from">من</Label>
+              <Input
+                id="contract-date-from"
+                type="date"
+                value={toDate(dateRange.from)}
+                onChange={(event) =>
+                  onDateRangeChange({
+                    ...dateRange,
+                    from: event.target.value
+                      ? new Date(event.target.value)
+                      : undefined,
+                  })
+                }
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="contract-date-to">إلى</Label>
+              <Input
+                id="contract-date-to"
+                type="date"
+                value={toDate(dateRange.to)}
+                onChange={(event) =>
+                  onDateRangeChange({
+                    ...dateRange,
+                    to: event.target.value
+                      ? new Date(event.target.value)
+                      : undefined,
+                  })
+                }
+              />
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
-}
-
-function DateField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (iso: string) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-portal-note-text">{label}</span>
-      <input
-        type="date"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn(
-          "h-9 rounded-lg border border-portal-card-border bg-natural-0 px-2.5",
-          "text-[12px] text-natural-100",
-          "focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400",
-        )}
-      />
-    </label>
-  );
-}
-
-function toInputDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
 }

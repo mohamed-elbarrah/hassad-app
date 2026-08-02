@@ -11,16 +11,14 @@
 export interface KanbanStageConfig {
   /** Arabic label shown in the column header */
   label: string;
-  /** Dot colour (also used as the top accent border on the cards area) */
-  dotColor: string;
-  /** Background of the tinted header band */
-  bandBg: string;
-  /** Background of the cards area */
-  surfaceBg: string;
-  /** Text colour of the count badge */
-  countText: string;
-  /** Background of the count badge */
-  countBg: string;
+  /** Token class for the stage dot */
+  dotClass: string;
+  /** Token class for the tinted header band */
+  bandClass: string;
+  /** Token class for the cards area */
+  surfaceClass: string;
+  /** Token class for the stage count badge */
+  countClass: string;
   /** Text shown when the column is empty (default: "لا يوجد") */
   emptyLabel?: string;
 }

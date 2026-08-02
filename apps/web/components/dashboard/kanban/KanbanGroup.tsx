@@ -1,6 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface KanbanGroupProps {
   label: string;
@@ -16,42 +18,19 @@ interface KanbanGroupProps {
  */
 export function KanbanGroup({ label, totalCount, children }: KanbanGroupProps) {
   return (
-    <div
-      className={cn(
-        "flex-1 min-w-[340px] flex flex-col rounded-2xl border-[1.5px] overflow-hidden bg-white",
-      )}
-      style={{ borderColor: "#E1E4EA" }}
-      dir="rtl"
-    >
-      {/* ── Group Header ─────────────────────────────────────────────── */}
-      <div
-        className="flex items-center gap-2 px-4 py-3"
-        style={{ borderBottom: "1.5px solid #ECEEF2" }}
-      >
-        <span
-          className="font-bold text-sm flex-1 truncate"
-          style={{ color: "#000000" }}
-        >
+    <Card className="flex min-w-[340px] flex-1 flex-col overflow-hidden" dir="rtl">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 p-4">
+        <CardTitle className="min-w-0 truncate text-sm font-semibold">
           {label}
-        </span>
-        <span
-          className="inline-flex items-center justify-center rounded-full text-xs font-semibold tabular-nums shrink-0"
-          style={{
-            backgroundColor: "rgba(18, 25, 54, 0.05)",
-            color: "#121936",
-            minWidth: 28,
-            height: 24,
-            padding: "0 10px",
-          }}
-        >
+        </CardTitle>
+        <Badge variant="secondary" className="shrink-0 tabular-nums">
           {totalCount}
-        </span>
-      </div>
-
-      {/* ── Stages Stack (vertical) ─────────────────────────────────── */}
-      <div className="flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
+        </Badge>
+      </CardHeader>
+      <Separator />
+      <CardContent className="flex flex-1 flex-col gap-3 p-3">
         {children}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

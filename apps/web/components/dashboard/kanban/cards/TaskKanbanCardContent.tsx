@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { Calendar, GripVertical, User } from "lucide-react";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
 import { TaskStatus } from "@hassad/shared";
 import { formatShortDate } from "@/lib/format";
 import {
-  TASK_STATUS_COLOR,
+  TASK_STATUS_TONES,
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
 } from "@/lib/utils/task-status";
 import type { TaskWithMeta } from "@/lib/utils/task-status";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface TaskKanbanCardContentProps {
   task: TaskWithMeta;
@@ -28,14 +29,7 @@ export function TaskKanbanCardContent({
   task,
   detailPath,
 }: TaskKanbanCardContentProps) {
-  const statusColor = TASK_STATUS_COLOR[task.status as TaskStatus];
-
-  const priorityTone =
-    task.priority === "URGENT"
-      ? "danger"
-      : task.priority === "HIGH"
-        ? "warning"
-        : "neutral";
+  const statusTone = TASK_STATUS_TONES[task.status as TaskStatus];
 
   return (
     <>
@@ -43,36 +37,26 @@ export function TaskKanbanCardContent({
       <div className="flex items-start justify-between gap-2">
         <Link
           href={`${detailPath}/${task.id}`}
-          className="text-sm font-semibold leading-tight hover:underline line-clamp-2 block flex-1 min-w-0 transition-colors"
-          style={{ color: "#000000" }}
+          className="block flex-1 min-w-0 text-sm font-semibold leading-tight line-clamp-2 transition-colors text-foreground hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
           {task.title}
         </Link>
-        <GripVertical
-          className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity"
-          style={{ color: "#A8ABB2" }}
-        />
+        <GripVertical className="mt-0.5 h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-40 text-muted-foreground" />
       </div>
 
       {/* ── Description ────────────────────────────────────────────── */}
       {task.description && (
-        <p
-          className="text-xs mt-2 line-clamp-2 leading-relaxed"
-          style={{ color: "#A8ABB2" }}
-        >
+        <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
           {task.description}
         </p>
       )}
 
       {/* ── Status indicator bar ───────────────────────────────────── */}
       <div className="mt-3 flex items-center gap-2">
-        <div
-          className="h-1.5 flex-1 rounded-full"
-          style={{ backgroundColor: `${statusColor}20` }}
-        >
+        <div className="h-1.5 flex-1 rounded-full bg-muted">
           <div
-            className="h-full rounded-full"
+            className={cn("h-full rounded-full", statusTone.fillClass)}
             style={{
               width:
                 task.status === TaskStatus.DONE
@@ -80,7 +64,6 @@ export function TaskKanbanCardContent({
                   : task.status === TaskStatus.IN_PROGRESS
                     ? "50%"
                     : "15%",
-              backgroundColor: statusColor,
             }}
           />
         </div>
@@ -88,39 +71,29 @@ export function TaskKanbanCardContent({
 
       {/* ── Priority & Status badges ──────────────────────────────── */}
       <div className="mt-3 flex items-center justify-between gap-2">
-        <StatusBadge
-          status={priorityTone}
-          label={
-            TASK_PRIORITY_LABELS[
-              task.priority as keyof typeof TASK_PRIORITY_LABELS
-            ] ?? task.priority
-          }
-          className="text-[10px]"
-        />
-        <span
-          className="text-[11px] font-medium px-2 py-0.5 rounded-full"
-          style={{
-            color: statusColor,
-            backgroundColor: `${statusColor}15`,
-          }}
+        <Badge variant="secondary" className="text-[10px]">
+          {TASK_PRIORITY_LABELS[
+            task.priority as keyof typeof TASK_PRIORITY_LABELS
+          ] ?? task.priority}
+        </Badge>
+        <Badge
+          variant="outline"
+          className={cn("text-[11px]", statusTone.badgeClass)}
         >
           {TASK_STATUS_LABELS[task.status as TaskStatus]}
-        </span>
+        </Badge>
       </div>
 
       {/* ── Meta: Assignee & Due Date ──────────────────────────────── */}
-      <div
-        className="mt-2 flex flex-col gap-1 text-[11px]"
-        style={{ color: "#A8ABB2" }}
-      >
+      <div className="mt-2 flex flex-col gap-1 text-[11px] text-muted-foreground">
         {task.assignee && (
           <div className="flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 shrink-0" />
+            <User className="h-3.5 w-3.5 shrink-0" />
             <span>{task.assignee.name}</span>
           </div>
         )}
         <div className="flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 shrink-0" />
+          <Calendar className="h-3.5 w-3.5 shrink-0" />
           <span>{formatShortDate(task.dueDate)}</span>
         </div>
       </div>

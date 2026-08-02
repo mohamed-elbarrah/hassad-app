@@ -1,94 +1,21 @@
 "use client";
 
 import { CheckCircle2, Circle, Loader2, Target } from "lucide-react";
-import type { PeriodGoal, PeriodGoalStatus } from "@hassad/shared";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import type { PeriodGoal } from "@hassad/shared";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "./EmptyState";
-import { cn } from "@/lib/utils";
 
-type GoalStatus = PeriodGoalStatus;
+const GOAL_CONFIG = {
+  done: { label: "مكتمل", icon: CheckCircle2, variant: "default" },
+  in_progress: { label: "قيد التنفيذ", icon: Loader2, variant: "secondary" },
+  pending: { label: "معلق", icon: Circle, variant: "outline" },
+} as const;
 
-const GOAL_STATUS_CONFIG: Record<
-  GoalStatus,
-  { badge: string; barColor: string; label: string }
-> = {
-  done: {
-    badge: "bg-success-100 text-success-700",
-    barColor: "bg-success-1000",
-    label: "مكتمل",
-  },
-  in_progress: {
-    badge: "bg-secondary-100 text-secondary-700",
-    barColor: "bg-secondary-500",
-    label: "قيد التنفيذ",
-  },
-  pending: {
-    badge: "bg-neutral-100 text-neutral-500",
-    barColor: "bg-neutral-300",
-    label: "معلق",
-  },
-};
-
-const STATUS_ICON: Record<GoalStatus, React.ReactNode> = {
-  done: <CheckCircle2 className="size-5 text-success-500" />,
-  in_progress: <Loader2 className="size-5 animate-spin text-secondary-500" />,
-  pending: <Circle className="size-5 text-neutral-300" />,
-};
-
-function GoalRow({ goal }: { goal: PeriodGoal }) {
-  const config = GOAL_STATUS_CONFIG[goal.status];
-
-  return (
-    <div className="flex items-center gap-4 border-b border-portal-divider py-4 last:border-0">
-      <div className="shrink-0">{STATUS_ICON[goal.status]}</div>
-      <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            "text-sm font-medium text-natural-100",
-            goal.status === "done" && "text-neutral-400 line-through",
-          )}
-        >
-          {goal.title}
-        </p>
-        {goal.description && (
-          <p className="truncate text-xs text-portal-note-text">
-            {goal.description}
-          </p>
-        )}
-      </div>
-      <div className="hidden w-40 items-center gap-3 sm:flex">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100">
-          <div
-            className={cn(
-              "h-full rounded-full transition-all",
-              config.barColor,
-            )}
-            style={{ width: `${goal.progress}%` }}
-          />
-        </div>
-        <span className="w-8 text-xs font-medium text-portal-note-text">
-          {goal.progress}%
-        </span>
-      </div>
-      <span
-        className={cn(
-          "shrink-0 rounded-full px-2.5 py-1 text-caption font-medium",
-          config.badge,
-        )}
-      >
-        {config.label}
-      </span>
-    </div>
-  );
-}
-
-interface GoalsTabProps {
-  goals: PeriodGoal[];
-}
-
-/** Goals tab — PM-defined goals for the selected period. */
-export function GoalsTab({ goals }: GoalsTabProps) {
-  if (!goals || goals.length === 0) {
+export function GoalsTab({ goals }: { goals: PeriodGoal[] }) {
+  if (!goals?.length)
     return (
       <EmptyState
         icon={Target}
@@ -96,15 +23,49 @@ export function GoalsTab({ goals }: GoalsTabProps) {
         description="سيتم عرض الأهداف فور قيام مدير المشروع بإضافتها."
       />
     );
-  }
-
   return (
-    <SurfaceCard title="أهداف هذه الفترة" icon={Target}>
-      <div className="space-y-1" dir="rtl">
-        {goals.map((goal, idx) => (
-          <GoalRow key={idx} goal={goal} />
-        ))}
-      </div>
-    </SurfaceCard>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target />
+          أهداف هذه الفترة
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {goals.map((goal, index) => {
+          const config = GOAL_CONFIG[goal.status];
+          const Icon = config.icon;
+          return (
+            <div key={index} className="flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <Icon
+                  className={
+                    goal.status === "in_progress"
+                      ? "size-5 animate-spin"
+                      : "size-5"
+                  }
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{goal.title}</p>
+                  {goal.description ? (
+                    <p className="text-sm text-muted-foreground">
+                      {goal.description}
+                    </p>
+                  ) : null}
+                </div>
+                <Badge variant={config.variant}>{config.label}</Badge>
+              </div>
+              <div className="flex items-center gap-3">
+                <Progress value={goal.progress} />
+                <span className="text-sm text-muted-foreground">
+                  {goal.progress}%
+                </span>
+              </div>
+              {index < goals.length - 1 ? <Separator /> : null}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }

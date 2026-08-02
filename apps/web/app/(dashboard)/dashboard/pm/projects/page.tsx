@@ -1,28 +1,48 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, LayoutGrid, Columns3 } from "lucide-react";
-import { Input } from "@/components/design-system/Input";
-import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import { Pagination } from "@/components/design-system/Pagination";
+import { Columns3, FolderKanban, LayoutGrid, Search } from "lucide-react";
+import { ProjectStatus } from "@hassad/shared";
+import { Button } from "@/components/ui/button";
 import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectCard } from "@/components/dashboard/pm/ProjectCard";
-import { ProjectKanbanBoard } from "@/components/dashboard/pm/ProjectKanbanBoard";
 import { ProjectForm } from "@/components/dashboard/pm/ProjectForm";
+import { ProjectKanbanBoard } from "@/components/dashboard/pm/ProjectKanbanBoard";
 import { useGetProjectsQuery } from "@/features/projects/projectsApi";
 import { useAppSelector } from "@/lib/hooks";
 import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
-import { ProjectStatus } from "@hassad/shared";
-import { Tabs, TabsList, TabsTrigger } from "@/components/design-system/Tabs";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { PageToolbar } from "@/components/design-system/PageToolbar";
-import { PmEmptyState } from "@/components/dashboard/pm/shared/PmEmptyState";
-import { FolderKanban } from "lucide-react";
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 12;
 
@@ -31,170 +51,227 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"kanban" | "cards">("kanban");
   const [page, setPage] = useState(1);
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({
-    status: [],
-  });
-
-  // Fetch all projects for kanban + counting; cards view is paginated
+  const [status, setStatus] = useState<"ALL" | ProjectStatus>("ALL");
   const { data: allData } = useGetProjectsQuery(
-    {
-      projectManagerId: user?.role === "PM" ? user.id : undefined,
-      limit: 100,
-    },
+    { projectManagerId: user?.role === "PM" ? user.id : undefined, limit: 100 },
     { skip: !user },
   );
-
-  const statusFilters = activeFilters.status ?? [];
-  const effectiveStatus =
-    statusFilters.length === 1
-      ? (statusFilters[0] as ProjectStatus)
-      : undefined;
-
   const { data, isLoading, isError } = useGetProjectsQuery(
     {
       search: search || undefined,
-      status: effectiveStatus,
+      status: status === "ALL" ? undefined : status,
       projectManagerId: user?.role === "PM" ? user.id : undefined,
       page: view === "cards" ? page : undefined,
       limit: view === "cards" ? PAGE_SIZE : 100,
     },
     { skip: !user },
   );
-
-  // Derive status counts from all-data for the filter bar
-  const filterGroups: FilterGroup[] = useMemo(() => {
-    const counts = new Map<ProjectStatus, number>();
-    Object.values(ProjectStatus).forEach((s) => counts.set(s, 0));
-    (allData?.items ?? []).forEach((p) => {
-      const s = p.status as ProjectStatus;
-      counts.set(s, (counts.get(s) ?? 0) + 1);
-    });
-
-    return [
-      {
-        key: "status",
-        label: "الحالة",
-        options: Object.values(ProjectStatus).map((s) => ({
-          label: PROJECT_STATUS_LABELS[s],
-          value: s,
-          count: counts.get(s) ?? 0,
-        })),
-      },
-    ];
-  }, [allData]);
-
-  const totalPages = data?.totalPages ?? 1;
+  const statusCounts = useMemo(
+    () =>
+      (allData?.items ?? []).reduce<Record<string, number>>(
+        (counts, project) => {
+          counts[project.status] = (counts[project.status] || 0) + 1;
+          return counts;
+        },
+        {},
+      ),
+    [allData],
+  );
 
   if (!user) return null;
 
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="المشاريع"
-        description="إدارة ومتابعة جميع المشاريع تحت إدارتك"
-        icon={FolderKanban}
-        actions={<ProjectForm currentUserId={user.id} />}
-      />
+    <main dir="rtl" className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <FolderKanban />
+            </div>
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-2xl">المشاريع</CardTitle>
+              <CardDescription>
+                إدارة ومتابعة جميع المشاريع تحت إدارتك.
+              </CardDescription>
+            </div>
+          </div>
+          <ProjectForm currentUserId={user.id} />
+        </CardHeader>
+      </Card>
 
-      {/* Filters */}
-      <PageToolbar>
-        <div className="flex-1">
-          <Input
-            placeholder="ابحث عن مشروع..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            icon={<Search className="size-4 text-portal-note-text" />}
-          />
-        </div>
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-6">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="ابحث عن مشروع..."
+                className="pr-10"
+              />
+            </div>
+            <Select
+              value={status}
+              onValueChange={(value) => {
+                setStatus(value as "ALL" | ProjectStatus);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="كل الحالات" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="ALL">كل الحالات</SelectItem>
+                  {Object.values(ProjectStatus).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {PROJECT_STATUS_LABELS[value]} ({statusCounts[value] || 0}
+                      )
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Tabs
+              value={view}
+              onValueChange={(value) => {
+                setView(value as "kanban" | "cards");
+                setPage(1);
+              }}
+            >
+              <TabsList>
+                <TabsTrigger value="kanban">
+                  <Columns3 data-icon="inline-start" />
+                  كانبان
+                </TabsTrigger>
+                <TabsTrigger value="cards">
+                  <LayoutGrid data-icon="inline-start" />
+                  بطاقات
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
 
-        <FilterBar
-          groups={filterGroups}
-          activeFilters={activeFilters}
-          onFilterChange={(key, values) => {
-            setActiveFilters((prev) => ({ ...prev, [key]: values }));
-            setPage(1);
-          }}
-        />
-
-        {/* View toggle */}
-        <Tabs
-          value={view}
-          onValueChange={(v) => {
-            setView(v as "kanban" | "cards");
-            setPage(1);
-          }}
-        >
-          <TabsList className="h-9">
-            <TabsTrigger value="kanban" className="gap-1.5 text-xs">
-              <Columns3 className="size-3.5" />
-              كانبان
-            </TabsTrigger>
-            <TabsTrigger value="cards" className="gap-1.5 text-xs">
-              <LayoutGrid className="size-3.5" />
-              بطاقات
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </PageToolbar>
-
-      {/* Content */}
       {view === "kanban" && (
         <ProjectKanbanBoard
           projectManagerId={user.role === "PM" ? user.id : undefined}
           search={search || undefined}
-          status={effectiveStatus}
+          status={status === "ALL" ? undefined : status}
         />
       )}
-
       {view === "cards" && isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <DSSkeleton key={i} className="h-48 rounded-lg" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-60" />
           ))}
         </div>
       )}
-
       {view === "cards" && isError && (
-        <PmEmptyState
-          icon={FolderKanban}
-          title="حدث خطأ أثناء تحميل المشاريع"
-          description="يرجى تحديث الصفحة والمحاولة مرة أخرى."
-        />
-      )}
-
-      {view === "cards" && !isLoading && !isError && data && (
-        <>
-          {data.items.length === 0 ? (
-            <PmEmptyState
-              icon={FolderKanban}
-              title="لا توجد مشاريع"
-              description="ابدأ بإنشاء مشروع جديد من خلال زر مشروع جديد"
+        <Card>
+          <CardContent className="p-6">
+            <PageEmpty
+              title="تعذر تحميل المشاريع"
+              description="يرجى تحديث الصفحة والمحاولة مرة أخرى."
             />
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {data.items.map((project) => (
-                  <ProjectCard key={project.id} project={project} />
-                ))}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center pt-4">
-                  <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </>
+          </CardContent>
+        </Card>
       )}
-    </div>
+      {view === "cards" &&
+        !isLoading &&
+        !isError &&
+        data &&
+        (data.items.length === 0 ? (
+          <Card>
+            <CardContent className="p-6">
+              <PageEmpty
+                title="لا توجد مشاريع"
+                description="ستظهر المشاريع المسندة إليك هنا."
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {data.items.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+            <PagePagination
+              page={page}
+              totalPages={data.totalPages ?? 1}
+              onPageChange={setPage}
+            />
+          </>
+        ))}
+    </main>
+  );
+}
+
+function PageEmpty({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <FolderKanban />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyDescription>{description}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+}
+function PagePagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            text="السابق"
+            disabled={page === 1}
+            onClick={() => onPageChange(page - 1)}
+          />
+        </PaginationItem>
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+          (item) => (
+            <PaginationItem key={item}>
+              <PaginationLink
+                isActive={item === page}
+                onClick={() => onPageChange(item)}
+              >
+                {item}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+        <PaginationItem>
+          <PaginationNext
+            text="التالي"
+            disabled={page === totalPages}
+            onClick={() => onPageChange(page + 1)}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
   );
 }

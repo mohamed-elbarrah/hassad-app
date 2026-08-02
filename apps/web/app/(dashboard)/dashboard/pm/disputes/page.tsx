@@ -1,32 +1,62 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, ShieldAlert, Ticket } from "lucide-react";
-import type { DisputeStatus } from "@hassad/shared";
-import { useGetPmDisputesQuery } from "@/features/disputes/pmDisputesApi";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  CheckCircle2,
+  Clock3,
+  RefreshCw,
+  ShieldAlert,
+  Ticket,
+} from "lucide-react";
+import { DISPUTE_PRIORITY_AR, type DisputeStatus } from "@hassad/shared";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DisputeEmptyState } from "@/components/disputes/DisputeEmptyState";
-import { PmDisputeCard } from "@/components/disputes/PmDisputeCard";
+import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
+import { useGetPmDisputesQuery } from "@/features/disputes/pmDisputesApi";
 
-const PAGE_SIZE = 9;
-
+const PAGE_SIZE = 12;
 const TABS = [
-  { value: "", label: "الكل", icon: Ticket },
-  { value: "APPROVED", label: "جديدة", icon: Clock3 },
-  { value: "IN_PROGRESS", label: "قيد المعالجة", icon: Clock3 },
-  { value: "ESCALATED", label: "مصعدة", icon: AlertTriangle },
-  { value: "RESOLVED", label: "تم حلها", icon: CheckCircle2 },
+  { value: "", label: "الكل" },
+  { value: "APPROVED", label: "جديدة" },
+  { value: "IN_PROGRESS", label: "قيد المعالجة" },
+  { value: "ESCALATED", label: "مصعدة" },
+  { value: "RESOLVED", label: "تم حلها" },
 ] as const;
 
 export default function PmDisputesPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("");
   const [page, setPage] = useState(1);
-
   const { data, isLoading, refetch, isFetching } = useGetPmDisputesQuery(
     {
       status: (activeTab || undefined) as DisputeStatus | undefined,
@@ -35,31 +65,35 @@ export default function PmDisputesPage() {
     },
     { pollingInterval: 60_000 },
   );
-
-  const disputes = useMemo(() => data?.data ?? [], [data?.data]);
-  const total = data?.meta?.total ?? 0;
-
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return disputes;
-    return disputes.filter((item) =>
-      [item.title, item.client.name, item.project.name]
-        .some((value) => value.toLowerCase().includes(query)),
-    );
-  }, [disputes, search]);
-
+  const disputes = useMemo(
+    () =>
+      (data?.data ?? []).filter((item) => {
+        const query = search.trim().toLowerCase();
+        return (
+          !query ||
+          [item.title, item.client.name, item.project.name].some((value) =>
+            value.toLowerCase().includes(query),
+          )
+        );
+      }),
+    [data?.data, search],
+  );
   const metrics = {
-    active: disputes.filter((item) => ["APPROVED", "IN_PROGRESS"].includes(item.status)).length,
+    active: disputes.filter((item) =>
+      ["APPROVED", "IN_PROGRESS"].includes(item.status),
+    ).length,
     escalated: disputes.filter((item) => item.status === "ESCALATED").length,
-    resolved: disputes.filter((item) => ["RESOLVED", "CLOSED"].includes(item.status)).length,
+    resolved: disputes.filter((item) =>
+      ["RESOLVED", "CLOSED"].includes(item.status),
+    ).length,
   };
-
+  const totalPages = data?.meta.totalPages ?? 1;
   return (
-    <div dir="rtl" className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+    <main dir="rtl" className="flex flex-col gap-6">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-3">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div className="flex size-11 items-center justify-center rounded-lg bg-muted">
               <ShieldAlert />
             </div>
             <div className="flex flex-col gap-1">
@@ -75,31 +109,41 @@ export default function PmDisputesPage() {
           </Button>
         </CardHeader>
       </Card>
-
-      <div className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-3">
         {[
           { label: "نشطة", value: metrics.active, icon: Clock3 },
           { label: "مصعدة", value: metrics.escalated, icon: AlertTriangle },
-          { label: "تم حلها / مغلقة", value: metrics.resolved, icon: CheckCircle2 },
+          {
+            label: "تم حلها / مغلقة",
+            value: metrics.resolved,
+            icon: CheckCircle2,
+          },
         ].map((item) => (
           <Card key={item.label}>
             <CardContent className="flex items-start justify-between gap-4 p-5">
-              <div>
-                <p className="text-sm text-muted-foreground">{item.label}</p>
-                <p className="mt-2 text-2xl font-semibold">{item.value}</p>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+                <span className="text-2xl font-semibold">{item.value}</span>
               </div>
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-                <item.icon className="text-muted-foreground" />
+                <item.icon />
               </div>
             </CardContent>
           </Card>
         ))}
-      </div>
-
+      </section>
       <Card>
         <CardHeader className="gap-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value); setPage(1); }}>
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => {
+                setActiveTab(value);
+                setPage(1);
+              }}
+            >
               <TabsList className="h-auto flex-wrap">
                 {TABS.map((tab) => (
                   <TabsTrigger key={tab.value} value={tab.value}>
@@ -108,11 +152,10 @@ export default function PmDisputesPage() {
                 ))}
               </TabsList>
             </Tabs>
-
             <Input
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+              onChange={(event) => {
+                setSearch(event.target.value);
                 setPage(1);
               }}
               placeholder="ابحث في النزاعات..."
@@ -120,27 +163,126 @@ export default function PmDisputesPage() {
             />
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
           {isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-48 rounded-xl" />
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Skeleton key={index} className="h-14" />
               ))}
             </div>
-          ) : filtered.length === 0 ? (
-            <DisputeEmptyState hasFilter={!!search || !!activeTab} canCreate={false} />
+          ) : disputes.length === 0 ? (
+            <DisputeEmptyState
+              hasFilter={!!search || !!activeTab}
+              canCreate={false}
+            />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filtered.map((dispute) => (
-                <PmDisputeCard key={dispute.id} dispute={dispute} />
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>النزاع</TableHead>
+                  <TableHead>العميل</TableHead>
+                  <TableHead>المشروع</TableHead>
+                  <TableHead>الحالة</TableHead>
+                  <TableHead>الأولوية</TableHead>
+                  <TableHead>الفتح</TableHead>
+                  <TableHead className="text-left">التفاصيل</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {disputes.map((dispute) => (
+                  <TableRow key={dispute.id}>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium">
+                          #{dispute.ticketNumber} {dispute.title}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {dispute._count?.messages || 0} رسائل
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{dispute.client.name}</TableCell>
+                    <TableCell>{dispute.project.name}</TableCell>
+                    <TableCell>
+                      <PmStatusBadge domain="dispute" status={dispute.status} />
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          dispute.priority === "URGENT"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {DISPUTE_PRIORITY_AR[dispute.priority]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell dir="ltr">
+                      {new Date(dispute.openedAt).toLocaleDateString("ar-SA")}
+                    </TableCell>
+                    <TableCell className="text-left">
+                      <Button asChild size="sm" variant="ghost">
+                        <Link href={`/dashboard/pm/disputes/${dispute.id}`}>
+                          <ArrowUpRight />
+                          فتح
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-          {!isLoading && filtered.length > 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">إجمالي النتائج: {total}</p>
-          ) : null}
+          <DisputePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </CardContent>
       </Card>
-    </div>
+    </main>
+  );
+}
+function DisputePagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            text="السابق"
+            disabled={page === 1}
+            onClick={() => onPageChange(page - 1)}
+          />
+        </PaginationItem>
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+          (item) => (
+            <PaginationItem key={item}>
+              <PaginationLink
+                isActive={item === page}
+                onClick={() => onPageChange(item)}
+              >
+                {item}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+        <PaginationItem>
+          <PaginationNext
+            text="التالي"
+            disabled={page === totalPages}
+            onClick={() => onPageChange(page + 1)}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
   );
 }

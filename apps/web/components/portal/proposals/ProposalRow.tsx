@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { ArrowLeft, Calendar, FileText } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ProposalListItem } from "@/features/proposals/proposalsApi";
 import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
-import { formatShortDateLong } from "@/lib/format";
+import { formatCurrency, formatShortDateLong } from "@/lib/format";
 
 /**
  * Cells-only renderer for the proposals queue. The <tr> chrome
@@ -48,11 +47,9 @@ export function renderProposalRowCells(
       </div>
     </td>,
     <td key="price" className="px-5 py-3.5 align-middle">
-      <CurrencyDisplay
-        amount={proposal.totalPrice}
-        size="sm"
-        className="text-sm font-semibold text-natural-100 tabular-nums"
-      />
+      <span className="text-sm font-semibold tabular-nums">
+        {formatCurrency(proposal.totalPrice)}
+      </span>
     </td>,
     <td key="sentDate" className="px-5 py-3.5 align-middle">
       <span className="inline-flex items-center gap-1.5 text-[12.5px] text-portal-note-text tabular-nums">
@@ -70,14 +67,10 @@ export function renderProposalRowCells(
           onClick={(e) => e.stopPropagation()}
           className="inline-block"
         >
-          <ActionButton
-            variant={isActionable ? "primary" : "outline"}
-            size="md"
-            icon={<ArrowLeft className="h-3.5 w-3.5" />}
-            className="h-8"
-          >
+          <Button variant={isActionable ? "default" : "outline"} size="sm">
+            <ArrowLeft data-icon="inline-start" />
             {isActionable ? "مراجعة العرض" : "فتح العرض"}
-          </ActionButton>
+          </Button>
         </Link>
       ) : (
         <span className="text-[12px] text-portal-note-text">غير متاح</span>

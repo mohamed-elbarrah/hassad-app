@@ -5,9 +5,24 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Pencil } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { Dialog } from "@/components/design-system/Dialog";
+import { Pencil, Plus } from "lucide-react";
+import {
+  ProjectStatus,
+  TaskPriority,
+  TASK_PRIORITY_AR,
+  UserRole,
+  type Project,
+} from "@hassad/shared";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -15,126 +30,77 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/design-system/Form";
-import { FormInputControl } from "@/components/design-system/FormInputControl";
-import { Select, SelectItem } from "@/components/design-system/Select";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import {
   useCreateProjectMutation,
   useUpdateProjectMutation,
 } from "@/features/projects/projectsApi";
-import { useGetClientsQuery } from "@/features/clients/clientsApi";
 import { useSearchUsersQuery } from "@/features/users/usersApi";
-import { SearchCombobox } from "@/components/common/SearchCombobox";
 import { PROJECT_STATUS_LABELS } from "@/lib/utils/project-status";
-import {
-  UserRole,
-  ProjectStatus,
-  TaskPriority,
-  TASK_PRIORITY_AR,
-} from "@hassad/shared";
-import type { Project } from "@hassad/shared";
 
-const STATUS_LABELS = PROJECT_STATUS_LABELS;
-const PRIORITY_LABELS = TASK_PRIORITY_AR;
-
-// ── Form schemas ──────────────────────────────────────────────────────────────
-
-const ProjectCreateFormSchema = z.object({
+const schema = z.object({
   name: z.string().min(2, "اسم المشروع يجب أن يكون حرفين على الأقل"),
   description: z.string().optional(),
   clientId: z.string().min(1, "العميل مطلوب"),
-  contractId: z.string().optional(),
   projectManagerId: z.string().min(1, "مدير المشروع مطلوب"),
   status: z.nativeEnum(ProjectStatus),
   priority: z.nativeEnum(TaskPriority),
   startDate: z.string().min(1, "تاريخ البدء مطلوب"),
   endDate: z.string().min(1, "تاريخ الانتهاء مطلوب"),
 });
+type Values = z.infer<typeof schema>;
 
-const ProjectEditFormSchema = z.object({
-  description: z.string().optional(),
-  status: z.nativeEnum(ProjectStatus),
-  priority: z.nativeEnum(TaskPriority),
-  startDate: z.string().min(1, "تاريخ البدء مطلوب"),
-  endDate: z.string().min(1, "تاريخ الانتهاء مطلوب"),
-});
-
-type ProjectCreateFormValues = z.infer<typeof ProjectCreateFormSchema>;
-type ProjectEditFormValues = z.infer<typeof ProjectEditFormSchema>;
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface ProjectFormProps {
+export function ProjectForm({
+  project,
+  currentUserId,
+}: {
   project?: Project;
   currentUserId: string;
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
-
-export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
+}) {
   const [open, setOpen] = useState(false);
-  const isEdit = !!project;
-
-  const [clientSearch, setClientSearch] = useState("");
-  const [managerSearch, setManagerSearch] = useState("");
-
-  const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
-  const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
-  const isLoading = isCreating || isUpdating;
-
-  const { data: clientsData, isFetching: clientsFetching } = useGetClientsQuery(
-    { search: clientSearch, limit: 20 },
-    { skip: !open || isEdit },
-  );
-
-  const { data: usersData, isFetching: usersFetching } = useSearchUsersQuery(
-    { search: managerSearch, role: UserRole.PM, limit: 20 },
-    { skip: !open || isEdit },
-  );
-
-  const clientOptions = (clientsData?.items ?? []).map((c) => ({
-    id: c.id,
-    label: c.companyName,
-  }));
-
-  const managerOptions = (usersData?.items ?? []).map((u) => ({
-    id: u.id,
-    label: u.name,
-  }));
-
-  const createForm = useForm<ProjectCreateFormValues>({
-    resolver: zodResolver(ProjectCreateFormSchema),
+  const editing = !!project;
+  const form = useForm<Values>({
+    resolver: zodResolver(schema),
     defaultValues: {
-      name: "",
-      description: "",
-      clientId: "",
-      contractId: "",
-      projectManagerId: currentUserId,
-      status: ProjectStatus.PLANNING,
-      priority: TaskPriority.NORMAL,
-      startDate: "",
-      endDate: "",
-    },
-  });
-
-  const editForm = useForm<ProjectEditFormValues>({
-    resolver: zodResolver(ProjectEditFormSchema),
-    defaultValues: {
-      description: project?.description ?? "",
-      status: (project?.status as ProjectStatus) ?? ProjectStatus.PLANNING,
-      priority: (project?.priority as TaskPriority) ?? TaskPriority.NORMAL,
+      name: project?.name || "",
+      description: project?.description || "",
+      clientId: project?.clientId || "",
+      projectManagerId: project?.projectManagerId || currentUserId,
+      status: (project?.status as ProjectStatus) || ProjectStatus.PLANNING,
+      priority: (project?.priority as TaskPriority) || TaskPriority.NORMAL,
       startDate: project?.startDate
-        ? new Date(project.startDate).toISOString().split("T")[0]
+        ? new Date(project.startDate).toISOString().slice(0, 10)
         : "",
       endDate: project?.endDate
-        ? new Date(project.endDate).toISOString().split("T")[0]
+        ? new Date(project.endDate).toISOString().slice(0, 10)
         : "",
     },
   });
-
-  async function onSubmit(values: any) {
+  const { data: clientsData } = useGetClientsQuery(
+    { limit: 100 },
+    { skip: !open },
+  );
+  const { data: managersData } = useSearchUsersQuery(
+    { role: UserRole.PM, limit: 100 },
+    { skip: !open },
+  );
+  const [createProject, { isLoading: creating }] = useCreateProjectMutation();
+  const [updateProject, { isLoading: updating }] = useUpdateProjectMutation();
+  const saving = creating || updating;
+  async function submit(values: Values) {
     try {
-      if (isEdit && project) {
+      if (editing && project)
         await updateProject({
           id: project.id,
           body: {
@@ -145,347 +111,245 @@ export function ProjectForm({ project, currentUserId }: ProjectFormProps) {
             endDate: values.endDate,
           },
         }).unwrap();
-        toast.success("تم تحديث المشروع بنجاح.");
-      } else {
+      else
         await createProject({
-          name: values.name,
+          ...values,
           description: values.description || undefined,
-          clientId: values.clientId,
-          contractId: values.contractId || undefined,
-          projectManagerId: values.projectManagerId,
-          status: values.status,
-          priority: values.priority,
-          startDate: values.startDate,
-          endDate: values.endDate,
         }).unwrap();
-        toast.success("تم إنشاء المشروع بنجاح.");
-      }
-      if (isEdit) {
-        editForm.reset();
-      } else {
-        createForm.reset();
-      }
+      toast.success(
+        editing ? "تم تحديث المشروع بنجاح." : "تم إنشاء المشروع بنجاح.",
+      );
       setOpen(false);
     } catch {
       toast.error(
-        isEdit
+        editing
           ? "فشل تحديث المشروع. يرجى المحاولة مجدداً."
           : "فشل إنشاء المشروع. يرجى المحاولة مجدداً.",
       );
     }
   }
-
   return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-      title={isEdit ? "تعديل المشروع" : "إنشاء مشروع جديد"}
-      contentClassName="sm:max-w-lg"
-    >
-      {isEdit ? (
-        <ActionButton
-          variant="outline"
-          size="sm"
-          onClick={() => setOpen(true)}
-          icon={<Pencil className="size-4" />}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant={editing ? "outline" : "default"}
+          size={editing ? "sm" : "default"}
         >
-          تعديل
-        </ActionButton>
-      ) : (
-        <ActionButton
-          onClick={() => setOpen(true)}
-          icon={<Plus className="size-4" />}
-        >
-          مشروع جديد
-        </ActionButton>
-      )}
-
-      {isEdit ? (
-        <Form {...editForm}>
+          {editing ? (
+            <Pencil data-icon="inline-start" />
+          ) : (
+            <Plus data-icon="inline-start" />
+          )}
+          {editing ? "تعديل" : "مشروع جديد"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent dir="rtl">
+        <DialogHeader>
+          <DialogTitle>
+            {editing ? "تعديل المشروع" : "إنشاء مشروع جديد"}
+          </DialogTitle>
+          <DialogDescription>
+            أدخل معلومات المشروع الأساسية ثم احفظ التغييرات.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
           <form
-            onSubmit={editForm.handleSubmit(onSubmit)}
-            className="space-y-4"
+            onSubmit={form.handleSubmit(submit)}
+            className="flex flex-col gap-4"
           >
             <FormField
-              control={editForm.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الوصف (اختياري)</FormLabel>
-                  <FormControl>
-                    <FormInputControl
-                      placeholder="وصف المشروع"
-                      {...field}
-                      value={field.value ?? ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={editForm.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الحالة</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      placeholder="اختر الحالة"
-                    >
-                      {Object.values(ProjectStatus).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {STATUS_LABELS[s]}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الأولوية</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      placeholder="اختر الأولوية"
-                    >
-                      {Object.values(TaskPriority).map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {PRIORITY_LABELS[p]}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={editForm.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>تاريخ البدء</FormLabel>
-                    <FormControl>
-                      <FormInputControl type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="endDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>تاريخ الانتهاء</FormLabel>
-                    <FormControl>
-                      <FormInputControl type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <ActionButton
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
-                إلغاء
-              </ActionButton>
-              <ActionButton type="submit" disabled={isLoading}>
-                {isLoading ? "جارٍ الحفظ..." : "حفظ التعديلات"}
-              </ActionButton>
-            </div>
-          </form>
-        </Form>
-      ) : (
-        <Form {...createForm}>
-          <form
-            onSubmit={createForm.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
-            <FormField
-              control={createForm.control}
+              control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>اسم المشروع</FormLabel>
                   <FormControl>
-                    <FormInputControl
-                      placeholder="أدخل اسم المشروع"
-                      {...field}
-                    />
+                    <Input disabled={editing} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
             <FormField
-              control={createForm.control}
+              control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الوصف (اختياري)</FormLabel>
+                  <FormLabel>الوصف</FormLabel>
                   <FormControl>
-                    <FormInputControl
-                      placeholder="وصف المشروع"
-                      {...field}
-                      value={field.value ?? ""}
-                    />
+                    <Textarea {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={createForm.control}
-              name="clientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>العميل</FormLabel>
-                  <FormControl>
-                    <SearchCombobox
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={clientOptions}
-                      onSearchChange={setClientSearch}
-                      placeholder="ابحث عن العميل..."
-                      searchPlaceholder="اكتب اسم العميل"
-                      isLoading={clientsFetching}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={createForm.control}
-              name="projectManagerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>مدير المشروع</FormLabel>
-                  <FormControl>
-                    <SearchCombobox
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={managerOptions}
-                      onSearchChange={setManagerSearch}
-                      placeholder="ابحث عن مدير المشروع..."
-                      searchPlaceholder="اكتب اسم المدير"
-                      isLoading={usersFetching}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={createForm.control}
+            {!editing && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="clientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>العميل</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر العميل" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectGroup>
+                            {(clientsData?.items || []).map((client) => (
+                              <SelectItem key={client.id} value={client.id}>
+                                {client.companyName}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="projectManagerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>مدير المشروع</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر المدير" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectGroup>
+                            {(managersData?.items || []).map((manager) => (
+                              <SelectItem key={manager.id} value={manager.id}>
+                                {manager.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                form={form}
                 name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الحالة</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      placeholder="اختر الحالة"
-                    >
-                      {Object.values(ProjectStatus).map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {STATUS_LABELS[s]}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="الحالة"
+                values={Object.values(ProjectStatus)}
+                labels={PROJECT_STATUS_LABELS}
               />
-              <FormField
-                control={createForm.control}
+              <SelectField
+                form={form}
                 name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الأولوية</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      placeholder="اختر الأولوية"
-                    >
-                      {Object.values(TaskPriority).map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {PRIORITY_LABELS[p]}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="الأولوية"
+                values={Object.values(TaskPriority)}
+                labels={TASK_PRIORITY_AR}
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
-                control={createForm.control}
+                control={form.control}
                 name="startDate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>تاريخ البدء</FormLabel>
                     <FormControl>
-                      <FormInputControl type="date" {...field} />
+                      <Input type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
-                control={createForm.control}
+                control={form.control}
                 name="endDate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>تاريخ الانتهاء</FormLabel>
                     <FormControl>
-                      <FormInputControl type="date" {...field} />
+                      <Input type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <ActionButton
+            <DialogFooter>
+              <Button
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
               >
                 إلغاء
-              </ActionButton>
-              <ActionButton type="submit" disabled={isLoading}>
-                {isLoading ? "جارٍ الحفظ..." : "إنشاء المشروع"}
-              </ActionButton>
-            </div>
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving
+                  ? "جارٍ الحفظ..."
+                  : editing
+                    ? "حفظ التعديلات"
+                    : "إنشاء المشروع"}
+              </Button>
+            </DialogFooter>
           </form>
         </Form>
-      )}
+      </DialogContent>
     </Dialog>
+  );
+}
+function SelectField({
+  form,
+  name,
+  label,
+  values,
+  labels,
+}: {
+  form: ReturnType<typeof useForm<Values>>;
+  name: "status" | "priority";
+  label: string;
+  values: string[];
+  labels: Record<string, string>;
+}) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <Select value={field.value} onValueChange={field.onChange}>
+            <FormControl>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              <SelectGroup>
+                {values.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {labels[value]}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }

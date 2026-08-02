@@ -1,8 +1,16 @@
 "use client";
 
-import { EmptyState } from "@/components/design-system/EmptyState";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 interface PmEmptyStateProps {
   icon: LucideIcon;
@@ -14,7 +22,7 @@ interface PmEmptyStateProps {
 }
 
 export function PmEmptyState({
-  icon,
+  icon: Icon,
   title,
   description,
   actionLabel,
@@ -22,23 +30,27 @@ export function PmEmptyState({
   actionHref,
 }: PmEmptyStateProps) {
   return (
-    <EmptyState
-      icon={icon}
-      title={title}
-      hint={description}
-      action={
-        actionLabel ? (
-          actionHref ? (
-            <ActionButton href={actionHref} variant="outline" size="sm">
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icon />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+      </EmptyHeader>
+      {actionLabel && (
+        <EmptyContent>
+          {actionHref ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={actionHref}>{actionLabel}</Link>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={onAction}>
               {actionLabel}
-            </ActionButton>
-          ) : onAction ? (
-            <ActionButton onClick={onAction} variant="outline" size="sm">
-              {actionLabel}
-            </ActionButton>
-          ) : undefined
-        ) : undefined
-      }
-    />
+            </Button>
+          )}
+        </EmptyContent>
+      )}
+    </Empty>
   );
 }

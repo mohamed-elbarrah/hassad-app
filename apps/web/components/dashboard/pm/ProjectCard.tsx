@@ -1,81 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, Users, TrendingUp } from "lucide-react";
-import { formatDate } from "@/lib/format";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-
-import { ProgressBar } from "@/components/design-system/ProgressBar";
+import { Calendar, TrendingUp, Users } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
-import { type ProjectWithMeta } from "@/lib/utils/project-status";
+import { formatDate } from "@/lib/format";
+import type { ProjectWithMeta } from "@/lib/utils/project-status";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface ProjectCardProps {
-  project: ProjectWithMeta;
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
-
-export function ProjectCard({ project }: ProjectCardProps) {
-  const progressValue = Math.round(
+export function ProjectCard({ project }: { project: ProjectWithMeta }) {
+  const progress = Math.round(
     project.progress ?? project.completionPercentage ?? 0,
   );
-
-  const startDate = formatDate(project.startDate);
-  const endDate = formatDate(project.endDate);
-
   return (
-    <Link href={`/dashboard/pm/projects/${project.id}`}>
-      <SurfaceCard className="hover:shadow-md transition-shadow cursor-pointer h-full">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <h3 className="text-base font-semibold line-clamp-2">
-            {project.name}
-          </h3>
-          <PmStatusBadge
-            domain="project"
-            status={project.status}
-            className="shrink-0 text-xs"
-          />
+    <Card className="transition-colors hover:bg-muted/50">
+      <CardHeader className="gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="line-clamp-2 text-base">
+            <Link
+              href={`/dashboard/pm/projects/${project.id}`}
+              className="hover:underline"
+            >
+              {project.name}
+            </Link>
+          </CardTitle>
+          <PmStatusBadge domain="project" status={project.status} />
         </div>
         {project.client && (
-          <p className="text-xs text-portal-note-text mb-3">
+          <p className="text-sm text-muted-foreground">
             {project.client.companyName}
           </p>
         )}
-        <div className="space-y-3">
-          {/* Progress bar */}
-          <div>
-            <div className="flex items-center justify-between text-xs text-portal-note-text mb-1">
-              <span>التقدم</span>
-              <span>{progressValue}%</span>
-            </div>
-            <ProgressBar value={progressValue} variant="default" size="sm" />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>التقدم</span>
+            <span>{progress}%</span>
           </div>
-
-          {/* Meta info */}
-          <div className="flex flex-col gap-1.5 text-xs text-portal-note-text">
-            <div className="flex items-center gap-1.5">
-              <Calendar className="size-3.5 shrink-0" />
-              <span>
-                {startDate} — {endDate}
-              </span>
-            </div>
-            {project.manager && (
-              <div className="flex items-center gap-1.5">
-                <Users className="size-3.5 shrink-0" />
-                <span>{project.manager.name}</span>
-              </div>
-            )}
-            {project._count !== undefined && (
-              <div className="flex items-center gap-1.5">
-                <TrendingUp className="size-3.5 shrink-0" />
-                <span>{project._count.tasks} مهمة</span>
-              </div>
-            )}
-          </div>
+          <Progress value={progress} />
         </div>
-      </SurfaceCard>
-    </Link>
+        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <Calendar />
+            {formatDate(project.startDate)} - {formatDate(project.endDate)}
+          </span>
+          {project.manager && (
+            <span className="flex items-center gap-2">
+              <Users />
+              {project.manager.name}
+            </span>
+          )}
+          {project._count !== undefined && (
+            <span className="flex items-center gap-2">
+              <TrendingUp />
+              {project._count.tasks} مهمة
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import {
   mapCampaignStatusToUI,
   mapContractStatusToUI,
@@ -10,13 +10,7 @@ import {
 } from "@/lib/utils/statusMapping";
 
 type Domain = "campaign" | "contract" | "invoice" | "proposal" | "project";
-
-interface DomainStatusPillProps {
-  domain: Domain;
-  status: string;
-}
-
-const MAPPER: Record<Domain, (s: string) => string> = {
+const MAPPER: Record<Domain, (status: string) => string> = {
   campaign: mapCampaignStatusToUI,
   contract: mapContractStatusToUI,
   invoice: mapFinanceStatusToUI,
@@ -24,6 +18,25 @@ const MAPPER: Record<Domain, (s: string) => string> = {
   project: mapProjectStatusToUI,
 };
 
-export function DomainStatusPill({ domain, status }: DomainStatusPillProps) {
-  return <StatusBadge status={MAPPER[domain](status)} />;
+export function DomainStatusPill({
+  domain,
+  status,
+}: {
+  domain: Domain;
+  status: string;
+}) {
+  const label = MAPPER[domain](status);
+  return (
+    <Badge
+      variant={
+        label === "DANGER"
+          ? "destructive"
+          : label === "COMPLETED"
+            ? "default"
+            : "secondary"
+      }
+    >
+      {label}
+    </Badge>
+  );
 }

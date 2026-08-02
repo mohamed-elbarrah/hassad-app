@@ -1,20 +1,21 @@
 "use client";
 
-import { Paperclip } from "lucide-react";
+import { Download, FileText, Paperclip } from "lucide-react";
 import type { PortalPeriodFile } from "@/features/portal/portalApi";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { FileAttachmentRow } from "@/components/design-system/FileAttachmentRow";
-import { EmptyState } from "./EmptyState";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { formatDateTz, formatFileSize } from "@/lib/format";
+import { EmptyState } from "./EmptyState";
 
-interface FilesTabProps {
+export function FilesTab({
+  files,
+  onDownload,
+}: {
   files: PortalPeriodFile[];
   onDownload: (file: PortalPeriodFile) => void;
-}
-
-/** Files tab — list of period attachments with download buttons. */
-export function FilesTab({ files, onDownload }: FilesTabProps) {
-  if (!files || files.length === 0) {
+}) {
+  if (!files?.length)
     return (
       <EmptyState
         icon={Paperclip}
@@ -22,26 +23,41 @@ export function FilesTab({ files, onDownload }: FilesTabProps) {
         description="لم يتم رفع أي ملفات لهذه الفترة بعد."
       />
     );
-  }
-
   return (
-    <SurfaceCard title="ملفات الفترة" icon={Paperclip}>
-      <div className="space-y-3" dir="rtl">
-        {files.map((file) => (
-          <FileAttachmentRow
-            key={file.id}
-            filename={file.fileName}
-            type={file.fileType}
-            size={formatFileSize(file.fileSize)}
-            onDownload={() => onDownload(file)}
-            action={
-              <span className="hidden text-xs text-portal-note-text sm:block">
-                {formatDateTz(file.uploadedAt)}
-              </span>
-            }
-          />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Paperclip />
+          ملفات الفترة
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {files.map((file, index) => (
+          <div key={file.id} className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <FileText className="size-5 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{file.fileName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {file.fileType} · {formatFileSize(file.fileSize)} ·{" "}
+                    {formatDateTz(file.uploadedAt)}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onDownload(file)}
+              >
+                <Download />
+                تحميل
+              </Button>
+            </div>
+            {index < files.length - 1 ? <Separator /> : null}
+          </div>
         ))}
-      </div>
-    </SurfaceCard>
+      </CardContent>
+    </Card>
   );
 }

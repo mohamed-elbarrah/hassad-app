@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Search } from "lucide-react";
-import { Input } from "@/components/design-system/Input";
+import { Input } from "@/components/ui/input";
 import {
   FilterBar,
   type FilterGroup,
@@ -40,7 +40,7 @@ export function QueueToolbar({
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full h-12 pr-10 rounded-xl border-[1.5px] border-portal-card-border bg-natural-0 text-sm"
+            className="h-10 pr-10"
           />
         </div>
         {actions}

@@ -6,131 +6,107 @@ import {
   useGetPortalCampaignsQuery,
   type PortalCampaign,
 } from "@/features/portal/portalApi";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { mapCampaignStatusToUI } from "@/lib/utils/statusMapping";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PLATFORM_LABELS } from "@/lib/utils/campaign-constants";
-import { EmptyState } from "./EmptyState";
 import { useCurrency } from "@/hooks/useCurrency";
+import { EmptyState } from "./EmptyState";
 
 function CampaignCard({
   campaign,
   fmtAmount,
 }: {
   campaign: PortalCampaign;
-  fmtAmount: (n: number | undefined | null) => string;
+  fmtAmount: (value: number | undefined | null) => string;
 }) {
+  const statusVariant =
+    campaign.status === "STOPPED"
+      ? "destructive"
+      : campaign.status === "ACTIVE" || campaign.status === "COMPLETED"
+        ? "default"
+        : "secondary";
   return (
-    <Link
-      href={`/portal/campaigns/${campaign.id}`}
-      className="block rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5 transition-colors hover:border-secondary-500/50"
-    >
-      <div className="flex items-center justify-between border-b-[1.5px] border-portal-divider pb-3">
-        <h3 className="text-base font-semibold text-natural-100">
-          {campaign.name}
-        </h3>
-        <StatusBadge status={mapCampaignStatusToUI(campaign.status)} />
-      </div>
-      <p className="mt-2 text-xs text-portal-note-text">
-        {PLATFORM_LABELS[campaign.platform] ?? campaign.platform}
-      </p>
-
-      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <p className="text-portal-note-text">الانطباعات</p>
-          <p className="font-medium text-natural-100">
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-base">{campaign.name}</CardTitle>
+          <Badge variant={statusVariant}>{campaign.status}</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {PLATFORM_LABELS[campaign.platform] ?? campaign.platform}
+        </p>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <p>
+            الانطباعات:{" "}
             {campaign.analytics?.impressions?.toLocaleString(
               "ar-SA-u-nu-latn",
             ) ?? 0}
           </p>
-        </div>
-        <div>
-          <p className="text-portal-note-text">النقرات</p>
-          <p className="font-medium text-natural-100">
+          <p>
+            النقرات:{" "}
             {campaign.analytics?.clicks?.toLocaleString("ar-SA-u-nu-latn") ?? 0}
           </p>
-        </div>
-        <div>
-          <p className="text-portal-note-text">التحويلات</p>
-          <p className="font-medium text-natural-100">
+          <p>
+            التحويلات:{" "}
             {campaign.analytics?.conversions?.toLocaleString(
               "ar-SA-u-nu-latn",
             ) ?? 0}
           </p>
+          <p>العائد: {campaign.analytics?.roas?.toFixed(1) ?? "0"}x</p>
         </div>
-        <div>
-          <p className="text-portal-note-text">العائد ROAS</p>
-          <p className="font-medium text-natural-100">
-            {campaign.analytics?.roas?.toFixed(1) ?? "0"}x
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-3 border-t-[1.5px] border-portal-divider pt-3 text-xs text-portal-note-text">
-        الميزانية: {fmtAmount(campaign.budgetTotal)}{" "}
-        <CurrencySymbol className="inline-block" /> | المنفق:{" "}
-        {fmtAmount(campaign.budgetSpent)}{" "}
-        <CurrencySymbol className="inline-block" />
-      </div>
-    </Link>
+        <p className="text-sm text-muted-foreground">
+          الميزانية: {fmtAmount(campaign.budgetTotal)} | المنفق:{" "}
+          {fmtAmount(campaign.budgetSpent)}
+        </p>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/portal/campaigns/${campaign.id}`}>عرض الحملة</Link>
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
-/** Campaigns tab — campaigns of the client, optionally scoped to a
- *  project and/or period. Project-wide campaigns (no period) surface in
- *  every period view. */
-interface CampaignsTabProps {
-  projectId?: string;
-  periodId?: string;
-}
-
-export function CampaignsTab({ projectId, periodId }: CampaignsTabProps = {}) {
+export function CampaignsTab({
+  projectId,
+  periodId,
+}: { projectId?: string; periodId?: string } = {}) {
   const { data: campaigns, isLoading } = useGetPortalCampaignsQuery(
     projectId || periodId ? { projectId, periodId } : undefined,
   );
-  // Hoist useCurrency to the parent so a single subscription is shared
-  // across all rendered cards (audit issue #21).
   const { fmtAmount } = useCurrency();
-
-  if (isLoading) {
+  if (isLoading)
     return (
-      <SurfaceCard title="الحملات" icon={Megaphone}>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5"
-            >
-              <Skeleton className="mb-4 h-6 w-3/4" />
-              <Skeleton className="mb-2 h-4 w-1/2" />
-              <Skeleton className="h-4 w-1/3" />
-            </div>
-          ))}
-        </div>
-      </SurfaceCard>
+      <Card>
+        <CardHeader>
+          <CardTitle>الحملات</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+        </CardContent>
+      </Card>
     );
-  }
-
-  if (!campaigns || campaigns.length === 0) {
-    const scoped = Boolean(projectId || periodId);
+  if (!campaigns?.length)
     return (
       <EmptyState
         icon={TrendingUp}
-        title={scoped ? "لا توجد حملات لهذه الفترة" : "لا توجد حملات حالياً"}
-        description={
-          scoped
-            ? "ستظهر هنا الحملات المرتبطة بهذه الفترة أو الحملات العامة للمشروع فور إطلاقها."
-            : "ستظهر هنا جميع الحملات الإعلانية المرتبطة بحسابك بمجرد إطلاقها."
-        }
+        title="لا توجد حملات لهذه الفترة"
+        description="ستظهر الحملات المرتبطة بالمشروع هنا فور إطلاقها."
       />
     );
-  }
-
   return (
-    <SurfaceCard title="الحملات" icon={Megaphone}>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2" dir="rtl">
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Megaphone />
+          الحملات
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4 md:grid-cols-2">
         {campaigns.map((campaign) => (
           <CampaignCard
             key={campaign.id}
@@ -138,7 +114,7 @@ export function CampaignsTab({ projectId, periodId }: CampaignsTabProps = {}) {
             fmtAmount={fmtAmount}
           />
         ))}
-      </div>
-    </SurfaceCard>
+      </CardContent>
+    </Card>
   );
 }

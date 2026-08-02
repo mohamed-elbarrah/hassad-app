@@ -2,40 +2,46 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ClipboardList } from "lucide-react";
+import { TaskPriority, TaskStatus } from "@hassad/shared";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
 import {
   useGetPmTasksQuery,
   useGetPmTaskStatsQuery,
 } from "@/features/tasks/tasksApi";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import {
-  DataTable,
-  type DataTableColumn,
-  type DataTableEmptyState,
-} from "@/components/design-system/DataTable";
-import { Pill } from "@/components/design-system/Pill";
-import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { PageSection } from "@/components/design-system/PageSection";
-import { PmStatusBadge } from "@/components/dashboard/pm/shared/PmStatusBadge";
-import { ClipboardList } from "lucide-react";
-import { TaskStatus, TaskPriority } from "@hassad/shared";
 import { formatShortDate } from "@/lib/format";
-import { cn } from "@/lib/utils";
-
-// ── Labels ──────────────────────────────────────────────────────────────────
-
-const PRIORITY_PILL_TONE: Record<
-  string,
-  import("@/components/design-system/Pill").PillTone
-> = {
-  [TaskPriority.LOW]: "neutral",
-  [TaskPriority.NORMAL]: "neutral",
-  [TaskPriority.HIGH]: "warning",
-  [TaskPriority.URGENT]: "danger",
-};
 
 const PRIORITY_LABELS: Record<string, string> = {
   [TaskPriority.LOW]: "منخفضة",
@@ -44,257 +50,205 @@ const PRIORITY_LABELS: Record<string, string> = {
   [TaskPriority.URGENT]: "عاجلة",
 };
 
-// ── Table columns ────────────────────────────────────────────────────────────
-
-const COLUMNS: DataTableColumn[] = [
-  { id: "title", label: "المهمة", align: "right" },
-  { id: "project", label: "المشروع", align: "right" },
-  { id: "assignee", label: "المسؤول", align: "right" },
-  { id: "status", label: "الحالة", align: "right" },
-  { id: "priority", label: "الأولوية", align: "right" },
-  { id: "dueDate", label: "تاريخ الاستحقاق", align: "right" },
-];
-
-const EMPTY_STATE: DataTableEmptyState = {
-  icon: ClipboardList,
-  message: "لا توجد مهام",
-  hint: "لا توجد مهام مطابقة للفلتر المحدد.",
-};
-
-// ── Stat card tones ──────────────────────────────────────────────────────────
-
-const STAT_TONES = [
-  {
-    key: "total",
-    label: "إجمالي المهام",
-    bg: "bg-action-blue-soft",
-    border: "border-action-blue/30",
-    text: "text-action-blue",
-  },
-  {
-    key: "inProgress",
-    label: "جارية",
-    bg: "bg-success-100/50",
-    border: "border-success-200",
-    text: "text-success-600",
-  },
-  {
-    key: "inReview",
-    label: "بانتظار المراجعة",
-    bg: "bg-alert-100/50",
-    border: "border-alert-200",
-    text: "text-alert-600",
-  },
-  {
-    key: "overdue",
-    label: "متأخرة",
-    bg: "bg-danger-100/50",
-    border: "border-danger-200",
-    text: "text-danger-600",
-  },
-] as const;
-
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function PMTasksPage() {
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({
-    status: [],
-    priority: [],
-  });
-
+  const [status, setStatus] = useState<"ALL" | TaskStatus | "OVERDUE">("ALL");
+  const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
   const { data: stats, isLoading: statsLoading } = useGetPmTaskStatsQuery();
-  const {
-    data: tasks = [],
-    isLoading: tasksLoading,
-    isError,
-  } = useGetPmTasksQuery({});
-
-  const overdueCount = useMemo(() => {
-    const now = new Date();
-    return tasks.filter(
-      (t) => new Date(t.dueDate) < now && t.status !== TaskStatus.DONE,
-    ).length;
-  }, [tasks]);
-
-  const filterGroups: FilterGroup[] = useMemo(
-    () => [
-      {
-        key: "status",
-        label: "الحالة",
-        options: [
-          {
-            label: "قيد المراجعة",
-            value: TaskStatus.IN_REVIEW,
-            count: stats?.inReview,
-          },
-          {
-            label: "جارية",
-            value: TaskStatus.IN_PROGRESS,
-            count: stats?.inProgress,
-          },
-          { label: "للتنفيذ", value: TaskStatus.TODO, count: stats?.todo },
-          { label: "تعديل", value: TaskStatus.REVISION },
-          { label: "منجزة", value: TaskStatus.DONE, count: stats?.done },
-          { label: "متأخرة", value: "OVERDUE", count: overdueCount },
-        ],
-      },
-      {
-        key: "priority",
-        label: "الأولوية",
-        options: [
-          { label: "عاجلة", value: TaskPriority.URGENT },
-          { label: "عالية", value: TaskPriority.HIGH },
-          { label: "عادية", value: TaskPriority.NORMAL },
-          { label: "منخفضة", value: TaskPriority.LOW },
-        ],
-      },
-    ],
-    [stats, overdueCount],
+  const { data: tasks = [], isLoading, isError } = useGetPmTasksQuery({});
+  const filteredTasks = useMemo(
+    () =>
+      tasks.filter((task) => {
+        const matchesStatus =
+          status === "ALL" ||
+          (status === "OVERDUE"
+            ? new Date(task.dueDate) < new Date() &&
+              task.status !== TaskStatus.DONE
+            : task.status === status);
+        return (
+          matchesStatus && (priority === "ALL" || task.priority === priority)
+        );
+      }),
+    [tasks, status, priority],
   );
-
-  const filteredTasks = useMemo(() => {
-    let result = [...tasks];
-
-    // Status filter
-    const statusFilters = activeFilters.status ?? [];
-    if (statusFilters.length > 0) {
-      if (statusFilters.includes("OVERDUE")) {
-        const now = new Date();
-        const nonOverdueStatuses = statusFilters.filter((s) => s !== "OVERDUE");
-        result = result.filter((t) => {
-          const matchesOverdue =
-            new Date(t.dueDate) < now && t.status !== TaskStatus.DONE;
-          const matchesStatus =
-            nonOverdueStatuses.length > 0 &&
-            nonOverdueStatuses.includes(t.status);
-          if (
-            statusFilters.includes("OVERDUE") &&
-            nonOverdueStatuses.length === 0
-          ) {
-            return matchesOverdue;
-          }
-          if (
-            nonOverdueStatuses.length > 0 &&
-            statusFilters.includes("OVERDUE")
-          ) {
-            return matchesOverdue || matchesStatus;
-          }
-          return matchesStatus;
-        });
-      } else {
-        result = result.filter((t) => statusFilters.includes(t.status));
-      }
-    }
-
-    // Priority filter
-    const priorityFilters = activeFilters.priority ?? [];
-    if (priorityFilters.length > 0) {
-      result = result.filter((t) => priorityFilters.includes(t.priority));
-    }
-
-    return result;
-  }, [tasks, activeFilters]);
-
+  const metrics = [
+    { label: "إجمالي المهام", value: stats?.total ?? 0 },
+    { label: "جارية", value: stats?.inProgress ?? 0 },
+    { label: "بانتظار المراجعة", value: stats?.inReview ?? 0 },
+    { label: "متأخرة", value: stats?.overdue ?? 0 },
+  ];
   return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="مهام المشاريع"
-        description="جميع المهام في مشاريعك، تابع تقدم الفريق ووافق على المراجعات."
-        icon={ClipboardList}
-      />
-
-      {/* ── Stat Cards ──────────────────────────────────────────────────── */}
-      <PageSection title="ملخص المهام">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {STAT_TONES.map((tone) => {
-          const value =
-            tone.key === "total"
-              ? (stats?.total ?? 0)
-              : tone.key === "inProgress"
-                ? (stats?.inProgress ?? 0)
-                : tone.key === "inReview"
-                  ? (stats?.inReview ?? 0)
-                  : (stats?.overdue ?? 0);
-
-          return (
-            <div
-              key={tone.key}
-              className={cn(
-                "rounded-[30px] border-[1.5px] p-5",
-                tone.bg,
-                tone.border,
-              )}
-            >
-              <p className="text-sm text-portal-note-text">{tone.label}</p>
-              <p className={cn("text-2xl font-semibold mt-2", tone.text)}>
-                {statsLoading ? "—" : value}
-              </p>
+    <main dir="rtl" className="flex flex-col gap-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <ClipboardList />
             </div>
-          );
-        })}
-        </div>
-      </PageSection>
-
-      {/* ── Task Table ───────────────────────────────────────────────────── */}
-      <SurfaceCard
-        title="قائمة المهام"
-        action={
-          <FilterBar
-            groups={filterGroups}
-            activeFilters={activeFilters}
-            onFilterChange={(key, values) =>
-              setActiveFilters((prev) => ({ ...prev, [key]: values }))
-            }
-          />
-        }
-      >
-        <DataTable
-          columns={COLUMNS}
-          data={filteredTasks}
-          isLoading={tasksLoading}
-          isError={isError}
-          errorMessage="حدث خطأ أثناء تحميل المهام."
-          emptyState={EMPTY_STATE}
-          renderRow={(task) => (
-            <tr
-              key={task.id}
-              className="border-b border-portal-divider last:border-0"
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-2xl">مهام المشاريع</CardTitle>
+              <CardDescription>
+                جميع المهام في مشاريعك، تابع تقدم الفريق ووافق على المراجعات.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric) => (
+          <Card key={metric.label}>
+            <CardContent className="flex flex-col gap-2 p-5">
+              <span className="text-sm text-muted-foreground">
+                {metric.label}
+              </span>
+              <span className="text-2xl font-semibold">
+                {statsLoading ? "-" : metric.value}
+              </span>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+      <Card>
+        <CardHeader className="gap-4">
+          <div>
+            <CardTitle>قائمة المهام</CardTitle>
+            <CardDescription>
+              استخدم الفلاتر لتحديد المهام التي تحتاج المتابعة.
+            </CardDescription>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Select
+              value={status}
+              onValueChange={(value) =>
+                setStatus(value as "ALL" | TaskStatus | "OVERDUE")
+              }
             >
-              <td className="py-3 px-2 text-right">
-                <Link
-                  href={`/dashboard/pm/tasks/${task.id}`}
-                  className="hover:underline text-secondary-500 font-medium text-sm"
-                >
-                  {task.title}
-                </Link>
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {task.project?.name ?? "—"}
-              </td>
-              <td className="py-3 px-2 text-right text-sm text-portal-note-text">
-                {task.assignee?.name ?? "—"}
-              </td>
-              <td className="py-3 px-2 text-right">
-                <PmStatusBadge domain="task" status={task.status} />
-              </td>
-              <td className="py-3 px-2 text-right">
-                <Pill
-                  tone={PRIORITY_PILL_TONE[task.priority] ?? "neutral"}
-                  className="text-xs h-6 px-2"
-                >
-                  {PRIORITY_LABELS[task.priority] ?? task.priority}
-                </Pill>
-              </td>
-              <td
-                className="py-3 px-2 text-right text-sm text-portal-note-text"
-                dir="ltr"
-              >
-                {formatShortDate(task.dueDate)}
-              </td>
-            </tr>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="ALL">كل الحالات</SelectItem>
+                  <SelectItem value="OVERDUE">متأخرة</SelectItem>
+                  {Object.values(TaskStatus).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Select
+              value={priority}
+              onValueChange={(value) =>
+                setPriority(value as "ALL" | TaskPriority)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="ALL">كل الأولويات</SelectItem>
+                  {Object.values(TaskPriority).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {PRIORITY_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <TaskSkeleton />
+          ) : isError ? (
+            <TaskEmpty
+              title="تعذر تحميل المهام"
+              description="حدث خطأ أثناء تحميل المهام."
+            />
+          ) : filteredTasks.length === 0 ? (
+            <TaskEmpty
+              title="لا توجد مهام"
+              description="لا توجد مهام مطابقة للفلتر المحدد."
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>المهمة</TableHead>
+                  <TableHead>المشروع</TableHead>
+                  <TableHead>المسؤول</TableHead>
+                  <TableHead>الحالة</TableHead>
+                  <TableHead>الأولوية</TableHead>
+                  <TableHead>الاستحقاق</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell>
+                      <Link
+                        href={`/dashboard/pm/tasks/${task.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {task.title}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{task.project?.name ?? "-"}</TableCell>
+                    <TableCell>{task.assignee?.name ?? "-"}</TableCell>
+                    <TableCell>
+                      <PmStatusBadge domain="task" status={task.status} />
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          task.priority === TaskPriority.URGENT
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {PRIORITY_LABELS[task.priority]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell dir="ltr">
+                      {formatShortDate(task.dueDate)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        />
-      </SurfaceCard>
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+function TaskSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <Skeleton key={index} className="h-14" />
+      ))}
     </div>
+  );
+}
+function TaskEmpty({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <ClipboardList />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyDescription>{description}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }

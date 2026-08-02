@@ -1,23 +1,15 @@
 "use client";
 
-import { StatusBadge } from "@/components/design-system/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { ProjectStatus, TaskStatus, DisputeStatus } from "@hassad/shared";
 import {
-  PROJECT_STATUS_BADGE_KEY,
   PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_BADGE_KEY,
 } from "@/lib/utils/project-status";
 import { TASK_STATUS_LABELS } from "@/lib/utils/task-status";
 import { DISPUTE_STATUS_AR } from "@hassad/shared";
 
 type PmDomain = "project" | "task" | "dispute" | "revision";
-
-const REVISION_STATUS_BADGE: Record<string, string> = {
-  TODO: "PENDING",
-  IN_PROGRESS: "ACTIVE",
-  IN_REVIEW: "WARNING",
-  DONE: "COMPLETED",
-  REVISION: "DANGER",
-};
 
 const REVISION_STATUS_LABELS: Record<string, string> = {
   TODO: "معلّق",
@@ -26,36 +18,6 @@ const REVISION_STATUS_LABELS: Record<string, string> = {
   DONE: "منجز",
   REVISION: "يحتاج تعديل",
 };
-
-const DISPUTE_STATUS_BADGE: Record<string, string> = {
-  PENDING_APPROVAL: "PENDING",
-  REJECTED: "CANCELLED",
-  APPROVED: "ACTIVE",
-  IN_PROGRESS: "ACTIVE",
-  PENDING_CLIENT: "WARNING",
-  ESCALATED: "DANGER",
-  RESOLVED: "COMPLETED",
-  CLOSED: "COMPLETED",
-};
-
-function resolveBadgeKey(domain: PmDomain, status: string): string {
-  switch (domain) {
-    case "project":
-      return PROJECT_STATUS_BADGE_KEY[status as ProjectStatus] || "PENDING";
-    case "task":
-      if (status === TaskStatus.DONE) return "COMPLETED";
-      if (status === TaskStatus.IN_REVIEW) return "WARNING";
-      if (status === TaskStatus.REVISION) return "DANGER";
-      if (status === TaskStatus.IN_PROGRESS) return "ACTIVE";
-      return "PENDING";
-    case "revision":
-      return REVISION_STATUS_BADGE[status] || "PENDING";
-    case "dispute":
-      return DISPUTE_STATUS_BADGE[status] || "PENDING";
-    default:
-      return "PENDING";
-  }
-}
 
 function resolveLabel(domain: PmDomain, status: string): string {
   switch (domain) {
@@ -67,9 +29,24 @@ function resolveLabel(domain: PmDomain, status: string): string {
       return REVISION_STATUS_LABELS[status] || status;
     case "dispute":
       return DISPUTE_STATUS_AR[status as DisputeStatus] || status;
-    default:
-      return status;
   }
+}
+
+function resolveVariant(domain: PmDomain, status: string) {
+  const key =
+    domain === "project"
+      ? PROJECT_STATUS_BADGE_KEY[status as ProjectStatus]
+      : status === TaskStatus.REVISION || status === "ESCALATED"
+        ? "DANGER"
+        : status === TaskStatus.DONE ||
+            status === "RESOLVED" ||
+            status === "CLOSED"
+          ? "COMPLETED"
+          : "PENDING";
+
+  if (key === "DANGER") return "destructive" as const;
+  if (key === "COMPLETED") return "default" as const;
+  return "secondary" as const;
 }
 
 interface PmStatusBadgeProps {
@@ -84,10 +61,8 @@ export function PmStatusBadge({
   className,
 }: PmStatusBadgeProps) {
   return (
-    <StatusBadge
-      status={resolveBadgeKey(domain, status)}
-      label={resolveLabel(domain, status)}
-      className={className}
-    />
+    <Badge variant={resolveVariant(domain, status)} className={className}>
+      {resolveLabel(domain, status)}
+    </Badge>
   );
 }

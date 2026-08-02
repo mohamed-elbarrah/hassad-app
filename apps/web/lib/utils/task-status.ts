@@ -1,9 +1,10 @@
 /**
  * Centralized task status utilities.
  *
- * Single source of truth for Arabic labels, colors, and kanban layout.
+ * Single source of truth for Arabic labels, tone classes, and kanban layout.
  */
 import { TaskStatus, TASK_PRIORITY_AR, type Task } from "@hassad/shared";
+import { KANBAN_TONES, type KanbanToneClasses } from "@/components/dashboard/kanban/theme";
 
 // ── Extended task type (includes API relations) ─────────────────────────────
 
@@ -11,15 +12,15 @@ export interface TaskWithMeta extends Task {
   assignee?: { id: string; name: string };
 }
 
-// ── Task status colors (distinct per status) ───────────────────────────────
-// Each status has a unique color for clear visual differentiation.
+// ── Task status tone classes (distinct per status) ─────────────────────────
+// Each status has a consistent tokenized tone for dashboard surfaces.
 
-export const TASK_STATUS_COLOR: Record<TaskStatus, string> = {
-  [TaskStatus.TODO]: "#6B7280", // Grey - not started
-  [TaskStatus.IN_PROGRESS]: "#3B82F6", // Blue - active
-  [TaskStatus.IN_REVIEW]: "#8B5CF6", // Purple - waiting review
-  [TaskStatus.REVISION]: "#F97316", // Orange - needs fix
-  [TaskStatus.DONE]: "#10B981", // Emerald - completed
+export const TASK_STATUS_TONES: Record<TaskStatus, KanbanToneClasses> = {
+  [TaskStatus.TODO]: KANBAN_TONES.neutral,
+  [TaskStatus.IN_PROGRESS]: KANBAN_TONES.blue,
+  [TaskStatus.IN_REVIEW]: KANBAN_TONES.purple,
+  [TaskStatus.REVISION]: KANBAN_TONES.orange,
+  [TaskStatus.DONE]: KANBAN_TONES.green,
 };
 
 // ── Task status Arabic labels ──────────────────────────────────────────────

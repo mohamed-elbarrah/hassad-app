@@ -1,97 +1,164 @@
 "use client";
 
-import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useMemo, useState } from "react";
-import { useAppSelector } from "@/lib/hooks";
 import {
-  useGetPortalReportsQuery,
-  useGetReportTimelineQuery,
-  type ReportSummary,
-} from "@/features/portal/portalApi";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import {
-  BarChart3,
-  TrendingUp,
-  Lightbulb,
   BarChart2,
+  BarChart3,
+  Lightbulb,
+  TrendingUp,
+  Wallet,
+  AlertCircle,
   PieChart,
 } from "lucide-react";
-import { MonthlyComparisonBarChart } from "@/components/design-system/MonthlyComparisonBarChart";
-import { PerformanceTrendLineChart } from "@/components/design-system/PerformanceTrendLineChart";
-import { SpendDistributionDonutChart } from "@/components/design-system/SpendDistributionDonutChart";
-import { SmartTips } from "@/components/design-system/SmartTips";
-import { TopCampaignsTable } from "@/components/design-system/TopCampaignsTable";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  TimeRangeSelector,
-  getTimeRangeParams,
-  type TimeRange,
-} from "@/components/design-system/TimeRangeSelector";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  type ReportSmartTip,
+  type ReportSummary,
+  useGetPortalReportsQuery,
+  useGetReportTimelineQuery,
+} from "@/features/portal/portalApi";
+import {
+  PerformanceComparisonChart,
+  PerformanceTrendChart,
+  SpendDistributionChart,
+} from "@/components/portal/reports/ReportCharts";
+import { useAppSelector } from "@/lib/hooks";
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { formatCompactNumber } from "@/lib/format";
 
-const fmtCompact = formatCompactNumber;
-const fmtSpend = formatCompactNumber;
+type TimeRange = "last7days" | "last30days" | "last12months";
+
+const timeRangeOptions: Array<{
+  value: TimeRange;
+  label: string;
+  granularity: "day" | "month";
+}> = [
+  { value: "last7days", label: "آخر 7 أيام", granularity: "day" },
+  { value: "last30days", label: "آخر 30 يوم", granularity: "day" },
+  { value: "last12months", label: "آخر 12 شهر", granularity: "month" },
+];
+
+const tipIcons: Record<ReportSmartTip["type"], typeof Lightbulb> = {
+  budget: Wallet,
+  warning: AlertCircle,
+  insight: Lightbulb,
+};
+
+function getTimeRangeParams(range: TimeRange) {
+  const dateTo = new Date();
+  const dateFrom = new Date(dateTo);
+  const option = timeRangeOptions.find((item) => item.value === range)!;
+
+  if (range === "last12months") {
+    dateFrom.setMonth(dateFrom.getMonth() - 12);
+  } else {
+    dateFrom.setDate(dateFrom.getDate() - (range === "last7days" ? 7 : 30));
+  }
+
+  return {
+    dateFrom: dateFrom.toISOString().slice(0, 10),
+    dateTo: dateTo.toISOString().slice(0, 10),
+    granularity: option.granularity,
+  };
+}
 
 function KpiCardShell() {
   return (
-    <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-5">
-      <Skeleton className="h-3 w-24 mx-auto mb-2" />
-      <div className="flex items-center justify-center gap-2 mb-1">
-        <Skeleton className="h-5 w-14 rounded-full" />
-        <Skeleton className="h-8 w-20" />
-      </div>
-    </div>
+    <Card>
+      <CardContent className="flex flex-col items-center gap-3 pt-6">
+        <Skeleton className="h-4 w-24" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-6 w-14 rounded-full" />
+          <Skeleton className="h-8 w-20" />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-interface KpiCardProps {
-  card: ReportSummary["kpiCards"][number];
-}
-
-function KpiCard({ card }: KpiCardProps) {
-  const isPositive = (card.trendPercent ?? 0) >= 0;
-  const isNegative = (card.trendPercent ?? 0) < 0;
+function KpiCard({ card }: { card: ReportSummary["kpiCards"][number] }) {
+  const trend = card.trendPercent ?? 0;
+  const value =
+    card.metric === "spend"
+      ? formatCompactNumber(card.value)
+      : card.metric === "conversionRate" || card.metric === "ctr"
+        ? `${card.value.toFixed(1)}%`
+        : formatCompactNumber(card.value);
 
   return (
-    <div className="rounded-2xl border-[1.5px] border-portal-card-border bg-natural-0 p-4 md:p-5 text-center">
-      <p className="text-xs text-portal-note-text mb-2">{card.label}</p>
-      <div className="flex items-center justify-center gap-2">
-        <span
-          className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full"
-          style={{
-            backgroundColor: isNegative
-              ? "var(--color-danger-100)"
-              : isPositive
-                ? "var(--color-success-100)"
-                : "var(--color-portal-bg)",
-            color: isNegative
-              ? "var(--color-danger-500)"
-              : isPositive
-                ? "var(--color-success-500)"
-                : "var(--color-portal-note-text)",
-          }}
-        >
-          {isPositive && "+"}
-          {card.trendPercent?.toFixed(1)}%
-        </span>
-        <span className="text-xl md:text-2xl font-bold text-secondary-500">
-          {card.metric === "spend"
-            ? `${fmtSpend(card.value)}`
-            : card.metric === "conversionRate" || card.metric === "ctr"
-              ? `${card.value.toFixed(1)}%`
-              : fmtCompact(card.value)}
-        </span>
-      </div>
-    </div>
+    <Card>
+      <CardHeader className="items-center gap-2 pb-2 text-center">
+        <CardDescription>{card.label}</CardDescription>
+        <CardTitle className="text-2xl text-primary">{value}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex justify-center pt-0">
+        <Badge variant={trend < 0 ? "destructive" : "secondary"}>
+          {trend >= 0 ? "+" : ""}
+          {trend.toFixed(1)}%
+        </Badge>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SectionCard({
+  title,
+  icon: Icon,
+  children,
+  className,
+}: {
+  title: string;
+  icon: typeof BarChart3;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-center gap-2">
+        <Icon className="size-5 text-muted-foreground" />
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
   );
 }
 
 export default function PortalReportsPage() {
   const { user } = useAppSelector((state) => state.auth);
   const clientId = user?.clientId ?? "";
-
   const [timeRange, setTimeRange] = useState<TimeRange>("last7days");
   const rangeParams = useMemo(() => getTimeRangeParams(timeRange), [timeRange]);
 
@@ -104,142 +171,219 @@ export default function PortalReportsPage() {
     skip: !clientId,
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
-  const { data: timeline } = useGetReportTimelineQuery(
-    {
-      dateFrom: rangeParams.dateFrom,
-      dateTo: rangeParams.dateTo,
-      granularity: rangeParams.granularity,
-    },
-    { skip: !clientId, pollingInterval: PORTAL_POLLING_INTERVAL_MS },
+  const { data: timeline } = useGetReportTimelineQuery(rangeParams, {
+    skip: !clientId,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
+
+  const topCampaigns = useMemo(
+    () =>
+      [...(report?.topCampaigns ?? [])]
+        .sort((first, second) => second.conversions - first.conversions)
+        .slice(0, 5),
+    [report?.topCampaigns],
   );
 
   return (
     <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="التقارير"
-        description="لوحة تحليلات شاملة لأداء حملاتك الإعلانية، الزيارات، التحويلات، والعائد على الإنفاق."
-        icon={BarChart3}
-        actions={
-          <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
-        }
-      />
+      <Card>
+        <CardHeader className="gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <BarChart3 className="size-6 text-muted-foreground" />
+            <div className="flex flex-col gap-1">
+              <CardTitle>التقارير</CardTitle>
+              <CardDescription>
+                لوحة تحليلات شاملة لأداء حملاتك الإعلانية، الزيارات، التحويلات،
+                والعائد على الإنفاق.
+              </CardDescription>
+            </div>
+          </div>
+          <Select
+            value={timeRange}
+            onValueChange={(value) => setTimeRange(value as TimeRange)}
+          >
+            <SelectTrigger className="w-full md:w-40">
+              <SelectValue placeholder="اختر الفترة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {timeRangeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </CardHeader>
+      </Card>
 
       {!clientId && (
-        <p className="text-sm text-portal-note-text">
-          لم يتم ربط حسابك بملف عميل.
-        </p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <BarChart3 />
+            </EmptyMedia>
+            <EmptyTitle>لا يوجد ملف عميل مرتبط</EmptyTitle>
+            <EmptyDescription>
+              لم يتم ربط حسابك بملف عميل لعرض التقارير.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       )}
 
       {clientId && isError && !isLoading && (
-        <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
-          <p className="text-base font-medium text-danger-700">
-            تعذر تحميل التقارير.
-          </p>
-          <p className="mt-2 text-sm text-danger-600">
-            يرجى المحاولة لاحقاً أو تحديث الصفحة.
-          </p>
-          <ActionButton
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            className="mt-3"
-          >
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <AlertCircle />
+            </EmptyMedia>
+            <EmptyTitle>تعذر تحميل التقارير</EmptyTitle>
+            <EmptyDescription>
+              يرجى المحاولة لاحقاً أو تحديث الصفحة.
+            </EmptyDescription>
+          </EmptyHeader>
+          <Button variant="outline" onClick={() => refetch()}>
             إعادة المحاولة
-          </ActionButton>
-        </div>
+          </Button>
+        </Empty>
       )}
 
       {clientId && !isError && (
         <>
           {isLoading && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <KpiCardShell key={i} />
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => (
+                <KpiCardShell key={index} />
               ))}
             </div>
           )}
 
           {!isLoading && report && report.kpiCards.length === 0 && (
-            <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-portal-card-border bg-portal-bg px-6 py-10 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-badge-gray-bg">
-                <BarChart3 className="h-8 w-8 text-secondary-500" />
-              </div>
-              <p className="text-lg font-medium text-natural-100">
-                لا توجد حملات في الفترة المحددة.
-              </p>
-              <p className="max-w-md text-sm leading-6 text-portal-note-text">
-                حدد فترة زمنية مختلفة أو عد بمجرد بدء حملاتك الإعلانية.
-              </p>
-            </div>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <BarChart3 />
+                </EmptyMedia>
+                <EmptyTitle>لا توجد حملات في الفترة المحددة</EmptyTitle>
+                <EmptyDescription>
+                  حدد فترة زمنية مختلفة أو عد بمجرد بدء حملاتك الإعلانية.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           )}
 
           {!isLoading && report && report.kpiCards.length > 0 && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {report.kpiCards.map((card) => (
                   <KpiCard key={card.metric} card={card} />
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <SurfaceCard
+              <div className="grid gap-4 md:grid-cols-5">
+                <SectionCard
                   title="تطور الأداء"
                   icon={TrendingUp}
                   className="md:col-span-3"
-                  contentClassName="h-[220px] md:h-[260px]"
                 >
-                  <PerformanceTrendLineChart timeline={timeline} />
-                </SurfaceCard>
-
-                <SurfaceCard
+                  <PerformanceTrendChart timeline={timeline} />
+                </SectionCard>
+                <SectionCard
                   title="مقارنة الأداء"
                   icon={BarChart3}
                   className="md:col-span-2"
-                  contentClassName="h-[220px] md:h-[260px]"
                 >
-                  <MonthlyComparisonBarChart timeline={timeline} />
-                </SurfaceCard>
+                  <PerformanceComparisonChart timeline={timeline} />
+                </SectionCard>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                <SurfaceCard
+              <div className="grid gap-4 md:grid-cols-12">
+                <SectionCard
                   title="توصيات ذكية"
                   icon={Lightbulb}
                   className="md:col-span-3"
                 >
                   {report.smartTips.length > 0 ? (
-                    <SmartTips tips={report.smartTips} />
+                    <div className="flex flex-col gap-3">
+                      {report.smartTips.map((tip) => {
+                        const Icon = tipIcons[tip.type];
+
+                        return (
+                          <Card key={`${tip.type}-${tip.title}`}>
+                            <CardContent className="flex items-start gap-3 pt-6">
+                              <Icon className="size-5 shrink-0 text-muted-foreground" />
+                              <div className="flex flex-col gap-1">
+                                <p className="text-sm font-medium">
+                                  {tip.title}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {tip.description}
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
                   ) : (
-                    <p className="text-xs text-portal-note-text">
+                    <p className="text-sm text-muted-foreground">
                       لا توجد توصيات حالياً.
                     </p>
                   )}
-                </SurfaceCard>
+                </SectionCard>
 
-                <SurfaceCard
+                <SectionCard
                   title="أفضل الإعلانات أداءً"
                   icon={BarChart2}
                   className="md:col-span-5"
                 >
-                  {report.topCampaigns.length > 0 ? (
-                    <TopCampaignsTable campaigns={report.topCampaigns} />
+                  {topCampaigns.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>الإعلان</TableHead>
+                          <TableHead>المنصة</TableHead>
+                          <TableHead>CTR</TableHead>
+                          <TableHead>التحويلات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {topCampaigns.map((campaign) => {
+                          const ctr =
+                            campaign.impressions > 0
+                              ? (campaign.clicks / campaign.impressions) * 100
+                              : 0;
+
+                          return (
+                            <TableRow key={campaign.id}>
+                              <TableCell className="font-medium">
+                                {campaign.name}
+                              </TableCell>
+                              <TableCell>{campaign.platform}</TableCell>
+                              <TableCell>{ctr.toFixed(1)}%</TableCell>
+                              <TableCell>
+                                {formatCompactNumber(campaign.conversions)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
                   ) : (
-                    <p className="text-xs text-portal-note-text">
+                    <p className="text-sm text-muted-foreground">
                       لا توجد بيانات.
                     </p>
                   )}
-                </SurfaceCard>
+                </SectionCard>
 
-                <SurfaceCard
+                <SectionCard
                   title="توزيع الإنفاق الإعلاني"
                   icon={PieChart}
                   className="md:col-span-4"
-                  contentClassName="h-[240px] md:h-[280px]"
                 >
-                  <SpendDistributionDonutChart
-                    data={report.platformDistribution}
-                  />
-                </SurfaceCard>
+                  <SpendDistributionChart data={report.platformDistribution} />
+                </SectionCard>
               </div>
             </>
           )}

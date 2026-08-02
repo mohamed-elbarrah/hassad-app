@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building2, Calendar, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ProjectStatus } from "@hassad/shared";
 import { formatDate } from "@/lib/format";
 import type { ProjectWithMeta } from "@/lib/utils/project-status";
-import { PROJECT_STATUS_COLOR } from "@/lib/utils/project-status";
+import { PROJECT_STATUS_TONES } from "@/lib/utils/project-status";
+import { Badge } from "@/components/ui/badge";
 
 interface ProjectKanbanCardProps {
   project: ProjectWithMeta;
@@ -28,7 +28,7 @@ export function ProjectKanbanCard({
   const progressValue = Math.round(
     project.progress ?? project.completionPercentage ?? 0,
   );
-  const statusColor = PROJECT_STATUS_COLOR[project.status as ProjectStatus];
+  const statusTone = PROJECT_STATUS_TONES[project.status];
 
   function onOpen() {
     if (isDragging) return;
@@ -43,29 +43,28 @@ export function ProjectKanbanCard({
       ref={setNodeRef}
       onClick={onOpen}
       className={cn(
-        "group bg-white rounded-2xl border border-portal-card-border p-4 cursor-grab active:cursor-grabbing transition-all duration-150",
-        "hover:border-secondary-500/20 hover:shadow-sm",
+        "group cursor-grab rounded-lg border bg-card p-4 transition-all duration-150 active:cursor-grabbing hover:border-secondary-500/20 hover:shadow-sm",
         (isDragging || isOverlay) && "opacity-60 rotate-1 scale-[1.02]",
-        isOverlay && "shadow-lg border-natural-100",
+        isOverlay && "border-border shadow-lg",
       )}
       {...attributes}
       {...listeners}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold leading-tight line-clamp-2 flex-1 min-w-0 text-natural-100">
+        <p className="flex-1 min-w-0 text-sm font-semibold leading-tight line-clamp-2 text-foreground">
           {project.name}
         </p>
-        <GripVertical className="h-4 w-4 shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 transition-opacity text-portal-note-text" />
+        <GripVertical className="mt-0.5 h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-40 text-muted-foreground" />
       </div>
 
       {project.client?.companyName && (
         <Link
           href={`/dashboard/sales/clients/${project.client.id}`}
-          className="flex items-center gap-1 mt-2 group/client"
+          className="mt-2 flex items-center gap-1"
           onClick={(e) => e.stopPropagation()}
         >
-          <Building2 className="w-3.5 h-3.5 shrink-0 text-portal-note-text" />
-          <span className="text-xs truncate text-portal-note-text group-hover/client:text-primary group-hover/client:underline">
+          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate text-xs text-muted-foreground group-hover:underline">
             {project.client.companyName}
           </span>
         </Link>
@@ -73,24 +72,21 @@ export function ProjectKanbanCard({
 
       <div className="mt-3">
         <div className="flex items-center justify-between text-xs mb-1">
-          <span className="text-portal-note-text">التقدم</span>
-          <span className="text-natural-100 font-semibold">
+          <span className="text-muted-foreground">التقدم</span>
+          <Badge variant="secondary" className="font-semibold tabular-nums">
             {progressValue}%
-          </span>
+          </Badge>
         </div>
-        <div className="h-1.5 rounded-full overflow-hidden bg-badge-gray-bg">
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${progressValue}%`,
-              backgroundColor: statusColor,
-            }}
+            className={cn("h-full rounded-full transition-all", statusTone.fillClass)}
+            style={{ width: `${progressValue}%` }}
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-1 mt-3 text-xs text-portal-note-text">
-        <Calendar className="w-3.5 h-3.5 shrink-0" />
+      <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+        <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span>
           {startDate} - {endDate}
         </span>

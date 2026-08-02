@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { ArrowLeft, Calendar, FileText } from "lucide-react";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { CurrencyDisplay } from "@/components/design-system/CurrencyDisplay";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PortalContractSummary } from "@/features/portal/portalApi";
 import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
 import { contractTypeLabel } from "@/lib/i18n";
-import { formatShortDateLong } from "@/lib/format";
+import { formatCurrency, formatShortDateLong } from "@/lib/format";
 
 interface ContractRowProps {
   contract: PortalContractSummary & { type?: string };
@@ -50,11 +49,9 @@ export function renderContractRowCells(
       </div>
     </td>,
     <td key="value" className="px-5 py-3.5 align-middle">
-      <CurrencyDisplay
-        amount={contract.totalValue}
-        size="sm"
-        className="text-sm font-semibold text-natural-100 tabular-nums"
-      />
+      <span className="text-sm font-semibold tabular-nums">
+        {formatCurrency(contract.totalValue)}
+      </span>
     </td>,
     <td key="period" className="px-5 py-3.5 align-middle">
       <span className="inline-flex items-center gap-1.5 text-[12.5px] text-portal-note-text tabular-nums">
@@ -77,14 +74,10 @@ export function renderContractRowCells(
         onClick={(e) => e.stopPropagation()}
         className="inline-block"
       >
-        <ActionButton
-          variant={isActionable ? "primary" : "outline"}
-          size="md"
-          icon={<ArrowLeft className="h-3.5 w-3.5" />}
-          className="h-8"
-        >
+        <Button variant={isActionable ? "default" : "outline"} size="sm">
+          <ArrowLeft data-icon="inline-start" />
           {isActionable ? "توقيع العقد" : "استعراض العقد"}
-        </ActionButton>
+        </Button>
       </Link>
     </td>,
   ];

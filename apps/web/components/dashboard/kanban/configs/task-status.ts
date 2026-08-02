@@ -1,11 +1,12 @@
 import { TaskStatus } from "@hassad/shared";
 import type { KanbanConfig } from "../types";
+import { KANBAN_TONES } from "../theme";
 
 /**
  * Task status kanban configuration.
  *
  * Flat layout (no groups).  Each status is a standalone column.
- * Colours match TASK_STATUS_COLOR in lib/utils/task-status.ts.
+ * Tone classes match TASK_STATUS_TONES in lib/utils/task-status.ts.
  */
 export const TASK_STATUS_CONFIG: KanbanConfig = {
   groups: [],
@@ -13,47 +14,27 @@ export const TASK_STATUS_CONFIG: KanbanConfig = {
   stages: {
     [TaskStatus.TODO]: {
       label: "للتنفيذ",
-      dotColor: "#6B7280",
-      bandBg: "#F3F4F6",
-      surfaceBg: "#F9FAFB",
-      countText: "#4B5563",
-      countBg: "#E5E7EB",
+      ...KANBAN_TONES.neutral,
       emptyLabel: "لا توجد مهام",
     },
     [TaskStatus.IN_PROGRESS]: {
       label: "قيد التنفيذ",
-      dotColor: "#3B82F6",
-      bandBg: "#BFDBFE",
-      surfaceBg: "#EFF6FF",
-      countText: "#1D4ED8",
-      countBg: "#93C5FD",
+      ...KANBAN_TONES.blue,
       emptyLabel: "لا توجد مهام",
     },
     [TaskStatus.IN_REVIEW]: {
       label: "قيد المراجعة",
-      dotColor: "#8B5CF6",
-      bandBg: "#DDD6FE",
-      surfaceBg: "#F5F3FF",
-      countText: "#6D28D9",
-      countBg: "#C4B5FD",
+      ...KANBAN_TONES.purple,
       emptyLabel: "لا توجد مهام",
     },
     [TaskStatus.REVISION]: {
       label: "يحتاج تعديل",
-      dotColor: "#F97316",
-      bandBg: "#FED7AA",
-      surfaceBg: "#FFF7ED",
-      countText: "#9A3412",
-      countBg: "#FDBA74",
+      ...KANBAN_TONES.orange,
       emptyLabel: "لا توجد مهام",
     },
     [TaskStatus.DONE]: {
       label: "منجز",
-      dotColor: "#10B981",
-      bandBg: "#A7F3D0",
-      surfaceBg: "#ECFDF5",
-      countText: "#065F46",
-      countBg: "#6EE7B7",
+      ...KANBAN_TONES.green,
       emptyLabel: "لا توجد مهام",
     },
   },

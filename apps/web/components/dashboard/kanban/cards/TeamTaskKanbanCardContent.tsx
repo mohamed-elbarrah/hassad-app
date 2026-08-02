@@ -2,22 +2,10 @@
 
 import Link from "next/link";
 import { GripVertical, Lock } from "lucide-react";
-import { Pill } from "@/components/design-system/Pill";
-import { TaskPriority, TaskStatus } from "@hassad/shared";
+import { TaskStatus } from "@hassad/shared";
 import { TASK_PRIORITY_LABELS } from "@/lib/utils/task-status";
 import type { TaskWithProject } from "@/features/tasks/tasksApi";
-
-// ─── Priority tone map ───────────────────────────────────────────────────────
-
-const PRIORITY_TONE: Record<
-  TaskPriority,
-  "neutral" | "success" | "warning" | "danger" | "blue"
-> = {
-  [TaskPriority.LOW]: "neutral",
-  [TaskPriority.NORMAL]: "neutral",
-  [TaskPriority.HIGH]: "blue",
-  [TaskPriority.URGENT]: "danger",
-};
+import { Badge } from "@/components/ui/badge";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -55,8 +43,7 @@ export function TeamTaskKanbanCardContent({
         <span
           className={`mt-0.5 shrink-0 ${
             canDrag ? "" : "cursor-not-allowed opacity-60"
-          }`}
-          style={{ color: "#A8ABB2" }}
+          } text-muted-foreground`}
         >
           {canDrag ? (
             <GripVertical className="h-4 w-4" />
@@ -67,17 +54,13 @@ export function TeamTaskKanbanCardContent({
         <div className="flex-1 min-w-0">
           <Link
             href={`/dashboard/team/tasks/${task.id}`}
-            className="text-sm font-medium hover:underline line-clamp-2 block"
-            style={{ color: "#000000" }}
+            className="block line-clamp-2 text-sm font-medium text-foreground hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
             {task.title}
           </Link>
           {task.project && (
-            <p
-              className="text-xs mt-0.5 line-clamp-1"
-              style={{ color: "#A8ABB2" }}
-            >
+            <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
               {task.project.name}
             </p>
           )}
@@ -86,15 +69,14 @@ export function TeamTaskKanbanCardContent({
 
       {/* ── Priority + Due Date ────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-1 flex-wrap mt-2">
-        <Pill tone={PRIORITY_TONE[task.priority]} className="text-xs">
+        <Badge variant="secondary" className="text-xs">
           {TASK_PRIORITY_LABELS[task.priority]}
-        </Pill>
+        </Badge>
         {dueDateFormatted && (
           <span
             className={`text-xs ${
-              isOverdue ? "text-danger-500 font-medium" : ""
+              isOverdue ? "font-medium text-destructive" : "text-muted-foreground"
             }`}
-            style={{ color: isOverdue ? undefined : "#A8ABB2" }}
           >
             {dueDateFormatted}
           </span>

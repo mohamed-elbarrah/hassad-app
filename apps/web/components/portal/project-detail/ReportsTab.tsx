@@ -3,21 +3,20 @@
 import { useState } from "react";
 import { Download, FileText, Loader2 } from "lucide-react";
 import type { PortalPeriodSummary } from "@/features/portal/portalApi";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { ActionButton } from "@/components/design-system/ActionButton";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "./EmptyState";
 
-interface ReportsTabProps {
+export function ReportsTab({
+  period,
+  onDownloadReport,
+}: {
   period: PortalPeriodSummary;
   onDownloadReport: () => void;
-}
-
-/** Reports tab — the PM-uploaded end-of-period report + the period summary. */
-export function ReportsTab({ period, onDownloadReport }: ReportsTabProps) {
+}) {
   const [downloading, setDownloading] = useState(false);
-  const hasReport = period.stats.hasReport;
-
-  const handleDownload = async () => {
+  const download = async () => {
     setDownloading(true);
     try {
       await onDownloadReport();
@@ -25,8 +24,7 @@ export function ReportsTab({ period, onDownloadReport }: ReportsTabProps) {
       setDownloading(false);
     }
   };
-
-  if (!hasReport && !period.summary) {
+  if (!period.stats.hasReport && !period.summary)
     return (
       <EmptyState
         icon={FileText}
@@ -34,55 +32,51 @@ export function ReportsTab({ period, onDownloadReport }: ReportsTabProps) {
         description="سيقوم مدير المشروع برفع تقرير الفترة عند إغلاقها."
       />
     );
-  }
-
   return (
-    <SurfaceCard title="تقرير الفترة" icon={FileText}>
-      <div className="space-y-4" dir="rtl">
-        {hasReport && (
-          <div className="flex items-center justify-between rounded-2xl border border-portal-card-border bg-natural-0 p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-badge-gray-bg">
-                <FileText className="size-5 text-portal-icon" />
-              </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText />
+          تقرير الفترة
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        {period.stats.hasReport ? (
+          <>
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-natural-100">
+                <p className="font-medium">
                   تقرير الفترة {period.periodNumber}
                 </p>
-                <p className="text-xs text-portal-note-text">
+                <p className="text-sm text-muted-foreground">
                   تم رفعه من قبل مدير المشروع
                 </p>
               </div>
-            </div>
-            <ActionButton
-              variant="outline"
-              size="sm"
-              icon={
-                downloading ? (
-                  <Loader2 className="size-4 animate-spin" />
+              <Button
+                variant="outline"
+                onClick={download}
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <Loader2 className="animate-spin" />
                 ) : (
-                  <Download className="size-4" />
-                )
-              }
-              onClick={handleDownload}
-              disabled={downloading}
-            >
-              {downloading ? "جاري التحميل..." : "تحميل"}
-            </ActionButton>
-          </div>
-        )}
-
-        {period.summary && (
-          <div className="rounded-2xl border border-portal-card-border bg-natural-0 p-4">
-            <p className="mb-2 text-sm font-semibold text-natural-100">
-              ملخص الفترة
-            </p>
-            <p className="whitespace-pre-line text-sm leading-6 text-portal-note-text max-h-60 overflow-y-auto">
+                  <Download />
+                )}
+                {downloading ? "جاري التحميل..." : "تحميل"}
+              </Button>
+            </div>
+            {period.summary ? <Separator /> : null}
+          </>
+        ) : null}
+        {period.summary ? (
+          <div>
+            <p className="font-medium">ملخص الفترة</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-muted-foreground">
               {period.summary}
             </p>
           </div>
-        )}
-      </div>
-    </SurfaceCard>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { RequestStatus } from "@hassad/shared";
 import type { RequestItem } from "@/features/requests/requestsApi";
 import { cn } from "@/lib/utils";
@@ -10,12 +12,10 @@ interface KanbanColumnProps {
   stage: RequestStatus;
   label: string;
   theme: {
-    dot: string;
-    bandBg: string;
-    surfaceBg: string;
-    cardBorder: string;
-    countText: string;
-    countBg: string;
+    dotClass: string;
+    bandClass: string;
+    surfaceClass: string;
+    countClass: string;
   };
   clients: RequestItem[];
   onCreateProposal?: (request: RequestItem) => void;
@@ -37,60 +37,45 @@ export function KanbanColumn({
   const { setNodeRef, isOver } = useDroppable({ id: stage });
 
   return (
-    <div
+    <Card
       ref={setNodeRef}
       className={cn(
-        "w-full rounded-xl flex flex-col transition-all duration-150",
+        "w-full flex flex-col overflow-hidden transition-all duration-150",
         isOver && "ring-2 ring-secondary-500/30 ring-offset-2 scale-[1.01]",
       )}
     >
-      {/* ── Tinted Header Band ───────────────────────────────────────── */}
       <div
-        className="flex w-full rounded-t-lg items-center gap-2 justify-between px-2 py-2.5 "
-        style={{ backgroundColor: theme.bandBg }}
+        className={cn(
+          "flex w-full items-center justify-between gap-2 px-3 py-3",
+          theme.bandClass,
+        )}
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <span
-            className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white"
-            style={{ backgroundColor: theme.dot }}
+            className={cn(
+              "h-3 w-3 shrink-0 rounded-full ring-2 ring-background",
+              theme.dotClass,
+            )}
           />
-          <h3
-            className="text-xs font-bold truncate"
-            style={{ color: "#121936" }}
-          >
+          <h3 className="truncate text-xs font-semibold text-foreground">
             {label}
           </h3>
         </div>
-        <span
-          className="text-xs font-bold rounded-full shrink-0 tabular-nums"
-          style={{
-            backgroundColor: theme.countBg,
-            color: theme.countText,
-            padding: "2px 8px",
-            minWidth: 24,
-            height: 20,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+        <Badge
+          variant="secondary"
+          className={cn("shrink-0 tabular-nums", theme.countClass)}
         >
           {clients.length}
-        </span>
+        </Badge>
       </div>
 
-      {/* ── Cards Area with tinted surface + top accent border ───────── */}
-      <div
-        className="flex flex-col gap-2 rounded-b-lg min-h-20 flex-1  p-2"
-        style={{
-          backgroundColor: theme.surfaceBg,
-          borderTopColor: theme.dot,
-        }}
+      <CardContent
+        className={cn("flex min-h-20 flex-1 flex-col gap-2 p-2", theme.surfaceClass)}
       >
         {clients.map((client) => (
           <KanbanCard
             key={client.id}
             client={client}
-            accentColor={theme.cardBorder}
             onCreateProposal={onCreateProposal}
             onEditProposal={onEditProposal}
             onCreateContract={onCreateContract}
@@ -98,16 +83,13 @@ export function KanbanColumn({
           />
         ))}
         {clients.length === 0 && (
-          <div className="flex items-center justify-center flex-1 min-h-16">
-            <p
-              className="text-xs text-center select-none"
-              style={{ color: "#A8ABB2" }}
-            >
+          <div className="flex min-h-16 flex-1 items-center justify-center">
+            <p className="select-none text-center text-xs text-muted-foreground">
               لا يوجد عملاء
             </p>
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

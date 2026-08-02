@@ -14,6 +14,18 @@ import type { KanbanConfig, KanbanBoardProps } from "./types";
 import { KanbanGroup } from "./KanbanGroup";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanStandaloneColumn } from "./KanbanStandaloneColumn";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { AlertCircle } from "lucide-react";
 
 // ─── Default loading skeleton ──────────────────────────────────────────────────
 
@@ -21,56 +33,61 @@ function DefaultLoadingSkeleton({ config }: { config: KanbanConfig }) {
   const hasGroups = config.groups.length > 0;
 
   if (hasGroups) {
-    return (
-      <div className="flex gap-6" dir="rtl">
+  return (
+    <ScrollArea className="w-full">
+      <div className="flex min-w-max gap-4 p-1" dir="rtl">
         {config.groups.map((group) => (
-          <div
+            <Card
             key={group.id}
-            className="flex-1 min-w-[340px] rounded-2xl border-[1.5px] border-portal-card-border p-3 space-y-3 bg-white"
-          >
-            <div className="h-8 bg-white animate-pulse rounded-xl border border-portal-card-border" />
-            <div className="space-y-2">
+              className="flex min-w-[340px] flex-1 flex-col overflow-hidden"
+            >
+              <CardHeader className="p-4">
+                <Skeleton className="h-5 w-32" />
+              </CardHeader>
+              <Separator />
+              <CardContent className="flex flex-col gap-3 p-3">
               {group.stages.map((stage) => (
                 <div
                   key={stage}
-                  className="h-36 bg-white animate-pulse rounded-2xl border border-portal-card-border"
+                    className="h-36 rounded-2xl border bg-muted/30"
                 />
               ))}
-            </div>
-          </div>
+              </CardContent>
+            </Card>
         ))}
-      </div>
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
     );
   }
 
   return (
-    <div className="flex gap-6" dir="rtl">
+    <ScrollArea className="w-full">
+      <div className="flex min-w-max gap-4 p-1" dir="rtl">
       {config.stageOrder.map((stage) => {
-        const stageConfig = config.stages[stage];
         return (
-          <div
+          <Card
             key={stage}
-            className="flex-1 min-w-[340px] rounded-2xl border-[1.5px] border-portal-card-border overflow-hidden bg-white"
+            className="flex min-w-[340px] flex-1 flex-col overflow-hidden"
           >
-            <div
-              className="h-10 animate-pulse"
-              style={{ backgroundColor: stageConfig?.bandBg }}
-            />
-            <div
-              className="p-3 space-y-2"
-              style={{ backgroundColor: stageConfig?.surfaceBg }}
-            >
+            <CardHeader className="p-4">
+              <Skeleton className="h-5 w-28" />
+            </CardHeader>
+            <Separator />
+            <CardContent className="flex flex-col gap-2 p-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-24 bg-white animate-pulse rounded-2xl border border-portal-card-border"
+                  className="h-24 rounded-2xl border bg-muted/30"
                 />
               ))}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         );
       })}
-    </div>
+      </div>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   );
 }
 
@@ -146,22 +163,40 @@ export function KanbanBoard<T extends { id: string }>({
   // ── Error state ───────────────────────────────────────────────────────
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-        <p className="text-danger-500 font-medium">
-          {errorMessage || "حدث خطأ أثناء تحميل البيانات"}
-        </p>
-      </div>
+      <Card className="border-dashed">
+        <CardContent className="p-8">
+          <Empty>
+            <EmptyMedia variant="icon">
+              <AlertCircle />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>تعذر تحميل البيانات</EmptyTitle>
+              <EmptyDescription>
+                {errorMessage || "حدث خطأ أثناء تحميل البيانات"}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </CardContent>
+      </Card>
     );
   }
 
   // ── Empty state ───────────────────────────────────────────────────────
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border-[1.5px] border-dashed border-portal-card-border px-6 py-4 text-center bg-white">
-        <p className="text-sm font-medium text-portal-note-text">
-          {emptyMessage || "لا توجد بيانات"}
-        </p>
-      </div>
+      <Card className="border-dashed">
+        <CardContent className="p-8">
+          <Empty>
+            <EmptyMedia variant="icon">
+              <AlertCircle />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>لا توجد بيانات</EmptyTitle>
+              <EmptyDescription>{emptyMessage || "لا توجد بيانات"}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -174,11 +209,14 @@ export function KanbanBoard<T extends { id: string }>({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-6 overflow-x-auto pb-2 h-full" dir="rtl">
-        {hasGroups
-          ? renderGroupedLayout(config, itemsByStage, renderCard, canDragItem)
-          : renderFlatLayout(config, itemsByStage, renderCard, canDragItem)}
-      </div>
+      <ScrollArea className="w-full">
+        <div className="flex min-w-max gap-4 pb-2 pt-1" dir="rtl">
+          {hasGroups
+            ? renderGroupedLayout(config, itemsByStage, renderCard, canDragItem)
+            : renderFlatLayout(config, itemsByStage, renderCard, canDragItem)}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
 
       <DragOverlay>
         {activeItem ? renderCard(activeItem, { isOverlay: true }) : null}

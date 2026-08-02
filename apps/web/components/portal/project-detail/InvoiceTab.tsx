@@ -2,36 +2,20 @@
 
 import { DollarSign, FileText } from "lucide-react";
 import type { PortalPeriodInvoice } from "@/features/portal/portalApi";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { CurrencySymbol } from "@/components/design-system/CurrencySymbol";
-import { EmptyState } from "./EmptyState";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { formatDateTz } from "@/lib/format";
 import { useCurrency } from "@/hooks/useCurrency";
+import { EmptyState } from "./EmptyState";
 
-interface InvoiceTabProps {
+export function InvoiceTab({
+  invoice,
+}: {
   invoice: PortalPeriodInvoice | null;
-}
-
-interface DetailRowProps {
-  label: string;
-  value: string | React.ReactNode;
-}
-
-function DetailRow({ label, value }: DetailRowProps) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-sm text-portal-note-text">{label}</span>
-      <span className="text-sm font-medium text-natural-100">{value}</span>
-    </div>
-  );
-}
-
-/** Invoice tab — the period's invoice summary (PDF generation deferred). */
-export function InvoiceTab({ invoice }: InvoiceTabProps) {
+}) {
   const { fmtAmount } = useCurrency();
-
-  if (!invoice) {
+  if (!invoice)
     return (
       <EmptyState
         icon={DollarSign}
@@ -39,61 +23,49 @@ export function InvoiceTab({ invoice }: InvoiceTabProps) {
         description="سيتم إصدار فاتورة الفترة عند إغلاقها."
       />
     );
-  }
-
+  const statusVariant =
+    invoice.status === "CANCELLED" || invoice.status === "LATE"
+      ? "destructive"
+      : invoice.status === "PAID"
+        ? "default"
+        : "secondary";
   return (
-    <SurfaceCard title="فاتورة هذه الفترة" icon={DollarSign}>
-      <div
-        className="grid grid-cols-1 gap-6 p-2 md:grid-cols-3 md:items-center"
-        dir="rtl"
-      >
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-alert-100 text-alert-500">
-            <DollarSign className="size-7" />
-          </div>
-          <div>
-            <p className="text-sm text-portal-note-text">المبلغ المستحق</p>
-            <p className="text-3xl font-bold text-natural-100">
-              {fmtAmount(invoice.remainingAmount)}{" "}
-              <CurrencySymbol className="inline-block" />
-            </p>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <DollarSign />
+          فاتورة هذه الفترة
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-5 md:grid-cols-3">
+        <div>
+          <p className="text-sm text-muted-foreground">المبلغ المستحق</p>
+          <p className="text-3xl font-semibold">
+            {fmtAmount(invoice.remainingAmount)}
+          </p>
         </div>
-
-        <div className="flex flex-col gap-2 md:border-r md:border-portal-divider md:pr-6">
-          <DetailRow label="رقم الفاتورة" value={invoice.invoiceNumber} />
-          <DetailRow
-            label="المبلغ الإجمالي"
-            value={
-              <>
-                {fmtAmount(invoice.amount)}{" "}
-                <CurrencySymbol className="inline-block" />
-              </>
-            }
-          />
-          <DetailRow
-            label="المدفوع"
-            value={
-              <>
-                {fmtAmount(invoice.paidAmount)}{" "}
-                <CurrencySymbol className="inline-block" />
-              </>
-            }
-          />
-          <DetailRow
-            label="تاريخ الاستحقاق"
-            value={formatDateTz(invoice.dueDate)}
-          />
+        <div className="flex flex-col gap-2 text-sm">
+          <p>
+            رقم الفاتورة: <strong>{invoice.invoiceNumber}</strong>
+          </p>
+          <p>
+            المبلغ الإجمالي: <strong>{fmtAmount(invoice.amount)}</strong>
+          </p>
+          <p>
+            المدفوع: <strong>{fmtAmount(invoice.paidAmount)}</strong>
+          </p>
+          <p>
+            تاريخ الاستحقاق: <strong>{formatDateTz(invoice.dueDate)}</strong>
+          </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-3 md:justify-end">
-          <StatusBadge status={invoice.status} />
-          <span className="inline-flex items-center gap-1.5 text-xs text-portal-note-text">
-            <FileText className="size-4" />
+        <div className="flex flex-col items-start gap-3">
+          <Badge variant={statusVariant}>{invoice.status}</Badge>
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
+            <FileText />
             {formatDateTz(invoice.issueDate)}
-          </span>
+          </p>
         </div>
-      </div>
-    </SurfaceCard>
+      </CardContent>
+    </Card>
   );
 }

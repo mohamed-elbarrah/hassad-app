@@ -1,134 +1,139 @@
 "use client";
 
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/design-system/Input";
+import { Filter, Search, X } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
-import { cn } from "@/lib/utils";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import type { RequestStatusGroup } from "@/lib/utils/requestStatus";
 
 export interface RequestsToolbarFilters {
   query: string;
-  /** Single status-group filter (stored as a one-element array so the
-   *  `FilterBar` shape stays consistent — `[]` means no filter). */
   statusGroups: RequestStatusGroup[];
 }
 
 interface RequestsToolbarProps {
   value: RequestsToolbarFilters;
   onChange: (next: RequestsToolbarFilters) => void;
-  /** Counts by group, fed into `FilterBar` options so the user can see
-   *  how many requests each filter would return. Pass empty map if you
-   *  don't have counts yet (loading state). */
   countsByGroup: ReadonlyMap<RequestStatusGroup, number>;
 }
 
-/**
- * Toolbar above the requests table.
- *
- * Composition:
- *   [Search input]  [FilterBar — status group + future filters]
- *
- * Single source of truth for the current filters — owned by the parent
- * page. The toolbar is purely presentational.
- *
- * Design decisions:
- *   - Status filter is exposed through `FilterBar` (the design-system
- *     popover), NOT as inline button chips. Inline chips duplicate the
- *     information that's already in the badge column of the table.
- *   - Sort is intentionally not exposed. The backend already returns the
- *     list in `createdAt DESC` order, which is the only order clients
- *     ever need for a tracking page. If a different sort becomes
- *     necessary later, it should live here — not as a free-standing
- *     dropdown that orphans the FilterBar visually.
- */
+const STATUS_OPTIONS: Array<{
+  value: Exclude<RequestStatusGroup, "all">;
+  label: string;
+}> = [
+  { value: "received", label: "مستلم" },
+  { value: "preparing", label: "قيد الإعداد" },
+  { value: "awaiting-you", label: "بانتظار توقيعك" },
+  { value: "signed", label: "موقّع" },
+  { value: "cancelled", label: "ملغي" },
+];
+
 export function RequestsToolbar({
   value,
   onChange,
   countsByGroup,
 }: RequestsToolbarProps) {
-  const update = <K extends keyof RequestsToolbarFilters>(
-    key: K,
-    next: RequestsToolbarFilters[K],
-  ) => onChange({ ...value, [key]: next });
-
-  const filterGroups: FilterGroup[] = [
-    {
-      key: "statusGroup",
-      label: "حالة الطلب",
-      options: [
-        {
-          value: "received",
-          label: "مستلم",
-          count: countsByGroup.get("received") ?? 0,
-        },
-        {
-          value: "preparing",
-          label: "قيد الإعداد",
-          count: countsByGroup.get("preparing") ?? 0,
-        },
-        {
-          value: "awaiting-you",
-          label: "بانتظار توقيعك",
-          count: countsByGroup.get("awaiting-you") ?? 0,
-        },
-        {
-          value: "signed",
-          label: "موقّع",
-          count: countsByGroup.get("signed") ?? 0,
-        },
-        {
-          value: "cancelled",
-          label: "ملغي",
-          count: countsByGroup.get("cancelled") ?? 0,
-        },
-      ],
-    },
-  ];
+  const toggleStatus = (status: Exclude<RequestStatusGroup, "all">) => {
+    const statusGroups = value.statusGroups.includes(status)
+      ? value.statusGroups.filter((current) => current !== status)
+      : [...value.statusGroups, status];
+    onChange({ ...value, statusGroups });
+  };
 
   return (
     <div
-      className={cn(
-        "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
-      )}
+      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       dir="rtl"
     >
-      {/* Search */}
-      <div className="relative flex-1 max-w-md">
+      <div className="relative w-full sm:max-w-md">
+        <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          icon={<Search className="size-4" />}
+          className="ps-9 pe-9"
           placeholder="ابحث في الطلبات..."
           value={value.query}
-          onChange={(e) => update("query", e.target.value)}
-          className="h-10"
+          onChange={(event) =>
+            onChange({ ...value, query: event.target.value })
+          }
           aria-label="بحث في الطلبات"
         />
-        {value.query && (
-          <button
+        {value.query ? (
+          <Button
             type="button"
-            onClick={() => update("query", "")}
+            variant="ghost"
+            size="icon"
+            className="absolute end-1 top-1/2 size-8 -translate-y-1/2"
+            onClick={() => onChange({ ...value, query: "" })}
             aria-label="مسح البحث"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-portal-icon hover:text-secondary-500"
           >
-            <X className="size-4" />
-          </button>
-        )}
+            <X />
+          </Button>
+        ) : null}
       </div>
 
-      {/* Filter (status group, ready for more) */}
-      <FilterBar
-        groups={filterGroups}
-        activeFilters={
-          value.statusGroups.length > 0
-            ? { statusGroup: value.statusGroups }
-            : {}
-        }
-        onFilterChange={(key, vals) =>
-          update("statusGroups", vals as RequestStatusGroup[])
-        }
-      />
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="justify-between">
+            <span className="flex items-center gap-2">
+              <Filter />
+              تصفية الحالة
+            </span>
+            {value.statusGroups.length ? (
+              <Badge variant="secondary">{value.statusGroups.length}</Badge>
+            ) : null}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="flex flex-col gap-3" dir="rtl">
+          <div>
+            <p className="font-medium">حالة الطلب</p>
+            <p className="text-sm text-muted-foreground">اختر حالة أو أكثر.</p>
+          </div>
+          <Separator />
+          <div className="flex flex-col gap-3">
+            {STATUS_OPTIONS.map((option) => {
+              const id = `request-status-${option.value}`;
+              return (
+                <div
+                  key={option.value}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <Label
+                    htmlFor={id}
+                    className="flex cursor-pointer items-center gap-2"
+                  >
+                    <Checkbox
+                      id={id}
+                      checked={value.statusGroups.includes(option.value)}
+                      onCheckedChange={() => toggleStatus(option.value)}
+                    />
+                    {option.label}
+                  </Label>
+                  <Badge variant="outline">
+                    {countsByGroup.get(option.value) ?? 0}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+          {value.statusGroups.length ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onChange({ ...value, statusGroups: [] })}
+            >
+              مسح الفلاتر
+            </Button>
+          ) : null}
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

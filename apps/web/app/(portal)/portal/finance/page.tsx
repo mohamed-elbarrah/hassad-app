@@ -1,157 +1,21 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import { CreditCard, Filter, Receipt, Search, X } from "lucide-react";
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
-import { useState, useCallback, useMemo } from "react";
-import { Receipt } from "lucide-react";
-import {
-  useGetPortalInvoicesQuery,
-  useGetPortalFinanceSummaryQuery,
-  type PortalInvoiceSummary,
-} from "@/features/portal/portalApi";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { DataTable } from "@/components/design-system/DataTable";
-import { Pagination } from "@/components/design-system/Pagination";
-import {
-  PaymentSheet,
-  type PayableInvoice,
-} from "@/components/payments/PaymentSheet";
-import {
-  FinanceSummaryKpis,
-  FinanceToolbar,
-  renderInvoiceRowCells,
-  type InvoiceRowProps,
-} from "@/components/portal/finance";
-
+import { useGetPortalFinanceSummaryQuery, useGetPortalInvoicesQuery } from "@/features/portal/portalApi";
+import { PaymentSheet, type PayableInvoice } from "@/components/payments/PaymentSheet";
+import { FinanceSummaryKpis } from "@/components/portal/finance";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatCurrency, formatShortDateLong, isInvoicePayable } from "@/lib/format";
 const PAGE_SIZE = 7;
-
-export default function PortalFinancePage() {
-  const [page, setPage] = useState(1);
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState<PayableInvoice | null>(
-    null,
-  );
-  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
-
-  const statusFilter = activeFilters["status"]?.[0] ?? "ALL";
-
-  const { data: summaryData, isLoading: summaryLoading } =
-    useGetPortalFinanceSummaryQuery(undefined, {
-      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-    });
-
-  const {
-    data: invoicesData,
-    isLoading: invoicesLoading,
-    isError,
-  } = useGetPortalInvoicesQuery(
-    {
-      status: statusFilter === "ALL" ? undefined : statusFilter,
-      page,
-      limit: PAGE_SIZE,
-    },
-    { pollingInterval: PORTAL_POLLING_INTERVAL_MS },
-  );
-
-  const invoices: PortalInvoiceSummary[] = invoicesData?.data ?? [];
-  const total = invoicesData?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  const handleFilterChange = useCallback(
-    (groupKey: string, values: string[]) => {
-      setActiveFilters((prev) => ({ ...prev, [groupKey]: values }));
-      setPage(1);
-    },
-    [],
-  );
-
-  const handleSearchChange = useCallback((v: string) => {
-    setSearchQuery(v);
-    setPage(1);
-  }, []);
-
-  // Server already filtered by status; we only do search locally.
-  const visibleInvoices = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return invoices;
-    return invoices.filter(
-      (inv) =>
-        inv.invoiceNumber.toLowerCase().includes(q) ||
-        (inv.contract?.title.toLowerCase().includes(q) ?? false),
-    );
-  }, [invoices, searchQuery]);
-
-  const handlePayClick = useCallback((invoice: PayableInvoice) => {
-    setSelectedInvoice(invoice);
-    setIsPaymentSheetOpen(true);
-  }, []);
-
-  const hasActiveSearchOrFilter =
-    searchQuery.trim().length > 0 || statusFilter !== "ALL";
-
-  return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="الفواتير والمدفوعات"
-        description="استعرض جميع فواتيرك، حالة الدفع، المبالغ المستحقة، وقم بالدفع مباشرة."
-        icon={Receipt}
-      />
-
-      <FinanceSummaryKpis data={summaryData} isLoading={summaryLoading} />
-
-      <FinanceToolbar
-        search={searchQuery}
-        onSearchChange={handleSearchChange}
-        activeFilters={activeFilters}
-        onFilterChange={handleFilterChange}
-        invoices={invoices}
-        totalCount={total}
-        visibleCount={visibleInvoices.length}
-      />
-
-      <DataTable
-        columns={[
-          { id: "number", label: "رقم الفاتورة" },
-          { id: "date", label: "التاريخ" },
-          { id: "amount", label: "المبلغ", align: "left" },
-          { id: "status", label: "الحالة" },
-          { id: "action", label: "", align: "left", width: "140px" },
-        ]}
-        data={visibleInvoices}
-        isLoading={invoicesLoading}
-        isError={isError}
-        skeletonRows={PAGE_SIZE}
-        emptyState={{
-          icon: Receipt,
-          message: hasActiveSearchOrFilter
-            ? "لا توجد فواتير مطابقة"
-            : "لا توجد فواتير حتى الآن.",
-          hint: hasActiveSearchOrFilter
-            ? "جرّب كلمات بحث مختلفة أو امسح عوامل التصفية."
-            : "ستظهر فواتيرك هنا حال إصدارها.",
-        }}
-        renderCells={(invoice) =>
-          renderInvoiceRowCells(invoice, {
-            onPay: handlePayClick,
-          } satisfies Pick<InvoiceRowProps, "onPay">)
-        }
-      />
-
-      {!invoicesLoading && visibleInvoices.length > 0 && (
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
-      )}
-
-      <PaymentSheet
-        invoice={selectedInvoice}
-        open={isPaymentSheetOpen}
-        onOpenChange={setIsPaymentSheetOpen}
-      />
-    </div>
-  );
-}
+export default function PortalFinancePage() { const [page, setPage] = useState(1); const [search, setSearch] = useState(""); const [statuses, setStatuses] = useState<string[]>([]); const [selected, setSelected] = useState<PayableInvoice | null>(null); const [paymentOpen, setPaymentOpen] = useState(false); const { data: summary, isLoading: summaryLoading } = useGetPortalFinanceSummaryQuery(undefined, { pollingInterval: PORTAL_POLLING_INTERVAL_MS }); const { data, isLoading, isError } = useGetPortalInvoicesQuery({ status: statuses[0], page, limit: PAGE_SIZE }, { pollingInterval: PORTAL_POLLING_INTERVAL_MS }); const invoices = data?.data ?? []; const visible = useMemo(() => { const q = search.toLowerCase(); return invoices.filter((invoice) => !q || invoice.invoiceNumber.toLowerCase().includes(q) || invoice.contract?.title.toLowerCase().includes(q)); }, [invoices, search]); const options = [...new Set(invoices.map((invoice) => invoice.status))]; const toggle = (status: string) => { setStatuses((current) => current.includes(status) ? [] : [status]); setPage(1); }; return <main dir="rtl" className="flex flex-col gap-6"><Card><CardHeader><div className="flex items-center gap-3"><Receipt className="size-5 text-muted-foreground" /><CardTitle>الفواتير والمدفوعات</CardTitle></div><CardDescription>استعرض فواتيرك، حالة الدفع، والمبالغ المستحقة.</CardDescription></CardHeader></Card><FinanceSummaryKpis data={summary} isLoading={summaryLoading} /><div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="ps-9 pe-9" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="ابحث برقم الفاتورة أو العقد..." />{search ? <Button variant="ghost" size="icon" className="absolute end-1 top-1/2 size-8 -translate-y-1/2" onClick={() => setSearch("")}><X /></Button> : null}</div><Popover><PopoverTrigger asChild><Button variant="outline"><Filter />الحالة{statuses.length ? <Badge variant="secondary">1</Badge> : null}</Button></PopoverTrigger><PopoverContent className="flex flex-col gap-2" dir="rtl">{options.map((status) => <label key={status} className="flex items-center gap-2"><Checkbox checked={statuses.includes(status)} onCheckedChange={() => toggle(status)} />{status}</label>)}{statuses.length ? <Button variant="ghost" size="sm" onClick={() => setStatuses([])}>مسح الفلتر</Button> : null}</PopoverContent></Popover></div><Card>{isLoading ? <CardContent className="flex flex-col gap-3 pt-6">{Array.from({ length: PAGE_SIZE }).map((_, index) => <Skeleton key={index} className="h-14" />)}</CardContent> : isError ? <CardContent className="pt-6"><Empty><EmptyHeader><EmptyMedia variant="icon"><Receipt /></EmptyMedia><EmptyTitle>تعذر تحميل الفواتير</EmptyTitle><EmptyDescription>حاول تحديث الصفحة مرة أخرى.</EmptyDescription></EmptyHeader></Empty></CardContent> : visible.length ? <Table><TableHeader><TableRow><TableHead>رقم الفاتورة</TableHead><TableHead>التاريخ</TableHead><TableHead>المبلغ</TableHead><TableHead>الحالة</TableHead><TableHead><span className="sr-only">الإجراء</span></TableHead></TableRow></TableHeader><TableBody>{visible.map((invoice) => <TableRow key={invoice.id}><TableCell><p className="font-medium">{invoice.invoiceNumber}</p><p className="text-sm text-muted-foreground">{invoice.contract?.title}</p></TableCell><TableCell>{formatShortDateLong(invoice.issueDate ?? invoice.dueDate)}</TableCell><TableCell><p>{formatCurrency(invoice.amount)}</p>{invoice.remainingAmount > 0 && invoice.remainingAmount !== invoice.amount ? <p className="text-sm text-muted-foreground">متبقي {formatCurrency(invoice.remainingAmount)}</p> : null}</TableCell><TableCell><DomainStatusPill domain="invoice" status={invoice.status} /></TableCell><TableCell>{isInvoicePayable(invoice.status, invoice.remainingAmount) ? <Button size="sm" onClick={() => { setSelected({ id: invoice.id, invoiceNumber: invoice.invoiceNumber, amount: invoice.amount, status: invoice.status }); setPaymentOpen(true); }}><CreditCard />دفع</Button> : "—"}</TableCell></TableRow>)}</TableBody></Table> : <CardContent className="pt-6"><Empty><EmptyHeader><EmptyMedia variant="icon"><Receipt /></EmptyMedia><EmptyTitle>لا توجد فواتير مطابقة</EmptyTitle><EmptyDescription>جرّب تغيير البحث أو الفلتر.</EmptyDescription></EmptyHeader></Empty></CardContent>}</Card><PaymentSheet invoice={selected} open={paymentOpen} onOpenChange={setPaymentOpen} /></main>; }

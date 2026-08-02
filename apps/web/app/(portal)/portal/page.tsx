@@ -1,125 +1,210 @@
 "use client";
 
-import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  Activity,
   ArrowLeft,
+  CalendarDays,
+  CheckCircle,
   ClipboardList,
+  Clock,
+  DollarSign,
+  FileText,
+  Filter,
+  MessageCircle,
+  Palette,
+  PenTool,
+  Receipt,
   Settings,
   TrendingUp,
   Users,
-  Filter,
-  DollarSign,
-  Palette,
-  FileText,
-  Clock,
-  Activity,
-  Receipt,
-  CheckCircle,
-  PenTool,
-  MessageCircle,
 } from "lucide-react";
 
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useAppSelector } from "@/lib/hooks";
 import { useSnoozeActionItem } from "@/hooks/useSnoozeActionItem";
 import {
-  useGetPortalRequestsQuery,
-  useGetProjectProgressQuery,
   useGetActionItemsQuery,
   useGetActivityFeedQuery,
   useGetCampaignSummaryQuery,
+  useGetPortalRequestsQuery,
+  useGetProjectProgressQuery,
   useGetTeamMembersQuery,
 } from "@/features/portal/portalApi";
-
-import { DashboardCard } from "@/components/design-system/DashboardCard";
-import { GaugeChart } from "@/components/design-system/GaugeChart";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { ActionItemCard } from "@/components/design-system/ActionItemCard";
-import { MetricCard } from "@/components/design-system/MetricCard";
-import { TimelineItem } from "@/components/design-system/TimelineItem";
-import { mapProjectStatusToUI } from "@/lib/utils/statusMapping";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ACTION_TYPE_CONFIG: Record<
   string,
-  {
-    primaryAction: string;
-    primaryColor: "purple" | "blue";
-    icon: typeof Palette;
-  }
+  { primaryAction: string; variant: "default" | "secondary"; icon: LucideIcon }
 > = {
   DELIVERABLE_APPROVAL: {
     primaryAction: "مراجعة الآن",
-    primaryColor: "purple",
+    variant: "default",
     icon: Palette,
   },
   INVOICE_PAYMENT: {
-    primaryAction: "أدفع الان",
-    primaryColor: "blue",
+    primaryAction: "أدفع الآن",
+    variant: "secondary",
     icon: Receipt,
   },
   PROPOSAL_REVIEW: {
     primaryAction: "مراجعة العرض",
-    primaryColor: "purple",
+    variant: "default",
     icon: FileText,
   },
   CONTRACT_SIGN: {
     primaryAction: "توقيع العقد",
-    primaryColor: "blue",
+    variant: "secondary",
     icon: PenTool,
   },
   STRATEGY_REVIEW: {
     primaryAction: "مراجعة الدراسة",
-    primaryColor: "purple",
+    variant: "default",
     icon: ClipboardList,
   },
 };
 
-const ACTIVITY_ICON_MAP: Record<string, React.ReactNode> = {
-  palette: <Palette className="w-6 h-6 text-secondary-500" />,
-  file: <FileText className="w-5 h-5 text-secondary-500" />,
-  trending: <TrendingUp className="w-6 h-6 text-secondary-500" />,
-  check: <CheckCircle className="w-6 h-6 text-secondary-500" />,
-  dollar: <DollarSign className="w-6 h-6 text-secondary-500" />,
+const ACTIVITY_ICON_MAP: Record<string, LucideIcon> = {
+  palette: Palette,
+  file: FileText,
+  trending: TrendingUp,
+  check: CheckCircle,
+  dollar: DollarSign,
 };
+
+function DashboardSection({
+  title,
+  icon: Icon,
+  actionHref,
+  children,
+}: {
+  title: string;
+  icon: LucideIcon;
+  actionHref?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader className="gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Icon className="size-5 text-muted-foreground" />
+            <CardTitle className="text-lg">{title}</CardTitle>
+          </div>
+          {actionHref ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={actionHref}>عرض الكل</Link>
+            </Button>
+          ) : null}
+        </div>
+      </CardHeader>
+      <Separator />
+      <CardContent className="pt-6">{children}</CardContent>
+    </Card>
+  );
+}
+
+function SectionEmpty({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icon />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description ? (
+          <EmptyDescription>{description}</EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+    </Empty>
+  );
+}
+
+function ProjectStatusBadge({
+  label,
+  status,
+}: {
+  label: string;
+  status: string;
+}) {
+  const variant =
+    status === "CANCELLED"
+      ? "destructive"
+      : status === "ACTIVE" || status === "COMPLETED"
+        ? "default"
+        : "secondary";
+
+  return <Badge variant={variant}>{label}</Badge>;
+}
 
 export default function PortalPage() {
   const { user } = useAppSelector((state) => state.auth);
   const router = useRouter();
   const clientId = user?.clientId ?? "";
-
   const { snoozeItem } = useSnoozeActionItem();
 
-  const { data: pendingRequestsData, error: pendingRequestsError } =
-    useGetPortalRequestsQuery(
-      { page: 1, limit: 3 },
-      {
-        skip: !clientId,
-        pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-      },
-    );
-  const { data: projectProgress, error: projectError } =
-    useGetProjectProgressQuery(undefined, {
-      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-    });
-  void useGetActivityFeedQuery(undefined, {
+  const {
+    data: pendingRequestsData,
+    error: pendingRequestsError,
+    isLoading: pendingRequestsLoading,
+  } = useGetPortalRequestsQuery(
+    { page: 1, limit: 3 },
+    { skip: !clientId, pollingInterval: PORTAL_POLLING_INTERVAL_MS },
+  );
+  const {
+    data: projectProgress,
+    error: projectError,
+    isLoading: projectsLoading,
+  } = useGetProjectProgressQuery(undefined, {
+    skip: !clientId,
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
-  void useGetPortalRequestsQuery(undefined, {
+  const {
+    data: actionItemsData,
+    error: actionItemsError,
+    isLoading: actionItemsLoading,
+  } = useGetActionItemsQuery(undefined, {
+    skip: !clientId,
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
-  const { data: actionItemsData, error: actionItemsError } =
-    useGetActionItemsQuery(undefined, {
-      skip: !clientId,
-      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-    });
-  const { data: activityFeedData, error: activityError } =
-    useGetActivityFeedQuery(undefined, {
-      skip: !clientId,
-      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-    });
+  const {
+    data: activityFeedData,
+    error: activityError,
+    isLoading: activityLoading,
+  } = useGetActivityFeedQuery(undefined, {
+    skip: !clientId,
+    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+  });
   const {
     data: campaignSummary,
     error: campaignError,
@@ -128,387 +213,393 @@ export default function PortalPage() {
     skip: !clientId,
     pollingInterval: PORTAL_POLLING_INTERVAL_MS,
   });
-  const { data: teamMembersData } = useGetTeamMembersQuery(undefined, {
-    skip: !clientId,
-    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-  });
+  const { data: teamMembersData, isLoading: teamMembersLoading } =
+    useGetTeamMembersQuery(undefined, {
+      skip: !clientId,
+      pollingInterval: PORTAL_POLLING_INTERVAL_MS,
+    });
 
   const projects = projectProgress?.projects ?? [];
   const pendingRequests = pendingRequestsData?.data ?? [];
-  const gaugeValue = projectProgress?.overallProgress ?? 0;
   const actionItems = actionItemsData?.items ?? [];
   const activityItems = activityFeedData?.items ?? [];
 
-  const handleSnooze = async (item: {
-    id: string;
-    type: string;
-    title: string;
-  }) => {
-    await snoozeItem(item.type, item.id);
-  };
-
   if (!clientId) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-lg text-portal-note-text">
-          لم يتم ربط حسابك بملف عميل. يرجى التواصل مع الإدارة.
-        </p>
-      </div>
+      <main dir="rtl">
+        <Card>
+          <CardContent className="pt-6">
+            <SectionEmpty
+              icon={Users}
+              title="حساب العميل غير مرتبط"
+              description="يرجى التواصل مع الإدارة لربط حسابك بملف العميل."
+            />
+          </CardContent>
+        </Card>
+      </main>
     );
   }
 
   return (
-    <div className="space-y-5" dir="rtl">
-      <Link
-        href="/portal/chat?openSales=true"
-        className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-l from-secondary-50 to-secondary-100/60 border border-secondary-200 hover:from-secondary-100 hover:to-secondary-200 transition-colors group"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-secondary-500 flex items-center justify-center shrink-0">
-            <MessageCircle className="w-5 h-5 text-white" />
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-semibold text-secondary-700">
-              هل تحتاج خدمة جديدة؟
-            </p>
-            <p className="text-xs text-secondary-500/80">
-              تواصل مع مدير حسابك عبر المحادثة المباشرة
-            </p>
-          </div>
-        </div>
-        <ArrowLeft className="w-4 h-4 text-secondary-400 group-hover:-translate-x-1 transition-transform" />
-      </Link>
+    <main dir="rtl" className="flex flex-col gap-6">
+      <Card>
+        <CardContent className="pt-6">
+          <Button
+            asChild
+            variant="ghost"
+            className="h-auto w-full justify-between"
+          >
+            <Link href="/portal/chat?openSales=true">
+              <span className="flex items-center gap-3 text-right">
+                <MessageCircle className="size-5" />
+                <span className="flex flex-col gap-1">
+                  <span className="font-semibold">هل تحتاج خدمة جديدة؟</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    تواصل مع مدير حسابك عبر المحادثة المباشرة
+                  </span>
+                </span>
+              </span>
+              <ArrowLeft className="size-4" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
-      <div
-        className="grid grid-cols-1 lg:grid-cols-3 gap-5 w-full mx-auto"
-        dir="rtl"
-      >
-        {/* COLUMN 1 */}
-        <div className="flex flex-col gap-5">
-          {/* ── تتبع المشاريع ──────────────────────────── */}
-          <DashboardCard
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6">
+          <DashboardSection
             title="تتبع المشاريع"
             icon={Activity}
-            onShowAll={() => router.push("/portal/projects")}
+            actionHref="/portal/projects"
           >
-            {projectError ? (
-              <div className="flex flex-col items-center gap-5 py-8">
-                <p className="text-base text-portal-note-text">
-                  تعذر تحميل بيانات المشاريع
-                </p>
+            {projectsLoading ? (
+              <div className="flex flex-col gap-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
-            ) : projectProgress && projects.length > 0 ? (
-              <div className="flex flex-col items-center gap-5">
-                <GaugeChart value={gaugeValue} max={100} />
-
-                <div className="w-full space-y-3">
-                  {projects.slice(0, 3).map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between p-4 bg-natural-0 border-portal-card-border border rounded-2xl"
-                    >
-                      <span className="text-base font-medium text-natural-100">
-                        {p.name}
-                      </span>
-                      <StatusBadge
-                        status={mapProjectStatusToUI(p.status)}
-                        label={p.statusAr}
-                      />
-                    </div>
-                  ))}
-
-                  <div className="p-5 text-right bg-portal-bg rounded-2xl">
-                    <p className="text-base font-medium text-natural-100">
-                      المشاريع النشطة :
-                    </p>
-                    <p className="mt-1 text-sm text-portal-note-text">
-                      {projectProgress.activeProjects} من{" "}
-                      {projectProgress.totalProjects}
-                    </p>
-                  </div>
+            ) : projectError ? (
+              <SectionEmpty
+                icon={Activity}
+                title="تعذر تحميل بيانات المشاريع"
+              />
+            ) : projects.length ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-3xl font-semibold">
+                    {projectProgress?.overallProgress ?? 0}%
+                  </span>
+                  <Progress value={projectProgress?.overallProgress ?? 0} />
+                  <CardDescription>نسبة الإنجاز الإجمالية</CardDescription>
                 </div>
+                {projects.slice(0, 3).map((project) => (
+                  <Card key={project.id}>
+                    <CardContent className="flex items-center justify-between gap-3 pt-6">
+                      <span className="font-medium">{project.name}</span>
+                      <ProjectStatusBadge
+                        label={project.statusAr}
+                        status={project.status}
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
+                <Card className="bg-muted/50">
+                  <CardContent className="pt-6">
+                    <p className="font-medium">المشاريع النشطة</p>
+                    <p className="text-sm text-muted-foreground">
+                      {projectProgress?.activeProjects} من{" "}
+                      {projectProgress?.totalProjects}
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-5 py-8">
-                <GaugeChart value={0} max={100} />
-                <p className="text-base text-portal-note-text">
-                  لا يوجد مشروع نشط حالياً
-                </p>
-              </div>
+              <SectionEmpty icon={Activity} title="لا يوجد مشروع نشط حالياً" />
             )}
-          </DashboardCard>
+          </DashboardSection>
 
-          {/* ── آخر التحديثات ─────────────────────────── */}
-          <DashboardCard title="آخر التحديثات" icon={Clock} showAll={false}>
-            {activityError ? (
-              <p className="text-base text-portal-note-text text-center py-4">
-                تعذر تحميل التحديثات
-              </p>
-            ) : activityItems.length > 0 ? (
-              <div className="space-y-3">
+          <DashboardSection title="آخر التحديثات" icon={Clock}>
+            {activityLoading ? (
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ) : activityError ? (
+              <SectionEmpty icon={Clock} title="تعذر تحميل التحديثات" />
+            ) : activityItems.length ? (
+              <div className="flex flex-col gap-3">
                 {activityItems.slice(0, 3).map((item) => {
-                  const dateStr = new Date(item.date).toLocaleDateString(
+                  const Icon = ACTIVITY_ICON_MAP[item.icon] ?? FileText;
+                  const date = new Date(item.date).toLocaleDateString(
                     "ar-SA-u-nu-latn",
-                    {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    },
+                    { day: "numeric", month: "long", year: "numeric" },
                   );
                   return (
-                    <TimelineItem
-                      key={item.id}
-                      date={dateStr}
-                      text={item.text}
-                      icon={
-                        ACTIVITY_ICON_MAP[item.icon] ?? (
-                          <FileText className="w-5 h-[23px] text-secondary-500" />
-                        )
-                      }
-                    />
+                    <Card key={item.id}>
+                      <CardContent className="flex items-center gap-3 pt-6">
+                        <Avatar>
+                          <AvatarFallback>
+                            <Icon className="size-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{item.text}</p>
+                          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                            <CalendarDays className="size-3" />
+                            {date}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-base text-portal-note-text text-center py-4">
-                لا توجد تحديثات حالياً
-              </p>
+              <SectionEmpty icon={Clock} title="لا توجد تحديثات حالياً" />
             )}
-          </DashboardCard>
+          </DashboardSection>
         </div>
 
-        {/* COLUMN 2 */}
-        <div className="flex flex-col gap-5">
-          {/* ── إجراءات تحتاج تدخلك ─────────────────── */}
-          <DashboardCard
+        <div className="flex flex-col gap-6">
+          <DashboardSection
             title="إجراءات تحتاج تدخلك"
             icon={Settings}
-            onShowAll={() => router.push("/portal/actions")}
+            actionHref="/portal/actions"
           >
-            {actionItemsError ? (
-              <p className="text-base text-portal-note-text text-center py-4">
-                تعذر تحميل الإجراءات
-              </p>
-            ) : actionItems.length > 0 ? (
-              <div className="space-y-3">
+            {actionItemsLoading ? (
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-44 w-full" />
+                <Skeleton className="h-44 w-full" />
+              </div>
+            ) : actionItemsError ? (
+              <SectionEmpty icon={Settings} title="تعذر تحميل الإجراءات" />
+            ) : actionItems.length ? (
+              <div className="flex flex-col gap-3">
                 {actionItems.slice(0, 3).map((item) => {
                   const config =
                     ACTION_TYPE_CONFIG[item.type] ??
                     ACTION_TYPE_CONFIG.DELIVERABLE_APPROVAL;
+                  const Icon = config.icon;
                   return (
-                    <ActionItemCard
-                      key={item.id}
-                      title={item.title}
-                      subtitle={item.subtitle}
-                      icon={
-                        config.icon ? (
-                          <config.icon className="w-[26px] h-[26px] text-secondary-500" />
-                        ) : (
-                          <Settings className="w-[26px] h-[26px] text-secondary-500" />
-                        )
-                      }
-                      secondaryAction="ذكرني لاحقًا"
-                      primaryAction={config.primaryAction}
-                      primaryColor={config.primaryColor}
-                      onPrimary={() => router.push(item.actionUrl)}
-                      onSecondary={() => handleSnooze(item)}
-                    />
+                    <Card key={item.id}>
+                      <CardContent className="flex flex-col gap-4 pt-6">
+                        <div className="flex items-start gap-3">
+                          <Avatar>
+                            <AvatarFallback>
+                              <Icon className="size-4" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium">{item.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.subtitle}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button
+                            variant="outline"
+                            onClick={() => snoozeItem(item.type, item.id)}
+                          >
+                            ذكرني لاحقاً
+                          </Button>
+                          <Button
+                            variant={config.variant}
+                            onClick={() => router.push(item.actionUrl)}
+                          >
+                            {config.primaryAction}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-base text-portal-note-text text-center py-4">
-                لا توجد إجراءات معلقة
-              </p>
+              <SectionEmpty icon={Settings} title="لا توجد إجراءات معلقة" />
             )}
-          </DashboardCard>
+          </DashboardSection>
 
-          {/* ── أداء الحملة ───────────────────────────── */}
-          <DashboardCard
+          <DashboardSection
             title="أداء الحملة"
             icon={TrendingUp}
-            onShowAll={() => router.push("/portal/campaigns")}
+            actionHref="/portal/campaigns"
           >
             {campaignLoading ? (
-              <div className="space-y-3 px-1">
-                <Skeleton className="h-[30px] w-full rounded-2xl" />
-                <Skeleton className="h-[30px] w-full rounded-2xl" />
-                <Skeleton className="h-[30px] w-3/4 rounded-2xl" />
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
               </div>
             ) : campaignError ? (
-              <p className="text-base text-portal-note-text text-center py-4">
-                تعذر تحميل بيانات الحملة
-              </p>
+              <SectionEmpty
+                icon={TrendingUp}
+                title="تعذر تحميل بيانات الحملة"
+              />
             ) : campaignSummary &&
               (campaignSummary.totalVisits > 0 ||
                 campaignSummary.totalConversions > 0) ? (
-              <div className="space-y-3">
-                <MetricCard
-                  title="الزيارات"
-                  value={`${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`}
-                  icon={<Users className="w-[29px] h-[22px] text-secondary-500" />}
-                />
-                <MetricCard
-                  title="التحويلات"
-                  value={`${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`}
-                  icon={<Filter className="w-[23px] h-[23px] text-secondary-500" />}
-                />
-                <MetricCard
-                  title="العائد على الإنفاق الإعلاني"
-                  value={`${campaignSummary.avgRoas}x`}
-                  icon={<DollarSign className="w-7 h-7 text-secondary-500" />}
-                />
-
-                {campaignSummary.improvementPercent !== 0 && (
-                  <div
-                    className={cn(
-                      "p-5 text-right rounded-2xl",
-                      campaignSummary.improvementPercent > 0
-                        ? "bg-success-100/15"
-                        : "bg-danger-100/10",
-                    )}
-                  >
-                    <p className="text-base font-medium text-natural-100">
-                      ملاحظة:
-                    </p>
-                    <p className="mt-1 text-sm text-portal-note-text">
-                      الأداء{" "}
-                      {campaignSummary.improvementPercent > 0
-                        ? "تحسن"
-                        : "انخفض"}{" "}
-                      بنسبة {Math.abs(campaignSummary.improvementPercent)}%
-                      مقارنة بالأسبوع الماضي
-                    </p>
-                  </div>
-                )}
+              <div className="flex flex-col gap-3">
+                {[
+                  {
+                    label: "الزيارات",
+                    value: `${campaignSummary.totalVisits.toLocaleString("ar-SA-u-nu-latn")} زيارة`,
+                    icon: Users,
+                  },
+                  {
+                    label: "التحويلات",
+                    value: `${campaignSummary.totalConversions.toLocaleString("ar-SA-u-nu-latn")} تحويل`,
+                    icon: Filter,
+                  },
+                  {
+                    label: "العائد على الإنفاق الإعلاني",
+                    value: `${campaignSummary.avgRoas}x`,
+                    icon: DollarSign,
+                  },
+                ].map(({ label, value, icon: Icon }) => (
+                  <Card key={label}>
+                    <CardContent className="flex items-start justify-between gap-3 pt-6">
+                      <div>
+                        <CardDescription>{label}</CardDescription>
+                        <p className="mt-2 text-2xl font-semibold">{value}</p>
+                      </div>
+                      <Icon className="size-5 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                ))}
+                {campaignSummary.improvementPercent !== 0 ? (
+                  <Card className="bg-muted/50">
+                    <CardContent className="pt-6">
+                      <p className="font-medium">ملاحظة</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        الأداء{" "}
+                        {campaignSummary.improvementPercent > 0
+                          ? "تحسن"
+                          : "انخفض"}{" "}
+                        بنسبة {Math.abs(campaignSummary.improvementPercent)}%
+                        مقارنة بالأسبوع الماضي
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
             ) : (
-              <p className="text-base text-portal-note-text text-center py-4">
-                لا توجد حملات نشطة حالياً
-              </p>
+              <SectionEmpty
+                icon={TrendingUp}
+                title="لا توجد حملات نشطة حالياً"
+              />
             )}
-          </DashboardCard>
+          </DashboardSection>
         </div>
 
-        {/* COLUMN 3 */}
-        <div className="flex flex-col gap-5">
-          <DashboardCard
+        <div className="flex flex-col gap-6">
+          <DashboardSection
             title="الطلبات قيد الانتظار"
             icon={ClipboardList}
-            onShowAll={() => router.push("/portal/requests")}
+            actionHref="/portal/requests"
           >
-            {pendingRequestsError ? (
-              <p className="text-base text-portal-note-text text-center py-4">
-                تعذر تحميل الطلبات الحالية
-              </p>
-            ) : pendingRequests.length > 0 ? (
-              <div className="space-y-3">
+            {pendingRequestsLoading ? (
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            ) : pendingRequestsError ? (
+              <SectionEmpty
+                icon={ClipboardList}
+                title="تعذر تحميل الطلبات الحالية"
+              />
+            ) : pendingRequests.length ? (
+              <div className="flex flex-col gap-3">
                 {pendingRequests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="rounded-2xl border border-portal-card-border bg-natural-0 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-base font-semibold text-natural-100 truncate">
-                          {request.companyName}
-                        </p>
-                        <p className="text-sm text-portal-note-text">
-                          {request.contactName}
-                        </p>
+                  <Card key={request.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">
+                            {request.companyName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {request.contactName}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">{request.statusLabel}</Badge>
                       </div>
-                      <StatusBadge
-                        status="pending"
-                        label={request.statusLabel}
-                      />
-                    </div>
-                    <p className="mt-3 text-sm text-portal-note-text/90">
-                      {request.stageLabel}
-                    </p>
-                    <p className="mt-2 text-xs text-portal-note-text/80">
-                      تاريخ الطلب:{" "}
-                      {new Date(request.createdAt).toLocaleDateString(
-                        "ar-SA-u-nu-latn",
-                      )}
-                    </p>
-                  </div>
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {request.stageLabel}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        تاريخ الطلب:{" "}
+                        {new Date(request.createdAt).toLocaleDateString(
+                          "ar-SA-u-nu-latn",
+                        )}
+                      </p>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             ) : (
-              <p className="text-base text-portal-note-text text-center py-4">
-                لا توجد طلبات بانتظار المتابعة حالياً
-              </p>
+              <SectionEmpty
+                icon={ClipboardList}
+                title="لا توجد طلبات بانتظار المتابعة حالياً"
+              />
             )}
-          </DashboardCard>
+          </DashboardSection>
 
-          {/* ── المسؤولون عن مشروعي ──────────────────────────── */}
-          <DashboardCard
-            title="المسؤولون عن مشروعي"
-            icon={Users}
-            showAll={false}
-          >
-            {teamMembersData?.members && teamMembersData.members.length > 0 ? (
-              <div className="space-y-3">
+          <DashboardSection title="المسؤولون عن مشروعي" icon={Users}>
+            {teamMembersLoading ? (
+              <div className="flex flex-col gap-3">
+                <Skeleton className="h-36 w-full" />
+                <Skeleton className="h-36 w-full" />
+              </div>
+            ) : teamMembersData?.members?.length ? (
+              <div className="flex flex-col gap-3">
                 {teamMembersData.members.map((member) => (
-                  <div
-                    key={member.id}
-                    className="p-4 bg-card border-[1.5px] border-portal-card-border rounded-2xl space-y-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        {member.avatarUrl ? (
-                          <img
+                  <Card key={member.id}>
+                    <CardContent className="flex flex-col gap-4 pt-6">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage
                             src={member.avatarUrl}
                             alt={member.name}
-                            className="w-12 h-12 rounded-full object-cover"
                           />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-secondary-500 text-white flex items-center justify-center text-lg font-semibold">
+                          <AvatarFallback>
                             {member.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        {member.isOnline && (
-                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-success-500 rounded-full border-2 border-white" />
-                        )}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold">
+                            {member.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {member.role}
+                          </p>
+                        </div>
+                        {member.isOnline ? <Badge>متصل</Badge> : null}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-base font-semibold text-natural-100 truncate">
-                          {member.name}
-                        </h4>
-                        <p className="text-sm text-portal-note-text">
-                          {member.role}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        router.push(`/portal/chat?userId=${member.id}`)
-                      }
-                      className="w-full h-12 px-4 flex items-center justify-center gap-2 rounded-xl bg-pm-button-bg text-pm-button-text hover:bg-pm-button-bg/80 transition-colors font-semibold"
-                    >
-                      <MessageCircle className="w-5 h-5" />
-                      تواصل معه
-                    </button>
-                  </div>
+                      <Button
+                        variant="secondary"
+                        onClick={() =>
+                          router.push(`/portal/chat?userId=${member.id}`)
+                        }
+                      >
+                        <MessageCircle />
+                        تواصل معه
+                      </Button>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             ) : (
-              <div className="p-5 text-center">
-                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-badge-gray-bg flex items-center justify-center">
-                  <Users className="w-8 h-8 text-secondary-500" />
-                </div>
-                <p className="text-base font-medium text-natural-100 mb-1">
-                  لم يتم تعيين فريق بعد
-                </p>
-                <p className="text-sm text-portal-note-text">
-                  سيظهر فريق العمل المسؤول عن مشروعك هنا
-                </p>
-              </div>
+              <SectionEmpty
+                icon={Users}
+                title="لم يتم تعيين فريق بعد"
+                description="سيظهر فريق العمل المسؤول عن مشروعك هنا."
+              />
             )}
-          </DashboardCard>
+          </DashboardSection>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,224 +1,33 @@
 "use client";
 
-import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { toast } from "sonner";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Eye } from "lucide-react";
-import Link from "next/link";
+import { Eye, Filter, Search, X } from "lucide-react";
+import { toast } from "sonner";
+import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
 import { useAppSelector } from "@/lib/hooks";
-import {
-  useGetReviewProjectsQuery,
-  useGetProjectReviewDetailQuery,
-  type ReviewProject,
-} from "@/features/portal/portalApi";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { DataTable } from "@/components/design-system/DataTable";
-import { ActionButton } from "@/components/design-system/ActionButton";
-import { EmptyState, ErrorState } from "@/components/design-system/EmptyState";
-import {
-  renderProjectRowCells,
-  ReviewModal,
-  Toolbar,
-} from "@/components/portal/deliverables";
+import { useGetProjectReviewDetailQuery, useGetReviewProjectsQuery, type ReviewProject } from "@/features/portal/portalApi";
+import { ReviewModal } from "@/components/portal/deliverables";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-/**
- * Page architecture (page IS the queue):
- *
- *   PageIntro        ← context (one line)
- *   Toolbar          ← search + status filter + count
- *   DataTable        ← the queue
- *   ReviewModal      ← the decision moment
- */
 export default function PortalDeliverablesPage() {
-  const { user } = useAppSelector((state) => state.auth);
-  const clientId = user?.clientId ?? "";
-
-  const {
-    data: reviewProjects,
-    isLoading,
-    isError,
-    refetch,
-  } = useGetReviewProjectsQuery(undefined, {
-    skip: !clientId,
-    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-  });
-
-  const [search, setSearch] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
-  );
-
-  // Deep-link `?focus=<id>` — opens the modal for that project.
-  const searchParams = useSearchParams();
-  useEffect(() => {
-    const focus = searchParams?.get("focus");
-    if (!focus || selectedProjectId === focus) return;
-    setSelectedProjectId(focus);
-    if (typeof window !== "undefined") {
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, [searchParams, selectedProjectId]);
-
-  const { data: selectedProject } = useGetProjectReviewDetailQuery(
-    selectedProjectId!,
-    { skip: !selectedProjectId, pollingInterval: PORTAL_POLLING_INTERVAL_MS },
-  );
-
-  const fallbackProject = useMemo<ReviewProject | undefined>(
-    () => reviewProjects?.find((p) => p.id === selectedProjectId) ?? undefined,
-    [reviewProjects, selectedProjectId],
-  );
-
-  const filtered = useMemo(() => {
-    if (!reviewProjects) return [];
-    const q = search.trim().toLowerCase();
-    const statusFilter = activeFilters["status"]?.[0];
-
-    return reviewProjects.filter((p) => {
-      if (statusFilter && p.status !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        p.name.toLowerCase().includes(q) ||
-        (p.description?.toLowerCase().includes(q) ?? false) ||
-        (p.manager?.name.toLowerCase().includes(q) ?? false)
-      );
-    });
-  }, [reviewProjects, search, activeFilters]);
-
-  const hasActiveSearchOrFilter =
-    search.trim().length > 0 ||
-    Object.values(activeFilters).some((v) => v.length > 0);
-
-  const handleSelect = useCallback((id: string) => {
-    setSelectedProjectId(id);
-  }, []);
-
-  const handleModalChange = useCallback((open: boolean) => {
-    if (!open) setSelectedProjectId(null);
-  }, []);
-
-  const handleActionComplete = useCallback(
-    (handledProjectId: string) => {
-      refetch().then(() => {
-        setTimeout(() => {
-          const next = (reviewProjects ?? []).find(
-            (p) => p.id !== handledProjectId,
-          );
-          if (next) {
-            toast("لا يزال هناك مشاريع بانتظار قرارك.", {
-              description: next.name,
-              action: {
-                label: "افتح التالي",
-                onClick: () => setSelectedProjectId(next.id),
-              },
-            });
-          }
-        }, 200);
-      });
-    },
-    [refetch, reviewProjects],
-  );
-
-  if (!clientId) {
-    return (
-      <div className="page-shell" dir="rtl">
-        <PageIntro
-          title="مراجعة المشاريع"
-          description="المشاريع الجاهزة للمراجعة والموافقة."
-          icon={Eye}
-        />
-        <p className="text-sm text-portal-note-text">
-          لم يتم ربط حسابك بملف عميل.
-        </p>
-      </div>
-    );
-  }
-
-  const totalCount = reviewProjects?.length ?? 0;
-
-  return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="مراجعة المشاريع"
-        description="راجع أعمال فريقك ووافق عليها أو اطلب تعديلات."
-        icon={Eye}
-      />
-
-      {isError ? (
-        <ErrorState onRetry={() => refetch()} />
-      ) : totalCount === 0 && !isLoading ? (
-        <EmptyState
-          icon={Eye}
-          title="كل مشاريعك تمت مراجعتها!"
-          hint="لا يوجد حالياً أي مشروع بانتظار قرارك. سنُعلمك فور تسليم مشروع جديد للمراجعة."
-          tone="success"
-          action={
-            <Link href="/portal/projects">
-              <ActionButton variant="primary" size="lg">
-                عرض كل مشاريعي
-              </ActionButton>
-            </Link>
-          }
-        />
-      ) : (
-        <>
-          <Toolbar
-            search={search}
-            onSearchChange={setSearch}
-            activeFilters={activeFilters}
-            onFilterChange={(k, v) =>
-              setActiveFilters((prev) => ({ ...prev, [k]: v }))
-            }
-            totalCount={totalCount}
-            visibleCount={filtered.length}
-            projects={reviewProjects}
-          />
-
-          <DataTable
-            columns={[
-              { id: "name", label: "المشروع" },
-              { id: "files", label: "الملفات", align: "center" },
-              { id: "manager", label: "المدير" },
-              { id: "dates", label: "الفترة" },
-              { id: "status", label: "الحالة" },
-              { id: "action", label: "", align: "left", width: "110px" },
-            ]}
-            data={filtered}
-            isLoading={isLoading}
-            isError={false}
-            skeletonRows={6}
-            emptyState={{
-              icon: Eye,
-              message: hasActiveSearchOrFilter
-                ? "لا توجد نتائج مطابقة"
-                : "لا توجد مشاريع بانتظار المراجعة.",
-              hint: hasActiveSearchOrFilter
-                ? "جرّب كلمات بحث مختلفة أو امسح عوامل التصفية."
-                : "ستظهر هنا المشاريع عندما يقدمها فريقك.",
-            }}
-            onRowActivate={(p: ReviewProject) => handleSelect(p.id)}
-            renderCells={(p: ReviewProject, { onActivate }) =>
-              renderProjectRowCells(
-                p,
-                { project: p, onSelect: handleSelect },
-                { onActivate },
-              )
-            }
-          />
-        </>
-      )}
-
-      <ReviewModal
-        selectedProjectId={selectedProjectId}
-        selectedProject={selectedProject}
-        fallbackProject={fallbackProject}
-        onActionComplete={handleActionComplete}
-        onOpenChange={handleModalChange}
-      />
-    </div>
-  );
+  const clientId = useAppSelector((state) => state.auth.user?.clientId ?? ""); const params = useSearchParams(); const [search, setSearch] = useState(""); const [statuses, setStatuses] = useState<string[]>([]); const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { data: projects, isLoading, isError, refetch } = useGetReviewProjectsQuery(undefined, { skip: !clientId, pollingInterval: PORTAL_POLLING_INTERVAL_MS });
+  const { data: selectedProject } = useGetProjectReviewDetailQuery(selectedId!, { skip: !selectedId, pollingInterval: PORTAL_POLLING_INTERVAL_MS });
+  useEffect(() => { const focus = params.get("focus"); if (focus) setSelectedId(focus); }, [params]);
+  const filtered = useMemo(() => { const q = search.trim().toLowerCase(); return (projects ?? []).filter((project) => (!statuses.length || statuses.includes(project.status)) && (!q || project.name.toLowerCase().includes(q) || project.manager?.name.toLowerCase().includes(q))); }, [projects, search, statuses]);
+  const toggle = (status: string) => setStatuses((current) => current.includes(status) ? current.filter((value) => value !== status) : [...current, status]);
+  const fallback = projects?.find((project) => project.id === selectedId);
+  if (!clientId) return <main dir="rtl"><Card><CardContent className="pt-6"><Empty><EmptyHeader><EmptyMedia variant="icon"><Eye /></EmptyMedia><EmptyTitle>حساب العميل غير مرتبط</EmptyTitle><EmptyDescription>يرجى التواصل مع الإدارة لربط حسابك بملف العميل.</EmptyDescription></EmptyHeader></Empty></CardContent></Card></main>;
+  const options = [...new Set((projects ?? []).map((project) => project.status))];
+  return <main dir="rtl" className="flex flex-col gap-6"><Card><CardHeader><div className="flex items-center gap-3"><Eye className="size-5 text-muted-foreground" /><CardTitle>مراجعة المشاريع</CardTitle></div><CardDescription>راجع أعمال فريقك ووافق عليها أو اطلب تعديلات.</CardDescription></CardHeader></Card><div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="ps-9 pe-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث باسم المشروع أو المدير..." />{search ? <Button variant="ghost" size="icon" className="absolute end-1 top-1/2 size-8 -translate-y-1/2" onClick={() => setSearch("")}><X /></Button> : null}</div><Popover><PopoverTrigger asChild><Button variant="outline"><Filter />الحالة{statuses.length ? <Badge variant="secondary">{statuses.length}</Badge> : null}</Button></PopoverTrigger><PopoverContent className="flex flex-col gap-2" dir="rtl">{options.map((status) => <label key={status} className="flex items-center gap-2"><Checkbox checked={statuses.includes(status)} onCheckedChange={() => toggle(status)} />{status}</label>)}{statuses.length ? <Button variant="ghost" size="sm" onClick={() => setStatuses([])}>مسح الفلاتر</Button> : null}</PopoverContent></Popover></div>{isLoading ? <div className="flex flex-col gap-3">{Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-14" />)}</div> : isError ? <Card><CardContent className="pt-6"><Empty><EmptyHeader><EmptyMedia variant="icon"><Eye /></EmptyMedia><EmptyTitle>تعذر تحميل المشاريع</EmptyTitle><EmptyDescription>حاول تحديث الصفحة مرة أخرى.</EmptyDescription></EmptyHeader><Button onClick={() => refetch()}>إعادة المحاولة</Button></Empty></CardContent></Card> : filtered.length ? <Card><Table><TableHeader><TableRow><TableHead>المشروع</TableHead><TableHead>المدير</TableHead><TableHead>المرفقات</TableHead><TableHead>الحالة</TableHead><TableHead><span className="sr-only">الإجراء</span></TableHead></TableRow></TableHeader><TableBody>{filtered.map((project) => <TableRow key={project.id}><TableCell><p className="font-medium">{project.name}</p><p className="max-w-md truncate text-sm text-muted-foreground">{project.description ?? "لا يوجد وصف للمشروع."}</p></TableCell><TableCell>{project.manager?.name ?? "بدون مدير"}</TableCell><TableCell>{project.deliverableCount}</TableCell><TableCell><DomainStatusPill domain="project" status={project.status} /></TableCell><TableCell><Button size="sm" onClick={() => setSelectedId(project.id)}><Eye />مراجعة</Button></TableCell></TableRow>)}</TableBody></Table></Card> : <Card><CardContent className="pt-6"><Empty><EmptyHeader><EmptyMedia variant="icon"><Eye /></EmptyMedia><EmptyTitle>لا توجد مشاريع بانتظار المراجعة</EmptyTitle><EmptyDescription>ستظهر هنا المشاريع عندما يقدمها فريقك للمراجعة.</EmptyDescription></EmptyHeader></Empty></CardContent></Card>}<ReviewModal selectedProjectId={selectedId} selectedProject={selectedProject} fallbackProject={fallback} onOpenChange={(open) => !open && setSelectedId(null)} onActionComplete={() => { refetch(); toast.success("تم تحديث قائمة المراجعة"); setSelectedId(null); }} /></main>;
 }

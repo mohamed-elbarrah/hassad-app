@@ -1,18 +1,37 @@
 import type { LucideIcon } from "lucide-react";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { PortalEmptyState } from "@/components/portal/shared/PortalEmptyState";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
-interface EmptyStateProps {
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
   icon: LucideIcon;
   title: string;
   description?: string;
-}
-
-/** Generic "nothing here yet" panel used by the per-period tabs. */
-export function EmptyState({ icon, title, description }: EmptyStateProps) {
+}) {
   return (
-    <SurfaceCard>
-      <PortalEmptyState icon={icon} title={title} description={description} />
-    </SurfaceCard>
+    <Card>
+      <CardContent className="pt-6">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Icon />
+            </EmptyMedia>
+            <EmptyTitle>{title}</EmptyTitle>
+            {description ? (
+              <EmptyDescription>{description}</EmptyDescription>
+            ) : null}
+          </EmptyHeader>
+        </Empty>
+      </CardContent>
+    </Card>
   );
 }

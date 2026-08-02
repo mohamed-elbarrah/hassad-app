@@ -2,6 +2,9 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import type { KanbanConfig } from "./types";
 import { KanbanCard } from "./KanbanCard";
 
@@ -38,48 +41,39 @@ export function KanbanStandaloneColumn<T extends { id: string }>({
   }
 
   return (
-    <div
+    <Card
       ref={setNodeRef}
       className={cn(
-        "flex-1 min-w-[340px] flex flex-col rounded-2xl border-[1.5px] overflow-hidden bg-white transition-all duration-150",
+        "flex min-w-[340px] flex-1 flex-col overflow-hidden transition-all duration-150",
         isOver && "ring-2 ring-secondary-500/30 ring-offset-2 scale-[1.01]",
       )}
-      style={{ borderColor: "#E1E4EA" }}
       dir="rtl"
     >
-      {/* ── Header (group-style) ─────────────────────────────────────── */}
-      <div
-        className="flex items-center gap-2 px-4 py-3"
-        style={{ borderBottom: "1.5px solid #ECEEF2" }}
-      >
-        <span
-          className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white"
-          style={{ backgroundColor: stageConfig.dotColor }}
-        />
-        <span
-          className="font-bold text-sm flex-1 truncate"
-          style={{ color: "#000000" }}
-        >
-          {stageConfig.label}
-        </span>
-        <span
-          className="inline-flex items-center justify-center rounded-full text-xs font-semibold tabular-nums shrink-0"
-          style={{
-            backgroundColor: "rgba(18, 25, 54, 0.05)",
-            color: "#121936",
-            minWidth: 28,
-            height: 24,
-            padding: "0 10px",
-          }}
+      <CardHeader className="flex flex-row items-center justify-between gap-3 p-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className={cn(
+              "size-3 shrink-0 rounded-full ring-2 ring-background",
+              stageConfig.dotClass,
+            )}
+          />
+          <CardTitle className="min-w-0 truncate text-sm font-semibold">
+            {stageConfig.label}
+          </CardTitle>
+        </div>
+        <Badge
+          variant="secondary"
+          className={cn("shrink-0 tabular-nums", stageConfig.countClass)}
         >
           {items.length}
-        </span>
-      </div>
-
-      {/* ── Cards Area (tinted) ────────────────────────────────────────── */}
-      <div
-        className="flex flex-col gap-2 p-3 overflow-y-auto flex-1 min-h-0"
-        style={{ backgroundColor: stageConfig.surfaceBg }}
+        </Badge>
+      </CardHeader>
+      <Separator />
+      <CardContent
+        className={cn(
+          "flex flex-1 flex-col gap-2 p-3",
+          stageConfig.surfaceClass,
+        )}
       >
         {items.map((item) => (
           <KanbanCard
@@ -93,16 +87,13 @@ export function KanbanStandaloneColumn<T extends { id: string }>({
         ))}
 
         {items.length === 0 && (
-          <div className="flex items-center justify-center flex-1 min-h-16">
-            <p
-              className="text-xs text-center select-none"
-              style={{ color: "#A8ABB2" }}
-            >
+          <div className="flex flex-1 items-center justify-center min-h-16">
+            <p className="text-xs text-center text-muted-foreground select-none">
               {stageConfig.emptyLabel || "لا يوجد"}
             </p>
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,145 +1,29 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Filter, Search, TrendingUp, X } from "lucide-react";
 import { PORTAL_POLLING_INTERVAL_MS } from "@/lib/constants";
-import { useState, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { Inbox, TrendingUp } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
-import {
-  useGetPortalCampaignsQuery,
-  type PortalCampaign,
-} from "@/features/portal/portalApi";
-import { PageIntro } from "@/components/design-system/PageIntro";
-import { DataTable } from "@/components/design-system/DataTable";
-import { ErrorState } from "@/components/design-system/EmptyState";
-import {
-  CampaignsToolbar,
-  renderCampaignRowCells,
-} from "@/components/portal/campaigns";
+import { useGetPortalCampaignsQuery } from "@/features/portal/portalApi";
+import { DomainStatusPill } from "@/components/portal/shared/DomainStatusPill";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { budgetProgress, formatCurrency, formatShortDateLong } from "@/lib/format";
 
 export default function PortalCampaignsPage() {
-  const router = useRouter();
-  const { user } = useAppSelector((state) => state.auth);
-  const clientId = user?.clientId ?? "";
-
-  const [search, setSearch] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(
-    {},
-  );
-
-  const statusFilter = activeFilters["status"]?.[0] ?? "";
-
-  const {
-    data: campaigns,
-    isLoading,
-    isError,
-    refetch,
-  } = useGetPortalCampaignsQuery(undefined, {
-    skip: !clientId,
-    pollingInterval: PORTAL_POLLING_INTERVAL_MS,
-  });
-
-  const filtered = useMemo<PortalCampaign[]>(() => {
-    if (!campaigns) return [];
-    const q = search.trim().toLowerCase();
-    return campaigns.filter((c) => {
-      if (statusFilter && c.status !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        c.name.toLowerCase().includes(q) || c.platform.toLowerCase().includes(q)
-      );
-    });
-  }, [campaigns, search, statusFilter]);
-
-  const handleFilterChange = useCallback((key: string, values: string[]) => {
-    setActiveFilters((prev) => ({ ...prev, [key]: values }));
-  }, []);
-
-  const handleRowActivate = useCallback(
-    (c: PortalCampaign) => {
-      router.push(`/portal/campaigns/${c.id}`);
-    },
-    [router],
-  );
-
-  const hasActiveSearchOrFilter =
-    search.trim().length > 0 ||
-    Object.values(activeFilters).some((v) => v.length > 0);
-
-  if (!clientId) {
-    return (
-      <div className="page-shell" dir="rtl">
-        <PageIntro
-          title="الحملات الإعلانية"
-          description="جميع الحملات الإعلانية المرتبطة بحسابك مع مؤشرات الأداء الرئيسية لكل حملة."
-          icon={TrendingUp}
-        />
-        <div className="rounded-2xl border-[1.5px] border-danger-200 bg-danger-100 px-5 py-6 text-center">
-          <p className="text-base font-medium text-danger-700">
-            لم يتم ربط حسابك بملف عميل.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="page-shell" dir="rtl">
-      <PageIntro
-        title="الحملات الإعلانية"
-        description="جميع الحملات الإعلانية المرتبطة بحسابك مع مؤشرات الأداء الرئيسية لكل حملة."
-        icon={TrendingUp}
-      />
-
-      {isError && !isLoading ? (
-        <ErrorState onRetry={() => refetch()} />
-      ) : (
-        <>
-          <CampaignsToolbar
-            search={search}
-            onSearchChange={setSearch}
-            activeFilters={activeFilters}
-            onFilterChange={handleFilterChange}
-            campaigns={campaigns}
-            totalCount={campaigns?.length ?? 0}
-            visibleCount={filtered.length}
-          />
-
-          <DataTable
-            columns={[
-              { id: "name", label: "الحملة" },
-              { id: "status", label: "الحالة" },
-              { id: "period", label: "الفترة" },
-              { id: "impressions", label: "الانطباعات", align: "left" },
-              { id: "clicks", label: "النقرات", align: "left" },
-              { id: "conversions", label: "التحويلات", align: "left" },
-              { id: "ctr", label: "CTR", align: "left" },
-              { id: "roas", label: "ROAS", align: "left" },
-              {
-                id: "budget",
-                label: "الميزانية",
-                align: "left",
-                width: "180px",
-              },
-            ]}
-            data={filtered}
-            isLoading={isLoading}
-            isError={false}
-            skeletonRows={6}
-            emptyState={{
-              icon: Inbox,
-              message: hasActiveSearchOrFilter
-                ? "لا توجد حملات مطابقة"
-                : "لا توجد حملات حالياً.",
-              hint: hasActiveSearchOrFilter
-                ? "جرّب كلمات بحث مختلفة أو امسح عوامل التصفية."
-                : "ستظهر هنا جميع الحملات الإعلانية المرتبطة بحسابك بمجرد إطلاقها.",
-            }}
-            onRowActivate={handleRowActivate}
-            renderCells={(c) => renderCampaignRowCells(c)}
-          />
-        </>
-      )}
-    </div>
-  );
+  const clientId = useAppSelector((state) => state.auth.user?.clientId ?? ""); const [search, setSearch] = useState(""); const [statuses, setStatuses] = useState<string[]>([]);
+  const { data: campaigns, isLoading, isError, refetch } = useGetPortalCampaignsQuery(undefined, { skip: !clientId, pollingInterval: PORTAL_POLLING_INTERVAL_MS });
+  const filtered = useMemo(() => { const q = search.trim().toLowerCase(); return (campaigns ?? []).filter((campaign) => (!statuses.length || statuses.includes(campaign.status)) && (!q || campaign.name.toLowerCase().includes(q) || campaign.platform.toLowerCase().includes(q))); }, [campaigns, search, statuses]);
+  const options = [...new Set((campaigns ?? []).map((campaign) => campaign.status))]; const toggle = (status: string) => setStatuses((current) => current.includes(status) ? current.filter((value) => value !== status) : [...current, status]);
+  if (!clientId) return <main dir="rtl"><Card><CardContent className="pt-6"><Empty><EmptyHeader><EmptyMedia variant="icon"><TrendingUp /></EmptyMedia><EmptyTitle>حساب العميل غير مرتبط</EmptyTitle><EmptyDescription>يرجى التواصل مع الإدارة لربط الحساب بملف العميل.</EmptyDescription></EmptyHeader></Empty></CardContent></Card></main>;
+  return <main dir="rtl" className="flex flex-col gap-6"><Card><CardHeader><div className="flex items-center gap-3"><TrendingUp className="size-5 text-muted-foreground" /><CardTitle>الحملات الإعلانية</CardTitle></div><CardDescription>جميع الحملات الإعلانية المرتبطة بحسابك مع مؤشرات الأداء الرئيسية.</CardDescription></CardHeader></Card><div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="ps-9 pe-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث باسم الحملة أو المنصة..." />{search ? <Button variant="ghost" size="icon" className="absolute end-1 top-1/2 size-8 -translate-y-1/2" onClick={() => setSearch("")}><X /></Button> : null}</div><Popover><PopoverTrigger asChild><Button variant="outline"><Filter />الحالة{statuses.length ? <Badge variant="secondary">{statuses.length}</Badge> : null}</Button></PopoverTrigger><PopoverContent className="flex flex-col gap-2" dir="rtl">{options.map((status) => <label key={status} className="flex items-center gap-2"><Checkbox checked={statuses.includes(status)} onCheckedChange={() => toggle(status)} />{status}</label>)}{statuses.length ? <Button variant="ghost" size="sm" onClick={() => setStatuses([])}>مسح الفلاتر</Button> : null}</PopoverContent></Popover></div><Card>{isLoading ? <CardContent className="flex flex-col gap-3 pt-6">{Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-14" />)}</CardContent> : isError ? <CardContent className="pt-6"><Empty><EmptyHeader><EmptyMedia variant="icon"><TrendingUp /></EmptyMedia><EmptyTitle>تعذر تحميل الحملات</EmptyTitle><EmptyDescription>حاول تحديث الصفحة مرة أخرى.</EmptyDescription></EmptyHeader><Button onClick={() => refetch()}>إعادة المحاولة</Button></Empty></CardContent> : filtered.length ? <Table><TableHeader><TableRow><TableHead>الحملة</TableHead><TableHead>الحالة</TableHead><TableHead>الفترة</TableHead><TableHead>الانطباعات</TableHead><TableHead>النقرات</TableHead><TableHead>التحويلات</TableHead><TableHead>CTR</TableHead><TableHead>ROAS</TableHead><TableHead>الميزانية</TableHead></TableRow></TableHeader><TableBody>{filtered.map((campaign) => { const analytics = campaign.analytics; const pct = budgetProgress(campaign.budgetSpent, campaign.budgetTotal) * 100; return <TableRow key={campaign.id}><TableCell><Button asChild variant="link" className="h-auto p-0"><Link href={`/portal/campaigns/${campaign.id}`}>{campaign.name}</Link></Button><p className="text-sm text-muted-foreground">{campaign.platform}</p></TableCell><TableCell><DomainStatusPill domain="campaign" status={campaign.status} /></TableCell><TableCell>{formatShortDateLong(campaign.startDate)} - {formatShortDateLong(campaign.endDate)}</TableCell><TableCell>{analytics.impressions.toLocaleString("ar-SA-u-nu-latn")}</TableCell><TableCell>{analytics.clicks.toLocaleString("ar-SA-u-nu-latn")}</TableCell><TableCell>{analytics.conversions.toLocaleString("ar-SA-u-nu-latn")}</TableCell><TableCell>{analytics.ctr ? `${analytics.ctr.toFixed(2)}%` : "—"}</TableCell><TableCell>{analytics.roas ? `${analytics.roas.toFixed(2)}x` : "—"}</TableCell><TableCell><div className="min-w-32"><p className="text-sm">{formatCurrency(campaign.budgetSpent)} / {formatCurrency(campaign.budgetTotal)}</p><Progress value={pct} /></div></TableCell></TableRow>; })}</TableBody></Table> : <CardContent className="pt-6"><Empty><EmptyHeader><EmptyMedia variant="icon"><TrendingUp /></EmptyMedia><EmptyTitle>لا توجد حملات مطابقة</EmptyTitle><EmptyDescription>جرّب تغيير البحث أو الفلاتر.</EmptyDescription></EmptyHeader></Empty></CardContent>}</Card></main>;
 }

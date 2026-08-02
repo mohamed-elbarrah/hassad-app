@@ -23,14 +23,17 @@ import {
   type PortalPeriodSummary,
   type PortalPeriodFile,
 } from "@/features/portal/portalApi";
-import { Skeleton } from "@/components/design-system/Skeleton";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/design-system/Tabs";
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   ProjectHeader,
   HeroCard,
@@ -199,12 +202,12 @@ export default function PortalProjectPeriodsPage() {
 
   if (periodsLoading || projectLoading) {
     return (
-      <div className="page-shell" dir="rtl">
-        <Skeleton className="h-12 w-full rounded-2xl" />
-        <Skeleton className="h-48 w-full rounded-[30px]" />
-        <Skeleton className="h-16 w-full rounded-2xl" />
-        <Skeleton className="h-64 w-full rounded-[30px]" />
-      </div>
+      <main className="flex flex-col gap-6" dir="rtl">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </main>
     );
   }
 
@@ -217,30 +220,28 @@ export default function PortalProjectPeriodsPage() {
       if (projectError) void refetchProject();
     };
     return (
-      <div className="page-shell" dir="rtl">
+      <main className="flex flex-col gap-6" dir="rtl">
         {project && <ProjectHeader project={project} />}
-        <SurfaceCard>
-          <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-danger-100 text-danger-600">
-              <AlertTriangle className="size-8" />
-            </div>
-            <p className="text-lg font-medium text-natural-100">
-              تعذّر تحميل بيانات المشروع
-            </p>
-            <p className="max-w-md text-sm leading-6 text-portal-note-text">
-              حدث خطأ أثناء الاتصال بالخادم. قد يكون المشروع غير متاح أو تم نقله
-              إلى حساب آخر. يرجى المحاولة مرة أخرى.
-            </p>
-            <button
-              onClick={handleRetry}
-              className="inline-flex items-center gap-2 rounded-xl border border-portal-card-border bg-natural-0 px-4 py-2 text-sm font-medium text-portal-icon hover:bg-badge-gray-bg hover:text-secondary-500"
-            >
-              <RefreshCw className="size-4" />
-              إعادة المحاولة
-            </button>
-          </div>
-        </SurfaceCard>
-      </div>
+        <Card>
+          <CardContent className="pt-6">
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <AlertTriangle className="size-8" />
+                </EmptyMedia>
+                <EmptyTitle>تعذّر تحميل بيانات المشروع</EmptyTitle>
+                <EmptyDescription>
+                  حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى.
+                </EmptyDescription>
+              </EmptyHeader>
+              <Button onClick={handleRetry}>
+                <RefreshCw />
+                إعادة المحاولة
+              </Button>
+            </Empty>
+          </CardContent>
+        </Card>
+      </main>
     );
   }
 
@@ -248,21 +249,29 @@ export default function PortalProjectPeriodsPage() {
 
   if (!periods || periods.length === 0) {
     return (
-      <div className="page-shell" dir="rtl">
+      <main className="flex flex-col gap-6" dir="rtl">
         {project && <ProjectHeader project={project} />}
-        <SurfaceCard>
-          <div className="flex flex-col items-center gap-3 py-16 text-center text-portal-note-text">
-            <Calendar className="size-12" />
-            <p className="text-lg font-medium">لا توجد فترات بعد</p>
-            <p className="text-sm">سيتم إنشاء الفترات بعد تفعيل العقد</p>
-          </div>
-        </SurfaceCard>
-      </div>
+        <Card>
+          <CardContent className="pt-6">
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Calendar />
+                </EmptyMedia>
+                <EmptyTitle>لا توجد فترات بعد</EmptyTitle>
+                <EmptyDescription>
+                  سيتم إنشاء الفترات بعد تفعيل العقد.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </CardContent>
+        </Card>
+      </main>
     );
   }
 
   return (
-    <div className="page-shell" dir="rtl">
+    <main className="flex flex-col gap-6" dir="rtl">
       {project && <ProjectHeader project={project} />}
 
       {selectedPeriod && (
@@ -347,6 +356,6 @@ export default function PortalProjectPeriodsPage() {
           </TabsContent>
         </Tabs>
       )}
-    </div>
+    </main>
   );
 }

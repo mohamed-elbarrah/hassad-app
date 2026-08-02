@@ -1,117 +1,158 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Skeleton as DSSkeleton } from "@/components/design-system/Skeleton";
-import { MetricCard } from "@/components/design-system/MetricCard";
-import { TeamTaskKanban } from "@/components/dashboard/team/TeamTaskKanban";
-import { EmptyState } from "@/components/common/EmptyState";
+import { useMemo, useState } from "react";
 import {
-  FilterBar,
-  type FilterGroup,
-} from "@/components/design-system/FilterBar";
-import { ClipboardList } from "lucide-react";
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+  ListFilter,
+  PlayCircle,
+} from "lucide-react";
+import { TaskPriority } from "@hassad/shared";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TeamTaskKanban } from "@/components/dashboard/team/TeamTaskKanban";
 import {
   useGetMyTasksQuery,
   useGetMyTaskStatsQuery,
 } from "@/features/tasks/tasksApi";
 import { useAppSelector } from "@/lib/hooks";
-import { TaskPriority } from "@hassad/shared";
 import { TASK_PRIORITY_LABELS } from "@/lib/utils/task-status";
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TeamDashboardPage() {
   const { user } = useAppSelector((state) => state.auth);
-
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({
-    priority: [],
-  });
-
+  const [priority, setPriority] = useState<"ALL" | TaskPriority>("ALL");
   const { data: stats, isLoading: statsLoading } = useGetMyTaskStatsQuery();
   const { data: tasks, isLoading: tasksLoading } = useGetMyTasksQuery(
     {},
     { pollingInterval: 30000 },
   );
-
-  // Derive priority counts from tasks for the filter bar
-  const filterGroups: FilterGroup[] = useMemo(() => {
-    const counts = new Map<string, number>();
-    Object.values(TaskPriority).forEach((p) => counts.set(p, 0));
-    (tasks ?? []).forEach((t) => {
-      counts.set(t.priority, (counts.get(t.priority) ?? 0) + 1);
-    });
-
-    return [
-      {
-        key: "priority",
-        label: "الأولوية",
-        options: Object.values(TaskPriority).map((p) => ({
-          label: TASK_PRIORITY_LABELS[p],
-          value: p,
-          count: counts.get(p) ?? 0,
-        })),
-      },
-    ];
-  }, [tasks]);
-
-  // Client-side priority filtering
-  const filteredTasks = useMemo(() => {
-    let result = [...(tasks ?? [])];
-    const priorityFilters = activeFilters.priority ?? [];
-    if (priorityFilters.length > 0) {
-      result = result.filter((t) => priorityFilters.includes(t.priority));
-    }
-    return result;
-  }, [tasks, activeFilters]);
-
+  const priorityCounts = useMemo(
+    () =>
+      (tasks ?? []).reduce<Record<string, number>>((counts, task) => {
+        counts[task.priority] = (counts[task.priority] || 0) + 1;
+        return counts;
+      }, {}),
+    [tasks],
+  );
+  const filteredTasks = useMemo(
+    () =>
+      priority === "ALL"
+        ? (tasks ?? [])
+        : (tasks ?? []).filter((task) => task.priority === priority),
+    [tasks, priority],
+  );
   if (!user) return null;
-
+  const metrics = [
+    { label: "إجمالي المهام", value: stats?.total ?? 0, icon: ClipboardList },
+    { label: "قيد التنفيذ", value: stats?.inProgress ?? 0, icon: PlayCircle },
+    { label: "متأخرة", value: stats?.overdue ?? 0, icon: AlertTriangle },
+    { label: "منجزة", value: stats?.done ?? 0, icon: CheckCircle2 },
+  ];
   return (
-    <div className="page-shell">
-      {/* Header */}
-      <h1 className="text-3xl font-bold tracking-tight">قائمة المهام</h1>
-
-      {/* Stats */}
-      {statsLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <DSSkeleton key={i} className="h-28 rounded-lg" />
-          ))}
-        </div>
-      ) : stats ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard title="إجمالي المهام" value={stats.total} />
-          <MetricCard title="قيد التنفيذ" value={stats.inProgress} />
-          <MetricCard title="متأخرة" value={stats.overdue} variant="danger" />
-          <MetricCard title="منجزة" value={stats.done} variant="success" />
-        </div>
-      ) : null}
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <FilterBar
-          groups={filterGroups}
-          activeFilters={activeFilters}
-          onFilterChange={(key, values) =>
-            setActiveFilters((prev) => ({ ...prev, [key]: values }))
-          }
-        />
-      </div>
-
-      {/* Kanban board */}
+    <main dir="rtl" className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <ClipboardList />
+            </div>
+            <div>
+              <CardTitle className="text-2xl">قائمة المهام</CardTitle>
+              <CardDescription>
+                تابع مهامك المسندة وحدّث حالتها من لوحة كانبان.
+              </CardDescription>
+            </div>
+          </div>
+          <div className="w-full lg:w-60">
+            <Select
+              value={priority}
+              onValueChange={(value) =>
+                setPriority(value as "ALL" | TaskPriority)
+              }
+            >
+              <SelectTrigger>
+                <ListFilter data-icon="inline-start" />
+                <SelectValue placeholder="كل الأولويات" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="ALL">كل الأولويات</SelectItem>
+                  {Object.values(TaskPriority).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {TASK_PRIORITY_LABELS[value]} (
+                      {priorityCounts[value] || 0})
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+      </Card>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {statsLoading
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-28" />
+            ))
+          : metrics.map((item) => (
+              <Card key={item.label}>
+                <CardContent className="flex items-start justify-between gap-4 p-5">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <p className="text-2xl font-semibold">{item.value}</p>
+                  </div>
+                  <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                    <item.icon />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+      </section>
       {!tasksLoading && filteredTasks.length === 0 ? (
-        <EmptyState
-          icon={ClipboardList}
-          title="لا توجد مهام مسندة"
-          description={
-            (activeFilters.priority ?? []).length > 0
-              ? "لا توجد مهام مطابقة للفلتر المحدد."
-              : "لم يتم إسناد أي مهمة إليك بعد. سيتم عرض المهام هنا عند إسنادها."
-          }
-        />
+        <Card>
+          <CardContent className="p-6">
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ClipboardList />
+                </EmptyMedia>
+                <EmptyTitle>لا توجد مهام مسندة</EmptyTitle>
+                <EmptyDescription>
+                  {priority !== "ALL"
+                    ? "لا توجد مهام مطابقة للأولوية المحددة."
+                    : "لم يتم إسناد أي مهمة إليك بعد. ستظهر المهام هنا عند إسنادها."}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </CardContent>
+        </Card>
       ) : (
         <TeamTaskKanban tasks={filteredTasks} isLoading={tasksLoading} />
       )}
-    </div>
+    </main>
   );
 }

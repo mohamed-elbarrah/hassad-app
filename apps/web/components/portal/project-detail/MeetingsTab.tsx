@@ -2,98 +2,23 @@
 
 import {
   Calendar,
+  CheckCircle2,
+  MapPin,
   Users,
   Video,
-  MapPin,
-  CheckCircle2,
   XCircle,
 } from "lucide-react";
 import type { PortalPeriodMeeting } from "@/features/portal/portalApi";
-import { SurfaceCard } from "@/components/design-system/SurfaceCard";
-import { StatusBadge } from "@/components/design-system/StatusBadge";
-import { EmptyState } from "./EmptyState";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { formatDateTimeTz } from "@/lib/format";
 import { safeHttpUrl } from "@/lib/utils";
+import { EmptyState } from "./EmptyState";
 
-function MeetingRow({ meeting }: { meeting: PortalPeriodMeeting }) {
-  const isDone = meeting.status === "DONE";
-  const isCancelled = meeting.status === "CANCELLED";
-  // Defense in depth: server validates http(s) on write, but legacy rows
-  // pre-dating that validation could still contain dangerous protocols.
-  // safeHttpUrl filters them out at render time.
-  const safeMeetingLink = safeHttpUrl(meeting.meetingLink);
-
-  return (
-    <div className="flex items-start gap-4 border-b border-portal-divider py-4 last:border-0">
-      <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-          isCancelled
-            ? "bg-danger-100 text-danger-600"
-            : isDone
-              ? "bg-success-100 text-success-600"
-              : "bg-blue-50 text-blue-600"
-        }`}
-      >
-        {isDone ? (
-          <CheckCircle2 className="size-5" />
-        ) : isCancelled ? (
-          <XCircle className="size-5" />
-        ) : (
-          <Calendar className="size-5" />
-        )}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p
-            className={`text-sm font-medium text-natural-100 ${
-              isCancelled ? "text-neutral-400 line-through" : ""
-            }`}
-          >
-            {meeting.title}
-          </p>
-          <StatusBadge status={meeting.status} />
-        </div>
-        <p className="mt-1 text-xs text-portal-note-text">
-          {formatDateTimeTz(meeting.scheduledAt)}
-          {meeting.durationMin ? ` · ${meeting.durationMin} دقيقة` : ""}
-        </p>
-        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-portal-note-text">
-          {meeting.location && (
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="size-3" />
-              {meeting.location}
-            </span>
-          )}
-          {safeMeetingLink && (
-            <a
-              href={safeMeetingLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-action-blue hover:underline"
-            >
-              <Video className="size-3" />
-              رابط الاجتماع
-            </a>
-          )}
-        </div>
-        {meeting.notes && (
-          <p className="mt-2 whitespace-pre-line rounded-lg bg-badge-gray-bg p-2 text-xs leading-5 text-portal-note-text max-h-40 overflow-y-auto">
-            {meeting.notes}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface MeetingsTabProps {
-  meetings: PortalPeriodMeeting[];
-}
-
-/** Meetings tab — PM-scheduled client meetings for the selected period. */
-export function MeetingsTab({ meetings }: MeetingsTabProps) {
-  if (!meetings || meetings.length === 0) {
+export function MeetingsTab({ meetings }: { meetings: PortalPeriodMeeting[] }) {
+  if (!meetings?.length)
     return (
       <EmptyState
         icon={Users}
@@ -101,20 +26,75 @@ export function MeetingsTab({ meetings }: MeetingsTabProps) {
         description="لم يتم جدولة أي اجتماعات لهذه الفترة بعد."
       />
     );
-  }
-
   const sorted = [...meetings].sort(
     (a, b) =>
       new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
   );
-
   return (
-    <SurfaceCard title="اجتماعات الفترة" icon={Users}>
-      <div className="space-y-1" dir="rtl">
-        {sorted.map((meeting) => (
-          <MeetingRow key={meeting.id} meeting={meeting} />
-        ))}
-      </div>
-    </SurfaceCard>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users />
+          اجتماعات الفترة
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {sorted.map((meeting, index) => {
+          const cancelled = meeting.status === "CANCELLED";
+          const done = meeting.status === "DONE";
+          const Icon = done ? CheckCircle2 : cancelled ? XCircle : Calendar;
+          const link = safeHttpUrl(meeting.meetingLink);
+          return (
+            <div key={meeting.id} className="flex flex-col gap-3">
+              <div className="flex gap-3">
+                <Icon className="size-5 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{meeting.title}</p>
+                    <Badge
+                      variant={
+                        cancelled
+                          ? "destructive"
+                          : done
+                            ? "default"
+                            : "secondary"
+                      }
+                    >
+                      {meeting.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDateTimeTz(meeting.scheduledAt)}
+                    {meeting.durationMin
+                      ? ` · ${meeting.durationMin} دقيقة`
+                      : ""}
+                  </p>
+                  {meeting.location ? (
+                    <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin />
+                      {meeting.location}
+                    </p>
+                  ) : null}
+                  {link ? (
+                    <Button asChild variant="link" size="sm">
+                      <a href={link} target="_blank" rel="noopener noreferrer">
+                        <Video />
+                        رابط الاجتماع
+                      </a>
+                    </Button>
+                  ) : null}
+                  {meeting.notes ? (
+                    <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">
+                      {meeting.notes}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              {index < sorted.length - 1 ? <Separator /> : null}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }

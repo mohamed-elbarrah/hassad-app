@@ -3,10 +3,14 @@
 import { useAppSelector } from "@/lib/hooks";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { LoaderCircle } from "lucide-react";
 import { UserRole } from "@hassad/shared";
-import { Sidebar } from "@/components/design-system/Sidebar";
-import { AppHeader } from "@/components/design-system/AppHeader";
-import { BottomNav } from "@/components/design-system/BottomNav";
+import {
+  PortalHeader,
+  PortalMobileNav,
+  PortalSidebar,
+} from "@/components/portal/shared/PortalNavigation";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
 export default function PortalLayout({
@@ -48,10 +52,10 @@ export default function PortalLayout({
     (!user?.intakeCompleted && !isSetupPage)
   ) {
     return (
-      <div className="flex items-center justify-center min-h-screen" dir="rtl">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
-          <p className="text-muted-foreground animate-pulse">جاري التحميل...</p>
+      <div className="flex min-h-svh items-center justify-center" dir="rtl">
+        <div className="flex flex-col items-center gap-3">
+          <LoaderCircle className="animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">جاري التحميل...</p>
         </div>
       </div>
     );
@@ -62,22 +66,17 @@ export default function PortalLayout({
   }
 
   return (
-    <div
-      className="h-screen overflow-hidden flex w-full bg-portal-bg"
-      dir="rtl"
-    >
-      <div className="hidden lg:block">
-        <Sidebar />
+    <SidebarProvider>
+      <div className="flex h-svh w-full overflow-hidden bg-muted/30" dir="rtl">
+        <PortalSidebar />
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <PortalHeader />
+          <main className="flex-1 overflow-y-auto p-4 pb-24 lg:p-6 lg:pb-6">
+            {children}
+          </main>
+        </div>
+        <PortalMobileNav />
       </div>
-
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <AppHeader />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-5 pb-20 lg:pb-5">
-          {children}
-        </main>
-      </div>
-
-      <BottomNav />
-    </div>
+    </SidebarProvider>
   );
 }
