@@ -1,11 +1,33 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { ClientDetailWorkspace } from "@/features/clients/components/client-detail-workspace";
+import { getClientDetailById } from "@/features/clients/lib/client-detail";
 
-export const metadata: Metadata = {
-  title: "Client Detail | Hassad",
+type ClientDetailPageProps = {
+  params: Promise<{
+    clientId: string;
+  }>;
 };
 
-export default function ClientDetailPage() {
-  return <ScreenPlaceholder label="Client Detail" />;
+export async function generateMetadata({
+  params,
+}: ClientDetailPageProps): Promise<Metadata> {
+  const { clientId } = await params;
+  const client = getClientDetailById(clientId);
+
+  return {
+    title: client ? `${client.companyName} | Hassad` : "Client Detail | Hassad",
+  };
+}
+
+export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
+  const { clientId } = await params;
+  const client = getClientDetailById(clientId);
+
+  if (!client) {
+    notFound();
+  }
+
+  return <ClientDetailWorkspace client={client} />;
 }
