@@ -40,8 +40,10 @@ import {
   type ProjectDirectoryTimelineFilter,
 } from "@/features/projects/lib/project-directory";
 import { useGetDeliveryWorkspaceQuery } from "@/lib/api/admin-workspaces-api";
+import { useAppSelector } from "@/lib/store";
 
 export function ProjectsWorkspace() {
+  const authStatus = useAppSelector((state) => state.auth.status);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<ProjectDirectoryStatusFilter>("all");
@@ -51,13 +53,18 @@ export function ProjectsWorkspace() {
     useState<ProjectDirectoryTimelineFilter>("all-timelines");
   const [sort, setSort] = useState<ProjectDirectorySort>("highest-value");
 
-  const { data, error, isError, isLoading, refetch } = useGetDeliveryWorkspaceQuery({
-    search,
-    statusFilter,
-    modelFilter,
-    timelineFilter,
-    sort,
-  });
+  const { data, error, isError, isLoading, refetch } = useGetDeliveryWorkspaceQuery(
+    {
+      search,
+      statusFilter,
+      modelFilter,
+      timelineFilter,
+      sort,
+    },
+    {
+      skip: authStatus !== "authenticated",
+    },
+  );
   const rows = data?.items ?? [];
 
   return (
@@ -183,7 +190,7 @@ export function ProjectsWorkspace() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && !data ? (
+          {authStatus !== "authenticated" || (isLoading && !data) ? (
             <WorkspaceQueryState
               kind="loading"
               loadingTitle="Loading projects"

@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
-import { OrderDetailWorkspace } from "@/features/crm-orders/components/order-detail-workspace";
-import { getOrderDetailById } from "@/features/crm-orders/lib/order-detail";
+import { OrderDetailPageClient } from "./page-client";
 
 type OrderDetailPageProps = {
   params: Promise<{
@@ -10,24 +7,13 @@ type OrderDetailPageProps = {
   }>;
 };
 
-export async function generateMetadata({
-  params,
-}: OrderDetailPageProps): Promise<Metadata> {
-  const { orderId } = await params;
-  const order = getOrderDetailById(orderId);
-
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: order ? `${order.companyName} | Hassad` : "Order Detail | Hassad",
+    title: "Order Detail | Hassad",
   };
 }
 
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { orderId } = await params;
-  const order = getOrderDetailById(orderId);
-
-  if (!order) {
-    notFound();
-  }
-
-  return <OrderDetailWorkspace order={order} />;
+  return <OrderDetailPageClient orderId={orderId} />;
 }

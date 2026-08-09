@@ -37,9 +37,25 @@ export class AdminTasksService {
         skip,
         take: limit,
         include: {
-          project: { select: { name: true } },
+          project: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              client: {
+                select: {
+                  companyName: true,
+                },
+              },
+            },
+          },
           assignee: { select: { id: true, name: true } },
           department: { select: { name: true } },
+          period: {
+            select: {
+              periodNumber: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -50,13 +66,19 @@ export class AdminTasksService {
       items: items.map((t) => ({
         id: t.id,
         title: t.title,
+        projectId: t.projectId,
         projectName: t.project?.name ?? "—",
+        projectStatus: t.project?.status ?? null,
+        clientName: t.project?.client?.companyName ?? "—",
         assigneeId: t.assignedTo ?? null,
         assigneeName: t.assignee?.name ?? "—",
         department: t.department?.name ?? null,
         status: t.status,
         priority: t.priority,
         dueDate: t.dueDate?.toISOString() ?? null,
+        isVisibleToClient: t.isVisibleToClient,
+        periodNumber: t.period?.periodNumber ?? null,
+        isArchived: !!t.archivedAt,
         isOverdue:
           t.dueDate &&
           t.dueDate < new Date() &&
@@ -75,29 +97,93 @@ export class AdminTasksService {
     const task = await this.prisma.task.findUnique({
       where: { id },
       include: {
-        project: { select: { id: true, name: true } },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            client: {
+              select: {
+                id: true,
+                companyName: true,
+                status: true,
+                totalPaid: true,
+                activeProjects: true,
+              },
+            },
+            manager: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         assignee: { select: { id: true, name: true, email: true } },
         creator: { select: { id: true, name: true } },
         department: { select: { name: true } },
-        statusHistory: { orderBy: { changedAt: "desc" } },
+        period: {
+          select: {
+            id: true,
+            periodNumber: true,
+          },
+        },
+        statusHistory: {
+          orderBy: { changedAt: "desc" },
+          include: {
+            changer: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
         comments: {
-          include: { user: { select: { name: true } } },
+          include: {
+            user: {
+              select: {
+                name: true,
+                role: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
           orderBy: { createdAt: "desc" },
           take: 20,
         },
         files: {
-          select: {
-            id: true,
-            fileName: true,
-            fileType: true,
-            fileSize: true,
-            uploadedAt: true,
+          include: {
+            uploader: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
     });
     if (!task) throw new NotFoundException("Task not found");
-    return task;
+
+    return {
+      ...task,
+      comments: task.comments.map((comment) => ({
+        ...comment,
+        userRole: comment.user?.role?.name ?? null,
+      })),
+      files: task.files.map((file) => ({
+        id: file.id,
+        fileName: file.fileName,
+        fileType: file.fileType,
+        fileSize: file.fileSize,
+        purpose: file.purpose,
+        uploadedAt: file.uploadedAt,
+        uploadedBy: file.uploadedBy,
+        uploaderName: file.uploader?.name ?? null,
+      })),
+    };
   }
 
   async getDelayAlerts(query: {

@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
-import { TaskDetailWorkspace } from "@/features/tasks/components/task-detail-workspace";
-import { getTaskDetailById } from "@/features/tasks/lib/task-detail";
+import { TaskDetailPageClient } from "./page-client";
 
 type TaskDetailPageProps = {
   params: Promise<{
@@ -10,24 +7,13 @@ type TaskDetailPageProps = {
   }>;
 };
 
-export async function generateMetadata({
-  params,
-}: TaskDetailPageProps): Promise<Metadata> {
-  const { taskId } = await params;
-  const task = getTaskDetailById(taskId);
-
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: task ? `${task.title} | Hassad` : "Task Detail | Hassad",
+    title: "Task Detail | Hassad",
   };
 }
 
 export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
   const { taskId } = await params;
-  const task = getTaskDetailById(taskId);
-
-  if (!task) {
-    notFound();
-  }
-
-  return <TaskDetailWorkspace task={task} />;
+  return <TaskDetailPageClient taskId={taskId} />;
 }

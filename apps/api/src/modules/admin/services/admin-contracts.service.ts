@@ -56,6 +56,15 @@ export class AdminContractsService {
         include: {
           client: { select: { companyName: true } },
           renewalAlerts: { where: { isSent: false }, select: { id: true } },
+          projects: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+            },
+            take: 1,
+            orderBy: { createdAt: "desc" },
+          },
           _count: { select: { invoices: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -75,10 +84,18 @@ export class AdminContractsService {
         currency: c.currency,
         startDate: c.startDate?.toISOString() ?? null,
         endDate: c.endDate?.toISOString() ?? null,
+        signedAt: c.signedAt?.toISOString() ?? null,
         versionNumber: c.versionNumber,
         eSigned: c.eSigned,
         pendingRenewalAlerts: c.renewalAlerts.length,
         invoiceCount: c._count.invoices,
+        project: c.projects[0]
+          ? {
+              id: c.projects[0].id,
+              name: c.projects[0].name,
+              status: c.projects[0].status,
+            }
+          : null,
         createdAt: c.createdAt.toISOString(),
       })),
       total,

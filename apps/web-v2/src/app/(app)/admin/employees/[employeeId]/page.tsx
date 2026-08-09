@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
-import { EmployeeDetailWorkspace } from "@/features/employees/components/employee-detail-workspace";
-import { getInitialEmployeeAdminRecordById } from "@/features/employees/lib/employee-admin";
-import { employees } from "@/lib/fixtures/first-slice";
+import { EmployeeDetailPageClient } from "./page-client";
 
 type EmployeeDetailPageProps = {
   params: Promise<{
@@ -11,14 +7,9 @@ type EmployeeDetailPageProps = {
   }>;
 };
 
-export async function generateMetadata({
-  params,
-}: EmployeeDetailPageProps): Promise<Metadata> {
-  const { employeeId } = await params;
-  const employee = employees.find((item) => item.id === employeeId);
-
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: employee ? `${employee.name} | Hassad` : "Employee Detail | Hassad",
+    title: "Employee Detail | Hassad",
   };
 }
 
@@ -26,12 +17,5 @@ export default async function EmployeeDetailPage({
   params,
 }: EmployeeDetailPageProps) {
   const { employeeId } = await params;
-  const employee = employees.find((item) => item.id === employeeId);
-  const adminRecord = getInitialEmployeeAdminRecordById(employeeId);
-
-  if (!employee || !adminRecord) {
-    notFound();
-  }
-
-  return <EmployeeDetailWorkspace employee={employee} adminRecord={adminRecord} />;
+  return <EmployeeDetailPageClient employeeId={employeeId} />;
 }

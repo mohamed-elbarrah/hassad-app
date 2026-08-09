@@ -45,6 +45,29 @@ export class AdminProposalsService {
           lead: { select: { id: true, companyName: true } },
           client: { select: { id: true, companyName: true } },
           creator: { select: { id: true, name: true } },
+          request: {
+            select: {
+              id: true,
+              companyName: true,
+              services: {
+                include: {
+                  service: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          contract: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+            },
+          },
         },
       }),
       this.prisma.proposal.count({ where }),
@@ -71,7 +94,7 @@ export class AdminProposalsService {
         },
       },
     });
-    if (!proposal) throw new Error("العرض غير موجود");
+    if (!proposal) throw new NotFoundException("العرض غير موجود");
 
     const contract = await this.prisma.contract.findFirst({
       where: { proposalId: id },

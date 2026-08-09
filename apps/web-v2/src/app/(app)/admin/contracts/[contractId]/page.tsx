@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
-import { ContractDetailWorkspace } from "@/features/crm-contracts/components/contract-detail-workspace";
-import { getContractDetailById } from "@/features/crm-contracts/lib/contract-detail";
+import { ContractDetailPageClient } from "./page-client";
 
 type ContractDetailPageProps = {
   params: Promise<{
@@ -10,14 +7,9 @@ type ContractDetailPageProps = {
   }>;
 };
 
-export async function generateMetadata({
-  params,
-}: ContractDetailPageProps): Promise<Metadata> {
-  const { contractId } = await params;
-  const contract = getContractDetailById(contractId);
-
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: contract ? `${contract.title} | Hassad` : "Contract Detail | Hassad",
+    title: "Contract Detail | Hassad",
   };
 }
 
@@ -25,11 +17,5 @@ export default async function ContractDetailPage({
   params,
 }: ContractDetailPageProps) {
   const { contractId } = await params;
-  const contract = getContractDetailById(contractId);
-
-  if (!contract) {
-    notFound();
-  }
-
-  return <ContractDetailWorkspace contract={contract} />;
+  return <ContractDetailPageClient contractId={contractId} />;
 }

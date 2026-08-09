@@ -5,6 +5,7 @@ import { CheckSquare2Icon } from "lucide-react";
 import { TaskDepartment, TaskPriority, TaskStatus } from "@hassad/shared";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import {
   Card,
   CardContent,
@@ -37,13 +38,17 @@ import {
   formatTaskDepartment,
   formatTaskPriority,
   formatTaskStatus,
-  getFilteredTasks,
+  type TaskDirectoryRecord,
   type TaskDirectoryDueFilter,
   type TaskDirectoryQueueFilter,
   type TaskDirectoryVisibilityFilter,
 } from "@/features/tasks/lib/task-directory";
+import { mapTaskIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
+import { useGetTasksIndexQuery } from "@/lib/api/admin-index-api";
+import { useAppSelector } from "@/lib/store";
 
 export function TasksWorkspace() {
+  const authStatus = useAppSelector((state) => state.auth.status);
   const [search, setSearch] = useState("");
   const [queue, setQueue] = useState<TaskDirectoryQueueFilter>("all");
   const [department, setDepartment] = useState<TaskDepartment | "all-departments">(
@@ -59,19 +64,47 @@ export function TasksWorkspace() {
   const [visibility, setVisibility] =
     useState<TaskDirectoryVisibilityFilter>("all-visibility");
 
-  const rows = useMemo(
-    () =>
-      getFilteredTasks({
-        search,
-        queue,
-        department,
-        status,
-        priority,
-        due,
-        visibility,
-      }),
-    [department, due, priority, queue, search, status, visibility]
+  const { data, error, isError, isLoading, refetch } = useGetTasksIndexQuery(
+    {
+      search: search || undefined,
+      status: status === "all-statuses" ? undefined : status,
+      priority: priority === "all-priorities" ? undefined : priority,
+      department: department === "all-departments" ? undefined : department,
+      overdueOnly: due === "overdue" ? "true" : undefined,
+      limit: 100,
+    },
+    { skip: authStatus !== "authenticated" },
   );
+
+  const rows = useMemo<TaskDirectoryRecord[]>(() => {
+    const items = (data?.items ?? []).map(mapTaskIndexItem);
+
+    return items
+      .filter((row: TaskDirectoryRecord) => {
+        if (queue === "attention") {
+          return ["destructive", "attention", "warning"].includes(row.signalTone);
+        }
+        if (queue === "in-review") {
+          return row.status === TaskStatus.IN_REVIEW;
+        }
+        if (queue === "unassigned") {
+          return !row.assigneeName;
+        }
+        return true;
+      })
+      .filter((row: TaskDirectoryRecord) => {
+        if (due === "today") return row.dueOffsetDays === 0;
+        if (due === "next-7-days") {
+          return row.dueOffsetDays >= 0 && row.dueOffsetDays <= 7;
+        }
+        return true;
+      })
+      .filter((row: TaskDirectoryRecord) => {
+        if (visibility === "client-visible") return row.isClientVisible;
+        if (visibility === "internal-only") return !row.isClientVisible;
+        return true;
+      });
+  }, [data?.items, due, queue, visibility]);
 
   return (
     <PageScaffold
@@ -262,7 +295,21 @@ export function TasksWorkspace() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
+          {authStatus !== "authenticated" || (isLoading && !data) ? (
+            <WorkspaceQueryState
+              kind="loading"
+              loadingTitle="Loading tasks"
+              loadingDescription="Retrieving the latest task queue from the admin API."
+            />
+          ) : isError && !data ? (
+            <WorkspaceQueryState
+              kind="error"
+              error={error}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          ) : rows.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">

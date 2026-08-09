@@ -71,6 +71,12 @@ export class AdminUsersController {
     );
   }
 
+  @Get(":id/work")
+  @RequirePermissions("admin.users.read")
+  getWork(@Param("id") id: string) {
+    return this.adminUsersService.getWork(id);
+  }
+
   @Post("bulk")
   @RequirePermissions("admin.users.manage")
   bulkAction(@Body() dto: BulkUserActionDto) {

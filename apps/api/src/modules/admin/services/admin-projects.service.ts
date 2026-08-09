@@ -127,10 +127,31 @@ export class AdminProjectsService {
           select: {
             id: true,
             title: true,
+            description: true,
             status: true,
             priority: true,
             dueDate: true,
             assignedTo: true,
+            revisionCount: true,
+            isVisibleToClient: true,
+            archivedAt: true,
+            period: {
+              select: {
+                id: true,
+                periodNumber: true,
+              },
+            },
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            department: {
+              select: {
+                name: true,
+              },
+            },
           },
           orderBy: { createdAt: "desc" },
           take: 50,
@@ -142,6 +163,11 @@ export class AdminProjectsService {
             filePath: true,
             uploadedBy: true,
             uploadedAt: true,
+            uploader: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         meetings: {
@@ -151,6 +177,12 @@ export class AdminProjectsService {
             scheduledAt: true,
             notes: true,
             createdBy: true,
+            creator: {
+              select: {
+                name: true,
+              },
+            },
+            periodId: true,
           },
         },
         periods: {
@@ -161,6 +193,7 @@ export class AdminProjectsService {
             endDate: true,
             status: true,
             completionPercentage: true,
+            summary: true,
           },
         },
         invoiceItems: {

@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
-import { ProposalDetailWorkspace } from "@/features/crm-proposals/components/proposal-detail-workspace";
-import { getProposalDetailById } from "@/features/crm-proposals/lib/proposal-detail";
+import { ProposalDetailPageClient } from "./page-client";
 
 type ProposalDetailPageProps = {
   params: Promise<{
@@ -10,14 +7,9 @@ type ProposalDetailPageProps = {
   }>;
 };
 
-export async function generateMetadata({
-  params,
-}: ProposalDetailPageProps): Promise<Metadata> {
-  const { proposalId } = await params;
-  const proposal = getProposalDetailById(proposalId);
-
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: proposal ? `${proposal.title} | Hassad` : "Proposal Detail | Hassad",
+    title: "Proposal Detail | Hassad",
   };
 }
 
@@ -25,11 +17,5 @@ export default async function ProposalDetailPage({
   params,
 }: ProposalDetailPageProps) {
   const { proposalId } = await params;
-  const proposal = getProposalDetailById(proposalId);
-
-  if (!proposal) {
-    notFound();
-  }
-
-  return <ProposalDetailWorkspace proposal={proposal} />;
+  return <ProposalDetailPageClient proposalId={proposalId} />;
 }

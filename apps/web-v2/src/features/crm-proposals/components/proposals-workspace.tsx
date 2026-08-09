@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { FileTextIcon } from "lucide-react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import {
   Card,
@@ -40,21 +41,55 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   formatProposalCurrency,
   formatProposalStatus,
-  getFilteredProposals,
+  type ProposalDirectoryRecord,
   type ProposalDateFilter,
   type ProposalDirectoryFilter,
   type ProposalValueFilter,
 } from "@/features/crm-proposals/lib/proposal-directory";
+import { mapProposalIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
+import { useGetProposalsIndexQuery } from "@/lib/api/admin-index-api";
+import { useAppSelector } from "@/lib/store";
 
 export function ProposalsWorkspace() {
+  const authStatus = useAppSelector((state) => state.auth.status);
   const [statusFilter, setStatusFilter] = useState<ProposalDirectoryFilter>("all");
   const [dateFilter, setDateFilter] = useState<ProposalDateFilter>("last-30-days");
   const [valueFilter, setValueFilter] = useState<ProposalValueFilter>("all-values");
 
-  const rows = useMemo(
-    () => getFilteredProposals(statusFilter, dateFilter, valueFilter),
-    [statusFilter, dateFilter, valueFilter]
+  const { data, error, isError, isLoading, refetch } = useGetProposalsIndexQuery(
+    {
+      status:
+        statusFilter === "all"
+          ? undefined
+          : statusFilter === "revision-requested"
+            ? "REVISION_REQUESTED"
+            : statusFilter.toUpperCase(),
+      limit: 100,
+    },
+    { skip: authStatus !== "authenticated" },
   );
+
+  const rows = useMemo<ProposalDirectoryRecord[]>(() => {
+    const items = (data?.items ?? []).map(mapProposalIndexItem);
+    return items
+      .filter((row: ProposalDirectoryRecord) => {
+        if (dateFilter === "last-7-days") return row.sentDaysAgo <= 7;
+        if (dateFilter === "last-30-days") return row.sentDaysAgo <= 30;
+        if (dateFilter === "last-90-days") return row.sentDaysAgo <= 90;
+        return true;
+      })
+      .filter((row: ProposalDirectoryRecord) => {
+        if (valueFilter === "under-15000") return row.totalValue < 15000;
+        if (valueFilter === "15000-30000") {
+          return row.totalValue >= 15000 && row.totalValue < 30000;
+        }
+        if (valueFilter === "30000-50000") {
+          return row.totalValue >= 30000 && row.totalValue < 50000;
+        }
+        if (valueFilter === "50000-plus") return row.totalValue >= 50000;
+        return true;
+      });
+  }, [data?.items, dateFilter, valueFilter]);
 
   return (
     <PageScaffold
@@ -152,7 +187,21 @@ export function ProposalsWorkspace() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
+          {authStatus !== "authenticated" || (isLoading && !data) ? (
+            <WorkspaceQueryState
+              kind="loading"
+              loadingTitle="Loading proposals"
+              loadingDescription="Retrieving the proposal register from the admin API."
+            />
+          ) : isError && !data ? (
+            <WorkspaceQueryState
+              kind="error"
+              error={error}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          ) : rows.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">

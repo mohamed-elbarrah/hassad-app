@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { FileSignatureIcon } from "lucide-react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import {
   Card,
@@ -40,21 +41,58 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   formatContractCurrency,
   formatContractStatus,
-  getFilteredContracts,
+  type ContractDirectoryRecord,
   type ContractDateFilter,
   type ContractDirectoryFilter,
   type ContractValueFilter,
 } from "@/features/crm-contracts/lib/contract-directory";
+import { mapContractIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
+import { useGetContractsIndexQuery } from "@/lib/api/admin-index-api";
+import { useAppSelector } from "@/lib/store";
 
 export function ContractsWorkspace() {
+  const authStatus = useAppSelector((state) => state.auth.status);
   const [statusFilter, setStatusFilter] = useState<ContractDirectoryFilter>("all");
   const [dateFilter, setDateFilter] = useState<ContractDateFilter>("ending-60-days");
   const [valueFilter, setValueFilter] = useState<ContractValueFilter>("all-values");
 
-  const rows = useMemo(
-    () => getFilteredContracts(statusFilter, dateFilter, valueFilter),
-    [statusFilter, dateFilter, valueFilter]
+  const { data, error, isError, isLoading, refetch } = useGetContractsIndexQuery(
+    {
+      status:
+        statusFilter === "all"
+          ? undefined
+          : statusFilter === "signed"
+            ? "SIGNED"
+            : statusFilter === "on-hold"
+              ? "ON_HOLD"
+              : statusFilter.toUpperCase(),
+      expiringDays:
+        dateFilter === "ending-30-days"
+          ? 30
+          : dateFilter === "ending-60-days"
+            ? 60
+            : dateFilter === "ending-90-days"
+              ? 90
+              : undefined,
+      limit: 100,
+    },
+    { skip: authStatus !== "authenticated" },
   );
+
+  const rows = useMemo<ContractDirectoryRecord[]>(() => {
+    const items = (data?.items ?? []).map(mapContractIndexItem);
+    return items.filter((row: ContractDirectoryRecord) => {
+      if (valueFilter === "under-15000") return row.totalValue < 15000;
+      if (valueFilter === "15000-30000") {
+        return row.totalValue >= 15000 && row.totalValue < 30000;
+      }
+      if (valueFilter === "30000-50000") {
+        return row.totalValue >= 30000 && row.totalValue < 50000;
+      }
+      if (valueFilter === "50000-plus") return row.totalValue >= 50000;
+      return true;
+    });
+  }, [data?.items, valueFilter]);
 
   return (
     <PageScaffold
@@ -155,7 +193,21 @@ export function ContractsWorkspace() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
+          {authStatus !== "authenticated" || (isLoading && !data) ? (
+            <WorkspaceQueryState
+              kind="loading"
+              loadingTitle="Loading contracts"
+              loadingDescription="Retrieving the contract register from the admin API."
+            />
+          ) : isError && !data ? (
+            <WorkspaceQueryState
+              kind="error"
+              error={error}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          ) : rows.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">

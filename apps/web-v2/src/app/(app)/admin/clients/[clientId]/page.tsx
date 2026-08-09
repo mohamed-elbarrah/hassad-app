@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-
-import { ClientDetailWorkspace } from "@/features/clients/components/client-detail-workspace";
-import { getClientDetailById } from "@/features/clients/lib/client-detail";
+import { ClientDetailPageClient } from "./page-client";
 
 type ClientDetailPageProps = {
   params: Promise<{
@@ -10,24 +7,13 @@ type ClientDetailPageProps = {
   }>;
 };
 
-export async function generateMetadata({
-  params,
-}: ClientDetailPageProps): Promise<Metadata> {
-  const { clientId } = await params;
-  const client = getClientDetailById(clientId);
-
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: client ? `${client.companyName} | Hassad` : "Client Detail | Hassad",
+    title: "Client Detail | Hassad",
   };
 }
 
 export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
   const { clientId } = await params;
-  const client = getClientDetailById(clientId);
-
-  if (!client) {
-    notFound();
-  }
-
-  return <ClientDetailWorkspace client={client} />;
+  return <ClientDetailPageClient clientId={clientId} />;
 }

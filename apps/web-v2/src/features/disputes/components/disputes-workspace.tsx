@@ -9,6 +9,7 @@ import {
 } from "@hassad/shared";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import {
   Card,
   CardContent,
@@ -41,13 +42,16 @@ import {
   formatDisputeCategory,
   formatDisputePriority,
   formatDisputeStatus,
-  getDisputePmOptions,
-  getFilteredDisputes,
+  type DisputeDirectoryRecord,
   type DisputeQueueFilter,
   type DisputeStaleFilter,
 } from "@/features/disputes/lib/dispute-directory";
+import { mapDisputeIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
+import { useGetDisputesIndexQuery } from "@/lib/api/admin-index-api";
+import { useAppSelector } from "@/lib/store";
 
 export function DisputesWorkspace() {
+  const authStatus = useAppSelector((state) => state.auth.status);
   const [search, setSearch] = useState("");
   const [queue, setQueue] = useState<DisputeQueueFilter>("all");
   const [status, setStatus] = useState<DisputeStatus | "all-statuses">(
@@ -62,21 +66,71 @@ export function DisputesWorkspace() {
   const [pm, setPm] = useState<string | "all-pms">("all-pms");
   const [stale, setStale] = useState<DisputeStaleFilter>("all-activity");
 
-  const rows = useMemo(
-    () =>
-      getFilteredDisputes({
-        search,
-        queue,
-        status,
-        category,
-        priority,
-        pm,
-        stale,
-      }),
-    [category, pm, priority, queue, search, stale, status]
+  const { data, error, isError, isLoading, refetch } = useGetDisputesIndexQuery(
+    {
+      status: status === "all-statuses" ? undefined : status,
+      category: category === "all-categories" ? undefined : category,
+      priority: priority === "all-priorities" ? undefined : priority,
+      page: 1,
+      limit: 100,
+    },
+    { skip: authStatus !== "authenticated" },
   );
 
-  const pmOptions = useMemo(() => getDisputePmOptions(), []);
+  const mappedRows = useMemo<DisputeDirectoryRecord[]>(
+    () => (data?.data ?? []).map(mapDisputeIndexItem),
+    [data?.data],
+  );
+
+  const rows = useMemo<DisputeDirectoryRecord[]>(() => {
+    const query = search.trim().toLowerCase();
+
+    return mappedRows
+      .filter((row: DisputeDirectoryRecord) => {
+        if (!query) return true;
+        return [
+          row.ticketNumber,
+          row.title,
+          row.clientName,
+          row.projectName,
+          row.pmName,
+          formatDisputeCategory(row.category),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      })
+      .filter((row: DisputeDirectoryRecord) => {
+        if (queue === "pending-approval") {
+          return row.status === DisputeStatus.PENDING_APPROVAL;
+        }
+        if (queue === "escalated") {
+          return row.status === DisputeStatus.ESCALATED;
+        }
+        if (queue === "active") {
+          return [
+            DisputeStatus.APPROVED,
+            DisputeStatus.IN_PROGRESS,
+            DisputeStatus.PENDING_CLIENT,
+          ].includes(row.status);
+        }
+        if (queue === "resolved") {
+          return [DisputeStatus.RESOLVED, DisputeStatus.CLOSED].includes(row.status);
+        }
+        return true;
+      })
+      .filter((row: DisputeDirectoryRecord) => (pm === "all-pms" ? true : row.pmName === pm))
+      .filter((row: DisputeDirectoryRecord) => {
+        if (stale === "stale-3-days") return row.staleDays >= 3;
+        if (stale === "stale-7-days") return row.staleDays >= 7;
+        return true;
+      });
+  }, [mappedRows, pm, queue, search, stale]);
+
+  const pmOptions = useMemo<string[]>(
+    () => Array.from(new Set(mappedRows.map((row) => row.pmName).filter(Boolean))).sort(),
+    [mappedRows],
+  );
 
   return (
     <PageScaffold
@@ -273,7 +327,21 @@ export function DisputesWorkspace() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
+          {authStatus !== "authenticated" || (isLoading && !data) ? (
+            <WorkspaceQueryState
+              kind="loading"
+              loadingTitle="Loading disputes"
+              loadingDescription="Retrieving the current dispute queue from the admin API."
+            />
+          ) : isError && !data ? (
+            <WorkspaceQueryState
+              kind="error"
+              error={error}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          ) : rows.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
