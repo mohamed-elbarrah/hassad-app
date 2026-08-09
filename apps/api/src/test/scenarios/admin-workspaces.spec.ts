@@ -82,6 +82,40 @@ describe("Admin workspaces", () => {
     s.finish();
   });
 
+  test("Admin overview honors custom ranges and aggregation granularity", async () => {
+    const app = await getApp();
+    const s = new Scenario("Admin overview: custom range aggregation");
+
+    const adminToken = await s.step("Login as admin", () =>
+      loginAs(app, "admin@hassad.com", "password123"),
+    );
+
+    const res = await s.step("GET /v1/admin/overview with monthly custom range", () =>
+      request(app.getHttpServer())
+        .get("/v1/admin/overview")
+        .query({
+          from: "2025-08-01T00:00:00.000Z",
+          to: "2026-08-09T23:59:59.999Z",
+          granularity: "month",
+        })
+        .auth(adminToken.accessToken, { type: "bearer" }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.granularity).toBe("month");
+    expect(res.body.data.projectAmountChart).toBeInstanceOf(Array);
+    expect(res.body.data.invoiceChart).toBeInstanceOf(Array);
+    expect(res.body.data.commercialChart).toBeInstanceOf(Array);
+    expect(res.body.data.projectAmountChart.length).toBeLessThanOrEqual(13);
+    expect(res.body.data.invoiceChart.length).toBe(res.body.data.projectAmountChart.length);
+    expect(res.body.data.commercialChart.length).toBe(
+      res.body.data.projectAmountChart.length,
+    );
+
+    s.finish();
+  });
+
   test("Non-admin employee is denied admin workspaces", async () => {
     const app = await getApp();
     const s = new Scenario("Admin workspaces: employee forbidden");

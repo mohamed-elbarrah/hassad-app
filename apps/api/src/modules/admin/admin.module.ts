@@ -104,6 +104,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
   ],
   controllers: [
     AdminController,
+    AdminWorkspacesController,
     AdminKpiController,
     AdminAuditController,
     AdminSettingsController,
@@ -135,7 +136,6 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminReportsController,
     AdminDashboardController,
     AdminNotificationTemplatesController,
-    AdminWorkspacesController,
   ],
   providers: [
     AdminActionLogService,

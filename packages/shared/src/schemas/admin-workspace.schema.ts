@@ -21,7 +21,7 @@ export type WorkspaceStatusTone =
 export type AdminOverviewQuery = {
   from?: string;
   to?: string;
-  granularity?: "day" | "month" | "quarter";
+  granularity?: "day" | "month" | "quarter" | "year";
 };
 
 export type AdminEmployeesWorkspaceQuery = {
@@ -170,7 +170,7 @@ export type DeliveryWorkspaceResponse = {
 };
 
 export type AdminOverviewResponse = {
-  granularity: "day" | "month" | "quarter";
+  granularity: "day" | "month" | "quarter" | "year";
   kpis: Array<{
     label: string;
     value: string;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PlusIcon } from "lucide-react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,7 +38,7 @@ export function EmployeesWorkspace() {
     open: false,
     mode: "create",
   });
-  const { data } = useGetEmployeesWorkspaceQuery({});
+  const { data, error, isError, isLoading, refetch } = useGetEmployeesWorkspaceQuery({});
   const [createEmployee] = useCreateEmployeeMutation();
   const [updateEmployee] = useUpdateEmployeeMutation();
   const [suspendEmployee] = useSuspendEmployeeMutation();
@@ -95,15 +96,31 @@ export function EmployeesWorkspace() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <EmployeesTable
-              rows={rows}
-              onEdit={(employee) =>
-                setDialogState({ open: true, mode: "edit", employee })
-              }
-              onToggleSuspend={(employeeId) => {
-                void handleToggleSuspend(employeeId);
-              }}
-            />
+            {isLoading && !data ? (
+              <WorkspaceQueryState
+                kind="loading"
+                loadingTitle="Loading employees"
+                loadingDescription="Retrieving the staff directory, roles, and account state from the admin API."
+              />
+            ) : isError && !data ? (
+              <WorkspaceQueryState
+                kind="error"
+                error={error}
+                onRetry={() => {
+                  void refetch();
+                }}
+              />
+            ) : (
+              <EmployeesTable
+                rows={rows}
+                onEdit={(employee) =>
+                  setDialogState({ open: true, mode: "edit", employee })
+                }
+                onToggleSuspend={(employeeId) => {
+                  void handleToggleSuspend(employeeId);
+                }}
+              />
+            )}
           </CardContent>
         </Card>
       </PageScaffold>

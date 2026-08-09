@@ -18,8 +18,8 @@ export class AdminOverviewWorkspaceQueryDto {
   to?: string;
 
   @IsOptional()
-  @IsIn(["day", "month", "quarter"])
-  granularity?: "day" | "month" | "quarter";
+  @IsIn(["day", "month", "quarter", "year"])
+  granularity?: "day" | "month" | "quarter" | "year";
 }
 
 export class AdminEmployeesWorkspaceQueryDto {

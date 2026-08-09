@@ -61,6 +61,19 @@ async function main() {
   await prisma.campaignKpiAuditLog.deleteMany();
   await prisma.contractRenewalAlert.deleteMany();
   await prisma.taskDelayAlert.deleteMany();
+  await prisma.adminActionLog.deleteMany();
+  await prisma.systemEventLog.deleteMany();
+  await prisma.reportSnapshot.deleteMany();
+  await prisma.externalServiceHealth.deleteMany();
+  await prisma.systemError.deleteMany();
+  await prisma.systemHealthCheck.deleteMany();
+  await prisma.pmDisputeStats.deleteMany();
+  await prisma.disputeAttachment.deleteMany();
+  await prisma.disputeMessage.deleteMany();
+  await prisma.disputeHistory.deleteMany();
+  await prisma.disputeTicket.deleteMany();
+  await prisma.securityEvent.deleteMany();
+  await prisma.session.deleteMany();
   await prisma.portalIntakeForm.deleteMany();
   await prisma.aiAnalysisLog.deleteMany();
   await prisma.aiSuggestion.deleteMany();
@@ -338,32 +351,126 @@ async function main() {
 
   // Users
   const userDefs = [
-    { email: "admin@hassad.com", name: "Super Admin", role: "ADMIN" },
     {
+      key: "ADMIN",
+      email: "admin@hassad.com",
+      name: "Super Admin",
+      role: "ADMIN",
+      phoneWhatsapp: "+966500000101",
+    },
+    {
+      key: "PM",
       email: "pm@hassad.com",
       name: "Layla PM",
       role: "PM",
       dept: "MANAGEMENT",
+      phoneWhatsapp: "+966500000102",
     },
-    { email: "sales@hassad.com", name: "Omar Sales", role: "SALES" },
     {
+      key: "SALES",
+      email: "sales@hassad.com",
+      name: "Omar Sales",
+      role: "SALES",
+      phoneWhatsapp: "+966500000103",
+    },
+    {
+      key: "TEAM",
       email: "employee@hassad.com",
       name: "Hana Designer",
       role: "TEAM",
       dept: "DESIGN",
+      phoneWhatsapp: "+966500000104",
     },
     {
+      key: "MARKETING",
       email: "marketing@hassad.com",
       name: "Ziad Marketing",
       role: "MARKETING",
       dept: "MARKETING",
+      phoneWhatsapp: "+966500000105",
     },
     {
+      key: "ACCOUNTANT",
       email: "accountant@hassad.com",
       name: "Sara Accountant",
       role: "ACCOUNTANT",
+      phoneWhatsapp: "+966500000106",
     },
-    { email: "client@hassad.com", name: "فيصل القحطاني", role: "CLIENT" },
+    {
+      key: "CLIENT1",
+      email: "client@hassad.com",
+      name: "فيصل القحطاني",
+      role: "CLIENT",
+      phoneWhatsapp: "+966501234567",
+    },
+    {
+      key: "PM2",
+      email: "pm2@hassad.com",
+      name: "Fadi Kareem",
+      role: "PM",
+      dept: "MANAGEMENT",
+      phoneWhatsapp: "+966500000107",
+    },
+    {
+      key: "SALES2",
+      email: "sales2@hassad.com",
+      name: "Mona Saleh",
+      role: "SALES",
+      phoneWhatsapp: "+966500000108",
+    },
+    {
+      key: "TEAM_CONTENT",
+      email: "content1@hassad.com",
+      name: "Lina Haddad",
+      role: "TEAM",
+      dept: "CONTENT",
+      phoneWhatsapp: "+966500000109",
+    },
+    {
+      key: "TEAM_DEV",
+      email: "dev1@hassad.com",
+      name: "Kareem Nasser",
+      role: "TEAM",
+      dept: "DEVELOPMENT",
+      phoneWhatsapp: "+966500000110",
+    },
+    {
+      key: "TEAM_PRODUCTION",
+      email: "production1@hassad.com",
+      name: "Rawan Ali",
+      role: "TEAM",
+      dept: "PRODUCTION",
+      phoneWhatsapp: "+966500000111",
+    },
+    {
+      key: "MARKETING2",
+      email: "marketing2@hassad.com",
+      name: "Noura Growth",
+      role: "MARKETING",
+      dept: "MARKETING",
+      phoneWhatsapp: "+966500000112",
+    },
+    {
+      key: "CLIENT2",
+      email: "client2@hassad.com",
+      name: "Rana Khaled",
+      role: "CLIENT",
+      phoneWhatsapp: "+966500000113",
+    },
+    {
+      key: "CLIENT3",
+      email: "client3@hassad.com",
+      name: "Majed Al Noor",
+      role: "CLIENT",
+      phoneWhatsapp: "+966500000114",
+    },
+    {
+      key: "CLIENT4",
+      email: "client4@hassad.com",
+      name: "Dina Faris",
+      role: "CLIENT",
+      phoneWhatsapp: "+966500000115",
+    },
   ];
 
   const userIds: Record<string, string> = {};
@@ -371,21 +478,25 @@ async function main() {
   for (const u of userDefs) {
     const created = await prisma.user.upsert({
       where: { email: u.email },
-      update: { role: { connect: { name: u.role } } },
+      update: {
+        name: u.name,
+        phoneWhatsapp: u.phoneWhatsapp ?? null,
+        role: { connect: { name: u.role } },
+        isPayrollEligible: u.role !== "CLIENT",
+      },
       create: {
         email: u.email,
         name: u.name,
-        // OWNERSHIP: User owns phone — single source of truth.
-        // The demo client user is created with the same phone as
-        // Client.phoneWhatsapp so the portal shows a complete profile.
-        phoneWhatsapp: u.email === "client@hassad.com" ? "+966501234567" : null,
+        phoneWhatsapp: u.phoneWhatsapp ?? null,
         passwordHash,
         role: { connect: { name: u.role } },
         isPayrollEligible: u.role !== "CLIENT",
       },
     });
-    userIds[u.role] = created.id;
-    if (u.email === "client@hassad.com") userIds["CLIENT1"] = created.id;
+    userIds[u.key ?? u.role] = created.id;
+    if (!userIds[u.role]) {
+      userIds[u.role] = created.id;
+    }
 
     if (u.dept) {
       const dept = await prisma.department.findUnique({
@@ -403,6 +514,125 @@ async function main() {
     }
   }
 
+  const d = (y: number, m: number, day: number) =>
+    new Date(y, m - 1, day, 0, 0, 0, 0);
+
+  const userStateUpdates = [
+    {
+      key: "ADMIN",
+      data: {
+        lastLoginAt: d(2026, 8, 8),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Super%20Admin",
+      },
+    },
+    {
+      key: "PM",
+      data: {
+        lastLoginAt: d(2026, 8, 7),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Layla%20PM",
+      },
+    },
+    {
+      key: "PM2",
+      data: {
+        lastLoginAt: d(2026, 8, 5),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Fadi%20Kareem",
+      },
+    },
+    {
+      key: "SALES",
+      data: {
+        lastLoginAt: d(2026, 8, 9),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Omar%20Sales",
+      },
+    },
+    {
+      key: "SALES2",
+      data: {
+        lastLoginAt: d(2026, 8, 8),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Mona%20Saleh",
+      },
+    },
+    {
+      key: "TEAM",
+      data: {
+        lastLoginAt: d(2026, 8, 8),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Hana%20Designer",
+      },
+    },
+    {
+      key: "TEAM_CONTENT",
+      data: {
+        lastLoginAt: d(2026, 8, 1),
+        isActive: false,
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Lina%20Haddad",
+      },
+    },
+    {
+      key: "TEAM_DEV",
+      data: {
+        lastLoginAt: d(2026, 8, 9),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Kareem%20Nasser",
+      },
+    },
+    {
+      key: "TEAM_PRODUCTION",
+      data: {
+        lastLoginAt: d(2026, 7, 28),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Rawan%20Ali",
+      },
+    },
+    {
+      key: "MARKETING",
+      data: {
+        lastLoginAt: d(2026, 8, 7),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Ziad%20Marketing",
+      },
+    },
+    {
+      key: "MARKETING2",
+      data: {
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Noura%20Growth",
+      },
+    },
+    {
+      key: "ACCOUNTANT",
+      data: {
+        lastLoginAt: d(2026, 8, 6),
+        avatarUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Sara%20Accountant",
+      },
+    },
+    {
+      key: "CLIENT1",
+      data: {
+        lastLoginAt: d(2026, 8, 8),
+      },
+    },
+    {
+      key: "CLIENT2",
+      data: {
+        lastLoginAt: d(2026, 8, 9),
+      },
+    },
+    {
+      key: "CLIENT3",
+      data: {
+        lastLoginAt: d(2026, 8, 6),
+      },
+    },
+    {
+      key: "CLIENT4",
+      data: {},
+    },
+  ];
+
+  for (const update of userStateUpdates) {
+    await prisma.user.update({
+      where: { id: userIds[update.key] },
+      data: update.data,
+    });
+  }
+
   // Department lookups
   const designDept = await prisma.department.findUnique({
     where: { name: "DESIGN" },
@@ -413,42 +643,107 @@ async function main() {
   const marketingDept = await prisma.department.findUnique({
     where: { name: "MARKETING" },
   });
+  const developmentDept = await prisma.department.findUnique({
+    where: { name: "DEVELOPMENT" },
+  });
+  const productionDept = await prisma.department.findUnique({
+    where: { name: "PRODUCTION" },
+  });
 
   // ── Employees ─────────────────────────────────────────────────────────────────
   const payrollUsers = [
     {
+      userKey: "TEAM",
       role: "TEAM",
       name: "Hana Designer",
       baseSalary: 7000,
       payType: "FIXED",
     },
     {
+      userKey: "MARKETING",
       role: "MARKETING",
       name: "Ziad Marketing",
       baseSalary: 8500,
       payType: "FIXED",
     },
     {
+      userKey: "SALES",
       role: "SALES",
       name: "Omar Sales",
       baseSalary: 5000,
       payType: "HYBRID",
       commissionRate: 0.05,
     },
-    { role: "PM", name: "Layla PM", baseSalary: 12000, payType: "FIXED" },
     {
+      userKey: "PM",
+      role: "PM",
+      name: "Layla PM",
+      baseSalary: 12000,
+      payType: "FIXED",
+    },
+    {
+      userKey: "ACCOUNTANT",
       role: "ACCOUNTANT",
       name: "Sara Accountant",
       baseSalary: 9000,
       payType: "FIXED",
     },
-    { role: "ADMIN", name: "Super Admin", baseSalary: 15000, payType: "FIXED" },
+    {
+      userKey: "ADMIN",
+      role: "ADMIN",
+      name: "Super Admin",
+      baseSalary: 15000,
+      payType: "FIXED",
+    },
+    {
+      userKey: "PM2",
+      role: "PM",
+      name: "Fadi Kareem",
+      baseSalary: 11800,
+      payType: "FIXED",
+    },
+    {
+      userKey: "SALES2",
+      role: "SALES",
+      name: "Mona Saleh",
+      baseSalary: 5600,
+      payType: "HYBRID",
+      commissionRate: 0.06,
+    },
+    {
+      userKey: "TEAM_CONTENT",
+      role: "TEAM",
+      name: "Lina Haddad",
+      baseSalary: 6400,
+      payType: "FIXED",
+    },
+    {
+      userKey: "TEAM_DEV",
+      role: "TEAM",
+      name: "Kareem Nasser",
+      baseSalary: 9100,
+      payType: "FIXED",
+    },
+    {
+      userKey: "TEAM_PRODUCTION",
+      role: "TEAM",
+      name: "Rawan Ali",
+      baseSalary: 6200,
+      payType: "FIXED",
+    },
+    {
+      userKey: "MARKETING2",
+      role: "MARKETING",
+      name: "Noura Growth",
+      baseSalary: 8300,
+      payType: "FIXED",
+    },
   ];
 
   const employeeIds: Record<string, string> = {};
   for (const u of payrollUsers) {
     const emp = await prisma.employee.upsert({
-      where: { userId: userIds[u.role] },
+      where: { userId: userIds[u.userKey] },
       update: {
         name: u.name,
         baseSalary: u.baseSalary,
@@ -456,7 +751,7 @@ async function main() {
         commissionRate: u.commissionRate ?? null,
       },
       create: {
-        userId: userIds[u.role],
+        userId: userIds[u.userKey],
         name: u.name,
         role: u.role,
         baseSalary: u.baseSalary,
@@ -465,7 +760,10 @@ async function main() {
         isActive: true,
       },
     });
-    employeeIds[u.role] = emp.id;
+    employeeIds[u.userKey] = emp.id;
+    if (!employeeIds[u.role]) {
+      employeeIds[u.role] = emp.id;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -474,9 +772,6 @@ async function main() {
   // dashboard, finance, and marketing pages can all be exercised from one
   // login. Covers every ProjectStatus + both contract types + period states.
   // ═══════════════════════════════════════════════════════════════════════════════
-
-  const d = (y: number, m: number, day: number) =>
-    new Date(y, m - 1, day, 0, 0, 0, 0);
 
   // Personal identity (contactName, email, phoneWhatsapp) is NOT set
   // here — it lives on the linked `User` row. The seed already populates
@@ -496,17 +791,18 @@ async function main() {
 
   // ── Pipeline leads — one at every active stage (sales Kanban) ───────────────
   const PIPELINE_STAGES = [
-    { st: "NEW", co: "شركة الأفق", nm: "محمد علي" },
-    { st: "INTRO_SENT", co: "مؤسسة النور", nm: "سارة خالد" },
-    { st: "CALL_ATTEMPT", co: "مجموعة الريادة", nm: "أحمد عمر" },
-    { st: "MEETING_SCHEDULED", co: "شركة التميز", nm: "نورة سعد" },
-    { st: "MEETING_DONE", co: "شركة الابتكار", nm: "فهد عبدالله" },
-    { st: "PROPOSAL_SENT", co: "شركة الأساس", nm: "لمى محمد" },
-    { st: "FOLLOW_UP", co: "شركة التواصل", nm: "بدر إبراهيم" },
-    { st: "APPROVED", co: "شركة الإنجاز", nm: "هند جميل" },
+    { st: "NEW", co: "شركة الأفق", nm: "محمد علي", source: "WEBSITE", serviceId: services[0].id, createdAt: d(2026, 8, 8), attempts: 0 },
+    { st: "INTRO_SENT", co: "مؤسسة النور", nm: "سارة خالد", source: "REFERRAL", serviceId: services[1].id, createdAt: d(2026, 8, 3), attempts: 1 },
+    { st: "CALL_ATTEMPT", co: "مجموعة الريادة", nm: "أحمد عمر", source: "AD", serviceId: services[2].id, createdAt: d(2026, 7, 29), attempts: 3 },
+    { st: "MEETING_SCHEDULED", co: "شركة التميز", nm: "نورة سعد", source: "WEBSITE", serviceId: services[1].id, createdAt: d(2026, 7, 31), attempts: 2 },
+    { st: "MEETING_DONE", co: "شركة الابتكار", nm: "فهد عبدالله", source: "WHATSAPP", serviceId: services[3].id, createdAt: d(2026, 7, 25), attempts: 4 },
+    { st: "PROPOSAL_SENT", co: "شركة الأساس", nm: "لمى محمد", source: "PLATFORM", serviceId: services[0].id, createdAt: d(2026, 7, 20), attempts: 4 },
+    { st: "FOLLOW_UP", co: "شركة التواصل", nm: "بدر إبراهيم", source: "REFERRAL", serviceId: services[2].id, createdAt: d(2026, 7, 17), attempts: 5 },
+    { st: "APPROVED", co: "شركة الإنجاز", nm: "هند جميل", source: "WEBSITE", serviceId: services[0].id, createdAt: d(2026, 7, 10), attempts: 5 },
   ];
+  const pipelineLeadIds: Record<string, string> = {};
   for (const p of PIPELINE_STAGES) {
-    await prisma.lead.create({
+    const lead = await prisma.lead.create({
       data: {
         companyName: p.co,
         contactName: p.nm,
@@ -514,12 +810,90 @@ async function main() {
         email: `lead.${p.st.toLowerCase()}@example.com`,
         businessName: p.co,
         businessType: "OTHER",
-        source: "WEBSITE",
+        source: p.source as any,
         pipelineStage: p.st,
         assignedTo: userIds["SALES"],
+        contactAttemptCount: p.attempts,
+        lastContactAt: p.st === "NEW" ? null : d(2026, 8, p.st === "FOLLOW_UP" ? 1 : 7),
+        createdAt: p.createdAt,
       } as any,
     });
+    pipelineLeadIds[p.st] = lead.id;
+    await prisma.leadService.create({
+      data: {
+        leadId: lead.id,
+        serviceId: p.serviceId,
+        quantity: 1,
+      },
+    });
+    await prisma.leadPipelineHistory.create({
+      data: {
+        leadId: lead.id,
+        fromStage: "NEW",
+        toStage: p.st as any,
+        changedBy: userIds["SALES"],
+        changedAt: p.createdAt,
+      } as any,
+    });
+    if (p.st !== "NEW") {
+      await prisma.leadContactLog.create({
+        data: {
+          leadId: lead.id,
+          userId: userIds["SALES"],
+          type:
+            p.st === "MEETING_SCHEDULED" || p.st === "MEETING_DONE"
+              ? "MEETING"
+              : p.st === "PROPOSAL_SENT" || p.st === "FOLLOW_UP"
+                ? "EMAIL"
+                : "CALL",
+          result: "RESPONDED",
+          notes: `Seeded contact flow for ${p.st}`,
+          contactedAt: d(2026, 8, p.st === "FOLLOW_UP" ? 1 : 6),
+        } as any,
+      });
+    }
   }
+
+  await prisma.proposal.createMany({
+    data: [
+      {
+        leadId: pipelineLeadIds["PROPOSAL_SENT"],
+        createdBy: userIds["SALES"],
+        title: "عرض تأسيس الهوية",
+        serviceDescription: "Brand package for commercial approval",
+        servicesList: [{ serviceId: services[0].id, name: services[0].name, price: 22000, quantity: 1 }],
+        totalPrice: 22000,
+        durationDays: 30,
+        platforms: [],
+        status: "SENT",
+        createdAt: d(2026, 8, 2),
+      } as any,
+      {
+        leadId: pipelineLeadIds["FOLLOW_UP"],
+        createdBy: userIds["SALES2"],
+        title: "عرض الحملة الإعلانية",
+        serviceDescription: "Campaign management package under negotiation",
+        servicesList: [{ serviceId: services[2].id, name: services[2].name, price: 42000, quantity: 1 }],
+        totalPrice: 42000,
+        durationDays: 45,
+        platforms: [],
+        status: "REVISION_REQUESTED",
+        createdAt: d(2026, 8, 1),
+      } as any,
+      {
+        leadId: pipelineLeadIds["APPROVED"],
+        createdBy: userIds["SALES2"],
+        title: "عرض التحول الرقمي",
+        serviceDescription: "Approved package pending contract assembly",
+        servicesList: [{ serviceId: services[1].id, name: services[1].name, price: 54000, quantity: 1 }],
+        totalPrice: 54000,
+        durationDays: 60,
+        platforms: [],
+        status: "APPROVED",
+        createdAt: d(2026, 7, 30),
+      } as any,
+    ],
+  });
 
   // ── Requests — one per status (portal requests Kanban) ──────────────────────
   const REQUEST_STATUSES = [
@@ -584,6 +958,8 @@ async function main() {
 
   /** Create a MONTHLY_RETAINER contract with a recurring PERIOD_END plan (+ optional down payment). */
   async function makeRetainerContract(opts: {
+    clientId?: string;
+    createdBy?: string;
     title: string;
     status: any;
     start: Date;
@@ -597,8 +973,8 @@ async function main() {
     );
     const contract = await prisma.contract.create({
       data: {
-        clientId: client.id,
-        createdBy: userIds["SALES"],
+        clientId: opts.clientId ?? client.id,
+        createdBy: opts.createdBy ?? userIds["SALES"],
         title: opts.title,
         type: "MONTHLY_RETAINER",
         status: opts.status,
@@ -643,6 +1019,8 @@ async function main() {
 
   /** Create a FIXED_PROJECT contract. */
   async function makeFixedContract(opts: {
+    clientId?: string;
+    createdBy?: string;
     title: string;
     status: any;
     start: Date;
@@ -651,8 +1029,8 @@ async function main() {
   }) {
     return prisma.contract.create({
       data: {
-        clientId: client.id,
-        createdBy: userIds["SALES"],
+        clientId: opts.clientId ?? client.id,
+        createdBy: opts.createdBy ?? userIds["SALES"],
         title: opts.title,
         type: "FIXED_PROJECT",
         status: opts.status,
@@ -669,6 +1047,9 @@ async function main() {
 
   /** Create a project + standard members (PM manager, employee + marketing members). */
   async function makeProject(opts: {
+    clientId?: string;
+    projectManagerId?: string;
+    memberUserIds?: string[];
     name: string;
     status: any;
     contractId: string;
@@ -680,9 +1061,9 @@ async function main() {
   }) {
     const project = await prisma.project.create({
       data: {
-        clientId: client.id,
+        clientId: opts.clientId ?? client.id,
         contractId: opts.contractId,
-        projectManagerId: userIds["PM"],
+        projectManagerId: opts.projectManagerId ?? userIds["PM"],
         name: opts.name,
         description: opts.description ?? null,
         status: opts.status,
@@ -694,9 +1075,18 @@ async function main() {
     });
     await prisma.projectMember.createMany({
       data: [
-        { projectId: project.id, userId: userIds["PM"], role: "MANAGER" },
-        { projectId: project.id, userId: userIds["TEAM"], role: "MEMBER" },
-        { projectId: project.id, userId: userIds["MARKETING"], role: "MEMBER" },
+        {
+          projectId: project.id,
+          userId: opts.projectManagerId ?? userIds["PM"],
+          role: "MANAGER" as const,
+        },
+        ...(
+          opts.memberUserIds ?? [userIds["TEAM"], userIds["MARKETING"]]
+        ).map((userId) => ({
+          projectId: project.id,
+          userId,
+          role: "MEMBER" as const,
+        })),
       ],
       skipDuplicates: true,
     });
@@ -705,6 +1095,8 @@ async function main() {
 
   /** Create one period: period row + history + invoice + payment (+ optional meetings). */
   async function makePeriod(opts: {
+    clientId?: string;
+    createdBy?: string;
     projectId: string;
     contractId: string;
     planId: string;
@@ -747,7 +1139,7 @@ async function main() {
           periodId: period.id,
           fromStatus: "UPCOMING" as any,
           toStatus: opts.status as any,
-          changedBy: userIds["PM"],
+          changedBy: opts.createdBy ?? userIds["PM"],
           changedAt: opts.start,
         },
       });
@@ -759,7 +1151,7 @@ async function main() {
       const isLate = opts.invoiceStatus === "LATE";
       const inv = await prisma.invoice.create({
         data: {
-          clientId: client.id,
+          clientId: opts.clientId ?? client.id,
           contractId: opts.contractId,
           paymentPlanId: opts.planId,
           createdBy: userIds["ACCOUNTANT"],
@@ -791,7 +1183,7 @@ async function main() {
         await prisma.payment.create({
           data: {
             invoiceId: inv.id,
-            clientId: client.id,
+            clientId: opts.clientId ?? client.id,
             amount: opts.invoiceAmount,
             status: "SUCCESS",
             method: "BANK_TRANSFER",
@@ -814,7 +1206,7 @@ async function main() {
           meetingLink: m.link ?? null,
           status: m.status as any,
           notes: m.notes ?? null,
-          createdBy: userIds["PM"],
+          createdBy: opts.createdBy ?? userIds["PM"],
         },
       });
     }
@@ -824,6 +1216,7 @@ async function main() {
   /** Down-payment invoice for retainer projects that require one. */
   async function makeDownPaymentInvoice(
     contractId: string,
+    clientId: string,
     total: number,
     downPct: number,
     start: Date,
@@ -831,7 +1224,7 @@ async function main() {
     const amount = Math.round((total * downPct) / 100);
     const inv = await prisma.invoice.create({
       data: {
-        clientId: client.id,
+        clientId,
         contractId,
         createdBy: userIds["ACCOUNTANT"],
         invoiceNumber: `INV-DOWN-${contractId.slice(0, 4)}`,
@@ -855,7 +1248,7 @@ async function main() {
     await prisma.payment.create({
       data: {
         invoiceId: inv.id,
-        clientId: client.id,
+        clientId,
         amount,
         status: "SUCCESS",
         method: "BANK_TRANSFER",
@@ -895,7 +1288,7 @@ async function main() {
       months: 6,
       downPct: 25,
     });
-    await makeDownPaymentInvoice(contract.id, 24000, 25, d(2026, 3, 1));
+    await makeDownPaymentInvoice(contract.id, client.id, 24000, 25, d(2026, 3, 1));
     const project = await makeProject({
       name: "تصميم هوية بصرية",
       status: "ACTIVE",
@@ -1102,7 +1495,7 @@ async function main() {
       months: 3,
       downPct: 20,
     });
-    await makeDownPaymentInvoice(contract.id, 18000, 20, d(2026, 4, 1));
+    await makeDownPaymentInvoice(contract.id, client.id, 18000, 20, d(2026, 4, 1));
     const project = await makeProject({
       name: "حملة تسويق رمضان",
       status: "AWAITING_REVIEW",
@@ -1281,6 +1674,276 @@ async function main() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
+  // ADMIN ENRICHMENT — additional clients, projects, finance states, and risks
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const clientGreenline = await prisma.client.create({
+    data: {
+      userId: userIds["CLIENT2"],
+      companyName: "Greenline",
+      businessName: "Greenline Trading",
+      businessType: "STORE",
+      status: "ACTIVE",
+      accountManager: userIds["SALES2"],
+    },
+  });
+  const clientNoor = await prisma.client.create({
+    data: {
+      userId: userIds["CLIENT3"],
+      companyName: "Al Noor",
+      businessName: "Al Noor Ventures",
+      businessType: "SERVICE",
+      status: "ACTIVE",
+      accountManager: userIds["SALES2"],
+    },
+  });
+  const clientOasis = await prisma.client.create({
+    data: {
+      userId: userIds["CLIENT4"],
+      companyName: "Oasis Retail",
+      businessName: "Oasis Retail Group",
+      businessType: "STORE",
+      status: "STOPPED",
+      accountManager: userIds["SALES"],
+    },
+  });
+
+  await prisma.request.createMany({
+    data: [
+      {
+        clientId: clientGreenline.id,
+        submittedBy: userIds["CLIENT2"],
+        assignedSalesId: userIds["SALES2"],
+        companyName: "Greenline",
+        contactName: "Rana Khaled",
+        phoneWhatsapp: "+966500000113",
+        email: "rana@greenline.sa",
+        businessName: "Greenline Trading",
+        businessType: "STORE",
+        source: "REFERRAL",
+        status: "NEGOTIATION",
+        notes: "Expansion retainer under discussion",
+      } as any,
+      {
+        clientId: clientOasis.id,
+        submittedBy: userIds["CLIENT4"],
+        assignedSalesId: null,
+        companyName: "Oasis Retail",
+        contactName: "Dina Faris",
+        phoneWhatsapp: "+966500000115",
+        email: "dina@oasis.sa",
+        businessName: "Oasis Retail Group",
+        businessType: "STORE",
+        source: "WEBSITE",
+        status: "SUBMITTED",
+        notes: "Unassigned intake request for admin attention",
+      } as any,
+    ],
+  });
+
+  const greenlineContract = await makeRetainerContract({
+    clientId: clientGreenline.id,
+    createdBy: userIds["SALES2"],
+    title: "عقد نمو Greenline",
+    status: "ACTIVE",
+    start: d(2026, 6, 1),
+    end: d(2026, 11, 30),
+    total: 186000,
+    months: 6,
+    downPct: 20,
+  });
+  await makeDownPaymentInvoice(
+    greenlineContract.contract.id,
+    clientGreenline.id,
+    186000,
+    20,
+    d(2026, 6, 1),
+  );
+  const greenlineProject = await makeProject({
+    clientId: clientGreenline.id,
+    projectManagerId: userIds["PM2"],
+    memberUserIds: [userIds["TEAM_DEV"], userIds["TEAM_CONTENT"], userIds["MARKETING2"]],
+    name: "Greenline growth retainer",
+    status: "ACTIVE",
+    contractId: greenlineContract.contract.id,
+    start: d(2026, 6, 1),
+    end: d(2026, 11, 30),
+    completion: 72,
+  });
+  await makePeriod({
+    clientId: clientGreenline.id,
+    createdBy: userIds["PM2"],
+    projectId: greenlineProject.id,
+    contractId: greenlineContract.contract.id,
+    planId: greenlineContract.recurringPlan.id,
+    number: 1,
+    start: d(2026, 6, 1),
+    end: d(2026, 6, 30),
+    status: "CLOSED",
+    invoiceStatus: "PAID",
+    invoiceAmount: greenlineContract.monthly,
+    goals: [goalDone("Kickoff and media plan")],
+  });
+  const greenlineActivePeriod = await makePeriod({
+    clientId: clientGreenline.id,
+    createdBy: userIds["PM2"],
+    projectId: greenlineProject.id,
+    contractId: greenlineContract.contract.id,
+    planId: greenlineContract.recurringPlan.id,
+    number: 2,
+    start: d(2026, 7, 1),
+    end: d(2026, 7, 31),
+    status: "ACTIVE",
+    completion: 68,
+    invoiceStatus: "DUE",
+    invoiceAmount: greenlineContract.monthly,
+    goals: [goalProg("Paid social rollout", undefined, 75), goalProg("Landing page experiments", undefined, 50)],
+  });
+  await prisma.task.createMany({
+    data: [
+      {
+        projectId: greenlineProject.id,
+        periodId: greenlineActivePeriod.id,
+        departmentId: developmentDept!.id,
+        title: "Build conversion landing page",
+        status: "IN_PROGRESS",
+        priority: "HIGH",
+        dueDate: d(2026, 8, 2),
+        assignedTo: userIds["TEAM_DEV"],
+        createdBy: userIds["PM2"],
+      } as any,
+      {
+        projectId: greenlineProject.id,
+        periodId: greenlineActivePeriod.id,
+        departmentId: contentDept!.id,
+        title: "Prepare offer messaging",
+        status: "IN_REVIEW",
+        priority: "HIGH",
+        dueDate: d(2026, 8, 3),
+        assignedTo: userIds["TEAM_CONTENT"],
+        createdBy: userIds["PM2"],
+        revisionCount: 1,
+      } as any,
+      {
+        projectId: greenlineProject.id,
+        periodId: greenlineActivePeriod.id,
+        departmentId: marketingDept!.id,
+        title: "Launch Meta retargeting",
+        status: "TODO",
+        priority: "NORMAL",
+        dueDate: d(2026, 8, 10),
+        assignedTo: userIds["MARKETING2"],
+        createdBy: userIds["PM2"],
+      } as any,
+    ],
+  });
+  await prisma.deliverable.create({
+    data: {
+      projectId: greenlineProject.id,
+      periodId: greenlineActivePeriod.id,
+      title: "July performance pack",
+      status: "IN_REVIEW",
+      filePath: "/uploads/greenline-july.pdf",
+      isVisibleToClient: true,
+    } as any,
+  });
+
+  const noorContract = await makeFixedContract({
+    clientId: clientNoor.id,
+    createdBy: userIds["SALES2"],
+    title: "عقد إطلاق Al Noor",
+    status: "COMPLETED",
+    start: d(2026, 3, 1),
+    end: d(2026, 5, 31),
+    total: 28000,
+  });
+  const noorProject = await makeProject({
+    clientId: clientNoor.id,
+    projectManagerId: userIds["PM"],
+    memberUserIds: [userIds["TEAM"], userIds["TEAM_PRODUCTION"]],
+    name: "Al Noor launch campaign",
+    status: "COMPLETED",
+    contractId: noorContract.id,
+    start: d(2026, 3, 1),
+    end: d(2026, 5, 31),
+    completion: 100,
+  });
+  await prisma.project.update({
+    where: { id: noorProject.id },
+    data: { isArchived: true, archivedAt: d(2026, 6, 5) },
+  });
+  const noorInvoice = await prisma.invoice.create({
+    data: {
+      clientId: clientNoor.id,
+      contractId: noorContract.id,
+      createdBy: userIds["ACCOUNTANT"],
+      invoiceNumber: `INV-NOOR-${noorContract.id.slice(0, 4)}`,
+      amount: 28000,
+      status: "PAID",
+      paymentMethod: "BANK_TRANSFER",
+      issueDate: d(2026, 5, 31),
+      dueDate: d(2026, 6, 7),
+      paidAt: d(2026, 6, 3),
+      paymentReference: "PAY-NOOR",
+      items: {
+        create: {
+          description: "Final launch package",
+          quantity: 1,
+          unitPrice: 28000,
+          total: 28000,
+        },
+      },
+    },
+  });
+  await prisma.payment.create({
+    data: {
+      invoiceId: noorInvoice.id,
+      clientId: clientNoor.id,
+      amount: 28000,
+      status: "SUCCESS",
+      method: "BANK_TRANSFER",
+      date: d(2026, 6, 3),
+    },
+  });
+
+  const oasisLead = await prisma.lead.create({
+    data: {
+      companyName: "Oasis Retail",
+      contactName: "Dina Faris",
+      phoneWhatsapp: "+966500000115",
+      email: "dina@oasis.sa",
+      businessName: "Oasis Retail Group",
+      businessType: "STORE",
+      source: "AD",
+      pipelineStage: "CALL_ATTEMPT",
+      assignedTo: userIds["SALES"],
+      contactAttemptCount: 4,
+      lastContactAt: d(2026, 7, 24),
+      createdAt: d(2026, 7, 12),
+    } as any,
+  });
+  await prisma.leadService.create({
+    data: {
+      leadId: oasisLead.id,
+      serviceId: services[2].id,
+      quantity: 1,
+    },
+  });
+  await prisma.proposal.create({
+    data: {
+      leadId: oasisLead.id,
+      createdBy: userIds["SALES"],
+      title: "عرض Oasis loyalty campaign",
+      serviceDescription: "Loyalty campaign and activation scope",
+      servicesList: [{ serviceId: services[2].id, name: services[2].name, price: 12000, quantity: 1 }],
+      totalPrice: 12000,
+      durationDays: 21,
+      platforms: [],
+      status: "SENT",
+      createdAt: d(2026, 7, 26),
+    } as any,
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // Extra proposals & contracts — full status variety for the listing pages
   // ═══════════════════════════════════════════════════════════════════════════════
   const extraLead = await prisma.lead.create({
@@ -1353,7 +2016,245 @@ async function main() {
         description: "تم إصدار فاتورة الفترة 4",
         occurredAt: d(2026, 6, 30),
       },
+      {
+        clientId: clientGreenline.id,
+        userId: userIds["SALES2"],
+        eventType: "CLIENT_EXPANSION",
+        description: "تم توسيع نطاق التعاقد مع Greenline",
+        occurredAt: d(2026, 7, 2),
+      },
+      {
+        clientId: clientNoor.id,
+        userId: userIds["PM"],
+        eventType: "PROJECT_COMPLETED",
+        description: "تم إغلاق مشروع الإطلاق بنجاح",
+        occurredAt: d(2026, 6, 5),
+      },
     ],
+  });
+
+  await prisma.session.createMany({
+    data: [
+      {
+        userId: userIds["ADMIN"],
+        refreshTokenHash: "seed-admin-session",
+        userAgent: "Seeded Chrome",
+        ip: "127.0.0.1",
+        expiresAt: d(2026, 8, 16),
+      },
+      {
+        userId: userIds["PM"],
+        refreshTokenHash: "seed-pm-session",
+        userAgent: "Seeded Safari",
+        ip: "127.0.0.1",
+        expiresAt: d(2026, 8, 14),
+      },
+      {
+        userId: userIds["SALES"],
+        refreshTokenHash: "seed-sales-session",
+        userAgent: "Seeded Chrome",
+        ip: "127.0.0.1",
+        expiresAt: d(2026, 8, 14),
+      },
+      {
+        userId: userIds["SALES2"],
+        refreshTokenHash: "seed-sales2-session",
+        userAgent: "Seeded Chrome",
+        ip: "127.0.0.1",
+        expiresAt: d(2026, 8, 15),
+      },
+      {
+        userId: userIds["TEAM"],
+        refreshTokenHash: "seed-team-session",
+        userAgent: "Seeded Firefox",
+        ip: "127.0.0.1",
+        expiresAt: d(2026, 8, 12),
+      },
+      {
+        userId: userIds["ACCOUNTANT"],
+        refreshTokenHash: "seed-accountant-session",
+        userAgent: "Seeded Edge",
+        ip: "127.0.0.1",
+        expiresAt: d(2026, 8, 13),
+      },
+      {
+        userId: userIds["CLIENT1"],
+        refreshTokenHash: "seed-client1-session",
+        userAgent: "Seeded Mobile Safari",
+        ip: "127.0.0.1",
+        expiresAt: d(2026, 8, 13),
+      },
+      {
+        userId: userIds["CLIENT2"],
+        refreshTokenHash: "seed-client2-session",
+        userAgent: "Seeded Mobile Safari",
+        ip: "127.0.0.1",
+        expiresAt: d(2026, 8, 13),
+      },
+    ],
+  });
+
+  await prisma.staffWorkload.createMany({
+    data: [
+      {
+        userId: userIds["TEAM"],
+        activeTasksCount: 4,
+        workloadStatus: "BUSY",
+        avgCompletionSpeedDays: 4.2,
+        avgQualityScore: 4.5,
+      } as any,
+      {
+        userId: userIds["TEAM_DEV"],
+        activeTasksCount: 3,
+        workloadStatus: "BUSY",
+        avgCompletionSpeedDays: 5.1,
+        avgQualityScore: 4.2,
+      } as any,
+      {
+        userId: userIds["TEAM_CONTENT"],
+        activeTasksCount: 1,
+        workloadStatus: "AVAILABLE",
+        avgCompletionSpeedDays: 6.8,
+        avgQualityScore: 3.9,
+      } as any,
+      {
+        userId: userIds["TEAM_PRODUCTION"],
+        activeTasksCount: 2,
+        workloadStatus: "BUSY",
+        avgCompletionSpeedDays: 5.7,
+        avgQualityScore: 4.1,
+      } as any,
+      {
+        userId: userIds["MARKETING"],
+        activeTasksCount: 2,
+        workloadStatus: "BUSY",
+        avgCompletionSpeedDays: 4.8,
+        avgQualityScore: 4.4,
+      } as any,
+      {
+        userId: userIds["MARKETING2"],
+        activeTasksCount: 1,
+        workloadStatus: "AVAILABLE",
+        avgCompletionSpeedDays: 5.3,
+        avgQualityScore: 4.0,
+      } as any,
+    ],
+  });
+
+  await prisma.securityEvent.createMany({
+    data: [
+      {
+        userId: userIds["ADMIN"],
+        type: "LOGIN_SUCCESS",
+        ip: "127.0.0.1",
+        userAgent: "Seeded Chrome",
+        createdAt: d(2026, 8, 8),
+      } as any,
+      {
+        userId: userIds["TEAM_CONTENT"],
+        type: "ACCOUNT_LOCKED",
+        ip: "127.0.0.1",
+        userAgent: "Seeded Browser",
+        metadata: { reason: "test-seed" },
+        createdAt: d(2026, 8, 1),
+      } as any,
+      {
+        userId: userIds["SALES2"],
+        type: "LOGIN_SUCCESS",
+        ip: "127.0.0.1",
+        userAgent: "Seeded Chrome",
+        createdAt: d(2026, 8, 8),
+      } as any,
+    ],
+  });
+
+  await prisma.ledger.createMany({
+    data: [
+      {
+        action: "admin.projects.watch",
+        entity: "project",
+        entityId: greenlineProject.id,
+        userId: userIds["ADMIN"],
+        after: { project: "Greenline growth retainer", risk: "invoice_due" },
+        createdAt: d(2026, 8, 8),
+      },
+      {
+        action: "finance.invoices.issue",
+        entity: "invoice",
+        entityId: noorInvoice.id,
+        userId: userIds["ACCOUNTANT"],
+        after: { client: "Al Noor", amount: 28000 },
+        createdAt: d(2026, 6, 3),
+      },
+      {
+        action: "crm.proposals.approved",
+        entity: "lead",
+        entityId: pipelineLeadIds["APPROVED"],
+        userId: userIds["SALES2"],
+        after: { lead: "شركة الإنجاز" },
+        createdAt: d(2026, 7, 30),
+      },
+      {
+        action: "admin.requests.unassigned",
+        entity: "request",
+        entityId: clientOasis.id,
+        userId: userIds["ADMIN"],
+        after: { status: "SUBMITTED" },
+        createdAt: d(2026, 8, 7),
+      },
+    ],
+  });
+
+  const greenlineTask = await prisma.task.findFirstOrThrow({
+    where: { projectId: greenlineProject.id, title: "Build conversion landing page" },
+  });
+  await prisma.taskDelayAlert.create({
+    data: {
+      taskId: greenlineTask.id,
+      notifiedUserId: userIds["PM2"],
+      alertLevel: "HIGH",
+      isAcknowledged: false,
+      triggeredAt: d(2026, 8, 8),
+    } as any,
+  });
+
+  const disputeTicket = await prisma.disputeTicket.create({
+    data: {
+      ticketNumber: 1,
+      clientId: clientGreenline.id,
+      pmId: userIds["PM2"],
+      projectId: greenlineProject.id,
+      title: "Delay in landing page release",
+      description: "Client requested escalation after missing the launch date.",
+      category: "DELAY",
+      status: "ESCALATED",
+      priority: "HIGH",
+      openedAt: d(2026, 8, 6),
+      approvedAt: d(2026, 8, 7),
+      deadlineAt: d(2026, 8, 10),
+      escalatedAt: d(2026, 8, 8),
+      reviewedBy: userIds["ADMIN"],
+    } as any,
+  });
+  await prisma.disputeHistory.create({
+    data: {
+      ticketId: disputeTicket.id,
+      fromStatus: "PENDING_APPROVAL",
+      toStatus: "ESCALATED",
+      changedBy: userIds["ADMIN"],
+      changedAt: d(2026, 8, 7),
+      note: "Approved for admin review",
+    } as any,
+  });
+  await prisma.pmDisputeStats.create({
+    data: {
+      userId: userIds["PM2"],
+      totalDisputes: 1,
+      resolvedDisputes: 0,
+      escalatedDisputes: 1,
+      pmChangedCount: 0,
+      avgResolutionDays: 0,
+    },
   });
 
   // ── Recompute denormalized client counters ─────────────────────────────
@@ -1373,11 +2274,10 @@ async function main() {
   const counterService = new ClientCounterService(
     prisma as unknown as ConstructorParameters<typeof ClientCounterService>[0],
   );
-  await counterService.recomputeAll(client.id);
+  for (const seededClientId of [client.id, clientGreenline.id, clientNoor.id, clientOasis.id]) {
+    await counterService.recomputeAll(seededClientId);
+  }
 
-  console.log(
-    "✓ Seed complete — ONE test client (client@hassad.com / password123) with 3 scenario projects (ACTIVE, AWAITING_REVIEW, NEEDS_REVISION) — all monthly retainers.",
-  );
   // Salaries
   await prisma.salary.createMany({
     data: [
@@ -1399,8 +2299,38 @@ async function main() {
         year: 2026,
         paymentDate: new Date("2026-05-01"),
       },
+      {
+        employeeId: employeeIds["PM2"],
+        amount: 11800,
+        baseSalary: 11800,
+        status: "PAID",
+        month: 7,
+        year: 2026,
+        paymentDate: new Date("2026-07-01"),
+      },
+      {
+        employeeId: employeeIds["TEAM_DEV"],
+        amount: 9100,
+        baseSalary: 9100,
+        status: "PENDING",
+        month: 7,
+        year: 2026,
+      },
+      {
+        employeeId: employeeIds["TEAM_CONTENT"],
+        amount: 6400,
+        baseSalary: 6400,
+        status: "CANCELLED",
+        month: 7,
+        year: 2026,
+        notes: "Employee inactive this month",
+      },
     ],
   });
+
+  console.log(
+    "✓ Seed complete — workflow baseline preserved and extended with admin-ready staff, clients, projects, disputes, invoices, workload, and activity states.",
+  );
 
   // ── Permissions (always upserted — never deleted) ────────────────────────────
   const permissions = [

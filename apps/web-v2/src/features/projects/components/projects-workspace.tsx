@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FolderKanbanIcon } from "lucide-react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import {
   Card,
   CardContent,
@@ -50,7 +51,7 @@ export function ProjectsWorkspace() {
     useState<ProjectDirectoryTimelineFilter>("all-timelines");
   const [sort, setSort] = useState<ProjectDirectorySort>("highest-value");
 
-  const { data } = useGetDeliveryWorkspaceQuery({
+  const { data, error, isError, isLoading, refetch } = useGetDeliveryWorkspaceQuery({
     search,
     statusFilter,
     modelFilter,
@@ -182,7 +183,21 @@ export function ProjectsWorkspace() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
+          {isLoading && !data ? (
+            <WorkspaceQueryState
+              kind="loading"
+              loadingTitle="Loading projects"
+              loadingDescription="Retrieving delivery portfolio, current period, and risk signals from the admin API."
+            />
+          ) : isError && !data ? (
+            <WorkspaceQueryState
+              kind="error"
+              error={error}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          ) : rows.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">

@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, Legend, XAxis } from "recharts";
 
 import { MetricTile } from "@/components/patterns/metric-tile";
 import { PageScaffold } from "@/components/patterns/page-scaffold";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import {
   ChartContainer,
   ChartLegendContent,
@@ -54,14 +55,68 @@ const crmConfig = {
 
 function AdminOverviewContent() {
   const { range, rangeLabel, granularity } = useReportingPeriod();
-  const { data: snapshot } = useGetAdminOverviewQuery({
+  const {
+    data: snapshot,
+    error,
+    isError,
+    isLoading,
+    refetch,
+  } = useGetAdminOverviewQuery({
     from: range.from.toISOString(),
     to: range.to.toISOString(),
     granularity,
   });
 
+  if (isLoading && !snapshot) {
+    return (
+      <PageScaffold
+        title="Admin overview"
+        description="CRM, delivery, and finance health for the latest operating window."
+        actions={<ReportingPeriodToolbar />}
+      >
+        <WorkspaceQueryState
+          kind="loading"
+          loadingTitle="Loading admin overview"
+          loadingDescription="Retrieving KPI, finance, CRM, and delivery signals from the admin API."
+        />
+      </PageScaffold>
+    );
+  }
+
+  if (isError && !snapshot) {
+    return (
+      <PageScaffold
+        title="Admin overview"
+        description="CRM, delivery, and finance health for the latest operating window."
+        actions={<ReportingPeriodToolbar />}
+      >
+        <WorkspaceQueryState
+          kind="error"
+          error={error}
+          onRetry={() => {
+            void refetch();
+          }}
+        />
+      </PageScaffold>
+    );
+  }
+
   if (!snapshot) {
-    return null;
+    return (
+      <PageScaffold
+        title="Admin overview"
+        description="CRM, delivery, and finance health for the latest operating window."
+        actions={<ReportingPeriodToolbar />}
+      >
+        <WorkspaceQueryState
+          kind="error"
+          error={undefined}
+          onRetry={() => {
+            void refetch();
+          }}
+        />
+      </PageScaffold>
+    );
   }
 
   return (

@@ -6,6 +6,7 @@ import { Building2Icon } from "lucide-react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import {
   Card,
   CardContent,
@@ -52,7 +53,10 @@ export function ClientsWorkspace() {
   const [filter, setFilter] = useState<ClientDirectoryFilter>("all");
   const [sort, setSort] = useState<ClientDirectorySort>("highest-spend");
 
-  const { data } = useGetClientsWorkspaceQuery({ filter, sort });
+  const { data, error, isError, isLoading, refetch } = useGetClientsWorkspaceQuery({
+    filter,
+    sort,
+  });
   const rows = data?.items ?? [];
 
   return (
@@ -112,7 +116,21 @@ export function ClientsWorkspace() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
+          {isLoading && !data ? (
+            <WorkspaceQueryState
+              kind="loading"
+              loadingTitle="Loading clients"
+              loadingDescription="Retrieving client portfolio health, ownership, and spend data from the admin API."
+            />
+          ) : isError && !data ? (
+            <WorkspaceQueryState
+              kind="error"
+              error={error}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          ) : rows.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">

@@ -33,6 +33,15 @@ type StatusTone =
   | "attention"
   | "destructive";
 
+type OverviewGranularity = "day" | "month" | "quarter" | "year";
+
+type OverviewBucket = {
+  key: string;
+  label: string;
+  start: Date;
+  end: Date;
+};
+
 @Injectable()
 export class AdminWorkspacesService {
   constructor(
@@ -45,11 +54,11 @@ export class AdminWorkspacesService {
   async getOverview(query: AdminOverviewWorkspaceQueryDto) {
     const from = query.from;
     const to = query.to;
-    const granularity = query.granularity ?? "day";
-    const [stats, trends, funnel, alerts, recentActivity, attention, clients, crm, delivery] =
+    const granularity = (query.granularity ?? "day") as OverviewGranularity;
+    const { startDate, endDate } = this.resolveOverviewRange(from, to);
+    const [stats, funnel, alerts, recentActivity, attention, clients, crm, delivery, charts] =
       await Promise.all([
         this.adminService.getStats(from, to),
-        this.adminService.getTrends(from, to, 30),
         this.adminService.getFunnel(from, to),
         this.adminService.getAlerts(),
         this.adminDashboardService.getRecentActivity(8),
@@ -66,6 +75,7 @@ export class AdminWorkspacesService {
           timelineFilter: "all-timelines",
           sort: "highest-value",
         }),
+        this.buildOverviewCharts(startDate, endDate, granularity),
       ]);
 
     const leadOrders = crm.items.slice(0, 6).map((item) => ({
@@ -114,35 +124,13 @@ export class AdminWorkspacesService {
           trend: this.toTrend(stats.deltas.overdueTasks, true),
         },
       ],
-      projectAmountChart: trends.labels.map((label, index) => ({
-        label,
-        amount: stats.activeProjects > 0
-          ? Math.round((stats.monthlyRevenue / Math.max(trends.labels.length, 1)) * (1 + index / 20))
-          : 0,
-      })),
-      invoiceChart: trends.labels.map((label, index) => ({
-        label,
-        paid: trends.revenue[index] ?? 0,
-        unpaid:
-          Math.round(
-            ((alerts.agedInvoices?.count ?? 0) /
-              Math.max(trends.labels.length, 1)) *
-              1000,
-          ) + Math.round((stats.unpaidInvoicesCount / Math.max(trends.labels.length, 1)) * 750),
-      })),
-      commercialChart: trends.labels.map((label) => ({
-        label,
-        contracts: Math.round(funnel.contracts / Math.max(trends.labels.length, 1)),
-        offers: Math.round(funnel.proposals / Math.max(trends.labels.length, 1)),
-      })),
+      projectAmountChart: charts.projectAmountChart,
+      invoiceChart: charts.invoiceChart,
+      commercialChart: charts.commercialChart,
       summaries: {
-        projectAmount: this.formatCurrency(
-          delivery.items.reduce((sum, item) => sum + item.totalValue, 0),
-        ),
-        paidInvoices: this.formatCurrency(stats.monthlyRevenue),
-        unpaidInvoices: this.formatCurrency(
-          Math.round((stats.unpaidInvoicesCount || 0) * 2500),
-        ),
+        projectAmount: this.formatCurrency(charts.currentActiveProjectAmount),
+        paidInvoices: this.formatCurrency(charts.totalPaidInvoices),
+        unpaidInvoices: this.formatCurrency(charts.totalUnpaidInvoices),
         activeContracts: String(funnel.contracts),
         offersSent: String(funnel.proposals),
       },
@@ -179,6 +167,7 @@ export class AdminWorkspacesService {
     const result = await this.adminUsersService.findAll({
       search: query.search,
       roles: query.roles,
+      excludeRole: query.roles ? undefined : UserRole.CLIENT,
       department: query.department as TaskDepartment | undefined,
       status: query.status as "active" | "inactive" | undefined,
       page: query.page,
@@ -776,6 +765,229 @@ export class AdminWorkspacesService {
     const days =
       dateFilter === "last-7-days" ? 7 : dateFilter === "last-30-days" ? 30 : 90;
     return { gte: new Date(Date.now() - days * 86400000) };
+  }
+
+  private resolveOverviewRange(from?: string, to?: string) {
+    const now = new Date();
+    const parsedFrom = from ? new Date(from) : null;
+    const parsedTo = to ? new Date(to) : null;
+    const hasValidFrom = parsedFrom && !Number.isNaN(parsedFrom.getTime());
+    const hasValidTo = parsedTo && !Number.isNaN(parsedTo.getTime());
+    const endDate = hasValidTo ? parsedTo : now;
+    const startDate = hasValidFrom
+      ? parsedFrom
+      : new Date(endDate.getTime() - 29 * 24 * 60 * 60 * 1000);
+
+    return startDate <= endDate
+      ? { startDate, endDate }
+      : { startDate: endDate, endDate: startDate };
+  }
+
+  private async buildOverviewCharts(
+    startDate: Date,
+    endDate: Date,
+    granularity: OverviewGranularity,
+  ) {
+    const buckets = this.buildOverviewBuckets(startDate, endDate, granularity);
+    const activeProjectStatuses = [
+      ProjectStatus.ACTIVE,
+      ProjectStatus.AWAITING_REVIEW,
+    ];
+    const unpaidStatuses = [
+      InvoiceStatus.DUE,
+      InvoiceStatus.SENT,
+      InvoiceStatus.LATE,
+      InvoiceStatus.PARTIAL,
+    ];
+
+    const [projects, paidInvoices, unpaidInvoices, proposals, contracts] =
+      await Promise.all([
+        this.prisma.project.findMany({
+          where: {
+            isArchived: false,
+            status: { in: activeProjectStatuses },
+            startDate: { lte: endDate },
+            endDate: { gte: startDate },
+          },
+          select: {
+            startDate: true,
+            endDate: true,
+            contract: { select: { totalValue: true } },
+          },
+        }),
+        this.prisma.invoice.findMany({
+          where: {
+            status: InvoiceStatus.PAID,
+            paidAt: { gte: startDate, lte: endDate },
+          },
+          select: { amount: true, paidAt: true },
+        }),
+        this.prisma.invoice.findMany({
+          where: {
+            status: { in: unpaidStatuses },
+            dueDate: { gte: startDate, lte: endDate },
+          },
+          select: { amount: true, dueDate: true },
+        }),
+        this.prisma.proposal.findMany({
+          where: { createdAt: { gte: startDate, lte: endDate } },
+          select: { createdAt: true },
+        }),
+        this.prisma.contract.findMany({
+          where: {
+            createdAt: { gte: startDate, lte: endDate },
+            status: { notIn: ["CANCELLED", "DRAFT"] },
+          },
+          select: { createdAt: true },
+        }),
+      ]);
+
+    const projectAmountChart = buckets.map((bucket) => {
+      const amount = Math.round(
+        projects.reduce((sum, project) => {
+          const overlaps =
+            project.startDate <= bucket.end && project.endDate >= bucket.start;
+          if (!overlaps) return sum;
+          return sum + Number(project.contract?.totalValue ?? 0);
+        }, 0),
+      );
+
+      return { label: bucket.label, amount };
+    });
+
+    const invoiceChart = buckets.map((bucket) => {
+      const paid = Math.round(
+        paidInvoices.reduce((sum, invoice) => {
+          if (!invoice.paidAt) return sum;
+          return this.isDateWithinBucket(invoice.paidAt, bucket)
+            ? sum + Number(invoice.amount ?? 0)
+            : sum;
+        }, 0),
+      );
+      const unpaid = Math.round(
+        unpaidInvoices.reduce((sum, invoice) => {
+          return this.isDateWithinBucket(invoice.dueDate, bucket)
+            ? sum + Number(invoice.amount ?? 0)
+            : sum;
+        }, 0),
+      );
+
+      return { label: bucket.label, paid, unpaid };
+    });
+
+    const commercialChart = buckets.map((bucket) => ({
+      label: bucket.label,
+      contracts: contracts.filter((contract) =>
+        this.isDateWithinBucket(contract.createdAt, bucket),
+      ).length,
+      offers: proposals.filter((proposal) =>
+        this.isDateWithinBucket(proposal.createdAt, bucket),
+      ).length,
+    }));
+
+    return {
+      projectAmountChart,
+      invoiceChart,
+      commercialChart,
+      currentActiveProjectAmount: projectAmountChart.at(-1)?.amount ?? 0,
+      totalPaidInvoices: invoiceChart.reduce((sum, bucket) => sum + bucket.paid, 0),
+      totalUnpaidInvoices: invoiceChart.reduce((sum, bucket) => sum + bucket.unpaid, 0),
+    };
+  }
+
+  private buildOverviewBuckets(
+    startDate: Date,
+    endDate: Date,
+    granularity: OverviewGranularity,
+  ): OverviewBucket[] {
+    const buckets: OverviewBucket[] = [];
+    let cursor = this.startOfOverviewBucket(startDate, granularity);
+
+    while (cursor <= endDate) {
+      const bucketStart = cursor < startDate ? startDate : new Date(cursor);
+      const nextCursor = this.addOverviewBucket(cursor, granularity);
+      const bucketEnd = new Date(nextCursor.getTime() - 1);
+
+      buckets.push({
+        key: this.formatOverviewBucketKey(cursor, granularity),
+        label: this.formatOverviewBucketLabel(cursor, granularity),
+        start: bucketStart,
+        end: bucketEnd > endDate ? endDate : bucketEnd,
+      });
+
+      cursor = nextCursor;
+    }
+
+    return buckets;
+  }
+
+  private startOfOverviewBucket(date: Date, granularity: OverviewGranularity) {
+    if (granularity === "day") {
+      return new Date(
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+      );
+    }
+
+    if (granularity === "month") {
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+    }
+
+    if (granularity === "quarter") {
+      const quarterMonth = Math.floor(date.getUTCMonth() / 3) * 3;
+      return new Date(Date.UTC(date.getUTCFullYear(), quarterMonth, 1));
+    }
+
+    return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  }
+
+  private addOverviewBucket(date: Date, granularity: OverviewGranularity) {
+    if (granularity === "day") {
+      return new Date(
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1),
+      );
+    }
+
+    if (granularity === "month") {
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+    }
+
+    if (granularity === "quarter") {
+      return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 3, 1));
+    }
+
+    return new Date(Date.UTC(date.getUTCFullYear() + 1, 0, 1));
+  }
+
+  private formatOverviewBucketKey(date: Date, granularity: OverviewGranularity) {
+    const year = date.getUTCFullYear();
+    const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getUTCDate()}`.padStart(2, "0");
+
+    if (granularity === "day") return `${year}-${month}-${day}`;
+    if (granularity === "month") return `${year}-${month}`;
+    if (granularity === "quarter") {
+      return `${year}-Q${Math.floor(date.getUTCMonth() / 3) + 1}`;
+    }
+
+    return `${year}`;
+  }
+
+  private formatOverviewBucketLabel(date: Date, granularity: OverviewGranularity) {
+    const year = date.getUTCFullYear();
+    const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getUTCDate()}`.padStart(2, "0");
+
+    if (granularity === "day") return `${year}-${month}-${day}`;
+    if (granularity === "month") return `${year}-${month}`;
+    if (granularity === "quarter") {
+      return `${year}-Q${Math.floor(date.getUTCMonth() / 3) + 1}`;
+    }
+
+    return `${year}`;
+  }
+
+  private isDateWithinBucket(date: Date, bucket: OverviewBucket) {
+    return date >= bucket.start && date <= bucket.end;
   }
 
   private mapPipelineTone(stage: PipelineStage): StatusTone {

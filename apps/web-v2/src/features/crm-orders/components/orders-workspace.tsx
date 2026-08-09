@@ -7,6 +7,7 @@ import { ClientSource } from "@hassad/shared";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import {
   Card,
   CardContent,
@@ -57,7 +58,7 @@ export function OrdersWorkspace() {
   const [dateFilter, setDateFilter] = useState<OrderDateFilter>("last-30-days");
   const [valueFilter, setValueFilter] = useState<OrderValueFilter>("all-values");
 
-  const { data } = useGetCrmWorkspaceQuery({
+  const { data, error, isError, isLoading, refetch } = useGetCrmWorkspaceQuery({
     statusFilter,
     dateFilter,
     valueFilter,
@@ -158,7 +159,21 @@ export function OrdersWorkspace() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
+          {isLoading && !data ? (
+            <WorkspaceQueryState
+              kind="loading"
+              loadingTitle="Loading CRM orders"
+              loadingDescription="Retrieving live pipeline stages, proposal signals, and follow-up health from the admin API."
+            />
+          ) : isError && !data ? (
+            <WorkspaceQueryState
+              kind="error"
+              error={error}
+              onRetry={() => {
+                void refetch();
+              }}
+            />
+          ) : rows.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
