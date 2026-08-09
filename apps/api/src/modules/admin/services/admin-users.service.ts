@@ -298,10 +298,41 @@ export class AdminUsersService {
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.email !== undefined) data.email = dto.email;
     if (dto.phoneWhatsapp !== undefined) data.phoneWhatsapp = dto.phoneWhatsapp;
+    if (dto.role !== undefined) {
+      const role = await this.prisma.role.findFirst({
+        where: { name: dto.role },
+      });
+      if (!role) {
+        throw new BadRequestException("الدور غير موجود");
+      }
+      data.roleId = role.id;
+    }
 
     const updated = await this.prisma.user.update({
       where: { id },
       data,
+      include: {
+        role: true,
+        departments: { include: { department: true } },
+      },
+    });
+
+    if (dto.department !== undefined || dto.role === UserRole.TEAM) {
+      await this.prisma.userDepartment.deleteMany({ where: { userId: id } });
+      if (dto.department) {
+        const department = await this.prisma.department.findFirst({
+          where: { name: dto.department },
+        });
+        if (department) {
+          await this.prisma.userDepartment.create({
+            data: { userId: id, departmentId: department.id },
+          });
+        }
+      }
+    }
+
+    const refreshed = await this.prisma.user.findUnique({
+      where: { id },
       include: {
         role: true,
         departments: { include: { department: true } },
@@ -319,11 +350,13 @@ export class AdminUsersService {
           name: dto.name,
           email: dto.email,
           phoneWhatsapp: dto.phoneWhatsapp,
+          role: dto.role,
+          department: dto.department,
         },
       },
     });
 
-    return this.toResponse(updated);
+    return this.toResponse(refreshed ?? updated);
   }
 
   // ── Mutations ───────────────────────────────────────────────────────────────

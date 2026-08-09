@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PlusIcon } from "lucide-react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,14 +12,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { EmployeeFormDialog } from "@/features/employees/components/employee-form-dialog";
 import { EmployeesTable } from "@/features/employees/components/employees-table";
-import type { EmployeeAdminRecord, EmployeeFormValues } from "@/features/employees/lib/employee-admin";
-import {
-  createInitialEmployeeAdminRecords,
-  toEmployeeAdminRecord,
+import type {
+  EmployeeAdminRecord,
+  EmployeeFormValues,
 } from "@/features/employees/lib/employee-admin";
+import {
+  useCreateEmployeeMutation,
+  useGetEmployeesWorkspaceQuery,
+  useReactivateEmployeeMutation,
+  useSuspendEmployeeMutation,
+  useUpdateEmployeeMutation,
+} from "@/lib/api/admin-workspaces-api";
 
 type DialogState =
   | { open: false; mode: "create"; employee?: undefined }
@@ -27,60 +33,53 @@ type DialogState =
   | { open: false; mode: "edit"; employee?: EmployeeAdminRecord };
 
 export function EmployeesWorkspace() {
-  const [rows, setRows] = useState<EmployeeAdminRecord[]>(
-    createInitialEmployeeAdminRecords
-  );
   const [dialogState, setDialogState] = useState<DialogState>({
     open: false,
     mode: "create",
   });
+  const { data } = useGetEmployeesWorkspaceQuery({});
+  const [createEmployee] = useCreateEmployeeMutation();
+  const [updateEmployee] = useUpdateEmployeeMutation();
+  const [suspendEmployee] = useSuspendEmployeeMutation();
+  const [reactivateEmployee] = useReactivateEmployeeMutation();
+  const rows = data?.items ?? [];
 
-  function handleCreate(values: EmployeeFormValues) {
-    setRows((currentRows) => [toEmployeeAdminRecord(values), ...currentRows]);
-  }
-
-  function handleEdit(values: EmployeeFormValues) {
-    if (!dialogState.employee) {
-      return;
-    }
-
-    setRows((currentRows) =>
-      currentRows.map((row) =>
-        row.id === dialogState.employee?.id
-          ? toEmployeeAdminRecord(values, row)
-          : row
-      )
-    );
-  }
-
-  function handleSubmit(values: EmployeeFormValues) {
+  async function handleSubmit(values: EmployeeFormValues) {
     if (dialogState.mode === "create") {
-      handleCreate(values);
+      await createEmployee(values);
       return;
     }
 
-    handleEdit(values);
+    if (dialogState.employee) {
+      await updateEmployee({ id: dialogState.employee.id, values });
+    }
   }
 
-  function handleToggleSuspend(employeeId: string) {
-    setRows((currentRows) =>
-      currentRows.map((row) =>
-        row.id === employeeId
-          ? {
-              ...row,
-              isActive: !row.isActive,
-              lastSeen: row.isActive ? row.lastSeen : "Just now",
-            }
-          : row
-      )
-    );
+  async function handleToggleSuspend(employeeId: string) {
+    const employee = rows.find((row) => row.id === employeeId);
+    if (!employee) {
+      return;
+    }
+
+    if (employee.isActive) {
+      await suspendEmployee({
+        id: employee.id,
+        reason: "Suspended from employees workspace",
+      });
+      return;
+    }
+
+    await reactivateEmployee({
+      id: employee.id,
+      reason: "Reactivated from employees workspace",
+    });
   }
 
   return (
     <>
       <PageScaffold
         title="Employees"
-        description="Manage staff profiles, salaries, department assignment, and account state from one operational table."
+        description="Manage staff profiles, department assignment, and account state from one operational table."
         actions={
           <Button onClick={() => setDialogState({ open: true, mode: "create" })}>
             <PlusIcon data-icon="inline-start" />
@@ -92,7 +91,7 @@ export function EmployeesWorkspace() {
           <CardHeader>
             <CardTitle>Employee directory</CardTitle>
             <CardDescription>
-              Admin-owned employee records with role, department, salary, and access state.
+              Admin-owned employee records with role, department, and access state.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -101,7 +100,9 @@ export function EmployeesWorkspace() {
               onEdit={(employee) =>
                 setDialogState({ open: true, mode: "edit", employee })
               }
-              onToggleSuspend={handleToggleSuspend}
+              onToggleSuspend={(employeeId) => {
+                void handleToggleSuspend(employeeId);
+              }}
             />
           </CardContent>
         </Card>
@@ -118,7 +119,7 @@ export function EmployeesWorkspace() {
               : {
                   open: false,
                   mode: "create",
-                }
+                },
           )
         }
         onSubmit={handleSubmit}

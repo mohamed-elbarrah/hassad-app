@@ -30,7 +30,9 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { currentUser, workspaceNavigation } from "@/lib/fixtures/first-slice";
+import type { AuthSession } from "@/lib/auth/auth-types";
+import { getInitials } from "@/lib/auth/auth-utils";
+import { workspaceNavigation } from "@/lib/auth/workspace-navigation";
 import { can } from "@/lib/permissions/permissions";
 
 const iconMap = {
@@ -45,7 +47,7 @@ const iconMap = {
   locked: LockKeyholeIcon,
 };
 
-export function WorkspaceSidebar() {
+export function WorkspaceSidebar({ session }: { session: AuthSession }) {
   const pathname = usePathname();
 
   return (
@@ -68,7 +70,7 @@ export function WorkspaceSidebar() {
               <SidebarMenu>
                 {group.items.map((item) => {
                   const Icon = iconMap[item.icon];
-                  const allowed = can(currentUser.permissions, item.permission);
+                  const allowed = can(session.permissions, item.permission);
                   const isActive =
                     pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -87,7 +89,7 @@ export function WorkspaceSidebar() {
                         <SidebarMenuSub>
                           {item.children.map((child) => {
                             const childAllowed = can(
-                              currentUser.permissions,
+                              session.permissions,
                               child.permission
                             );
                             const childIsActive =
@@ -121,9 +123,10 @@ export function WorkspaceSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Signed in as administrator">
+            <SidebarMenuButton tooltip={`Signed in as ${session.role.toLowerCase()}`}>
               <UsersIcon />
-              <span>{currentUser.name}</span>
+              <span>{session.name}</span>
+              <span className="sr-only">{getInitials(session.name)}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -100,6 +100,14 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   phoneWhatsapp?: string;
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
+
+  @IsOptional()
+  @IsEnum(TaskDepartment)
+  department?: TaskDepartment;
 }
 
 export class CreateAdminUserDto {

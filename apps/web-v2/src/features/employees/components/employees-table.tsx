@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import { StatusBadge } from "@/components/patterns/status-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,10 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { StatusBadge } from "@/components/patterns/status-badge";
 import type { EmployeeAdminRecord } from "@/features/employees/lib/employee-admin";
 import {
-  formatEmployeeSalary,
   getDepartmentLabel,
   getRoleLabel,
 } from "@/features/employees/lib/employee-admin";
@@ -36,7 +36,6 @@ export function EmployeesTable({
           <TableHead>Role</TableHead>
           <TableHead>Department</TableHead>
           <TableHead>Last seen</TableHead>
-          <TableHead className="text-right">Salary</TableHead>
           <TableHead>State</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
@@ -66,9 +65,6 @@ export function EmployeesTable({
             <TableCell>{getDepartmentLabel(employee.department)}</TableCell>
             <TableCell className="text-sm text-muted-foreground">
               {employee.lastSeen}
-            </TableCell>
-            <TableCell className="text-right font-medium">
-              {formatEmployeeSalary(employee.salary)}
             </TableCell>
             <TableCell>
               <StatusBadge tone={employee.isActive ? "success" : "destructive"}>

@@ -1,16 +1,20 @@
 export type Permission =
   | "admin.dashboard"
   | "admin.users.read"
-  | "admin.users.manage"
   | "admin.clients.read"
-  | "admin.commercial.read"
+  | "admin.leads.read"
   | "admin.projects.read"
-  | "admin.finance.read"
+  | "finance.read"
   | "admin.reports"
-  | "admin.settings.read";
+  | "admin.settings"
+  | "proposals.read"
+  | "contracts.read"
+  | "tasks.read"
+  | "disputes.admin"
+  | (string & {});
 
 export function can(
-  permissions: readonly Permission[],
+  permissions: readonly string[],
   permission: Permission
 ): boolean {
   return permissions.includes(permission);

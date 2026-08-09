@@ -159,7 +159,7 @@ function buildFallbackOrderDetail(record: OrderDirectoryRecord): OrderDetailReco
     email: `${record.companyName.toLowerCase().replaceAll(" ", "")}@example.com`,
     businessName: `${record.companyName} Group`,
     businessType: BusinessType.SERVICE,
-    source: record.source,
+    source: record.source as ClientSource,
     owner: record.owner,
     openedAt: record.openedAt,
     lastContact: record.lastContact,
@@ -298,7 +298,7 @@ function buildFallbackOrderDetail(record: OrderDirectoryRecord): OrderDetailReco
       },
       {
         label: "Request origin",
-        value: formatOrderSource(record.source),
+        value: formatOrderSource(record.source as ClientSource),
         helper: "Lead source recorded at CRM intake.",
       },
     ],

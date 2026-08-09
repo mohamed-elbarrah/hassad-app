@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Building2Icon } from "lucide-react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
@@ -43,19 +43,17 @@ import {
 import {
   formatClientStage,
   formatMoney,
-  getFilteredSortedClients,
   type ClientDirectoryFilter,
   type ClientDirectorySort,
 } from "@/features/clients/lib/client-directory";
+import { useGetClientsWorkspaceQuery } from "@/lib/api/admin-workspaces-api";
 
 export function ClientsWorkspace() {
   const [filter, setFilter] = useState<ClientDirectoryFilter>("all");
   const [sort, setSort] = useState<ClientDirectorySort>("highest-spend");
 
-  const rows = useMemo(
-    () => getFilteredSortedClients(filter, sort),
-    [filter, sort]
-  );
+  const { data } = useGetClientsWorkspaceQuery({ filter, sort });
+  const rows = data?.items ?? [];
 
   return (
     <PageScaffold

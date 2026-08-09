@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 
 import { LoginForm } from "@/features/auth/components/login-form";
+import { redirectAuthenticatedUser } from "@/lib/auth/server-session";
 
 export const metadata: Metadata = {
   title: "Login | Hassad",
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  await redirectAuthenticatedUser();
+
   return (
     <main className="flex min-h-svh bg-background">
       <section className="mx-auto flex w-full max-w-md flex-col justify-center gap-8 p-6">

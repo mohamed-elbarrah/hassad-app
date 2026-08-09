@@ -1,3 +1,4 @@
+import type { AuthSession } from "@/lib/auth/auth-types";
 import { AppBreadcrumbs } from "@/components/app/app-breadcrumbs";
 import { AccountMenu } from "@/components/app/account-menu";
 import { CommandMenu } from "@/components/app/command-menu";
@@ -5,7 +6,7 @@ import { NotificationMenu } from "@/components/app/notification-menu";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export function AppTopbar() {
+export function AppTopbar({ session }: { session: AuthSession }) {
   return (
     <header className="sticky top-0 z-20 flex min-h-14 shrink-0 items-center justify-between gap-3 border-b bg-background/70 px-4 backdrop-blur-xl supports-backdrop-filter:bg-background/55 md:px-6">
       <div className="flex min-w-0 items-center gap-3">
@@ -16,7 +17,7 @@ export function AppTopbar() {
         <CommandMenu />
         <ThemeToggle />
         <NotificationMenu />
-        <AccountMenu />
+        <AccountMenu session={session} />
       </div>
     </header>
   );

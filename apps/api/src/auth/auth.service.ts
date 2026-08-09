@@ -274,7 +274,16 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        role: true,
+        role: {
+          include: {
+            permissions: {
+              include: { permission: true },
+            },
+          },
+        },
+        permissions: {
+          include: { permission: true },
+        },
         departments: {
           include: { department: true },
         },
@@ -310,6 +319,10 @@ export class AuthService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       role: user.role.name,
+      permissions: [
+        ...user.role.permissions.map((entry) => entry.permission.name),
+        ...user.permissions.map((entry) => entry.permission.name),
+      ],
       departments: user.departments.map((ud) => ud.department.name),
       intakeCompleted,
       ...(clientId !== undefined && { clientId }),

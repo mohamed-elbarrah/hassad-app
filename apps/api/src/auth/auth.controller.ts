@@ -248,7 +248,7 @@ export class AuthController {
         ) || 7 * 24 * 60 * 60 * 1000,
     });
 
-    const redirectUrl = user.role === "CLIENT" ? "/portal" : "/dashboard";
+    const redirectUrl = user.role === "CLIENT" ? "/portal" : "/admin";
     return res.redirect(`${frontendUrl}${redirectUrl}`);
   }
 }

@@ -3,9 +3,8 @@ import {
   PipelineStage,
   PIPELINE_UI_MAP,
   ProposalStatus,
+  type CrmWorkspaceRecord,
 } from "@hassad/shared";
-
-import type { StatusTone } from "@/components/patterns/status-badge";
 
 export type OrderDirectoryFilter =
   | "all"
@@ -20,30 +19,14 @@ export type OrderValueFilter =
   | "30000-50000"
   | "50000-plus";
 
-export type OrderDirectoryRecord = {
-  id: string;
-  companyName: string;
-  contactName: string;
-  serviceLine: string;
-  owner: string;
-  source: ClientSource;
-  stage: PipelineStage;
-  stageTone: StatusTone;
-  estimatedValue: number;
-  openedAt: string;
-  openedDaysAgo: number;
-  lastContact: string;
-  nextFollowUp: string;
-  nextStep: string;
-  proposalStatus: ProposalStatus | null;
-  proposalTone: StatusTone;
-  contractState: string;
-  contractTone: StatusTone;
-  agingLabel: string;
-  agingTone: StatusTone;
-  waitingApproval: boolean;
-  stalled: boolean;
-};
+export type OrderDirectoryRecord = CrmWorkspaceRecord;
+type OrderDirectorySeedRecord = Omit<
+  OrderDirectoryRecord,
+  | "contactAttemptCount"
+  | "meetingsCount"
+  | "projectSignalLabel"
+  | "projectSignalTone"
+>;
 
 const sourceLabels: Record<ClientSource, string> = {
   [ClientSource.AD]: "Paid campaign",
@@ -61,7 +44,7 @@ const proposalLabels: Record<ProposalStatus, string> = {
   [ProposalStatus.REJECTED]: "Rejected",
 };
 
-export const orderDirectoryRecords: OrderDirectoryRecord[] = [
+const orderDirectorySeed: OrderDirectorySeedRecord[] = [
   {
     id: "order-greenline-brand-retainer",
     companyName: "Greenline",
@@ -255,6 +238,38 @@ export const orderDirectoryRecords: OrderDirectoryRecord[] = [
     stalled: false,
   },
 ];
+
+export const orderDirectoryRecords: OrderDirectoryRecord[] = orderDirectorySeed.map(
+  (row) => ({
+    ...row,
+    contactAttemptCount:
+      row.stage === PipelineStage.NEW
+        ? 0
+        : row.stage === PipelineStage.CALL_ATTEMPT
+          ? 3
+          : row.stage === PipelineStage.MEETING_SCHEDULED
+            ? 2
+            : 4,
+    meetingsCount:
+      row.stage === PipelineStage.MEETING_SCHEDULED ||
+      row.stage === PipelineStage.MEETING_DONE ||
+      row.stage === PipelineStage.APPROVED ||
+      row.stage === PipelineStage.CONTRACT_SIGNED
+        ? 1
+        : 0,
+    projectSignalLabel:
+      row.stage === PipelineStage.CONTRACT_SIGNED
+        ? "Ready for delivery handoff"
+        : row.stage === PipelineStage.APPROVED
+          ? "Commercial handoff pending"
+          : "No project yet",
+    projectSignalTone:
+      row.stage === PipelineStage.CONTRACT_SIGNED ||
+      row.stage === PipelineStage.APPROVED
+        ? "active"
+        : "neutral",
+  }),
+);
 
 export function formatOrderCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", {

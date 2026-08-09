@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { BriefcaseBusinessIcon } from "lucide-react";
+import { ClientSource } from "@hassad/shared";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { StatusBadge } from "@/components/patterns/status-badge";
@@ -45,21 +46,23 @@ import {
   formatOrderSource,
   formatOrderStage,
   formatProposalStatus,
-  getFilteredOrders,
   type OrderDateFilter,
   type OrderDirectoryFilter,
   type OrderValueFilter,
 } from "@/features/crm-orders/lib/order-directory";
+import { useGetCrmWorkspaceQuery } from "@/lib/api/admin-workspaces-api";
 
 export function OrdersWorkspace() {
   const [statusFilter, setStatusFilter] = useState<OrderDirectoryFilter>("all");
   const [dateFilter, setDateFilter] = useState<OrderDateFilter>("last-30-days");
   const [valueFilter, setValueFilter] = useState<OrderValueFilter>("all-values");
 
-  const rows = useMemo(
-    () => getFilteredOrders(statusFilter, dateFilter, valueFilter),
-    [statusFilter, dateFilter, valueFilter]
-  );
+  const { data } = useGetCrmWorkspaceQuery({
+    statusFilter,
+    dateFilter,
+    valueFilter,
+  });
+  const rows = data?.items ?? [];
 
   return (
     <PageScaffold
@@ -205,7 +208,7 @@ export function OrdersWorkspace() {
                       </StatusBadge>
                     </TableCell>
                     <TableCell>{row.owner}</TableCell>
-                    <TableCell>{formatOrderSource(row.source)}</TableCell>
+                    <TableCell>{formatOrderSource(row.source as ClientSource)}</TableCell>
                     <TableCell className="text-right font-medium">
                       {formatOrderCurrency(row.estimatedValue)}
                     </TableCell>

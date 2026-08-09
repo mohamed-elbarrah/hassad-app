@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserRole } from "@hassad/shared";
+import { useEffect, useMemo } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,7 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { EmployeeAdminRecord, EmployeeFormValues } from "@/features/employees/lib/employee-admin";
+import type {
+  EmployeeAdminRecord,
+  EmployeeFormValues,
+} from "@/features/employees/lib/employee-admin";
 import {
   buildEmployeeFormSchema,
   departmentOptions,
@@ -47,7 +50,7 @@ type EmployeeFormDialogProps = {
   mode: "create" | "edit";
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: EmployeeFormValues) => void;
+  onSubmit: (values: EmployeeFormValues) => void | Promise<void>;
 };
 
 export function EmployeeFormDialog({
@@ -77,8 +80,8 @@ export function EmployeeFormDialog({
     }
   }, [form, selectedRole]);
 
-  function handleSubmit(values: EmployeeFormValues) {
-    onSubmit({
+  async function handleSubmit(values: EmployeeFormValues) {
+    await onSubmit({
       ...values,
       department: values.role === UserRole.TEAM ? values.department : undefined,
     });
@@ -94,8 +97,7 @@ export function EmployeeFormDialog({
             {mode === "create" ? "Add employee" : "Edit employee"}
           </DialogTitle>
           <DialogDescription>
-            Set the employee identity, access role, and operational details. Team
-            employees require a department assignment.
+            Set the employee identity and access role. Team employees require a department assignment.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -140,7 +142,9 @@ export function EmployeeFormDialog({
                     id="employee-password"
                     type="password"
                     aria-invalid={!!form.formState.errors.password}
-                    placeholder={mode === "edit" ? "Leave blank to keep current password" : ""}
+                    placeholder={
+                      mode === "edit" ? "Leave blank to keep current password" : ""
+                    }
                     {...form.register("password")}
                   />
                   <FieldError errors={[form.formState.errors.password]} />
@@ -168,8 +172,11 @@ export function EmployeeFormDialog({
                     control={form.control}
                     name="role"
                     render={({ field }) => (
-                      <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
-                        <SelectTrigger id="employee-role" aria-invalid={!!form.formState.errors.role}>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger
+                          id="employee-role"
+                          aria-invalid={!!form.formState.errors.role}
+                        >
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
@@ -198,7 +205,7 @@ export function EmployeeFormDialog({
                       render={({ field }) => (
                         <Select
                           value={field.value ?? null}
-                          onValueChange={(value) => field.onChange(value)}
+                          onValueChange={field.onChange}
                         >
                           <SelectTrigger
                             id="employee-department"
@@ -232,34 +239,6 @@ export function EmployeeFormDialog({
                   </FieldContent>
                 </Field>
               )}
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field data-invalid={!!form.formState.errors.salary || undefined}>
-                <FieldLabel htmlFor="employee-salary">Salary</FieldLabel>
-                <FieldContent>
-                  <Input
-                    id="employee-salary"
-                    type="number"
-                    aria-invalid={!!form.formState.errors.salary}
-                    {...form.register("salary", { valueAsNumber: true })}
-                  />
-                  <FieldError errors={[form.formState.errors.salary]} />
-                </FieldContent>
-              </Field>
-
-              <Field data-invalid={!!form.formState.errors.startDate || undefined}>
-                <FieldLabel htmlFor="employee-start-date">Start date</FieldLabel>
-                <FieldContent>
-                  <Input
-                    id="employee-start-date"
-                    type="date"
-                    aria-invalid={!!form.formState.errors.startDate}
-                    {...form.register("startDate")}
-                  />
-                  <FieldError errors={[form.formState.errors.startDate]} />
-                </FieldContent>
-              </Field>
             </div>
 
             <Field orientation="horizontal">

@@ -16,12 +16,12 @@ import {
   ReportingPeriodProvider,
   useReportingPeriod,
 } from "@/features/reporting/reporting-period-context";
-import { getAdminOverviewSnapshot } from "@/features/admin-overview/lib/admin-overview-data";
 import { OverviewChartCard } from "@/features/admin-overview/components/overview-chart-card";
 import { OverviewActiveProjectsTable } from "@/features/admin-overview/components/overview-active-projects-table";
 import { OverviewClientsTable } from "@/features/admin-overview/components/overview-clients-table";
 import { OverviewLeadOrdersTable } from "@/features/admin-overview/components/overview-lead-orders-table";
 import { OverviewSalesLeaderboard } from "@/features/admin-overview/components/overview-sales-leaderboard";
+import { useGetAdminOverviewQuery } from "@/lib/api/admin-workspaces-api";
 
 const projectAmountConfig = {
   amount: {
@@ -53,8 +53,16 @@ const crmConfig = {
 } satisfies ChartConfig;
 
 function AdminOverviewContent() {
-  const { preset, range, rangeLabel, granularity } = useReportingPeriod();
-  const snapshot = getAdminOverviewSnapshot(range, preset, granularity);
+  const { range, rangeLabel, granularity } = useReportingPeriod();
+  const { data: snapshot } = useGetAdminOverviewQuery({
+    from: range.from.toISOString(),
+    to: range.to.toISOString(),
+    granularity,
+  });
+
+  if (!snapshot) {
+    return null;
+  }
 
   return (
     <PageScaffold

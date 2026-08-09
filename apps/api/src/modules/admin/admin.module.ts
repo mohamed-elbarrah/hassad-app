@@ -40,6 +40,7 @@ import { AdminDeliverablesController } from "./controllers/admin-deliverables.co
 import { AdminMarketingController } from "./controllers/admin-marketing.controller";
 import { AdminIntakeFormsController } from "./controllers/admin-intake-forms.controller";
 import { AdminBusinessGoalController } from "./controllers/admin-business-goal.controller";
+import { AdminWorkspacesController } from "./controllers/admin-workspaces.controller";
 
 import { AdminActionLogService } from "./services/admin-action-log.service";
 import { AdminKpiService } from "./services/admin-kpi.service";
@@ -75,6 +76,7 @@ import { AdminAlertService } from "./services/admin-alert.service";
 import { AdminAlertScheduler } from "./schedulers/admin-alert.scheduler";
 import { AdminMarketingService } from "./services/admin-marketing.service";
 import { AdminBusinessGoalService } from "./services/admin-business-goal.service";
+import { AdminWorkspacesService } from "./services/admin-workspaces.service";
 
 import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
@@ -133,6 +135,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminReportsController,
     AdminDashboardController,
     AdminNotificationTemplatesController,
+    AdminWorkspacesController,
   ],
   providers: [
     AdminActionLogService,
@@ -163,6 +166,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminDeliverablesService,
     AdminMarketingService,
     AdminBusinessGoalService,
+    AdminWorkspacesService,
     AdminSystemEventsService,
     AdminAlertService,
     AdminAlertScheduler,

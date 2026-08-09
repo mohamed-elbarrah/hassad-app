@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { FolderKanbanIcon } from "lucide-react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
@@ -33,12 +33,12 @@ import {
 } from "@/components/ui/toggle-group";
 import { ProjectsTable } from "@/features/projects/components/projects-table";
 import {
-  getFilteredProjects,
   type ProjectDirectoryModelFilter,
   type ProjectDirectorySort,
   type ProjectDirectoryStatusFilter,
   type ProjectDirectoryTimelineFilter,
 } from "@/features/projects/lib/project-directory";
+import { useGetDeliveryWorkspaceQuery } from "@/lib/api/admin-workspaces-api";
 
 export function ProjectsWorkspace() {
   const [search, setSearch] = useState("");
@@ -50,17 +50,14 @@ export function ProjectsWorkspace() {
     useState<ProjectDirectoryTimelineFilter>("all-timelines");
   const [sort, setSort] = useState<ProjectDirectorySort>("highest-value");
 
-  const rows = useMemo(
-    () =>
-      getFilteredProjects(
-        search,
-        statusFilter,
-        modelFilter,
-        timelineFilter,
-        sort
-      ),
-    [modelFilter, search, sort, statusFilter, timelineFilter]
-  );
+  const { data } = useGetDeliveryWorkspaceQuery({
+    search,
+    statusFilter,
+    modelFilter,
+    timelineFilter,
+    sort,
+  });
+  const rows = data?.items ?? [];
 
   return (
     <PageScaffold

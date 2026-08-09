@@ -14,16 +14,12 @@ describe("first slice fixtures", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("marks inaccessible navigation entries through permissions", () => {
+  it("keeps the seeded admin fixture fully authorized for its navigation", () => {
     const navItems = workspaceNavigation.flatMap((group) => group.items);
     const blockedItems = navItems.filter(
       (item) => !can(currentUser.permissions, item.permission)
     );
 
-    expect(blockedItems.map((item) => item.href)).toEqual([
-      "/admin/clients",
-      "/admin/projects",
-      "/admin/finance/invoices",
-    ]);
+    expect(blockedItems).toEqual([]);
   });
 });

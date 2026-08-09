@@ -1,26 +1,10 @@
-import type { StatusTone } from "@/components/patterns/status-badge";
+import type { ClientWorkspaceRecord } from "@hassad/shared";
 
 export type ClientDirectoryStage = "lead" | "active" | "completed";
 export type ClientDirectoryFilter = "all" | "clients" | "leads";
 export type ClientDirectorySort = "highest-spend" | "lowest-spend";
 
-export type ClientDirectoryRecord = {
-  id: string;
-  contactName: string;
-  companyName: string;
-  stage: ClientDirectoryStage;
-  totalProjects: number;
-  activeProjects: number;
-  openOrders: number;
-  pendingOffers: number;
-  signedContracts: number;
-  totalSpend: number;
-  outstandingAmount: number;
-  lastSeen: string;
-  owner: string;
-  stageTone: StatusTone;
-  financeTone: StatusTone;
-};
+export type ClientDirectoryRecord = ClientWorkspaceRecord;
 
 export const clientDirectoryRecords: ClientDirectoryRecord[] = [
   {

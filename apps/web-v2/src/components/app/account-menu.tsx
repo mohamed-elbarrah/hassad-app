@@ -1,8 +1,14 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LogOutIcon, SettingsIcon, UserRoundIcon } from "lucide-react";
 
+import type { AuthSession } from "@/lib/auth/auth-types";
+import { getInitials } from "@/lib/auth/auth-utils";
+import { clearSession } from "@/lib/auth/auth-slice";
+import { useLogoutMutation } from "@/lib/api/auth-api";
+import { baseApi } from "@/lib/api/base-api";
+import { useAppDispatch } from "@/lib/store";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,21 +20,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { currentUser } from "@/lib/fixtures/first-slice";
 
-export function AccountMenu() {
+export function AccountMenu({ session }: { session: AuthSession }) {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const [logout] = useLogoutMutation();
+
+  async function handleSignOut() {
+    try {
+      await logout().unwrap();
+    } finally {
+      dispatch(clearSession());
+      dispatch(baseApi.util.resetApiState());
+      router.replace("/login");
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="icon-lg" />}>
         <Avatar size="sm">
-          <AvatarFallback>{currentUser.initials}</AvatarFallback>
+          <AvatarFallback>{getInitials(session.name)}</AvatarFallback>
         </Avatar>
         <span className="sr-only">Open account menu</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>
-          <span className="block text-foreground">{currentUser.name}</span>
-          <span className="block truncate font-normal">{currentUser.email}</span>
+          <span className="block text-foreground">{session.name}</span>
+          <span className="block truncate font-normal">{session.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
@@ -42,7 +61,7 @@ export function AccountMenu() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href="/login" />}>
+        <DropdownMenuItem onClick={() => void handleSignOut()}>
           <LogOutIcon />
           Sign out
         </DropdownMenuItem>

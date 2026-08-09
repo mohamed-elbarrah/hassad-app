@@ -1,11 +1,10 @@
 import {
+  type DeliveryWorkspaceRecord,
   ProjectPeriodStatus,
   ProjectStatus,
   TaskDepartment,
   TaskPriority,
 } from "@hassad/shared";
-
-import type { StatusTone } from "@/components/patterns/status-badge";
 
 export type ProjectDirectoryStatusFilter =
   | "all"
@@ -26,37 +25,8 @@ export type ProjectDirectorySort =
   | "ending-soon"
   | "newest";
 
-export type ProjectDirectoryRecord = {
-  id: string;
-  name: string;
-  clientName: string;
-  projectManager: string;
-  status: ProjectStatus;
-  statusTone: StatusTone;
-  archived: boolean;
-  archivedTone: StatusTone;
-  model: "recurring" | "one-off";
-  priority: TaskPriority;
-  completionPercentage: number;
-  teamSize: number;
-  assignedDepartments: TaskDepartment[];
-  startDate: string;
-  endDate: string;
-  daysToEnd: number;
-  totalValue: number;
-  remainingValue: number;
-  overdueTasks: number;
-  openRevisions: number;
-  deliverablesWaitingReview: number;
-  healthLabel: string;
-  healthSummary: string;
-  healthTone: StatusTone;
-  currentPeriodLabel: string;
-  currentPeriodStatusLabel: string;
-  currentPeriodStatusTone: StatusTone;
-  periodsCompleted: number;
-  totalPeriods: number;
-};
+export type ProjectDirectoryRecord = DeliveryWorkspaceRecord;
+type ProjectDirectorySeedRecord = Omit<ProjectDirectoryRecord, "activeTasksCount">;
 
 const projectStatusLabels: Record<ProjectStatus, string> = {
   [ProjectStatus.PLANNING]: "Planning",
@@ -84,7 +54,7 @@ const departmentLabels: Record<TaskDepartment, string> = {
   [TaskDepartment.PRODUCTION]: "Production",
 };
 
-export const projectDirectoryRecords: ProjectDirectoryRecord[] = [
+const projectDirectorySeed: ProjectDirectorySeedRecord[] = [
   {
     id: "project-greenline-retainer",
     name: "Greenline growth retainer",
@@ -358,6 +328,16 @@ export const projectDirectoryRecords: ProjectDirectoryRecord[] = [
     totalPeriods: 0,
   },
 ];
+
+export const projectDirectoryRecords: ProjectDirectoryRecord[] =
+  projectDirectorySeed.map((row) => ({
+    ...row,
+    activeTasksCount:
+      row.overdueTasks +
+      row.openRevisions +
+      row.deliverablesWaitingReview +
+      (row.status === ProjectStatus.COMPLETED ? 0 : 2),
+  }));
 
 export function formatProjectStatus(status: ProjectStatus) {
   return projectStatusLabels[status];
