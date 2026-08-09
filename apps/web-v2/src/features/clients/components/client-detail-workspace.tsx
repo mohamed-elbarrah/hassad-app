@@ -161,7 +161,7 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
               <CardHeader>
                 <CardTitle>Client summary</CardTitle>
                 <CardDescription>
-                  Fast account signals for spend, delivery, and commercial state.
+                  Fast account signals for spend, delivery, and CRM state.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
@@ -189,7 +189,7 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-muted-foreground">Signed contracts</span>
-                    <span className="text-xs text-muted-foreground">Commercial base</span>
+                    <span className="text-xs text-muted-foreground">CRM base</span>
                   </div>
                   <span className="font-medium">{client.summary.signedContracts}</span>
                 </div>
@@ -260,7 +260,7 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
         <Tabs defaultValue="overview">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="commercial">Projects & Commercial</TabsTrigger>
+            <TabsTrigger value="commercial">Projects & CRM</TabsTrigger>
             <TabsTrigger value="disputes">Disputes</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
@@ -292,7 +292,7 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Commercial mix</CardTitle>
+                    <CardTitle>CRM mix</CardTitle>
                     <CardDescription>
                       Relationship mix between projects, offers, and signed contracts.
                     </CardDescription>
@@ -317,7 +317,7 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
                 <CardHeader>
                   <CardTitle>Account risks</CardTitle>
                   <CardDescription>
-                    Delivery, commercial, and finance issues that need intervention.
+                    Delivery, CRM, and finance issues that need intervention.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -354,12 +354,12 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
 
           <TabsContent value="commercial">
             <Card>
-              <CardHeader>
-                <CardTitle>Projects and commercial items</CardTitle>
-                <CardDescription>
-                  Active relationship records across projects, offers, requests, and contracts.
-                </CardDescription>
-              </CardHeader>
+                <CardHeader>
+                  <CardTitle>Projects and CRM items</CardTitle>
+                  <CardDescription>
+                    Active relationship records across projects, orders, proposals, and contracts.
+                  </CardDescription>
+                </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
@@ -448,7 +448,7 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
               <CardHeader>
                 <CardTitle>Important activity</CardTitle>
                 <CardDescription>
-                  Meaningful account activity across commercial, finance, and delivery work.
+                  Meaningful account activity across CRM, finance, and delivery work.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">

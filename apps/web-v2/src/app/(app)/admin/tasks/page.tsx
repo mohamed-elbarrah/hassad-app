@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { TasksWorkspace } from "@/features/tasks/components/tasks-workspace";
 
 export const metadata: Metadata = {
   title: "Tasks | Hassad",
 };
 
 export default function TasksPage() {
-  return <ScreenPlaceholder label="Tasks" />;
+  return <TasksWorkspace />;
 }

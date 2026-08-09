@@ -60,7 +60,7 @@ export function ClientsWorkspace() {
   return (
     <PageScaffold
       title="Clients"
-      description="Account portfolio view for active revenue, pipeline-only leads, and outstanding commercial or finance follow-up."
+      description="Account portfolio view for active revenue, pipeline-only leads, and outstanding CRM or finance follow-up."
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup

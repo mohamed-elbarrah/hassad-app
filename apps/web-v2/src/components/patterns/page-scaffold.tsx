@@ -12,7 +12,7 @@ export function PageScaffold({
   children,
 }: PageScaffoldProps) {
   return (
-    <main className="flex w-full flex-1 flex-col gap-5">
+    <main className="flex min-w-0 w-full flex-1 flex-col gap-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex max-w-3xl flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-normal">{title}</h1>

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Leads | Hassad",
+  title: "Orders | Hassad",
 };
 
 export default function LeadsPage() {
-  return <ScreenPlaceholder label="Leads" />;
+  redirect("/admin/crm/orders");
 }

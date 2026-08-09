@@ -1,11 +1,33 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { TaskDetailWorkspace } from "@/features/tasks/components/task-detail-workspace";
+import { getTaskDetailById } from "@/features/tasks/lib/task-detail";
 
-export const metadata: Metadata = {
-  title: "Task Detail | Hassad",
+type TaskDetailPageProps = {
+  params: Promise<{
+    taskId: string;
+  }>;
 };
 
-export default function TaskDetailPage() {
-  return <ScreenPlaceholder label="Task Detail" />;
+export async function generateMetadata({
+  params,
+}: TaskDetailPageProps): Promise<Metadata> {
+  const { taskId } = await params;
+  const task = getTaskDetailById(taskId);
+
+  return {
+    title: task ? `${task.title} | Hassad` : "Task Detail | Hassad",
+  };
+}
+
+export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
+  const { taskId } = await params;
+  const task = getTaskDetailById(taskId);
+
+  if (!task) {
+    notFound();
+  }
+
+  return <TaskDetailWorkspace task={task} />;
 }

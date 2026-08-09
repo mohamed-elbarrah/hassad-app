@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { ProposalsWorkspace } from "@/features/crm-proposals/components/proposals-workspace";
 
 export const metadata: Metadata = {
   title: "Proposals | Hassad",
 };
 
 export default function ProposalsPage() {
-  return <ScreenPlaceholder label="Proposals" />;
+  return <ProposalsWorkspace />;
 }

@@ -31,7 +31,7 @@ export function OverviewLeadOrdersTable({
       <CardHeader>
         <CardTitle>Leads and orders</CardTitle>
         <CardDescription>
-          Active commercial opportunities and follow-up quality in {periodLabel.toLowerCase()}.
+          Active CRM opportunities and follow-up quality in {periodLabel.toLowerCase()}.
         </CardDescription>
       </CardHeader>
       <CardContent>

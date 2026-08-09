@@ -30,7 +30,7 @@ export function OverviewSalesLeaderboard({
       <CardHeader>
         <CardTitle>Top sales managers</CardTitle>
         <CardDescription>
-          Best commercial closers for {periodLabel.toLowerCase()}.
+          Best CRM closers for {periodLabel.toLowerCase()}.
         </CardDescription>
       </CardHeader>
       <CardContent>

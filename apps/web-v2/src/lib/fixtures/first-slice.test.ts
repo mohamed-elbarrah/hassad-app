@@ -22,9 +22,8 @@ describe("first slice fixtures", () => {
 
     expect(blockedItems.map((item) => item.href)).toEqual([
       "/admin/clients",
-      "/admin/commercial",
-      "/admin/delivery",
-      "/admin/finance",
+      "/admin/projects",
+      "/admin/finance/invoices",
     ]);
   });
 });

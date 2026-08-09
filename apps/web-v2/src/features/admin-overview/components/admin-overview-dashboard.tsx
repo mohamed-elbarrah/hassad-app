@@ -41,7 +41,7 @@ const invoiceConfig = {
   },
 } satisfies ChartConfig;
 
-const commercialConfig = {
+const crmConfig = {
   contracts: {
     label: "Active contracts",
     color: "var(--color-chart-4)",
@@ -59,7 +59,7 @@ function AdminOverviewContent() {
   return (
     <PageScaffold
       title="Admin overview"
-      description="Commercial, delivery, and finance health for the latest operating window."
+      description="CRM, delivery, and finance health for the latest operating window."
       actions={<ReportingPeriodToolbar />}
     >
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -164,7 +164,7 @@ function AdminOverviewContent() {
 
         <OverviewChartCard
           title="Contracts vs offers"
-          description="Commercial throughput between live contracts and outbound offers."
+          description="CRM throughput between live contracts and outbound offers."
           periodLabel={rangeLabel}
           summary={
             <div className="grid grid-cols-2 gap-3">
@@ -183,7 +183,7 @@ function AdminOverviewContent() {
             </div>
           }
         >
-          <ChartContainer config={commercialConfig} className="min-h-64 w-full">
+          <ChartContainer config={crmConfig} className="min-h-64 w-full">
             <BarChart accessibilityLayer data={snapshot.commercialChart}>
               <CartesianGrid vertical={false} />
               <XAxis

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { ProjectsWorkspace } from "@/features/projects/components/projects-workspace";
 
 export const metadata: Metadata = {
   title: "Projects | Hassad",
 };
 
 export default function ProjectsPage() {
-  return <ScreenPlaceholder label="Projects" />;
+  return <ProjectsWorkspace />;
 }

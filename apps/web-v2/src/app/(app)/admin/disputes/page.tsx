@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { DisputesWorkspace } from "@/features/disputes/components/disputes-workspace";
 
 export const metadata: Metadata = {
   title: "Disputes | Hassad",
 };
 
 export default function DisputesPage() {
-  return <ScreenPlaceholder label="Disputes" />;
+  return <DisputesWorkspace />;
 }

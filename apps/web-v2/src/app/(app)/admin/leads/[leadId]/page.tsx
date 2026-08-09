@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Lead Detail | Hassad",
+  title: "Order Detail | Hassad",
 };
 
-export default function LeadDetailPage() {
-  return <ScreenPlaceholder label="Lead Detail" />;
+type LeadDetailPageProps = {
+  params: Promise<{
+    leadId: string;
+  }>;
+};
+
+export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
+  const { leadId } = await params;
+
+  redirect(`/admin/crm/orders/${leadId}`);
 }
