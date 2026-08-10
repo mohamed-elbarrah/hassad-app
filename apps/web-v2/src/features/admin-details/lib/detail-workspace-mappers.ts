@@ -321,6 +321,7 @@ export function mapClientDetailFromApi(client: any): ClientDetailRecord {
 
   return {
     id: client.id,
+    chatTargetUserId: client.user?.id ?? null,
     contactName: summary.contactName,
     companyName: summary.companyName,
     email: client.user?.email ?? "—",

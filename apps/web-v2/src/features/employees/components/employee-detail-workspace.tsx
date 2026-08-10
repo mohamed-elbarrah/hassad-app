@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeftIcon, PencilIcon } from "lucide-react";
+import { ArrowLeftIcon, MessageSquareIcon, PencilIcon } from "lucide-react";
 
 import { EntityDetailLayout } from "@/components/patterns/entity-detail-layout";
 import { PageScaffold } from "@/components/patterns/page-scaffold";
@@ -120,6 +120,22 @@ export function EmployeeDetailWorkspace({
                   <Button onClick={() => setDialogOpen(true)}>
                     <PencilIcon data-icon="inline-start" />
                     Edit employee
+                  </Button>
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href={`/admin/chat?targetUserId=${encodeURIComponent(
+                          record.id,
+                        )}&targetName=${encodeURIComponent(
+                          record.name,
+                        )}&targetKind=employee`}
+                      />
+                    }
+                  >
+                    <MessageSquareIcon data-icon="inline-start" />
+                    Message employee
                   </Button>
                 </CardContent>
               </Card>

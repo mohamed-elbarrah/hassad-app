@@ -6,6 +6,7 @@ import {
   IsOptional,
 } from "class-validator";
 import { DisputeCategory } from "@hassad/shared";
+import { DisputeThreadType } from "@prisma/client";
 
 export class CreateDisputeDto {
   @IsString()
@@ -33,4 +34,8 @@ export class CreateDisputeMessageDto {
 
   @IsOptional()
   isInternal?: boolean;
+
+  @IsOptional()
+  @IsEnum(DisputeThreadType)
+  threadType?: DisputeThreadType;
 }

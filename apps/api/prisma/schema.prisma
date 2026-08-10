@@ -67,6 +67,7 @@ model User {
   ledgerEntries        Ledger[]
   adminActionLogs      AdminActionLog[]
   sentMessages         Message[]
+  deletedMessages      Message[]                 @relation("DeletedMessages")
   notifications        Notification[]
   resolvedSystemEvents SystemEventLog[]
   assignedTickets      PaymentTicket[]           @relation("TicketAssignee")
@@ -1749,12 +1750,21 @@ model Message {
   senderId       String              @map("sender_id")
   content        String
   createdAt      DateTime            @default(now()) @map("created_at")
+  parentMessageId String?            @map("parent_message_id")
+  editedAt       DateTime?           @map("edited_at")
+  deletedAt      DateTime?           @map("deleted_at")
+  deletedById    String?             @map("deleted_by_id")
   attachments    MessageAttachment[]
   conversation   Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  parentMessage  Message?            @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
+  replies        Message[]           @relation("MessageReplies")
   sender         User                @relation(fields: [senderId], references: [id])
+  deletedBy      User?               @relation("DeletedMessages", fields: [deletedById], references: [id], onDelete: SetNull)
 
   @@index([conversationId])
   @@index([createdAt])
+  @@index([parentMessageId])
+  @@index([deletedById])
   @@map("messages")
 }
 
@@ -2376,6 +2386,7 @@ model DisputeMessage {
   authorId              String          @map("author_id")
   author                User            @relation(fields: [authorId], references: [id])
   content               String          @db.Text
+  threadType            DisputeThreadType @default(CLIENT_PM) @map("thread_type")
   isInternal            Boolean         @default(false) @map("is_internal") // Admin-only notes
   createdAt             DateTime        @default(now()) @map("created_at")
 
@@ -2383,6 +2394,7 @@ model DisputeMessage {
   attachments           DisputeAttachment[]
 
   @@index([ticketId])
+  @@index([ticketId, threadType, createdAt])
   @@index([createdAt])
   @@map("dispute_messages")
 }
@@ -2495,4 +2507,12 @@ enum DisputePriority {
   URGENT
 
   @@map("dispute_priorities")
+}
+
+enum DisputeThreadType {
+  CLIENT_PM
+  ADMIN_CLIENT
+  ADMIN_PM
+
+  @@map("dispute_thread_types")
 }

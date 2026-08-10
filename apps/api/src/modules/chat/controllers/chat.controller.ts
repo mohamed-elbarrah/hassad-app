@@ -9,6 +9,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   Delete,
+  Patch,
   NotFoundException,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
@@ -20,6 +21,8 @@ import {
   AddParticipantDto,
   CreateMessageDto,
   GetConversationsQueryDto,
+  GetMessagesQueryDto,
+  UpdateMessageDto,
 } from "../dto/chat.dto";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -127,6 +130,16 @@ export class ChatController {
     });
   }
 
+  @Post("conversations/direct/:userId/messages")
+  @RequirePermissions("chat.message")
+  createDirectMessage(
+    @CurrentUser() user: any,
+    @Param("userId") otherUserId: string,
+    @Body() dto: CreateMessageDto,
+  ) {
+    return this.chatService.createDirectMessage(user.id, otherUserId, dto);
+  }
+
   @Post("conversations/:id/messages/with-files")
   @RequirePermissions("chat.message")
   @UseInterceptors(FilesInterceptor("files", 10))
@@ -171,13 +184,92 @@ export class ChatController {
     );
   }
 
+  @Post("conversations/direct/:userId/messages/with-files")
+  @RequirePermissions("chat.message")
+  @UseInterceptors(FilesInterceptor("files", 10))
+  async createDirectMessageWithFiles(
+    @CurrentUser() user: any,
+    @Param("userId") otherUserId: string,
+    @Body() dto: CreateMessageDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const conversation = await this.directConversationService.getOrCreate(
+      user.id,
+      otherUserId,
+    );
+
+    if (!conversation) {
+      throw new NotFoundException("Could not create direct conversation");
+    }
+
+    const attachments =
+      files && files.length > 0
+        ? await Promise.all(
+            files.map(async (file) => {
+              const uploadResult = await this.storageService.upload({
+                category: StorageCategory.CHAT_ATTACHMENT,
+                entityId: conversation.id,
+                file: {
+                  buffer: file.buffer,
+                  originalname: file.originalname,
+                  mimetype: file.mimetype,
+                  size: file.size,
+                },
+                subPath: `messages`,
+              });
+              return {
+                key: uploadResult.key,
+                originalName: file.originalname,
+                mimeType: file.mimetype,
+                size: file.size,
+              };
+            }),
+          )
+        : [];
+
+    return this.chatService.createMessageWithAttachments(
+      user.id,
+      {
+        ...dto,
+        conversationId: conversation.id,
+      },
+      attachments,
+    );
+  }
+
   @Get("conversations/:id/messages")
   @RequirePermissions("chat.read")
   getMessages(
     @CurrentUser() user: any,
     @Param("id") id: string,
-    @Query() query: { page?: number; limit?: number },
+    @Query() query: GetMessagesQueryDto,
   ) {
     return this.chatService.getMessages(id, user.id, query);
+  }
+
+  @Patch("conversations/:conversationId/messages/:messageId")
+  @RequirePermissions("chat.message")
+  updateMessage(
+    @CurrentUser() user: any,
+    @Param("conversationId") conversationId: string,
+    @Param("messageId") messageId: string,
+    @Body() dto: UpdateMessageDto,
+  ) {
+    return this.chatService.updateMessage(
+      conversationId,
+      messageId,
+      user.id,
+      dto,
+    );
+  }
+
+  @Delete("conversations/:conversationId/messages/:messageId")
+  @RequirePermissions("chat.message")
+  deleteMessage(
+    @CurrentUser() user: any,
+    @Param("conversationId") conversationId: string,
+    @Param("messageId") messageId: string,
+  ) {
+    return this.chatService.deleteMessage(conversationId, messageId, user.id);
   }
 }

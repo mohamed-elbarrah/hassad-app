@@ -61,6 +61,14 @@ export const baseApi = createApi({
 
     return result;
   }) as BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
-  tagTypes: ["Overview", "Employees", "Clients", "Crm", "Delivery", "Session"],
+  tagTypes: [
+    "Overview",
+    "Employees",
+    "Clients",
+    "Crm",
+    "Delivery",
+    "Session",
+    "Chat",
+  ],
   endpoints: () => ({}),
 });

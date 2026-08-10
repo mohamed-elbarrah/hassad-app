@@ -140,6 +140,7 @@ export type ClientActivityRow = {
 
 export type ClientDetailRecord = {
   id: string;
+  chatTargetUserId: string | null;
   contactName: string;
   companyName: string;
   email: string;
@@ -506,6 +507,7 @@ function buildCommercialMix(summary: ClientDirectoryRecord): ClientPipelinePoint
 const clientDetails: ClientDetailRecord[] = [
   {
     id: "client-greenline",
+    chatTargetUserId: "client-user-greenline",
     contactName: "Rana Khaled",
     companyName: "Greenline",
     email: "rana.khaled@greenline.com",
@@ -687,6 +689,7 @@ const clientDetails: ClientDetailRecord[] = [
   },
   {
     id: "client-enterprise-foods",
+    chatTargetUserId: "client-user-enterprise-foods",
     contactName: "Salem Harbi",
     companyName: "Enterprise Foods",
     email: "salem.harbi@enterprisefoods.sa",

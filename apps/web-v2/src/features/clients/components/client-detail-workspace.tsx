@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeftIcon, MessageSquareIcon } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -10,7 +11,6 @@ import {
   LineChart,
   XAxis,
 } from "recharts";
-import { ArrowLeftIcon } from "lucide-react";
 
 import { EntityDetailLayout } from "@/components/patterns/entity-detail-layout";
 import { MetricTile } from "@/components/patterns/metric-tile";
@@ -154,6 +154,32 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
                   <span className="text-muted-foreground">Last seen</span>
                   <span className="text-right font-medium">{client.lastSeen}</span>
                 </div>
+                <Button
+                  variant="outline"
+                  disabled={!client.chatTargetUserId}
+                  nativeButton={false}
+                  render={
+                    client.chatTargetUserId
+                      ? (
+                          <Link
+                            href={`/admin/chat?targetUserId=${encodeURIComponent(
+                              client.chatTargetUserId,
+                            )}&targetName=${encodeURIComponent(
+                              client.contactName,
+                            )}&targetKind=client`}
+                          />
+                        )
+                      : undefined
+                  }
+                >
+                  <MessageSquareIcon data-icon="inline-start" />
+                  Message client
+                </Button>
+                {!client.chatTargetUserId ? (
+                  <p className="text-xs text-muted-foreground">
+                    This client does not have a linked portal user yet.
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
 

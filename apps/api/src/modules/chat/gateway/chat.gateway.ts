@@ -33,7 +33,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.eventEmitter.on("chat.messageCreated", (payload) => {
       this.server
         .to(`conversation:${payload.conversationId}`)
-        .emit("newMessage", payload);
+        .emit("newMessage", payload.message);
+    });
+
+    this.eventEmitter.on("chat.messageUpdated", (payload) => {
+      this.server
+        .to(`conversation:${payload.conversationId}`)
+        .emit("messageUpdated", payload.message);
+    });
+
+    this.eventEmitter.on("chat.messageDeleted", (payload) => {
+      this.server
+        .to(`conversation:${payload.conversationId}`)
+        .emit("messageDeleted", payload.message);
     });
   }
 
@@ -80,13 +92,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage("sendMessage")
   async handleSendMessage(
-    @MessageBody() data: { conversationId: string; content: string },
+    @MessageBody()
+    data: { conversationId: string; content: string; parentMessageId?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
     return this.chatService.createMessage(user.sub || user.id, {
       conversationId: data.conversationId,
       content: data.content,
+      parentMessageId: data.parentMessageId,
     });
   }
 

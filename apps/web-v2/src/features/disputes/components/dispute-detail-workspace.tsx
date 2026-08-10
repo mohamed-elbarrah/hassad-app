@@ -37,6 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminDisputeThreadPanel } from "@/features/disputes/components/admin-dispute-thread-panel";
 import type { DisputeDetailRecord } from "@/features/disputes/lib/dispute-detail";
 
 export function DisputeDetailWorkspace({
@@ -328,27 +329,13 @@ export function DisputeDetailWorkspace({
           <TabsContent value="messages">
             <Card>
               <CardHeader>
-                <CardTitle>Messages</CardTitle>
+                <CardTitle>Dispute threads</CardTitle>
                 <CardDescription>
-                  Client, PM, and admin discussion recorded on the dispute.
+                  Private lanes for client ↔ PM monitoring and admin direct outreach.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <EntityTimeline
-                  items={dispute.messages.map((message) => ({
-                    id: message.id,
-                    date: message.date,
-                    title: message.author,
-                    meta: message.role,
-                    badges: (
-                      <StatusBadge tone={message.tone}>
-                        {message.visibility}
-                      </StatusBadge>
-                    ),
-                    content: message.content,
-                    completed: true,
-                  }))}
-                />
+                <AdminDisputeThreadPanel disputeId={dispute.id} />
               </CardContent>
             </Card>
           </TabsContent>

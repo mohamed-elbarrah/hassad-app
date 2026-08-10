@@ -4,9 +4,14 @@ import {
   Post,
   Body,
   Param,
+  ParseEnumPipe,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFiles,
 } from "@nestjs/common";
+import { FilesInterceptor } from "@nestjs/platform-express";
+import { DisputeThreadType } from "@prisma/client";
 import { DisputesService } from "../services/disputes.service";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
@@ -45,6 +50,20 @@ export class AdminDisputesController {
   @Get(":id")
   async getDisputeById(@Param("id") id: string) {
     return this.disputesService.getDisputeById(id);
+  }
+
+  @Get(":id/threads")
+  async getThreads(@Param("id") id: string) {
+    return this.disputesService.getAdminThreads(id);
+  }
+
+  @Get(":id/threads/:threadType/messages")
+  async getThreadMessages(
+    @Param("id") id: string,
+    @Param("threadType", new ParseEnumPipe(DisputeThreadType))
+    threadType: DisputeThreadType,
+  ) {
+    return this.disputesService.getAdminThreadMessages(id, threadType);
   }
 
   @Post(":id/approve")
@@ -89,9 +108,33 @@ export class AdminDisputesController {
     @Param("id") id: string,
     @Body() dto: CreateDisputeMessageDto,
   ) {
-    return this.disputesService.addMessage(id, adminId, {
+    return this.disputesService.addAdminThreadMessage(
+      adminId,
+      id,
+      dto.threadType ?? DisputeThreadType.ADMIN_PM,
+      {
       ...dto,
-      isInternal: dto.isInternal ?? true,
-    });
+      isInternal: false,
+      },
+    );
+  }
+
+  @Post(":id/threads/:threadType/messages")
+  @UseInterceptors(FilesInterceptor("files", 5))
+  async addThreadMessage(
+    @CurrentUser("id") adminId: string,
+    @Param("id") id: string,
+    @Param("threadType", new ParseEnumPipe(DisputeThreadType))
+    threadType: DisputeThreadType,
+    @Body() dto: CreateDisputeMessageDto,
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    return this.disputesService.addAdminThreadMessage(
+      adminId,
+      id,
+      threadType,
+      dto,
+      files,
+    );
   }
 }

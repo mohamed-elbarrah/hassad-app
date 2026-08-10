@@ -99,6 +99,12 @@ export const workspaceNavigation: WorkspaceNavigationGroup[] = [
         permission: "finance.read",
       },
       {
+        label: "Chat",
+        href: "/admin/chat",
+        icon: "messages",
+        permission: "chat.read",
+      },
+      {
         label: "Reports & System",
         href: "/admin/reports",
         icon: "reports",
