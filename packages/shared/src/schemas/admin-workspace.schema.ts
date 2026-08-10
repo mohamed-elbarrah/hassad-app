@@ -38,6 +38,8 @@ export type AdminClientsWorkspaceQuery = {
   sort?: "highest-spend" | "lowest-spend";
 };
 
+export type SalesClientsWorkspaceQuery = AdminClientsWorkspaceQuery;
+
 export type AdminCrmWorkspaceQuery = {
   statusFilter?: "all" | "active" | "waiting-approval" | "stalled";
   dateFilter?: "all-time" | "last-7-days" | "last-30-days" | "last-90-days";
@@ -97,6 +99,12 @@ export type ClientWorkspaceRecord = {
 
 export type ClientsWorkspaceResponse = {
   items: ClientWorkspaceRecord[];
+};
+
+export type SalesClientWorkspaceRecord = Omit<ClientWorkspaceRecord, "owner">;
+
+export type SalesClientsWorkspaceResponse = {
+  items: SalesClientWorkspaceRecord[];
 };
 
 export type CrmWorkspaceRecord = {
