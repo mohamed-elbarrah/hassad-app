@@ -27,7 +27,7 @@ const labels: Record<string, string> = {
   crm: "CRM",
   orders: "Orders",
   leads: "Orders",
-  offers: "Offers",
+  offers: "Proposals",
   proposals: "Proposals",
   contracts: "Contracts",
   disputes: "Disputes",

@@ -8,6 +8,10 @@ import { AutomationService } from "./services/automation.service";
 import { ClientProfileController } from "./controllers/client-profile.controller";
 import { ClientProfileService } from "./services/client-profile.service";
 import { ClientCounterService } from "./services/client-counter.service";
+import { CrmClientsController } from "./controllers/crm-clients.controller";
+import { CrmClientsService } from "./services/crm-clients.service";
+import { CrmProposalsController } from "./controllers/crm-proposals.controller";
+import { CrmProposalsService } from "./services/crm-proposals.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { RequestsModule } from "../requests/requests.module";
 
@@ -18,6 +22,8 @@ import { RequestsModule } from "../requests/requests.module";
     ClientsController,
     AutomationController,
     ClientProfileController,
+    CrmClientsController,
+    CrmProposalsController,
   ],
   providers: [
     LeadsService,
@@ -25,12 +31,16 @@ import { RequestsModule } from "../requests/requests.module";
     AutomationService,
     ClientProfileService,
     ClientCounterService,
+    CrmClientsService,
+    CrmProposalsService,
   ],
   exports: [
     LeadsService,
     ClientsService,
     ClientProfileService,
     ClientCounterService,
+    CrmClientsService,
+    CrmProposalsService,
   ],
 })
 export class CrmModule {}

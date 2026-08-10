@@ -3,13 +3,13 @@ import { Injectable } from "@nestjs/common";
 import { RequestStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
 
-import { SalesClientsWorkspaceQueryDto } from "../dto/sales-clients.dto";
+import { CrmClientsWorkspaceQueryDto } from "../dto/crm-clients.dto";
 
 @Injectable()
-export class SalesClientsService {
+export class CrmClientsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getWorkspace(query: SalesClientsWorkspaceQueryDto) {
+  async getWorkspace(query: CrmClientsWorkspaceQueryDto) {
     const [clients, leads] = await Promise.all([
       this.prisma.client.findMany({
         include: {

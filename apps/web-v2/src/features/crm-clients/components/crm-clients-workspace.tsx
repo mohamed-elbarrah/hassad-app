@@ -4,13 +4,13 @@ import { useState } from "react";
 
 import { ClientPortfolioWorkspace } from "@/features/clients/components/client-portfolio-workspace";
 import type { ClientDirectoryFilter, ClientDirectorySort } from "@/features/clients/lib/client-directory";
-import { useGetSalesClientsWorkspaceQuery } from "@/lib/api/sales-workspaces-api";
+import { useGetCrmClientsWorkspaceQuery } from "@/lib/api/crm-clients-api";
 
-export function SalesClientsWorkspace() {
+export function CrmClientsWorkspace() {
   const [filter, setFilter] = useState<ClientDirectoryFilter>("all");
   const [sort, setSort] = useState<ClientDirectorySort>("highest-spend");
 
-  const { data, error, isError, isLoading, refetch } = useGetSalesClientsWorkspaceQuery({
+  const { data, error, isError, isLoading, refetch } = useGetCrmClientsWorkspaceQuery({
     filter,
     sort,
   });
@@ -18,7 +18,7 @@ export function SalesClientsWorkspace() {
   return (
     <ClientPortfolioWorkspace
       title="Clients"
-      description="Sales workspace view for active accounts and pipeline-only leads."
+      description="CRM workspace view for active accounts and pipeline-only leads."
       rows={data?.items ?? []}
       isLoading={isLoading}
       isError={isError}
@@ -30,7 +30,7 @@ export function SalesClientsWorkspace() {
       sort={sort}
       onFilterChange={setFilter}
       onSortChange={setSort}
-      basePath="/sales/clients"
+      basePath="/crm/clients"
       showOwner={false}
     />
   );

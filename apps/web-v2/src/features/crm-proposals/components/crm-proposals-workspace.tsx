@@ -2,24 +2,25 @@
 
 import { useMemo, useState } from "react";
 
-import { mapProposalIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
 import { ProposalRegisterWorkspace } from "@/features/crm-proposals/components/proposal-register-workspace";
 import type {
   ProposalDateFilter,
   ProposalDirectoryFilter,
   ProposalValueFilter,
-  ProposalDirectoryRecord,
 } from "@/features/crm-proposals/lib/proposal-directory";
-import { useGetProposalsIndexQuery } from "@/lib/api/admin-index-api";
+import {
+  type CrmProposalsWorkspaceResponse,
+  useGetCrmProposalsWorkspaceQuery,
+} from "@/lib/api/crm-proposals-api";
 import { useAppSelector } from "@/lib/store";
 
-export function ProposalsWorkspace() {
+export function CrmProposalsWorkspace() {
   const authStatus = useAppSelector((state) => state.auth.status);
   const [statusFilter, setStatusFilter] = useState<ProposalDirectoryFilter>("all");
   const [dateFilter, setDateFilter] = useState<ProposalDateFilter>("last-30-days");
   const [valueFilter, setValueFilter] = useState<ProposalValueFilter>("all-values");
 
-  const { data, error, isError, isLoading, refetch } = useGetProposalsIndexQuery(
+  const { data, error, isError, isLoading, refetch } = useGetCrmProposalsWorkspaceQuery(
     {
       status:
         statusFilter === "all"
@@ -32,17 +33,17 @@ export function ProposalsWorkspace() {
     { skip: authStatus !== "authenticated" },
   );
 
-  const rows = useMemo<ProposalDirectoryRecord[]>(() => {
-    const items = (data?.items ?? []).map(mapProposalIndexItem);
+  const rows = useMemo<CrmProposalsWorkspaceResponse["items"]>(() => {
+    const items = data?.items ?? [];
 
     return items
-      .filter((row: ProposalDirectoryRecord) => {
+      .filter((row) => {
         if (dateFilter === "last-7-days") return row.sentDaysAgo <= 7;
         if (dateFilter === "last-30-days") return row.sentDaysAgo <= 30;
         if (dateFilter === "last-90-days") return row.sentDaysAgo <= 90;
         return true;
       })
-      .filter((row: ProposalDirectoryRecord) => {
+      .filter((row) => {
         if (valueFilter === "under-15000") return row.totalValue < 15000;
         if (valueFilter === "15000-30000") {
           return row.totalValue >= 15000 && row.totalValue < 30000;
@@ -72,8 +73,8 @@ export function ProposalsWorkspace() {
       onStatusFilterChange={setStatusFilter}
       onDateFilterChange={setDateFilter}
       onValueFilterChange={setValueFilter}
-      basePath="/admin/proposals"
-      showCreator
+      basePath="/crm/proposals"
+      showCreator={false}
     />
   );
 }

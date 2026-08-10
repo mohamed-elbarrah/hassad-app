@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
 
 export const metadata: Metadata = {
-  title: "Sales Chat | Hassad",
+  title: "CRM Client Detail | Hassad",
 };
 
-export default function ChatPage() {
-  return <ScreenPlaceholder label="Chat" />;
+export default function CrmClientDetailPage() {
+  return <ScreenPlaceholder label="Client detail" />;
 }

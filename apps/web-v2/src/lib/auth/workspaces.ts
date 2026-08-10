@@ -189,7 +189,7 @@ const adminWorkspace: WorkspaceDefinition = {
 const salesWorkspace: WorkspaceDefinition = {
   key: "sales",
   label: "Sales",
-  home: "/sales",
+  home: "/crm",
   roles: [UserRole.SALES],
   groups: [
     {
@@ -197,38 +197,38 @@ const salesWorkspace: WorkspaceDefinition = {
       items: [
         {
           label: "Overview",
-          href: "/sales",
+          href: "/crm",
           icon: "overview",
         },
         {
           label: "Clients",
-          href: "/sales/clients",
+          href: "/crm/clients",
           icon: "clients",
         },
         {
-          label: "Offers",
-          href: "/sales/offers",
+          label: "Proposals",
+          href: "/crm/proposals",
           icon: "commercial",
         },
         {
           label: "Contracts",
-          href: "/sales/contracts",
+          href: "/crm/contracts",
           icon: "finance",
         },
         {
           label: "Chat",
-          href: "/sales/chat",
+          href: "/crm/chat",
           icon: "messages",
         },
       ],
     },
   ],
   commands: [
-    { label: "Sales overview", href: "/sales" },
-    { label: "Clients", href: "/sales/clients" },
-    { label: "Offers", href: "/sales/offers" },
-    { label: "Contracts", href: "/sales/contracts" },
-    { label: "Chat", href: "/sales/chat" },
+    { label: "CRM overview", href: "/crm" },
+    { label: "Clients", href: "/crm/clients" },
+    { label: "Proposals", href: "/crm/proposals" },
+    { label: "Contracts", href: "/crm/contracts" },
+    { label: "Chat", href: "/crm/chat" },
   ],
 };
 
@@ -367,6 +367,10 @@ export function canAccessPath(role: UserRoleValue, path: string): boolean {
   const normalizedPath = path.split(/[?#]/)[0] ?? path;
 
   if (normalizedPath === "/forbidden") {
+    return true;
+  }
+
+  if (role === UserRole.SALES && (normalizedPath === "/crm" || normalizedPath.startsWith("/crm/"))) {
     return true;
   }
 

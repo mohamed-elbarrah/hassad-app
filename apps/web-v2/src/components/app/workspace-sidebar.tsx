@@ -17,15 +17,11 @@ import {
 
 import type { AuthSession } from "@/lib/auth/auth-types";
 import { getInitials } from "@/lib/auth/auth-utils";
-import type { WorkspaceDefinition, WorkspaceNavigationItem } from "@/lib/auth/workspaces";
-import { can } from "@/lib/permissions/permissions";
+import type { WorkspaceDefinition } from "@/lib/auth/workspaces";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -48,14 +44,6 @@ const iconMap = {
   campaigns: MegaphoneIcon,
   locked: LockKeyholeIcon,
 };
-
-function isAllowed(session: AuthSession, item: WorkspaceNavigationItem): boolean {
-  if (!item.permission) {
-    return true;
-  }
-
-  return can(session.permissions, item.permission);
-}
 
 export function WorkspaceSidebar({
   session,
@@ -84,57 +72,45 @@ export function WorkspaceSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {workspace.groups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const Icon = iconMap[item.icon];
-                  const allowed = isAllowed(session, item);
-                  const isActive =
-                    pathname === item.href || pathname.startsWith(`${item.href}/`);
+        <SidebarMenu>
+          {workspace.groups.flatMap((group) => group.items).map((item) => {
+            const Icon = iconMap[item.icon];
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        tooltip={item.label}
-                        aria-disabled={!allowed}
-                        render={allowed ? <Link href={item.href} /> : undefined}
-                      >
-                        <Icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                      {item.children && item.children.length > 0 ? (
-                        <SidebarMenuSub>
-                          {item.children.map((child) => {
-                            const childAllowed =
-                              !child.permission || can(session.permissions, child.permission);
-                            const childIsActive =
-                              pathname === child.href || pathname.startsWith(`${child.href}/`);
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  isActive={isActive}
+                  tooltip={item.label}
+                  render={<Link href={item.href} />}
+                >
+                  <Icon />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
+                {item.children && item.children.length > 0 ? (
+                  <SidebarMenuSub>
+                    {item.children.map((child) => {
+                      const childIsActive =
+                        pathname === child.href || pathname.startsWith(`${child.href}/`);
 
-                            return (
-                              <SidebarMenuSubItem key={child.href}>
-                                <SidebarMenuSubButton
-                                  isActive={childIsActive}
-                                  aria-disabled={!childAllowed}
-                                  render={childAllowed ? <Link href={child.href} /> : undefined}
-                                >
-                                  <span>{child.label}</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      ) : null}
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+                      return (
+                        <SidebarMenuSubItem key={child.href}>
+                          <SidebarMenuSubButton
+                            isActive={childIsActive}
+                            render={<Link href={child.href} />}
+                          >
+                            <span>{child.label}</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      );
+                    })}
+                  </SidebarMenuSub>
+                ) : null}
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

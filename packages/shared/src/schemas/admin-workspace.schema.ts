@@ -40,6 +40,17 @@ export type AdminClientsWorkspaceQuery = {
 
 export type SalesClientsWorkspaceQuery = AdminClientsWorkspaceQuery;
 
+export type ProposalWorkspaceQuery = {
+  status?: string;
+  search?: string;
+  clientId?: string;
+  creatorId?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type SalesOffersWorkspaceQuery = Omit<ProposalWorkspaceQuery, "creatorId">;
+
 export type AdminCrmWorkspaceQuery = {
   statusFilter?: "all" | "active" | "waiting-approval" | "stalled";
   dateFilter?: "all-time" | "last-7-days" | "last-30-days" | "last-90-days";
@@ -105,6 +116,45 @@ export type SalesClientWorkspaceRecord = Omit<ClientWorkspaceRecord, "owner">;
 
 export type SalesClientsWorkspaceResponse = {
   items: SalesClientWorkspaceRecord[];
+};
+
+export type ProposalWorkspaceRecord = {
+  id: string;
+  title: string;
+  clientName: string;
+  requestName: string;
+  creator: string;
+  servicesCount: number;
+  servicesLabel: string;
+  totalValue: number;
+  status: ProposalStatus;
+  statusTone: WorkspaceStatusTone;
+  sentAtLabel: string;
+  sentDaysAgo: number;
+  responseLabel: string;
+  validUntilLabel: string;
+  validityDaysLeft: number;
+  validityTone: WorkspaceStatusTone;
+  contractLabel: string;
+  contractTone: WorkspaceStatusTone;
+};
+
+export type ProposalsWorkspaceResponse = {
+  items: ProposalWorkspaceRecord[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export type SalesOfferWorkspaceRecord = Omit<ProposalWorkspaceRecord, "creator">;
+
+export type SalesOffersWorkspaceResponse = {
+  items: SalesOfferWorkspaceRecord[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 };
 
 export type CrmWorkspaceRecord = {
@@ -218,42 +268,13 @@ export type AdminOverviewResponse = {
     calls: number;
     meetings: number;
     projects: string;
-    projectsTone: WorkspaceStatusTone;
-    owner: string;
-    ownerInitials: string;
-    nextAction: string;
     value: string;
+    lastActivity: string;
   }>;
-  salesLeaders: Array<{
-    id: string;
-    name: string;
-    initials: string;
-    role: string;
-    deals: number;
-    contracts: number;
-    revenue: string;
-    winRate: string;
-  }>;
-  activeProjects: Array<{
-    id: string;
-    name: string;
-    clientName: string;
-    state: string;
-    stateTone: WorkspaceStatusTone;
-    progress: string;
-    pm: string;
-    pmInitials: string;
-    activeTasks: number;
-    value: string;
-  }>;
-  clients: Array<{
-    id: string;
-    clientName: string;
-    companyName: string;
-    totalProjects: number;
-    activeProjects: number;
-    lastSeen: string;
-    onlineTone: WorkspaceStatusTone;
-    balance: string;
-  }>;
+  performance: {
+    conversionRate: string;
+    averageProjectValue: string;
+    proposalToContractRate: string;
+    activeProjects: string;
+  };
 };

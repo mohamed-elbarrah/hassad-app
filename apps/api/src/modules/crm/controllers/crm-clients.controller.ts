@@ -4,17 +4,17 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 
-import { SalesClientsWorkspaceQueryDto } from "../dto/sales-clients.dto";
-import { SalesClientsService } from "../services/sales-clients.service";
+import { CrmClientsWorkspaceQueryDto } from "../dto/crm-clients.dto";
+import { CrmClientsService } from "../services/crm-clients.service";
 
-@Controller("sales/clients")
+@Controller("crm/clients")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-export class SalesClientsController {
-  constructor(private readonly service: SalesClientsService) {}
+export class CrmClientsController {
+  constructor(private readonly service: CrmClientsService) {}
 
   @Get()
   @RequirePermissions("clients.read")
-  getWorkspace(@Query() query: SalesClientsWorkspaceQueryDto) {
+  getWorkspace(@Query() query: CrmClientsWorkspaceQueryDto) {
     return this.service.getWorkspace(query);
   }
 }
