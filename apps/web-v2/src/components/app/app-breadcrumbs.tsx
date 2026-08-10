@@ -15,6 +15,10 @@ import {
 
 const labels: Record<string, string> = {
   admin: "Admin",
+  sales: "Sales",
+  pm: "PM",
+  team: "Team",
+  marketing: "Marketing",
   employees: "Employees",
   activity: "Activity",
   sessions: "Sessions",
@@ -23,10 +27,13 @@ const labels: Record<string, string> = {
   crm: "CRM",
   orders: "Orders",
   leads: "Orders",
+  offers: "Offers",
   proposals: "Proposals",
   contracts: "Contracts",
   disputes: "Disputes",
   tasks: "Tasks",
+  chat: "Chat",
+  campaigns: "Campaigns",
   reports: "Reports",
   settings: "Settings",
   finance: "Finance",
@@ -36,7 +43,6 @@ const labels: Record<string, string> = {
   "payment-issues": "Payment Issues",
   deliverables: "Deliverables",
   periods: "Periods",
-  team: "Team",
   forbidden: "Forbidden",
 };
 
@@ -47,7 +53,7 @@ export function AppBreadcrumbs() {
     const href = `/${segments.slice(0, index + 1).join("/")}`;
     return {
       href,
-      label: labels[segment] ?? "Employee detail",
+      label: labels[segment] ?? "Detail",
     };
   });
 
@@ -68,9 +74,7 @@ export function AppBreadcrumbs() {
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
-              {!isLast && (
-                <BreadcrumbSeparator />
-              )}
+              {!isLast && <BreadcrumbSeparator />}
             </Fragment>
           );
         })}

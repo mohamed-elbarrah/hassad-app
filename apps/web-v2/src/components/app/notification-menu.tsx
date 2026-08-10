@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { notifications } from "@/lib/fixtures/first-slice";
 
-export function NotificationMenu() {
+export function NotificationMenu({ workspaceLabel }: { workspaceLabel: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="icon-lg" />}>
@@ -25,7 +25,7 @@ export function NotificationMenu() {
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel>
           <span className="block text-foreground">Notifications</span>
-          <span className="block font-normal">Latest admin-relevant events</span>
+          <span className="block font-normal">Latest {workspaceLabel} events</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

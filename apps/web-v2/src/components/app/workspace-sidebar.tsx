@@ -10,10 +10,15 @@ import {
   ClipboardListIcon,
   LayoutDashboardIcon,
   LockKeyholeIcon,
+  MegaphoneIcon,
   MessageSquareIcon,
   UsersIcon,
 } from "lucide-react";
 
+import type { AuthSession } from "@/lib/auth/auth-types";
+import { getInitials } from "@/lib/auth/auth-utils";
+import type { WorkspaceDefinition, WorkspaceNavigationItem } from "@/lib/auth/workspaces";
+import { can } from "@/lib/permissions/permissions";
 import {
   Sidebar,
   SidebarContent,
@@ -30,10 +35,6 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import type { AuthSession } from "@/lib/auth/auth-types";
-import { getInitials } from "@/lib/auth/auth-utils";
-import { workspaceNavigation } from "@/lib/auth/workspace-navigation";
-import { can } from "@/lib/permissions/permissions";
 
 const iconMap = {
   overview: LayoutDashboardIcon,
@@ -44,10 +45,25 @@ const iconMap = {
   finance: CircleDollarSignIcon,
   reports: BarChart3Icon,
   messages: MessageSquareIcon,
+  campaigns: MegaphoneIcon,
   locked: LockKeyholeIcon,
 };
 
-export function WorkspaceSidebar({ session }: { session: AuthSession }) {
+function isAllowed(session: AuthSession, item: WorkspaceNavigationItem): boolean {
+  if (!item.permission) {
+    return true;
+  }
+
+  return can(session.permissions, item.permission);
+}
+
+export function WorkspaceSidebar({
+  session,
+  workspace,
+}: {
+  session: AuthSession;
+  workspace: WorkspaceDefinition;
+}) {
   const pathname = usePathname();
 
   return (
@@ -55,22 +71,27 @@ export function WorkspaceSidebar({ session }: { session: AuthSession }) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/admin" />}>
+            <SidebarMenuButton size="lg" render={<Link href={workspace.home} />}>
               <LayoutDashboardIcon />
-              <span>Hassad</span>
+              <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
+                <span className="truncate">Hassad</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {workspace.label}
+                </span>
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {workspaceNavigation.map((group) => (
+        {workspace.groups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
                   const Icon = iconMap[item.icon];
-                  const allowed = can(session.permissions, item.permission);
+                  const allowed = isAllowed(session, item);
                   const isActive =
                     pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -88,22 +109,17 @@ export function WorkspaceSidebar({ session }: { session: AuthSession }) {
                       {item.children && item.children.length > 0 ? (
                         <SidebarMenuSub>
                           {item.children.map((child) => {
-                            const childAllowed = can(
-                              session.permissions,
-                              child.permission
-                            );
+                            const childAllowed =
+                              !child.permission || can(session.permissions, child.permission);
                             const childIsActive =
-                              pathname === child.href ||
-                              pathname.startsWith(`${child.href}/`);
+                              pathname === child.href || pathname.startsWith(`${child.href}/`);
 
                             return (
                               <SidebarMenuSubItem key={child.href}>
                                 <SidebarMenuSubButton
                                   isActive={childIsActive}
                                   aria-disabled={!childAllowed}
-                                  render={
-                                    childAllowed ? <Link href={child.href} /> : undefined
-                                  }
+                                  render={childAllowed ? <Link href={child.href} /> : undefined}
                                 >
                                   <span>{child.label}</span>
                                 </SidebarMenuSubButton>

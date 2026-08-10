@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { SearchIcon } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandDialog,
@@ -13,15 +14,14 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Button } from "@/components/ui/button";
 
-const commands = [
-  { label: "Admin overview", href: "/admin" },
-  { label: "Employees", href: "/admin/employees" },
-  { label: "Forbidden state preview", href: "/admin/employees/forbidden" },
-];
-
-export function CommandMenu() {
+export function CommandMenu({
+  commands,
+  workspaceLabel,
+}: {
+  commands: Array<{ label: string; href: string }>;
+  workspaceLabel: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -35,7 +35,7 @@ export function CommandMenu() {
           <CommandInput placeholder="Search workspace commands" />
           <CommandList>
             <CommandEmpty>No command found.</CommandEmpty>
-            <CommandGroup heading="First slice">
+            <CommandGroup heading={workspaceLabel}>
               {commands.map((command) => (
                 <CommandItem key={command.href} onSelect={() => setOpen(false)}>
                   <Link href={command.href} className="w-full">

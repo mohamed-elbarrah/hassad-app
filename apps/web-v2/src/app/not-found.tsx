@@ -11,11 +11,7 @@ export default function NotFound() {
         title="Page not found"
         description="The route you opened does not exist or is no longer available."
         action={
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/admin" />}
-          >
+          <Button variant="outline" nativeButton={false} render={<Link href="/" />}>
             <ArrowLeftIcon data-icon="inline-start" />
             Back to overview
           </Button>

@@ -3,12 +3,12 @@ import type { ReactNode } from "react";
 
 import { requireRoleSession } from "@/lib/auth/require-role";
 
-export default async function AdminLayout({
+export default async function PmLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  await requireRoleSession(UserRole.ADMIN);
+  await requireRoleSession(UserRole.PM);
 
   return children;
 }

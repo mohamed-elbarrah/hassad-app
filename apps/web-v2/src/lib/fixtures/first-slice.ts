@@ -774,18 +774,18 @@ export const employees: EmployeeFixture[] = [
 
 export const notifications = [
   {
-    title: "Access review due",
-    summary: "Omar Nasser has a permission escalation waiting for approval.",
-    href: "/admin/employees/emp-omar-nasser",
+    title: "Attention needed",
+    summary: "A workspace item is waiting for review.",
+    href: "/",
   },
   {
-    title: "Suspended account with work",
-    summary: "Fahad Ali still owns finance queue items while suspended.",
-    href: "/admin/employees/emp-fahad-ali",
+    title: "New activity",
+    summary: "A recent update is available in the current workspace.",
+    href: "/",
   },
   {
-    title: "Onboarding ready",
-    summary: "A finance user profile is ready for final activation.",
-    href: "/admin/employees",
+    title: "Follow-up ready",
+    summary: "One of your queued items can be opened now.",
+    href: "/",
   },
 ];
