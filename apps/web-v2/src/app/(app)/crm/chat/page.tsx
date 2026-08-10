@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { CrmChatWorkspace } from "@/features/chat/components/crm-chat-workspace";
+import { requireServerSession } from "@/lib/auth/server-session";
 
 export const metadata: Metadata = {
   title: "CRM Chat | Hassad",
 };
 
-export default function CrmChatPage() {
-  return <ScreenPlaceholder label="Chat" />;
+export default async function CrmChatPage() {
+  const session = await requireServerSession();
+
+  return <CrmChatWorkspace currentUserId={session.id} />;
 }

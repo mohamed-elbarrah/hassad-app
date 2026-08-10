@@ -33,19 +33,5 @@ export function CrmClientDetailPageClient({ clientId }: { clientId: string }) {
 
   const client = mapClientDetailFromApi(data);
 
-  return (
-    <ClientDetailWorkspace
-      backHref="/crm/clients"
-      chatHrefBase="/crm/chat"
-      client={{
-        ...client,
-        linkedRecords: client.linkedRecords?.map((record) => ({
-          ...record,
-          href: record.href?.startsWith("/admin/")
-            ? record.href.replace("/admin/", "/crm/")
-            : record.href,
-        })) ?? [],
-      }}
-    />
-  );
+  return <ClientDetailWorkspace backHref="/crm/clients" chatHrefBase="/crm/chat" client={client} />;
 }
