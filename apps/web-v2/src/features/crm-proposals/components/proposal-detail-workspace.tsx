@@ -35,8 +35,10 @@ import { formatProposalCurrency, formatProposalStatus } from "@/features/crm-pro
 
 export function ProposalDetailWorkspace({
   proposal,
+  backHref = "/admin/proposals",
 }: {
   proposal: ProposalDetailRecord;
+  backHref?: string;
 }) {
   const document = proposal.document ?? {
     fileName: `${proposal.title.toLowerCase().replaceAll(" ", "-")}.pdf`,
@@ -78,7 +80,7 @@ export function ProposalDetailWorkspace({
         <Button
           variant="outline"
           nativeButton={false}
-          render={<Link href="/admin/proposals" />}
+          render={<Link href={backHref} />}
         >
           <ArrowLeftIcon data-icon="inline-start" />
           Proposals

@@ -35,8 +35,10 @@ import { formatContractCurrency, formatContractStatus } from "@/features/crm-con
 
 export function ContractDetailWorkspace({
   contract,
+  backHref = "/admin/contracts",
 }: {
   contract: ContractDetailRecord;
+  backHref?: string;
 }) {
   const statusItems: EntityTimelineItem[] = contract.statusHistory.map((item) => ({
     id: item.id,
@@ -72,7 +74,7 @@ export function ContractDetailWorkspace({
         <Button
           variant="outline"
           nativeButton={false}
-          render={<Link href="/admin/contracts" />}
+          render={<Link href={backHref} />}
         >
           <ArrowLeftIcon data-icon="inline-start" />
           Contracts

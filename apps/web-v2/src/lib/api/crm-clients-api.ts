@@ -9,6 +9,8 @@ export type CrmClientsWorkspaceResponse = {
   items: Omit<ClientWorkspaceRecord, "owner">[];
 };
 
+export type CrmClientDetailApi = unknown;
+
 export const crmClientsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getCrmClientsWorkspace: builder.query<
@@ -18,7 +20,11 @@ export const crmClientsApi = baseApi.injectEndpoints({
       query: (params) => ({ url: "/crm/clients", params }),
       providesTags: ["Clients"],
     }),
+    getCrmClientDetail: builder.query<CrmClientDetailApi, string>({
+      query: (id) => ({ url: `/crm/clients/${id}/full` }),
+      providesTags: ["Clients"],
+    }),
   }),
 });
 
-export const { useGetCrmClientsWorkspaceQuery } = crmClientsApi;
+export const { useGetCrmClientDetailQuery, useGetCrmClientsWorkspaceQuery } = crmClientsApi;

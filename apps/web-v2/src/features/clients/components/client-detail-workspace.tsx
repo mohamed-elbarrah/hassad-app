@@ -87,7 +87,15 @@ const commercialMixConfig = {
   },
 } satisfies ChartConfig;
 
-export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }) {
+export function ClientDetailWorkspace({
+  client,
+  backHref = "/admin/clients",
+  chatHrefBase = "/admin/chat",
+}: {
+  client: ClientDetailRecord;
+  backHref?: string;
+  chatHrefBase?: string;
+}) {
   const typeTone = getClientTypeTone(client.summary);
   const typeLabel = getClientTypeLabel(client.summary);
   const portalTone = getPortalStatusTone(client.portalStatus);
@@ -101,7 +109,7 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
         <Button
           variant="outline"
           nativeButton={false}
-          render={<Link href="/admin/clients" />}
+          render={<Link href={backHref} />}
         >
           <ArrowLeftIcon data-icon="inline-start" />
           Clients
@@ -162,7 +170,7 @@ export function ClientDetailWorkspace({ client }: { client: ClientDetailRecord }
                     client.chatTargetUserId
                       ? (
                           <Link
-                            href={`/admin/chat?targetUserId=${encodeURIComponent(
+                            href={`${chatHrefBase}?targetUserId=${encodeURIComponent(
                               client.chatTargetUserId,
                             )}&targetName=${encodeURIComponent(
                               client.contactName,

@@ -12,6 +12,8 @@ import { CrmClientsController } from "./controllers/crm-clients.controller";
 import { CrmClientsService } from "./services/crm-clients.service";
 import { CrmProposalsController } from "./controllers/crm-proposals.controller";
 import { CrmProposalsService } from "./services/crm-proposals.service";
+import { CrmContractsController } from "./controllers/crm-contracts.controller";
+import { CrmContractsService } from "./services/crm-contracts.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { RequestsModule } from "../requests/requests.module";
 
@@ -24,6 +26,7 @@ import { RequestsModule } from "../requests/requests.module";
     ClientProfileController,
     CrmClientsController,
     CrmProposalsController,
+    CrmContractsController,
   ],
   providers: [
     LeadsService,
@@ -33,6 +36,7 @@ import { RequestsModule } from "../requests/requests.module";
     ClientCounterService,
     CrmClientsService,
     CrmProposalsService,
+    CrmContractsService,
   ],
   exports: [
     LeadsService,
@@ -41,6 +45,7 @@ import { RequestsModule } from "../requests/requests.module";
     ClientCounterService,
     CrmClientsService,
     CrmProposalsService,
+    CrmContractsService,
   ],
 })
 export class CrmModule {}

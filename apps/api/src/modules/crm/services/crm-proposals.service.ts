@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 
 import { ProposalStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
@@ -132,5 +132,36 @@ export class CrmProposalsService {
     });
 
     return { items: rows, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async findOne(id: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id },
+      include: {
+        lead: { select: { id: true, companyName: true, contactName: true } },
+        client: { select: { id: true, companyName: true } },
+        creator: { select: { id: true, name: true, email: true } },
+        request: {
+          select: {
+            id: true,
+            companyName: true,
+            contactName: true,
+            status: true,
+            services: { include: { service: true } },
+          },
+        },
+      },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException("Proposal not found");
+    }
+
+    const contract = await this.prisma.contract.findFirst({
+      where: { proposalId: id },
+      select: { id: true, title: true, status: true },
+    });
+
+    return { ...proposal, contract };
   }
 }

@@ -16,6 +16,8 @@ export type CrmProposalsWorkspaceResponse = {
   totalPages: number;
 };
 
+export type CrmProposalDetailApi = unknown;
+
 export const crmProposalsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getCrmProposalsWorkspace: builder.query<
@@ -24,7 +26,11 @@ export const crmProposalsApi = baseApi.injectEndpoints({
     >({
       query: (params) => ({ url: "/crm/proposals", params }),
     }),
+    getCrmProposalDetail: builder.query<CrmProposalDetailApi, string>({
+      query: (id) => ({ url: `/crm/proposals/${id}` }),
+      providesTags: ["Crm"],
+    }),
   }),
 });
 
-export const { useGetCrmProposalsWorkspaceQuery } = crmProposalsApi;
+export const { useGetCrmProposalDetailQuery, useGetCrmProposalsWorkspaceQuery } = crmProposalsApi;

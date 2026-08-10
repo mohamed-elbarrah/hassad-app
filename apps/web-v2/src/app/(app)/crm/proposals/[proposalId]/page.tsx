@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { CrmProposalDetailPageClient } from "./page-client";
 
-export const metadata: Metadata = {
-  title: "CRM Proposal Detail | Hassad",
+type CrmProposalDetailPageProps = {
+  params: Promise<{
+    proposalId: string;
+  }>;
 };
 
-export default function CrmProposalDetailPage() {
-  return <ScreenPlaceholder label="Proposal detail" />;
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "CRM Proposal Detail | Hassad",
+  };
+}
+
+export default async function CrmProposalDetailPage({
+  params,
+}: CrmProposalDetailPageProps) {
+  const { proposalId } = await params;
+  return <CrmProposalDetailPageClient proposalId={proposalId} />;
 }
