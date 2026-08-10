@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { PmChatWorkspace } from "@/features/chat/components/pm-chat-workspace";
+import { requireServerSession } from "@/lib/auth/server-session";
 
 export const metadata: Metadata = {
   title: "PM Chat | Hassad",
 };
 
-export default function ChatPage() {
-  return <ScreenPlaceholder label="Chat" />;
+export default async function PmChatPage() {
+  const session = await requireServerSession();
+
+  return <PmChatWorkspace currentUserId={session.id} />;
 }

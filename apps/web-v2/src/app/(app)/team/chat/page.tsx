@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { TeamChatWorkspace } from "@/features/chat/components/team-chat-workspace";
+import { requireServerSession } from "@/lib/auth/server-session";
 
 export const metadata: Metadata = {
   title: "Team Chat | Hassad",
 };
 
-export default function ChatPage() {
-  return <ScreenPlaceholder label="Chat" />;
+export default async function TeamChatPage() {
+  const session = await requireServerSession();
+
+  return <TeamChatWorkspace currentUserId={session.id} />;
 }

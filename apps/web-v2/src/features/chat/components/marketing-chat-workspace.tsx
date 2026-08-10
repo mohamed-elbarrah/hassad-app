@@ -58,15 +58,15 @@ import {
 } from "@/components/ui/message-scroller";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  useDeleteAdminChatMessageMutation,
-  useGetAdminChatConversationsQuery,
-  useGetAdminChatMessagesQuery,
-  useSearchAdminClientChatTargetsQuery,
-  useSearchAdminEmployeeChatTargetsQuery,
-  useSendAdminConversationMessageMutation,
-  useSendAdminDirectMessageMutation,
-  useUpdateAdminChatMessageMutation,
-} from "@/lib/api/admin-chat-api";
+  useDeleteMarketingChatMessageMutation,
+  useGetMarketingChatConversationsQuery,
+  useGetMarketingChatMessagesQuery,
+  useSearchMarketingClientChatTargetsQuery,
+  useSearchMarketingEmployeeChatTargetsQuery,
+  useSendMarketingConversationMessageMutation,
+  useSendMarketingDirectMessageMutation,
+  useUpdateMarketingChatMessageMutation,
+} from "@/lib/api/marketing-chat-api";
 import { cn } from "@/lib/utils";
 import {
   buildInitials,
@@ -78,7 +78,7 @@ import {
   type ChatTargetOption,
 } from "@/features/chat/lib/chat-runtime";
 
-type AdminChatWorkspaceProps = {
+type MarketingChatWorkspaceProps = {
   currentUserId: string;
 };
 
@@ -111,9 +111,9 @@ function mergeByUserId(
   return Array.from(map.values());
 }
 
-export function AdminChatWorkspace({
+export function MarketingChatWorkspace({
   currentUserId,
-}: AdminChatWorkspaceProps) {
+}: MarketingChatWorkspaceProps) {
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -139,7 +139,7 @@ export function AdminChatWorkspace({
     isError: conversationsIsError,
     isLoading: conversationsIsLoading,
     refetch: refetchConversations,
-  } = useGetAdminChatConversationsQuery({ type: "DIRECT" });
+  } = useGetMarketingChatConversationsQuery({ type: "DIRECT" });
   const conversations = useMemo(
     () => conversationsResponse?.data ?? [],
     [conversationsResponse?.data],
@@ -193,23 +193,23 @@ export function AdminChatWorkspace({
     isFetching: messagesIsFetching,
     isLoading: messagesIsLoading,
     refetch: refetchMessages,
-  } = useGetAdminChatMessagesQuery(activeConversationId ?? skipToken);
+  } = useGetMarketingChatMessagesQuery(activeConversationId ?? skipToken);
 
   const searchArgs =
     deferredSearchValue.length >= 2
       ? { search: deferredSearchValue, limit: 6 }
       : skipToken;
 
-  const { data: employeeTargets = [] } = useSearchAdminEmployeeChatTargetsQuery(searchArgs);
-  const { data: clientTargets = [] } = useSearchAdminClientChatTargetsQuery(searchArgs);
+  const { data: employeeTargets = [] } = useSearchMarketingEmployeeChatTargetsQuery(searchArgs);
+  const { data: clientTargets = [] } = useSearchMarketingClientChatTargetsQuery(searchArgs);
 
   const [sendConversationMessage, sendConversationState] =
-    useSendAdminConversationMessageMutation();
-  const [sendDirectMessage, sendDirectState] = useSendAdminDirectMessageMutation();
+    useSendMarketingConversationMessageMutation();
+  const [sendDirectMessage, sendDirectState] = useSendMarketingDirectMessageMutation();
   const [updateChatMessage, updateChatMessageState] =
-    useUpdateAdminChatMessageMutation();
+    useUpdateMarketingChatMessageMutation();
   const [deleteChatMessage, deleteChatMessageState] =
-    useDeleteAdminChatMessageMutation();
+    useDeleteMarketingChatMessageMutation();
 
   const isMutating =
     sendConversationState.isLoading ||

@@ -58,15 +58,15 @@ import {
 } from "@/components/ui/message-scroller";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  useDeleteAdminChatMessageMutation,
-  useGetAdminChatConversationsQuery,
-  useGetAdminChatMessagesQuery,
-  useSearchAdminClientChatTargetsQuery,
-  useSearchAdminEmployeeChatTargetsQuery,
-  useSendAdminConversationMessageMutation,
-  useSendAdminDirectMessageMutation,
-  useUpdateAdminChatMessageMutation,
-} from "@/lib/api/admin-chat-api";
+  useDeletePmChatMessageMutation,
+  useGetPmChatConversationsQuery,
+  useGetPmChatMessagesQuery,
+  useSearchPmClientChatTargetsQuery,
+  useSearchPmEmployeeChatTargetsQuery,
+  useSendPmConversationMessageMutation,
+  useSendPmDirectMessageMutation,
+  useUpdatePmChatMessageMutation,
+} from "@/lib/api/pm-chat-api";
 import { cn } from "@/lib/utils";
 import {
   buildInitials,
@@ -78,7 +78,7 @@ import {
   type ChatTargetOption,
 } from "@/features/chat/lib/chat-runtime";
 
-type AdminChatWorkspaceProps = {
+type PmChatWorkspaceProps = {
   currentUserId: string;
 };
 
@@ -111,9 +111,9 @@ function mergeByUserId(
   return Array.from(map.values());
 }
 
-export function AdminChatWorkspace({
+export function PmChatWorkspace({
   currentUserId,
-}: AdminChatWorkspaceProps) {
+}: PmChatWorkspaceProps) {
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
@@ -139,7 +139,7 @@ export function AdminChatWorkspace({
     isError: conversationsIsError,
     isLoading: conversationsIsLoading,
     refetch: refetchConversations,
-  } = useGetAdminChatConversationsQuery({ type: "DIRECT" });
+  } = useGetPmChatConversationsQuery({ type: "DIRECT" });
   const conversations = useMemo(
     () => conversationsResponse?.data ?? [],
     [conversationsResponse?.data],
@@ -193,23 +193,23 @@ export function AdminChatWorkspace({
     isFetching: messagesIsFetching,
     isLoading: messagesIsLoading,
     refetch: refetchMessages,
-  } = useGetAdminChatMessagesQuery(activeConversationId ?? skipToken);
+  } = useGetPmChatMessagesQuery(activeConversationId ?? skipToken);
 
   const searchArgs =
     deferredSearchValue.length >= 2
       ? { search: deferredSearchValue, limit: 6 }
       : skipToken;
 
-  const { data: employeeTargets = [] } = useSearchAdminEmployeeChatTargetsQuery(searchArgs);
-  const { data: clientTargets = [] } = useSearchAdminClientChatTargetsQuery(searchArgs);
+  const { data: employeeTargets = [] } = useSearchPmEmployeeChatTargetsQuery(searchArgs);
+  const { data: clientTargets = [] } = useSearchPmClientChatTargetsQuery(searchArgs);
 
   const [sendConversationMessage, sendConversationState] =
-    useSendAdminConversationMessageMutation();
-  const [sendDirectMessage, sendDirectState] = useSendAdminDirectMessageMutation();
+    useSendPmConversationMessageMutation();
+  const [sendDirectMessage, sendDirectState] = useSendPmDirectMessageMutation();
   const [updateChatMessage, updateChatMessageState] =
-    useUpdateAdminChatMessageMutation();
+    useUpdatePmChatMessageMutation();
   const [deleteChatMessage, deleteChatMessageState] =
-    useDeleteAdminChatMessageMutation();
+    useDeletePmChatMessageMutation();
 
   const isMutating =
     sendConversationState.isLoading ||

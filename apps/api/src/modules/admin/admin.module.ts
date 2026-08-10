@@ -5,6 +5,7 @@ import { PrismaModule } from "../../prisma/prisma.module";
 import { FinanceModule } from "../finance/finance.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { ChatModule } from "../chat/chat.module";
 import { AiModule } from "../ai/ai.module";
 import { TerminusModule } from "@nestjs/terminus";
 
@@ -22,6 +23,7 @@ import { AdminLeadsController } from "./controllers/admin-leads.controller";
 import { AdminRequestsController } from "./controllers/admin-requests.controller";
 import { AdminCampaignsController } from "./controllers/admin-campaigns.controller";
 import { AdminChatController } from "./controllers/admin-chat.controller";
+import { AdminWorkspaceChatController } from "./controllers/admin-chat-workspace.controller";
 import { AdminPortalController } from "./controllers/admin-portal.controller";
 import { AdminFinanceController } from "./controllers/admin-finance.controller";
 import { AdminProposalsController } from "./controllers/admin-proposals.controller";
@@ -57,6 +59,7 @@ import { AdminLeadsService } from "./services/admin-leads.service";
 import { AdminRequestsService } from "./services/admin-requests.service";
 import { AdminCampaignsService } from "./services/admin-campaigns.service";
 import { AdminChatService } from "./services/admin-chat.service";
+import { AdminWorkspaceChatService } from "./services/admin-chat-workspace.service";
 import { AdminPortalService } from "./services/admin-portal.service";
 import { AdminFinanceService } from "./services/admin-finance.service";
 import { AdminProposalsService } from "./services/admin-proposals.service";
@@ -88,6 +91,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     FinanceModule,
     PaymentsModule,
     NotificationsModule,
+    ChatModule,
     AiModule,
     TerminusModule,
     JwtModule.registerAsync({
@@ -118,6 +122,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminRequestsController,
     AdminCampaignsController,
     AdminChatController,
+    AdminWorkspaceChatController,
     AdminPortalController,
     AdminFinanceController,
     AdminProposalsController,
@@ -153,6 +158,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminRequestsService,
     AdminCampaignsService,
     AdminChatService,
+    AdminWorkspaceChatService,
     AdminPortalService,
     AdminFinanceService,
     AdminProposalsService,
