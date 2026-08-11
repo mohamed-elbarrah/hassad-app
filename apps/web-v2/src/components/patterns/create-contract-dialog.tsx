@@ -1,28 +1,13 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
-import { ChevronRightIcon, Plus, Send, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon, Plus, Send, Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-  FieldLegend,
-} from "@/components/ui/field";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet, FieldLegend } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -70,6 +55,12 @@ type CreateContractDialogProps = {
   record: CrmOverviewRecord | null;
 };
 
+const contractTypeLabel: Record<ContractType, string> = {
+  [ContractType.MONTHLY_RETAINER]: "Monthly retainer",
+  [ContractType.FIXED_PROJECT]: "Fixed project",
+  [ContractType.ONE_TIME_SERVICE]: "One-time service",
+};
+
 const createContractDefaults = (record: CrmOverviewRecord | null): ContractFormValues => ({
   requestId: record?.id ?? "",
   proposalId: record?.id ?? "",
@@ -89,6 +80,7 @@ const createContractDefaults = (record: CrmOverviewRecord | null): ContractFormV
 export function CreateContractDialog({ open, mode, onOpenChange, record }: CreateContractDialogProps) {
   const recordMeta = record ? formatOverviewRecord(record) : null;
   const isReadOnly = mode === "view";
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const form = useForm<ContractFormValues>({
     defaultValues: createContractDefaults(record),
@@ -99,12 +91,20 @@ export function CreateContractDialog({ open, mode, onOpenChange, record }: Creat
   });
   const paymentPlan = useWatch({ control: form.control, name: "paymentPlan" });
   const pdfFileName = useWatch({ control: form.control, name: "pdfFileName" });
-  const advancedPlanOpen = fields.length > 0;
+  const contractType = useWatch({ control: form.control, name: "type" });
+  const monthlyRetainer = contractType === ContractType.MONTHLY_RETAINER;
+  const hasPaymentPlan = fields.length > 0;
 
   useEffect(() => {
     if (!open) return;
     form.reset(createContractDefaults(record));
   }, [form, open, record]);
+
+  useEffect(() => {
+    if (!monthlyRetainer) {
+      form.setValue("monthlyValue", "", { shouldDirty: true });
+    }
+  }, [form, monthlyRetainer]);
 
   const totalPaymentPlan = useMemo(
     () =>
@@ -126,7 +126,7 @@ export function CreateContractDialog({ open, mode, onOpenChange, record }: Creat
             <DialogTitle>{isReadOnly ? "Open contract" : "Create & Send Contract"}</DialogTitle>
             <DialogDescription>
               {isReadOnly
-                ? "Review the sent contract and its payment structure."
+                ? "Review the sent contract and its commercial details."
                 : `Create the contract from the approved proposal for ${record?.companyName ?? "the selected record"}.`}
             </DialogDescription>
           </DialogHeader>
@@ -150,38 +150,39 @@ export function CreateContractDialog({ open, mode, onOpenChange, record }: Creat
               ) : null}
 
               <FieldGroup>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field>
-                    <FieldLabel htmlFor="contract-title">Contract title</FieldLabel>
-                    <Input id="contract-title" disabled={isReadOnly} {...form.register("title")} />
-                    <FieldDescription>Internal title used for the contract and project handoff.</FieldDescription>
-                  </Field>
+                <Field>
+                  <FieldLabel htmlFor="contract-title">Contract title</FieldLabel>
+                  <Input id="contract-title" disabled={isReadOnly} {...form.register("title")} />
+                  <FieldDescription>Internal title used for the contract and project handoff.</FieldDescription>
+                </Field>
 
-                  <Field>
-                    <FieldLabel htmlFor="contract-type">Contract type</FieldLabel>
-                    <Controller
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange} disabled={isReadOnly}>
-                          <SelectTrigger id="contract-type" aria-label="Choose contract type">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectLabel>Contract type</SelectLabel>
-                              {Object.values(ContractType).map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type.replaceAll("_", " ")}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </Field>
-                </div>
+                <Field>
+                  <FieldLabel htmlFor="contract-type">Contract type</FieldLabel>
+                  <Controller
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange} disabled={isReadOnly}>
+                        <SelectTrigger id="contract-type" aria-label="Choose contract type">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectLabel>Contract type</SelectLabel>
+                            {Object.entries(contractTypeLabel).map(([value, label]) => (
+                              <SelectItem key={value} value={value as ContractType}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <FieldDescription>
+                    Monthly retainer uses recurring billing. Fixed and one-time contracts do not ask for monthly value.
+                  </FieldDescription>
+                </Field>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field>
@@ -194,48 +195,30 @@ export function CreateContractDialog({ open, mode, onOpenChange, record }: Creat
                   </Field>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field>
-                    <FieldLabel htmlFor="contract-total-value">Total value</FieldLabel>
-                    <Input id="contract-total-value" type="number" min="0" disabled={isReadOnly} {...form.register("totalValue")} />
-                  </Field>
+                <Card size="sm" className="border-dashed bg-muted/20">
+                  <CardContent className="flex flex-col gap-1 py-3 text-sm">
+                    <p className="font-medium">Contract value comes from the approved proposal</p>
+                    <p className="text-xs text-muted-foreground">
+                      The total amount is inherited from the proposal services. Do not re-enter it here.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {monthlyRetainer ? (
                   <Field>
                     <FieldLabel htmlFor="contract-monthly-value">Monthly value</FieldLabel>
                     <Input id="contract-monthly-value" type="number" min="0" disabled={isReadOnly} {...form.register("monthlyValue")} />
+                    <FieldDescription>
+                      Used only for monthly retainers. Project periods and invoices are created later by the backend.
+                    </FieldDescription>
                   </Field>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-3">
+                ) : (
                   <Field>
-                    <FieldLabel htmlFor="contract-down-payment-type">Down payment type</FieldLabel>
-                    <Controller
-                      control={form.control}
-                      name="downPaymentType"
-                      render={({ field }) => (
-                        <Select value={field.value || null} onValueChange={field.onChange} disabled={isReadOnly}>
-                          <SelectTrigger id="contract-down-payment-type" aria-label="Choose down payment type">
-                            <SelectValue placeholder="None" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectLabel>Payment amount</SelectLabel>
-                              <SelectItem value={PaymentAmountType.FIXED}>Fixed</SelectItem>
-                              <SelectItem value={PaymentAmountType.PERCENT}>Percent</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
+                    <FieldLabel>Monthly value</FieldLabel>
+                    <Input value="Not needed for this contract type" disabled />
+                    <FieldDescription>The backend will use a zero monthly value for fixed or one-time contracts.</FieldDescription>
                   </Field>
-                  <Field>
-                    <FieldLabel htmlFor="contract-down-payment-value">Down payment value</FieldLabel>
-                    <Input id="contract-down-payment-value" type="number" min="0" disabled={isReadOnly} {...form.register("downPaymentValue")} />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="contract-months">Months</FieldLabel>
-                    <Input id="contract-months" type="number" min="1" disabled={isReadOnly} {...form.register("numberOfMonths")} />
-                  </Field>
-                </div>
+                )}
 
                 <Field>
                   <FieldLabel htmlFor="contract-pdf">Attach PDF contract</FieldLabel>
@@ -256,180 +239,219 @@ export function CreateContractDialog({ open, mode, onOpenChange, record }: Creat
               </FieldGroup>
 
               <FieldSet>
-                <FieldLegend variant="label">Payment plan</FieldLegend>
+                <FieldLegend variant="label">Advanced billing</FieldLegend>
                 <FieldDescription>
-                  Optional advanced rows for milestone, recurring, or manual billing.
+                  Optional down payment and custom billing rows. Keep this collapsed unless you need more than the standard setup.
                 </FieldDescription>
 
-                <Collapsible defaultOpen={isReadOnly || advancedPlanOpen}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm text-muted-foreground">Advanced rows are optional if the simple pricing fields are enough.</p>
-                    {!isReadOnly ? (
-                      <CollapsibleTrigger asChild>
-                        <Button type="button" variant="outline">
-                          <ChevronRightIcon data-icon="inline-start" />
-                          Advanced plan
-                        </Button>
-                      </CollapsibleTrigger>
-                    ) : null}
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    {advancedOpen || hasPaymentPlan ? "Advanced billing is open." : "Advanced billing is hidden."}
+                  </p>
+                  {!isReadOnly ? (
+                    <Button type="button" variant="outline" onClick={() => setAdvancedOpen((current) => !current)}>
+                      {advancedOpen || hasPaymentPlan ? (
+                        <ChevronDownIcon data-icon="inline-start" />
+                      ) : (
+                        <ChevronRightIcon data-icon="inline-start" />
+                      )}
+                      {advancedOpen || hasPaymentPlan ? "Hide advanced billing" : "Show advanced billing"}
+                    </Button>
+                  ) : null}
+                </div>
 
-                  <CollapsibleContent className="mt-4">
-                    <div className="flex flex-col gap-3">
-                      {fields.length === 0 ? (
-                        <div className="rounded-xl border border-dashed px-3 py-4 text-xs text-muted-foreground">
-                          No advanced payment rows yet.
-                        </div>
-                      ) : null}
-
-                      {fields.map((field, index) => (
-                        <div key={field.id} className="rounded-xl border bg-background/70 p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-xs font-medium text-muted-foreground">Plan row {index + 1}</p>
-                            {!isReadOnly && fields.length > 0 ? (
-                              <Button type="button" variant="ghost" size="icon-xs" aria-label={`Remove plan row ${index + 1}`} onClick={() => remove(index)}>
-                                <Trash2Icon />
-                              </Button>
-                            ) : null}
-                          </div>
-
-                          <div className="mt-3 grid gap-3 md:grid-cols-2">
-                            <Field>
-                              <FieldLabel htmlFor={`plan-label-${field.id}`}>Label</FieldLabel>
-                              <Input id={`plan-label-${field.id}`} disabled={isReadOnly} {...form.register(`paymentPlan.${index}.label` as const)} />
-                            </Field>
-                            <Field>
-                              <FieldLabel htmlFor={`plan-due-${field.id}`}>Due offset days</FieldLabel>
-                              <Input id={`plan-due-${field.id}`} type="number" min="0" disabled={isReadOnly} {...form.register(`paymentPlan.${index}.dueOffsetDays` as const)} />
-                            </Field>
-                          </div>
-
-                          <div className="mt-3 grid gap-3 md:grid-cols-3">
-                            <Field>
-                              <FieldLabel htmlFor={`plan-trigger-${field.id}`}>Trigger</FieldLabel>
-                              <Controller
-                                control={form.control}
-                                name={`paymentPlan.${index}.triggerType` as const}
-                                render={({ field: controllerField }) => (
-                                  <Select value={controllerField.value} onValueChange={controllerField.onChange} disabled={isReadOnly}>
-                                    <SelectTrigger id={`plan-trigger-${field.id}`} aria-label="Choose trigger type">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectGroup>
-                                        <SelectLabel>Trigger type</SelectLabel>
-                                        {Object.values(PaymentPlanTriggerType).map((triggerType) => (
-                                          <SelectItem key={triggerType} value={triggerType}>
-                                            {triggerType.replaceAll("_", " ")}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectGroup>
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                              />
-                            </Field>
-                            <Field>
-                              <FieldLabel htmlFor={`plan-amount-type-${field.id}`}>Amount type</FieldLabel>
-                              <Controller
-                                control={form.control}
-                                name={`paymentPlan.${index}.amountType` as const}
-                                render={({ field: controllerField }) => (
-                                  <Select value={controllerField.value} onValueChange={controllerField.onChange} disabled={isReadOnly}>
-                                    <SelectTrigger id={`plan-amount-type-${field.id}`} aria-label="Choose amount type">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectGroup>
-                                        <SelectLabel>Amount type</SelectLabel>
-                                        {Object.values(PaymentAmountType).map((amountType) => (
-                                          <SelectItem key={amountType} value={amountType}>
-                                            {amountType}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectGroup>
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                              />
-                            </Field>
-                            <Field>
-                              <FieldLabel htmlFor={`plan-amount-${field.id}`}>Amount</FieldLabel>
-                              <Input id={`plan-amount-${field.id}`} type="number" min="0" disabled={isReadOnly} {...form.register(`paymentPlan.${index}.amountValue` as const)} />
-                            </Field>
-                          </div>
-
-                          <div className="mt-3 flex items-center justify-between gap-3">
-                            <Field className="flex-1">
-                              <FieldLabel htmlFor={`plan-recurring-${field.id}`}>Recurring</FieldLabel>
-                              <Controller
-                                control={form.control}
-                                name={`paymentPlan.${index}.isRecurring` as const}
-                                render={({ field: controllerField }) => (
-                                  <Select
-                                    value={controllerField.value ? "yes" : "no"}
-                                    onValueChange={(value) => controllerField.onChange(value === "yes")}
-                                    disabled={isReadOnly}
-                                  >
-                                    <SelectTrigger id={`plan-recurring-${field.id}`} aria-label="Recurring payment">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectGroup>
-                                        <SelectLabel>Recurring</SelectLabel>
-                                        <SelectItem value="no">No</SelectItem>
-                                        <SelectItem value="yes">Yes</SelectItem>
-                                      </SelectGroup>
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                              />
-                            </Field>
-                          </div>
-                        </div>
-                      ))}
+                {advancedOpen || hasPaymentPlan ? (
+                  <div className="mt-4 flex flex-col gap-4">
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <Field>
+                        <FieldLabel htmlFor="contract-down-payment-type">Down payment type</FieldLabel>
+                        <Controller
+                          control={form.control}
+                          name="downPaymentType"
+                          render={({ field }) => (
+                            <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)} disabled={isReadOnly}>
+                              <SelectTrigger id="contract-down-payment-type" aria-label="Choose down payment type">
+                                <SelectValue placeholder="None" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectGroup>
+                                  <SelectLabel>Payment amount</SelectLabel>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value={PaymentAmountType.FIXED}>Fixed</SelectItem>
+                                  <SelectItem value={PaymentAmountType.PERCENT}>Percent</SelectItem>
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="contract-down-payment-value">Down payment value</FieldLabel>
+                        <Input id="contract-down-payment-value" type="number" min="0" disabled={isReadOnly} {...form.register("downPaymentValue")} />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="contract-months">Months</FieldLabel>
+                        <Input id="contract-months" type="number" min="1" disabled={isReadOnly} {...form.register("numberOfMonths")} />
+                      </Field>
                     </div>
 
-                    {!isReadOnly ? (
-                      <div className="mt-3 flex items-center justify-between gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            append({
-                              label: "",
-                              triggerType: PaymentPlanTriggerType.MANUAL,
-                              amountType: PaymentAmountType.FIXED,
-                              amountValue: "",
-                              isRecurring: false,
-                              dueOffsetDays: "0",
-                            })
-                          }
-                        >
-                          <Plus data-icon="inline-start" />
-                          Add plan row
-                        </Button>
+                    <FieldSet>
+                      <FieldLegend variant="label">Payment plan rows</FieldLegend>
+                      <FieldDescription>
+                        Optional rows for milestone or custom billing. The backend creates periods later; do not model them here.
+                      </FieldDescription>
 
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">Planned rows total</span>
-                          <span className="font-semibold">SAR {totalPaymentPlan.toLocaleString()}</span>
+                      <div className="flex flex-col gap-3">
+                        {fields.length === 0 ? (
+                          <div className="rounded-xl border border-dashed px-3 py-4 text-xs text-muted-foreground">
+                            No advanced payment rows yet.
+                          </div>
+                        ) : null}
+
+                        {fields.map((field, index) => (
+                          <div key={field.id} className="rounded-xl border bg-background/70 p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-medium text-muted-foreground">Plan row {index + 1}</p>
+                              {!isReadOnly ? (
+                                <Button type="button" variant="ghost" size="icon-xs" aria-label={`Remove plan row ${index + 1}`} onClick={() => remove(index)}>
+                                  <Trash2Icon />
+                                </Button>
+                              ) : null}
+                            </div>
+
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                              <Field>
+                                <FieldLabel htmlFor={`plan-label-${field.id}`}>Label</FieldLabel>
+                                <Input id={`plan-label-${field.id}`} disabled={isReadOnly} {...form.register(`paymentPlan.${index}.label` as const)} />
+                              </Field>
+                              <Field>
+                                <FieldLabel htmlFor={`plan-due-${field.id}`}>Due offset days</FieldLabel>
+                                <Input id={`plan-due-${field.id}`} type="number" min="0" disabled={isReadOnly} {...form.register(`paymentPlan.${index}.dueOffsetDays` as const)} />
+                              </Field>
+                            </div>
+
+                            <div className="mt-3 grid gap-3 md:grid-cols-3">
+                              <Field>
+                                <FieldLabel htmlFor={`plan-trigger-${field.id}`}>Trigger</FieldLabel>
+                                <Controller
+                                  control={form.control}
+                                  name={`paymentPlan.${index}.triggerType` as const}
+                                  render={({ field: controllerField }) => (
+                                    <Select value={controllerField.value} onValueChange={controllerField.onChange} disabled={isReadOnly}>
+                                      <SelectTrigger id={`plan-trigger-${field.id}`} aria-label="Choose trigger type">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectGroup>
+                                          <SelectLabel>Trigger type</SelectLabel>
+                                          {Object.values(PaymentPlanTriggerType).map((triggerType) => (
+                                            <SelectItem key={triggerType} value={triggerType}>
+                                              {triggerType.replaceAll("_", " ")}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectGroup>
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
+                              </Field>
+                              <Field>
+                                <FieldLabel htmlFor={`plan-amount-type-${field.id}`}>Amount type</FieldLabel>
+                                <Controller
+                                  control={form.control}
+                                  name={`paymentPlan.${index}.amountType` as const}
+                                  render={({ field: controllerField }) => (
+                                    <Select value={controllerField.value} onValueChange={controllerField.onChange} disabled={isReadOnly}>
+                                      <SelectTrigger id={`plan-amount-type-${field.id}`} aria-label="Choose amount type">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectGroup>
+                                          <SelectLabel>Amount type</SelectLabel>
+                                          {Object.values(PaymentAmountType).map((amountType) => (
+                                            <SelectItem key={amountType} value={amountType}>
+                                              {amountType}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectGroup>
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
+                              </Field>
+                              <Field>
+                                <FieldLabel htmlFor={`plan-amount-${field.id}`}>Amount</FieldLabel>
+                                <Input id={`plan-amount-${field.id}`} type="number" min="0" disabled={isReadOnly} {...form.register(`paymentPlan.${index}.amountValue` as const)} />
+                              </Field>
+                            </div>
+
+                            <div className="mt-3 flex items-center justify-between gap-3">
+                              <Field className="flex-1">
+                                <FieldLabel htmlFor={`plan-recurring-${field.id}`}>Recurring</FieldLabel>
+                                <Controller
+                                  control={form.control}
+                                  name={`paymentPlan.${index}.isRecurring` as const}
+                                  render={({ field: controllerField }) => (
+                                    <Select
+                                      value={controllerField.value ? "yes" : "no"}
+                                      onValueChange={(value) => controllerField.onChange(value === "yes")}
+                                      disabled={isReadOnly}
+                                    >
+                                      <SelectTrigger id={`plan-recurring-${field.id}`} aria-label="Recurring payment">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectGroup>
+                                          <SelectLabel>Recurring</SelectLabel>
+                                          <SelectItem value="no">No</SelectItem>
+                                          <SelectItem value="yes">Yes</SelectItem>
+                                        </SelectGroup>
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
+                              </Field>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {!isReadOnly ? (
+                        <div className="flex items-center justify-between gap-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              append({
+                                label: "",
+                                triggerType: PaymentPlanTriggerType.MANUAL,
+                                amountType: PaymentAmountType.FIXED,
+                                amountValue: "",
+                                isRecurring: false,
+                                dueOffsetDays: "0",
+                              })
+                            }
+                          >
+                            <Plus data-icon="inline-start" />
+                            Add plan row
+                          </Button>
+
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground">Planned rows total</span>
+                            <span className="font-semibold">SAR {Number.isFinite(totalPaymentPlan) ? totalPaymentPlan.toLocaleString() : 0}</span>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="mt-3 flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">Planned rows total</span>
-                        <span className="font-semibold">SAR {totalPaymentPlan.toLocaleString()}</span>
-                      </div>
-                    )}
-                  </CollapsibleContent>
-                </Collapsible>
+                      ) : null}
+                    </FieldSet>
+                  </div>
+                ) : null}
               </FieldSet>
 
               <Separator />
 
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                <p>Contract creation depends on an approved proposal.</p>
-                <p>Request and proposal references are prefixed from the selected record.</p>
+                <p>Monthly retainers drive project periods after signing.</p>
+                <p>Fixed and one-time contracts keep monthly value hidden and do not ask for it.</p>
               </div>
             </div>
           </ScrollArea>
