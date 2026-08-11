@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { CrmOverviewWorkspace } from "@/features/crm-overview/components/crm-overview-workspace";
 
 export const metadata: Metadata = {
   title: "CRM Overview | Hassad",
 };
 
 export default function CrmPage() {
-  return <ScreenPlaceholder label="Overview" />;
+  return <CrmOverviewWorkspace />;
 }
