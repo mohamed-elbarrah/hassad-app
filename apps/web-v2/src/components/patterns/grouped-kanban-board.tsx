@@ -11,13 +11,16 @@ import {
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVerticalIcon } from "lucide-react";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { StatusBadge, type StatusTone } from "@/components/patterns/status-badge";
+import {
+  StatusBadge,
+  type StatusTone,
+} from "@/components/patterns/status-badge";
 import { cn } from "@/lib/utils";
 
 export type KanbanItem = {
@@ -43,7 +46,11 @@ export type KanbanLane<TItem extends KanbanItem> = {
 type GroupedKanbanBoardProps<TItem extends KanbanItem> = {
   lanes: KanbanLane<TItem>[];
   renderCard: (item: TItem, state: { isDragging: boolean }) => React.ReactNode;
-  onMoveItem?: (payload: { itemId: string; fromSectionId: string; toSectionId: string }) => void;
+  onMoveItem?: (payload: {
+    itemId: string;
+    fromSectionId: string;
+    toSectionId: string;
+  }) => void;
   emptyState?: React.ReactNode;
 };
 
@@ -57,7 +64,9 @@ function StaticKanbanCard<TItem extends KanbanItem>({
   return (
     <div className="group relative">
       <Card size="sm" className="relative bg-background/95 shadow-sm">
-        <CardContent className="space-y-3 py-3 pr-10">{renderCard(item, { isDragging: false })}</CardContent>
+        <CardContent className="space-y-3 py-3 pr-10">
+          {renderCard(item, { isDragging: false })}
+        </CardContent>
       </Card>
     </div>
   );
@@ -72,20 +81,32 @@ function KanbanDraggableCard<TItem extends KanbanItem>({
   sectionId: string;
   renderCard: (item: TItem, state: { isDragging: boolean }) => React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: item.id,
-    data: { sectionId },
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: item.id,
+      data: { sectionId },
+    });
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
-      className={cn("group relative transition-transform", isDragging && "z-10 opacity-80")}
+      className={cn(
+        "group relative transition-transform",
+        isDragging && "z-10 opacity-80",
+      )}
       {...attributes}
     >
-      <Card size="sm" className={cn("relative bg-background/95 shadow-sm", isDragging && "ring-2 ring-ring/30")}>
-        <CardContent className="space-y-3 py-3 pr-10">{renderCard(item, { isDragging })}</CardContent>
+      <Card
+        size="sm"
+        className={cn(
+          "relative bg-background/95 shadow-sm",
+          isDragging && "ring-2 ring-ring/30",
+        )}
+      >
+        <CardContent className="space-y-3 py-3 pr-10">
+          {renderCard(item, { isDragging })}
+        </CardContent>
       </Card>
       <Button
         type="button"
@@ -126,7 +147,9 @@ function KanbanSectionColumn<TItem extends KanbanItem>({
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold">{section.title}</p>
             {section.description ? (
-              <p className="truncate text-[11px] text-muted-foreground">{section.description}</p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {section.description}
+              </p>
             ) : null}
           </div>
         </div>
@@ -141,9 +164,18 @@ function KanbanSectionColumn<TItem extends KanbanItem>({
         ) : (
           section.items.map((item) =>
             interactive ? (
-              <KanbanDraggableCard key={item.id} item={item} sectionId={section.id} renderCard={renderCard} />
+              <KanbanDraggableCard
+                key={item.id}
+                item={item}
+                sectionId={section.id}
+                renderCard={renderCard}
+              />
             ) : (
-              <StaticKanbanCard key={item.id} item={item} renderCard={renderCard} />
+              <StaticKanbanCard
+                key={item.id}
+                item={item}
+                renderCard={renderCard}
+              />
             ),
           )
         )}
@@ -201,6 +233,10 @@ export function GroupedKanbanBoard<TItem extends KanbanItem>({
   );
   const [viewLanes, setViewLanes] = useState(lanes);
 
+  useEffect(() => {
+    setViewLanes(lanes);
+  }, [lanes]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
@@ -225,7 +261,9 @@ export function GroupedKanbanBoard<TItem extends KanbanItem>({
 
     if (!overId) return;
 
-    const sourceMeta = event.active.data.current as { sectionId?: string } | undefined;
+    const sourceMeta = event.active.data.current as
+      | { sectionId?: string }
+      | undefined;
     const sourceSectionId = sourceMeta?.sectionId;
 
     if (!sourceSectionId) return;
@@ -235,12 +273,23 @@ export function GroupedKanbanBoard<TItem extends KanbanItem>({
 
     if (!targetSectionId || targetSectionId === sourceSectionId) return;
 
-    setViewLanes((current) => moveItem(current, itemId, sourceSectionId, targetSectionId));
-    onMoveItem?.({ itemId, fromSectionId: sourceSectionId, toSectionId: targetSectionId });
+    setViewLanes((current) =>
+      moveItem(current, itemId, sourceSectionId, targetSectionId),
+    );
+    onMoveItem?.({
+      itemId,
+      fromSectionId: sourceSectionId,
+      toSectionId: targetSectionId,
+    });
   };
 
   const totalCards = viewLanes.reduce(
-    (laneTotal, lane) => laneTotal + lane.sections.reduce((sectionTotal, section) => sectionTotal + section.items.length, 0),
+    (laneTotal, lane) =>
+      laneTotal +
+      lane.sections.reduce(
+        (sectionTotal, section) => sectionTotal + section.items.length,
+        0,
+      ),
     0,
   );
 
@@ -252,18 +301,23 @@ export function GroupedKanbanBoard<TItem extends KanbanItem>({
     <ScrollArea className="w-full">
       <div className="flex min-w-max gap-4 pb-2">
         {viewLanes.map((lane) => {
-          const laneCount = lane.sections.reduce((sum, section) => sum + section.items.length, 0);
+          const laneCount = lane.sections.reduce(
+            (sum, section) => sum + section.items.length,
+            0,
+          );
 
           return (
             <Card
               key={lane.id}
-              className="min-w-[22rem] max-w-[22rem] flex-col border-border/70 bg-card/95 shadow-sm h-[calc(100svh-18rem)]"
+              className="min-w-[22rem] max-w-[22rem] flex-col border-border/70 bg-card/95 shadow-sm ]"
               size="sm"
             >
               <CardHeader className="gap-2 border-b pb-3">
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-current opacity-75" />
-                  <CardTitle className="text-sm font-semibold">{lane.title}</CardTitle>
+                  <CardTitle className="text-sm font-semibold">
+                    {lane.title}
+                  </CardTitle>
                 </div>
                 <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                   <Badge variant="outline" className="tabular-nums">

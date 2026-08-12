@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { GroupedKanbanBoard } from "@/components/patterns/grouped-kanban-board";
+import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { CreateContractDialog } from "@/components/patterns/create-contract-dialog";
 import { CreateProposalDialog } from "@/components/patterns/create-proposal-dialog";
@@ -21,7 +22,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
-  CRM_OVERVIEW_FIXTURE,
   buildOverviewLanes,
   canCreateContractFromStatus,
   canOpenContractFromStatus,
@@ -34,6 +34,7 @@ import {
   type CrmOverviewRecord,
   type CrmOverviewStatus,
 } from "@/features/crm-overview/lib/crm-overview-data";
+import { useGetCrmOverviewQuery } from "@/lib/api/crm-overview-api";
 
 export function CrmOverviewWorkspace() {
   const [boardFilter, setBoardFilter] = useState<CrmOverviewBoardFilter>("all");
@@ -47,11 +48,15 @@ export function CrmOverviewWorkspace() {
   const [nextStatus, setNextStatus] = useState<CrmOverviewStatus>("NEW");
   const [transitionNotes, setTransitionNotes] = useState("");
 
+  const { data, isLoading, isError, refetch } = useGetCrmOverviewQuery();
+
+  const records = useMemo(() => data ?? [], [data]);
+
   const filteredRecords = useMemo(() => {
-    return filterOverviewRecords(CRM_OVERVIEW_FIXTURE, boardFilter).filter((record) =>
+    return filterOverviewRecords(records, boardFilter).filter((record) =>
       matchesOverviewSearch(record, search),
     );
-  }, [boardFilter, search]);
+  }, [boardFilter, records, search]);
 
   const activeBoard = useMemo(() => ({
     total: filteredRecords.length,
@@ -59,8 +64,8 @@ export function CrmOverviewWorkspace() {
   }), [filteredRecords]);
 
   const activeRecord = useMemo(
-    () => CRM_OVERVIEW_FIXTURE.find((record) => record.id === activeRecordId) ?? null,
-    [activeRecordId],
+    () => records.find((record) => record.id === activeRecordId) ?? null,
+    [activeRecordId, records],
   );
 
   const openStatusDialog = (record: CrmOverviewRecord) => {
@@ -81,6 +86,29 @@ export function CrmOverviewWorkspace() {
     setContractDialogMode(mode);
     setContractDialogOpen(true);
   };
+
+  if (isLoading && records.length === 0) {
+    return <ScreenPlaceholder label="Loading CRM overview" />;
+  }
+
+  if (isError && records.length === 0) {
+    return (
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <LayoutGridIcon />
+          </EmptyMedia>
+          <EmptyTitle>Unable to load CRM overview</EmptyTitle>
+          <EmptyDescription>
+            We could not fetch the live pipeline data right now.
+          </EmptyDescription>
+        </EmptyHeader>
+        <Button type="button" variant="outline" onClick={() => refetch()}>
+          Retry
+        </Button>
+      </Empty>
+    );
+  }
 
   return (
     <PageScaffold

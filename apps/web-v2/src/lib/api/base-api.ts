@@ -66,6 +66,7 @@ export const baseApi = createApi({
     "Employees",
     "Clients",
     "Crm",
+    "CrmOverview",
     "Delivery",
     "Session",
     "Chat",
