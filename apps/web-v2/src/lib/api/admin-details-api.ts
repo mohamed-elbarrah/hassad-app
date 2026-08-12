@@ -46,7 +46,7 @@ export const adminDetailsApi = baseApi.injectEndpoints({
       providesTags: ["Clients"],
     }),
     getOrderDetail: builder.query<unknown, string>({
-      query: (id) => ({ url: `/admin/leads/${id}` }),
+      query: (id) => ({ url: `/admin/crm/orders/${id}` }),
       providesTags: ["Crm"],
     }),
     getProposalDetail: builder.query<unknown, string>({

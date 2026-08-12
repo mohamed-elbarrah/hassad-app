@@ -317,109 +317,228 @@ export class AdminWorkspacesService {
   }
 
   async getCrmWorkspace(query: AdminCrmWorkspaceQueryDto) {
-    const leads = await this.prisma.lead.findMany({
-      where: {
-        isActive: true,
-        ...(this.buildDateFilter(query.dateFilter)
-          ? { createdAt: this.buildDateFilter(query.dateFilter) }
-          : {}),
-      },
-      include: {
-        assignee: { select: { name: true } },
-        contactLogs: {
-          orderBy: { contactedAt: "desc" },
-          take: 20,
-          select: { type: true, contactedAt: true },
+    const dateFilter = this.buildDateFilter(query.dateFilter);
+
+    const [leads, requests] = await Promise.all([
+      this.prisma.lead.findMany({
+        where: {
+          isActive: true,
+          requestId: null,
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
         },
-        services: {
-          include: {
-            service: {
-              select: { name: true },
+        include: {
+          assignee: { select: { name: true } },
+          contactLogs: {
+            orderBy: { contactedAt: "desc" },
+            take: 20,
+            select: { type: true, contactedAt: true },
+          },
+          services: {
+            include: {
+              service: {
+                select: { name: true },
+              },
+            },
+          },
+          proposals: {
+            orderBy: { createdAt: "desc" },
+            select: { status: true, totalPrice: true, createdAt: true, id: true },
+          },
+          client: {
+            select: {
+              projects: {
+                where: { isArchived: false },
+                select: { id: true },
+              },
             },
           },
         },
-        proposals: {
-          orderBy: { createdAt: "desc" },
-          select: { status: true, totalPrice: true, createdAt: true, id: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      this.prisma.request.findMany({
+        where: {
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
         },
-        client: {
-          select: {
-            projects: {
-              where: { isArchived: false },
-              select: { id: true },
+        include: {
+          assignee: { select: { name: true } },
+          submitter: { select: { name: true } },
+          lead: { select: { pipelineStage: true } },
+          contactLogs: {
+            orderBy: { contactedAt: "desc" },
+            take: 20,
+            select: { type: true, contactedAt: true },
+          },
+          services: {
+            include: {
+              service: {
+                select: { name: true },
+              },
+            },
+          },
+          proposals: {
+            orderBy: { createdAt: "desc" },
+            select: { status: true, totalPrice: true, createdAt: true, id: true },
+          },
+          contracts: {
+            orderBy: { createdAt: "desc" },
+            select: { status: true, totalValue: true, createdAt: true, id: true },
+          },
+          client: {
+            select: {
+              projects: {
+                where: { isArchived: false },
+                select: { id: true },
+              },
             },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    const leadRows = leads.map((lead) => {
+      const latestProposal = lead.proposals[0] ?? null;
+      const contactAttempts = lead.contactAttemptCount ?? lead.contactLogs.length;
+      const meetingsCount = lead.contactLogs.filter((log) => log.type === "MEETING").length;
+      const estimatedValue = Number(latestProposal?.totalPrice ?? 0);
+      const openedDaysAgo = Math.max(
+        Math.floor((Date.now() - lead.createdAt.getTime()) / 86400000),
+        0,
+      );
+      const stalled =
+        !lead.lastContactAt ||
+        Date.now() - new Date(lead.lastContactAt).getTime() > 7 * 86400000;
+      const waitingApproval =
+        latestProposal?.status === ProposalStatus.SENT ||
+        latestProposal?.status === ProposalStatus.APPROVED;
+      const projectCount = lead.client?.projects.length ?? 0;
+      const serviceLine = lead.services.length
+        ? lead.services
+            .map((service) => service.service.name)
+            .filter(Boolean)
+            .slice(0, 2)
+            .join(" + ")
+        : "Qualification in progress";
+
+      return {
+        id: lead.id,
+        companyName: lead.companyName,
+        contactName: lead.contactName,
+        serviceLine,
+        owner: lead.assignee?.name ?? "Unassigned",
+        source: (lead.source as ClientSource) ?? ClientSource.WEBSITE,
+        stage: lead.pipelineStage,
+        stageTone: this.mapPipelineTone(lead.pipelineStage),
+        estimatedValue,
+        openedAt: lead.createdAt.toISOString(),
+        openedDaysAgo,
+        lastContact: lead.lastContactAt
+          ? new Date(lead.lastContactAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : "No contact yet",
+        nextFollowUp: stalled ? "Follow-up overdue" : "Next follow-up scheduled",
+        nextStep: latestProposal ? "Drive proposal decision" : "Continue qualification",
+        proposalStatus: (latestProposal?.status as ProposalStatus | null) ?? null,
+        proposalTone: this.mapProposalTone(latestProposal?.status ?? null),
+        contractState: latestProposal?.status === "APPROVED"
+          ? "Ready for contract"
+          : "Not started",
+        contractTone: latestProposal?.status === "APPROVED" ? "success" : "neutral",
+        agingLabel: stalled ? "Stalled" : `${openedDaysAgo}d in pipeline`,
+        agingTone: stalled ? "destructive" : "neutral",
+        waitingApproval,
+        stalled,
+        contactAttemptCount: contactAttempts,
+        meetingsCount,
+        projectSignalLabel:
+          projectCount > 0 ? `${projectCount} active projects` : "No project yet",
+        projectSignalTone: projectCount > 0 ? "active" : "neutral",
+      };
     });
 
-    const items = leads
-      .map((lead) => {
-        const latestProposal = lead.proposals[0] ?? null;
-        const contactAttempts = lead.contactAttemptCount ?? lead.contactLogs.length;
-        const meetingsCount = lead.contactLogs.filter((log) => log.type === "MEETING").length;
-        const estimatedValue = Number(latestProposal?.totalPrice ?? 0);
-        const openedDaysAgo = Math.max(
-          Math.floor((Date.now() - lead.createdAt.getTime()) / 86400000),
-          0,
-        );
-        const stalled =
-          !lead.lastContactAt ||
-          Date.now() - new Date(lead.lastContactAt).getTime() > 7 * 86400000;
-        const waitingApproval =
-          latestProposal?.status === ProposalStatus.SENT ||
-          latestProposal?.status === ProposalStatus.APPROVED;
-        const projectCount = lead.client?.projects.length ?? 0;
-        const serviceLine = lead.services.length
-          ? lead.services
-              .map((service) => service.service.name)
-              .filter(Boolean)
-              .slice(0, 2)
-              .join(" + ")
-          : "Qualification in progress";
+    const requestRows = requests.map((request) => {
+      const latestProposal = request.proposals[0] ?? null;
+      const latestContract = request.contracts[0] ?? null;
+      const contactAttempts = request.contactAttemptCount ?? request.contactLogs.length;
+      const meetingsCount = request.contactLogs.filter((log) => log.type === "MEETING").length;
+      const estimatedValue = Number(latestProposal?.totalPrice ?? latestContract?.totalValue ?? 0);
+      const openedDaysAgo = Math.max(
+        Math.floor((Date.now() - request.createdAt.getTime()) / 86400000),
+        0,
+      );
+      const stalled =
+        !request.lastContactAt ||
+        Date.now() - new Date(request.lastContactAt).getTime() > 7 * 86400000;
+      const waitingApproval =
+        latestProposal?.status === ProposalStatus.SENT ||
+        latestProposal?.status === ProposalStatus.APPROVED ||
+        request.status === RequestStatus.CONTRACT_PREPARATION ||
+        request.status === RequestStatus.CONTRACT_SENT;
+      const projectCount = request.client?.projects.length ?? 0;
+      const serviceLine = request.services.length
+        ? request.services
+            .map((service) => service.service.name)
+            .filter(Boolean)
+            .slice(0, 2)
+            .join(" + ")
+        : "Qualification in progress";
+      const stage =
+        (request.lead?.pipelineStage as PipelineStage | undefined) ??
+        this.mapRequestStage(request.status as RequestStatus);
 
-        return {
-          id: lead.id,
-          companyName: lead.companyName,
-          contactName: lead.contactName,
-          serviceLine,
-          owner: lead.assignee?.name ?? "Unassigned",
-          source: (lead.source as ClientSource) ?? ClientSource.WEBSITE,
-          stage: lead.pipelineStage,
-          stageTone: this.mapPipelineTone(lead.pipelineStage),
-          estimatedValue,
-          openedAt: lead.createdAt.toISOString(),
-          openedDaysAgo,
-          lastContact: lead.lastContactAt
-            ? new Date(lead.lastContactAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })
-            : "No contact yet",
-          nextFollowUp: stalled ? "Follow-up overdue" : "Next follow-up scheduled",
-          nextStep: latestProposal
+      return {
+        id: request.id,
+        companyName: request.companyName,
+        contactName: request.contactName,
+        serviceLine,
+        owner: request.assignee?.name ?? request.submitter?.name ?? "Unassigned",
+        source: (request.source as ClientSource) ?? ClientSource.WEBSITE,
+        stage,
+        stageTone: this.mapPipelineTone(stage),
+        estimatedValue,
+        openedAt: request.createdAt.toISOString(),
+        openedDaysAgo,
+        lastContact: request.lastContactAt
+          ? new Date(request.lastContactAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : "No contact yet",
+        nextFollowUp: stalled ? "Follow-up overdue" : "Next follow-up scheduled",
+        nextStep: latestContract
+          ? "Drive contract signing"
+          : latestProposal
             ? "Drive proposal decision"
             : "Continue qualification",
-          proposalStatus: (latestProposal?.status as ProposalStatus | null) ?? null,
-          proposalTone: this.mapProposalTone(latestProposal?.status ?? null),
-          contractState: latestProposal?.status === "APPROVED"
-            ? "Ready for contract"
-            : "Not started",
-          contractTone:
-            latestProposal?.status === "APPROVED" ? "success" : "neutral",
-          agingLabel: stalled ? "Stalled" : `${openedDaysAgo}d in pipeline`,
-          agingTone: stalled ? "destructive" : "neutral",
-          waitingApproval,
-          stalled,
-          contactAttemptCount: contactAttempts,
-          meetingsCount,
-          projectSignalLabel:
-            projectCount > 0 ? `${projectCount} active projects` : "No project yet",
-          projectSignalTone: projectCount > 0 ? "active" : "neutral",
-        };
-      })
+        proposalStatus: (latestProposal?.status as ProposalStatus | null) ?? null,
+        proposalTone: this.mapProposalTone(latestProposal?.status ?? null),
+        contractState: latestContract?.status === "SIGNED"
+          ? "Signed"
+          : latestContract?.status === "ACTIVE"
+            ? "Active"
+            : latestContract?.status === "SENT"
+              ? "Sent"
+              : latestProposal?.status === "APPROVED"
+                ? "Ready for contract"
+                : "Not started",
+        contractTone: this.mapContractTone(latestContract?.status ?? null),
+        agingLabel: stalled ? "Stalled" : `${openedDaysAgo}d in pipeline`,
+        agingTone: stalled ? "destructive" : "neutral",
+        waitingApproval,
+        stalled,
+        contactAttemptCount: contactAttempts,
+        meetingsCount,
+        projectSignalLabel:
+          projectCount > 0 ? `${projectCount} active projects` : "No project yet",
+        projectSignalTone: projectCount > 0 ? "active" : "neutral",
+      };
+    });
+
+    const items = [...leadRows, ...requestRows]
       .filter((item) => {
         if (query.statusFilter === "active") return !item.waitingApproval && !item.stalled;
         if (query.statusFilter === "waiting-approval") return item.waitingApproval;
@@ -1004,6 +1123,40 @@ export class AdminWorkspacesService {
       default:
         return "attention";
     }
+  }
+
+  private mapRequestStage(status: RequestStatus): PipelineStage {
+    switch (status) {
+      case RequestStatus.SUBMITTED:
+        return PipelineStage.NEW;
+      case RequestStatus.QUALIFYING:
+        return PipelineStage.CALL_ATTEMPT;
+      case RequestStatus.PROPOSAL_IN_PROGRESS:
+        return PipelineStage.MEETING_DONE;
+      case RequestStatus.PROPOSAL_SENT:
+        return PipelineStage.PROPOSAL_SENT;
+      case RequestStatus.NEGOTIATION:
+        return PipelineStage.FOLLOW_UP;
+      case RequestStatus.CONTRACT_PREPARATION:
+      case RequestStatus.CONTRACT_SENT:
+        return PipelineStage.APPROVED;
+      case RequestStatus.SIGNED:
+      case RequestStatus.PROJECT_CREATED:
+        return PipelineStage.CONTRACT_SIGNED;
+      case RequestStatus.CANCELLED:
+        return PipelineStage.CALL_ATTEMPT;
+      default:
+        return PipelineStage.NEW;
+    }
+  }
+
+  private mapContractTone(status: string | null): StatusTone {
+    if (!status) return "neutral";
+    if (status === "ACTIVE" || status === "SIGNED") return "success";
+    if (status === "SENT") return "warning";
+    if (status === "CANCELLED" || status === "EXPIRED") return "destructive";
+    if (status === "ON_HOLD") return "attention";
+    return "neutral";
   }
 
   private mapProposalTone(status: string | null): StatusTone {

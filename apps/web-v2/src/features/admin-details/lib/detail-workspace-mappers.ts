@@ -276,6 +276,31 @@ function projectCurrentPeriodLabel(periods: Array<any>) {
   return "One-off";
 }
 
+function mapRequestStatusToStage(status?: string | null) {
+  switch (status) {
+    case "SUBMITTED":
+      return "NEW";
+    case "QUALIFYING":
+      return "CALL_ATTEMPT";
+    case "PROPOSAL_IN_PROGRESS":
+      return "MEETING_DONE";
+    case "PROPOSAL_SENT":
+      return "PROPOSAL_SENT";
+    case "NEGOTIATION":
+      return "FOLLOW_UP";
+    case "CONTRACT_PREPARATION":
+    case "CONTRACT_SENT":
+      return "APPROVED";
+    case "SIGNED":
+    case "PROJECT_CREATED":
+      return "CONTRACT_SIGNED";
+    case "CANCELLED":
+      return "CALL_ATTEMPT";
+    default:
+      return status ?? "NEW";
+  }
+}
+
 export function mapClientDetailFromApi(client: any): ClientDetailRecord {
   const outstanding =
     (client.totalContractValue ?? 0) - (client.totalPaid ?? 0);
@@ -423,115 +448,231 @@ export function mapClientDetailFromApi(client: any): ClientDetailRecord {
 }
 
 export function mapOrderDetailFromApi(order: any): OrderDetailRecord {
+  const request = order?.request ?? order?.lead?.request ?? null;
+  const lead = order?.lead ?? request?.lead ?? null;
+  const primary = request ?? lead ?? order;
+  const pipelineSource = lead ?? request?.lead ?? primary;
+  const commercialSource = request ?? primary;
+
+  const contactLogs = (commercialSource.contactLogs ?? pipelineSource.contactLogs ?? order.contactLogs ?? []) as any[];
+  const proposals = (commercialSource.proposals ?? pipelineSource.proposals ?? order.proposals ?? []) as any[];
+  const contracts = (commercialSource.contracts ?? order.contracts ?? []) as any[];
+  const services = (commercialSource.services ?? pipelineSource.services ?? order.services ?? []) as any[];
+  const client = commercialSource.client ?? pipelineSource.client ?? order.client ?? null;
+
+  const stage =
+    pipelineSource.pipelineStage ??
+    (commercialSource.status ? mapRequestStatusToStage(String(commercialSource.status)) : "NEW");
+  const stageLabel = String(stage ?? "NEW").replaceAll("_", " ");
+  const stageIndex = [
+    "NEW",
+    "INTRO_SENT",
+    "CALL_ATTEMPT",
+    "MEETING_SCHEDULED",
+    "MEETING_DONE",
+    "PROPOSAL_SENT",
+    "FOLLOW_UP",
+    "APPROVED",
+    "CONTRACT_SIGNED",
+  ].indexOf(String(stage));
+  const stageProgress =
+    stageIndex < 0 ? "0%" : `${Math.round((stageIndex / 8) * 100)}%`;
+
   const estimatedValue =
-    order.proposals?.[0]?.totalPrice ??
-    order.proposals?.reduce((sum: number, proposal: any) => sum + (proposal.totalPrice ?? 0), 0) ??
+    proposals[0]?.totalPrice ??
+    proposals.reduce((sum: number, proposal: any) => sum + (proposal.totalPrice ?? 0), 0) ??
+    contracts[0]?.totalValue ??
     0;
-  const touchpointBuckets = new Map<string, { label: string; calls: number; meetings: number; messages: number }>();
-  for (const log of order.contactLogs ?? []) {
+
+  const touchpointBuckets = new Map<
+    string,
+    { label: string; calls: number; meetings: number; messages: number }
+  >();
+  for (const log of contactLogs) {
     const key = formatDate(log.contactedAt);
-    const bucket = touchpointBuckets.get(key) ?? { label: key, calls: 0, meetings: 0, messages: 0 };
+    const bucket =
+      touchpointBuckets.get(key) ?? { label: key, calls: 0, meetings: 0, messages: 0 };
     if (log.type === "CALL") bucket.calls += 1;
     else if (log.type === "MEETING") bucket.meetings += 1;
     else bucket.messages += 1;
     touchpointBuckets.set(key, bucket);
   }
 
+  const lastContactAt = commercialSource.lastContactAt ?? pipelineSource.lastContactAt ?? null;
+  const createdAt = commercialSource.createdAt ?? pipelineSource.createdAt ?? order.createdAt;
+  const openedDaysAgo = Math.max(
+    Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000),
+    0,
+  );
+  const clientStatus =
+    client && (client.activeProjects > 0 || client.completedProjects > 0 || client.totalProjects > 0)
+      ? "Client"
+      : "Lead";
+  const owner =
+    pipelineSource.assignee?.name ??
+    commercialSource.assignee?.name ??
+    commercialSource.submitter?.name ??
+    pipelineSource.creator?.name ??
+    "Unassigned";
+  const serviceLine =
+    services
+      .map((item: any) => item.service?.nameAr || item.service?.name)
+      .filter(Boolean)
+      .slice(0, 2)
+      .join(", ") || "Unassigned service line";
+  const note =
+    commercialSource.internalNotes ??
+    commercialSource.notes ??
+    pipelineSource.notes ??
+    contactLogs[0]?.notes ??
+    "No additional notes on the record.";
+  const latestProposal = proposals[0] ?? null;
+  const latestContract = contracts[0] ?? null;
+  const contactAttemptCount =
+    commercialSource.contactAttemptCount ?? pipelineSource.contactAttemptCount ?? contactLogs.length ?? 0;
+
+  const stageTone = (() => {
+    if (stage === "APPROVED" || stage === "CONTRACT_SIGNED") return "success" as const;
+    if (stage === "MEETING_SCHEDULED" || stage === "MEETING_DONE") return "active" as const;
+    if (stage === "FOLLOW_UP" || stage === "PROPOSAL_SENT") return "warning" as const;
+    if (stage === "CALL_ATTEMPT") return "attention" as const;
+    return "neutral" as const;
+  })();
+
+  const statusSummary =
+    stage === "CONTRACT_SIGNED"
+      ? "Commercial close is complete and waiting for delivery handoff."
+      : stage === "APPROVED"
+        ? "Commercial approval is in place and contract work can move forward."
+        : stage === "FOLLOW_UP"
+          ? "The record is in follow-up and needs a decision loop to close."
+          : stage === "PROPOSAL_SENT"
+            ? "A proposal is active and waiting on client feedback."
+            : stage === "MEETING_DONE"
+              ? "Discovery is complete and the commercial next step is proposal prep."
+              : "Commercial activity is still in progress.";
+
+  const summaryNextAction = (() => {
+    if (stage === "CONTRACT_SIGNED") return "Handoff to project setup";
+    if (stage === "APPROVED") return "Prepare contract package";
+    if (stage === "FOLLOW_UP") return "Close the commercial decision loop";
+    if (stage === "PROPOSAL_SENT") return "Review proposal feedback";
+    if (stage === "MEETING_DONE") return "Draft the proposal";
+    if (stage === "MEETING_SCHEDULED") return "Hold the scheduled meeting";
+    if (stage === "CALL_ATTEMPT") return "Retry follow-up";
+    return "Continue qualification";
+  })();
+
   return {
-    id: order.id,
-    companyName: order.companyName ?? "Unnamed lead",
-    contactName: order.contactName ?? "Unknown contact",
-    phone: order.phoneWhatsapp ?? "—",
-    email: order.email ?? "—",
-    businessName: order.businessName ?? order.companyName ?? "—",
-    businessType: mapBusinessType(order.businessType),
-    source: mapSource(order.source),
-    owner: order.assignee?.name ?? "Unassigned",
-    openedAt: formatDateTime(order.createdAt),
-    lastContact: formatDateTime(order.lastContactAt),
-    nextFollowUp: order.lastContactAt ? "Follow-up based on last contact log" : "No follow-up logged",
-    stage: order.pipelineStage,
-    stageTone: mapProposalTone(order.pipelineStage === "CONTRACT_SIGNED" ? "APPROVED" : order.pipelineStage === "QUALIFIED" ? "SENT" : null),
+    id: primary.id,
+    companyName: commercialSource.companyName ?? pipelineSource.companyName ?? "Unnamed lead",
+    contactName: commercialSource.contactName ?? pipelineSource.contactName ?? "Unknown contact",
+    phone: commercialSource.phoneWhatsapp ?? pipelineSource.phoneWhatsapp ?? "—",
+    email: commercialSource.email ?? pipelineSource.email ?? "—",
+    businessName: commercialSource.businessName ?? pipelineSource.businessName ?? "—",
+    businessType: mapBusinessType(commercialSource.businessType ?? pipelineSource.businessType),
+    source: mapSource(commercialSource.source ?? pipelineSource.source),
+    owner,
+    openedAt: formatDateTime(createdAt),
+    lastContact: formatDateTime(lastContactAt),
+    nextFollowUp: summaryNextAction,
+    stage: stage as any,
+    stageTone,
     estimatedValue,
-    notes: order.notes ?? "No additional notes on the lead record.",
-    serviceLine: (order.services ?? []).map((item: any) => item.service?.name).filter(Boolean).join(", ") || "Unassigned service line",
-    statusSummary: `Pipeline stage is ${String(order.pipelineStage ?? "unknown").replaceAll("_", " ").toLowerCase()}.`,
+    notes: note,
+    serviceLine,
+    statusSummary,
     sidebarSummary: [
       {
         label: "Contact attempts",
-        value: String(order.contactAttemptCount ?? (order.contactLogs?.length ?? 0)),
-        helper: "CRM contact attempts logged on this lead.",
+        value: String(contactAttemptCount),
+        helper: "Calls, WhatsApp follow-ups, and meetings logged on the CRM record.",
       },
       {
         label: "Latest proposal",
-        value: order.proposals?.[0]?.status ?? "No proposal",
-        helper: "Most recent proposal status linked to this lead.",
+        value: latestProposal ? String(latestProposal.status).replaceAll("_", " ") : "Not started",
+        helper: "Most recent commercial status linked to this record.",
       },
       {
-        label: "Linked client",
-        value: order.client?.id ? "Client created" : "Lead only",
-        helper: "Whether the lead was already converted into a client record.",
+        label: "Client relation",
+        value: client ? clientStatus : "Lead only",
+        helper: "Whether the record is linked to an active client account.",
       },
       {
         label: "Pipeline age",
-        value: formatDate(order.createdAt),
-        helper: "Original lead creation date.",
+        value: `${openedDaysAgo} days`,
+        helper: "Measured from the original CRM opening date.",
       },
     ],
-    client: order.client
+    client: client
       ? {
-          id: order.client.id,
-          companyName: order.companyName ?? "Client",
-          contactName: order.contactName ?? "Primary contact",
-          status: "Client",
-          owner: order.assignee?.name ?? "Unassigned",
-          lastSeen: formatDateTime(order.lastContactAt),
+          id: client.id,
+          companyName: client.companyName ?? commercialSource.companyName ?? "Client",
+          contactName: commercialSource.contactName ?? pipelineSource.contactName ?? "Primary contact",
+          status: clientStatus,
+          owner,
+          lastSeen: client.user?.lastLoginAt ? formatDateTime(client.user.lastLoginAt) : "No portal activity",
         }
       : null,
     metrics: [
       {
         label: "Current stage",
-        value: String(order.pipelineStage ?? "—").replaceAll("_", " "),
-        description: "Latest backend pipeline stage.",
+        value: stageLabel,
+        description: "Latest commercial stage from the backend CRM record.",
+        trend:
+          stage === "APPROVED" || stage === "CONTRACT_SIGNED"
+            ? { label: "Near close", tone: "success" }
+            : stage === "FOLLOW_UP" || stage === "PROPOSAL_SENT"
+              ? { label: "Needs decision", tone: "warning" }
+              : undefined,
       },
       {
         label: "Estimated value",
         value: formatCurrency(estimatedValue),
-        description: "Latest proposal amount or aggregate commercial value.",
+        description: "Latest proposal amount or contract value.",
       },
       {
-        label: "Contact attempts",
-        value: String(order.contactAttemptCount ?? (order.contactLogs?.length ?? 0)),
-        description: "Total contact attempts logged against the lead.",
+        label: "Last contact",
+        value: formatDateTime(lastContactAt),
+        description: "Most recent CRM touchpoint.",
       },
       {
-        label: "Proposals",
-        value: String(order.proposals?.length ?? 0),
-        description: "Proposal records currently linked to this lead.",
+        label: "Stage progress",
+        value: stageProgress,
+        description: "Progress across the standard commercial pipeline.",
       },
     ],
     touchpoints: Array.from(touchpointBuckets.values()).slice(-6),
-    contactTimeline: (order.contactLogs ?? []).map((log: any) => ({
+    contactTimeline: contactLogs.map((log: any) => ({
       id: log.id,
       type: log.type,
       result: log.result,
       happenedAt: formatDateTime(log.contactedAt),
-      owner: order.assignee?.name ?? "Team",
-      summary: String(log.type ?? "Touchpoint").replaceAll("_", " "),
-      report: log.notes ?? "Contact log recorded with no extra note.",
-      nextAction: log.result === "RESPONDED" ? "Continue follow-up" : "Retry follow-up",
+      owner: log.user?.name ?? owner,
+      summary: `${String(log.type ?? "Touchpoint").replaceAll("_", " ")}`,
+      report: log.notes ?? "Contact log recorded with no additional notes.",
+      nextAction:
+        log.result === "RESPONDED"
+          ? "Continue the conversation"
+          : log.result === "BUSY"
+            ? "Retry at a better time"
+            : "Retry follow-up",
     })),
-    stageHistory: (order.pipelineHistory ?? []).map((item: any) => ({
-      id: item.id,
-      fromStage: item.fromStage,
-      toStage: item.toStage,
-      changedAt: formatDateTime(item.changedAt),
-      changedBy: item.changedBy ?? "System",
-      note: item.reason ?? "Pipeline stage updated.",
-    })),
-    proposals: (order.proposals ?? []).map((proposal: any) => ({
+    stageHistory: ((pipelineSource.pipelineHistory ?? commercialSource.statusHistory ?? []) as any[]).map(
+      (item: any) => ({
+        id: item.id,
+        fromStage:
+          item.fromStage ?? mapRequestStatusToStage(item.fromStatus) ?? stage,
+        toStage:
+          item.toStage ?? mapRequestStatusToStage(item.toStatus) ?? stage,
+        changedAt: formatDateTime(item.changedAt),
+        changedBy: item.changer?.name ?? item.changedBy ?? owner,
+        note: item.note ?? item.reason ?? "Pipeline stage updated.",
+      }),
+    ),
+    proposals: proposals.map((proposal: any) => ({
       id: proposal.id,
-      title: proposal.title,
+      title: proposal.title ?? `${String(commercialSource.companyName ?? pipelineSource.companyName ?? "Client")} commercial package`,
       status: proposal.status,
       amount: proposal.totalPrice ?? 0,
       createdAt: formatDateTime(proposal.createdAt),
@@ -539,19 +680,19 @@ export function mapOrderDetailFromApi(order: any): OrderDetailRecord {
     })),
     relatedRecords: [
       {
-        label: "Lead source",
-        value: String(order.source ?? "OTHER").replaceAll("_", " "),
-        helper: "Original acquisition source on the lead record.",
+        label: "Requested services",
+        value: serviceLine,
+        helper: "Service scope carried from the CRM record.",
       },
       {
-        label: "Assigned owner",
-        value: order.assignee?.name ?? "Unassigned",
-        helper: "Current owner responsible for the lead.",
+        label: "Primary blocker",
+        value: note,
+        helper: "The latest note or commercial blocker captured in the record.",
       },
       {
-        label: "Linked client",
-        value: order.client?.id ?? "Not converted",
-        helper: "Client linkage after lead conversion.",
+        label: "Request origin",
+        value: String(commercialSource.source ?? pipelineSource.source ?? "OTHER").replaceAll("_", " "),
+        helper: "Acquisition source recorded on the backend CRM record.",
       },
     ],
   };
