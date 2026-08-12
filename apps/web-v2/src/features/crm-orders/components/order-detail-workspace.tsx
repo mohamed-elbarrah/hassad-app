@@ -156,7 +156,15 @@ function getContactOutcomeSummary(contactTimeline: OrderDetailRecord["contactTim
   };
 }
 
-export function OrderDetailWorkspace({ order }: { order: OrderDetailRecord }) {
+export function OrderDetailWorkspace({
+  order,
+  backHref = "/admin/crm/orders",
+  backLabel = "Orders",
+}: {
+  order: OrderDetailRecord;
+  backHref?: string;
+  backLabel?: string;
+}) {
   const contactOutcome = getContactOutcomeSummary(order.contactTimeline);
   const contactTimelineItems: EntityTimelineItem[] = order.contactTimeline.map((entry) => ({
     id: entry.id,
@@ -206,10 +214,10 @@ export function OrderDetailWorkspace({ order }: { order: OrderDetailRecord }) {
         <Button
           variant="outline"
           nativeButton={false}
-          render={<Link href="/admin/crm/orders" />}
+          render={<Link href={backHref} />}
         >
           <ArrowLeftIcon data-icon="inline-start" />
-          Orders
+          {backLabel}
         </Button>
       }
     >

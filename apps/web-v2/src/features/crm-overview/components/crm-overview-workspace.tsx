@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { LayoutGridIcon, Plus, SearchIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -231,6 +232,14 @@ export function CrmOverviewWorkspace() {
                       Open contract
                     </Button>
                   ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    render={<Link href={`/crm/orders/${record.id}`} />}
+                  >
+                    Detail
+                  </Button>
                   <Button type="button" variant="outline" size="xs" onClick={() => openStatusDialog(record)}>
                     Update status
                   </Button>
