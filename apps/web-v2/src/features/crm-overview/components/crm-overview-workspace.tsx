@@ -46,9 +46,9 @@ export function CrmOverviewWorkspace() {
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false);
-  const [proposalDialogMode, setProposalDialogMode] = useState<"create" | "view">("view");
+  const [proposalDialogMode, setProposalDialogMode] = useState<"create" | "edit" | "view">("view");
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
-  const [contractDialogMode, setContractDialogMode] = useState<"create" | "view">("create");
+  const [contractDialogMode, setContractDialogMode] = useState<"create" | "edit" | "view">("create");
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useGetCrmOverviewQuery();
@@ -73,13 +73,13 @@ export function CrmOverviewWorkspace() {
     [activeRecordId, records],
   );
 
-  const openProposalDialog = (record: CrmOverviewRecord, mode: "create" | "view") => {
+  const openProposalDialog = (record: CrmOverviewRecord, mode: "create" | "edit" | "view") => {
     setActiveRecordId(record.id);
     setProposalDialogMode(mode);
     setProposalDialogOpen(true);
   };
 
-  const openContractDialog = (record: CrmOverviewRecord, mode: "create" | "view") => {
+  const openContractDialog = (record: CrmOverviewRecord, mode: "create" | "edit" | "view") => {
     setActiveRecordId(record.id);
     setContractDialogMode(mode);
     setContractDialogOpen(true);
@@ -230,21 +230,33 @@ export function CrmOverviewWorkspace() {
 
                 <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-2">
                   {canOpenProposalFromStatus(record.status) ? (
-                    <Button type="button" size="xs" onClick={() => openProposalDialog(record, "view")}>
+                    <Button
+                      type="button"
+                      size="xs"
+                      onClick={() => openProposalDialog(record, record.proposalId ? "edit" : "create")}
+                    >
                       <Plus data-icon="inline-start" />
-                      Open proposal
+                      {record.proposalId ? "Edit proposal" : "Create proposal"}
                     </Button>
                   ) : null}
                   {canCreateContractFromStatus(record.status) ? (
-                    <Button type="button" size="xs" onClick={() => openContractDialog(record, "create")}>
+                    <Button
+                      type="button"
+                      size="xs"
+                      onClick={() => openContractDialog(record, record.contractId ? "edit" : "create")}
+                    >
                       <Plus data-icon="inline-start" />
-                      Create & Send Contract
+                      {record.contractId ? "Edit contract" : "Create & Send Contract"}
                     </Button>
                   ) : null}
                   {canOpenContractFromStatus(record.status) ? (
-                    <Button type="button" size="xs" onClick={() => openContractDialog(record, "view")}>
+                    <Button
+                      type="button"
+                      size="xs"
+                      onClick={() => openContractDialog(record, record.contractId ? "edit" : "view")}
+                    >
                       <Plus data-icon="inline-start" />
-                      Open contract
+                      {record.contractId ? "Edit contract" : "Open contract"}
                     </Button>
                   ) : null}
                   <Button
@@ -275,6 +287,7 @@ export function CrmOverviewWorkspace() {
         mode={proposalDialogMode}
         onOpenChange={setProposalDialogOpen}
         record={activeRecord}
+        proposalId={activeRecord?.proposalId ?? null}
       />
 
       <CreateContractDialog
@@ -282,6 +295,7 @@ export function CrmOverviewWorkspace() {
         mode={contractDialogMode}
         onOpenChange={setContractDialogOpen}
         record={activeRecord}
+        contractId={activeRecord?.contractId ?? null}
       />
 
       <CrmNoteDialog

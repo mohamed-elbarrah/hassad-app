@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { MulterModule } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 import { ChatModule } from "../chat/chat.module";
 import { LeadsController } from "./controllers/leads.controller";
 import { LeadsService } from "./services/leads.service";
@@ -25,7 +27,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { RequestsModule } from "../requests/requests.module";
 
 @Module({
-  imports: [ChatModule, NotificationsModule, RequestsModule],
+  imports: [ChatModule, NotificationsModule, RequestsModule, MulterModule.register({ storage: memoryStorage() })],
   controllers: [
     LeadsController,
     ClientsController,

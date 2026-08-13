@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { ProposalStatus, RequestStatus } from "@hassad/shared";
+import { randomBytes } from "crypto";
 
-import { ProposalStatus } from "@hassad/shared";
 import { PrismaService } from "../../../prisma/prisma.service";
-
-import { CrmProposalsWorkspaceQueryDto } from "../dto/crm-proposals.dto";
+import { NotificationsService } from "../../notifications/services/notifications.service";
+import { RequestsService } from "../../requests/requests.service";
+import {
+  CrmCreateProposalDto,
+  CrmProposalsWorkspaceQueryDto,
+  CrmUpdateProposalDto,
+} from "../dto/crm-proposals.dto";
 
 type CrmProposalRow = {
   id: string;
@@ -48,9 +54,17 @@ function mapValidityTone(daysLeft: number, validUntil: Date | null): CrmProposal
   return "success";
 }
 
+function buildToast(type: "success" | "error" | "info" | "warning" | "loading", title: string, description?: string) {
+  return { type, title, description };
+}
+
 @Injectable()
 export class CrmProposalsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+    private readonly requestsService: RequestsService,
+  ) {}
 
   async findAll(filters: CrmProposalsWorkspaceQueryDto) {
     const where: Record<string, unknown> = {};
@@ -163,5 +177,147 @@ export class CrmProposalsService {
     });
 
     return { ...proposal, contract };
+  }
+
+  async create(userId: string, dto: CrmCreateProposalDto) {
+    if (!dto.requestId && !dto.leadId) {
+      throw new BadRequestException("A request or lead reference is required");
+    }
+
+    const creator = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
+
+    const proposal = await this.prisma.$transaction(async (tx) => {
+      const request = await this.requestsService.resolveRequestContext(
+        { requestId: dto.requestId, leadId: dto.leadId },
+        userId,
+        tx,
+      );
+
+      return tx.proposal.create({
+        data: {
+          requestId: request.id,
+          leadId: request.lead?.id ?? null,
+          clientId: request.clientId,
+          createdBy: userId,
+          title: dto.title,
+          serviceDescription: dto.serviceDescription ?? "",
+          servicesList: (dto.servicesList ?? []) as any,
+          totalPrice: dto.totalPrice ?? 0,
+          durationDays: dto.durationDays ?? 0,
+          durationUnit: dto.durationUnit ?? "DAYS",
+          platforms: dto.platforms ?? [],
+          filePath: dto.filePath ?? null,
+          contactName: dto.contactName || creator?.name || "",
+          contactEmail: dto.contactEmail || creator?.email || "",
+          startDate: dto.startDate ? new Date(dto.startDate) : null,
+          offerValidityDays: dto.offerValidityDays ?? 30,
+          status: ProposalStatus.DRAFT,
+        },
+      });
+    });
+
+    return {
+      proposal,
+      toast: buildToast("success", "Proposal draft created", "Save your changes or send it when ready."),
+    };
+  }
+
+  async update(id: string, dto: CrmUpdateProposalDto & { filePath?: string | null }) {
+    const proposal = await this.prisma.proposal.findUnique({ where: { id } });
+
+    if (!proposal) {
+      throw new NotFoundException("Proposal not found");
+    }
+
+    const updated = await this.prisma.proposal.update({
+      where: { id },
+      data: {
+        title: dto.title,
+        serviceDescription: dto.serviceDescription,
+        servicesList: dto.servicesList as any,
+        totalPrice: dto.totalPrice,
+        durationDays: dto.durationDays,
+        durationUnit: dto.durationUnit,
+        platforms: dto.platforms,
+        contactName: dto.contactName,
+        contactEmail: dto.contactEmail,
+        filePath: dto.filePath,
+        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+        offerValidityDays: dto.offerValidityDays,
+      },
+    });
+
+    return {
+      proposal: updated,
+      toast: buildToast("success", "Proposal updated", "The commercial draft has been saved."),
+    };
+  }
+
+  async send(id: string, userId?: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id },
+      select: { id: true, title: true, requestId: true, leadId: true, createdBy: true },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException("Proposal not found");
+    }
+
+    const token = randomBytes(32).toString("hex");
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.proposal.update({
+        where: { id },
+        data: {
+          status: ProposalStatus.SENT,
+          shareLinkToken: token,
+          sentAt: new Date(),
+        },
+      });
+
+      if (proposal.requestId || proposal.leadId) {
+        const request = await this.requestsService.resolveRequestContext(
+          { requestId: proposal.requestId ?? undefined, leadId: proposal.leadId ?? undefined },
+          userId ?? proposal.createdBy,
+          tx,
+        );
+
+        await this.requestsService.updateStatus(
+          request.id,
+          RequestStatus.PROPOSAL_SENT,
+          userId ?? proposal.createdBy,
+          undefined,
+          tx,
+        );
+      }
+
+      return result;
+    });
+
+    const recipientId = await this.prisma.request.findUnique({
+      where: { id: proposal.requestId ?? "" },
+      select: { client: { select: { userId: true } }, submittedBy: true },
+    }).then((request) => request?.client?.userId ?? request?.submittedBy ?? null).catch(() => null);
+
+    if (recipientId) {
+      this.notificationsService
+        .createNotification({
+          entityId: token,
+          entityType: "proposal",
+          eventType: "PROPOSAL_SENT",
+          userId: recipientId,
+          title: "New proposal is ready",
+          body: `A new proposal titled "${proposal.title}" was sent for review.`,
+        })
+        .catch(() => undefined);
+    }
+
+    return {
+      proposal: updated,
+      toast: buildToast("success", "Proposal sent", "The proposal link has been generated and shared."),
+    };
   }
 }

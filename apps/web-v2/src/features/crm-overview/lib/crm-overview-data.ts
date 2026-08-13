@@ -35,6 +35,8 @@ export type CrmOverviewRecord = KanbanItem & {
   lastActivityAt: string;
   createdAt: string;
   attemptCount: number;
+  proposalId?: string | null;
+  contractId?: string | null;
   requiresNote?: boolean;
 };
 
