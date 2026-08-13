@@ -10,10 +10,25 @@ export class CrmClientsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getWorkspace(query: CrmClientsWorkspaceQueryDto) {
+    const search = query.search?.trim();
+    const where = search
+      ? {
+          OR: [
+            { companyName: { contains: search, mode: "insensitive" as const } },
+            { businessName: { contains: search, mode: "insensitive" as const } },
+            { user: { is: { name: { contains: search, mode: "insensitive" as const } } } },
+            { user: { is: { email: { contains: search, mode: "insensitive" as const } } } },
+            { user: { is: { phoneWhatsapp: { contains: search, mode: "insensitive" as const } } } },
+            { id: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : undefined;
+
     const [clients, leads] = await Promise.all([
       this.prisma.client.findMany({
+        where,
         include: {
-          user: { select: { name: true, lastLoginAt: true } },
+          user: { select: { name: true, email: true, phoneWhatsapp: true, lastLoginAt: true } },
           requests: {
             where: {
               status: {
@@ -86,6 +101,8 @@ export class CrmClientsService {
     const leadRows = leads.map((lead) => ({
       id: lead.id,
       contactName: lead.contactName,
+      contactEmail: lead.email ?? null,
+      contactPhone: lead.phoneWhatsapp ?? null,
       companyName: lead.companyName,
       stage: "lead" as const,
       totalProjects: 0,

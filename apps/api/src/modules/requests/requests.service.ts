@@ -1,10 +1,15 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import * as bcrypt from "bcrypt";
 import {
+  BusinessType,
+  ClientSource,
+  ClientStatus,
   ContactLogType,
   ContactLogResult,
   PipelineStage,
@@ -20,6 +25,7 @@ import {
   CreateRequestDto,
 } from "./dto/request.dto";
 import { CreateRequestForClientDto } from "./dto/request-for-client.dto";
+import type { CrmCreateRequestIntakeDto } from "../crm/dto/crm-requests.dto";
 
 type DbClient = Prisma.TransactionClient | PrismaService;
 
@@ -583,6 +589,202 @@ export class RequestsService {
     }
 
     return request;
+  }
+
+  async createCrmIntake(userId: string, dto: CrmCreateRequestIntakeDto) {
+    if (!dto.services.length) {
+      throw new BadRequestException("At least one service is required");
+    }
+
+    if (dto.mode === "existing" && !dto.existingClient?.clientId) {
+      throw new BadRequestException("Existing client is required");
+    }
+
+    if (dto.mode === "new" && !dto.newClient) {
+      throw new BadRequestException("New client data is required");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      let clientId = "";
+      let clientCreated = false;
+      let requestClientLabel = "";
+      let source = dto.source ?? ClientSource.PLATFORM;
+      let submittedBy = userId;
+      let assignedSalesId: string | null = null;
+      let companyName = "";
+      let contactName = "";
+      let phoneWhatsapp = "";
+      let email: string | null = null;
+      let businessName = "";
+      let businessType: BusinessType = BusinessType.OTHER;
+
+      if (dto.mode === "existing" && dto.existingClient?.clientId) {
+        const client = await tx.client.findUnique({
+          where: { id: dto.existingClient.clientId },
+          include: { manager: true, user: true },
+        });
+
+        if (!client) {
+          throw new NotFoundException("Client not found");
+        }
+        if (client.status === ClientStatus.STOPPED) {
+          throw new BadRequestException("Cannot create request for a stopped client");
+        }
+
+        clientId = client.id;
+        requestClientLabel = client.companyName;
+        companyName = client.companyName;
+        contactName = client.user?.name ?? client.companyName;
+        phoneWhatsapp = client.user?.phoneWhatsapp ?? "";
+        email = client.user?.email ?? null;
+        businessName = client.businessName;
+        businessType = client.businessType as BusinessType;
+        assignedSalesId = client.accountManager ?? null;
+        source = dto.source ?? ClientSource.PLATFORM;
+      } else if (dto.mode === "new" && dto.newClient) {
+        const newClient = dto.newClient;
+        const existingUser = await tx.user.findUnique({
+          where: { email: newClient.email.trim().toLowerCase() },
+        });
+
+        if (existingUser) {
+          throw new ConflictException("A user with this email already exists");
+        }
+
+        const role = await tx.role.findFirst({ where: { name: "CLIENT" } });
+        if (!role) {
+          throw new BadRequestException("CLIENT role not found");
+        }
+
+        const passwordHash = await bcrypt.hash(newClient.password, 12);
+        const user = await tx.user.create({
+          data: {
+            name: newClient.contactName,
+            email: newClient.email.trim().toLowerCase(),
+            phoneWhatsapp: newClient.phoneWhatsapp,
+            passwordHash,
+            roleId: role.id,
+          },
+        });
+
+        const resolvedClient = await this.canonicalClientService.upsertCanonicalClient(tx, {
+          userId: user.id,
+          companyName: newClient.companyName,
+          businessName: newClient.businessName,
+          businessType: newClient.businessType,
+          preferredManagerId: newClient.accountManager ?? null,
+          status: ClientStatus.LEAD,
+        });
+
+        clientId = resolvedClient.client.id;
+        clientCreated = resolvedClient.created;
+        requestClientLabel = resolvedClient.client.companyName;
+        companyName = newClient.companyName;
+        contactName = newClient.contactName;
+        phoneWhatsapp = newClient.phoneWhatsapp;
+        email = newClient.email.trim().toLowerCase();
+        businessName = newClient.businessName;
+        businessType = newClient.businessType as BusinessType;
+        assignedSalesId = resolvedClient.client.accountManager ?? null;
+        source = dto.source ?? ClientSource.PLATFORM;
+      } else {
+        throw new BadRequestException("Existing client or new client payload is required");
+      }
+
+      const finalSalesId = assignedSalesId
+        ? assignedSalesId
+        : (await this.salesAssignmentService.findBestSales([], clientId, tx))?.salesId ?? null;
+
+      const request = await tx.request.create({
+        data: {
+          clientId,
+          submittedBy,
+          assignedSalesId: finalSalesId ?? undefined,
+          companyName,
+          contactName,
+          phoneWhatsapp,
+          email: email ?? undefined,
+          businessName,
+          businessType,
+          source,
+          notes: dto.notes ?? undefined,
+          status: RequestStatus.SUBMITTED,
+          crmStage: "NEW",
+        },
+      });
+
+      await tx.requestStatusHistory.create({
+        data: {
+          requestId: request.id,
+          fromStatus: null,
+          toStatus: RequestStatus.SUBMITTED,
+          changedBy: userId,
+          note: clientCreated ? "Request created with a newly created CRM client" : "Request created for existing CRM client",
+        },
+      });
+
+      await tx.requestService.createMany({
+        data: dto.services.map((service) => ({
+          requestId: request.id,
+          serviceId: service.serviceId,
+          quantity: service.quantity ?? 1,
+          notes: service.notes,
+        })),
+      });
+
+      await tx.clientHistoryLog.create({
+        data: {
+          clientId,
+          userId,
+          eventType: clientCreated ? "CLIENT_CREATED" : "CLIENT_REQUEST_CREATED",
+          description: clientCreated
+            ? "Client created from CRM intake"
+            : "Request created for existing CRM client",
+          metadata: { requestId: request.id },
+        },
+      });
+
+      const createdRequest = await tx.request.findUnique({
+        where: { id: request.id },
+        include: {
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              userId: true,
+            },
+          },
+          assignee: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          services: {
+            include: {
+              service: { select: { id: true, name: true, nameAr: true } },
+            },
+          },
+        },
+      });
+
+      if (!createdRequest) {
+        throw new BadRequestException("Unable to create CRM intake request");
+      }
+
+      return {
+        request: createdRequest,
+        client: { id: clientId, created: clientCreated, companyName: requestClientLabel },
+        toast: {
+          type: "success" as const,
+          title: clientCreated ? "Client and request created" : "Request created",
+          description: clientCreated
+            ? "The client credentials were created and the intake request was submitted."
+            : "The intake request was submitted for the selected client.",
+        },
+      };
+    });
   }
 
   async ensureRequestForLead(

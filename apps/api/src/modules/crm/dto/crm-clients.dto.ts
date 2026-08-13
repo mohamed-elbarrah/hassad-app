@@ -1,4 +1,4 @@
-import { IsIn, IsOptional } from "class-validator";
+import { IsIn, IsOptional, IsString } from "class-validator";
 
 export class CrmClientsWorkspaceQueryDto {
   @IsOptional()
@@ -8,4 +8,8 @@ export class CrmClientsWorkspaceQueryDto {
   @IsOptional()
   @IsIn(["highest-spend", "lowest-spend"])
   sort?: "highest-spend" | "lowest-spend";
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

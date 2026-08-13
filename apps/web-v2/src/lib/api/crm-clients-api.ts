@@ -4,9 +4,17 @@ import type { AdminClientsWorkspaceQuery, ClientWorkspaceRecord } from "@hassad/
 
 import { baseApi } from "@/lib/api/base-api";
 
-export type CrmClientsWorkspaceQuery = AdminClientsWorkspaceQuery;
+export type CrmClientsWorkspaceQuery = AdminClientsWorkspaceQuery & {
+  search?: string;
+};
+
+export type CrmClientWorkspaceRecord = Omit<ClientWorkspaceRecord, "owner"> & {
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+};
+
 export type CrmClientsWorkspaceResponse = {
-  items: Omit<ClientWorkspaceRecord, "owner">[];
+  items: CrmClientWorkspaceRecord[];
 };
 
 export type CrmClientDetailApi = unknown;

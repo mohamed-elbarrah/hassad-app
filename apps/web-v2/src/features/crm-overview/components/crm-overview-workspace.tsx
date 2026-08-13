@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/patterns/status-badge";
 import { CreateContractDialog } from "@/components/patterns/create-contract-dialog";
 import { CreateProposalDialog } from "@/components/patterns/create-proposal-dialog";
 import { CrmNoteDialog } from "@/components/patterns/crm-note-dialog";
+import { CrmRequestIntakeDialog } from "@/components/patterns/crm-request-intake-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +51,7 @@ export function CrmOverviewWorkspace() {
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [contractDialogMode, setContractDialogMode] = useState<"create" | "edit" | "view">("create");
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
+  const [requestIntakeOpen, setRequestIntakeOpen] = useState(false);
 
   const { data, isLoading, isError, refetch } = useGetCrmOverviewQuery();
   const [createNote] = useCreateCrmOrderNoteMutation();
@@ -120,6 +122,9 @@ export function CrmOverviewWorkspace() {
       description="Grouped kanban for the commercial pipeline. Switch between all records, leads, or orders and search by account details."
       actions={
         <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" onClick={() => setRequestIntakeOpen(true)}>
+            New request
+          </Button>
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -297,6 +302,8 @@ export function CrmOverviewWorkspace() {
         record={activeRecord}
         contractId={activeRecord?.contractId ?? null}
       />
+
+      <CrmRequestIntakeDialog open={requestIntakeOpen} onOpenChange={setRequestIntakeOpen} record={activeRecord} />
 
       <CrmNoteDialog
         open={noteDialogOpen}
