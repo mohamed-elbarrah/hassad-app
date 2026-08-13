@@ -75,6 +75,7 @@ model User {
   projectMembers       ProjectMember[]
   managedProjects      Project[]                 @relation("ProjectManager")
   createdProposals     Proposal[]
+  crmNotes             CrmNote[]
   requestHistory       RequestStatusHistory[]    @relation("RequestStatusChangedBy")
   assignedRequests     Request[]                 @relation("RequestAssignee")
   submittedRequests    Request[]                 @relation("RequestSubmitter")
@@ -192,6 +193,7 @@ model Lead {
   client              Client?
   automationLogs      LeadAutomationLog[]
   contactLogs         LeadContactLog[]
+  crmNotes            CrmNote[]
   pipelineHistory     LeadPipelineHistory[]
   services            LeadService[]
   assignee            User?                 @relation("LeadAssignee", fields: [assignedTo], references: [id])
@@ -235,6 +237,26 @@ model LeadContactLog {
   @@index([leadId])
   @@index([userId])
   @@map("lead_contact_log")
+}
+
+model CrmNote {
+  id          String   @id @default(uuid())
+  leadId      String?  @map("lead_id")
+  requestId   String?  @map("request_id")
+  authorId    String   @map("author_id")
+  content     String   @db.Text
+  isInternal  Boolean  @default(true) @map("is_internal")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  request     Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id])
+
+  @@index([leadId])
+  @@index([requestId])
+  @@index([createdAt])
+  @@map("crm_notes")
 }
 
 model LeadAutomationRule {
@@ -464,6 +486,7 @@ model Request {
   project             Project?
   proposals           Proposal[]
   services            RequestService[]
+  crmNotes            CrmNote[]
   statusHistory       RequestStatusHistory[]
   contactLogs         RequestContactLog[]
   assignee            User?                  @relation("RequestAssignee", fields: [assignedSalesId], references: [id])

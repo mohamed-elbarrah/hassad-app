@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PipelineStage, RequestStatus } from "@prisma/client";
 
 import { PrismaService } from "../../../prisma/prisma.service";
@@ -88,6 +88,16 @@ const orderDetailContractSelect = {
   totalValue: true,
   createdAt: true,
   signedAt: true,
+} as const;
+
+const orderDetailNoteSelect = {
+  id: true,
+  content: true,
+  isInternal: true,
+  createdAt: true,
+  author: {
+    select: orderDetailUserSelect,
+  },
 } as const;
 
 function mapRequestStatusToStage(status: RequestStatus): PipelineStage {
@@ -183,6 +193,11 @@ export class CrmOrdersService {
             orderBy: { createdAt: "desc" },
             select: orderDetailContractSelect,
           },
+          crmNotes: {
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            select: orderDetailNoteSelect,
+          },
         },
       }),
       this.prisma.lead.findUnique({
@@ -230,6 +245,11 @@ export class CrmOrdersService {
                 orderBy: { createdAt: "desc" },
                 select: orderDetailContractSelect,
               },
+              crmNotes: {
+                orderBy: { createdAt: "desc" },
+                take: 20,
+                select: orderDetailNoteSelect,
+              },
             },
           },
           contactLogs: {
@@ -246,6 +266,11 @@ export class CrmOrdersService {
           proposals: {
             orderBy: { createdAt: "desc" },
             select: orderDetailProposalSelect,
+          },
+          crmNotes: {
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            select: orderDetailNoteSelect,
           },
         },
       }),
@@ -268,5 +293,40 @@ export class CrmOrdersService {
       request: lead?.request ?? null,
       lead,
     };
+  }
+
+  async createNote(id: string, authorId: string, content: string) {
+    const trimmed = content.trim();
+    if (!trimmed) {
+      throw new BadRequestException("Note content is required");
+    }
+
+    const request = await this.prisma.request.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    const lead = request
+      ? null
+      : await this.prisma.lead.findUnique({
+          where: { id },
+          select: { id: true },
+        });
+
+    if (!request && !lead) {
+      throw new NotFoundException("Order not found");
+    }
+
+    return this.prisma.crmNote.create({
+      data: request
+        ? { requestId: request.id, authorId, content: trimmed }
+        : { leadId: lead!.id, authorId, content: trimmed },
+      select: {
+        id: true,
+        content: true,
+        isInternal: true,
+        createdAt: true,
+        author: { select: orderDetailUserSelect },
+      },
+    });
   }
 }

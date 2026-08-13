@@ -521,8 +521,10 @@ export function mapOrderDetailFromApi(order: any): OrderDetailRecord {
       .slice(0, 2)
       .join(", ") || "Unassigned service line";
   const note =
+    commercialSource.crmNotes?.[0]?.content ??
     commercialSource.internalNotes ??
     commercialSource.notes ??
+    pipelineSource.crmNotes?.[0]?.content ??
     pipelineSource.notes ??
     contactLogs[0]?.notes ??
     "No additional notes on the record.";

@@ -163,6 +163,14 @@ export class CrmOverviewService {
               companyName: true,
             },
           },
+          crmNotes: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              content: true,
+              createdAt: true,
+            },
+          },
         },
         orderBy: { updatedAt: "desc" },
       }),
@@ -218,6 +226,14 @@ export class CrmOverviewService {
               companyName: true,
             },
           },
+          crmNotes: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              content: true,
+              createdAt: true,
+            },
+          },
         },
         orderBy: { updatedAt: "desc" },
       }),
@@ -242,7 +258,13 @@ export class CrmOverviewService {
         lead.contactLogs[0]?.contactedAt,
         lead.proposals[0]?.sentAt,
         lead.proposals[0]?.createdAt,
+        lead.crmNotes[0]?.createdAt,
       );
+      const note =
+        lead.crmNotes[0]?.content?.trim() ||
+        lead.notes?.trim() ||
+        lead.contactLogs[0]?.notes?.trim() ||
+        "";
       return {
         id: lead.id,
         kind: "lead",
@@ -255,10 +277,7 @@ export class CrmOverviewService {
         source: lead.source as ClientSource,
         owner: lead.assignee?.name || lead.creator?.name || "Unassigned",
         serviceLine,
-        note:
-          lead.notes?.trim() ||
-          lead.contactLogs[0]?.notes?.trim() ||
-          "",
+        note,
         lastActivityAt: toIso(latestActivityAt || lead.updatedAt),
         createdAt: toIso(lead.createdAt),
         attemptCount: lead.contactAttemptCount,
@@ -297,8 +316,10 @@ export class CrmOverviewService {
         request.proposals[0]?.createdAt,
         request.contracts[0]?.signedAt,
         request.contracts[0]?.createdAt,
+        request.crmNotes[0]?.createdAt,
       );
       const note =
+        request.crmNotes[0]?.content?.trim() ||
         request.notes?.trim() ||
         request.internalNotes?.trim() ||
         request.contactLogs[0]?.notes?.trim() ||

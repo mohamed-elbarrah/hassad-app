@@ -90,6 +90,16 @@ const orderDetailContractSelect = {
   signedAt: true,
 } as const;
 
+const orderDetailNoteSelect = {
+  id: true,
+  content: true,
+  isInternal: true,
+  createdAt: true,
+  author: {
+    select: orderDetailUserSelect,
+  },
+} as const;
+
 function mapRequestStatusToStage(status: RequestStatus): PipelineStage {
   switch (status) {
     case RequestStatus.SUBMITTED:
@@ -183,6 +193,11 @@ export class AdminCrmOrdersService {
             orderBy: { createdAt: "desc" },
             select: orderDetailContractSelect,
           },
+          crmNotes: {
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            select: orderDetailNoteSelect,
+          },
         },
       }),
       this.prisma.lead.findUnique({
@@ -230,6 +245,11 @@ export class AdminCrmOrdersService {
                 orderBy: { createdAt: "desc" },
                 select: orderDetailContractSelect,
               },
+              crmNotes: {
+                orderBy: { createdAt: "desc" },
+                take: 20,
+                select: orderDetailNoteSelect,
+              },
             },
           },
           contactLogs: {
@@ -246,6 +266,11 @@ export class AdminCrmOrdersService {
           proposals: {
             orderBy: { createdAt: "desc" },
             select: orderDetailProposalSelect,
+          },
+          crmNotes: {
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            select: orderDetailNoteSelect,
           },
         },
       }),

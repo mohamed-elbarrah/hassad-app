@@ -10,7 +10,7 @@ import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
 import { StatusBadge } from "@/components/patterns/status-badge";
 import { CreateContractDialog } from "@/components/patterns/create-contract-dialog";
 import { CreateProposalDialog } from "@/components/patterns/create-proposal-dialog";
-import { StatusTransitionDialog } from "@/components/patterns/status-transition-dialog";
+import { CrmNoteDialog } from "@/components/patterns/crm-note-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,27 +29,26 @@ import {
   canOpenProposalFromStatus,
   filterOverviewRecords,
   formatOverviewRecord,
-  getAllowedStatusesForRecord,
   matchesOverviewSearch,
   type CrmOverviewBoardFilter,
   type CrmOverviewRecord,
-  type CrmOverviewStatus,
 } from "@/features/crm-overview/lib/crm-overview-data";
 import { useGetCrmOverviewQuery } from "@/lib/api/crm-overview-api";
+import { useCreateCrmOrderNoteMutation } from "@/lib/api/crm-orders-api";
 
 export function CrmOverviewWorkspace() {
   const [boardFilter, setBoardFilter] = useState<CrmOverviewBoardFilter>("all");
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [noteText, setNoteText] = useState("");
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false);
   const [proposalDialogMode, setProposalDialogMode] = useState<"create" | "view">("view");
   const [contractDialogOpen, setContractDialogOpen] = useState(false);
   const [contractDialogMode, setContractDialogMode] = useState<"create" | "view">("create");
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
-  const [nextStatus, setNextStatus] = useState<CrmOverviewStatus>("NEW");
-  const [transitionNotes, setTransitionNotes] = useState("");
 
   const { data, isLoading, isError, refetch } = useGetCrmOverviewQuery();
+  const [createNote] = useCreateCrmOrderNoteMutation();
 
   const records = useMemo(() => data ?? [], [data]);
 
@@ -69,13 +68,6 @@ export function CrmOverviewWorkspace() {
     [activeRecordId, records],
   );
 
-  const openStatusDialog = (record: CrmOverviewRecord) => {
-    setActiveRecordId(record.id);
-    setNextStatus(record.status);
-    setTransitionNotes("");
-    setDialogOpen(true);
-  };
-
   const openProposalDialog = (record: CrmOverviewRecord, mode: "create" | "view") => {
     setActiveRecordId(record.id);
     setProposalDialogMode(mode);
@@ -86,6 +78,12 @@ export function CrmOverviewWorkspace() {
     setActiveRecordId(record.id);
     setContractDialogMode(mode);
     setContractDialogOpen(true);
+  };
+
+  const openNoteDialog = (record: CrmOverviewRecord) => {
+    setActiveRecordId(record.id);
+    setNoteText("");
+    setNoteDialogOpen(true);
   };
 
   if (isLoading && records.length === 0) {
@@ -240,8 +238,8 @@ export function CrmOverviewWorkspace() {
                   >
                     Detail
                   </Button>
-                  <Button type="button" variant="outline" size="xs" onClick={() => openStatusDialog(record)}>
-                    Update status
+                  <Button type="button" variant="outline" size="xs" onClick={() => openNoteDialog(record)}>
+                    Add note
                   </Button>
                 </div>
 
@@ -268,17 +266,18 @@ export function CrmOverviewWorkspace() {
         record={activeRecord}
       />
 
-      <StatusTransitionDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+      <CrmNoteDialog
+        open={noteDialogOpen}
+        onOpenChange={setNoteDialogOpen}
         record={activeRecord}
-        allowedStatuses={activeRecord ? getAllowedStatusesForRecord(activeRecord.status) : [nextStatus]}
-        nextStatus={nextStatus}
-        onNextStatusChange={setNextStatus}
-        notes={transitionNotes}
-        onNotesChange={setTransitionNotes}
-        onSave={() => {
-          setDialogOpen(false);
+        note={noteText}
+        onNoteChange={setNoteText}
+        onSave={async () => {
+          if (!activeRecordId) return;
+          await createNote({ id: activeRecordId, content: noteText }).unwrap();
+          setNoteDialogOpen(false);
+          setNoteText("");
+          void refetch();
         }}
       />
     </PageScaffold>
