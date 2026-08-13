@@ -18,7 +18,7 @@ const statusLabels: Record<CrmOverviewStatus, string> = {
   SCHEDULED: "Scheduled",
   DONE: "Done",
   FAILED: "Failed",
-  SENT: "Sent",
+  SENT: "Proposal sent",
   NEGOTIATION: "Negotiation",
   APPROVED: "Approved",
   REJECTED: "Rejected",

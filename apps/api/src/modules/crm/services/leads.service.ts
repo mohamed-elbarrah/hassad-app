@@ -40,6 +40,7 @@ export class LeadsService {
         data: {
           ...leadData,
           pipelineStage: PipelineStage.NEW,
+          crmStage: "NEW",
           createdBy: userId,
         },
       });

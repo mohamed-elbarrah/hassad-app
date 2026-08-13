@@ -125,6 +125,63 @@ function mapRequestStatusToStage(status: RequestStatus): PipelineStage {
   }
 }
 
+function mapCrmStageToPipelineStage(stage: string): PipelineStage {
+  switch (stage) {
+    case "SCHEDULED":
+      return PipelineStage.MEETING_SCHEDULED;
+    case "DONE":
+      return PipelineStage.MEETING_DONE;
+    case "FAILED":
+      return PipelineStage.CALL_ATTEMPT;
+    case "SENT":
+      return PipelineStage.PROPOSAL_SENT;
+    case "NEGOTIATION":
+      return PipelineStage.FOLLOW_UP;
+    case "APPROVED":
+      return PipelineStage.APPROVED;
+    case "CONTRACT_SENT":
+      return PipelineStage.APPROVED;
+    case "SIGNED":
+    case "ACTIVE":
+      return PipelineStage.CONTRACT_SIGNED;
+    case "REJECTED":
+    case "CANCELLED":
+      return PipelineStage.CALL_ATTEMPT;
+    case "NEW":
+    default:
+      return PipelineStage.NEW;
+  }
+}
+
+function mapCrmStageToRequestStatus(stage: string): RequestStatus {
+  switch (stage) {
+    case "SCHEDULED":
+      return RequestStatus.QUALIFYING;
+    case "DONE":
+      return RequestStatus.PROPOSAL_IN_PROGRESS;
+    case "FAILED":
+      return RequestStatus.QUALIFYING;
+    case "SENT":
+      return RequestStatus.PROPOSAL_SENT;
+    case "NEGOTIATION":
+      return RequestStatus.NEGOTIATION;
+    case "APPROVED":
+      return RequestStatus.CONTRACT_PREPARATION;
+    case "CONTRACT_SENT":
+      return RequestStatus.CONTRACT_SENT;
+    case "SIGNED":
+      return RequestStatus.SIGNED;
+    case "ACTIVE":
+      return RequestStatus.PROJECT_CREATED;
+    case "REJECTED":
+    case "CANCELLED":
+      return RequestStatus.CANCELLED;
+    case "NEW":
+    default:
+      return RequestStatus.SUBMITTED;
+  }
+}
+
 @Injectable()
 export class CrmOrdersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -148,6 +205,7 @@ export class CrmOrdersService {
               businessType: true,
               source: true,
               notes: true,
+              crmStage: true,
               assignedTo: true,
               pipelineStage: true,
               contactAttemptCount: true,
@@ -218,6 +276,7 @@ export class CrmOrdersService {
               source: true,
               notes: true,
               internalNotes: true,
+              crmStage: true,
               status: true,
               contactAttemptCount: true,
               lastContactAt: true,
@@ -328,5 +387,125 @@ export class CrmOrdersService {
         author: { select: orderDetailUserSelect },
       },
     });
+  }
+
+  async updateStage(id: string, authorId: string, toStage: string, note?: string) {
+    const request = await this.prisma.request.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        crmStage: true,
+        status: true,
+        lead: {
+          select: {
+            id: true,
+            crmStage: true,
+            pipelineStage: true,
+          },
+        },
+      },
+    });
+    const lead = request
+      ? null
+      : await this.prisma.lead.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            crmStage: true,
+            pipelineStage: true,
+            request: {
+              select: {
+                id: true,
+                crmStage: true,
+                status: true,
+              },
+            },
+          },
+        });
+
+    if (!request && !lead) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const currentStage = request
+      ? request.crmStage ?? request.lead?.crmStage ?? 'NEW'
+      : lead?.crmStage ?? lead?.request?.crmStage ?? 'NEW';
+
+    if (currentStage === toStage) {
+      throw new BadRequestException('Order is already in this stage');
+    }
+
+    const content = note?.trim();
+    const requestStatus = mapCrmStageToRequestStatus(toStage);
+    const pipelineStage = mapCrmStageToPipelineStage(toStage);
+
+    await this.prisma.$transaction(async (tx) => {
+      if (request) {
+        await tx.request.update({
+          where: { id: request.id },
+          data: { crmStage: toStage as any, status: requestStatus },
+        });
+        await tx.requestStatusHistory.create({
+          data: {
+            requestId: request.id,
+            fromStatus: request.status,
+            toStatus: requestStatus,
+            changedBy: authorId,
+            note: content,
+          },
+        });
+        if (request.lead?.id) {
+          await tx.lead.update({
+            where: { id: request.lead.id },
+            data: { crmStage: toStage as any, pipelineStage },
+          });
+          await tx.leadPipelineHistory.create({
+            data: {
+              leadId: request.lead.id,
+              fromStage: request.lead.pipelineStage,
+              toStage: pipelineStage,
+              changedBy: authorId,
+            },
+          });
+        }
+        if (content) {
+          await tx.crmNote.create({ data: { requestId: request.id, authorId, content } });
+        }
+        return;
+      }
+
+      await tx.lead.update({
+        where: { id: lead!.id },
+        data: { crmStage: toStage as any, pipelineStage },
+      });
+      await tx.leadPipelineHistory.create({
+        data: {
+          leadId: lead!.id,
+          fromStage: lead!.pipelineStage,
+          toStage: pipelineStage,
+          changedBy: authorId,
+        },
+      });
+      if (lead?.request?.id) {
+        await tx.request.update({
+          where: { id: lead.request.id },
+          data: { crmStage: toStage as any, status: requestStatus },
+        });
+        await tx.requestStatusHistory.create({
+          data: {
+            requestId: lead.request.id,
+            fromStatus: lead.request.status,
+            toStatus: requestStatus,
+            changedBy: authorId,
+            note: content,
+          },
+        });
+      }
+      if (content) {
+        await tx.crmNote.create({ data: { leadId: lead!.id, authorId, content } });
+      }
+    });
+
+    return { success: true };
   }
 }

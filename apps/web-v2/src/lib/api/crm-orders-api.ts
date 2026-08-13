@@ -16,7 +16,19 @@ export const crmOrdersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Crm", "CrmOverview"],
     }),
+    updateCrmOrderStage: builder.mutation<unknown, { id: string; toStage: string; note?: string }>({
+      query: ({ id, toStage, note }) => ({
+        url: `/crm/orders/${id}/stage`,
+        method: "POST",
+        body: { toStage, note },
+      }),
+      invalidatesTags: ["Crm", "CrmOverview"],
+    }),
   }),
 });
 
-export const { useCreateCrmOrderNoteMutation, useGetCrmOrderDetailQuery } = crmOrdersApi;
+export const {
+  useCreateCrmOrderNoteMutation,
+  useGetCrmOrderDetailQuery,
+  useUpdateCrmOrderStageMutation,
+} = crmOrdersApi;

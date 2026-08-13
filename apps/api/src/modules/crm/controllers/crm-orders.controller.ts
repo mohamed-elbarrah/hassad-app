@@ -4,6 +4,7 @@ import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { RequirePermissions } from "../../../common/decorators/permissions.decorator";
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
+import { UpdateCrmOrderStageDto } from "../dto/crm-orders.dto";
 import { CrmOrdersService } from "../services/crm-orders.service";
 
 @Controller("crm/orders")
@@ -25,5 +26,15 @@ export class CrmOrdersController {
     @Body("content") content: string,
   ) {
     return this.service.createNote(id, authorId, content);
+  }
+
+  @Post(":id/stage")
+  @RequirePermissions("leads.update")
+  updateStage(
+    @Param("id") id: string,
+    @CurrentUser("id") authorId: string,
+    @Body() dto: UpdateCrmOrderStageDto,
+  ) {
+    return this.service.updateStage(id, authorId, dto.toStage, dto.note);
   }
 }

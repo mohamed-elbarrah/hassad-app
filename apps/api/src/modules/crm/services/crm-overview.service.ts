@@ -6,6 +6,7 @@ import {
 import {
   ContactLogResult as PrismaContactLogResult,
   ContractStatus as PrismaContractStatus,
+  CrmStage as PrismaCrmStage,
   PipelineStage as PrismaPipelineStage,
   ProposalStatus as PrismaProposalStatus,
   RequestStatus as PrismaRequestStatus,
@@ -42,9 +43,11 @@ function includesText(value: string | undefined | null, query: string) {
 }
 
 function getOverviewStatusFromLead(lead: {
+  crmStage?: PrismaCrmStage | null;
   pipelineStage: PrismaPipelineStage;
   proposals: Array<{ status: PrismaProposalStatus; id: string }>;
 }): CrmOverviewStatus {
+  if (lead.crmStage) return lead.crmStage as CrmOverviewStatus;
   const latestProposal = lead.proposals[0] ?? null;
 
   if (latestProposal?.status === PrismaProposalStatus.REJECTED) return "REJECTED";
@@ -75,11 +78,13 @@ function getOverviewStatusFromLead(lead: {
 }
 
 function getOverviewStatusFromRequest(request: {
+  crmStage?: PrismaCrmStage | null;
   status: PrismaRequestStatus;
   proposals: Array<{ status: PrismaProposalStatus; id: string }>;
   contracts: Array<{ status: PrismaContractStatus; id: string }>;
   contactLogs: Array<{ result: PrismaContactLogResult; notes?: string | null }>;
 }): CrmOverviewStatus {
+  if (request.crmStage) return request.crmStage as CrmOverviewStatus;
   const latestProposal = request.proposals[0] ?? null;
   const latestContract = request.contracts[0] ?? null;
   const latestContact = request.contactLogs[0] ?? null;
@@ -241,6 +246,7 @@ export class CrmOverviewService {
 
     const leadRecords = leads.map<CrmOverviewRecordDto>((lead) => {
       const status = getOverviewStatusFromLead({
+        crmStage: lead.crmStage,
         pipelineStage: lead.pipelineStage,
         proposals: lead.proposals.map((proposal) => ({
           id: proposal.id,
@@ -288,6 +294,7 @@ export class CrmOverviewService {
 
     const requestRecords = requests.map<CrmOverviewRecordDto>((request) => {
       const status = getOverviewStatusFromRequest({
+        crmStage: request.crmStage,
         status: request.status,
         proposals: request.proposals.map((proposal) => ({
           id: proposal.id,

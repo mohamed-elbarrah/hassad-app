@@ -392,6 +392,7 @@ export class RequestsService {
           source: dto.source,
           notes: dto.notes ?? undefined,
           status: RequestStatus.SUBMITTED,
+          crmStage: "NEW",
         },
       });
 

@@ -182,6 +182,7 @@ model Lead {
   source              ClientSource
   assignedTo          String?               @map("assigned_to")
   pipelineStage       PipelineStage         @map("pipeline_stage")
+  crmStage            CrmStage              @default(NEW) @map("crm_stage")
   contactAttemptCount Int                   @default(0) @map("contact_attempt_count")
   lastContactAt       DateTime?             @map("last_contact_at")
   notes               String?
@@ -477,6 +478,7 @@ model Request {
   notes           String?
   internalNotes       String?                @map("internal_notes")
   status              RequestStatus          @default(SUBMITTED)
+  crmStage            CrmStage               @default(NEW) @map("crm_stage")
   contactAttemptCount Int                    @default(0) @map("contact_attempt_count")
   lastContactAt       DateTime?              @map("last_contact_at")
   createdAt           DateTime               @default(now()) @map("created_at")
@@ -1981,6 +1983,21 @@ enum PipelineStage {
   FOLLOW_UP
   APPROVED
   CONTRACT_SIGNED
+}
+
+enum CrmStage {
+  NEW
+  SCHEDULED
+  DONE
+  FAILED
+  SENT
+  NEGOTIATION
+  APPROVED
+  REJECTED
+  CONTRACT_SENT
+  SIGNED
+  ACTIVE
+  CANCELLED
 }
 
 enum RequestStatus {

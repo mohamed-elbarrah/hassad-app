@@ -461,6 +461,8 @@ export function mapOrderDetailFromApi(order: any): OrderDetailRecord {
   const client = commercialSource.client ?? pipelineSource.client ?? order.client ?? null;
 
   const stage =
+    commercialSource.crmStage ??
+    pipelineSource.crmStage ??
     pipelineSource.pipelineStage ??
     (commercialSource.status ? mapRequestStatusToStage(String(commercialSource.status)) : "NEW");
   const stageLabel = String(stage ?? "NEW").replaceAll("_", " ");

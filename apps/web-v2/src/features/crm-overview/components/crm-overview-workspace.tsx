@@ -34,7 +34,10 @@ import {
   type CrmOverviewRecord,
 } from "@/features/crm-overview/lib/crm-overview-data";
 import { useGetCrmOverviewQuery } from "@/lib/api/crm-overview-api";
-import { useCreateCrmOrderNoteMutation } from "@/lib/api/crm-orders-api";
+import {
+  useCreateCrmOrderNoteMutation,
+  useUpdateCrmOrderStageMutation,
+} from "@/lib/api/crm-orders-api";
 
 export function CrmOverviewWorkspace() {
   const [boardFilter, setBoardFilter] = useState<CrmOverviewBoardFilter>("all");
@@ -49,6 +52,7 @@ export function CrmOverviewWorkspace() {
 
   const { data, isLoading, isError, refetch } = useGetCrmOverviewQuery();
   const [createNote] = useCreateCrmOrderNoteMutation();
+  const [updateStage] = useUpdateCrmOrderStageMutation();
 
   const records = useMemo(() => data ?? [], [data]);
 
@@ -185,6 +189,16 @@ export function CrmOverviewWorkspace() {
         <GroupedKanbanBoard
           key={`${boardFilter}:${search}`}
           lanes={activeBoard.lanes}
+          onMoveItem={({ itemId, toSectionId }) => {
+            void updateStage({ id: itemId, toStage: toSectionId })
+              .unwrap()
+              .then(() => {
+                void refetch();
+              })
+              .catch(() => {
+                void refetch();
+              });
+          }}
           renderCard={(record) => {
             const meta = formatOverviewRecord(record);
 
@@ -234,6 +248,7 @@ export function CrmOverviewWorkspace() {
                     type="button"
                     variant="outline"
                     size="xs"
+                    nativeButton={false}
                     render={<Link href={`/crm/orders/${record.id}`} />}
                   >
                     Detail
