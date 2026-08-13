@@ -672,6 +672,15 @@ export function mapOrderDetailFromApi(order: any): OrderDetailRecord {
         note: item.note ?? item.reason ?? "Pipeline stage updated.",
       }),
     ),
+    noteHistory: ((commercialSource.crmNotes ?? pipelineSource.crmNotes ?? []) as any[]).map(
+      (noteItem: any) => ({
+        id: noteItem.id,
+        content: noteItem.content,
+        createdAt: formatDateTime(noteItem.createdAt),
+        author: noteItem.author?.name ?? owner,
+        isInternal: noteItem.isInternal ?? true,
+      }),
+    ),
     proposals: proposals.map((proposal: any) => ({
       id: proposal.id,
       title: proposal.title ?? `${String(commercialSource.companyName ?? pipelineSource.companyName ?? "Client")} commercial package`,

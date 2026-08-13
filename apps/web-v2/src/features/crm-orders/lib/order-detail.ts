@@ -55,6 +55,14 @@ export type OrderStageHistoryEntry = {
   note: string;
 };
 
+export type OrderNoteHistoryEntry = {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: string;
+  isInternal: boolean;
+};
+
 export type OrderRelatedProposal = {
   id: string;
   title: string;
@@ -109,6 +117,7 @@ export type OrderDetailRecord = {
   contactTimeline: OrderTimelineEntry[];
   stageHistory: OrderStageHistoryEntry[];
   proposals: OrderRelatedProposal[];
+  noteHistory?: OrderNoteHistoryEntry[];
   relatedRecords: OrderRelatedRecord[];
 };
 
@@ -271,6 +280,15 @@ function buildFallbackOrderDetail(record: OrderDirectoryRecord): OrderDetailReco
         changedAt: record.openedAt,
         changedBy: record.owner,
         note: `Order currently sits in ${PIPELINE_UI_MAP[record.stage]}.`,
+      },
+    ],
+    noteHistory: [
+      {
+        id: `${record.id}-note-1`,
+        content: record.nextStep,
+        createdAt: record.lastContact,
+        author: record.owner,
+        isInternal: true,
       },
     ],
     proposals: record.proposalStatus

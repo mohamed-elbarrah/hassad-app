@@ -205,6 +205,15 @@ export function OrderDetailWorkspace({
     content: <p>{item.note}</p>,
     completed: true,
   }));
+  const noteHistoryItems: EntityTimelineItem[] = (order.noteHistory ?? []).map((item) => ({
+    id: item.id,
+    date: item.createdAt,
+    title: item.isInternal ? "Internal note" : "Note",
+    badges: <StatusBadge tone="neutral">{item.isInternal ? "Internal" : "Public"}</StatusBadge>,
+    meta: <span>{item.author}</span>,
+    content: <p className="whitespace-pre-line text-foreground">{item.content}</p>,
+    completed: true,
+  }));
 
   return (
     <PageScaffold
@@ -362,6 +371,7 @@ export function OrderDetailWorkspace({
             <TabsTrigger value="contacts">Contact timeline</TabsTrigger>
             <TabsTrigger value="history">Pipeline history</TabsTrigger>
             <TabsTrigger value="records">Services & records</TabsTrigger>
+            <TabsTrigger value="notes">Notes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -611,6 +621,34 @@ export function OrderDetailWorkspace({
                 </Card>
               </section>
             </div>
+          </TabsContent>
+
+          <TabsContent value="notes">
+            <Card>
+              <CardHeader>
+                <CardTitle>Note history</CardTitle>
+                <CardDescription>
+                  Chronological internal notes for this CRM record.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {noteHistoryItems.length === 0 ? (
+                  <Empty>
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <PhoneCallIcon />
+                      </EmptyMedia>
+                      <EmptyTitle>No notes yet</EmptyTitle>
+                      <EmptyDescription>
+                        Add a note from the CRM overview or detail actions to build the history here.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                ) : (
+                  <EntityTimeline items={noteHistoryItems} />
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </EntityDetailLayout>
