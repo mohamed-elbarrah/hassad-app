@@ -54,10 +54,10 @@ export function describeApiError(
 
     if (error.status === 404) {
       return {
-        title: "Workspace endpoint missing",
+        title: "Workspace not found",
         description:
           message ??
-          "The backend did not resolve this workspace route. Check the active API runtime and route registration.",
+          "The backend could not find a matching record for this workspace request.",
       };
     }
 

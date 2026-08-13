@@ -68,6 +68,7 @@ export const baseApi = createApi({
     "Crm",
     "CrmOverview",
     "CrmRequests",
+    "PmProjects",
     "Delivery",
     "Session",
     "Chat",
