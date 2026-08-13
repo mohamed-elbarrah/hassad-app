@@ -22,9 +22,15 @@ import {
 
 type DisputesTableProps = {
   rows: DisputeDirectoryRecord[];
+  detailHrefBase?: string;
+  showPm?: boolean;
 };
 
-export function DisputesTable({ rows }: DisputesTableProps) {
+export function DisputesTable({
+  rows,
+  detailHrefBase = "/admin/disputes",
+  showPm = true,
+}: DisputesTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -32,7 +38,7 @@ export function DisputesTable({ rows }: DisputesTableProps) {
           <TableHead>Dispute</TableHead>
           <TableHead>Client</TableHead>
           <TableHead>Project</TableHead>
-          <TableHead>PM</TableHead>
+          {showPm ? <TableHead>PM</TableHead> : null}
           <TableHead>Category</TableHead>
           <TableHead>Priority</TableHead>
           <TableHead>State</TableHead>
@@ -46,7 +52,7 @@ export function DisputesTable({ rows }: DisputesTableProps) {
             <TableCell>
               <div className="flex min-w-0 flex-col gap-1">
                 <Link
-                  href={`/admin/disputes/${row.id}`}
+                  href={`${detailHrefBase}/${row.id}`}
                   className="font-medium hover:underline"
                 >
                   {row.title}
@@ -58,7 +64,7 @@ export function DisputesTable({ rows }: DisputesTableProps) {
             </TableCell>
             <TableCell>{row.clientName}</TableCell>
             <TableCell>{row.projectName}</TableCell>
-            <TableCell>{row.pmName}</TableCell>
+            {showPm ? <TableCell>{row.pmName}</TableCell> : null}
             <TableCell>{formatDisputeCategory(row.category)}</TableCell>
             <TableCell>
               <StatusBadge tone={getDisputePriorityTone(row.priority)}>

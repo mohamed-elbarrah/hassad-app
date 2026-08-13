@@ -37,6 +37,19 @@ export class PmDisputesController {
     return this.disputesService.getPmDisputes(pmId, filter);
   }
 
+  @Get("stats")
+  async getPmStats(@CurrentUser("id") pmId: string) {
+    return this.disputesService.getPmStats(pmId);
+  }
+
+  @Get(":id/workspace")
+  async getDisputeWorkspace(
+    @CurrentUser("id") pmId: string,
+    @Param("id") id: string,
+  ) {
+    return this.disputesService.getPmDisputeWorkspace(pmId, id);
+  }
+
   @Get(":id")
   async getDisputeById(
     @CurrentUser("id") pmId: string,

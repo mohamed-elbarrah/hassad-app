@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { PmDisputesWorkspace } from "@/features/pm-disputes/components/pm-disputes-workspace";
 
 export const metadata: Metadata = {
   title: "PM Disputes | Hassad",
 };
 
-export default function DisputesPage() {
-  return <ScreenPlaceholder label="Disputes" />;
+export default function PmDisputesPage() {
+  return <PmDisputesWorkspace />;
 }

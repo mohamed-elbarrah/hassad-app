@@ -559,25 +559,33 @@ export class DisputesService {
         take: limit,
         orderBy: { openedAt: "desc" },
         select: {
-            id: true,
-            ticketNumber: true,
-            clientId: true,
-            pmId: true,
-            projectId: true,
-            title: true,
-            category: true,
-            status: true,
-            priority: true,
-            openedAt: true,
-            deadlineAt: true,
-            project: { select: { id: true, name: true } },
-            client: { select: { id: true, companyName: true, user: { select: { name: true } } } },
-            messages: {
-              take: 1,
-              orderBy: { createdAt: "desc" },
+          id: true,
+          ticketNumber: true,
+          clientId: true,
+          pmId: true,
+          projectId: true,
+          title: true,
+          category: true,
+          status: true,
+          priority: true,
+          openedAt: true,
+          deadlineAt: true,
+          project: { select: { id: true, name: true } },
+          client: {
+            select: {
+              id: true,
+              companyName: true,
+              user: { select: { name: true } },
             },
-            _count: { select: { messages: true } },
           },
+          pm: { select: { id: true, name: true, avatarUrl: true } },
+          messages: {
+            take: 1,
+            orderBy: { createdAt: "desc" },
+            select: { createdAt: true },
+          },
+          _count: { select: { messages: true } },
+        },
       }),
       this.prisma.disputeTicket.count({ where: whereClause }),
     ]);
@@ -600,19 +608,33 @@ export class DisputesService {
     const dispute = await this.prisma.disputeTicket.findFirst({
       where: { id: disputeId, pmId },
       include: {
-          project: { select: { id: true, name: true } },
-          client: { select: { id: true, companyName: true, user: { select: { name: true } } } },
-          messages: {
-            where: {
-              threadType: {
-                in: visibleDisputeThreads.pm,
-              },
+        project: { select: { id: true, name: true } },
+        client: {
+          select: {
+            id: true,
+            companyName: true,
+            userId: true,
+            user: { select: { id: true, name: true, avatarUrl: true } },
+          },
+        },
+        pm: { select: { id: true, name: true, avatarUrl: true } },
+        reviewer: { select: { id: true, name: true } },
+        resolver: { select: { id: true, name: true } },
+        newPm: { select: { id: true, name: true } },
+        messages: {
+          where: {
+            threadType: {
+              in: visibleDisputeThreads.pm,
             },
+          },
           orderBy: { createdAt: "asc" },
           include: {
             author: { select: { id: true, name: true, avatarUrl: true } },
             attachments: true,
           },
+        },
+        attachments: {
+          include: { uploader: { select: { id: true, name: true } } },
         },
         history: {
           orderBy: { changedAt: "asc" },
@@ -628,6 +650,20 @@ export class DisputesService {
     }
 
     return dispute;
+  }
+
+  async getPmDisputeWorkspace(pmId: string, disputeId: string) {
+    const [detail, threads, pmStats] = await Promise.all([
+      this.getPmDisputeById(pmId, disputeId),
+      this.getPmThreads(pmId, disputeId),
+      this.getPmStats(pmId),
+    ]);
+
+    return {
+      detail,
+      threads,
+      pmStats,
+    };
   }
 
   /**
@@ -677,6 +713,7 @@ export class DisputesService {
     const allowedStatuses: DisputeStatus[] = [
       DisputeStatus.APPROVED,
       DisputeStatus.IN_PROGRESS,
+      DisputeStatus.ESCALATED,
     ];
 
     if (!allowedStatuses.includes(dispute.status)) {
@@ -1474,7 +1511,7 @@ export class DisputesService {
       case "new":
         updates.totalDisputes = { increment: 1 };
         break;
-      case "resolved":
+      case "resolved": {
         updates.resolvedDisputes = { increment: 1 };
         // Recalculate avg resolution days
         const resolvedDisputes = await this.prisma.disputeTicket.findMany({
@@ -1499,6 +1536,7 @@ export class DisputesService {
           updates.avgResolutionDays = totalDays / resolvedDisputes.length;
         }
         break;
+      }
       case "escalated":
         updates.escalatedDisputes = { increment: 1 };
         break;
