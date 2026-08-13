@@ -182,6 +182,37 @@ function mapCrmStageToRequestStatus(stage: string): RequestStatus {
   }
 }
 
+function humanizeCrmStage(stage: string) {
+  switch (stage) {
+    case "NEW":
+      return "New";
+    case "SCHEDULED":
+      return "Scheduled";
+    case "DONE":
+      return "Done";
+    case "FAILED":
+      return "Failed";
+    case "SENT":
+      return "Proposal sent";
+    case "NEGOTIATION":
+      return "Negotiation";
+    case "APPROVED":
+      return "Approved";
+    case "REJECTED":
+      return "Rejected";
+    case "CONTRACT_SENT":
+      return "Contract sent";
+    case "SIGNED":
+      return "Signed";
+    case "ACTIVE":
+      return "Active";
+    case "CANCELLED":
+      return "Cancelled";
+    default:
+      return stage.replaceAll("_", " ");
+  }
+}
+
 @Injectable()
 export class CrmOrdersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -362,20 +393,20 @@ export class CrmOrdersService {
 
     const request = await this.prisma.request.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, companyName: true },
     });
     const lead = request
       ? null
       : await this.prisma.lead.findUnique({
           where: { id },
-          select: { id: true },
+          select: { id: true, companyName: true },
         });
 
     if (!request && !lead) {
       throw new NotFoundException("Order not found");
     }
 
-    return this.prisma.crmNote.create({
+    const note = await this.prisma.crmNote.create({
       data: request
         ? { requestId: request.id, authorId, content: trimmed }
         : { leadId: lead!.id, authorId, content: trimmed },
@@ -387,6 +418,15 @@ export class CrmOrdersService {
         author: { select: orderDetailUserSelect },
       },
     });
+
+    return {
+      note,
+      toast: {
+        type: "success" as const,
+        title: "Note saved",
+        description: `Added a note to ${request?.companyName ?? lead?.companyName ?? "this record"}.`,
+      },
+    };
   }
 
   async updateStage(id: string, authorId: string, toStage: string, note?: string) {
@@ -394,6 +434,7 @@ export class CrmOrdersService {
       where: { id },
       select: {
         id: true,
+        companyName: true,
         crmStage: true,
         status: true,
         lead: {
@@ -411,11 +452,13 @@ export class CrmOrdersService {
           where: { id },
           select: {
             id: true,
+            companyName: true,
             crmStage: true,
             pipelineStage: true,
             request: {
               select: {
                 id: true,
+                companyName: true,
                 crmStage: true,
                 status: true,
               },
@@ -438,6 +481,9 @@ export class CrmOrdersService {
     const content = note?.trim();
     const requestStatus = mapCrmStageToRequestStatus(toStage);
     const pipelineStage = mapCrmStageToPipelineStage(toStage);
+    const fromStageLabel = humanizeCrmStage(currentStage);
+    const toStageLabel = humanizeCrmStage(toStage);
+    const targetName = request?.companyName ?? lead?.companyName ?? "this record";
 
     await this.prisma.$transaction(async (tx) => {
       if (request) {
@@ -506,6 +552,13 @@ export class CrmOrdersService {
       }
     });
 
-    return { success: true };
+    return {
+      success: true,
+      toast: {
+        type: "success" as const,
+        title: "Stage updated",
+        description: `${targetName} changed from ${fromStageLabel} to ${toStageLabel}.`,
+      },
+    };
   }
 }

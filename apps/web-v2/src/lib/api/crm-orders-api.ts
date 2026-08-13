@@ -1,6 +1,17 @@
 "use client";
 
 import { baseApi } from "@/lib/api/base-api";
+import type { CrmActionToast } from "@/lib/api/crm-action-toast";
+
+export type CrmOrderNoteResponse = {
+  note: unknown;
+  toast: CrmActionToast;
+};
+
+export type CrmOrderStageResponse = {
+  success: true;
+  toast: CrmActionToast;
+};
 
 export const crmOrdersApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -8,7 +19,7 @@ export const crmOrdersApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/crm/orders/${id}` }),
       providesTags: ["Crm"],
     }),
-    createCrmOrderNote: builder.mutation<unknown, { id: string; content: string }>({
+    createCrmOrderNote: builder.mutation<CrmOrderNoteResponse, { id: string; content: string }>({
       query: ({ id, content }) => ({
         url: `/crm/orders/${id}/notes`,
         method: "POST",
@@ -16,7 +27,7 @@ export const crmOrdersApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Crm", "CrmOverview"],
     }),
-    updateCrmOrderStage: builder.mutation<unknown, { id: string; toStage: string; note?: string }>({
+    updateCrmOrderStage: builder.mutation<CrmOrderStageResponse, { id: string; toStage: string; note?: string }>({
       query: ({ id, toStage, note }) => ({
         url: `/crm/orders/${id}/stage`,
         method: "POST",

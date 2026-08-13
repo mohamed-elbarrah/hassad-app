@@ -33,6 +33,7 @@ import {
   type CrmOverviewBoardFilter,
   type CrmOverviewRecord,
 } from "@/features/crm-overview/lib/crm-overview-data";
+import { showApiErrorToast, showCrmActionToast } from "@/lib/api/crm-action-toast";
 import { useGetCrmOverviewQuery } from "@/lib/api/crm-overview-api";
 import {
   useCreateCrmOrderNoteMutation,
@@ -192,10 +193,12 @@ export function CrmOverviewWorkspace() {
           onMoveItem={({ itemId, toSectionId }) => {
             void updateStage({ id: itemId, toStage: toSectionId })
               .unwrap()
-              .then(() => {
+              .then((result) => {
+                showCrmActionToast(result.toast);
                 void refetch();
               })
-              .catch(() => {
+              .catch((error) => {
+                showApiErrorToast(error);
                 void refetch();
               });
           }}
@@ -289,10 +292,15 @@ export function CrmOverviewWorkspace() {
         onNoteChange={setNoteText}
         onSave={async () => {
           if (!activeRecordId) return;
-          await createNote({ id: activeRecordId, content: noteText }).unwrap();
-          setNoteDialogOpen(false);
-          setNoteText("");
-          void refetch();
+          try {
+            const result = await createNote({ id: activeRecordId, content: noteText }).unwrap();
+            showCrmActionToast(result.toast);
+            setNoteDialogOpen(false);
+            setNoteText("");
+            void refetch();
+          } catch (error) {
+            showApiErrorToast(error);
+          }
         }}
       />
     </PageScaffold>
