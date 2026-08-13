@@ -1,5 +1,6 @@
 import type {
   ClientSource,
+  CrmStage,
   PipelineStage,
   ProposalStatus,
 } from "../enums/client";
@@ -165,6 +166,7 @@ export type CrmWorkspaceRecord = {
   owner: string;
   source: ClientSource;
   stage: PipelineStage;
+  crmStage?: CrmStage;
   stageTone: WorkspaceStatusTone;
   estimatedValue: number;
   openedAt: string;
@@ -264,12 +266,47 @@ export type AdminOverviewResponse = {
     clientName: string;
     companyName: string;
     stage: string;
+    crmStage?: CrmStage;
     stageTone: WorkspaceStatusTone;
     calls: number;
     meetings: number;
     projects: string;
+    projectsTone: WorkspaceStatusTone;
     value: string;
+    owner: string;
+    ownerInitials: string;
+    nextAction: string;
     lastActivity: string;
+  }>;
+  salesLeaders: Array<{
+    id: string;
+    name: string;
+    initials: string;
+    deals: number;
+    contracts: number;
+    revenue: string;
+  }>;
+  activeProjects: Array<{
+    id: string;
+    name: string;
+    clientName: string;
+    state: string;
+    stateTone: WorkspaceStatusTone;
+    progress: string;
+    pm: string;
+    pmInitials: string;
+    activeTasks: number;
+    value: string;
+  }>;
+  clients: Array<{
+    id: string;
+    clientName: string;
+    companyName: string;
+    totalProjects: number;
+    activeProjects: number;
+    lastSeen: string;
+    onlineTone: WorkspaceStatusTone;
+    balance: string;
   }>;
   performance: {
     conversionRate: string;

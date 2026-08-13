@@ -219,7 +219,7 @@ export function OrdersWorkspace() {
                     </TableCell>
                     <TableCell>
                       <StatusBadge tone={row.stageTone}>
-                        {formatOrderStage(row.stage)}
+                        {formatOrderStage(row.crmStage ?? row.stage)}
                       </StatusBadge>
                     </TableCell>
                     <TableCell>{row.owner}</TableCell>

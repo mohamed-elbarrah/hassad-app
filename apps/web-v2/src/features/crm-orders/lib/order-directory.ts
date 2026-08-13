@@ -1,6 +1,8 @@
 import {
   ClientSource,
+  CrmStage,
   PipelineStage,
+  CRM_STAGE_UI_MAP,
   PIPELINE_UI_MAP,
   ProposalStatus,
   type CrmWorkspaceRecord,
@@ -279,8 +281,12 @@ export function formatOrderCurrency(amount: number) {
   }).format(amount);
 }
 
-export function formatOrderStage(stage: PipelineStage) {
-  return PIPELINE_UI_MAP[stage];
+export function formatOrderStage(stage: PipelineStage | CrmStage | string) {
+  if (stage in CRM_STAGE_UI_MAP) {
+    return CRM_STAGE_UI_MAP[stage as CrmStage];
+  }
+
+  return PIPELINE_UI_MAP[stage as PipelineStage] ?? String(stage);
 }
 
 export function formatOrderSource(source: ClientSource) {

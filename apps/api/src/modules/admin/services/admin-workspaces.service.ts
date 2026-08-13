@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import {
   ClientSource,
+  CrmStage,
   InvoiceStatus,
-  PIPELINE_UI_MAP,
   ProjectStatus,
   ProjectPeriodStatus,
   ProposalStatus,
@@ -82,7 +82,8 @@ export class AdminWorkspacesService {
       id: item.id,
       clientName: item.contactName,
       companyName: item.companyName,
-      stage: PIPELINE_UI_MAP[item.stage],
+      stage: item.stage,
+      crmStage: item.crmStage,
       stageTone: item.stageTone,
       calls: item.contactAttemptCount,
       meetings: item.meetingsCount,
@@ -362,7 +363,7 @@ export class AdminWorkspacesService {
         include: {
           assignee: { select: { name: true } },
           submitter: { select: { name: true } },
-          lead: { select: { pipelineStage: true } },
+          lead: { select: { crmStage: true, pipelineStage: true } },
           contactLogs: {
             orderBy: { contactedAt: "desc" },
             take: 20,
@@ -428,7 +429,8 @@ export class AdminWorkspacesService {
         owner: lead.assignee?.name ?? "Unassigned",
         source: (lead.source as ClientSource) ?? ClientSource.WEBSITE,
         stage: lead.pipelineStage,
-        stageTone: this.mapPipelineTone(lead.pipelineStage),
+        crmStage: this.mapLeadCrmStage(lead.crmStage, lead.pipelineStage),
+        stageTone: this.mapCrmStageTone(this.mapLeadCrmStage(lead.crmStage, lead.pipelineStage)),
         estimatedValue,
         openedAt: lead.createdAt.toISOString(),
         openedDaysAgo,
@@ -485,9 +487,12 @@ export class AdminWorkspacesService {
             .slice(0, 2)
             .join(" + ")
         : "Qualification in progress";
-      const stage =
-        (request.lead?.pipelineStage as PipelineStage | undefined) ??
-        this.mapRequestStage(request.status as RequestStatus);
+      const stage = this.mapRequestCrmStage(
+        request.crmStage,
+        request.status as RequestStatus,
+        request.lead?.crmStage,
+        request.lead?.pipelineStage as PipelineStage | undefined,
+      );
 
       return {
         id: request.id,
@@ -496,8 +501,9 @@ export class AdminWorkspacesService {
         serviceLine,
         owner: request.assignee?.name ?? request.submitter?.name ?? "Unassigned",
         source: (request.source as ClientSource) ?? ClientSource.WEBSITE,
-        stage,
-        stageTone: this.mapPipelineTone(stage),
+        stage: request.lead?.pipelineStage ?? this.mapRequestStage(request.status as RequestStatus),
+        crmStage: stage,
+        stageTone: this.mapCrmStageTone(stage),
         estimatedValue,
         openedAt: request.createdAt.toISOString(),
         openedDaysAgo,
@@ -1122,6 +1128,94 @@ export class AdminWorkspacesService {
         return "warning";
       default:
         return "attention";
+    }
+  }
+
+  private mapCrmStageTone(stage: CrmStage): StatusTone {
+    switch (stage) {
+      case CrmStage.NEW:
+        return "neutral";
+      case CrmStage.SCHEDULED:
+        return "active";
+      case CrmStage.DONE:
+        return "success";
+      case CrmStage.FAILED:
+        return "warning";
+      case CrmStage.SENT:
+        return "active";
+      case CrmStage.NEGOTIATION:
+        return "warning";
+      case CrmStage.APPROVED:
+      case CrmStage.ACTIVE:
+      case CrmStage.SIGNED:
+        return "success";
+      case CrmStage.REJECTED:
+      case CrmStage.CANCELLED:
+        return "destructive";
+      case CrmStage.CONTRACT_SENT:
+        return "active";
+      default:
+        return "neutral";
+    }
+  }
+
+  private mapLeadCrmStage(crmStage: string | null | undefined, pipelineStage?: PipelineStage) {
+    if (crmStage && crmStage in CrmStage) return crmStage as CrmStage;
+    switch (pipelineStage) {
+      case PipelineStage.NEW:
+        return CrmStage.NEW;
+      case PipelineStage.INTRO_SENT:
+        return CrmStage.SCHEDULED;
+      case PipelineStage.CALL_ATTEMPT:
+        return CrmStage.FAILED;
+      case PipelineStage.MEETING_SCHEDULED:
+        return CrmStage.SCHEDULED;
+      case PipelineStage.MEETING_DONE:
+        return CrmStage.DONE;
+      case PipelineStage.PROPOSAL_SENT:
+        return CrmStage.SENT;
+      case PipelineStage.FOLLOW_UP:
+        return CrmStage.NEGOTIATION;
+      case PipelineStage.APPROVED:
+        return CrmStage.APPROVED;
+      case PipelineStage.CONTRACT_SIGNED:
+        return CrmStage.SIGNED;
+      default:
+        return CrmStage.NEW;
+    }
+  }
+
+  private mapRequestCrmStage(
+    crmStage: string | null | undefined,
+    status: RequestStatus,
+    leadCrmStage?: string | null,
+    leadPipelineStage?: PipelineStage,
+  ) {
+    if (crmStage && crmStage in CrmStage) return crmStage as CrmStage;
+    if (leadCrmStage && leadCrmStage in CrmStage) return leadCrmStage as CrmStage;
+    switch (status) {
+      case RequestStatus.SUBMITTED:
+        return CrmStage.NEW;
+      case RequestStatus.QUALIFYING:
+        return CrmStage.SCHEDULED;
+      case RequestStatus.PROPOSAL_IN_PROGRESS:
+        return CrmStage.DONE;
+      case RequestStatus.PROPOSAL_SENT:
+        return CrmStage.SENT;
+      case RequestStatus.NEGOTIATION:
+        return CrmStage.NEGOTIATION;
+      case RequestStatus.CONTRACT_PREPARATION:
+        return CrmStage.APPROVED;
+      case RequestStatus.CONTRACT_SENT:
+        return CrmStage.CONTRACT_SENT;
+      case RequestStatus.SIGNED:
+        return CrmStage.SIGNED;
+      case RequestStatus.PROJECT_CREATED:
+        return CrmStage.ACTIVE;
+      case RequestStatus.CANCELLED:
+        return CrmStage.CANCELLED;
+      default:
+        return this.mapLeadCrmStage(undefined, leadPipelineStage);
     }
   }
 

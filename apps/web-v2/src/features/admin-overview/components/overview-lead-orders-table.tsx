@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { formatOrderStage } from "@/features/crm-orders/lib/order-directory";
 import {
   Card,
   CardContent,
@@ -60,7 +61,7 @@ export function OverviewLeadOrdersTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge tone={row.stageTone}>{row.stage}</StatusBadge>
+                  <StatusBadge tone={row.stageTone}>{formatOrderStage(row.crmStage ?? row.stage)}</StatusBadge>
                 </TableCell>
                 <TableCell>{row.calls}</TableCell>
                 <TableCell>{row.meetings}</TableCell>
