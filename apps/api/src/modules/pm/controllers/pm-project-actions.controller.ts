@@ -59,4 +59,16 @@ export class PmProjectActionsController {
   uploadFile(@CurrentUser("id") userId: string, @Param("id") projectId: string, @Body() dto: UploadPmProjectFileDto, @UploadedFile() file: Express.Multer.File) {
     return this.service.uploadFile(userId, projectId, dto, file);
   }
+
+  @Get("projects/:id/files")
+  @RequirePermissions("projects.read")
+  listFiles(@CurrentUser("id") userId: string, @Param("id") projectId: string) {
+    return this.service.listFiles(userId, projectId);
+  }
+
+  @Get("projects/:id/files/:fileId/download")
+  @RequirePermissions("projects.read")
+  downloadFile(@CurrentUser("id") userId: string, @Param("id") projectId: string, @Param("fileId") fileId: string) {
+    return this.service.getFileDownloadUrl(userId, projectId, fileId);
+  }
 }

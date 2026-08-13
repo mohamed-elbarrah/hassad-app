@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { ContractType, FilePurpose, MeetingStatus, TaskDepartment, TaskPriority } from "@hassad/shared";
+import { ContractType, MeetingStatus, TaskDepartment, TaskPriority } from "@hassad/shared";
 
 import { NotificationsService } from "../../notifications/services/notifications.service";
 import { PrismaService } from "../../../prisma/prisma.service";
@@ -107,7 +107,7 @@ export class PmProjectActionsService {
     const meeting = await this.prisma.projectMeeting.create({
       data: {
         projectId,
-        periodId,
+        periodId: periodId ?? undefined,
         title: dto.title,
         scheduledAt: new Date(dto.scheduledAt),
         durationMin: dto.durationMin ?? null,
@@ -173,6 +173,49 @@ export class PmProjectActionsService {
     }
 
     return updated;
+  }
+
+  async listFiles(userId: string, projectId: string) {
+    await this.ownedProject(projectId, userId);
+
+    const files = await this.prisma.projectFile.findMany({
+      where: { projectId },
+      orderBy: { uploadedAt: "desc" },
+      include: {
+        period: { select: { id: true, periodNumber: true } },
+        uploader: { select: { id: true, name: true } },
+      },
+    });
+
+    const urls = await this.storageService.getMultiplePresignedUrls(
+      files.map((file) => file.filePath),
+    );
+
+    return {
+      items: files.map((file) => ({
+        id: file.id,
+        projectId: file.projectId,
+        periodId: file.periodId,
+        periodLabel: file.period?.periodNumber ? `Period ${file.period.periodNumber}` : "Project",
+        fileName: file.fileName,
+        fileType: file.fileType,
+        fileSize: file.fileSize,
+        uploadedAt: file.uploadedAt.toISOString(),
+        uploadedBy: file.uploader?.name ?? file.uploadedBy,
+        url: urls.get(file.filePath) ?? null,
+      })),
+    };
+  }
+
+  async getFileDownloadUrl(userId: string, projectId: string, fileId: string) {
+    await this.ownedProject(projectId, userId);
+    const file = await this.prisma.projectFile.findFirst({
+      where: { id: fileId, projectId },
+      select: { filePath: true },
+    });
+
+    if (!file) throw new NotFoundException("File not found");
+    return { url: await this.storageService.getPresignedUrl(file.filePath) };
   }
 
   async uploadFile(userId: string, projectId: string, dto: { periodId?: string }, file: Express.Multer.File) {

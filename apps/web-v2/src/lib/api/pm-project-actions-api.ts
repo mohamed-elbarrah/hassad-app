@@ -1,7 +1,7 @@
 "use client";
 
 import { baseApi } from "@/lib/api/base-api";
-import type { FilePurpose, MeetingStatus, TaskDepartment, TaskPriority } from "@hassad/shared";
+import type { FilePurpose, TaskDepartment, TaskPriority } from "@hassad/shared";
 
 export type PmAssignableUser = {
   id: string;
@@ -10,6 +10,19 @@ export type PmAssignableUser = {
   role: string;
   isActive: boolean;
   department: string | null;
+};
+
+export type PmProjectFile = {
+  id: string;
+  projectId: string;
+  periodId: string | null;
+  periodLabel: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+  uploadedBy: string;
+  url: string | null;
 };
 
 export const pmProjectActionsApi = baseApi.injectEndpoints({
@@ -21,19 +34,15 @@ export const pmProjectActionsApi = baseApi.injectEndpoints({
       }),
       providesTags: ["PmProjects"],
     }),
+    getPmProjectFiles: builder.query<{ items: PmProjectFile[] }, { projectId: string }>({
+      query: ({ projectId }) => ({ url: `/pm/projects/${projectId}/files` }),
+      providesTags: ["PmProjects"],
+    }),
     createPmTask: builder.mutation<unknown, { projectId: string; body: FormData }>({
       query: ({ projectId, body }) => ({
         url: `/pm/projects/${projectId}/tasks`,
         method: "POST",
         body,
-      }),
-      invalidatesTags: ["PmProjects"],
-    }),
-    assignPmTask: builder.mutation<unknown, { projectId: string; taskId: string; userId: string }>({
-      query: ({ projectId, taskId, userId }) => ({
-        url: `/pm/projects/${projectId}/tasks/${taskId}/assign`,
-        method: "POST",
-        body: { userId },
       }),
       invalidatesTags: ["PmProjects"],
     }),
@@ -61,14 +70,19 @@ export const pmProjectActionsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["PmProjects"],
     }),
+    downloadPmProjectFile: builder.query<{ url: string }, { projectId: string; fileId: string }>({
+      query: ({ projectId, fileId }) => ({ url: `/pm/projects/${projectId}/files/${fileId}/download` }),
+      providesTags: ["PmProjects"],
+    }),
   }),
 });
 
 export const {
   useGetPmAssignableUsersQuery,
+  useGetPmProjectFilesQuery,
   useCreatePmTaskMutation,
-  useAssignPmTaskMutation,
   useCreatePmMeetingMutation,
   useUpdatePmMeetingMutation,
   useUploadPmProjectFileMutation,
+  useDownloadPmProjectFileQuery,
 } = pmProjectActionsApi;
