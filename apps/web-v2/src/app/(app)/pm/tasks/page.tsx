@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { PmTasksWorkspace } from "@/features/pm-tasks/components/pm-tasks-workspace";
 
 export const metadata: Metadata = {
   title: "PM Tasks | Hassad",
 };
 
 export default function TasksPage() {
-  return <ScreenPlaceholder label="Tasks" />;
+  return <PmTasksWorkspace />;
 }

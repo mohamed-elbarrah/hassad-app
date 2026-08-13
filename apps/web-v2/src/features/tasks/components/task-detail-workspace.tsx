@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   ArrowLeftIcon,
   Building2Icon,
@@ -44,7 +44,23 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TaskDetailRecord } from "@/features/tasks/lib/task-detail";
 
-export function TaskDetailWorkspace({ task }: { task: TaskDetailRecord }) {
+type TaskDetailWorkspaceProps = {
+  task: TaskDetailRecord;
+  backHref?: string;
+  backLabel?: string;
+  projectHref?: string | null;
+  clientHref?: string | null;
+  actions?: ReactNode;
+};
+
+export function TaskDetailWorkspace({
+  task,
+  backHref = "/admin/tasks",
+  backLabel = "Tasks",
+  projectHref = "/admin/projects",
+  clientHref = "/admin/clients",
+  actions,
+}: TaskDetailWorkspaceProps) {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const selectedCampaign =
     task.marketing?.campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? null;
@@ -54,14 +70,13 @@ export function TaskDetailWorkspace({ task }: { task: TaskDetailRecord }) {
       title="Task detail"
       description="Workflow progress, internal discussion, files, and department-specific execution context."
       actions={
-        <Button
-          variant="outline"
-          nativeButton={false}
-          render={<Link href="/admin/tasks" />}
-        >
-          <ArrowLeftIcon data-icon="inline-start" />
-          Tasks
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {actions}
+          <Button variant="outline" nativeButton={false} render={<Link href={backHref} />}>
+            <ArrowLeftIcon data-icon="inline-start" />
+            {backLabel}
+          </Button>
+        </div>
       }
     >
       <EntityDetailLayout
@@ -88,13 +103,23 @@ export function TaskDetailWorkspace({ task }: { task: TaskDetailRecord }) {
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <p className="text-sm text-muted-foreground">{task.description}</p>
-                {task.clientId ? (
+                {task.projectId && projectHref ? (
                   <Button
                     variant="outline"
                     nativeButton={false}
-                    render={<Link href={`/admin/clients/${task.clientId}`} />}
+                    render={<Link href={`${projectHref}/${task.projectId}`} />}
                   >
                     <Building2Icon data-icon="inline-start" />
+                    Open project
+                  </Button>
+                ) : null}
+                {task.clientId && clientHref ? (
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={<Link href={`${clientHref}/${task.clientId}`} />}
+                  >
+                    <UserIcon data-icon="inline-start" />
                     Open client
                   </Button>
                 ) : null}
@@ -131,9 +156,7 @@ export function TaskDetailWorkspace({ task }: { task: TaskDetailRecord }) {
                     <dd className="text-right font-medium">
                       <div className="flex flex-col">
                         <span>{task.projectName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {task.projectStatusLabel}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{task.projectStatusLabel}</span>
                       </div>
                     </dd>
                   </div>
@@ -224,7 +247,12 @@ export function TaskDetailWorkspace({ task }: { task: TaskDetailRecord }) {
                     id: comment.id,
                     date: comment.postedAt,
                     title: comment.author,
-                    badges: <StatusBadge tone={comment.tone}>{comment.role}</StatusBadge>,
+                    badges: (
+                      <div className="flex flex-wrap gap-2">
+                        <StatusBadge tone={comment.tone}>{comment.role}</StatusBadge>
+                        <StatusBadge tone={comment.audience === "Team" ? "active" : "neutral"}>{comment.audience}</StatusBadge>
+                      </div>
+                    ),
                     content: comment.message,
                     completed: true,
                   }))}
@@ -322,11 +350,11 @@ export function TaskDetailWorkspace({ task }: { task: TaskDetailRecord }) {
                       ) : null}
                     </div>
                   </div>
-                  {task.clientId ? (
+                  {task.clientId && clientHref ? (
                     <Button
                       variant="outline"
                       nativeButton={false}
-                      render={<Link href={`/admin/clients/${task.clientId}`} />}
+                      render={<Link href={`${clientHref}/${task.clientId}`} />}
                     >
                       <UserIcon data-icon="inline-start" />
                       Open client detail

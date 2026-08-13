@@ -419,19 +419,35 @@ export class TasksService {
         project: {
           include: {
             client: true,
+            manager: { select: { id: true, name: true, email: true } },
           },
         },
+        period: { select: { id: true, periodNumber: true } },
         assignee: true,
         creator: true,
         approver: true,
         department: { select: { id: true, name: true } },
-        files: true,
-        comments: {
+        files: {
           include: {
-            user: true,
+            uploader: { select: { id: true, name: true } },
           },
         },
-        statusHistory: true,
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                role: { select: { name: true } },
+              },
+            },
+          },
+        },
+        statusHistory: {
+          include: {
+            changer: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
@@ -845,7 +861,11 @@ export class TasksService {
       where: { projectId },
       include: {
         assignee: { select: { id: true, name: true } },
-        files: true,
+        files: {
+          include: {
+            uploader: { select: { id: true, name: true } },
+          },
+        },
         comments: {
           include: {
             user: { select: { id: true, name: true } },
@@ -894,6 +914,7 @@ export class TasksService {
             id: true,
             name: true,
             clientId: true,
+            status: true,
             client: {
               select: {
                 companyName: true,
@@ -904,6 +925,7 @@ export class TasksService {
         },
         assignee: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
+        period: { select: { periodNumber: true } },
       },
       orderBy: { createdAt: "desc" },
     });

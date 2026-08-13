@@ -196,7 +196,7 @@ export function mapTaskIndexItem(item: any): TaskDirectoryRecord {
     priority,
     dueDateLabel: dueLabel(item.dueDate),
     dueOffsetDays: daysUntil(item.dueDate) ?? 0,
-    periodLabel: item.periodNumber ? `P${item.periodNumber}` : "No period",
+    periodLabel: item.periodNumber ? `P${item.periodNumber}` : item.periodLabel ?? "No period",
     isClientVisible: !!item.isVisibleToClient,
     isArchived: !!item.isArchived,
     revisionCount: item.revisionCount ?? 0,

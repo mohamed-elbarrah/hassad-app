@@ -29,8 +29,10 @@ import type { WorkflowStep } from "@/components/patterns/workflow-stepper";
 
 export type TaskDetailComment = {
   id: string;
+  senderId: string;
   author: string;
   role: "PM" | "Assignee" | "Admin";
+  audience: "Team" | "Internal";
   postedAt: string;
   message: string;
   tone: StatusTone;
@@ -227,8 +229,10 @@ function buildComments(task: TaskDirectoryRecord, projectManager: string): TaskD
   const base: TaskDetailComment[] = [
     {
       id: `${task.id}-comment-1`,
+      senderId: `${task.id}-pm`,
       author: projectManager,
       role: "PM",
+      audience: "Team",
       postedAt: "Aug 7, 2026 · 10:15",
       message: "Focus this task on the current delivery window and confirm the final handoff time.",
       tone: "active",
@@ -238,8 +242,10 @@ function buildComments(task: TaskDirectoryRecord, projectManager: string): TaskD
   if (task.assigneeName) {
     base.push({
       id: `${task.id}-comment-2`,
+      senderId: `${task.id}-assignee`,
       author: task.assigneeName,
       role: "Assignee",
+      audience: "Team",
       postedAt: "Aug 8, 2026 · 13:40",
       message:
         task.status === TaskStatus.IN_REVIEW
@@ -254,8 +260,10 @@ function buildComments(task: TaskDirectoryRecord, projectManager: string): TaskD
   if (task.signalTone === "destructive" || task.signalTone === "warning") {
     base.push({
       id: `${task.id}-comment-3`,
+      senderId: `${task.id}-admin`,
       author: "Admin delivery desk",
       role: "Admin",
+      audience: "Internal",
       postedAt: "Aug 9, 2026 · 09:05",
       message: `Escalation noted: ${task.signalSummary}`,
       tone: task.signalTone,

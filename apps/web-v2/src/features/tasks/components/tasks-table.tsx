@@ -22,9 +22,10 @@ import {
 
 type TasksTableProps = {
   rows: TaskDirectoryRecord[];
+  hrefBase?: string;
 };
 
-export function TasksTable({ rows }: TasksTableProps) {
+export function TasksTable({ rows, hrefBase = "/admin/tasks" }: TasksTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -47,7 +48,7 @@ export function TasksTable({ rows }: TasksTableProps) {
             <TableCell>
               <div className="flex min-w-0 flex-col gap-1">
                 <Link
-                  href={`/admin/tasks/${row.id}`}
+                  href={`${hrefBase}/${row.id}`}
                   className="font-medium hover:underline"
                 >
                   {row.title}

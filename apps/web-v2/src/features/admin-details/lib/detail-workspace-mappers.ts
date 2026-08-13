@@ -1266,7 +1266,14 @@ export function mapTaskDetailFromApi(task: any): TaskDetailRecord {
     comments: (task.comments ?? []).map((comment: any) => ({
       id: comment.id,
       author: comment.user?.name ?? "Team",
-      role: comment.isInternal ? (comment.userRole === UserRole.ADMIN ? "Admin" : comment.userRole === UserRole.PM ? "PM" : "Assignee") : "PM",
+      role: comment.isInternal
+        ? comment.user?.role?.name === UserRole.ADMIN
+          ? "Admin"
+          : comment.user?.role?.name === UserRole.PM
+            ? "PM"
+            : "Assignee"
+        : "PM",
+      audience: comment.isInternal ? "Internal" : "Team",
       postedAt: formatDateTime(comment.createdAt),
       message: comment.content,
       tone: comment.isInternal ? "neutral" : "active",
@@ -1276,7 +1283,7 @@ export function mapTaskDetailFromApi(task: any): TaskDetailRecord {
       name: file.fileName,
       purpose: file.purpose ?? "Attachment",
       uploadedAt: formatDateTime(file.uploadedAt),
-      uploadedBy: file.uploaderName ?? "Unknown uploader",
+      uploadedBy: file.uploader?.name ?? file.uploaderName ?? "Unknown uploader",
       mime: file.fileType ?? "FILE",
     })),
     history: (task.statusHistory ?? []).map((item: any) => ({
