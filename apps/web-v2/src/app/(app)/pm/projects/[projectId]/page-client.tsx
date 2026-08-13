@@ -7,6 +7,7 @@ import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state
 import { Button } from "@/components/ui/button";
 import { mapProjectDetailFromApi } from "@/features/admin-details/lib/detail-workspace-mappers";
 import { ProjectDetailWorkspace } from "@/features/projects/components/project-detail-workspace";
+import { PmProjectActionsBar } from "@/components/patterns/pm-project-actions-bar";
 import { useGetPmProjectDetailQuery } from "@/lib/api/pm-projects-api";
 
 export function PmProjectDetailPageClient({ projectId }: { projectId: string }) {
@@ -44,5 +45,13 @@ export function PmProjectDetailPageClient({ projectId }: { projectId: string }) 
     );
   }
 
-  return <ProjectDetailWorkspace project={mapProjectDetailFromApi(data)} />;
+  const project = mapProjectDetailFromApi(data);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <PmProjectActionsBar project={project} />
+      </div>
+      <ProjectDetailWorkspace project={project} />
+    </div>
+  );
 }

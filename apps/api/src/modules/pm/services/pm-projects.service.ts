@@ -7,7 +7,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
 const pmProjectDetailInclude = Prisma.validator<Prisma.ProjectInclude>()({
   client: { select: { id: true, companyName: true } },
   manager: { select: { id: true, name: true, email: true } },
-  contract: { select: { totalValue: true, monthlyValue: true } },
+  contract: { select: { id: true, type: true, totalValue: true, monthlyValue: true } },
   members: {
     include: { user: { select: { id: true, name: true, email: true } } },
   },
@@ -215,6 +215,10 @@ export class PmProjectsService {
   }
 
   async detail(userId: string, id: string) {
+    return this.workspace(userId, id);
+  }
+
+  async workspace(userId: string, id: string) {
     const project = (await this.prisma.project.findFirst({
       where: { id, ...this.ownedWhere(userId) },
       include: pmProjectDetailInclude,
@@ -250,8 +254,17 @@ export class PmProjectsService {
 
     return {
       ...rest,
+      workspaceType: project.contract?.type ?? (project.periods?.length ? "MONTHLY_RETAINER" : "ONE_OFF"),
+      hasPeriods: (project.periods?.length ?? 0) > 0,
+      currentPeriodId: project.periods?.find((period) => period.status === "ACTIVE")?.id ?? null,
       totalValue: project.contract?.totalValue ?? 0,
       monthlyValue: project.contract?.monthlyValue ?? 0,
+      capabilities: {
+        canAssignTasks: true,
+        canScheduleMeetings: true,
+        canUploadFiles: true,
+        canManagePeriods: (project.periods?.length ?? 0) > 0,
+      },
       invoices: Array.from(invoices.values()).map((inv) => ({
         id: inv.id,
         invoiceNumber: inv.invoiceNumber,

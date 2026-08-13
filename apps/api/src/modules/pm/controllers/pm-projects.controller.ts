@@ -22,4 +22,10 @@ export class PmProjectsController {
   detail(@CurrentUser("id") userId: string, @Param("id") id: string) {
     return this.service.detail(userId, id);
   }
+
+  @Get(":id/workspace")
+  @RequirePermissions("projects.read")
+  workspace(@CurrentUser("id") userId: string, @Param("id") id: string) {
+    return this.service.workspace(userId, id);
+  }
 }

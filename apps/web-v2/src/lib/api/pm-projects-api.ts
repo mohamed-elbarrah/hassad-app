@@ -22,7 +22,7 @@ export type PmProjectCard = {
   updatedAt: string;
 };
 
-export type PmProjectDetailApi = unknown;
+export type PmProjectWorkspaceApi = unknown;
 
 export type PmProjectsResponse = {
   items: PmProjectCard[];
@@ -34,8 +34,8 @@ export const pmProjectsApi = baseApi.injectEndpoints({
       query: () => ({ url: "/pm/projects" }),
       providesTags: ["PmProjects"],
     }),
-    getPmProjectDetail: builder.query<PmProjectDetailApi, string>({
-      query: (id) => ({ url: `/pm/projects/${id}` }),
+    getPmProjectDetail: builder.query<PmProjectWorkspaceApi, string>({
+      query: (id) => ({ url: `/pm/projects/${id}/workspace` }),
       providesTags: ["PmProjects"],
     }),
   }),

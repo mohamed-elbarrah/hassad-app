@@ -832,7 +832,7 @@ model ProjectPeriodHistory {
 model ProjectMeeting {
   id            String        @id @default(uuid())
   projectId     String        @map("project_id")
-  periodId      String        @map("period_id")
+  periodId      String?      @map("period_id")
   title         String
   scheduledAt   DateTime      @map("scheduled_at")
   durationMin   Int?          @map("duration_min")
@@ -845,7 +845,7 @@ model ProjectMeeting {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
   project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  period        ProjectPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  period        ProjectPeriod? @relation(fields: [periodId], references: [id], onDelete: Cascade)
   creator       User          @relation("MeetingCreatedBy", fields: [createdBy], references: [id])
 
   @@index([projectId])
