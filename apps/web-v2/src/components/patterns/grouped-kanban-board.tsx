@@ -50,7 +50,7 @@ type GroupedKanbanBoardProps<TItem extends KanbanItem> = {
     itemId: string;
     fromSectionId: string;
     toSectionId: string;
-  }) => void;
+  }) => void | Promise<void>;
   emptyState?: React.ReactNode;
 };
 
@@ -255,7 +255,11 @@ export function GroupedKanbanBoard<TItem extends KanbanItem>({
     return index;
   }, [viewLanes]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const [isMoving, setIsMoving] = useState(false);
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    if (isMoving) return;
+
     const itemId = String(event.active.id);
     const overId = event.over ? String(event.over.id) : null;
 
@@ -273,14 +277,30 @@ export function GroupedKanbanBoard<TItem extends KanbanItem>({
 
     if (!targetSectionId || targetSectionId === sourceSectionId) return;
 
-    setViewLanes((current) =>
-      moveItem(current, itemId, sourceSectionId, targetSectionId),
-    );
-    onMoveItem?.({
+    const previousLanes = viewLanes;
+    const nextLanes = moveItem(
+      previousLanes,
       itemId,
-      fromSectionId: sourceSectionId,
-      toSectionId: targetSectionId,
-    });
+      sourceSectionId,
+      targetSectionId,
+    );
+
+    if (nextLanes === previousLanes) return;
+
+    setViewLanes(nextLanes);
+    setIsMoving(true);
+
+    try {
+      await onMoveItem?.({
+        itemId,
+        fromSectionId: sourceSectionId,
+        toSectionId: targetSectionId,
+      });
+    } catch {
+      setViewLanes(previousLanes);
+    } finally {
+      setIsMoving(false);
+    }
   };
 
   const totalCards = viewLanes.reduce(
@@ -333,7 +353,7 @@ export function GroupedKanbanBoard<TItem extends KanbanItem>({
                       key={section.id}
                       section={section}
                       renderCard={renderCard}
-                      interactive={mounted}
+                      interactive={mounted && !isMoving}
                     />
                   ))}
                 </div>

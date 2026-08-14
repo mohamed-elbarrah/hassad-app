@@ -75,6 +75,11 @@ export const baseApi = createApi({
     "Delivery",
     "Session",
     "Chat",
+    "TeamOverview",
+    "TeamTasks",
+    "TaskDetail",
+    "TaskComments",
+    "TaskFiles",
   ],
   endpoints: () => ({}),
 });

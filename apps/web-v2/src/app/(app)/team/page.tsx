@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
+import { TeamOverviewWorkspace } from "@/features/team/components/team-overview-workspace";
 
 export const metadata: Metadata = {
-  title: "Team Overview | Hassad",
+  title: "My Work | Hassad",
 };
 
 export default function TeamOverviewPage() {
-  return <ScreenPlaceholder label="Overview" />;
+  return <TeamOverviewWorkspace />;
 }

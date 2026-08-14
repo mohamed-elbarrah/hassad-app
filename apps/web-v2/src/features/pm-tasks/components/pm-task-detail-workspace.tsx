@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowLeftIcon, Building2Icon, FileTextIcon, SendHorizonalIcon, UserIcon } from "lucide-react";
+import { ArrowLeftIcon, Building2Icon, DownloadIcon, FileTextIcon, SendHorizonalIcon, UserIcon } from "lucide-react";
 import { FilePurpose } from "@hassad/shared";
 
 import { EntityDetailLayout } from "@/components/patterns/entity-detail-layout";
@@ -22,11 +22,11 @@ import { MessageScroller, MessageScrollerButton, MessageScrollerContent, Message
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { mapTaskDetailFromApi } from "@/features/admin-details/lib/detail-workspace-mappers";
 import type { TaskDetailRecord, TaskDetailComment } from "@/features/tasks/lib/task-detail";
+import { formatTaskStatus, getAllowedTeamTaskStatuses } from "@/features/tasks/lib/task-directory";
 import { showApiErrorToast, showCrmActionToast } from "@/lib/api/crm-action-toast";
 import { useAddPmTaskCommentMutation, useUpdatePmTaskStatusMutation, useUploadPmTaskFileMutation } from "@/lib/api/pm-tasks-api";
-import { cn } from "@/lib/utils";
+import { useAddTeamTaskCommentMutation, useLazyGetTeamTaskFileDownloadQuery, useUpdateTeamTaskStatusMutation, useUploadTeamTaskFileMutation } from "@/lib/api/team-tasks-api";
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -80,18 +80,29 @@ function renderComments(
 type PmTaskDetailWorkspaceProps = {
   task: TaskDetailRecord;
   currentUserId: string;
+  mode?: "pm" | "team";
+  backHref?: string;
 };
 
-export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorkspaceProps) {
+export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHref = "/pm/tasks" }: PmTaskDetailWorkspaceProps) {
   const [status, setStatus] = useState(task.status);
   const [conversationDraft, setConversationDraft] = useState("");
   const [internalNoteDraft, setInternalNoteDraft] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [filePurpose, setFilePurpose] = useState<FilePurpose>(FilePurpose.REFERENCE);
+  const allowedTeamStatuses = mode === "team" ? getAllowedTeamTaskStatuses(task.status) : [];
+  const teamStatusOptions = Array.from(new Set([task.status, ...allowedTeamStatuses]));
 
-  const [updateStatus, updateStatusState] = useUpdatePmTaskStatusMutation();
-  const [addComment, addCommentState] = useAddPmTaskCommentMutation();
-  const [uploadFile, uploadFileState] = useUploadPmTaskFileMutation();
+  const [updatePmStatus, updatePmStatusState] = useUpdatePmTaskStatusMutation();
+  const [updateTeamStatus, updateTeamStatusState] = useUpdateTeamTaskStatusMutation();
+  const [addPmComment, addPmCommentState] = useAddPmTaskCommentMutation();
+  const [addTeamComment, addTeamCommentState] = useAddTeamTaskCommentMutation();
+  const [uploadPmFile, uploadPmFileState] = useUploadPmTaskFileMutation();
+  const [uploadTeamFile, uploadTeamFileState] = useUploadTeamTaskFileMutation();
+  const [downloadTeamFile] = useLazyGetTeamTaskFileDownloadQuery();
+  const updateStatusState = mode === "team" ? updateTeamStatusState : updatePmStatusState;
+  const addCommentState = mode === "team" ? addTeamCommentState : addPmCommentState;
+  const uploadFileState = mode === "team" ? uploadTeamFileState : uploadPmFileState;
 
   const conversationComments = useMemo(
     () => task.comments.filter((comment) => comment.audience === "Team"),
@@ -104,7 +115,11 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
 
   const submitStatus = async () => {
     try {
-      await updateStatus({ taskId: task.id, status }).unwrap();
+      if (mode === "team") {
+        await updateTeamStatus({ taskId: task.id, status }).unwrap();
+      } else {
+        await updatePmStatus({ taskId: task.id, status }).unwrap();
+      }
       showCrmActionToast({ type: "success", title: "Task status updated", description: `Status moved to ${String(status).replaceAll("_", " ")}.` });
     } catch (error) {
       showApiErrorToast(error);
@@ -114,7 +129,11 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
   const submitConversationMessage = async () => {
     try {
       if (!conversationDraft.trim()) return;
-      await addComment({ taskId: task.id, content: conversationDraft.trim(), isInternal: false }).unwrap();
+      if (mode === "team") {
+        await addTeamComment({ taskId: task.id, content: conversationDraft.trim() }).unwrap();
+      } else {
+        await addPmComment({ taskId: task.id, content: conversationDraft.trim(), isInternal: false }).unwrap();
+      }
       showCrmActionToast({ type: "success", title: "Message sent", description: "The team conversation was updated." });
       setConversationDraft("");
     } catch (error) {
@@ -125,9 +144,18 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
   const submitInternalNote = async () => {
     try {
       if (!internalNoteDraft.trim()) return;
-      await addComment({ taskId: task.id, content: internalNoteDraft.trim(), isInternal: true }).unwrap();
+      await addPmComment({ taskId: task.id, content: internalNoteDraft.trim(), isInternal: true }).unwrap();
       showCrmActionToast({ type: "success", title: "Internal note saved", description: "The private PM note was added." });
       setInternalNoteDraft("");
+    } catch (error) {
+      showApiErrorToast(error);
+    }
+  };
+
+  const downloadFile = async (fileId: string) => {
+    try {
+      const result = await downloadTeamFile({ taskId: task.id, fileId }).unwrap();
+      window.open(result.url, "_blank", "noopener,noreferrer");
     } catch (error) {
       showApiErrorToast(error);
     }
@@ -139,7 +167,11 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
       const body = new FormData();
       body.append("file", file);
       body.append("purpose", filePurpose);
-      await uploadFile({ taskId: task.id, body }).unwrap();
+      if (mode === "team") {
+        await uploadTeamFile({ taskId: task.id, body }).unwrap();
+      } else {
+        await uploadPmFile({ taskId: task.id, body }).unwrap();
+      }
       showCrmActionToast({ type: "success", title: "File uploaded", description: "The task file was attached." });
       setFile(null);
     } catch (error) {
@@ -153,11 +185,23 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
       description="PM task workspace with conversation, internal notes, files, and workflow control."
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" nativeButton={false} render={<Link href="/pm/tasks" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href={backHref} />}>
             <ArrowLeftIcon data-icon="inline-start" />
             Tasks
           </Button>
-          <Button type="button" onClick={() => void submitStatus()} disabled={updateStatusState.isLoading}>
+          {mode === "team" ? (
+            <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
+              <SelectTrigger size="sm" aria-label="Task status"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectGroup>
+                {teamStatusOptions.map((option) => (
+                  <SelectItem key={option} value={option} disabled={option === task.status}>
+                    {formatTaskStatus(option)}{option === task.status ? " (current)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectGroup></SelectContent>
+            </Select>
+          ) : null}
+          <Button type="button" onClick={() => void submitStatus()} disabled={updateStatusState.isLoading || (mode === "team" && status === task.status)}>
             Save status
           </Button>
         </div>
@@ -239,7 +283,7 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
           <div className="overflow-x-auto pb-1">
             <TabsList className="min-w-max">
               <TabsTrigger value="conversation">Comments</TabsTrigger>
-              <TabsTrigger value="notes">Internal notes</TabsTrigger>
+              {mode === "pm" ? <TabsTrigger value="notes">Internal notes</TabsTrigger> : null}
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
             </TabsList>
@@ -289,7 +333,7 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
             </Card>
           </TabsContent>
 
-          <TabsContent value="notes">
+          {mode === "pm" ? <TabsContent value="notes">
             <Card>
               <CardHeader>
                 <CardTitle>Internal notes</CardTitle>
@@ -330,7 +374,7 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent> : null}
 
           <TabsContent value="files">
             <Card>
@@ -373,7 +417,14 @@ export function PmTaskDetailWorkspace({ task, currentUserId }: PmTaskDetailWorks
                           <p className="font-medium">{fileItem.name}</p>
                           <p className="text-sm text-muted-foreground">{fileItem.purpose}</p>
                         </div>
-                        <StatusBadge tone="neutral">{fileItem.mime}</StatusBadge>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge tone="neutral">{fileItem.mime}</StatusBadge>
+                          {mode === "team" ? (
+                            <Button type="button" variant="ghost" size="icon-sm" aria-label={`Download ${fileItem.name}`} onClick={() => void downloadFile(fileItem.id)}>
+                              <DownloadIcon />
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   ))}

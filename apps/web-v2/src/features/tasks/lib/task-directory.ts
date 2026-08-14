@@ -288,6 +288,22 @@ export function getTaskPriorityTone(priority: TaskPriority): StatusTone {
   return "neutral";
 }
 
+export function getAllowedTeamTaskStatuses(status: TaskStatus): TaskStatus[] {
+  switch (status) {
+    case TaskStatus.TODO:
+    case TaskStatus.REVISION:
+      return [TaskStatus.IN_PROGRESS];
+    case TaskStatus.IN_PROGRESS:
+      return [TaskStatus.IN_REVIEW];
+    case TaskStatus.IN_REVIEW:
+      return [TaskStatus.REVISION];
+    case TaskStatus.DONE:
+      return [];
+    default:
+      return [];
+  }
+}
+
 export function getFilteredTasks(params: {
   search: string;
   queue: TaskDirectoryQueueFilter;
