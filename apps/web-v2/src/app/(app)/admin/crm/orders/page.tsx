@@ -1,11 +1,5 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { OrdersWorkspace } from "@/features/crm-orders/components/orders-workspace";
-
-export const metadata: Metadata = {
-  title: "Orders | Hassad",
-};
-
-export default function OrdersPage() {
-  return <OrdersWorkspace />;
+export default function OrdersCompatibilityPage() {
+  redirect("/admin/crm/requests");
 }

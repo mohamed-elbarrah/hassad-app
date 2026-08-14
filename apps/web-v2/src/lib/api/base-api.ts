@@ -113,7 +113,6 @@ export const baseApi = createApi({
     "AdminPayments",
     "AdminPayroll",
     "AdminPaymentIssues",
-    "AdminLeads",
     "AdminRequests",
     "AdminProjects",
     "AdminReports",

@@ -85,10 +85,6 @@ export class CrmCreateContractDto {
 
   @IsOptional()
   @IsUUID()
-  leadId?: string;
-
-  @IsOptional()
-  @IsUUID()
   proposalId?: string;
 
   @IsString()

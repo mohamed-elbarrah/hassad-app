@@ -399,17 +399,18 @@ export class CrmOrdersService {
       ? null
       : await this.prisma.lead.findUnique({
           where: { id },
-          select: { id: true, companyName: true },
+          select: { id: true, companyName: true, requestId: true },
         });
+    const canonicalRequest = request ?? (lead?.requestId
+      ? await this.prisma.request.findUnique({ where: { id: lead.requestId }, select: { id: true, companyName: true } })
+      : null);
 
-    if (!request && !lead) {
-      throw new NotFoundException("Order not found");
+    if (!canonicalRequest) {
+      throw new NotFoundException("Canonical request not found for legacy CRM record");
     }
 
     const note = await this.prisma.crmNote.create({
-      data: request
-        ? { requestId: request.id, authorId, content: trimmed }
-        : { leadId: lead!.id, authorId, content: trimmed },
+      data: { requestId: canonicalRequest.id, authorId, content: trimmed },
       select: {
         id: true,
         content: true,
@@ -424,7 +425,7 @@ export class CrmOrdersService {
       toast: {
         type: "success" as const,
         title: "Note saved",
-        description: `Added a note to ${request?.companyName ?? lead?.companyName ?? "this record"}.`,
+        description: `Added a note to ${canonicalRequest?.companyName ?? lead?.companyName ?? "this record"}.`,
       },
     };
   }
@@ -469,6 +470,9 @@ export class CrmOrdersService {
     if (!request && !lead) {
       throw new NotFoundException('Order not found');
     }
+    if (!request) {
+      throw new NotFoundException('Canonical request not found for legacy CRM record');
+    }
 
     const currentStage = request
       ? request.crmStage ?? request.lead?.crmStage ?? 'NEW'
@@ -480,7 +484,6 @@ export class CrmOrdersService {
 
     const content = note?.trim();
     const requestStatus = mapCrmStageToRequestStatus(toStage);
-    const pipelineStage = mapCrmStageToPipelineStage(toStage);
     const fromStageLabel = humanizeCrmStage(currentStage);
     const toStageLabel = humanizeCrmStage(toStage);
     const targetName = request?.companyName ?? lead?.companyName ?? "this record";
@@ -500,55 +503,10 @@ export class CrmOrdersService {
             note: content,
           },
         });
-        if (request.lead?.id) {
-          await tx.lead.update({
-            where: { id: request.lead.id },
-            data: { crmStage: toStage as any, pipelineStage },
-          });
-          await tx.leadPipelineHistory.create({
-            data: {
-              leadId: request.lead.id,
-              fromStage: request.lead.pipelineStage,
-              toStage: pipelineStage,
-              changedBy: authorId,
-            },
-          });
-        }
         if (content) {
           await tx.crmNote.create({ data: { requestId: request.id, authorId, content } });
         }
         return;
-      }
-
-      await tx.lead.update({
-        where: { id: lead!.id },
-        data: { crmStage: toStage as any, pipelineStage },
-      });
-      await tx.leadPipelineHistory.create({
-        data: {
-          leadId: lead!.id,
-          fromStage: lead!.pipelineStage,
-          toStage: pipelineStage,
-          changedBy: authorId,
-        },
-      });
-      if (lead?.request?.id) {
-        await tx.request.update({
-          where: { id: lead.request.id },
-          data: { crmStage: toStage as any, status: requestStatus },
-        });
-        await tx.requestStatusHistory.create({
-          data: {
-            requestId: lead.request.id,
-            fromStatus: lead.request.status,
-            toStatus: requestStatus,
-            changedBy: authorId,
-            note: content,
-          },
-        });
-      }
-      if (content) {
-        await tx.crmNote.create({ data: { leadId: lead!.id, authorId, content } });
       }
     });
 

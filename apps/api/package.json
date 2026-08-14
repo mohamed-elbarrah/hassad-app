@@ -17,6 +17,7 @@
     "start:prod": "node dist/main",
     "backfill:create-projects": "ts-node scripts/backfill-create-projects-from-signed-contracts.ts",
     "backfill:requests": "ts-node scripts/backfill-request-lineage.ts",
+    "verify:crm-migration": "ts-node scripts/verify-legacy-crm-migration.ts",
     "recompute:client-counters": "ts-node src/scripts/backfill-client-counters.ts",
     "patch:pm-task-create-permission": "ts-node scripts/patch-pm-task-create-permission.ts",
     "test:e2e": "vitest run --config src/test/vitest.config.ts",

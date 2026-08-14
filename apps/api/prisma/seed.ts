@@ -34,13 +34,16 @@ async function main() {
   await prisma.contractStatusHistory.deleteMany();
   await prisma.contractPaymentPlan.deleteMany();
   await prisma.contractVersion.deleteMany();
+  await prisma.legacyContractMigrationReview.deleteMany();
+  await prisma.legacyLeadMigration.deleteMany();
   await prisma.contract.deleteMany();
   await prisma.proposal.deleteMany();
   await prisma.leadService.deleteMany();
   await prisma.leadPipelineHistory.deleteMany();
   await prisma.leadContactLog.deleteMany();
-  await prisma.leadAutomationLog.deleteMany();
-  await prisma.leadAutomationRule.deleteMany();
+  await prisma.requestAutomationLog.deleteMany();
+  await prisma.requestAutomationRule.deleteMany();
+  await prisma.crmNote.deleteMany();
   await prisma.requestService.deleteMany();
   await prisma.requestStatusHistory.deleteMany();
   await prisma.request.deleteMany();
@@ -801,9 +804,28 @@ async function main() {
     { st: "APPROVED", co: "شركة الإنجاز", nm: "هند جميل", source: "WEBSITE", serviceId: services[0].id, createdAt: d(2026, 7, 10), attempts: 5 },
   ];
   const pipelineLeadIds: Record<string, string> = {};
+  const requestStatusByStage: Record<string, string> = {
+    NEW: "QUALIFYING",
+    INTRO_SENT: "QUALIFYING",
+    CALL_ATTEMPT: "QUALIFYING",
+    MEETING_SCHEDULED: "PROPOSAL_IN_PROGRESS",
+    MEETING_DONE: "PROPOSAL_IN_PROGRESS",
+    PROPOSAL_SENT: "PROPOSAL_SENT",
+    FOLLOW_UP: "NEGOTIATION",
+    APPROVED: "CONTRACT_PREPARATION",
+  };
   for (const p of PIPELINE_STAGES) {
-    const lead = await prisma.lead.create({
+    const pipelineClient = await prisma.client.create({
       data: {
+        companyName: p.co,
+        businessName: p.co,
+        businessType: "OTHER",
+        status: "LEAD",
+      } as any,
+    });
+    const request = await prisma.request.create({
+      data: {
+        clientId: pipelineClient.id,
         companyName: p.co,
         contactName: p.nm,
         phoneWhatsapp: "+966500000000",
@@ -811,34 +833,31 @@ async function main() {
         businessName: p.co,
         businessType: "OTHER",
         source: p.source as any,
-        pipelineStage: p.st,
-        assignedTo: userIds["SALES"],
+        assignedSalesId: userIds["SALES"],
         contactAttemptCount: p.attempts,
         lastContactAt: p.st === "NEW" ? null : d(2026, 8, p.st === "FOLLOW_UP" ? 1 : 7),
+        status: requestStatusByStage[p.st] as any,
+        crmStage: "NEW",
         createdAt: p.createdAt,
       } as any,
     });
-    pipelineLeadIds[p.st] = lead.id;
-    await prisma.leadService.create({
-      data: {
-        leadId: lead.id,
-        serviceId: p.serviceId,
-        quantity: 1,
-      },
+    pipelineLeadIds[p.st] = request.id;
+    await prisma.requestService.create({
+      data: { requestId: request.id, serviceId: p.serviceId, quantity: 1 },
     });
-    await prisma.leadPipelineHistory.create({
+    await prisma.requestStatusHistory.create({
       data: {
-        leadId: lead.id,
-        fromStage: "NEW",
-        toStage: p.st as any,
+        requestId: request.id,
+        fromStatus: null,
+        toStatus: requestStatusByStage[p.st] as any,
         changedBy: userIds["SALES"],
         changedAt: p.createdAt,
       } as any,
     });
     if (p.st !== "NEW") {
-      await prisma.leadContactLog.create({
+      await prisma.requestContactLog.create({
         data: {
-          leadId: lead.id,
+          requestId: request.id,
           userId: userIds["SALES"],
           type:
             p.st === "MEETING_SCHEDULED" || p.st === "MEETING_DONE"
@@ -857,7 +876,7 @@ async function main() {
   await prisma.proposal.createMany({
     data: [
       {
-        leadId: pipelineLeadIds["PROPOSAL_SENT"],
+        requestId: pipelineLeadIds["PROPOSAL_SENT"],
         createdBy: userIds["SALES"],
         title: "عرض تأسيس الهوية",
         serviceDescription: "Brand package for commercial approval",
@@ -869,7 +888,7 @@ async function main() {
         createdAt: d(2026, 8, 2),
       } as any,
       {
-        leadId: pipelineLeadIds["FOLLOW_UP"],
+        requestId: pipelineLeadIds["FOLLOW_UP"],
         createdBy: userIds["SALES2"],
         title: "عرض الحملة الإعلانية",
         serviceDescription: "Campaign management package under negotiation",
@@ -881,7 +900,7 @@ async function main() {
         createdAt: d(2026, 8, 1),
       } as any,
       {
-        leadId: pipelineLeadIds["APPROVED"],
+        requestId: pipelineLeadIds["APPROVED"],
         createdBy: userIds["SALES2"],
         title: "عرض التحول الرقمي",
         serviceDescription: "Approved package pending contract assembly",
@@ -1905,8 +1924,17 @@ async function main() {
     },
   });
 
-  const oasisLead = await prisma.lead.create({
+  const oasisClient = await prisma.client.create({
     data: {
+      companyName: "Oasis Retail",
+      businessName: "Oasis Retail Group",
+      businessType: "STORE",
+      status: "LEAD",
+    },
+  });
+  const oasisLead = await prisma.request.create({
+    data: {
+      clientId: oasisClient.id,
       companyName: "Oasis Retail",
       contactName: "Dina Faris",
       phoneWhatsapp: "+966500000115",
@@ -1914,23 +1942,23 @@ async function main() {
       businessName: "Oasis Retail Group",
       businessType: "STORE",
       source: "AD",
-      pipelineStage: "CALL_ATTEMPT",
-      assignedTo: userIds["SALES"],
+      status: "QUALIFYING",
+      assignedSalesId: userIds["SALES"],
       contactAttemptCount: 4,
       lastContactAt: d(2026, 7, 24),
       createdAt: d(2026, 7, 12),
     } as any,
   });
-  await prisma.leadService.create({
+  await prisma.requestService.create({
     data: {
-      leadId: oasisLead.id,
+      requestId: oasisLead.id,
       serviceId: services[2].id,
       quantity: 1,
     },
   });
   await prisma.proposal.create({
     data: {
-      leadId: oasisLead.id,
+      requestId: oasisLead.id,
       createdBy: userIds["SALES"],
       title: "عرض Oasis loyalty campaign",
       serviceDescription: "Loyalty campaign and activation scope",
@@ -1946,8 +1974,9 @@ async function main() {
   // ═══════════════════════════════════════════════════════════════════════════════
   // Extra proposals & contracts — full status variety for the listing pages
   // ═══════════════════════════════════════════════════════════════════════════════
-  const extraLead = await prisma.lead.create({
+  const extraRequest = await prisma.request.create({
     data: {
+      clientId: client.id,
       companyName: "مؤسسة اختبار العروض",
       contactName: "مشاري التميمي",
       phoneWhatsapp: "+966500000099",
@@ -1955,14 +1984,14 @@ async function main() {
       businessName: "مؤسسة اختبار العروض",
       businessType: "OTHER",
       source: "WEBSITE",
-      pipelineStage: "APPROVED",
-      assignedTo: userIds["SALES"],
+      status: "CONTRACT_PREPARATION",
+      assignedSalesId: userIds["SALES"],
     } as any,
   });
   for (const st of ["DRAFT", "SENT", "REVISION_REQUESTED", "REJECTED"]) {
     await prisma.proposal.create({
       data: {
-        leadId: extraLead.id,
+        requestId: extraRequest.id,
         clientId: client.id,
         createdBy: userIds["SALES"],
         title: `عرض توضيحي — ${st}`,

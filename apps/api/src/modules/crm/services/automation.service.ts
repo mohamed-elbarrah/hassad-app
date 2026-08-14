@@ -16,7 +16,7 @@ export class AutomationService {
   constructor(private prisma: PrismaService) {}
 
   async createRule(dto: CreateAutomationRuleDto) {
-    return this.prisma.leadAutomationRule.create({
+    return this.prisma.requestAutomationRule.create({
       data: {
         name: dto.name,
         triggerType: dto.triggerType,
@@ -28,16 +28,16 @@ export class AutomationService {
   }
 
   async getRules() {
-    return this.prisma.leadAutomationRule.findMany({
+    return this.prisma.requestAutomationRule.findMany({
       where: { isActive: true },
       orderBy: { createdAt: "desc" },
     });
   }
 
   async executeRule(dto: ExecuteAutomationDto) {
-    const { ruleId, leadId } = dto;
+    const { ruleId, requestId } = dto;
 
-    const rule = await this.prisma.leadAutomationRule.findUnique({
+    const rule = await this.prisma.requestAutomationRule.findUnique({
       where: { id: ruleId },
     });
 
@@ -50,16 +50,16 @@ export class AutomationService {
       throw new BadRequestException("Automation rule is inactive");
     }
 
-    const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
-    if (!lead) {
-      throw new NotFoundException(`Lead with ID ${leadId} not found`);
+    const request = await this.prisma.request.findUnique({ where: { id: requestId } });
+    if (!request) {
+      throw new NotFoundException(`Request with ID ${requestId} not found`);
     }
 
     // Create a log entry tracking this execution
-    const log = await this.prisma.leadAutomationLog.create({
+    const log = await this.prisma.requestAutomationLog.create({
       data: {
         ruleId,
-        leadId,
+        requestId,
         status: AutomationStatus.PENDING,
       },
     });
@@ -72,7 +72,7 @@ export class AutomationService {
         actionType: actionJson["type"] ?? "unknown",
       };
 
-      await this.prisma.leadAutomationLog.update({
+      await this.prisma.requestAutomationLog.update({
         where: { id: log.id },
         data: {
           status: AutomationStatus.SUCCESS,
@@ -80,9 +80,9 @@ export class AutomationService {
         },
       });
 
-      return { success: true, logId: log.id, ruleId, leadId };
+      return { success: true, logId: log.id, ruleId, requestId };
     } catch (error) {
-      await this.prisma.leadAutomationLog.update({
+      await this.prisma.requestAutomationLog.update({
         where: { id: log.id },
         data: {
           status: AutomationStatus.FAILED,

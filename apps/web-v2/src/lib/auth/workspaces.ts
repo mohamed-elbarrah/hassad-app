@@ -72,13 +72,13 @@ const adminWorkspace: WorkspaceDefinition = {
         },
         {
           label: "CRM",
-          href: "/admin/crm/orders",
+          href: "/admin/crm/requests",
           icon: "commercial",
           permission: "admin.commercial.read",
           children: [
             {
-              label: "Orders",
-              href: "/admin/crm/orders",
+              label: "Requests",
+              href: "/admin/crm/requests",
               permission: "admin.commercial.read",
             },
             {
@@ -175,7 +175,7 @@ const adminWorkspace: WorkspaceDefinition = {
     { label: "Admin overview", href: "/admin" },
     { label: "Employees", href: "/admin/employees" },
     { label: "Clients", href: "/admin/clients" },
-    { label: "CRM orders", href: "/admin/crm/orders" },
+    { label: "CRM requests", href: "/admin/crm/requests" },
     { label: "Projects", href: "/admin/projects" },
     { label: "Tasks", href: "/admin/tasks" },
     { label: "Disputes", href: "/admin/disputes" },

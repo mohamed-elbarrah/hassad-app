@@ -53,6 +53,7 @@ export type ProposalWorkspaceQuery = {
 export type SalesOffersWorkspaceQuery = Omit<ProposalWorkspaceQuery, "creatorId">;
 
 export type AdminCrmWorkspaceQuery = {
+  kind?: "all" | "lead" | "order";
   statusFilter?: "all" | "active" | "waiting-approval" | "stalled";
   dateFilter?: "all-time" | "last-7-days" | "last-30-days" | "last-90-days";
   valueFilter?:
@@ -160,6 +161,7 @@ export type SalesOffersWorkspaceResponse = {
 
 export type CrmWorkspaceRecord = {
   id: string;
+  kind?: "lead" | "order";
   companyName: string;
   contactName: string;
   serviceLine: string;

@@ -2,8 +2,6 @@ import { Module } from "@nestjs/common";
 import { MulterModule } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { ChatModule } from "../chat/chat.module";
-import { LeadsController } from "./controllers/leads.controller";
-import { LeadsService } from "./services/leads.service";
 import { ClientsController } from "./controllers/clients.controller";
 import { ClientsService } from "./services/clients.service";
 import { AutomationController } from "./controllers/automation.controller";
@@ -30,7 +28,6 @@ import { RequestsModule } from "../requests/requests.module";
 @Module({
   imports: [ChatModule, NotificationsModule, RequestsModule, MulterModule.register({ storage: memoryStorage() })],
   controllers: [
-    LeadsController,
     ClientsController,
     AutomationController,
     ClientProfileController,
@@ -43,7 +40,6 @@ import { RequestsModule } from "../requests/requests.module";
     CrmRequestsController,
   ],
   providers: [
-    LeadsService,
     ClientsService,
     AutomationService,
     ClientProfileService,
@@ -56,7 +52,6 @@ import { RequestsModule } from "../requests/requests.module";
     CrmOrdersService,
   ],
   exports: [
-    LeadsService,
     ClientsService,
     ClientProfileService,
     ClientCounterService,

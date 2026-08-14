@@ -19,7 +19,6 @@ import { AdminSecurityController } from "./controllers/admin-security.controller
 import { AdminProjectsController } from "./controllers/admin-projects.controller";
 import { AdminTasksController } from "./controllers/admin-tasks.controller";
 import { AdminContractsController } from "./controllers/admin-contracts.controller";
-import { AdminLeadsController } from "./controllers/admin-leads.controller";
 import { AdminRequestsController } from "./controllers/admin-requests.controller";
 import { AdminCampaignsController } from "./controllers/admin-campaigns.controller";
 import { AdminChatController } from "./controllers/admin-chat.controller";
@@ -56,7 +55,6 @@ import { AdminSecurityService } from "./services/admin-security.service";
 import { AdminProjectsService } from "./services/admin-projects.service";
 import { AdminTasksService } from "./services/admin-tasks.service";
 import { AdminContractsService } from "./services/admin-contracts.service";
-import { AdminLeadsService } from "./services/admin-leads.service";
 import { AdminRequestsService } from "./services/admin-requests.service";
 import { AdminCampaignsService } from "./services/admin-campaigns.service";
 import { AdminChatService } from "./services/admin-chat.service";
@@ -86,6 +84,7 @@ import { AdminCrmOrdersService } from "./services/admin-crm-orders.service";
 import { PrismaHealthIndicator } from "../health/indicators";
 import { HealthPersistenceService } from "../health/services/health-persistence.service";
 import { RobustErrorLoggerService } from "../health/services/robust-error-logger.service";
+import { RequestsModule } from "../requests/requests.module";
 
 @Module({
   imports: [
@@ -95,6 +94,7 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     NotificationsModule,
     ChatModule,
     AiModule,
+    RequestsModule,
     TerminusModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -121,7 +121,6 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminProjectsController,
     AdminTasksController,
     AdminContractsController,
-    AdminLeadsController,
     AdminRequestsController,
     AdminCampaignsController,
     AdminChatController,
@@ -157,7 +156,6 @@ import { RobustErrorLoggerService } from "../health/services/robust-error-logger
     AdminProjectsService,
     AdminTasksService,
     AdminContractsService,
-    AdminLeadsService,
     AdminRequestsService,
     AdminCampaignsService,
     AdminChatService,

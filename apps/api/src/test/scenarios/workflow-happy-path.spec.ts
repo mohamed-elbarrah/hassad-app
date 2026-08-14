@@ -3,7 +3,6 @@ import { getApp, closeApp } from '../helpers/setup';
 import { getPrisma } from '../helpers/prisma';
 import { Scenario } from '../helpers/scenario';
 import { loginAs } from '../steps/auth.steps';
-import { createLead, moveLeadStage, getLead } from '../steps/lead.steps';
 import {
   createRequest,
   transitionRequest,
@@ -18,11 +17,11 @@ afterAll(async () => {
   await closeApp();
 });
 
-describe('Workflow: Full Happy Path (Lead → Payment → Project → Tasks)', () => {
+describe('Workflow: Full Happy Path (Request → Payment → Project → Tasks)', () => {
   test('Complete end-to-end workflow using BANK_TRANSFER', async () => {
     const app = await getApp();
     const s = new Scenario(
-      'Full workflow: Lead → Request → Proposal → Contract → Payment → Project → Tasks',
+      'Full workflow: Request → Proposal → Contract → Payment → Project → Tasks',
     );
     const db = getPrisma();
 
@@ -31,35 +30,7 @@ describe('Workflow: Full Happy Path (Lead → Payment → Project → Tasks)', (
       loginAs(app, 'sales@hassad.com', 'password123'),
     );
 
-    const lead = await s.step('Create lead → NEW', () =>
-      createLead(app, salesToken.accessToken, {
-        companyName: '[E2E] Happy Path Corp',
-        contactName: 'Happy Client',
-        phoneWhatsapp: '+966511111111',
-        businessName: 'Happy Path Ltd',
-        businessType: 'SERVICE',
-        source: 'WEBSITE',
-      }),
-    );
-    expect(lead.pipelineStage).toBe('NEW');
-
-    const stages = [
-      'INTRO_SENT',
-      'CALL_ATTEMPT',
-      'MEETING_SCHEDULED',
-      'MEETING_DONE',
-    ];
-    for (const stage of stages) {
-      await s.step(`Move lead to ${stage}`, () =>
-        moveLeadStage(app, salesToken.accessToken, lead.id, stage),
-      );
-    }
-
-    const updatedLead = await s.step('Verify lead at MEETING_DONE', () =>
-      getLead(app, salesToken.accessToken, lead.id),
-    );
-    expect(updatedLead.pipelineStage).toBe('MEETING_DONE');
-
+    // Requests are the sole CRM workflow records.
     // ── Create Request + transition to proposal-ready ────────────────────────
     const req = await s.step('Create request → SUBMITTED', () =>
       createRequest(app, salesToken.accessToken, {

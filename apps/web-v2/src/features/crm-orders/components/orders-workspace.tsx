@@ -59,6 +59,7 @@ export function OrdersWorkspace() {
   const [valueFilter, setValueFilter] = useState<OrderValueFilter>("all-values");
 
   const { data, error, isError, isLoading, refetch } = useGetCrmWorkspaceQuery({
+    kind: "all",
     statusFilter,
     dateFilter,
     valueFilter,
@@ -67,8 +68,8 @@ export function OrdersWorkspace() {
 
   return (
     <PageScaffold
-      title="Orders"
-      description="CRM pipeline view for active orders before signed contracts are converted into project delivery."
+      title="Requests"
+      description="CRM pipeline view for every client request, from qualification through project creation."
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
@@ -108,7 +109,7 @@ export function OrdersWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter orders by date">
+            <SelectTrigger size="sm" aria-label="Filter requests by date">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -135,7 +136,7 @@ export function OrdersWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter orders by value">
+            <SelectTrigger size="sm" aria-label="Filter requests by value">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -153,7 +154,7 @@ export function OrdersWorkspace() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Pipeline orders</CardTitle>
+          <CardTitle>Request pipeline</CardTitle>
           <CardDescription>
             Each row shows the CRM state, value, follow-up discipline, and proposal or contract signal that matters before project handoff.
           </CardDescription>
@@ -162,7 +163,7 @@ export function OrdersWorkspace() {
           {isLoading && !data ? (
             <WorkspaceQueryState
               kind="loading"
-              loadingTitle="Loading CRM orders"
+              loadingTitle="Loading CRM requests"
               loadingDescription="Retrieving live pipeline stages, proposal signals, and follow-up health from the admin API."
             />
           ) : isError && !data ? (
@@ -179,7 +180,7 @@ export function OrdersWorkspace() {
                 <EmptyMedia variant="icon">
                   <BriefcaseBusinessIcon />
                 </EmptyMedia>
-                <EmptyTitle>No orders match these filters</EmptyTitle>
+                <EmptyTitle>No requests match these filters</EmptyTitle>
                 <EmptyDescription>
                   Change the status, date, or value filters to inspect another pipeline segment.
                 </EmptyDescription>

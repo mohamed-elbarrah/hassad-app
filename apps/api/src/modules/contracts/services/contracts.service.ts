@@ -204,30 +204,6 @@ export class ContractsService {
             });
           }
         }
-      } else if (contract.request?.lead?.id) {
-        const leadServices = await tx.leadService.findMany({
-          where: { leadId: contract.request.lead.id },
-          include: {
-            service: {
-              include: { deliverableTemplates: true },
-            },
-          },
-        });
-
-        for (const leadService of leadServices) {
-          for (const tmpl of leadService.service.deliverableTemplates) {
-            await tx.deliverable.create({
-              data: {
-                projectId: createdProject.id,
-                title: tmpl.titleAr || tmpl.title,
-                description: tmpl.descriptionAr || tmpl.description,
-                filePath: "",
-                status: TaskStatus.TODO,
-                isVisibleToClient: true,
-              },
-            });
-          }
-        }
       }
 
       if (contract.requestId) {

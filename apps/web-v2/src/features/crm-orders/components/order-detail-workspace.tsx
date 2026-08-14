@@ -158,8 +158,8 @@ function getContactOutcomeSummary(contactTimeline: OrderDetailRecord["contactTim
 
 export function OrderDetailWorkspace({
   order,
-  backHref = "/admin/crm/orders",
-  backLabel = "Orders",
+  backHref = "/admin/crm/requests",
+  backLabel = "Requests",
 }: {
   order: OrderDetailRecord;
   backHref?: string;

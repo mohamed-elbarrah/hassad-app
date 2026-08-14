@@ -6,14 +6,14 @@ export class AdminAutomationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.leadAutomationRule.findMany({
+    return this.prisma.requestAutomationRule.findMany({
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { logs: true } } },
     });
   }
 
   async findOne(id: string) {
-    const rule = await this.prisma.leadAutomationRule.findUnique({
+    const rule = await this.prisma.requestAutomationRule.findUnique({
       where: { id },
       include: { logs: { orderBy: { executedAt: "desc" }, take: 20 } },
     });
@@ -24,15 +24,15 @@ export class AdminAutomationService {
   async create(data: {
     name: string;
     triggerType: string;
-    conditionJson: any;
-    actionJson: any;
+    conditionJson: unknown;
+    actionJson: unknown;
   }) {
-    return this.prisma.leadAutomationRule.create({
+    return this.prisma.requestAutomationRule.create({
       data: {
         name: data.name,
         triggerType: data.triggerType,
-        conditionJson: data.conditionJson,
-        actionJson: data.actionJson,
+        conditionJson: data.conditionJson as object,
+        actionJson: data.actionJson as object,
       },
     });
   }
@@ -42,35 +42,36 @@ export class AdminAutomationService {
     data: {
       name?: string;
       triggerType?: string;
-      conditionJson?: any;
-      actionJson?: any;
+      conditionJson?: unknown;
+      actionJson?: unknown;
       isActive?: boolean;
     },
   ) {
-    const rule = await this.prisma.leadAutomationRule.findUnique({
-      where: { id },
-    });
+    const rule = await this.prisma.requestAutomationRule.findUnique({ where: { id } });
     if (!rule) throw new NotFoundException("القاعدة غير موجودة");
-    return this.prisma.leadAutomationRule.update({ where: { id }, data });
+    return this.prisma.requestAutomationRule.update({
+      where: { id },
+      data: {
+        ...data,
+        conditionJson: data.conditionJson as object | undefined,
+        actionJson: data.actionJson as object | undefined,
+      },
+    });
   }
 
   async remove(id: string) {
-    const rule = await this.prisma.leadAutomationRule.findUnique({
-      where: { id },
-    });
+    const rule = await this.prisma.requestAutomationRule.findUnique({ where: { id } });
     if (!rule) throw new NotFoundException("القاعدة غير موجودة");
-    return this.prisma.leadAutomationRule.delete({ where: { id } });
+    return this.prisma.requestAutomationRule.delete({ where: { id } });
   }
 
   async getLogs(ruleId?: string) {
-    const where: any = {};
-    if (ruleId) where.ruleId = ruleId;
-    return this.prisma.leadAutomationLog.findMany({
-      where,
+    return this.prisma.requestAutomationLog.findMany({
+      where: ruleId ? { ruleId } : undefined,
       orderBy: { executedAt: "desc" },
       take: 50,
       include: {
-        lead: { select: { id: true, companyName: true } },
+        request: { select: { id: true, companyName: true } },
         rule: { select: { id: true, name: true } },
       },
     });

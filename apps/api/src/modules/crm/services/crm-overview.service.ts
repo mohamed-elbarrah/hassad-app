@@ -13,6 +13,7 @@ import {
 } from "@prisma/client";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { classifyCrmRecordKind } from "../../../common/business/crm-record-kind";
 import {
   CrmOverviewQueryDto,
   CrmOverviewRecordDto,
@@ -166,6 +167,7 @@ export class CrmOverviewService {
             select: {
               id: true,
               companyName: true,
+              projects: { select: { status: true } },
             },
           },
           crmNotes: {
@@ -229,6 +231,7 @@ export class CrmOverviewService {
             select: {
               id: true,
               companyName: true,
+              projects: { select: { status: true } },
             },
           },
           crmNotes: {
@@ -273,7 +276,7 @@ export class CrmOverviewService {
         "";
       return {
         id: lead.id,
-        kind: "lead",
+        kind: classifyCrmRecordKind(lead.client?.projects),
         status,
         companyName: lead.companyName,
         contactName: lead.contactName,
@@ -334,7 +337,7 @@ export class CrmOverviewService {
 
       return {
         id: request.id,
-        kind: "order",
+        kind: classifyCrmRecordKind(request.client?.projects),
         status,
         companyName: request.companyName,
         contactName: request.contactName,

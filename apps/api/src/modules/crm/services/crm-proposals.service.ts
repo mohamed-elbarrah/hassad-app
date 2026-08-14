@@ -180,8 +180,8 @@ export class CrmProposalsService {
   }
 
   async create(userId: string, dto: CrmCreateProposalDto) {
-    if (!dto.requestId && !dto.leadId) {
-      throw new BadRequestException("A request or lead reference is required");
+    if (!dto.requestId) {
+      throw new BadRequestException("A request reference is required");
     }
 
     const creator = await this.prisma.user.findUnique({
@@ -191,7 +191,7 @@ export class CrmProposalsService {
 
     const proposal = await this.prisma.$transaction(async (tx) => {
       const request = await this.requestsService.resolveRequestContext(
-        { requestId: dto.requestId, leadId: dto.leadId },
+        { requestId: dto.requestId },
         userId,
         tx,
       );
@@ -199,7 +199,8 @@ export class CrmProposalsService {
       return tx.proposal.create({
         data: {
           requestId: request.id,
-          leadId: request.lead?.id ?? null,
+          // Lead is a legacy archive reference; new proposals are request-only.
+          leadId: null,
           clientId: request.clientId,
           createdBy: userId,
           title: dto.title,
@@ -259,7 +260,7 @@ export class CrmProposalsService {
   async send(id: string, userId?: string) {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id },
-      select: { id: true, title: true, requestId: true, leadId: true, createdBy: true },
+      select: { id: true, title: true, requestId: true, createdBy: true },
     });
 
     if (!proposal) {
@@ -278,9 +279,9 @@ export class CrmProposalsService {
         },
       });
 
-      if (proposal.requestId || proposal.leadId) {
+      if (proposal.requestId) {
         const request = await this.requestsService.resolveRequestContext(
-          { requestId: proposal.requestId ?? undefined, leadId: proposal.leadId ?? undefined },
+          { requestId: proposal.requestId },
           userId ?? proposal.createdBy,
           tx,
         );

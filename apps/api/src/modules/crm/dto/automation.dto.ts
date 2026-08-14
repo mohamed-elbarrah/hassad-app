@@ -29,5 +29,5 @@ export class ExecuteAutomationDto {
   ruleId: string;
 
   @IsUUID()
-  leadId: string;
+  requestId: string;
 }

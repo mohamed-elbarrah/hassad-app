@@ -14,6 +14,7 @@ import {
 } from "@hassad/shared";
 import { PipelineStage } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { classifyCrmRecordKind } from "../../../common/business/crm-record-kind";
 import {
   AdminClientsWorkspaceQueryDto,
   AdminCrmWorkspaceQueryDto,
@@ -347,10 +348,7 @@ export class AdminWorkspacesService {
           },
           client: {
             select: {
-              projects: {
-                where: { isArchived: false },
-                select: { id: true },
-              },
+              projects: { select: { id: true, status: true } },
             },
           },
         },
@@ -386,10 +384,7 @@ export class AdminWorkspacesService {
           },
           client: {
             select: {
-              projects: {
-                where: { isArchived: false },
-                select: { id: true },
-              },
+              projects: { select: { id: true, status: true } },
             },
           },
         },
@@ -423,6 +418,7 @@ export class AdminWorkspacesService {
 
       return {
         id: lead.id,
+        kind: classifyCrmRecordKind(lead.client?.projects),
         companyName: lead.companyName,
         contactName: lead.contactName,
         serviceLine,
@@ -496,6 +492,7 @@ export class AdminWorkspacesService {
 
       return {
         id: request.id,
+        kind: classifyCrmRecordKind(request.client?.projects),
         companyName: request.companyName,
         contactName: request.contactName,
         serviceLine,
@@ -545,6 +542,7 @@ export class AdminWorkspacesService {
     });
 
     const items = [...leadRows, ...requestRows]
+      .filter((item) => !query.kind || query.kind === "all" || item.kind === query.kind)
       .filter((item) => {
         if (query.statusFilter === "active") return !item.waitingApproval && !item.stalled;
         if (query.statusFilter === "waiting-approval") return item.waitingApproval;

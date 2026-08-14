@@ -169,13 +169,13 @@ export class CrmContractsService {
   }
 
   async create(userId: string, dto: CrmCreateContractDto) {
-    if (!dto.requestId && !dto.leadId && !dto.proposalId) {
-      throw new BadRequestException("A request, lead, or proposal reference is required");
+    if (!dto.requestId && !dto.proposalId) {
+      throw new BadRequestException("A request or proposal reference is required");
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
       const request = await this.requestsService.resolveRequestContext(
-        { requestId: dto.requestId, leadId: dto.leadId, proposalId: dto.proposalId },
+        { requestId: dto.requestId, proposalId: dto.proposalId },
         userId,
         tx,
       );

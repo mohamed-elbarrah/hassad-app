@@ -193,7 +193,6 @@ model Lead {
   createdBy           String?               @map("created_by")
   requestId           String?               @unique @map("request_id")
   client              Client?
-  automationLogs      LeadAutomationLog[]
   contactLogs         LeadContactLog[]
   crmNotes            CrmNote[]
   pipelineHistory     LeadPipelineHistory[]
@@ -208,6 +207,41 @@ model Lead {
   @@index([pipelineStage])
   @@index([createdAt])
   @@map("leads")
+}
+
+model LegacyLeadMigration {
+  id             String   @id @default(uuid())
+  leadId         String   @unique @map("lead_id")
+  requestId      String?  @unique @map("request_id")
+  clientId       String?  @map("client_id")
+  status         LegacyLeadMigrationStatus @default(PENDING)
+  checksum       String?
+  error          String?  @db.Text
+  migratedAt     DateTime? @map("migrated_at")
+  verifiedAt     DateTime? @map("verified_at")
+  counts         Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([clientId])
+  @@map("legacy_lead_migrations")
+}
+
+model LegacyContractMigrationReview {
+  id                   String   @id @default(uuid())
+  contractId           String   @unique @map("contract_id")
+  clientId             String?  @map("client_id")
+  reason               String
+  candidateRequestIds  Json?    @map("candidate_request_ids")
+  resolvedRequestId    String?  @map("resolved_request_id")
+  resolvedAt           DateTime? @map("resolved_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([resolvedRequestId])
+  @@map("legacy_contract_migration_reviews")
 }
 
 model LeadPipelineHistory {
@@ -261,32 +295,32 @@ model CrmNote {
   @@map("crm_notes")
 }
 
-model LeadAutomationRule {
-  id            String              @id @default(uuid())
+model RequestAutomationRule {
+  id            String                  @id @default(uuid())
   name          String
-  triggerType   String              @map("trigger_type")
-  conditionJson Json                @map("condition_json")
-  actionJson    Json                @map("action_json")
-  isActive      Boolean             @default(true) @map("is_active")
-  createdAt     DateTime            @default(now()) @map("created_at")
-  logs          LeadAutomationLog[]
+  triggerType   String                  @map("trigger_type")
+  conditionJson Json                    @map("condition_json")
+  actionJson    Json                    @map("action_json")
+  isActive      Boolean                 @default(true) @map("is_active")
+  createdAt     DateTime                @default(now()) @map("created_at")
+  logs          RequestAutomationLog[]
 
-  @@map("lead_automation_rules")
+  @@map("request_automation_rules")
 }
 
-model LeadAutomationLog {
-  id           String             @id @default(uuid())
-  leadId       String             @map("lead_id")
-  ruleId       String             @map("rule_id")
-  executedAt   DateTime           @default(now()) @map("executed_at")
+model RequestAutomationLog {
+  id           String                @id @default(uuid())
+  requestId    String                @map("request_id")
+  ruleId       String                @map("rule_id")
+  executedAt   DateTime              @default(now()) @map("executed_at")
   status       AutomationStatus
-  responseData Json?              @map("response_data")
-  lead         Lead               @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  rule         LeadAutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  responseData Json?                 @map("response_data")
+  request      Request               @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  rule         RequestAutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
-  @@index([leadId])
+  @@index([requestId])
   @@index([ruleId])
-  @@map("lead_automation_logs")
+  @@map("request_automation_logs")
 }
 
 model Client {
@@ -492,6 +526,7 @@ model Request {
   crmNotes            CrmNote[]
   statusHistory       RequestStatusHistory[]
   contactLogs         RequestContactLog[]
+  automationLogs      RequestAutomationLog[]
   assignee            User?                  @relation("RequestAssignee", fields: [assignedSalesId], references: [id])
   client              Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   submitter           User?                  @relation("RequestSubmitter", fields: [submittedBy], references: [id])
@@ -2033,6 +2068,14 @@ enum ContactLogResult {
   BUSY
   WRONG_NUMBER
   NOT_INTERESTED
+}
+
+enum LegacyLeadMigrationStatus {
+  PENDING
+  MIGRATED
+  REVIEW_REQUIRED
+  FAILED
+  VERIFIED
 }
 
 enum AutomationStatus {

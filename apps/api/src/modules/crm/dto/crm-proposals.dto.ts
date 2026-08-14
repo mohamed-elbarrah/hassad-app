@@ -65,10 +65,6 @@ export class CrmCreateProposalDto {
   @IsUUID()
   requestId?: string;
 
-  @IsOptional()
-  @IsUUID()
-  leadId?: string;
-
   @IsString()
   title!: string;
 

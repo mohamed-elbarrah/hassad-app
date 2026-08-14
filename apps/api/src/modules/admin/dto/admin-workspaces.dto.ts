@@ -65,6 +65,10 @@ export class AdminClientsWorkspaceQueryDto {
 
 export class AdminCrmWorkspaceQueryDto {
   @IsOptional()
+  @IsIn(["all", "lead", "order"])
+  kind?: "all" | "lead" | "order";
+
+  @IsOptional()
   @IsIn(["all", "active", "waiting-approval", "stalled"])
   statusFilter?: "all" | "active" | "waiting-approval" | "stalled";
 

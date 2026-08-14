@@ -46,13 +46,13 @@ export const workspaceNavigation = [
       },
       {
         label: "CRM",
-        href: "/admin/crm/orders",
+        href: "/admin/crm/requests",
         icon: "commercial",
         permission: "admin.commercial.read",
         children: [
           {
-            label: "Orders",
-            href: "/admin/crm/orders",
+            label: "Requests",
+            href: "/admin/crm/requests",
             permission: "admin.commercial.read",
           },
           {
