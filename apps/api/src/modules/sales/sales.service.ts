@@ -4,7 +4,6 @@ import { PrismaService } from "../../prisma/prisma.service";
 import {
   ContractStatus,
   ClientStatus,
-  PipelineStage,
   ProposalStatus,
   RequestStatus,
 } from "@hassad/shared";
@@ -57,14 +56,14 @@ export class SalesService {
       dealsByStatusRows,
       valueByStageRows,
     ] = await Promise.all([
-      this.prisma.lead.count({
-        where: { isActive: true, ...(since ? { createdAt: { gte: since } } : {}) },
+      this.prisma.request.count({
+        where: since ? { createdAt: { gte: since } } : undefined,
       }),
       this.prisma.client.count({ where: { status: ClientStatus.ACTIVE } }),
       this.prisma.client.count({ where: { status: ClientStatus.STOPPED } }),
-      this.prisma.lead.count({
+      this.prisma.request.count({
         where: {
-          pipelineStage: PipelineStage.MEETING_SCHEDULED,
+          status: RequestStatus.PROPOSAL_IN_PROGRESS,
           ...(since ? { createdAt: { gte: since } } : {}),
         },
       }),
@@ -77,10 +76,10 @@ export class SalesService {
       this.prisma.contract.count({
         where: { status: ContractStatus.SIGNED, ...contractWhere },
       }),
-      this.prisma.lead.groupBy({
-        by: ["pipelineStage"],
-        _count: { pipelineStage: true },
-        where: { isActive: true, ...(since ? { createdAt: { gte: since } } : {}) },
+      this.prisma.request.groupBy({
+        by: ["status"],
+        _count: { status: true },
+        where: since ? { createdAt: { gte: since } } : undefined,
       }),
       this.prisma.request.count({
         where: {
@@ -137,9 +136,9 @@ export class SalesService {
         ? Math.round((signedContracts / totalLeads) * 100 * 10) / 10
         : 0;
 
-    const stageBreakdown: Partial<Record<PipelineStage, number>> = {};
+    const stageBreakdown: Record<string, number> = {};
     for (const row of stageRows) {
-      stageBreakdown[row.pipelineStage] = row._count.pipelineStage;
+      stageBreakdown[row.status] = row._count.status;
     }
 
     const dealsByStage: Record<string, number> = {};
@@ -202,9 +201,7 @@ export class SalesService {
       leadsBySource,
       conversionByStage,
     ] = await Promise.all([
-      this.prisma.lead.count({
-        where: { isActive: true, createdAt: { gte: since } },
-      }),
+      this.prisma.request.count({ where: { createdAt: { gte: since } } }),
       this.prisma.client.count({
         where: { createdAt: { gte: since } },
       }),
@@ -218,15 +215,15 @@ export class SalesService {
         _sum: { totalValue: true },
         where: { status: ContractStatus.SIGNED, createdAt: { gte: since } },
       }),
-      this.prisma.lead.groupBy({
+      this.prisma.request.groupBy({
         by: ["source"],
         _count: { source: true },
-        where: { isActive: true, createdAt: { gte: since } },
+        where: { createdAt: { gte: since } },
       }),
-      this.prisma.lead.groupBy({
-        by: ["pipelineStage"],
-        _count: { pipelineStage: true },
-        where: { isActive: true, createdAt: { gte: since } },
+      this.prisma.request.groupBy({
+        by: ["status"],
+        _count: { status: true },
+        where: { createdAt: { gte: since } },
       }),
     ]);
 
@@ -256,7 +253,7 @@ export class SalesService {
       ),
       conversionByStage: conversionByStage.reduce(
         (acc, r) => {
-          acc[r.pipelineStage] = r._count.pipelineStage;
+          acc[r.status] = r._count.status;
           return acc;
         },
         {} as Record<string, number>,
@@ -266,12 +263,11 @@ export class SalesService {
 
   async getActivity(limit: number) {
     const [recentLeads, recentProposals, recentContracts] = await Promise.all([
-      this.prisma.lead.findMany({
-        where: { isActive: true },
+      this.prisma.request.findMany({
         select: {
           id: true,
           companyName: true,
-          pipelineStage: true,
+          status: true,
           createdAt: true,
           assignee: { select: { id: true, name: true } },
         },
@@ -284,7 +280,7 @@ export class SalesService {
           title: true,
           status: true,
           createdAt: true,
-          lead: { select: { id: true, companyName: true } },
+          request: { select: { id: true, companyName: true } },
         },
         orderBy: { createdAt: "desc" },
         take: limit,
@@ -305,10 +301,10 @@ export class SalesService {
 
     const activities = [
       ...recentLeads.map((l) => ({
-        type: "lead" as const,
+        type: "request" as const,
         id: l.id,
         title: l.companyName,
-        detail: l.pipelineStage,
+        detail: l.status,
         createdAt: l.createdAt,
         assignee: l.assignee?.name,
       })),
@@ -318,7 +314,7 @@ export class SalesService {
         title: p.title,
         detail: p.status,
         createdAt: p.createdAt,
-        client: p.lead?.companyName,
+        client: p.request?.companyName,
       })),
       ...recentContracts.map((c) => ({
         type: "contract" as const,

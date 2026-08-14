@@ -24,8 +24,7 @@ export class CrmClientsService {
         }
       : undefined;
 
-    const [clients, leads] = await Promise.all([
-      this.prisma.client.findMany({
+    const clients = await this.prisma.client.findMany({
         where,
         include: {
           user: { select: { name: true, email: true, phoneWhatsapp: true, lastLoginAt: true } },
@@ -49,15 +48,7 @@ export class CrmClientsService {
             select: { projects: true, contracts: true, proposals: true },
           },
         },
-      }),
-      this.prisma.lead.findMany({
-        where: { isActive: true, client: { is: null } },
-        include: {
-          assignee: { select: { name: true } },
-          proposals: { select: { id: true } },
-        },
-      }),
-    ]);
+      });
 
     const clientRows = clients.map((client) => ({
       id: client.id,
@@ -98,37 +89,13 @@ export class CrmClientsService {
           : ("success" as const),
     }));
 
-    const leadRows = leads.map((lead) => ({
-      id: lead.id,
-      contactName: lead.contactName,
-      contactEmail: lead.email ?? null,
-      contactPhone: lead.phoneWhatsapp ?? null,
-      companyName: lead.companyName,
-      stage: "lead" as const,
-      totalProjects: 0,
-      activeProjects: 0,
-      openOrders: 1,
-      pendingOffers: lead.proposals.length,
-      signedContracts: 0,
-      totalSpend: 0,
-      outstandingAmount: 0,
-      lastSeen: lead.lastContactAt
-        ? new Date(lead.lastContactAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-        : "No contact yet",
-      stageTone: "attention" as const,
-      financeTone: "neutral" as const,
-    }));
-
+    const leadRows = clientRows.filter((client) => client.totalProjects === 0);
     const combined =
       query.filter === "clients"
-        ? clientRows
+        ? clientRows.filter((client) => client.totalProjects > 0)
         : query.filter === "leads"
           ? leadRows
-          : [...clientRows, ...leadRows];
+          : clientRows;
 
     combined.sort((left, right) =>
       query.sort === "lowest-spend"
@@ -156,7 +123,11 @@ export class CrmClientsService {
           },
         },
         profile: true,
-        lead: { select: { source: true } },
+        requests: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { source: true },
+        },
         _count: {
           select: {
             contracts: true,
@@ -271,7 +242,7 @@ export class CrmClientsService {
 
     return {
       ...client,
-      source: client.lead?.source ?? null,
+      source: client.requests[0]?.source ?? null,
       portalToken: client.portalAccessToken,
       portalTokenExpiresAt: client.portalTokenExpiresAt?.toISOString() ?? null,
       managerName: client.manager?.name ?? null,

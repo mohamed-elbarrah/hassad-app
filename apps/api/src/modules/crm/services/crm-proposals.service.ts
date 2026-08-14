@@ -90,7 +90,6 @@ export class CrmProposalsService {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          lead: { select: { id: true, companyName: true } },
           client: { select: { id: true, companyName: true } },
           request: {
             select: {
@@ -125,8 +124,8 @@ export class CrmProposalsService {
       return {
         id: item.id,
         title: item.title ?? "Proposal",
-        clientName: item.client?.companyName ?? item.lead?.companyName ?? "—",
-        requestName: item.request?.companyName ?? item.lead?.companyName ?? "—",
+        clientName: item.client?.companyName ?? item.request?.companyName ?? "—",
+        requestName: item.request?.companyName ?? "—",
         servicesCount: serviceNames.length,
         servicesLabel: serviceNames.join(", "),
         totalValue: item.totalPrice ?? 0,
@@ -152,7 +151,6 @@ export class CrmProposalsService {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id },
       include: {
-        lead: { select: { id: true, companyName: true, contactName: true } },
         client: { select: { id: true, companyName: true } },
         creator: { select: { id: true, name: true, email: true } },
         request: {
@@ -199,8 +197,6 @@ export class CrmProposalsService {
       return tx.proposal.create({
         data: {
           requestId: request.id,
-          // Lead is a legacy archive reference; new proposals are request-only.
-          leadId: null,
           clientId: request.clientId,
           createdBy: userId,
           title: dto.title,

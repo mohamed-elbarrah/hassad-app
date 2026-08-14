@@ -35,7 +35,7 @@ export type AdminEmployeesWorkspaceQuery = {
 };
 
 export type AdminClientsWorkspaceQuery = {
-  filter?: "all" | "clients" | "leads";
+  filter?: "all" | "clients" | "requests";
   sort?: "highest-spend" | "lowest-spend";
 };
 

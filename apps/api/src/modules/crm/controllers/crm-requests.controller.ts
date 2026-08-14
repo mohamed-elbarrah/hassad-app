@@ -13,7 +13,7 @@ export class CrmRequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
   @Post("intake")
-  @RequirePermissions("leads.create", "clients.create")
+  @RequirePermissions("requests.create", "clients.create")
   createIntake(
     @CurrentUser("id") userId: string,
     @Body() dto: CrmCreateRequestIntakeDto,

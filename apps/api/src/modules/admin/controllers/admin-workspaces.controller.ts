@@ -35,7 +35,7 @@ export class AdminWorkspacesController {
   }
 
   @Get("crm/workspace")
-  @RequirePermissions("admin.leads.read")
+  @RequirePermissions("admin.requests.read")
   getCrmWorkspace(@Query() query: AdminCrmWorkspaceQueryDto) {
     return this.service.getCrmWorkspace(query);
   }

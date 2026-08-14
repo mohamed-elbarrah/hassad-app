@@ -130,51 +130,13 @@ export class AdminCrmOrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findOne(id: string) {
-    const [request, lead] = await Promise.all([
+    const [request] = await Promise.all([
       this.prisma.request.findUnique({
         where: { id },
         include: {
           client: { select: orderDetailClientSelect },
           assignee: { select: orderDetailUserSelect },
           submitter: { select: orderDetailUserSelect },
-          lead: {
-            select: {
-              id: true,
-              companyName: true,
-              contactName: true,
-              phoneWhatsapp: true,
-              email: true,
-              businessName: true,
-              businessType: true,
-              source: true,
-              notes: true,
-              assignedTo: true,
-              crmStage: true,
-              pipelineStage: true,
-              contactAttemptCount: true,
-              lastContactAt: true,
-              createdAt: true,
-              updatedAt: true,
-              assignee: { select: orderDetailUserSelect },
-              creator: { select: orderDetailUserSelect },
-              client: { select: orderDetailClientSelect },
-              contactLogs: {
-                orderBy: { contactedAt: "desc" },
-                select: orderDetailContactLogSelect,
-              },
-              pipelineHistory: {
-                orderBy: { changedAt: "desc" },
-                select: orderDetailPipelineHistorySelect,
-              },
-              services: {
-                include: orderDetailServiceInclude,
-              },
-              proposals: {
-                orderBy: { createdAt: "desc" },
-                select: orderDetailProposalSelect,
-              },
-            },
-          },
           contactLogs: {
             orderBy: { contactedAt: "desc" },
             select: orderDetailContactLogSelect,
@@ -201,99 +163,15 @@ export class AdminCrmOrdersService {
           },
         },
       }),
-      this.prisma.lead.findUnique({
-        where: { id },
-        include: {
-          client: { select: orderDetailClientSelect },
-          assignee: { select: orderDetailUserSelect },
-          creator: { select: orderDetailUserSelect },
-          request: {
-            select: {
-              id: true,
-              companyName: true,
-              contactName: true,
-              phoneWhatsapp: true,
-              email: true,
-              businessName: true,
-              businessType: true,
-              source: true,
-              notes: true,
-              internalNotes: true,
-              crmStage: true,
-              status: true,
-              contactAttemptCount: true,
-              lastContactAt: true,
-              createdAt: true,
-              updatedAt: true,
-              assignee: { select: orderDetailUserSelect },
-              submitter: { select: orderDetailUserSelect },
-              client: { select: orderDetailClientSelect },
-              contactLogs: {
-                orderBy: { contactedAt: "desc" },
-                select: orderDetailContactLogSelect,
-              },
-              statusHistory: {
-                orderBy: { changedAt: "desc" },
-                select: orderDetailStatusHistorySelect,
-              },
-              services: {
-                include: orderDetailServiceInclude,
-              },
-              proposals: {
-                orderBy: { createdAt: "desc" },
-                select: orderDetailProposalSelect,
-              },
-              contracts: {
-                orderBy: { createdAt: "desc" },
-                select: orderDetailContractSelect,
-              },
-              crmNotes: {
-                orderBy: { createdAt: "desc" },
-                take: 20,
-                select: orderDetailNoteSelect,
-              },
-            },
-          },
-          contactLogs: {
-            orderBy: { contactedAt: "desc" },
-            select: orderDetailContactLogSelect,
-          },
-          pipelineHistory: {
-            orderBy: { changedAt: "desc" },
-            select: orderDetailPipelineHistorySelect,
-          },
-          services: {
-            include: orderDetailServiceInclude,
-          },
-          proposals: {
-            orderBy: { createdAt: "desc" },
-            select: orderDetailProposalSelect,
-          },
-          crmNotes: {
-            orderBy: { createdAt: "desc" },
-            take: 20,
-            select: orderDetailNoteSelect,
-          },
-        },
-      }),
     ]);
 
-    if (!request && !lead) {
-      throw new NotFoundException("Order not found");
-    }
-
-    if (request) {
-      return {
-        kind: "request" as const,
-        request,
-        lead: request.lead,
-      };
+    if (!request) {
+      throw new NotFoundException("Request not found");
     }
 
     return {
-      kind: "lead" as const,
-      request: lead?.request ?? null,
-      lead,
+      kind: "request" as const,
+      request,
     };
   }
 }

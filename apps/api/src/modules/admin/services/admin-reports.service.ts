@@ -27,30 +27,18 @@ export class AdminReportsService {
 
     const [totalLeads, leadsByStage, leadsBySource, signedLeads] =
       await Promise.all([
-        this.prisma.lead.count({ where: dateFilter }),
-        this.prisma.lead.groupBy({
-          by: ["pipelineStage"],
-          where: dateFilter,
-          _count: { id: true },
-        }),
-        this.prisma.lead.groupBy({
-          by: ["source"],
-          where: dateFilter,
-          _count: { id: true },
-        }),
-        this.prisma.leadPipelineHistory.findMany({
-          where: { toStage: "CONTRACT_SIGNED" },
-          select: { leadId: true },
-          distinct: ["leadId"],
-        }),
+        this.prisma.request.count({ where: dateFilter }),
+        this.prisma.request.groupBy({ by: ["status"], where: dateFilter, _count: { id: true } }),
+        this.prisma.request.groupBy({ by: ["source"], where: dateFilter, _count: { id: true } }),
+        this.prisma.request.count({ where: { status: { in: ["SIGNED", "PROJECT_CREATED"] }, ...dateFilter } }),
       ]);
 
     const conversionRate =
-      totalLeads > 0 ? (signedLeads.length / totalLeads) * 100 : 0;
+      totalLeads > 0 ? (signedLeads / totalLeads) * 100 : 0;
 
-    const topRaw = await this.prisma.lead.groupBy({
-      by: ["assignedTo"],
-      where: { ...dateFilter, assignedTo: { not: null } },
+    const topRaw = await this.prisma.request.groupBy({
+      by: ["assignedSalesId"],
+      where: { ...dateFilter, assignedSalesId: { not: null } },
       _count: { id: true },
       orderBy: { _count: { id: "desc" } },
       take: 10,
@@ -58,14 +46,14 @@ export class AdminReportsService {
 
     const topSalesPeople = await Promise.all(
       topRaw.map(async (r) => {
-        const user = r.assignedTo
+        const user = r.assignedSalesId
           ? await this.prisma.user.findUnique({
-              where: { id: r.assignedTo },
+              where: { id: r.assignedSalesId },
               select: { id: true, name: true, email: true },
             })
           : null;
         return {
-          userId: r.assignedTo,
+          userId: r.assignedSalesId,
           name: user?.name ?? null,
           email: user?.email ?? null,
           count: r._count.id,
@@ -76,7 +64,7 @@ export class AdminReportsService {
     return {
       totalLeads,
       leadsByStage: leadsByStage.map((l) => ({
-        stage: l.pipelineStage,
+        stage: l.status,
         count: l._count.id,
       })),
       conversionRate,
@@ -387,8 +375,8 @@ export class AdminReportsService {
         return this.getSatisfactionReport(from, to);
       case "campaigns":
         return this.getCampaignsReport(from, to);
-      case "leads":
-        return this.getLeadsReport(from, to);
+      case "requests":
+        return this.getRequestsReport(from, to);
       case "clients":
         return this.getClientReport(from, to);
       case "system-health":
@@ -547,23 +535,16 @@ export class AdminReportsService {
 
   // ── New report types ────────────────────────────────────────────────────────
 
-  async getLeadsReport(from?: string, to?: string) {
+  async getRequestsReport(from?: string, to?: string) {
     const [salesReport, kpis] = await Promise.all([
       this.getSalesReport(from, to),
       this.kpiService.getSalesKpis(from, to),
     ]);
 
-    const staleLeads = await this.prisma.lead.count({
+    const staleLeads = await this.prisma.request.count({
       where: {
-        isActive: true,
-        OR: [
-          { assignedTo: null },
-          {
-            lastContactAt: {
-              lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            },
-          },
-        ],
+        status: { notIn: ["PROJECT_CREATED", "CANCELLED"] },
+        updatedAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       },
     });
 

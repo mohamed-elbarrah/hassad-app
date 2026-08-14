@@ -7,7 +7,6 @@ import {
   ContactLogResult as PrismaContactLogResult,
   ContractStatus as PrismaContractStatus,
   CrmStage as PrismaCrmStage,
-  PipelineStage as PrismaPipelineStage,
   ProposalStatus as PrismaProposalStatus,
   RequestStatus as PrismaRequestStatus,
 } from "@prisma/client";
@@ -41,41 +40,6 @@ function maxIsoDate(...values: Array<Date | string | number | null | undefined>)
 
 function includesText(value: string | undefined | null, query: string) {
   return Boolean(value && value.toLowerCase().includes(query));
-}
-
-function getOverviewStatusFromLead(lead: {
-  crmStage?: PrismaCrmStage | null;
-  pipelineStage: PrismaPipelineStage;
-  proposals: Array<{ status: PrismaProposalStatus; id: string }>;
-}): CrmOverviewStatus {
-  if (lead.crmStage) return lead.crmStage as CrmOverviewStatus;
-  const latestProposal = lead.proposals[0] ?? null;
-
-  if (latestProposal?.status === PrismaProposalStatus.REJECTED) return "REJECTED";
-  if (latestProposal?.status === PrismaProposalStatus.APPROVED) return "APPROVED";
-  if (latestProposal?.status === PrismaProposalStatus.SENT) return "SENT";
-
-  switch (lead.pipelineStage) {
-    case PrismaPipelineStage.NEW:
-      return "NEW";
-    case PrismaPipelineStage.INTRO_SENT:
-    case PrismaPipelineStage.MEETING_SCHEDULED:
-      return "SCHEDULED";
-    case PrismaPipelineStage.CALL_ATTEMPT:
-      return "FAILED";
-    case PrismaPipelineStage.MEETING_DONE:
-      return "DONE";
-    case PrismaPipelineStage.PROPOSAL_SENT:
-      return "SENT";
-    case PrismaPipelineStage.FOLLOW_UP:
-      return "NEGOTIATION";
-    case PrismaPipelineStage.APPROVED:
-      return "APPROVED";
-    case PrismaPipelineStage.CONTRACT_SIGNED:
-      return "SIGNED";
-    default:
-      return "NEW";
-  }
 }
 
 function getOverviewStatusFromRequest(request: {
@@ -132,55 +96,7 @@ export class CrmOverviewService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: CrmOverviewQueryDto): Promise<CrmOverviewRecordDto[]> {
-    const [leads, requests] = await Promise.all([
-      this.prisma.lead.findMany({
-        where: { isActive: true, requestId: null },
-        include: {
-          assignee: { select: { name: true } },
-          creator: { select: { name: true } },
-          contactLogs: {
-            orderBy: { contactedAt: "desc" },
-            take: 1,
-            select: {
-              result: true,
-              notes: true,
-              contactedAt: true,
-            },
-          },
-          services: {
-            include: {
-              service: { select: { name: true, nameAr: true } },
-            },
-          },
-          proposals: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: {
-              id: true,
-              status: true,
-              createdAt: true,
-              sentAt: true,
-              totalPrice: true,
-            },
-          },
-          client: {
-            select: {
-              id: true,
-              companyName: true,
-              projects: { select: { status: true } },
-            },
-          },
-          crmNotes: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: {
-              content: true,
-              createdAt: true,
-            },
-          },
-        },
-        orderBy: { updatedAt: "desc" },
-      }),
+    const [requests] = await Promise.all([
       this.prisma.request.findMany({
         include: {
           assignee: { select: { name: true } },
@@ -221,12 +137,6 @@ export class CrmOverviewService {
               totalValue: true,
             },
           },
-          lead: {
-            select: {
-              id: true,
-              pipelineStage: true,
-            },
-          },
           client: {
             select: {
               id: true,
@@ -246,54 +156,6 @@ export class CrmOverviewService {
         orderBy: { updatedAt: "desc" },
       }),
     ]);
-
-    const leadRecords = leads.map<CrmOverviewRecordDto>((lead) => {
-      const status = getOverviewStatusFromLead({
-        crmStage: lead.crmStage,
-        pipelineStage: lead.pipelineStage,
-        proposals: lead.proposals.map((proposal) => ({
-          id: proposal.id,
-          status: proposal.status as PrismaProposalStatus,
-        })),
-      });
-      const serviceLine = lead.services
-        .map((item) => item.service.nameAr || item.service.name)
-        .filter(Boolean)
-        .slice(0, 2)
-        .join(" + ") || "Qualification in progress";
-      const latestActivityAt = maxIsoDate(
-        lead.updatedAt,
-        lead.lastContactAt,
-        lead.contactLogs[0]?.contactedAt,
-        lead.proposals[0]?.sentAt,
-        lead.proposals[0]?.createdAt,
-        lead.crmNotes[0]?.createdAt,
-      );
-      const note =
-        lead.crmNotes[0]?.content?.trim() ||
-        lead.notes?.trim() ||
-        lead.contactLogs[0]?.notes?.trim() ||
-        "";
-      return {
-        id: lead.id,
-        kind: classifyCrmRecordKind(lead.client?.projects),
-        status,
-        companyName: lead.companyName,
-        contactName: lead.contactName,
-        phoneWhatsapp: lead.phoneWhatsapp,
-        businessName: lead.businessName,
-        businessType: lead.businessType as BusinessType,
-        source: lead.source as ClientSource,
-        owner: lead.assignee?.name || lead.creator?.name || "Unassigned",
-        serviceLine,
-        note,
-        lastActivityAt: toIso(latestActivityAt || lead.updatedAt),
-        createdAt: toIso(lead.createdAt),
-        attemptCount: lead.contactAttemptCount,
-        requiresNote: NOTE_REQUIRED_STATUSES.includes(status),
-        proposalId: lead.proposals[0]?.id ?? null,
-      };
-    });
 
     const requestRecords = requests.map<CrmOverviewRecordDto>((request) => {
       const status = getOverviewStatusFromRequest({
@@ -357,7 +219,7 @@ export class CrmOverviewService {
       };
     });
 
-    const records = [...leadRecords, ...requestRecords]
+    const records = [...requestRecords]
       .filter((record) => {
         if (query.filter === "leads") return record.kind === "lead";
         if (query.filter === "orders") return record.kind === "order";

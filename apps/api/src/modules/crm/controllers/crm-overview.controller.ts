@@ -12,7 +12,7 @@ export class CrmOverviewController {
   constructor(private readonly service: CrmOverviewService) {}
 
   @Get()
-  @RequirePermissions("leads.read")
+  @RequirePermissions("requests.read")
   findAll(@Query() query: CrmOverviewQueryDto) {
     return this.service.findAll(query);
   }

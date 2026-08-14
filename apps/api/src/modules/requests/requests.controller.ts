@@ -25,19 +25,19 @@ export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
   @Get()
-  @RequirePermissions("leads.read")
+  @RequirePermissions("requests.read")
   findAll(@Query() filters: any) {
     return this.requestsService.findAll(filters);
   }
 
   @Get(":id")
-  @RequirePermissions("leads.read")
+  @RequirePermissions("requests.read")
   findOne(@Param("id") id: string) {
     return this.requestsService.findOne(id);
   }
 
   @Post()
-  @RequirePermissions("leads.create")
+  @RequirePermissions("requests.create")
   create(@CurrentUser() user: any, @Body() dto: CreateRequestDto) {
     return this.requestsService.createPortalRequest(
       { id: user.id, role: user.role },
@@ -46,7 +46,7 @@ export class RequestsController {
   }
 
   @Post(":id/status")
-  @RequirePermissions("leads.update")
+  @RequirePermissions("requests.update")
   changeStatus(
     @Param("id") id: string,
     @CurrentUser() user: any,
@@ -61,7 +61,7 @@ export class RequestsController {
   }
 
   @Post(":id/contact-log")
-  @RequirePermissions("leads.update")
+  @RequirePermissions("requests.update")
   addContactLog(
     @Param("id") id: string,
     @CurrentUser() user: any,
@@ -71,13 +71,13 @@ export class RequestsController {
   }
 
   @Get(":id/contact-log")
-  @RequirePermissions("leads.read")
+  @RequirePermissions("requests.read")
   getContactLogs(@Param("id") id: string) {
     return this.requestsService.getContactLogs(id);
   }
 
   @Post("for-client")
-  @RequirePermissions("leads.create")
+  @RequirePermissions("requests.create")
   createForClient(
     @CurrentUser() user: any,
     @Body() dto: CreateRequestForClientDto,

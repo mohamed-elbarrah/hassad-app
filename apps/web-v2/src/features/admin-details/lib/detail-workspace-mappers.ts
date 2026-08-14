@@ -448,10 +448,9 @@ export function mapClientDetailFromApi(client: any): ClientDetailRecord {
 }
 
 export function mapOrderDetailFromApi(order: any): OrderDetailRecord {
-  const request = order?.request ?? order?.lead?.request ?? null;
-  const lead = order?.lead ?? request?.lead ?? null;
-  const primary = request ?? lead ?? order;
-  const pipelineSource = lead ?? request?.lead ?? primary;
+  const request = order?.request ?? null;
+  const primary = request ?? order;
+  const pipelineSource = primary;
   const commercialSource = request ?? primary;
 
   const contactLogs = (commercialSource.contactLogs ?? pipelineSource.contactLogs ?? order.contactLogs ?? []) as any[];
@@ -713,12 +712,12 @@ export function mapOrderDetailFromApi(order: any): OrderDetailRecord {
 
 export function mapProposalDetailFromApi(proposal: any): ProposalDetailRecord {
   const services = proposal.request?.services ?? [];
-  const clientName = proposal.client?.companyName ?? proposal.lead?.companyName ?? proposal.contactName ?? "Unknown client";
+  const clientName = proposal.client?.companyName ?? proposal.request?.companyName ?? proposal.contactName ?? "Unknown client";
   return {
     id: proposal.id,
     title: proposal.title ?? "Proposal",
     clientName,
-    requestName: proposal.request?.companyName ?? proposal.lead?.companyName ?? "Lead request",
+    requestName: proposal.request?.companyName ?? "Request",
     creator: proposal.creator?.name ?? "Unknown creator",
     owner: proposal.creator?.name ?? "Unknown creator",
     status: proposal.status,
@@ -802,8 +801,8 @@ export function mapProposalDetailFromApi(proposal: any): ProposalDetailRecord {
         helper: "Current proposal decision state.",
       },
       {
-        label: "Lead request",
-        value: proposal.request?.contactName ?? proposal.lead?.contactName ?? "—",
+        label: "Request",
+        value: proposal.request?.contactName ?? "—",
         helper: "Primary request-side contact for this proposal.",
       },
       {
@@ -814,8 +813,8 @@ export function mapProposalDetailFromApi(proposal: any): ProposalDetailRecord {
     ],
     linkedRecords: [
       {
-        label: "Lead",
-        value: proposal.lead?.companyName ?? "—",
+        label: "Request",
+        value: proposal.request?.companyName ?? "—",
       },
       {
         label: "Client",

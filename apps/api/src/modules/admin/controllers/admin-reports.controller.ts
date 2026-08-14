@@ -54,10 +54,10 @@ export class AdminReportsController {
 
   // ── New report types ──────────────────────────────────────────────────────
 
-  @Get("leads")
+  @Get("requests")
   @RequirePermissions("admin.reports")
-  getLeadsReport(@Query("from") from?: string, @Query("to") to?: string) {
-    return this.service.getLeadsReport(from, to);
+  getRequestsReport(@Query("from") from?: string, @Query("to") to?: string) {
+    return this.service.getRequestsReport(from, to);
   }
 
   @Get("clients")

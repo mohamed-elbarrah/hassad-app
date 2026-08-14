@@ -71,7 +71,7 @@ export function ClientPortfolioWorkspace({
             onValueChange={(value) => {
               const nextValue = value[0];
 
-              if (nextValue === "all" || nextValue === "clients" || nextValue === "leads") {
+              if (nextValue === "all" || nextValue === "clients" || nextValue === "requests") {
                 onFilterChange(nextValue);
               }
             }}
@@ -81,7 +81,7 @@ export function ClientPortfolioWorkspace({
           >
             <ToggleGroupItem value="all">All</ToggleGroupItem>
             <ToggleGroupItem value="clients">Clients</ToggleGroupItem>
-            <ToggleGroupItem value="leads">Leads</ToggleGroupItem>
+            <ToggleGroupItem value="requests">Requests</ToggleGroupItem>
           </ToggleGroup>
 
           <Select

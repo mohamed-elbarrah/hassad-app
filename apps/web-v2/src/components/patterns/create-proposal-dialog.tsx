@@ -26,7 +26,6 @@ type ProposalLineItem = {
 
 type ProposalFormValues = {
   requestId: string;
-  leadId: string;
   title: string;
   serviceDescription: string;
   servicesList: ProposalLineItem[];
@@ -50,9 +49,7 @@ type CreateProposalDialogProps = {
 };
 
 function getProposalContext(record: CrmOverviewRecord | null) {
-  if (!record) return { requestId: "", leadId: "" };
-  if (record.kind === "order") return { requestId: record.id, leadId: "" };
-  return { requestId: "", leadId: record.id };
+  return { requestId: record?.id ?? "" };
 }
 
 function getFileName(filePath?: string | null) {
@@ -89,7 +86,6 @@ function createProposalDefaults(record: CrmOverviewRecord | null, proposal?: { [
 
   return {
     requestId: String(proposal?.requestId ?? context.requestId ?? ""),
-    leadId: String(proposal?.leadId ?? context.leadId ?? ""),
     title: String(proposal?.title ?? `${record?.companyName ?? "New"} proposal`),
     serviceDescription: String(proposal?.serviceDescription ?? record?.note ?? ""),
     servicesList: services.length > 0 ? services : [firstLine],
@@ -109,7 +105,6 @@ function buildProposalFormData(values: ProposalFormValues, file: File | null) {
   const formData = new FormData();
   formData.append("title", values.title);
   if (values.requestId) formData.append("requestId", values.requestId);
-  if (values.leadId) formData.append("leadId", values.leadId);
   if (values.serviceDescription) formData.append("serviceDescription", values.serviceDescription);
   formData.append("servicesList", JSON.stringify(values.servicesList));
   if (values.totalPrice) formData.append("totalPrice", values.totalPrice);

@@ -11,7 +11,7 @@ export class AdminCrmOrdersController {
   constructor(private readonly service: AdminCrmOrdersService) {}
 
   @Get(":id")
-  @RequirePermissions("admin.leads.read")
+  @RequirePermissions("admin.requests.read")
   findOne(@Param("id") id: string) {
     return this.service.findOne(id);
   }

@@ -38,9 +38,6 @@ async function main() {
   await prisma.legacyLeadMigration.deleteMany();
   await prisma.contract.deleteMany();
   await prisma.proposal.deleteMany();
-  await prisma.leadService.deleteMany();
-  await prisma.leadPipelineHistory.deleteMany();
-  await prisma.leadContactLog.deleteMany();
   await prisma.requestAutomationLog.deleteMany();
   await prisma.requestAutomationRule.deleteMany();
   await prisma.crmNote.deleteMany();
@@ -50,7 +47,6 @@ async function main() {
   await prisma.conversationParticipant.deleteMany();
   await prisma.conversation.deleteMany();
   await prisma.client.deleteMany();
-  await prisma.lead.deleteMany();
   await prisma.user.deleteMany({ where: { email: "client2@hassad.com" } });
   await prisma.salary.deleteMany();
   await prisma.ledger.deleteMany();
@@ -93,9 +89,6 @@ async function main() {
 
   // Clean up orphan service rows that may have been created by accidental create() calls
   await prisma.requestService.deleteMany({
-    where: { serviceId: { notIn: KNOWN_SERVICE_IDS } },
-  });
-  await prisma.leadService.deleteMany({
     where: { serviceId: { notIn: KNOWN_SERVICE_IDS } },
   });
   await prisma.deliverableTemplate.deleteMany({
@@ -803,7 +796,7 @@ async function main() {
     { st: "FOLLOW_UP", co: "شركة التواصل", nm: "بدر إبراهيم", source: "REFERRAL", serviceId: services[2].id, createdAt: d(2026, 7, 17), attempts: 5 },
     { st: "APPROVED", co: "شركة الإنجاز", nm: "هند جميل", source: "WEBSITE", serviceId: services[0].id, createdAt: d(2026, 7, 10), attempts: 5 },
   ];
-  const pipelineLeadIds: Record<string, string> = {};
+  const pipelineRequestIds: Record<string, string> = {};
   const requestStatusByStage: Record<string, string> = {
     NEW: "QUALIFYING",
     INTRO_SENT: "QUALIFYING",
@@ -841,7 +834,7 @@ async function main() {
         createdAt: p.createdAt,
       } as any,
     });
-    pipelineLeadIds[p.st] = request.id;
+    pipelineRequestIds[p.st] = request.id;
     await prisma.requestService.create({
       data: { requestId: request.id, serviceId: p.serviceId, quantity: 1 },
     });
@@ -876,7 +869,7 @@ async function main() {
   await prisma.proposal.createMany({
     data: [
       {
-        requestId: pipelineLeadIds["PROPOSAL_SENT"],
+        requestId: pipelineRequestIds["PROPOSAL_SENT"],
         createdBy: userIds["SALES"],
         title: "عرض تأسيس الهوية",
         serviceDescription: "Brand package for commercial approval",
@@ -888,7 +881,7 @@ async function main() {
         createdAt: d(2026, 8, 2),
       } as any,
       {
-        requestId: pipelineLeadIds["FOLLOW_UP"],
+        requestId: pipelineRequestIds["FOLLOW_UP"],
         createdBy: userIds["SALES2"],
         title: "عرض الحملة الإعلانية",
         serviceDescription: "Campaign management package under negotiation",
@@ -900,7 +893,7 @@ async function main() {
         createdAt: d(2026, 8, 1),
       } as any,
       {
-        requestId: pipelineLeadIds["APPROVED"],
+        requestId: pipelineRequestIds["APPROVED"],
         createdBy: userIds["SALES2"],
         title: "عرض التحول الرقمي",
         serviceDescription: "Approved package pending contract assembly",
@@ -2218,7 +2211,7 @@ async function main() {
       {
         action: "crm.proposals.approved",
         entity: "lead",
-        entityId: pipelineLeadIds["APPROVED"],
+        entityId: pipelineRequestIds["APPROVED"],
         userId: userIds["SALES2"],
         after: { lead: "شركة الإنجاز" },
         createdAt: d(2026, 7, 30),
@@ -2412,12 +2405,12 @@ async function main() {
     "finance.manage_tickets",
     "finance.read_ledger",
     "finance.manage_payroll",
-    "leads.create",
-    "leads.read",
-    "leads.update",
-    "leads.assign",
-    "leads.convert",
-    "leads.delete",
+    "requests.create",
+    "requests.read",
+    "requests.update",
+    "requests.assign",
+    "requests.convert",
+    "requests.delete",
     "automation.create",
     "automation.read",
     "automation.execute",
@@ -2470,7 +2463,7 @@ async function main() {
     "admin.projects.read",
     "admin.tasks.read",
     "admin.contracts.read",
-    "admin.leads.read",
+    "admin.requests.read",
     "admin.requests.read",
     "admin.finance.read",
     "admin.proposals.read",
@@ -2484,7 +2477,7 @@ async function main() {
     "admin.projects.create",
     "admin.tasks.intervene",
     "admin.contracts.intervene",
-    "admin.leads.intervene",
+    "admin.requests.intervene",
     "admin.requests.intervene",
     "admin.finance.intervene",
     "admin.proposals.intervene",
@@ -2540,10 +2533,10 @@ async function main() {
       "disputes.pm_update",
     ],
     SALES: [
-      "leads.create",
-      "leads.read",
-      "leads.update",
-      "leads.assign",
+      "requests.create",
+      "requests.read",
+      "requests.update",
+      "requests.assign",
       "proposals.create",
       "proposals.read",
       "proposals.send",
@@ -2607,7 +2600,7 @@ async function main() {
     CLIENT: [
       "proposals.read_public",
       "notifications.read",
-      "leads.create",
+      "requests.create",
       "contracts.read_public",
       "contracts.sign_public",
       "invoices.pay_public",

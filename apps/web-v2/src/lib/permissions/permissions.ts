@@ -2,7 +2,7 @@ export type Permission =
   | "admin.dashboard"
   | "admin.users.read"
   | "admin.clients.read"
-  | "admin.leads.read"
+  | "admin.requests.read"
   | "admin.projects.read"
   | "finance.read"
   | "admin.reports"

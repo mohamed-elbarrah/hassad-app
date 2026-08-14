@@ -17,7 +17,6 @@ export type CrmProposalsWorkspaceResponse = {
 export type CrmProposalDetailApi = {
   id: string;
   requestId: string | null;
-  leadId: string | null;
   clientId: string | null;
   title: string;
   serviceDescription: string;
@@ -41,11 +40,6 @@ export type CrmProposalDetailApi = {
     companyName: string;
     contactName: string;
     status: string;
-  } | null;
-  lead?: {
-    id: string;
-    companyName: string;
-    contactName: string;
   } | null;
   client?: { id: string; companyName: string } | null;
   creator?: { id: string; name: string; email: string } | null;

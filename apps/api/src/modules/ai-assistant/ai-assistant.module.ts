@@ -4,7 +4,7 @@ import { AiAssistantService } from "./ai-assistant.service";
 import { ToolRegistryService } from "./tools/tool-registry.service";
 import { AiModule } from "../ai/ai.module";
 
-import { GetLeadPipelineSummaryTool, GetLeadStatusDistributionTool, GetRecentLeadsTool } from "./tools/crm.tools";
+import { GetRequestPipelineSummaryTool, GetRequestStatusDistributionTool, GetRecentRequestsTool } from "./tools/crm.tools";
 import { GetRevenueSummaryTool, GetInvoiceStatusTool, GetPendingPaymentsTool } from "./tools/finance.tools";
 import { GetClientSummaryTool, GetClientStatusDistributionTool } from "./tools/client.tools";
 import { GetProjectSummaryTool, GetTaskDistributionTool, GetUpcomingDeadlinesTool } from "./tools/pm.tools";
@@ -18,9 +18,9 @@ import { GetCampaignSummaryTool, GetCampaignPerformanceTool } from "./tools/mark
     ToolRegistryService,
 
     // CRM tools
-    GetLeadPipelineSummaryTool,
-    GetLeadStatusDistributionTool,
-    GetRecentLeadsTool,
+    GetRequestPipelineSummaryTool,
+    GetRequestStatusDistributionTool,
+    GetRecentRequestsTool,
 
     // Finance tools
     GetRevenueSummaryTool,
@@ -47,9 +47,9 @@ export class AiAssistantModule implements OnModuleInit {
 
   constructor(
     private toolRegistry: ToolRegistryService,
-    private getLeadPipelineSummary: GetLeadPipelineSummaryTool,
-    private getLeadStatusDistribution: GetLeadStatusDistributionTool,
-    private getRecentLeads: GetRecentLeadsTool,
+    private getRequestPipelineSummary: GetRequestPipelineSummaryTool,
+    private getRequestStatusDistribution: GetRequestStatusDistributionTool,
+    private getRecentRequests: GetRecentRequestsTool,
     private getRevenueSummary: GetRevenueSummaryTool,
     private getInvoiceStatus: GetInvoiceStatusTool,
     private getPendingPayments: GetPendingPaymentsTool,
@@ -64,9 +64,9 @@ export class AiAssistantModule implements OnModuleInit {
 
   onModuleInit() {
     this.toolRegistry.register(
-      this.getLeadPipelineSummary,
-      this.getLeadStatusDistribution,
-      this.getRecentLeads,
+      this.getRequestPipelineSummary,
+      this.getRequestStatusDistribution,
+      this.getRecentRequests,
       this.getRevenueSummary,
       this.getInvoiceStatus,
       this.getPendingPayments,

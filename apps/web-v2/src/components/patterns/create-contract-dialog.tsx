@@ -29,7 +29,6 @@ type ContractPlanRow = {
 
 type ContractFormValues = {
   requestId: string;
-  leadId: string;
   proposalId: string;
   title: string;
   type: ContractType;
@@ -59,9 +58,7 @@ const contractTypeLabel: Record<ContractType, string> = {
 };
 
 function getContext(record: CrmOverviewRecord | null) {
-  if (!record) return { requestId: "", leadId: "", proposalId: "" };
-  if (record.kind === "order") return { requestId: record.id, leadId: "", proposalId: record.proposalId ?? "" };
-  return { requestId: "", leadId: record.id, proposalId: record.proposalId ?? "" };
+  return { requestId: record?.id ?? "", proposalId: record?.proposalId ?? "" };
 }
 
 function getFileName(filePath?: string | null) {
@@ -106,13 +103,11 @@ function createContractDefaults(
   const paymentPlan = fromContractPlan.length > 0 ? fromContractPlan : proposalPlan;
   const proposalId = String(contract?.proposalId ?? proposal?.id ?? context.proposalId ?? "");
   const requestId = String(contract?.requestId ?? (proposal as { requestId?: unknown } | null)?.requestId ?? context.requestId ?? "");
-  const leadId = String(context.leadId ?? "");
   const fallbackTitle = `${record?.companyName ?? "New"} contract`;
   const sourceType = (contract?.type as ContractType | undefined) ?? ContractType.FIXED_PROJECT;
 
   return {
     requestId,
-    leadId,
     proposalId,
     title: String(contract?.title ?? proposal?.title ?? fallbackTitle),
     type: sourceType,
@@ -133,7 +128,6 @@ function buildContractFormData(values: ContractFormValues, file: File | null) {
   formData.append("title", values.title);
   formData.append("type", values.type);
   if (values.requestId) formData.append("requestId", values.requestId);
-  if (values.leadId) formData.append("leadId", values.leadId);
   if (values.proposalId) formData.append("proposalId", values.proposalId);
   if (values.startDate) formData.append("startDate", values.startDate);
   if (values.endDate) formData.append("endDate", values.endDate);

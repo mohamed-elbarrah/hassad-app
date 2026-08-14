@@ -13,13 +13,13 @@ export class CrmOrdersController {
   constructor(private readonly service: CrmOrdersService) {}
 
   @Get(":id")
-  @RequirePermissions("leads.read")
+  @RequirePermissions("requests.read")
   findOne(@Param("id") id: string) {
     return this.service.findOne(id);
   }
 
   @Post(":id/notes")
-  @RequirePermissions("leads.update")
+  @RequirePermissions("requests.update")
   addNote(
     @Param("id") id: string,
     @CurrentUser("id") authorId: string,
@@ -29,7 +29,7 @@ export class CrmOrdersController {
   }
 
   @Post(":id/stage")
-  @RequirePermissions("leads.update")
+  @RequirePermissions("requests.update")
   updateStage(
     @Param("id") id: string,
     @CurrentUser("id") authorId: string,

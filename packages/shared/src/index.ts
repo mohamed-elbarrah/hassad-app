@@ -87,7 +87,6 @@ export interface User {
 /** Matches the DB `Client` model exactly */
 export interface Client {
   id: string;
-  leadId?: string | null;
   companyName: string;
   businessName: string;
   businessType: BusinessType;
@@ -307,7 +306,6 @@ export interface HandoverClientInput {
 export interface Proposal {
   id: string;
   requestId?: string | null;
-  leadId?: string | null;
   createdBy: string;
   title: string;
   serviceDescription: string;
@@ -623,11 +621,6 @@ export interface DeliverableTemplate {
   createdAt: Date | string;
 }
 
-export interface LeadServiceItem {
-  serviceId: string;
-  quantity?: number;
-  notes?: string;
-}
 
 export interface ProjectProgress {
   projectId: string;

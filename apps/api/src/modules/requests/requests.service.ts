@@ -12,7 +12,6 @@ import {
   ClientStatus,
   ContactLogType,
   ContactLogResult,
-  PipelineStage,
   RequestStatus,
   UserRole,
 } from "@hassad/shared";
@@ -87,24 +86,6 @@ export class RequestsService {
 
   private getDbClient(tx?: Prisma.TransactionClient): DbClient {
     return tx ?? this.prisma;
-  }
-
-  private getStatusFromLeadStage(stage: string): RequestStatus {
-    switch (stage) {
-      case PipelineStage.PROPOSAL_SENT:
-        return RequestStatus.PROPOSAL_SENT;
-      case PipelineStage.FOLLOW_UP:
-        return RequestStatus.NEGOTIATION;
-      case PipelineStage.APPROVED:
-        return RequestStatus.CONTRACT_PREPARATION;
-      case PipelineStage.CONTRACT_SIGNED:
-        return RequestStatus.SIGNED;
-      case PipelineStage.MEETING_SCHEDULED:
-      case PipelineStage.MEETING_DONE:
-        return RequestStatus.PROPOSAL_IN_PROGRESS;
-      default:
-        return RequestStatus.QUALIFYING;
-    }
   }
 
   private assertValidTransition(
@@ -609,7 +590,7 @@ export class RequestsService {
       let clientCreated = false;
       let requestClientLabel = "";
       let source = dto.source ?? ClientSource.PLATFORM;
-      let submittedBy = userId;
+      const submittedBy = userId;
       let assignedSalesId: string | null = null;
       let companyName = "";
       let contactName = "";
@@ -787,304 +768,34 @@ export class RequestsService {
     });
   }
 
-  /**
-   * Compatibility entry point for legacy CRM intake.
-   * New CRM records are Requests; this method must never create a Lead row.
-   */
-  async createCrmRequestFromLegacyLeadInput(
-    userId: string,
-    dto: {
-      companyName: string;
-      contactName: string;
-      phoneWhatsapp: string;
-      email?: string;
-      businessName: string;
-      businessType: BusinessType;
-      source: ClientSource;
-      notes?: string;
-      services?: Array<{ serviceId: string; quantity?: number; notes?: string }>;
-    },
-  ) {
-    const request = await this.prisma.$transaction(async (tx) => {
-      const { client } = await this.canonicalClientService.upsertCanonicalClient(tx, {
-        companyName: dto.companyName,
-        businessName: dto.businessName,
-        businessType: dto.businessType,
-        status: ClientStatus.LEAD,
-      });
-      const assignment = await this.salesAssignmentService.findBestSales(
-        [client.accountManager],
-        client.id,
-        tx,
-      );
-      const created = await tx.request.create({
-        data: {
-          clientId: client.id,
-          submittedBy: userId,
-          assignedSalesId: assignment?.salesId ?? undefined,
-          companyName: dto.companyName,
-          contactName: dto.contactName,
-          phoneWhatsapp: dto.phoneWhatsapp,
-          email: dto.email ?? undefined,
-          businessName: dto.businessName,
-          businessType: dto.businessType,
-          source: dto.source,
-          notes: dto.notes ?? undefined,
-          status: RequestStatus.SUBMITTED,
-          crmStage: "NEW",
-        },
-      });
-      await tx.requestStatusHistory.create({
-        data: { requestId: created.id, toStatus: RequestStatus.SUBMITTED, changedBy: userId },
-      });
-      if (dto.services?.length) {
-        await tx.requestService.createMany({
-          data: dto.services.map((service) => ({
-            requestId: created.id,
-            serviceId: service.serviceId,
-            quantity: service.quantity ?? 1,
-            notes: service.notes,
-          })),
-        });
-      }
-      return tx.request.findUnique({
-        where: { id: created.id },
-        include: { services: { include: { service: true } }, client: true, assignee: true },
-      });
-    });
-
-    if (!request) throw new BadRequestException("Unable to create request");
-    if (request.assignee) {
-      await this.notificationsService.notifyUsers({
-        userIds: [request.assignee.id],
-        title: "طلب جديد",
-        message: `تم استلام طلب جديد من ${request.contactName} - ${request.companyName}`,
-        entityId: request.id,
-        entityType: "request",
-        eventType: "REQUEST_SUBMITTED",
-      }).catch(() => undefined);
-    }
-    return request;
-  }
-
-  async ensureRequestForLead(
-    leadId: string,
-    changedBy?: string | null,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const db = this.getDbClient(tx);
-    const lead = await db.lead.findUnique({
-      where: { id: leadId },
-      include: {
-        services: true,
-        contactLogs: true,
-        pipelineHistory: true,
-        crmNotes: true,
-        request: {
-          include: {
-            client: {
-              select: {
-                id: true,
-                companyName: true,
-                userId: true,
-                totalProjects: true,
-                activeProjects: true,
-              },
-            },
-            lead: { select: { id: true, pipelineStage: true } },
-          },
-        },
-      },
-    });
-
-    if (!lead) {
-      throw new NotFoundException("Lead not found");
-    }
-
-    if (lead.request) {
-      return lead.request;
-    }
-
-    const { client } = await this.canonicalClientService.upsertCanonicalClient(
-      db,
-      {
-        leadId: lead.id,
-        companyName: lead.companyName,
-        businessName: lead.businessName,
-        businessType: lead.businessType,
-        preferredManagerId: lead.assignedTo ?? null,
-      },
-    );
-
-    const requestStatus = this.getStatusFromLeadStage(lead.pipelineStage);
-
-    const assignment = await this.salesAssignmentService.findBestSales(
-      [lead.assignedTo, client.accountManager].filter(Boolean) as string[],
-      client.id,
-      db,
-    );
-    const assignedSalesId = assignment?.salesId ?? null;
-
-    const request = await db.request.create({
-      data: {
-        clientId: client.id,
-        submittedBy: lead.createdBy ?? undefined,
-        assignedSalesId: assignedSalesId ?? undefined,
-        companyName: lead.companyName,
-        contactName: lead.contactName,
-        phoneWhatsapp: lead.phoneWhatsapp,
-        email: lead.email ?? undefined,
-        businessName: lead.businessName,
-        businessType: lead.businessType,
-        source: lead.source,
-        notes: lead.notes ?? undefined,
-        status: requestStatus,
-      },
-    });
-
-    await db.requestStatusHistory.create({
-      data: {
-        requestId: request.id,
-        toStatus: requestStatus,
-        changedBy: changedBy ?? lead.createdBy ?? lead.assignedTo ?? undefined,
-        note: "Backfilled from legacy lead workflow",
-      },
-    });
-
-    if (lead.services.length > 0) {
-      await db.requestService.createMany({
-        data: lead.services.map((service) => ({
-          requestId: request.id,
-          serviceId: service.serviceId,
-          quantity: service.quantity,
-          notes: service.notes ?? undefined,
-        })),
-      });
-    }
-
-    if (lead.contactLogs.length > 0) {
-      await db.requestContactLog.createMany({
-        data: lead.contactLogs.map((log) => ({
-          requestId: request.id,
-          userId: log.userId,
-          type: log.type,
-          result: log.result,
-          notes: log.notes,
-          contactedAt: log.contactedAt,
-          createdAt: log.contactedAt,
-        })),
-      });
-    }
-
-    if (lead.pipelineHistory.length > 0) {
-      await db.requestStatusHistory.createMany({
-        data: lead.pipelineHistory.map((history) => ({
-          requestId: request.id,
-          fromStatus: this.getStatusFromLeadStage(history.fromStage),
-          toStatus: this.getStatusFromLeadStage(history.toStage),
-          changedBy: history.changedBy,
-          changedAt: history.changedAt,
-          note: "Migrated from legacy lead pipeline history",
-        })),
-      });
-    }
-
-    if (lead.crmNotes.length > 0) {
-      await db.crmNote.createMany({
-        data: lead.crmNotes.map((note) => ({
-          requestId: request.id,
-          authorId: note.authorId,
-          content: note.content,
-          isInternal: note.isInternal,
-          createdAt: note.createdAt,
-          updatedAt: note.updatedAt,
-        })),
-      });
-    }
-
-    await db.lead.update({
-      where: { id: lead.id },
-      data: { requestId: request.id },
-    });
-
-    return db.request.findUnique({
-      where: { id: request.id },
-      include: {
-        client: {
-          select: {
-            id: true,
-            companyName: true,
-
-            userId: true,
-          },
-        },
-        lead: { select: { id: true, pipelineStage: true } },
-      },
-    });
-  }
-
   async resolveRequestContext(
     params: {
       requestId?: string | null;
-      leadId?: string | null;
       proposalId?: string | null;
     },
-    changedBy?: string | null,
+    _changedBy?: string | null,
     tx?: Prisma.TransactionClient,
   ) {
     const db = this.getDbClient(tx);
+    const requestId = params.requestId ?? (params.proposalId
+      ? (await db.proposal.findUnique({
+          where: { id: params.proposalId },
+          select: { requestId: true },
+        }))?.requestId
+      : null);
 
-    if (params.requestId) {
-      const request = await db.request.findUnique({
-        where: { id: params.requestId },
-        include: {
-          client: {
-            select: {
-              id: true,
-              companyName: true,
-
-              userId: true,
-            },
-          },
-          lead: { select: { id: true, pipelineStage: true } },
-        },
-      });
-
-      if (!request) {
-        throw new NotFoundException("Request not found");
-      }
-
-      return request;
+    if (!requestId) {
+      throw new BadRequestException("A request reference is required");
     }
 
-    if (params.proposalId) {
-      const proposal = await db.proposal.findUnique({
-        where: { id: params.proposalId },
-        select: { requestId: true, leadId: true },
-      });
-
-      if (!proposal) {
-        throw new NotFoundException("Proposal not found");
-      }
-
-      if (proposal.requestId) {
-        return this.resolveRequestContext(
-          { requestId: proposal.requestId },
-          changedBy,
-          tx,
-        );
-      }
-
-      if (proposal.leadId) {
-        return this.ensureRequestForLead(proposal.leadId, changedBy, tx);
-      }
-    }
-
-    if (params.leadId) {
-      return this.ensureRequestForLead(params.leadId, changedBy, tx);
-    }
-
-    throw new BadRequestException("A request reference is required");
+    const request = await db.request.findUnique({
+      where: { id: requestId },
+      include: {
+        client: { select: { id: true, companyName: true, userId: true } },
+      },
+    });
+    if (!request) throw new NotFoundException("Request not found");
+    return request;
   }
 
   async addContactLog(

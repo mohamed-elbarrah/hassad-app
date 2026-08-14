@@ -335,8 +335,8 @@ export function mapProposalIndexItem(item: any): ProposalDirectoryRecord {
   return {
     id: item.id,
     title: item.title ?? "Proposal",
-    clientName: item.client?.companyName ?? item.lead?.companyName ?? "—",
-    requestName: item.request?.companyName ?? item.lead?.companyName ?? "—",
+    clientName: item.client?.companyName ?? item.request?.companyName ?? "—",
+    requestName: item.request?.companyName ?? "—",
     creator: item.creator?.name ?? "—",
     servicesCount: serviceNames.length,
     servicesLabel: serviceNames.join(", "),

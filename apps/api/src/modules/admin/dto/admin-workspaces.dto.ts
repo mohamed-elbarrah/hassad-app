@@ -55,8 +55,8 @@ export class AdminEmployeesWorkspaceQueryDto {
 
 export class AdminClientsWorkspaceQueryDto {
   @IsOptional()
-  @IsIn(["all", "clients", "leads"])
-  filter?: "all" | "clients" | "leads";
+  @IsIn(["all", "clients", "requests"])
+  filter?: "all" | "clients" | "requests";
 
   @IsOptional()
   @IsIn(["highest-spend", "lowest-spend"])

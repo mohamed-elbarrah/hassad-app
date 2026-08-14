@@ -3,33 +3,36 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const [unlinkedLeads, migrations, unresolvedContracts, leadOnlyProposals] =
+  const [legacyLeads, migrationRows, unresolvedContracts, leadOnlyProposals] =
     await Promise.all([
-      prisma.lead.count({ where: { requestId: null } }),
+      prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+        'SELECT COUNT(*)::bigint AS count FROM "legacy_leads"',
+      ),
       prisma.legacyLeadMigration.findMany({
-        select: { leadId: true, requestId: true, status: true },
+        select: { legacyLeadId: true, requestId: true, status: true },
       }),
       prisma.contract.count({ where: { requestId: null } }),
-      prisma.proposal.count({ where: { requestId: null, leadId: { not: null } } }),
+      prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
+        'SELECT COUNT(*)::bigint AS count FROM "legacy_lead_migrations" m JOIN "proposals" p ON p."legacy_lead_id" = m."lead_id" WHERE p."request_id" IS NULL',
+      ),
     ]);
 
-  const failed = migrations.filter((migration) => migration.status === "FAILED");
-  const incomplete = migrations.filter(
+  const failed = migrationRows.filter((migration) => migration.status === "FAILED");
+  const incomplete = migrationRows.filter(
     (migration) => !migration.requestId || migration.status === "PENDING",
   );
-
   const report = {
-    unlinkedLeads,
-    migrationRows: migrations.length,
+    archivedLeads: Number(legacyLeads[0]?.count ?? 0),
+    migrationRows: migrationRows.length,
     failedMigrations: failed.length,
     incompleteMigrations: incomplete.length,
-    leadOnlyProposals,
+    leadOnlyProposals: Number(leadOnlyProposals[0]?.count ?? 0),
     unresolvedContracts,
   };
-
   console.log(JSON.stringify(report, null, 2));
 
-  if (unlinkedLeads || failed.length || incomplete.length || leadOnlyProposals) {
+  const strict = process.argv.includes("--strict");
+  if (failed.length || incomplete.length || report.leadOnlyProposals || (strict && unresolvedContracts)) {
     throw new Error("Legacy CRM migration verification failed");
   }
 }

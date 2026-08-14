@@ -41,12 +41,9 @@ export class ProposalsService {
         userId,
         tx,
       );
-      const leadId = request.lead?.id ?? null;
-
       const proposal = await tx.proposal.create({
         data: {
           requestId: request.id,
-          leadId,
           clientId: request.clientId,
           createdBy: userId,
           title: dto.title,
@@ -98,7 +95,7 @@ export class ProposalsService {
 
   async findAll(filters: {
     status?: string;
-    leadId?: string;
+    requestId?: string;
     search?: string;
     page?: number;
     limit?: number;
@@ -107,7 +104,7 @@ export class ProposalsService {
     const limit = Number(filters.limit) || 20;
     const where: any = {};
     if (filters.status) where.status = filters.status;
-    if (filters.leadId) where.leadId = filters.leadId;
+    if (filters.requestId) where.requestId = filters.requestId;
     if (filters.search)
       where.title = { contains: filters.search, mode: "insensitive" };
 
@@ -116,7 +113,6 @@ export class ProposalsService {
         where,
         include: {
           request: true,
-          lead: { select: { id: true, contactName: true, companyName: true } },
           creator: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -133,7 +129,6 @@ export class ProposalsService {
       where: { id },
       include: {
         request: true,
-        lead: true,
         creator: true,
       },
     });
@@ -255,7 +250,6 @@ export class ProposalsService {
             status: true,
           },
         },
-        lead: true,
         creator: { select: { id: true, name: true } },
       },
     });
@@ -348,7 +342,7 @@ export class ProposalsService {
   }
 
   /**
-   * CLIENT portal: return all proposals linked to leads where createdBy = userId.
+   * CLIENT portal: return all proposals visible to the authenticated client.
    */
   async getMyProposals(userId: string) {
     return this.prisma.proposal.findMany({
@@ -364,7 +358,6 @@ export class ProposalsService {
             status: true,
           },
         },
-        lead: { select: { id: true, contactName: true, companyName: true } },
       },
       orderBy: { createdAt: "desc" },
     });

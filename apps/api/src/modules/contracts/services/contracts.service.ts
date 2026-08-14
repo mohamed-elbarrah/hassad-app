@@ -101,7 +101,6 @@ export class ContractsService {
         },
         request: {
           include: {
-            lead: { select: { id: true } },
             services: {
               include: {
                 service: {
@@ -901,11 +900,7 @@ export class ContractsService {
         invoices: {
           include: { items: true, payments: true },
         },
-        request: {
-          include: {
-            lead: { select: { id: true, pipelineStage: true } },
-          },
-        },
+        request: true,
       },
     });
 
@@ -954,10 +949,7 @@ export class ContractsService {
       where: { shareLinkToken: token },
       include: {
         request: {
-          include: {
-            client: { select: { userId: true } },
-            lead: { select: { id: true, pipelineStage: true } },
-          },
+          include: { client: { select: { userId: true } } },
         },
       },
     });

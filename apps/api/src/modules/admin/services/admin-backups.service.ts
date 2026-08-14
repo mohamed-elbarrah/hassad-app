@@ -108,15 +108,15 @@ export class AdminBackupsService {
           "createdAt",
         ]);
       }
-      case "leads": {
-        const leads = await this.prisma.lead.findMany({
+      case "requests": {
+        const requests = await this.prisma.request.findMany({
           select: {
             id: true,
             companyName: true,
             contactName: true,
             email: true,
             phoneWhatsapp: true,
-            pipelineStage: true,
+            status: true,
             source: true,
             createdAt: true,
             assignee: { select: { name: true } },
@@ -124,13 +124,13 @@ export class AdminBackupsService {
           orderBy: { createdAt: "desc" },
         });
         return this.toCsv(
-          leads.map((l) => ({
+          requests.map((l) => ({
             id: l.id,
             companyName: l.companyName,
             contactName: l.contactName,
             email: l.email ?? "",
             phone: l.phoneWhatsapp ?? "",
-            pipelineStage: l.pipelineStage,
+            pipelineStage: l.status,
             source: l.source,
             assignee: l.assignee?.name ?? "",
             createdAt: l.createdAt.toISOString(),
@@ -233,7 +233,7 @@ export class AdminBackupsService {
       }
       default:
         throw new BadRequestException(
-          `نوع التصدير "${type}" غير مدعوم. الأنواع المدعومة: users, clients, invoices, audit-log, leads, contracts, tasks`,
+          `نوع التصدير "${type}" غير مدعوم. الأنواع المدعومة: users, clients, invoices, audit-log, requests, contracts, tasks`,
         );
     }
   }

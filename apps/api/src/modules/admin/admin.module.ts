@@ -43,6 +43,7 @@ import { AdminIntakeFormsController } from "./controllers/admin-intake-forms.con
 import { AdminBusinessGoalController } from "./controllers/admin-business-goal.controller";
 import { AdminWorkspacesController } from "./controllers/admin-workspaces.controller";
 import { AdminCrmOrdersController } from "./controllers/admin-crm-orders.controller";
+import { AdminContractMigrationReviewController } from "./controllers/admin-contract-migration-review.controller";
 
 import { AdminActionLogService } from "./services/admin-action-log.service";
 import { AdminKpiService } from "./services/admin-kpi.service";
@@ -55,6 +56,7 @@ import { AdminSecurityService } from "./services/admin-security.service";
 import { AdminProjectsService } from "./services/admin-projects.service";
 import { AdminTasksService } from "./services/admin-tasks.service";
 import { AdminContractsService } from "./services/admin-contracts.service";
+import { AdminContractMigrationReviewService } from "./services/admin-contract-migration-review.service";
 import { AdminRequestsService } from "./services/admin-requests.service";
 import { AdminCampaignsService } from "./services/admin-campaigns.service";
 import { AdminChatService } from "./services/admin-chat.service";
@@ -112,6 +114,7 @@ import { RequestsModule } from "../requests/requests.module";
     AdminController,
     AdminWorkspacesController,
     AdminCrmOrdersController,
+    AdminContractMigrationReviewController,
     AdminKpiController,
     AdminAuditController,
     AdminSettingsController,
@@ -156,6 +159,7 @@ import { RequestsModule } from "../requests/requests.module";
     AdminProjectsService,
     AdminTasksService,
     AdminContractsService,
+    AdminContractMigrationReviewService,
     AdminRequestsService,
     AdminCampaignsService,
     AdminChatService,

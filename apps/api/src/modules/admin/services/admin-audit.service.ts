@@ -18,7 +18,7 @@ const ACTION_AR: Record<string, string> = {
   "admin.projects.reassign-pm": "إعادة تعيين مدير مشروع",
   "admin.projects.archive": "أرشفة مشروع",
   "admin.projects.force-status": "تغيير حالة مشروع",
-  "admin.leads.reassign": "إعادة تعيين عميل متوقع",
+  "admin.requests.reassign": "إعادة تعيين عميل متوقع",
   ADMIN_TRIGGER_REFUND: "تنفيذ استرداد مالي",
   ADMIN_RETRY_WEBHOOK: "إعادة محاولة ويب هوك",
 };

@@ -15,7 +15,6 @@ interface UpsertCanonicalClientParams {
    * service. This service is responsible for business fields only.
    */
   userId?: string | null;
-  leadId?: string | null;
   companyName: string;
   businessName: string;
   businessType: any;
@@ -37,15 +36,10 @@ export class CanonicalClientService {
   ) {
     // Personal identity is no longer used to find/merge clients.
     // Clients are identified by their linked `User` (via `userId`)
-    // or by a previous `Lead` (via `leadId`).
     const identityFilters: Prisma.ClientWhereInput[] = [];
 
     if (params.userId) {
       identityFilters.push({ userId: params.userId });
-    }
-
-    if (params.leadId) {
-      identityFilters.push({ leadId: params.leadId });
     }
 
     let existingClient = identityFilters.length
@@ -54,7 +48,6 @@ export class CanonicalClientService {
           select: {
             id: true,
             userId: true,
-            leadId: true,
             accountManager: true,
             companyName: true,
             businessName: true,
@@ -65,10 +58,7 @@ export class CanonicalClientService {
       : null;
 
     if (!existingClient) {
-      // Fallback: match by business identity (company name) when no
-      // user/lead link exists. This preserves the old "match by
-      // company name" behavior for cases where a client was created
-      // before a user was linked.
+      // Fallback: match by business identity when no user is linked.
       existingClient = await db.client.findFirst({
         where: {
           companyName: params.companyName,
@@ -77,7 +67,6 @@ export class CanonicalClientService {
         select: {
           id: true,
           userId: true,
-          leadId: true,
           accountManager: true,
           companyName: true,
           businessName: true,
@@ -143,10 +132,6 @@ export class CanonicalClientService {
         updateData.userId = params.userId;
       }
 
-      if (!existingClient.leadId && params.leadId) {
-        updateData.leadId = params.leadId;
-      }
-
       if (!existingClient.accountManager && accountManagerId) {
         updateData.accountManager = accountManagerId;
       }
@@ -207,7 +192,6 @@ export class CanonicalClientService {
     const client = await db.client.create({
       data: {
         userId: params.userId ?? undefined,
-        leadId: params.leadId ?? undefined,
         companyName: params.companyName,
         businessName: params.businessName,
         businessType: params.businessType,

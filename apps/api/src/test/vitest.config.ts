@@ -6,6 +6,7 @@ export default defineConfig({
     globalSetup: ['./src/test/global-setup.ts'],
     testTimeout: 30000,
     hookTimeout: 60000,
+    exclude: ["dist/**", "node_modules/**"],
     env: {
       DATABASE_URL:
         'postgresql://hassad:hassad_dev_password@localhost:5432/hassad_e2e',

@@ -203,8 +203,7 @@ export class AdminWorkspacesService {
   }
 
   async getClientsWorkspace(query: AdminClientsWorkspaceQueryDto) {
-    const [clients, leads] = await Promise.all([
-      this.prisma.client.findMany({
+    const clients = await this.prisma.client.findMany({
         include: {
           user: { select: { name: true, lastLoginAt: true } },
           manager: { select: { name: true } },
@@ -228,15 +227,7 @@ export class AdminWorkspacesService {
             select: { projects: true, contracts: true, proposals: true },
           },
         },
-      }),
-      this.prisma.lead.findMany({
-        where: { isActive: true, client: { is: null } },
-        include: {
-          assignee: { select: { name: true } },
-          proposals: { select: { id: true } },
-        },
-      }),
-    ]);
+      });
 
     const clientRows = clients.map((client) => ({
       id: client.id,
@@ -278,36 +269,13 @@ export class AdminWorkspacesService {
           : "success",
     }));
 
-    const leadRows = leads.map((lead) => ({
-      id: lead.id,
-      contactName: lead.contactName,
-      companyName: lead.companyName,
-      stage: "lead" as const,
-      totalProjects: 0,
-      activeProjects: 0,
-      openOrders: 1,
-      pendingOffers: lead.proposals.length,
-      signedContracts: 0,
-      totalSpend: 0,
-      outstandingAmount: 0,
-      lastSeen: lead.lastContactAt
-        ? new Date(lead.lastContactAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-        : "No contact yet",
-      owner: lead.assignee?.name ?? "Unassigned",
-      stageTone: "attention" as const,
-      financeTone: "neutral" as const,
-    }));
-
+    const leadRows = clientRows.filter((client) => client.totalProjects === 0);
     const combined =
       query.filter === "clients"
-        ? clientRows
-        : query.filter === "leads"
+        ? clientRows.filter((client) => client.totalProjects > 0)
+        : query.filter === "requests"
           ? leadRows
-          : [...clientRows, ...leadRows];
+          : clientRows;
 
     combined.sort((left, right) =>
       query.sort === "lowest-spend"
@@ -321,39 +289,7 @@ export class AdminWorkspacesService {
   async getCrmWorkspace(query: AdminCrmWorkspaceQueryDto) {
     const dateFilter = this.buildDateFilter(query.dateFilter);
 
-    const [leads, requests] = await Promise.all([
-      this.prisma.lead.findMany({
-        where: {
-          isActive: true,
-          requestId: null,
-          ...(dateFilter ? { createdAt: dateFilter } : {}),
-        },
-        include: {
-          assignee: { select: { name: true } },
-          contactLogs: {
-            orderBy: { contactedAt: "desc" },
-            take: 20,
-            select: { type: true, contactedAt: true },
-          },
-          services: {
-            include: {
-              service: {
-                select: { name: true },
-              },
-            },
-          },
-          proposals: {
-            orderBy: { createdAt: "desc" },
-            select: { status: true, totalPrice: true, createdAt: true, id: true },
-          },
-          client: {
-            select: {
-              projects: { select: { id: true, status: true } },
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
+    const [requests] = await Promise.all([
       this.prisma.request.findMany({
         where: {
           ...(dateFilter ? { createdAt: dateFilter } : {}),
@@ -361,7 +297,6 @@ export class AdminWorkspacesService {
         include: {
           assignee: { select: { name: true } },
           submitter: { select: { name: true } },
-          lead: { select: { crmStage: true, pipelineStage: true } },
           contactLogs: {
             orderBy: { contactedAt: "desc" },
             take: 20,
@@ -392,71 +327,6 @@ export class AdminWorkspacesService {
       }),
     ]);
 
-    const leadRows = leads.map((lead) => {
-      const latestProposal = lead.proposals[0] ?? null;
-      const contactAttempts = lead.contactAttemptCount ?? lead.contactLogs.length;
-      const meetingsCount = lead.contactLogs.filter((log) => log.type === "MEETING").length;
-      const estimatedValue = Number(latestProposal?.totalPrice ?? 0);
-      const openedDaysAgo = Math.max(
-        Math.floor((Date.now() - lead.createdAt.getTime()) / 86400000),
-        0,
-      );
-      const stalled =
-        !lead.lastContactAt ||
-        Date.now() - new Date(lead.lastContactAt).getTime() > 7 * 86400000;
-      const waitingApproval =
-        latestProposal?.status === ProposalStatus.SENT ||
-        latestProposal?.status === ProposalStatus.APPROVED;
-      const projectCount = lead.client?.projects.length ?? 0;
-      const serviceLine = lead.services.length
-        ? lead.services
-            .map((service) => service.service.name)
-            .filter(Boolean)
-            .slice(0, 2)
-            .join(" + ")
-        : "Qualification in progress";
-
-      return {
-        id: lead.id,
-        kind: classifyCrmRecordKind(lead.client?.projects),
-        companyName: lead.companyName,
-        contactName: lead.contactName,
-        serviceLine,
-        owner: lead.assignee?.name ?? "Unassigned",
-        source: (lead.source as ClientSource) ?? ClientSource.WEBSITE,
-        stage: lead.pipelineStage,
-        crmStage: this.mapLeadCrmStage(lead.crmStage, lead.pipelineStage),
-        stageTone: this.mapCrmStageTone(this.mapLeadCrmStage(lead.crmStage, lead.pipelineStage)),
-        estimatedValue,
-        openedAt: lead.createdAt.toISOString(),
-        openedDaysAgo,
-        lastContact: lead.lastContactAt
-          ? new Date(lead.lastContactAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })
-          : "No contact yet",
-        nextFollowUp: stalled ? "Follow-up overdue" : "Next follow-up scheduled",
-        nextStep: latestProposal ? "Drive proposal decision" : "Continue qualification",
-        proposalStatus: (latestProposal?.status as ProposalStatus | null) ?? null,
-        proposalTone: this.mapProposalTone(latestProposal?.status ?? null),
-        contractState: latestProposal?.status === "APPROVED"
-          ? "Ready for contract"
-          : "Not started",
-        contractTone: latestProposal?.status === "APPROVED" ? "success" : "neutral",
-        agingLabel: stalled ? "Stalled" : `${openedDaysAgo}d in pipeline`,
-        agingTone: stalled ? "destructive" : "neutral",
-        waitingApproval,
-        stalled,
-        contactAttemptCount: contactAttempts,
-        meetingsCount,
-        projectSignalLabel:
-          projectCount > 0 ? `${projectCount} active projects` : "No project yet",
-        projectSignalTone: projectCount > 0 ? "active" : "neutral",
-      };
-    });
-
     const requestRows = requests.map((request) => {
       const latestProposal = request.proposals[0] ?? null;
       const latestContract = request.contracts[0] ?? null;
@@ -486,8 +356,6 @@ export class AdminWorkspacesService {
       const stage = this.mapRequestCrmStage(
         request.crmStage,
         request.status as RequestStatus,
-        request.lead?.crmStage,
-        request.lead?.pipelineStage as PipelineStage | undefined,
       );
 
       return {
@@ -498,7 +366,7 @@ export class AdminWorkspacesService {
         serviceLine,
         owner: request.assignee?.name ?? request.submitter?.name ?? "Unassigned",
         source: (request.source as ClientSource) ?? ClientSource.WEBSITE,
-        stage: request.lead?.pipelineStage ?? this.mapRequestStage(request.status as RequestStatus),
+        stage: this.mapRequestStage(request.status as RequestStatus),
         crmStage: stage,
         stageTone: this.mapCrmStageTone(stage),
         estimatedValue,
@@ -541,7 +409,7 @@ export class AdminWorkspacesService {
       };
     });
 
-    const items = [...leadRows, ...requestRows]
+    const items = [...requestRows]
       .filter((item) => !query.kind || query.kind === "all" || item.kind === query.kind)
       .filter((item) => {
         if (query.statusFilter === "active") return !item.waitingApproval && !item.stalled;
@@ -1157,40 +1025,11 @@ export class AdminWorkspacesService {
     }
   }
 
-  private mapLeadCrmStage(crmStage: string | null | undefined, pipelineStage?: PipelineStage) {
-    if (crmStage && crmStage in CrmStage) return crmStage as CrmStage;
-    switch (pipelineStage) {
-      case PipelineStage.NEW:
-        return CrmStage.NEW;
-      case PipelineStage.INTRO_SENT:
-        return CrmStage.SCHEDULED;
-      case PipelineStage.CALL_ATTEMPT:
-        return CrmStage.FAILED;
-      case PipelineStage.MEETING_SCHEDULED:
-        return CrmStage.SCHEDULED;
-      case PipelineStage.MEETING_DONE:
-        return CrmStage.DONE;
-      case PipelineStage.PROPOSAL_SENT:
-        return CrmStage.SENT;
-      case PipelineStage.FOLLOW_UP:
-        return CrmStage.NEGOTIATION;
-      case PipelineStage.APPROVED:
-        return CrmStage.APPROVED;
-      case PipelineStage.CONTRACT_SIGNED:
-        return CrmStage.SIGNED;
-      default:
-        return CrmStage.NEW;
-    }
-  }
-
   private mapRequestCrmStage(
     crmStage: string | null | undefined,
     status: RequestStatus,
-    leadCrmStage?: string | null,
-    leadPipelineStage?: PipelineStage,
   ) {
     if (crmStage && crmStage in CrmStage) return crmStage as CrmStage;
-    if (leadCrmStage && leadCrmStage in CrmStage) return leadCrmStage as CrmStage;
     switch (status) {
       case RequestStatus.SUBMITTED:
         return CrmStage.NEW;
@@ -1213,7 +1052,7 @@ export class AdminWorkspacesService {
       case RequestStatus.CANCELLED:
         return CrmStage.CANCELLED;
       default:
-        return this.mapLeadCrmStage(undefined, leadPipelineStage);
+        return CrmStage.NEW;
     }
   }
 
