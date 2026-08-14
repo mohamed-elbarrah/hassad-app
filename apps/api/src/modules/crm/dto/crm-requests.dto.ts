@@ -14,7 +14,9 @@ import { BusinessType, ClientSource } from "@hassad/shared";
 import { IsIn } from "class-validator";
 
 export class CrmRequestServiceItemDto {
-  @IsUUID()
+  // Service catalog IDs are opaque strings (for example, seeded IDs such as
+  // "svc-branding"), not guaranteed UUIDs.
+  @IsString()
   @IsNotEmpty()
   serviceId: string;
 

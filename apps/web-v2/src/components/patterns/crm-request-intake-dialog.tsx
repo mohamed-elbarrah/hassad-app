@@ -173,6 +173,32 @@ export function CrmRequestIntakeDialog({
     setSubmitting(true);
     try {
       const values = form.getValues();
+      if (mode === "existing" && !values.existingClientId) {
+        showCrmActionToast({
+          type: "error",
+          title: "Select a client",
+          description: "Choose an existing client before submitting the request.",
+        });
+        return;
+      }
+      if (mode === "new") {
+        const requiredFields = [
+          values.newClient.companyName,
+          values.newClient.contactName,
+          values.newClient.phoneWhatsapp,
+          values.newClient.email,
+          values.newClient.password,
+          values.newClient.businessName,
+        ];
+        if (requiredFields.some((value) => !value.trim())) {
+          showCrmActionToast({
+            type: "error",
+            title: "Complete the client details",
+            description: "Company, contact, phone, email, password, and business name are required.",
+          });
+          return;
+        }
+      }
       const result = await createIntake(
         mode === "existing"
           ? {
