@@ -39,7 +39,7 @@ import {
   type ProjectDirectoryStatusFilter,
   type ProjectDirectoryTimelineFilter,
 } from "@/features/projects/lib/project-directory";
-import { useGetDeliveryWorkspaceQuery } from "@/lib/api/admin-workspaces-api";
+import { useGetDeliveryWorkspaceQuery } from "@/lib/api/admin-projects-api";
 import { useAppSelector } from "@/lib/store";
 
 export function ProjectsWorkspace() {

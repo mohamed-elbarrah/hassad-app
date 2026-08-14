@@ -47,7 +47,7 @@ import {
   type ContractValueFilter,
 } from "@/features/crm-contracts/lib/contract-directory";
 import { mapContractIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
-import { useGetContractsIndexQuery } from "@/lib/api/admin-index-api";
+import { useGetAdminContractsQuery } from "@/lib/api/admin-contracts-api";
 import { useAppSelector } from "@/lib/store";
 
 export function ContractsWorkspace() {
@@ -56,7 +56,7 @@ export function ContractsWorkspace() {
   const [dateFilter, setDateFilter] = useState<ContractDateFilter>("ending-60-days");
   const [valueFilter, setValueFilter] = useState<ContractValueFilter>("all-values");
 
-  const { data, error, isError, isLoading, refetch } = useGetContractsIndexQuery(
+  const { data, error, isError, isLoading, refetch } = useGetAdminContractsQuery(
     {
       status:
         statusFilter === "all"

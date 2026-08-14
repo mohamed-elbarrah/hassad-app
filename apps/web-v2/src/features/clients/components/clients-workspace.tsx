@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { ClientPortfolioWorkspace } from "@/features/clients/components/client-portfolio-workspace";
 import type { ClientDirectoryFilter, ClientDirectorySort } from "@/features/clients/lib/client-directory";
-import { useGetClientsWorkspaceQuery } from "@/lib/api/admin-workspaces-api";
+import { useGetClientsWorkspaceQuery } from "@/lib/api/admin-clients-api";
 
 export function ClientsWorkspace() {
   const [filter, setFilter] = useState<ClientDirectoryFilter>("all");

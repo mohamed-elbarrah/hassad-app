@@ -122,7 +122,96 @@ export class AdminFinanceService {
     };
   }
 
-  // ── D2. Invoices — Force status ───────────────────────────────────────────────
+  // ── D2. Finance screen read models ───────────────────────────────────────────
+  async getInvoices(filters: {
+    status?: string;
+    clientId?: string;
+    contractId?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.financeService.findAllInvoices(filters);
+  }
+
+  async getPayments(filters: {
+    page?: number;
+    limit?: number;
+    method?: string;
+    status?: string;
+  }) {
+    return this.financeService.findAllPayments(filters);
+  }
+
+  async getPayroll() {
+    const items = await this.financeService.findAllEmployees();
+    return { items, total: items.length };
+  }
+
+  async getPaymentIssues(filters: { page?: number; limit?: number }) {
+    const page = Math.max(1, Number(filters.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(filters.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [lateInvoices, failedPayments, failedWebhooks, totals] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where: { status: "LATE" },
+        include: { client: { select: { id: true, companyName: true } } },
+        orderBy: { dueDate: "asc" },
+        skip,
+        take: limit,
+      }),
+      this.prisma.payment.findMany({
+        where: { status: "FAILED" },
+        select: {
+          id: true,
+          invoiceId: true,
+          amount: true,
+          method: true,
+          status: true,
+          createdAt: true,
+          invoice: { select: { id: true, invoiceNumber: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      this.prisma.webhookLog.findMany({
+        where: { processed: false },
+        select: {
+          id: true,
+          provider: true,
+          eventType: true,
+          processed: true,
+          error: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      Promise.all([
+        this.prisma.invoice.count({ where: { status: "LATE" } }),
+        this.prisma.payment.count({ where: { status: "FAILED" } }),
+        this.prisma.webhookLog.count({ where: { processed: false } }),
+      ]),
+    ]);
+
+    return {
+      page,
+      limit,
+      invoices: lateInvoices,
+      payments: failedPayments,
+      webhooks: failedWebhooks,
+      totals: {
+        lateInvoices: totals[0],
+        failedPayments: totals[1],
+        failedWebhooks: totals[2],
+        total: totals.reduce((sum, count) => sum + count, 0),
+      },
+    };
+  }
+
+  // ── D3. Invoice interventions ────────────────────────────────────────────────
   async forceInvoiceStatus(
     invoiceId: string,
     status: string,

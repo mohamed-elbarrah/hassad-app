@@ -12,6 +12,7 @@ import { RequirePermissions } from "../../../common/decorators/permissions.decor
 import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
+import { AdminFinanceListQueryDto } from "../dto/admin-finance.dto";
 
 @Controller("admin/finance")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -25,7 +26,32 @@ export class AdminFinanceController {
     return this.service.getOverview();
   }
 
-  // ── D2. Invoices ──────────────────────────────────────────────────────────────
+  // ── D2. Finance screen read models ───────────────────────────────────────────
+  @Get("invoices")
+  @RequirePermissions("admin.finance.read")
+  getInvoices(@Query() query: AdminFinanceListQueryDto) {
+    return this.service.getInvoices(query);
+  }
+
+  @Get("payments")
+  @RequirePermissions("admin.finance.read")
+  getPayments(@Query() query: AdminFinanceListQueryDto) {
+    return this.service.getPayments(query);
+  }
+
+  @Get("payroll")
+  @RequirePermissions("admin.finance.read")
+  getPayroll() {
+    return this.service.getPayroll();
+  }
+
+  @Get("payment-issues")
+  @RequirePermissions("admin.finance.read")
+  getPaymentIssues(@Query() query: AdminFinanceListQueryDto) {
+    return this.service.getPaymentIssues(query);
+  }
+
+  // ── D3. Invoice interventions ────────────────────────────────────────────────
   @Post("invoices/:id/force-status")
   @RequirePermissions("admin.finance.intervene")
   forceInvoiceStatus(

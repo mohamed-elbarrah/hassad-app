@@ -10,7 +10,7 @@ import type {
   ProposalValueFilter,
   ProposalDirectoryRecord,
 } from "@/features/crm-proposals/lib/proposal-directory";
-import { useGetProposalsIndexQuery } from "@/lib/api/admin-index-api";
+import { useGetAdminProposalsQuery } from "@/lib/api/admin-proposals-api";
 import { useAppSelector } from "@/lib/store";
 
 export function ProposalsWorkspace() {
@@ -19,7 +19,7 @@ export function ProposalsWorkspace() {
   const [dateFilter, setDateFilter] = useState<ProposalDateFilter>("last-30-days");
   const [valueFilter, setValueFilter] = useState<ProposalValueFilter>("all-values");
 
-  const { data, error, isError, isLoading, refetch } = useGetProposalsIndexQuery(
+  const { data, error, isError, isLoading, refetch } = useGetAdminProposalsQuery(
     {
       status:
         statusFilter === "all"

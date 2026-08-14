@@ -16,28 +16,9 @@ export const adminDetailsApi = baseApi.injectEndpoints({
       string
     >({
       async queryFn(id, _api, _extraOptions, baseQuery) {
-        const [detail, performance, activity, work] = await Promise.all([
-          baseQuery({ url: `/admin/users/${id}` }),
-          baseQuery({ url: `/admin/users/${id}/performance` }),
-          baseQuery({ url: `/admin/users/${id}/activity` }),
-          baseQuery({ url: `/admin/users/${id}/work` }),
-        ]);
-
-        const error =
-          detail.error ?? performance.error ?? activity.error ?? work.error;
-
-        if (error) {
-          return { error: error as FetchBaseQueryError };
-        }
-
-        return {
-          data: {
-            detail: detail.data,
-            performance: performance.data,
-            activity: activity.data,
-            work: work.data,
-          },
-        };
+        const result = await baseQuery({ url: `/admin/users/${id}/workspace` });
+        if (result.error) return { error: result.error as FetchBaseQueryError };
+        return { data: result.data as { detail: unknown; performance: unknown; activity: unknown; work: unknown } };
       },
       providesTags: ["Employees"],
     }),

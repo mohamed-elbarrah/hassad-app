@@ -26,6 +26,30 @@ export class AdminProjectsController {
   ) {
     return this.service.findOne(id);
   }
+
+  @Get(":id/periods")
+  @RequirePermissions("admin.projects.read")
+  getPeriods(@Param("id") id: string) {
+    return this.service.getPeriods(id);
+  }
+
+  @Get(":id/team")
+  @RequirePermissions("admin.projects.read")
+  getTeam(@Param("id") id: string) {
+    return this.service.getTeam(id);
+  }
+
+  @Get(":id/deliverables")
+  @RequirePermissions("admin.projects.read")
+  getDeliverables(@Param("id") id: string, @Query() query: any) {
+    return this.service.getDeliverables(id, query);
+  }
+
+  @Get(":id/timeline")
+  @RequirePermissions("admin.projects.read")
+  getTimeline(@Param("id") id: string) {
+    return this.service.getTimeline(id);
+  }
   @Post(":id/reassign-pm")
   @RequirePermissions("admin.projects.intervene")
   reassignPm(

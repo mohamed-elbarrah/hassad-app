@@ -51,7 +51,7 @@ import {
   type OrderDirectoryFilter,
   type OrderValueFilter,
 } from "@/features/crm-orders/lib/order-directory";
-import { useGetCrmWorkspaceQuery } from "@/lib/api/admin-workspaces-api";
+import { useGetCrmWorkspaceQuery } from "@/lib/api/admin-crm-api";
 
 export function OrdersWorkspace() {
   const [statusFilter, setStatusFilter] = useState<OrderDirectoryFilter>("all");

@@ -159,6 +159,16 @@ export class AdminUsersService {
     };
   }
 
+  async getWorkspace(userId: string) {
+    const [detail, performance, activity, work] = await Promise.all([
+      this.findOne(userId),
+      this.getPerformance(userId),
+      this.getActivity(userId),
+      this.getWork(userId),
+    ]);
+    return { detail, performance, activity, work };
+  }
+
   async getPerformance(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException("المستخدم غير موجود");

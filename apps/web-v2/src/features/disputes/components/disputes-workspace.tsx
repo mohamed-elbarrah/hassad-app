@@ -47,7 +47,7 @@ import {
   type DisputeStaleFilter,
 } from "@/features/disputes/lib/dispute-directory";
 import { mapDisputeIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
-import { useGetDisputesIndexQuery } from "@/lib/api/admin-index-api";
+import { useGetAdminDisputesQuery } from "@/lib/api/admin-disputes-api";
 import { useAppSelector } from "@/lib/store";
 
 export function DisputesWorkspace() {
@@ -66,7 +66,7 @@ export function DisputesWorkspace() {
   const [pm, setPm] = useState<string | "all-pms">("all-pms");
   const [stale, setStale] = useState<DisputeStaleFilter>("all-activity");
 
-  const { data, error, isError, isLoading, refetch } = useGetDisputesIndexQuery(
+  const { data, error, isError, isLoading, refetch } = useGetAdminDisputesQuery(
     {
       status: status === "all-statuses" ? undefined : status,
       category: category === "all-categories" ? undefined : category,

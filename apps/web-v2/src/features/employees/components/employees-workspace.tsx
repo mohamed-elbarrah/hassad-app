@@ -25,7 +25,7 @@ import {
   useReactivateEmployeeMutation,
   useSuspendEmployeeMutation,
   useUpdateEmployeeMutation,
-} from "@/lib/api/admin-workspaces-api";
+} from "@/lib/api/admin-employees-api";
 
 type DialogState =
   | { open: false; mode: "create"; employee?: undefined }

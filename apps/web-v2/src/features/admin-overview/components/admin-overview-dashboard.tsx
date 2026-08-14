@@ -22,7 +22,7 @@ import { OverviewActiveProjectsTable } from "@/features/admin-overview/component
 import { OverviewClientsTable } from "@/features/admin-overview/components/overview-clients-table";
 import { OverviewLeadOrdersTable } from "@/features/admin-overview/components/overview-lead-orders-table";
 import { OverviewSalesLeaderboard } from "@/features/admin-overview/components/overview-sales-leaderboard";
-import { useGetAdminOverviewQuery } from "@/lib/api/admin-workspaces-api";
+import { useGetAdminOverviewQuery } from "@/lib/api/admin-overview-api";
 
 const projectAmountConfig = {
   amount: {

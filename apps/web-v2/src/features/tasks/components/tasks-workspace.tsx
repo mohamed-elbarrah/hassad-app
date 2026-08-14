@@ -44,7 +44,7 @@ import {
   type TaskDirectoryVisibilityFilter,
 } from "@/features/tasks/lib/task-directory";
 import { mapTaskIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
-import { useGetTasksIndexQuery } from "@/lib/api/admin-index-api";
+import { useGetAdminTasksQuery } from "@/lib/api/admin-tasks-api";
 import { useAppSelector } from "@/lib/store";
 
 export function TasksWorkspace() {
@@ -64,7 +64,7 @@ export function TasksWorkspace() {
   const [visibility, setVisibility] =
     useState<TaskDirectoryVisibilityFilter>("all-visibility");
 
-  const { data, error, isError, isLoading, refetch } = useGetTasksIndexQuery(
+  const { data, error, isError, isLoading, refetch } = useGetAdminTasksQuery(
     {
       search: search || undefined,
       status: status === "all-statuses" ? undefined : status,
