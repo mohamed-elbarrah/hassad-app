@@ -9,6 +9,8 @@ export type ChatParticipantRecord = {
   avatarUrl: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
+  lastSeenAt?: string | null;
+  isOnline?: boolean;
 };
 
 export type ChatAttachmentRecord = {
@@ -61,6 +63,8 @@ export type ChatTargetOption = {
   avatarUrl: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
+  lastSeenAt?: string | null;
+  isOnline?: boolean;
 };
 
 export function buildInitials(name: string) {
@@ -72,15 +76,17 @@ export function buildInitials(name: string) {
     .join("");
 }
 
-export function resolvePresence(lastLoginAt: string | null): {
+export function resolvePresence(lastLoginAt: string | null, isOnline?: boolean, lastSeenAt?: string | null): {
   state: ChatUserPresence;
   label: string;
 } {
-  if (!lastLoginAt) {
+  if (isOnline === true) return { state: "online", label: "Online" };
+  const effectiveLastSeen = lastSeenAt ?? lastLoginAt;
+  if (!effectiveLastSeen) {
     return { state: "last_seen", label: "No recent activity" };
   }
 
-  const lastSeenDate = new Date(lastLoginAt);
+  const lastSeenDate = new Date(effectiveLastSeen);
   if (Number.isNaN(lastSeenDate.getTime())) {
     return { state: "last_seen", label: "Recent activity unavailable" };
   }

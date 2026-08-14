@@ -17,6 +17,7 @@ import {
   UpdateMessageDto,
 } from "../dto/chat.dto";
 import { DirectConversationService } from "./direct-conversation.service";
+import { ChatPresenceService } from "./chat-presence.service";
 
 interface AttachmentData {
   key: string;
@@ -32,6 +33,7 @@ const userSummarySelect = Prisma.validator<Prisma.UserSelect>()({
   avatarUrl: true,
   isActive: true,
   lastLoginAt: true,
+  lastSeenAt: true,
 });
 
 const messageInclude = Prisma.validator<Prisma.MessageInclude>()({
@@ -73,6 +75,7 @@ export class ChatService {
     private readonly eventEmitter: EventEmitter2,
     private readonly storageService: StorageService,
     private readonly directConversationService: DirectConversationService,
+    private readonly presenceService: ChatPresenceService,
   ) {}
 
   async getUserConversationIds(userId: string): Promise<string[]> {
@@ -138,6 +141,10 @@ export class ChatService {
       page,
       limit,
     };
+  }
+
+  async assertConversationAccess(id: string, userId: string): Promise<void> {
+    await this.findConversationRecord(id, userId);
   }
 
   async findConversation(id: string, userId?: string) {
@@ -556,6 +563,8 @@ export class ChatService {
         avatarUrl: participant.user.avatarUrl,
         isActive: participant.user.isActive,
         lastLoginAt: participant.user.lastLoginAt?.toISOString() ?? null,
+        lastSeenAt: this.presenceService.lastSeenAt(participant.user.id, participant.user.lastSeenAt)?.toISOString() ?? null,
+        isOnline: this.presenceService.isOnline(participant.user.id),
       })),
     };
   }
@@ -596,6 +605,8 @@ export class ChatService {
         avatarUrl: message.sender.avatarUrl,
         isActive: message.sender.isActive,
         lastLoginAt: message.sender.lastLoginAt?.toISOString() ?? null,
+        lastSeenAt: this.presenceService.lastSeenAt(message.sender.id, message.sender.lastSeenAt)?.toISOString() ?? null,
+        isOnline: this.presenceService.isOnline(message.sender.id),
       },
       deletedBy: message.deletedBy
         ? {

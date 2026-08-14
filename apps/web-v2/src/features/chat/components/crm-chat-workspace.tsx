@@ -130,6 +130,7 @@ export function CrmChatWorkspace({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const [typingLabel, setTypingLabel] = useState<string | null>(null);
+  const [presenceOverrides, setPresenceOverrides] = useState<Record<string, { isOnline: boolean; lastSeenAt: string | null }>>({});
 
   const deferredSearchValue = useDeferredValue(searchValue.trim());
 
@@ -231,6 +232,20 @@ export function CrmChatWorkspace({
       transports: ["websocket"],
     });
     socketRef.current = socket;
+    const heartbeat = window.setInterval(() => socket.emit("presenceHeartbeat"), 30_000);
+
+    socket.on("connect", () => {
+      void refetchConversations();
+      if (activeConversationId) void refetchMessages();
+    });
+
+    socket.on("userOnline", (payload: { userId: string }) => {
+      setPresenceOverrides((current) => ({ ...current, [payload.userId]: { isOnline: true, lastSeenAt: new Date().toISOString() } }));
+    });
+
+    socket.on("userOffline", (payload: { userId: string; lastSeenAt: string }) => {
+      setPresenceOverrides((current) => ({ ...current, [payload.userId]: { isOnline: false, lastSeenAt: payload.lastSeenAt } }));
+    });
 
     socket.on("newMessage", (message: ChatMessageRecord) => {
       if (message.conversationId === activeConversationId) {
@@ -286,10 +301,11 @@ export function CrmChatWorkspace({
     );
 
     return () => {
+      window.clearInterval(heartbeat);
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [activeConversationId, currentUserId, refetchConversations]);
+  }, [activeConversationId, currentUserId, refetchConversations, refetchMessages]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -336,7 +352,7 @@ export function CrmChatWorkspace({
         }
       : null);
 
-  const activePresence = resolvePresence(activePeer?.lastLoginAt ?? null);
+  const activePresence = resolvePresence(activePeer?.lastLoginAt ?? null, presenceOverrides[activePeer?.id ?? ""]?.isOnline ?? activePeer?.isOnline, presenceOverrides[activePeer?.id ?? ""]?.lastSeenAt ?? activePeer?.lastSeenAt);
 
   function chooseTarget(target: ChatTargetOption) {
     const existingConversation = conversations.find((conversation) =>
@@ -499,7 +515,7 @@ export function CrmChatWorkspace({
               <div className="flex flex-col gap-2">
                 <p className="text-xs font-medium text-muted-foreground">Start new</p>
                 {combinedTargets.map((target) => {
-                  const presence = resolvePresence(target.lastLoginAt);
+                  const presence = resolvePresence(target.lastLoginAt, presenceOverrides[target.userId]?.isOnline, presenceOverrides[target.userId]?.lastSeenAt);
                   return (
                     <button
                       key={target.userId}

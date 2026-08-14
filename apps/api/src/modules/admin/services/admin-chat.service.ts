@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ChatPresenceService } from "../../chat/services/chat-presence.service";
 
 @Injectable()
 export class AdminChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly presence: ChatPresenceService) {}
 
   async findAllConversations(query: any) {
     const where: any = {};

@@ -16,6 +16,8 @@ type RawParticipant = {
   avatarUrl: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
+  lastSeenAt: string | null;
+  isOnline: boolean;
 };
 
 type RawMessage = {
@@ -66,6 +68,8 @@ function mapParticipant(participant: RawParticipant): ChatParticipantRecord {
     avatarUrl: participant.avatarUrl,
     isActive: participant.isActive,
     lastLoginAt: participant.lastLoginAt,
+    lastSeenAt: participant.lastSeenAt,
+    isOnline: participant.isOnline,
   };
 }
 
@@ -148,12 +152,12 @@ export const marketingChatApi = baseApi.injectEndpoints({
         ...response,
         data: response.data.map(mapConversation),
       }),
-      providesTags: ["Chat"],
+      providesTags: ["MarketingChat"],
     }),
     getMarketingChatMessages: builder.query<ChatMessageRecord[], string>({
       query: (conversationId) => ({ url: `/marketing/chat/conversations/${conversationId}/messages` }),
       transformResponse: (response: RawMessage[]) => response.map(mapMessage),
-      providesTags: ["Chat"],
+      providesTags: ["MarketingChat"],
     }),
     searchMarketingEmployeeChatTargets: builder.query<
       ChatTargetOption[],
@@ -175,6 +179,8 @@ export const marketingChatApi = baseApi.injectEndpoints({
           avatarUrl: string | null;
           isActive: boolean;
           lastLoginAt: string | null;
+          lastSeenAt: string | null;
+          isOnline: boolean;
         }>;
       }) =>
         response.items.map((item) => ({
@@ -185,6 +191,8 @@ export const marketingChatApi = baseApi.injectEndpoints({
           avatarUrl: item.avatarUrl,
           isActive: item.isActive,
           lastLoginAt: item.lastLoginAt,
+          lastSeenAt: item.lastSeenAt,
+          isOnline: item.isOnline,
         })),
     }),
     searchMarketingClientChatTargets: builder.query<
@@ -206,6 +214,8 @@ export const marketingChatApi = baseApi.injectEndpoints({
           companyName: string | null;
           status: string;
           lastLoginAt: string | null;
+          lastSeenAt: string | null;
+          isOnline: boolean;
         }>;
       }) =>
         response.items.map((item) => ({
@@ -216,6 +226,8 @@ export const marketingChatApi = baseApi.injectEndpoints({
           avatarUrl: null,
           isActive: true,
           lastLoginAt: item.lastLoginAt,
+          lastSeenAt: item.lastSeenAt,
+          isOnline: item.isOnline,
         })),
     }),
     sendMarketingConversationMessage: builder.mutation<
@@ -242,7 +254,7 @@ export const marketingChatApi = baseApi.injectEndpoints({
           body: { content, parentMessageId },
         };
       },
-      invalidatesTags: ["Chat"],
+      invalidatesTags: ["MarketingChat"],
     }),
     sendMarketingDirectMessage: builder.mutation<
       ChatMessageRecord,
@@ -268,7 +280,7 @@ export const marketingChatApi = baseApi.injectEndpoints({
           body: { content, parentMessageId },
         };
       },
-      invalidatesTags: ["Chat"],
+      invalidatesTags: ["MarketingChat"],
     }),
     updateMarketingChatMessage: builder.mutation<
       ChatMessageRecord,
@@ -283,7 +295,7 @@ export const marketingChatApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { content },
       }),
-      invalidatesTags: ["Chat"],
+      invalidatesTags: ["MarketingChat"],
     }),
     deleteMarketingChatMessage: builder.mutation<
       ChatMessageRecord,
@@ -296,7 +308,7 @@ export const marketingChatApi = baseApi.injectEndpoints({
         url: `/marketing/chat/conversations/${conversationId}/messages/${messageId}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Chat"],
+      invalidatesTags: ["MarketingChat"],
     }),
   }),
 });

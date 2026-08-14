@@ -2,10 +2,11 @@ import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { ChatPresenceService } from "../../chat/services/chat-presence.service";
 
 @Injectable()
 export class CrmChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly presence: ChatPresenceService) {}
 
   async searchEmployees(search = "", limit = 6) {
     const where: Prisma.UserWhereInput = {
@@ -30,6 +31,7 @@ export class CrmChatService {
         avatarUrl: true,
         isActive: true,
         lastLoginAt: true,
+        lastSeenAt: true,
         role: { select: { name: true } },
       },
     });
@@ -43,6 +45,8 @@ export class CrmChatService {
         avatarUrl: item.avatarUrl,
         isActive: item.isActive,
         lastLoginAt: item.lastLoginAt?.toISOString() ?? null,
+        lastSeenAt: this.presence.lastSeenAt(item.id, item.lastSeenAt)?.toISOString() ?? null,
+        isOnline: this.presence.isOnline(item.id),
       })),
     };
   }
@@ -75,6 +79,7 @@ export class CrmChatService {
         name: true,
         email: true,
         lastLoginAt: true,
+        lastSeenAt: true,
         clientProfile: {
           select: {
             companyName: true,
@@ -94,6 +99,8 @@ export class CrmChatService {
           user.clientProfile?.companyName ?? user.clientProfile?.businessName ?? null,
         status: user.clientProfile?.status ?? "ACTIVE",
         lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+        lastSeenAt: this.presence.lastSeenAt(user.id, user.lastSeenAt)?.toISOString() ?? null,
+        isOnline: this.presence.isOnline(user.id),
       })),
     };
   }
