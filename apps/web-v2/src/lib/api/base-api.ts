@@ -106,6 +106,8 @@ export const baseApi = createApi({
     "MarketingStrategies",
     "MarketingCampaigns",
     "ExecutionClients",
+    "Notifications",
+    "NotificationUnreadCount",
   ],
   endpoints: () => ({}),
 });

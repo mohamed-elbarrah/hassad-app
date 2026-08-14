@@ -23,7 +23,7 @@ export function AppTopbar({
       <div className="flex items-center gap-2">
         <CommandMenu commands={workspace.commands} workspaceLabel={workspace.label} />
         <ThemeToggle />
-        <NotificationMenu workspaceLabel={workspace.label} />
+        <NotificationMenu workspaceKey={workspace.key} workspaceLabel={workspace.label} />
         <AccountMenu session={session} />
       </div>
     </header>

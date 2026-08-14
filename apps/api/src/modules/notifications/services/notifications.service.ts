@@ -18,6 +18,13 @@ export class NotificationsService {
     });
   }
 
+  private async emitUnreadCount(userId: string) {
+    const count = await this.prisma.notification.count({
+      where: { userId, isRead: false },
+    });
+    this.eventEmitter.emit("notification.unreadCount", { userId, count });
+  }
+
   private mapNotificationRow(row: {
     id: string;
     userId: string;
@@ -87,13 +94,7 @@ export class NotificationsService {
       eventType: params.eventType,
     });
 
-    const unreadCount = await this.prisma.notification.count({
-      where: { userId: params.userId, isRead: false },
-    });
-    this.eventEmitter.emit("notification.unreadCount", {
-      userId: params.userId,
-      count: unreadCount,
-    });
+    await this.emitUnreadCount(params.userId);
 
     return notification;
   }
@@ -102,8 +103,8 @@ export class NotificationsService {
     userId: string,
     filters: { page?: number; limit?: number; isRead?: boolean },
   ) {
-    const page = Number(filters.page) || 1;
-    const limit = Number(filters.limit) || 20;
+    const page = Math.max(1, Number(filters.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(filters.limit) || 20));
     const where: any = { userId };
     if (filters.isRead !== undefined) {
       where.isRead =
@@ -147,14 +148,16 @@ export class NotificationsService {
   }
 
   async markOneRead(userId: string, notificationId: string) {
-    return this.prisma.notification.updateMany({
+    const result = await this.prisma.notification.updateMany({
       where: { id: notificationId, userId, isRead: false },
       data: { isRead: true, readAt: new Date() },
     });
+    await this.emitUnreadCount(userId);
+    return result;
   }
 
   async markRead(userId: string, notificationIds: string[]) {
-    return this.prisma.notification.updateMany({
+    const result = await this.prisma.notification.updateMany({
       where: {
         userId,
         id: { in: notificationIds },
@@ -162,13 +165,17 @@ export class NotificationsService {
       },
       data: { isRead: true, readAt: new Date() },
     });
+    await this.emitUnreadCount(userId);
+    return result;
   }
 
   async markAllRead(userId: string) {
-    return this.prisma.notification.updateMany({
+    const result = await this.prisma.notification.updateMany({
       where: { userId, isRead: false },
       data: { isRead: true, readAt: new Date() },
     });
+    await this.emitUnreadCount(userId);
+    return result;
   }
 
   async broadcast(params: {
@@ -226,6 +233,7 @@ export class NotificationsService {
     });
 
     this.eventEmitter.emit("notification.broadcast", {
+      userIds: users.map((user) => user.id),
       title: params.title,
       message: params.message,
     });
