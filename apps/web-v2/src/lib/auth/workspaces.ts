@@ -320,6 +320,11 @@ const marketingWorkspace: WorkspaceDefinition = {
           icon: "campaigns",
         },
         {
+          label: "Marketing Strategies",
+          href: "/marketing/strategies",
+          icon: "campaigns",
+        },
+        {
           label: "Chat",
           href: "/marketing/chat",
           icon: "messages",
@@ -330,6 +335,7 @@ const marketingWorkspace: WorkspaceDefinition = {
   commands: [
     { label: "Marketing overview", href: "/marketing" },
     { label: "Campaigns", href: "/marketing/campaigns" },
+    { label: "Marketing Strategies", href: "/marketing/strategies" },
     { label: "Chat", href: "/marketing/chat" },
   ],
 };

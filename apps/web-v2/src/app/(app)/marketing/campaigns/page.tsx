@@ -1,11 +1,4 @@
 import type { Metadata } from "next";
-
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
-
-export const metadata: Metadata = {
-  title: "Marketing Campaigns | Hassad",
-};
-
-export default function CampaignsPage() {
-  return <ScreenPlaceholder label="Campaigns" />;
-}
+import { MarketingCampaignsWorkspace } from "@/features/marketing/components/marketing-campaigns-workspace";
+export const metadata: Metadata = { title: "Marketing Campaigns | Hassad" };
+export default function CampaignsPage() { return <MarketingCampaignsWorkspace />; }

@@ -126,12 +126,13 @@ export function PmDisputeThreadPanel({ disputeId }: { disputeId: string }) {
           {threads.map((thread) => {
             const isActive = activeThread?.threadType === thread.threadType;
             return (
-              <button
+              <Button
                 key={thread.threadType}
                 type="button"
+                variant="ghost"
                 onClick={() => setSelectedThread(thread.threadType)}
                 className={cn(
-                  "rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted",
+                  "h-auto w-full justify-start rounded-lg border px-3 py-3 text-left transition-colors hover:bg-muted",
                   isActive ? "border-primary bg-muted" : "border-border",
                 )}
               >
@@ -153,7 +154,7 @@ export function PmDisputeThreadPanel({ disputeId }: { disputeId: string }) {
                       : "No messages yet"}
                   </span>
                 </div>
-              </button>
+              </Button>
             );
           })}
         </CardContent>

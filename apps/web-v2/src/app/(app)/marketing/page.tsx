@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
+import { MarketingOverviewWorkspace } from "@/features/marketing/components/marketing-overview-workspace";
 
-import { ScreenPlaceholder } from "@/components/patterns/screen-placeholder";
-
-export const metadata: Metadata = {
-  title: "Marketing Overview | Hassad",
-};
-
-export default function MarketingOverviewPage() {
-  return <ScreenPlaceholder label="Overview" />;
-}
+export const metadata: Metadata = { title: "Marketing Work | Hassad" };
+export default function MarketingOverviewPage() { return <MarketingOverviewWorkspace />; }

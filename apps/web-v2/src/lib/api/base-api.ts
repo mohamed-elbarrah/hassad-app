@@ -8,9 +8,11 @@ import {
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query/react";
 
-import { clearSession } from "@/lib/auth/auth-slice";
+import { sessionExpired } from "@/lib/auth/auth-slice";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/v1";
+
+let refreshPromise: Promise<boolean> | null = null;
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl,
@@ -32,6 +34,9 @@ const baseQueryWithEnvelope: BaseQueryFn<
 
   if (result.data && typeof result.data === "object" && "success" in result.data) {
     const envelope = result.data as Envelope<unknown>;
+    if (!envelope.success) {
+      return { error: { status: 400, data: envelope.error } };
+    }
     return { data: envelope.data };
   }
 
@@ -40,23 +45,33 @@ const baseQueryWithEnvelope: BaseQueryFn<
 
 export const baseApi = createApi({
   reducerPath: "api",
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  refetchOnMountOrArgChange: true,
   baseQuery: (async (args, api, extraOptions) => {
     let result = await baseQueryWithEnvelope(args, api, extraOptions);
 
     if (result.error?.status === 401) {
-      const refreshResult = await baseQueryWithEnvelope(
-        { url: "/auth/refresh", method: "POST" },
-        api,
-        extraOptions,
-      );
+      refreshPromise ??= (async () => {
+        const refreshResult = await baseQueryWithEnvelope(
+          { url: "/auth/refresh", method: "POST" },
+          api,
+          extraOptions,
+        );
+        return !refreshResult.error;
+      })().finally(() => {
+        refreshPromise = null;
+      });
 
-      if (!refreshResult.error) {
+      const refreshed = await refreshPromise;
+      if (refreshed) {
         result = await baseQueryWithEnvelope(args, api, extraOptions);
-      } else {
-        api.dispatch(clearSession());
-        api.dispatch(baseApi.util.resetApiState());
-        await rawBaseQuery({ url: "/auth/logout", method: "POST" }, api, extraOptions);
+        if (result.error?.status !== 401) return result;
       }
+
+      api.dispatch(sessionExpired());
+      api.dispatch(baseApi.util.resetApiState());
+      await rawBaseQuery({ url: "/auth/logout", method: "POST" }, api, extraOptions);
     }
 
     return result;
@@ -80,6 +95,12 @@ export const baseApi = createApi({
     "TaskDetail",
     "TaskComments",
     "TaskFiles",
+    "MarketingOverview",
+    "MarketingTasks",
+    "MarketingTaskDetail",
+    "MarketingStrategies",
+    "MarketingCampaigns",
+    "ExecutionClients",
   ],
   endpoints: () => ({}),
 });

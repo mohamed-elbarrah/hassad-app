@@ -20,4 +20,5 @@ export type AuthSession = {
 export type AuthState = {
   status: "unknown" | "authenticated" | "unauthenticated";
   session: AuthSession | null;
+  sessionExpired: boolean;
 };

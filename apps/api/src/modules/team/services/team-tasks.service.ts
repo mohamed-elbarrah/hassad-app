@@ -7,6 +7,7 @@ import { StorageService } from "../../../common/storage/storage.service";
 import { StorageCategory } from "../../../common/storage/storage.constants";
 import { TasksService } from "../../tasks/services/tasks.service";
 import { TeamTasksQueryDto } from "../dto/team-tasks.dto";
+import { ClientProfileService } from "../../crm/services/client-profile.service";
 
 @Injectable()
 export class TeamTasksService {
@@ -14,6 +15,7 @@ export class TeamTasksService {
     private readonly prisma: PrismaService,
     private readonly tasksService: TasksService,
     private readonly storageService: StorageService,
+    private readonly clientProfileService: ClientProfileService,
   ) {}
 
   private async ownedTask(userId: string, taskId: string) {
@@ -88,6 +90,14 @@ export class TeamTasksService {
       totalPages: Math.ceil(result.items.length / limit),
     };
   }
+
+  async clientView(userId: string, clientId: string) {
+    const access = await this.prisma.task.findFirst({ where: { ...this.ownedTaskWhere(userId), project: { clientId } }, select: { id: true } });
+    if (!access) throw new NotFoundException("Client not found");
+    return this.clientProfileService.getTeamView(clientId);
+  }
+
+  private ownedTaskWhere(userId: string) { return { assignedTo: userId, archivedAt: null }; }
 
   async detail(userId: string, taskId: string) {
     await this.ownedTask(userId, taskId);

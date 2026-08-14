@@ -58,6 +58,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const sessionExpiredNotice = searchParams.get("reason") === "session-expired";
   const [login, { isLoading }] = useLoginMutation();
   const [fetchSession] = useLazyGetSessionQuery();
   const {
@@ -138,7 +139,7 @@ export function LoginForm() {
             </InputGroupAddon>
           </InputGroup>
           <FieldDescription>
-            {errors.password?.message ?? formError ?? "Use your Hassad password."}
+            {errors.password?.message ?? formError ?? (sessionExpiredNotice ? "Your session expired. Please sign in again." : "Use your Hassad password.")}
           </FieldDescription>
         </Field>
         <Field orientation="horizontal">

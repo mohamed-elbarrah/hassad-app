@@ -14,6 +14,7 @@ import { WorkflowStepper } from "@/components/patterns/workflow-stepper";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Button } from "@/components/ui/button";
+import { FileUploadField } from "@/components/patterns/file-upload-field";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -27,6 +28,8 @@ import { formatTaskStatus, getAllowedTeamTaskStatuses } from "@/features/tasks/l
 import { showApiErrorToast, showCrmActionToast } from "@/lib/api/crm-action-toast";
 import { useAddPmTaskCommentMutation, useUpdatePmTaskStatusMutation, useUploadPmTaskFileMutation } from "@/lib/api/pm-tasks-api";
 import { useAddTeamTaskCommentMutation, useLazyGetTeamTaskFileDownloadQuery, useUpdateTeamTaskStatusMutation, useUploadTeamTaskFileMutation } from "@/lib/api/team-tasks-api";
+import { useAddMarketingTaskCommentMutation, useLazyDownloadMarketingTaskFileQuery, useUpdateMarketingTaskStatusMutation, useUploadMarketingTaskFileMutation } from "@/lib/api/marketing-workspace-api";
+import { MarketingCampaignsTab, MarketingStrategyTab } from "@/features/marketing/components/marketing-task-execution-panel";
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -80,29 +83,35 @@ function renderComments(
 type PmTaskDetailWorkspaceProps = {
   task: TaskDetailRecord;
   currentUserId: string;
-  mode?: "pm" | "team";
+  mode?: "pm" | "team" | "marketing";
   backHref?: string;
+  clientHrefBase?: string;
 };
 
-export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHref = "/pm/tasks" }: PmTaskDetailWorkspaceProps) {
+export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHref = "/pm/tasks", clientHrefBase }: PmTaskDetailWorkspaceProps) {
+  const resolvedClientHrefBase = clientHrefBase ?? (mode === "team" ? "/team/clients" : mode === "marketing" ? "/marketing/clients" : "/pm/clients");
   const [status, setStatus] = useState(task.status);
   const [conversationDraft, setConversationDraft] = useState("");
   const [internalNoteDraft, setInternalNoteDraft] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [filePurpose, setFilePurpose] = useState<FilePurpose>(FilePurpose.REFERENCE);
-  const allowedTeamStatuses = mode === "team" ? getAllowedTeamTaskStatuses(task.status) : [];
+  const allowedTeamStatuses = mode === "pm" ? [] : getAllowedTeamTaskStatuses(task.status);
   const teamStatusOptions = Array.from(new Set([task.status, ...allowedTeamStatuses]));
 
   const [updatePmStatus, updatePmStatusState] = useUpdatePmTaskStatusMutation();
   const [updateTeamStatus, updateTeamStatusState] = useUpdateTeamTaskStatusMutation();
+  const [updateMarketingStatus, updateMarketingStatusState] = useUpdateMarketingTaskStatusMutation();
   const [addPmComment, addPmCommentState] = useAddPmTaskCommentMutation();
   const [addTeamComment, addTeamCommentState] = useAddTeamTaskCommentMutation();
+  const [addMarketingComment, addMarketingCommentState] = useAddMarketingTaskCommentMutation();
   const [uploadPmFile, uploadPmFileState] = useUploadPmTaskFileMutation();
   const [uploadTeamFile, uploadTeamFileState] = useUploadTeamTaskFileMutation();
+  const [uploadMarketingFile, uploadMarketingFileState] = useUploadMarketingTaskFileMutation();
   const [downloadTeamFile] = useLazyGetTeamTaskFileDownloadQuery();
-  const updateStatusState = mode === "team" ? updateTeamStatusState : updatePmStatusState;
-  const addCommentState = mode === "team" ? addTeamCommentState : addPmCommentState;
-  const uploadFileState = mode === "team" ? uploadTeamFileState : uploadPmFileState;
+  const [downloadMarketingFile] = useLazyDownloadMarketingTaskFileQuery();
+  const updateStatusState = mode === "team" ? updateTeamStatusState : mode === "marketing" ? updateMarketingStatusState : updatePmStatusState;
+  const addCommentState = mode === "team" ? addTeamCommentState : mode === "marketing" ? addMarketingCommentState : addPmCommentState;
+  const uploadFileState = mode === "team" ? uploadTeamFileState : mode === "marketing" ? uploadMarketingFileState : uploadPmFileState;
 
   const conversationComments = useMemo(
     () => task.comments.filter((comment) => comment.audience === "Team"),
@@ -117,6 +126,8 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
     try {
       if (mode === "team") {
         await updateTeamStatus({ taskId: task.id, status }).unwrap();
+      } else if (mode === "marketing") {
+        await updateMarketingStatus({ taskId: task.id, status }).unwrap();
       } else {
         await updatePmStatus({ taskId: task.id, status }).unwrap();
       }
@@ -131,6 +142,8 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
       if (!conversationDraft.trim()) return;
       if (mode === "team") {
         await addTeamComment({ taskId: task.id, content: conversationDraft.trim() }).unwrap();
+      } else if (mode === "marketing") {
+        await addMarketingComment({ taskId: task.id, content: conversationDraft.trim() }).unwrap();
       } else {
         await addPmComment({ taskId: task.id, content: conversationDraft.trim(), isInternal: false }).unwrap();
       }
@@ -154,7 +167,9 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
 
   const downloadFile = async (fileId: string) => {
     try {
-      const result = await downloadTeamFile({ taskId: task.id, fileId }).unwrap();
+      const result = mode === "marketing"
+        ? await downloadMarketingFile({ taskId: task.id, fileId }).unwrap()
+        : await downloadTeamFile({ taskId: task.id, fileId }).unwrap();
       window.open(result.url, "_blank", "noopener,noreferrer");
     } catch (error) {
       showApiErrorToast(error);
@@ -169,6 +184,8 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
       body.append("purpose", filePurpose);
       if (mode === "team") {
         await uploadTeamFile({ taskId: task.id, body }).unwrap();
+      } else if (mode === "marketing") {
+        await uploadMarketingFile({ taskId: task.id, body }).unwrap();
       } else {
         await uploadPmFile({ taskId: task.id, body }).unwrap();
       }
@@ -189,7 +206,7 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
             <ArrowLeftIcon data-icon="inline-start" />
             Tasks
           </Button>
-          {mode === "team" ? (
+          {mode === "team" || mode === "marketing" ? (
             <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
               <SelectTrigger size="sm" aria-label="Task status"><SelectValue /></SelectTrigger>
               <SelectContent><SelectGroup>
@@ -201,7 +218,7 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
               </SelectGroup></SelectContent>
             </Select>
           ) : null}
-          <Button type="button" onClick={() => void submitStatus()} disabled={updateStatusState.isLoading || (mode === "team" && status === task.status)}>
+          <Button type="button" onClick={() => void submitStatus()} disabled={updateStatusState.isLoading || (mode !== "pm" && status === task.status)}>
             Save status
           </Button>
         </div>
@@ -231,14 +248,14 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 <p className="text-sm text-muted-foreground">{task.description}</p>
-                {task.projectId ? (
+                {mode === "pm" && task.projectId ? (
                   <Button variant="outline" nativeButton={false} render={<Link href={`/pm/projects/${task.projectId}`} />}>
                     <Building2Icon data-icon="inline-start" />
                     Open project
                   </Button>
                 ) : null}
                 {task.clientId ? (
-                  <Button variant="outline" nativeButton={false} render={<Link href={`/pm/clients/${task.clientId}`} />}>
+                  <Button variant="outline" nativeButton={false} render={<Link href={`${resolvedClientHrefBase}/${task.clientId}`} />}>
                     <UserIcon data-icon="inline-start" />
                     Open client
                   </Button>
@@ -286,6 +303,8 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
               {mode === "pm" ? <TabsTrigger value="notes">Internal notes</TabsTrigger> : null}
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
+              {mode === "marketing" ? <TabsTrigger value="strategy">Strategy</TabsTrigger> : null}
+              {mode === "marketing" ? <TabsTrigger value="campaigns">Campaigns</TabsTrigger> : null}
             </TabsList>
           </div>
 
@@ -384,10 +403,7 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="pm-task-file">Upload file</FieldLabel>
-                    <input id="pm-task-file" type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-                  </Field>
+                  <FileUploadField id="pm-task-file" label="Upload file" file={file} onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
                   <Field>
                     <FieldLabel>Purpose</FieldLabel>
                     <Select value={filePurpose} onValueChange={(value) => setFilePurpose((value ?? FilePurpose.REFERENCE) as FilePurpose)}>
@@ -419,7 +435,7 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
                         </div>
                         <div className="flex items-center gap-2">
                           <StatusBadge tone="neutral">{fileItem.mime}</StatusBadge>
-                          {mode === "team" ? (
+                          {mode === "team" || mode === "marketing" ? (
                             <Button type="button" variant="ghost" size="icon-sm" aria-label={`Download ${fileItem.name}`} onClick={() => void downloadFile(fileItem.id)}>
                               <DownloadIcon />
                             </Button>
@@ -432,6 +448,10 @@ export function PmTaskDetailWorkspace({ task, currentUserId, mode = "pm", backHr
               </CardContent>
             </Card>
           </TabsContent>
+
+          {mode === "marketing" ? <TabsContent value="strategy"><MarketingStrategyTab taskId={task.id} /></TabsContent> : null}
+
+          {mode === "marketing" ? <TabsContent value="campaigns"><MarketingCampaignsTab taskId={task.id} /></TabsContent> : null}
 
           <TabsContent value="history">
             <Card>

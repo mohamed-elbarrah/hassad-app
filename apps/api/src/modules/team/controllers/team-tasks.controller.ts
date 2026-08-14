@@ -36,6 +36,12 @@ export class TeamTasksController {
     return this.service.overview(userId, query);
   }
 
+  @Get("clients/:clientId")
+  @RequirePermissions("tasks.read")
+  clientView(@CurrentUser("id") userId: string, @Param("clientId") clientId: string) {
+    return this.service.clientView(userId, clientId);
+  }
+
   @Get("tasks")
   @RequirePermissions("tasks.read")
   list(@CurrentUser("id") userId: string, @Query() query: TeamTasksQueryDto) {

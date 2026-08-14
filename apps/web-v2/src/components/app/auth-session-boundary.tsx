@@ -19,6 +19,7 @@ export function AuthSessionBoundary({
   const router = useRouter();
   const searchParams = useSearchParams();
   const authStatus = useAppSelector((state) => state.auth.status);
+  const sessionExpired = useAppSelector((state) => state.auth.sessionExpired);
 
   useEffect(() => {
     dispatch(setSession(session));
@@ -35,10 +36,11 @@ export function AuthSessionBoundary({
 
     const query = searchParams.toString();
     const next = query ? `${pathname}?${query}` : pathname;
-    const target = `/login?next=${encodeURIComponent(next)}`;
+    const reason = sessionExpired ? "&reason=session-expired" : "";
+    const target = `/login?next=${encodeURIComponent(next)}${reason}`;
 
     router.replace(target);
-  }, [authStatus, pathname, router, searchParams]);
+  }, [authStatus, pathname, router, searchParams, sessionExpired]);
 
   return children;
 }
