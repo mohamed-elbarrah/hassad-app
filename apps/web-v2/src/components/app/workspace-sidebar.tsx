@@ -7,6 +7,7 @@ import {
   BriefcaseBusinessIcon,
   Building2Icon,
   CircleDollarSignIcon,
+  ChevronRightIcon,
   ClipboardListIcon,
   LayoutDashboardIcon,
   LockKeyholeIcon,
@@ -15,13 +16,14 @@ import {
   UsersIcon,
 } from "lucide-react";
 
-import type { AuthSession } from "@/lib/auth/auth-types";
-import { getInitials } from "@/lib/auth/auth-utils";
 import type { WorkspaceDefinition } from "@/lib/auth/workspaces";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -46,10 +48,8 @@ const iconMap = {
 };
 
 export function WorkspaceSidebar({
-  session,
   workspace,
 }: {
-  session: AuthSession;
   workspace: WorkspaceDefinition;
 }) {
   const pathname = usePathname();
@@ -72,57 +72,84 @@ export function WorkspaceSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu>
-          {workspace.groups.flatMap((group) => group.items).map((item) => {
-            const Icon = iconMap[item.icon];
-            const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+        {workspace.groups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => {
+                  const Icon = iconMap[item.icon];
+                  const hasChildren = Boolean(item.children?.length);
+                  const isActive = hasChildren
+                    ? item.children!.some(
+                        (child) =>
+                          pathname === child.href || pathname.startsWith(`${child.href}/`),
+                      )
+                    : pathname === item.href ||
+                      (item.href !== workspace.home && pathname.startsWith(`${item.href}/`));
 
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  isActive={isActive}
-                  tooltip={item.label}
-                  render={<Link href={item.href} />}
-                >
-                  <Icon />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
-                {item.children && item.children.length > 0 ? (
-                  <SidebarMenuSub>
-                    {item.children.map((child) => {
-                      const childIsActive =
-                        pathname === child.href || pathname.startsWith(`${child.href}/`);
+                  if (!hasChildren) {
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <SidebarMenuButton
+                          className="min-h-10 group-data-[collapsible=icon]:min-h-8!"
+                          isActive={isActive}
+                          tooltip={item.label}
+                          render={<Link href={item.href} />}
+                        >
+                          <Icon />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  }
 
-                      return (
-                        <SidebarMenuSubItem key={child.href}>
-                          <SidebarMenuSubButton
-                            isActive={childIsActive}
-                            render={<Link href={child.href} />}
-                          >
-                            <span>{child.label}</span>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      );
-                    })}
-                  </SidebarMenuSub>
-                ) : null}
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
+                  return (
+                    <Collapsible
+                      key={item.href}
+                      className="group/collapsible"
+                      defaultOpen={isActive}
+                    >
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          className="min-h-10 group-data-[collapsible=icon]:min-h-8!"
+                          isActive={isActive}
+                          tooltip={item.label}
+                          render={<CollapsibleTrigger />}
+                        >
+                          <Icon />
+                          <span>{item.label}</span>
+                          <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[panel-open]/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.children!.map((child) => {
+                              const childIsActive =
+                                pathname === child.href ||
+                                pathname.startsWith(`${child.href}/`);
+
+                              return (
+                                <SidebarMenuSubItem key={child.href}>
+                                  <SidebarMenuSubButton
+                                    isActive={childIsActive}
+                                    render={<Link href={child.href} />}
+                                  >
+                                    <span>{child.label}</span>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              );
+                            })}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip={`Signed in as ${session.role.toLowerCase()}`}>
-              <UsersIcon />
-              <span>{session.name}</span>
-              <span className="sr-only">{getInitials(session.name)}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

@@ -17,7 +17,7 @@ export function AppShell({
 
   return (
     <SidebarProvider>
-      <WorkspaceSidebar session={session} workspace={workspace} />
+      <WorkspaceSidebar workspace={workspace} />
       <SidebarInset className="min-h-svh isolate overflow-x-clip">
         <AppTopbar session={session} workspace={workspace} />
         <div className="relative z-0 flex min-w-0 flex-1 flex-col gap-5 p-4 md:p-6">
