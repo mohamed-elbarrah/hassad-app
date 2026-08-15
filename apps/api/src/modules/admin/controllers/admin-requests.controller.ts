@@ -14,15 +14,26 @@ import { PermissionsGuard } from "../../../common/guards/permissions.guard";
 import { JwtAuthGuard } from "../../../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../../common/decorators/current-user.decorator";
 import { StaleQueryDto } from "../dto/admin-query.dto";
+import { AdminCrmWorkspaceQueryDto } from "../dto/admin-workspaces.dto";
+import { AdminWorkspacesService } from "../services/admin-workspaces.service";
 
 @Controller("admin/requests")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AdminRequestsController {
-  constructor(private readonly service: AdminRequestsService) {}
+  constructor(
+    private readonly service: AdminRequestsService,
+    private readonly workspacesService: AdminWorkspacesService,
+  ) {}
 
   @Get() @RequirePermissions("admin.requests.read") findAll(@Query() q: any) {
     return this.service.findAll(q);
   }
+  @Get("workspace")
+  @RequirePermissions("admin.requests.read")
+  getWorkspace(@Query() query: AdminCrmWorkspaceQueryDto) {
+    return this.workspacesService.getCrmWorkspace(query);
+  }
+
   @Get("stale") @RequirePermissions("admin.requests.read") getStale(
     @Query() q: StaleQueryDto,
   ) {

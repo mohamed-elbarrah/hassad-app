@@ -52,6 +52,8 @@ export type ProposalWorkspaceQuery = {
 
 export type SalesOffersWorkspaceQuery = Omit<ProposalWorkspaceQuery, "creatorId">;
 
+export type AdminRequestsWorkspaceQuery = AdminCrmWorkspaceQuery;
+
 export type AdminCrmWorkspaceQuery = {
   kind?: "all" | "lead" | "order";
   statusFilter?: "all" | "active" | "waiting-approval" | "stalled";
@@ -265,6 +267,7 @@ export type AdminOverviewResponse = {
   };
   leadOrders: Array<{
     id: string;
+    kind: "lead" | "order";
     clientName: string;
     companyName: string;
     stage: string;

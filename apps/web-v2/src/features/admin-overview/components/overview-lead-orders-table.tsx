@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { Badge } from "@/components/ui/badge";
 import type { AdminOverviewSnapshot } from "@/features/admin-overview/lib/admin-overview-data";
 
 type OverviewLeadOrdersTableProps = {
@@ -40,6 +41,7 @@ export function OverviewLeadOrdersTable({
           <TableHeader>
             <TableRow>
               <TableHead>Client</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Pipeline</TableHead>
               <TableHead>Calls</TableHead>
               <TableHead>Meetings</TableHead>
@@ -59,6 +61,11 @@ export function OverviewLeadOrdersTable({
                       {row.companyName}
                     </span>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {row.kind === "order" ? "Order" : "Lead"}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <StatusBadge tone={row.stageTone}>{formatOrderStage(row.crmStage ?? row.stage)}</StatusBadge>

@@ -7,6 +7,7 @@ import { ClientSource } from "@hassad/shared";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { StatusBadge } from "@/components/patterns/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
 import {
   Card,
@@ -51,15 +52,16 @@ import {
   type OrderDirectoryFilter,
   type OrderValueFilter,
 } from "@/features/crm-orders/lib/order-directory";
-import { useGetCrmWorkspaceQuery } from "@/lib/api/admin-crm-api";
+import { useGetAdminRequestsWorkspaceQuery } from "@/lib/api/admin-requests-api";
 
 export function OrdersWorkspace() {
   const [statusFilter, setStatusFilter] = useState<OrderDirectoryFilter>("all");
+  const [kindFilter, setKindFilter] = useState<"all" | "lead" | "order">("all");
   const [dateFilter, setDateFilter] = useState<OrderDateFilter>("last-30-days");
   const [valueFilter, setValueFilter] = useState<OrderValueFilter>("all-values");
 
-  const { data, error, isError, isLoading, refetch } = useGetCrmWorkspaceQuery({
-    kind: "all",
+  const { data, error, isError, isLoading, refetch } = useGetAdminRequestsWorkspaceQuery({
+    kind: kindFilter,
     statusFilter,
     dateFilter,
     valueFilter,
@@ -94,6 +96,23 @@ export function OrdersWorkspace() {
             <ToggleGroupItem value="active">Active</ToggleGroupItem>
             <ToggleGroupItem value="waiting-approval">Waiting approval</ToggleGroupItem>
             <ToggleGroupItem value="stalled">Stalled</ToggleGroupItem>
+          </ToggleGroup>
+
+          <ToggleGroup
+            value={[kindFilter]}
+            onValueChange={(value) => {
+              const nextValue = value[0];
+              if (nextValue === "all" || nextValue === "lead" || nextValue === "order") {
+                setKindFilter(nextValue);
+              }
+            }}
+            variant="outline"
+            size="sm"
+            spacing={0}
+          >
+            <ToggleGroupItem value="all">All types</ToggleGroupItem>
+            <ToggleGroupItem value="lead">Leads</ToggleGroupItem>
+            <ToggleGroupItem value="order">Orders</ToggleGroupItem>
           </ToggleGroup>
 
           <Select
@@ -190,7 +209,8 @@ export function OrdersWorkspace() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order</TableHead>
+                  <TableHead>Request</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Stage</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Source</TableHead>
@@ -217,6 +237,11 @@ export function OrdersWorkspace() {
                           {row.contactName} · {row.serviceLine}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {row.kind === "order" ? "Order" : "Lead"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <StatusBadge tone={row.stageTone}>

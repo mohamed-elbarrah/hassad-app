@@ -7,7 +7,7 @@ import { baseApi } from "@/lib/api/base-api";
 export const adminEmployeesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getEmployeesWorkspace: builder.query<EmployeesWorkspaceResponse, AdminEmployeesWorkspaceQuery>({
-      query: (params) => ({ url: "/admin/users/workspace", params }),
+      query: (params) => ({ url: "/admin/employees/workspace", params }),
       providesTags: ["Employees"],
     }),
     createEmployee: builder.mutation<unknown, EmployeeFormValues>({

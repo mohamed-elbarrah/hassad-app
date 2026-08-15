@@ -86,6 +86,7 @@ export class AdminWorkspacesService {
 
     const leadOrders = crm.items.slice(0, 6).map((item) => ({
       id: item.id,
+      kind: item.kind,
       clientName: item.contactName,
       companyName: item.companyName,
       stage: item.stage,

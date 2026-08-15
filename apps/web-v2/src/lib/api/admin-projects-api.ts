@@ -6,7 +6,7 @@ import { baseApi } from "@/lib/api/base-api";
 export const adminProjectsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getDeliveryWorkspace: builder.query<DeliveryWorkspaceResponse, AdminDeliveryWorkspaceQuery>({
-      query: (params) => ({ url: "/admin/delivery/workspace", params }),
+      query: (params) => ({ url: "/admin/projects/workspace", params }),
       providesTags: ["Delivery"],
     }),
     getAdminProjectPeriods: builder.query<unknown, string>({ query: (projectId) => `/admin/projects/${projectId}/periods`, providesTags: ["AdminProjects"] }),

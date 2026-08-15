@@ -22,10 +22,16 @@ export class AdminWorkspacesController {
     return this.service.getOverview(query);
   }
 
-  @Get("users/workspace")
+  @Get("employees/workspace")
   @RequirePermissions("admin.users.read")
   getEmployeesWorkspace(@Query() query: AdminEmployeesWorkspaceQueryDto) {
     return this.service.getEmployeesWorkspace(query);
+  }
+
+  @Get("users/workspace")
+  @RequirePermissions("admin.users.read")
+  getEmployeesWorkspaceLegacy(@Query() query: AdminEmployeesWorkspaceQueryDto) {
+    return this.getEmployeesWorkspace(query);
   }
 
   @Get("clients/workspace")
@@ -40,9 +46,15 @@ export class AdminWorkspacesController {
     return this.service.getCrmWorkspace(query);
   }
 
-  @Get("delivery/workspace")
+  @Get("projects/workspace")
   @RequirePermissions("admin.projects.read")
   getDeliveryWorkspace(@Query() query: AdminDeliveryWorkspaceQueryDto) {
+    return this.service.getDeliveryWorkspace(query);
+  }
+
+  @Get("delivery/workspace")
+  @RequirePermissions("admin.projects.read")
+  getDeliveryWorkspaceLegacy(@Query() query: AdminDeliveryWorkspaceQueryDto) {
     return this.service.getDeliveryWorkspace(query);
   }
 }
