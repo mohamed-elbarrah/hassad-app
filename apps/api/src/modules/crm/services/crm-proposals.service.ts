@@ -299,13 +299,13 @@ export class CrmProposalsService {
 
     if (recipientId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: token,
           entityType: "proposal",
           eventType: "PROPOSAL_SENT",
           userId: recipientId,
-          title: "New proposal is ready",
-          body: `A new proposal titled "${proposal.title}" was sent for review.`,
+          messageKey: "crm.proposal_review",
+          messageParams: { proposalTitle: proposal.title },
         })
         .catch(() => undefined);
     }

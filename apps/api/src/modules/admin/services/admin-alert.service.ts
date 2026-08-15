@@ -55,10 +55,10 @@ export class AdminAlertService {
       });
       if (existing) continue;
 
-      await this.notificationsService.notifyUsers({
+      await this.notificationsService.notifyUsersWithMessage({
         userIds: recipientIds,
-        title: "Stalled project",
-        message: `Project "${project.name}" is stalled (status: ${project.status}). Please review it.`,
+        messageKey: "admin.stalled_project",
+        messageParams: { projectName: project.name, status: project.status },
 
         entityId: project.id,
         entityType: "PROJECT",
@@ -98,10 +98,10 @@ export class AdminAlertService {
     if (salesManagers.length === 0) return 0;
 
     const managerIds = salesManagers.map((u) => u.id);
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: managerIds,
-      title: "Unassigned requests",
-      message: `${unassigned.length} request(s) are unassigned. Please distribute them to the sales team.`,
+      messageKey: "admin.unassigned_requests",
+      messageParams: { count: unassigned.length },
       entityId: "unassigned-requests",
       entityType: "REQUEST",
       eventType: "UNASSIGNED_REQUEST",
@@ -159,10 +159,10 @@ export class AdminAlertService {
       (f) => f.eventType === "GATEWAY_FAILURE",
     ).length;
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: adminIds,
-      title: "System failures",
-      message: `${webhookCount} webhook failure(s) and ${gatewayCount} payment gateway failure(s) need review.`,
+      messageKey: "admin.system_failures",
+      messageParams: { webhooks: webhookCount, gateways: gatewayCount },
       entityId: "system-failures",
       entityType: "system",
       eventType: "SYSTEM_FAILURE",
@@ -213,10 +213,10 @@ export class AdminAlertService {
       ) as string[];
       if (recipients.length === 0) continue;
 
-      await this.notificationsService.notifyUsers({
+      await this.notificationsService.notifyUsersWithMessage({
         userIds: recipients,
-        title: "Inactive client",
-        message: `Client "${client.companyName}" has been inactive for more than 30 days. Please contact them.`,
+        messageKey: "admin.inactive_client",
+        messageParams: { companyName: client.companyName },
         entityId: client.id,
         entityType: "CLIENT",
         eventType: "CLIENT_INACTIVE",
@@ -264,10 +264,10 @@ export class AdminAlertService {
       });
       if (existing) continue;
 
-      await this.notificationsService.createNotification({
+      await this.notificationsService.createLocalizedNotification({
         userId: w.userId,
-        title: "High workload",
-        body: `You have ${w.activeTasksCount} active task(s) (average: ${Math.round(avgTasks)}). Please review your priorities.`,
+        messageKey: "admin.high_workload",
+        messageParams: { activeTasks: w.activeTasksCount, averageTasks: Math.round(avgTasks) },
         entityId: w.userId,
         entityType: "USER",
         eventType: "WORKLOAD_WARNING",
@@ -289,10 +289,10 @@ export class AdminAlertService {
           .map((w) => w.user?.name)
           .filter(Boolean)
           .join(", ");
-        await this.notificationsService.notifyUsers({
+        await this.notificationsService.notifyUsersWithMessage({
           userIds: managers.map((m) => m.id),
-          title: "Underloaded team members",
-          message: `The following members have a low workload: ${names}. Please redistribute tasks.`,
+          messageKey: "admin.underloaded_team",
+          messageParams: { names },
           entityId: "workload",
           entityType: "system",
           eventType: "WORKLOAD_WARNING",
@@ -343,10 +343,10 @@ export class AdminAlertService {
       });
 
       if (task.assignee?.id) {
-        await this.notificationsService.createNotification({
+        await this.notificationsService.createLocalizedNotification({
           userId: task.assignee.id,
-          title: "Overdue task",
-          body: `Task "${task.title}" ${daysOverdue > 0 ? `is ${daysOverdue} day(s) overdue` : "is due today"}.`,
+          messageKey: "admin.overdue_task",
+          messageParams: { taskTitle: task.title, message: daysOverdue > 0 ? `is ${daysOverdue} day(s) overdue` : "is due today" },
           entityId: task.id,
           entityType: "TASK",
           eventType: "TASK_DELAYED",
@@ -385,10 +385,10 @@ export class AdminAlertService {
 
     for (const req of staleRequests) {
       if (req.assignedSalesId) {
-        await this.notificationsService.createNotification({
+        await this.notificationsService.createLocalizedNotification({
           userId: req.assignedSalesId,
-          title: "Request needs follow-up",
-          body: `Request "${req.contactName}" (${req.companyName}) has not been updated for 14 days.`,
+          messageKey: "admin.request_followup",
+          messageParams: { contactName: req.contactName, companyName: req.companyName },
           entityId: req.id,
           entityType: "REQUEST",
           eventType: "STALE_REQUEST",

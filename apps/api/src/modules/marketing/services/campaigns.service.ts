@@ -92,11 +92,11 @@ export class CampaignsService {
     const pmId = task.createdBy;
     const marketerId = task.assignedTo;
 
-    await this.notifications.notifyUsers({
+    await this.notifications.notifyUsersWithMessage({
       userIds: [pmId, marketerId],
       excludeUserIds: [creatorId],
-      title: "New campaign",
-      message: `New campaign "${campaign.name}" was created for task "${task.title}"`,
+      messageKey: "campaign.created",
+      messageParams: { campaignName: campaign.name, taskTitle: task.title },
       entityId: campaign.id,
       entityType: "CAMPAIGN",
       eventType: "MARKETING_CAMPAIGN_CREATED",
@@ -105,8 +105,8 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       campaign.id,
       "MARKETING_CAMPAIGN_CREATED",
-      "New campaign launched",
-      `Campaign "${campaign.name}" was launched for your project`,
+      "campaign.launched",
+      { campaignName: campaign.name },
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about campaign creation: campaignId=${campaign.id}, eventType=MARKETING_CAMPAIGN_CREATED`,
@@ -363,11 +363,11 @@ export class CampaignsService {
 
     const pmId = campaign.task?.createdBy;
     if (pmId) {
-      await this.notifications.notifyUsers({
+      await this.notifications.notifyUsersWithMessage({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "Campaign performance updated",
-        message: `Campaign results for "${campaign.name}" were updated`,
+        messageKey: "campaign.performance_updated",
+        messageParams: { campaignName: campaign.name },
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_METRICS_UPDATED",
@@ -377,8 +377,8 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       campaign.id,
       "MARKETING_METRICS_UPDATED",
-      "Campaign performance updated",
-      `Campaign results for "${campaign.name}" were updated`,
+      "campaign.performance_updated",
+      { campaignName: campaign.name },
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about metrics update: campaignId=${campaign.id}, eventType=MARKETING_METRICS_UPDATED`,
@@ -450,11 +450,11 @@ export class CampaignsService {
 
     const pmId = campaign.task?.createdBy;
     if (pmId) {
-      await this.notifications.notifyUsers({
+      await this.notifications.notifyUsersWithMessage({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "Campaign status updated",
-        message: `Campaign "${campaign.name}" status changed to ${STATUS_LABELS[status] ?? status}`,
+        messageKey: "campaign.status_changed",
+        messageParams: { campaignName: campaign.name, status: STATUS_LABELS[status] ?? status },
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_CAMPAIGN_STATUS_CHANGED",
@@ -464,8 +464,8 @@ export class CampaignsService {
     this.notifyClientAboutCampaign(
       id,
       "MARKETING_CAMPAIGN_STATUS_CHANGED",
-      "Campaign status updated",
-      `Campaign "${campaign.name}" status changed to ${STATUS_LABELS[status] ?? status}`,
+      "campaign.status_changed",
+      { campaignName: campaign.name, status: STATUS_LABELS[status] ?? status },
     ).catch((error) => {
       this.logger.error(
         `Failed to notify client about status change: campaignId=${id}, eventType=MARKETING_CAMPAIGN_STATUS_CHANGED`,
@@ -497,11 +497,11 @@ export class CampaignsService {
 
     if (needsOptimization) {
       const pmId = campaign.task.createdBy;
-      await this.notifications.notifyUsers({
+      await this.notifications.notifyUsersWithMessage({
         userIds: [pmId],
         excludeUserIds: [userId],
-        title: "Campaign needs optimization",
-        message: `Campaign "${campaign.name}" was flagged for optimization`,
+        messageKey: "campaign.optimization_needed",
+        messageParams: { campaignName: campaign.name },
         entityId: campaign.id,
         entityType: "CAMPAIGN",
         eventType: "MARKETING_OPTIMIZATION_REQUIRED",
@@ -510,8 +510,8 @@ export class CampaignsService {
       this.notifyClientAboutCampaign(
         id,
         "MARKETING_OPTIMIZATION_REQUIRED",
-        "Campaign needs optimization",
-        `Campaign was flagged for optimization "${campaign.name}"`,
+        "campaign.optimization_needed",
+        { campaignName: campaign.name },
       ).catch((error) => {
         this.logger.error(
           `Failed to notify client about optimization flag: campaignId=${id}, eventType=MARKETING_OPTIMIZATION_REQUIRED`,
@@ -670,8 +670,8 @@ export class CampaignsService {
   private async notifyClientAboutCampaign(
     campaignId: string,
     eventType: string,
-    title: string,
-    body: string,
+    messageKey: "campaign.launched" | "campaign.performance_updated" | "campaign.status_changed" | "campaign.optimization_needed",
+    messageParams: Record<string, string>,
   ) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
@@ -685,13 +685,13 @@ export class CampaignsService {
     });
     if (!clientUser?.userId) return;
 
-    await this.notifications.createNotification({
+    await this.notifications.createLocalizedNotification({
       entityId: campaignId,
       entityType: "campaign",
       eventType,
       userId: clientUser.userId,
-      title,
-      body,
+      messageKey,
+      messageParams,
     });
   }
 }

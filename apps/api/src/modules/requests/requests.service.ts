@@ -440,10 +440,10 @@ export class RequestsService {
 
     if (createdRequest.assignee) {
       await this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: [createdRequest.assignee.id],
-          title: "New request",
-          message: `A new request was received from ${createdRequest.contactName} - ${createdRequest.companyName}`,
+          messageKey: "request.submitted",
+          messageParams: { contactName: createdRequest.contactName, companyName: createdRequest.companyName },
           entityId: createdRequest.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",
@@ -558,10 +558,10 @@ export class RequestsService {
 
     if (request.assignee) {
       await this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: [request.assignee.id],
-          title: "New request",
-          message: `A new request was received from ${request.contactName} - ${request.companyName}`,
+          messageKey: "request.submitted",
+          messageParams: { contactName: request.contactName, companyName: request.companyName },
           entityId: request.id,
           entityType: "request",
           eventType: "REQUEST_SUBMITTED",

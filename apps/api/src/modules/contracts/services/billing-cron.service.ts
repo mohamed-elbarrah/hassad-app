@@ -99,13 +99,13 @@ export class BillingCronService {
 
         const dayLabel = offsetDay === 0 ? "today" : `in ${offsetDay} day(s)`;
         await this.notificationsService
-          .createNotification({
+          .createLocalizedNotification({
             entityId: invoice.id,
             entityType: "INVOICE",
             eventType: "INVOICE_REMINDER",
             userId: recipientId,
-            title: "Invoice payment reminder",
-            body: `Invoice "${invoice.contract?.title ?? invoice.invoiceNumber}" is due ${dayLabel}. Please pay the amount ${invoice.amount} SAR`,
+            messageKey: "invoice.payment_reminder",
+            messageParams: { invoiceTitle: invoice.contract?.title ?? invoice.invoiceNumber, dayLabel, amount: invoice.amount },
           })
           .catch(() => undefined);
       }
@@ -216,10 +216,10 @@ export class BillingCronService {
 
         if (recipientIds.length > 0) {
           await this.notificationsService
-            .notifyUsers({
+            .notifyUsersWithMessage({
               userIds: recipientIds,
-              title: "Project suspended",
-              message: `The project was suspended because invoice "${invoice.contract?.title ?? invoice.invoiceNumber}" was not paid. Please follow up on payment to resume work.`,
+              messageKey: "project.suspended",
+              messageParams: { invoiceTitle: invoice.contract?.title ?? invoice.invoiceNumber },
               entityId: project.id,
               entityType: "PROJECT",
               eventType: "PROJECT_SUSPENDED",
@@ -304,10 +304,10 @@ export class BillingCronService {
         ].filter(Boolean) as string[];
 
         if (recipientIds.length > 0) {
-          await this.notificationsService.notifyUsers({
+          await this.notificationsService.notifyUsersWithMessage({
             userIds: recipientIds,
-            title: "Contract automatically cancelled",
-            message: `Contract "${invoice.contract.title}" was automatically cancelled because the down payment was not paid within ${graceDays} day(s)`,
+            messageKey: "contract.auto_canceled",
+            messageParams: { contractTitle: invoice.contract.title, graceDays },
             entityId: invoice.contract.id,
             entityType: "CONTRACT",
             eventType: "CONTRACT_CANCELLED",
@@ -353,10 +353,10 @@ export class BillingCronService {
 
     if (financeUsers.length === 0) return;
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: financeUsers.map((u) => u.id),
-      title: "Invoices overdue by more than 30 days",
-      message: `${overdue.length} invoice(s) have been overdue for more than 30 days and need follow-up.`,
+      messageKey: "invoice.overdue_escalation",
+      messageParams: { count: overdue.length },
       entityId: "overdue-escalation",
       entityType: "INVOICE",
       eventType: "INVOICE_ESCALATED",

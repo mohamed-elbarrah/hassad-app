@@ -166,10 +166,10 @@ export class ProjectPeriodsService {
 
     if (periods.length > 0) {
       this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: [project.projectManagerId].filter(Boolean) as string[],
-          title: "Project periods generated",
-          message: `${periods.length} monthly periods were created for project "${project.name}".`,
+          messageKey: "project.periods_generated",
+          messageParams: { periodCount: periods.length, projectName: project.name },
           entityId: projectId,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIODS_GENERATED",
@@ -445,10 +445,10 @@ export class ProjectPeriodsService {
     ].filter(Boolean) as string[];
     if (notifyIds.length > 0) {
       this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: notifyIds,
-          title: "Period closed",
-          message: `Period ${period.periodNumber} for project "${period.project.name}" was closed.`,
+          messageKey: "project.period_closed",
+          messageParams: { periodNumber: period.periodNumber, projectName: period.project.name },
           entityId: period.id,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIOD_CLOSED",
@@ -521,10 +521,10 @@ export class ProjectPeriodsService {
     ].filter(Boolean) as string[];
     if (notifyForInvoice.length > 0) {
       this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: notifyForInvoice,
-          title: "Period invoice issued",
-          message: `Invoice for period ${period.periodNumber} was issued for ${amount} SAR`,
+          messageKey: "project.period_invoice_issued",
+          messageParams: { periodNumber: period.periodNumber, amount },
           entityId: invoice.id,
           entityType: "INVOICE",
           eventType: "INVOICE_ISSUED",
@@ -705,10 +705,10 @@ export class ProjectPeriodsService {
     const clientUserId = period.project?.client?.userId;
     if (clientUserId) {
       this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: [clientUserId],
-          title: "New meeting scheduled",
-          message: `"${dto.title}" for period ${period.periodNumber} of project "${period.project?.name}".`,
+          messageKey: "meeting.scheduled",
+          messageParams: { meetingTitle: dto.title, periodNumber: period.periodNumber, projectName: period.project?.name },
           entityId: meeting.id,
           entityType: "PROJECT_MEETING",
           eventType: "MEETING_SCHEDULED",
@@ -782,17 +782,16 @@ export class ProjectPeriodsService {
             : dto.status === "DONE"
               ? "MEETING_DONE"
               : "MEETING_UPDATED";
-      const title =
-        dto.status === "CANCELLED"
-          ? "Meeting canceled"
-          : wasRescheduled
-            ? "Meeting postponed"
-            : "Meeting updated";
       this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: [clientUserId],
-          title,
-          message: `"${updated.title}" for period ${existing.period?.periodNumber} of project "${existing.period?.project?.name}".`,
+          messageKey:
+            dto.status === "CANCELLED"
+              ? "meeting.canceled"
+              : wasRescheduled
+                ? "meeting.postponed"
+                : "meeting.updated",
+          messageParams: { meetingTitle: updated.title, periodNumber: existing.period?.periodNumber, projectName: existing.period?.project?.name },
           entityId: meetingId,
           entityType: "PROJECT_MEETING",
           eventType,

@@ -111,13 +111,13 @@ export class TasksService {
       });
       if (client?.userId) {
         this.notificationsService
-          .createNotification({
+          .createLocalizedNotification({
             entityId: projectId,
             entityType: "project",
             eventType: "PROJECT_AWAITING_REVIEW",
             userId: client.userId,
-            title: "Your project is ready for review and approval",
-            body: `Project "${project.name}" is complete and ready for your review.`,
+            messageKey: "project.awaiting_review",
+            messageParams: { projectName: project.name },
           })
           .catch(() => undefined);
       }
@@ -134,32 +134,32 @@ export class TasksService {
     status: TaskStatus,
     actorName: string,
   ):
-    | { eventType: string; title: string; body: string }
+    | { eventType: string; messageKey: "task.started" | "task.awaiting_review" | "task.approved" | "task.revision_requested"; messageParams: Record<string, string> }
     | undefined {
     switch (status) {
       case TaskStatus.IN_PROGRESS:
         return {
           eventType: "TASK_STARTED",
-          title: "Task started",
-          body: `${actorName} started task "${taskTitle}".`,
+          messageKey: "task.started",
+          messageParams: { actorName, taskTitle },
         };
       case TaskStatus.IN_REVIEW:
         return {
           eventType: "TASK_SUBMITTED",
-          title: "Task awaiting review",
-          body: `${actorName} submitted task "${taskTitle}" for review.`,
+          messageKey: "task.awaiting_review",
+          messageParams: { actorName, taskTitle },
         };
       case TaskStatus.DONE:
         return {
           eventType: "TASK_APPROVED",
-          title: "Task approved",
-          body: `Task "${taskTitle}" was approved.`,
+          messageKey: "task.approved",
+          messageParams: { taskTitle },
         };
       case TaskStatus.REVISION:
         return {
           eventType: "TASK_REJECTED",
-          title: "Task returned for revision",
-          body: `${actorName} returned task "${taskTitle}" for revision.`
+          messageKey: "task.revision_requested",
+          messageParams: { actorName, taskTitle }
         };
       default:
         return undefined;
@@ -387,15 +387,16 @@ export class TasksService {
       const departmentLabel = this.getDepartmentArabicLabel(department.name);
 
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: createdTask.id,
           entityType: "task",
           eventType: "TASK_ASSIGNED",
           userId: createdTask.assignedTo,
-          title: "New task assigned",
-          body: departmentLabel
-            ? `Task "${createdTask.title}" was assigned to you in the ${departmentLabel} department.`
-            : `Task "${createdTask.title}" was assigned to you.`,
+          messageKey: "task.assigned",
+          messageParams: {
+            taskTitle: createdTask.title,
+            department: departmentLabel,
+          },
           metadata: {
             taskId: createdTask.id,
             projectId: createdTask.projectId,
@@ -589,13 +590,13 @@ export class TasksService {
 
     const notificationJobs: Array<Promise<any>> = recipients.map(
       (recipientId) =>
-        this.notificationsService.createNotification({
+        this.notificationsService.createLocalizedNotification({
           entityId: id,
           entityType: "task",
           eventType: notificationConfig.eventType,
           userId: recipientId,
-          title: notificationConfig.title,
-          body: notificationConfig.body,
+          messageKey: notificationConfig.messageKey,
+          messageParams: notificationConfig.messageParams,
           metadata: {
             taskId: task.id,
             projectId: task.projectId,
@@ -661,18 +662,17 @@ export class TasksService {
 
       if (recipients.length > 0) {
         const notificationJobs = recipients.map((recipientId) =>
-          this.notificationsService.createNotification({
+          this.notificationsService.createLocalizedNotification({
             entityId: existingTask.id,
             entityType: "task",
             eventType: "TASK_ASSIGNED",
             userId: recipientId,
-            title: "New task assigned",
-            body:
+            messageKey:
+              recipientId === dto.userId ? "task.assigned" : "task.assigned_to",
+            messageParams:
               recipientId === dto.userId
-                ? departmentLabel
-                  ? `Task "${existingTask.title}" was assigned to you in the ${departmentLabel} department.`
-                  : `Task "${existingTask.title}" was assigned to you.`
-                : `Task "${existingTask.title}" was assigned to ${assigneeInfo.name}.`,
+                ? { taskTitle: existingTask.title, department: departmentLabel }
+                : { taskTitle: existingTask.title, assigneeName: assigneeInfo.name },
             metadata: {
               taskId: existingTask.id,
               projectId: existingTask.projectId,
@@ -843,13 +843,13 @@ export class TasksService {
 
     if (recipients.length > 0) {
       const notificationJobs = recipients.map((recipientId) =>
-        this.notificationsService.createNotification({
+        this.notificationsService.createLocalizedNotification({
           entityId: task.id,
           entityType: "task",
           eventType: "TASK_COMMENT_ADDED",
           userId: recipientId,
-          title: "New task comment",
-          body: `A new comment was added to task "${task.title}".`,
+          messageKey: "task.comment_added",
+          messageParams: { taskTitle: task.title },
           metadata: {
             taskId: task.id,
             commentId: comment.id,

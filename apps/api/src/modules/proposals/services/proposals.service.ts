@@ -79,13 +79,13 @@ export class ProposalsService {
       created.request.client.userId ?? created.request.submittedBy;
     if (recipientId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: token,
           entityType: "proposal",
           eventType: "PROPOSAL_SENT",
           userId: recipientId,
-          title: "New proposal awaiting your review",
-          body: `A new proposal was sent to you: "${created.proposal.title}". You can review and respond using the provided link.`,
+          messageKey: "proposal.submitted",
+          messageParams: { proposalTitle: created.proposal.title },
         })
         .catch(() => undefined);
     }
@@ -206,13 +206,13 @@ export class ProposalsService {
       return updated;
     });
 
-    await this.notificationsService.createNotification({
+    await this.notificationsService.createLocalizedNotification({
       entityId: proposal.id,
       entityType: "proposal",
       eventType: "PROPOSAL_APPROVED",
       userId: proposal.createdBy,
-      title: "Proposal approved",
-      body: `Proposal "${proposal.title}" was approved`,
+      messageKey: "proposal.approved",
+      messageParams: { proposalTitle: proposal.title },
     });
 
     return updatedProposal;
@@ -226,13 +226,13 @@ export class ProposalsService {
       data: { status: ProposalStatus.REJECTED },
     });
 
-    await this.notificationsService.createNotification({
+    await this.notificationsService.createLocalizedNotification({
       entityId: proposal.id,
       entityType: "proposal",
       eventType: "PROPOSAL_REJECTED",
       userId: proposal.createdBy,
-      title: "Proposal rejected",
-      body: `Proposal "${proposal.title}" was rejected`,
+      messageKey: "proposal.rejected",
+      messageParams: { proposalTitle: proposal.title },
     });
 
     return updated;
@@ -287,13 +287,13 @@ export class ProposalsService {
     }
 
     // Notify SALES creator
-    await this.notificationsService.createNotification({
+    await this.notificationsService.createLocalizedNotification({
       entityId: proposal.id,
       entityType: "proposal",
       eventType: "PROPOSAL_APPROVED_BY_CLIENT",
       userId: proposal.createdBy,
-      title: "Client approved proposal",
-      body: `The client approved proposal "${proposal.title}"${notes ? ` — Notes: ${notes}` : ""}`,
+      messageKey: "proposal.client_approved",
+      messageParams: { proposalTitle: proposal.title, notes },
     });
 
     return {
@@ -325,13 +325,13 @@ export class ProposalsService {
       );
     }
 
-    await this.notificationsService.createNotification({
+    await this.notificationsService.createLocalizedNotification({
       entityId: proposal.id,
       entityType: "proposal",
       eventType: "PROPOSAL_REVISION_REQUESTED",
       userId: proposal.createdBy,
-      title: "Proposal revision requested",
-      body: `The client requested revisions to proposal "${proposal.title}"${notes ? `: ${notes}` : ""}`,
+      messageKey: "proposal.revision_requested",
+      messageParams: { proposalTitle: proposal.title, notes },
     });
 
     return {

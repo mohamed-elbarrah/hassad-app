@@ -144,13 +144,13 @@ export class MarketingStrategyService {
 
     if (client?.userId) {
       await this.notifications
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",
           userId: client.userId,
-          title: "New marketing strategy",
-          body: `A new marketing strategy was submitted for task "${strategy.task.title}" and is awaiting your review`
+          messageKey: "strategy.submitted",
+          messageParams: { taskTitle: strategy.task.title }
         })
         .catch((err) =>
           this.logger.error(
@@ -163,13 +163,13 @@ export class MarketingStrategyService {
     // Notify PM
     if (strategy.task.createdBy) {
       await this.notifications
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",
           userId: strategy.task.createdBy,
-          title: "Marketing strategy sent",
-          body: `The marketing strategy for task "${strategy.task.title}" was sent to the client`
+          messageKey: "strategy.sent",
+          messageParams: { taskTitle: strategy.task.title }
         })
         .catch((err) =>
           this.logger.error(`Failed to notify PM about strategy ${id}`, err),
@@ -218,13 +218,13 @@ export class MarketingStrategyService {
 
     for (const recipientId of recipients) {
       await this.notifications
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_APPROVED",
           userId: recipientId,
-          title: "Marketing strategy approved",
-          body: `The marketing strategy for task "${strategy.task.title}" was approved; campaigns can now be created`
+          messageKey: "strategy.approved",
+          messageParams: { taskTitle: strategy.task.title }
         })
         .catch((err) =>
           this.logger.error(
@@ -275,13 +275,13 @@ export class MarketingStrategyService {
 
     for (const recipientId of recipients) {
       await this.notifications
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_REVISION_REQUESTED",
           userId: recipientId,
-          title: "Marketing strategy revision requested",
-          body: `The client requested a revision to the marketing strategy for task "${strategy.task.title}": ${comment}`
+          messageKey: "strategy.revision_requested",
+          messageParams: { taskTitle: strategy.task.title, comment }
         })
         .catch((err) =>
           this.logger.error(
@@ -332,13 +332,13 @@ export class MarketingStrategyService {
 
     for (const recipientId of recipients) {
       await this.notifications
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_REJECTED",
           userId: recipientId,
-          title: "Marketing strategy rejected",
-          body: `The client rejected the marketing strategy for task "${strategy.task.title}"`
+          messageKey: "strategy.rejected",
+          messageParams: { taskTitle: strategy.task.title }
         })
         .catch((err) =>
           this.logger.error(
@@ -401,10 +401,10 @@ export class MarketingStrategyService {
 
     if (resubmitRecipients.length > 0) {
       await this.notifications
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: resubmitRecipients,
-          title: "Marketing strategy revised",
-          message: "The revised marketing strategy was resubmitted and is awaiting your review",
+          messageKey: "strategy.revised",
+          messageParams: {},
           entityId: id,
           entityType: "marketing_strategy",
           eventType: "MARKETING_STRATEGY_SENT",

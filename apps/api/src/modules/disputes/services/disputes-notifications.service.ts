@@ -135,10 +135,10 @@ export class DisputesNotificationsService {
     const adminIds = await this.getAdminUserIds();
     if (adminIds.length === 0) return;
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: adminIds,
-      title: "New dispute ticket",
-      message: `New dispute ticket #${payload.ticketNumber} needs review`,
+      messageKey: "dispute.new_ticket",
+      messageParams: { ticketNumber: payload.ticketNumber },
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_OPENED",
@@ -153,10 +153,10 @@ export class DisputesNotificationsService {
     if (!dispute) return;
 
     // Notify PM
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: [payload.pmId],
-      title: "Dispute ticket approved",
-      message: `Dispute "${dispute.title}" was approved. You have 3 days to resolve it`,
+      messageKey: "dispute.approved",
+      messageParams: { title: dispute.title },
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_APPROVED",
@@ -187,10 +187,10 @@ export class DisputesNotificationsService {
 
     if (!client?.userId) return;
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: [client.userId],
-      title: "Your dispute ticket was rejected",
-      message: `Your dispute ticket was rejected. Reason: ${payload.reason}`,
+      messageKey: "dispute.rejected",
+      messageParams: { reason: payload.reason },
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_REJECTED",
@@ -251,10 +251,10 @@ export class DisputesNotificationsService {
 
     if (recipients.size === 0) return;
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: Array.from(recipients),
-      title: "New dispute message",
-      message: `You have a new message in dispute ticket #${dispute.ticketNumber}`,
+      messageKey: "dispute.new_message",
+      messageParams: { ticketNumber: dispute.ticketNumber },
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_NEW_MESSAGE",
@@ -275,10 +275,10 @@ export class DisputesNotificationsService {
 
     if (!client?.userId) return;
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: [client.userId],
-      title: "Dispute ticket update",
-      message: `The project manager marked the issue as resolved. Please confirm the resolution or escalate it.`,
+      messageKey: "dispute.awaiting_confirmation",
+      messageParams: {},
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_PM_RESOLVED",
@@ -293,10 +293,10 @@ export class DisputesNotificationsService {
     if (!dispute) return;
 
     // Notify PM
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: [payload.pmId],
-      title: "Dispute resolved",
-      message: `The client confirmed resolution of dispute ticket #${dispute.ticketNumber}`,
+      messageKey: "dispute.client_confirmed",
+      messageParams: { ticketNumber: dispute.ticketNumber },
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_CLIENT_CONFIRM",
@@ -305,10 +305,10 @@ export class DisputesNotificationsService {
     // Notify admins
     const adminIds = await this.getAdminUserIds();
     if (adminIds.length > 0) {
-      await this.notificationsService.notifyUsers({
+      await this.notificationsService.notifyUsersWithMessage({
         userIds: adminIds,
-        title: "Dispute ticket resolved",
-        message: `Dispute ticket #${dispute.ticketNumber} was resolved; the client confirmed the resolution`,
+        messageKey: "dispute.resolved",
+        messageParams: { ticketNumber: dispute.ticketNumber },
         entityId: payload.disputeId,
         entityType: "DISPUTE",
         eventType: "DISPUTE_CLIENT_CONFIRM",
@@ -326,10 +326,10 @@ export class DisputesNotificationsService {
     const adminIds = await this.getAdminUserIds();
     if (adminIds.length === 0) return;
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: adminIds,
-      title: "Dispute ticket escalated",
-      message: `The client reported that dispute ticket #${dispute.ticketNumber} was not resolved`,
+      messageKey: "dispute.escalated",
+      messageParams: { ticketNumber: dispute.ticketNumber },
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_CLIENT_ESCALATE",
@@ -346,10 +346,10 @@ export class DisputesNotificationsService {
     const adminIds = await this.getAdminUserIds();
     if (adminIds.length === 0) return;
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: adminIds,
-      title: "Dispute ticket automatically escalated",
-      message: `Dispute ticket #${dispute.ticketNumber} was automatically escalated because the response deadline expired`,
+      messageKey: "dispute.auto_escalated",
+      messageParams: { ticketNumber: dispute.ticketNumber },
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: "DISPUTE_AUTO_ESCALATED",
@@ -379,10 +379,10 @@ export class DisputesNotificationsService {
     if (client?.userId) {
       notifications.push(
         this.notificationsService
-          .notifyUsers({
+          .notifyUsersWithMessage({
             userIds: [client.userId],
-            title: "Project manager changed",
-            message: `The project manager was changed to resolve dispute ticket #${dispute.ticketNumber}`,
+            messageKey: "dispute.manager_changed",
+            messageParams: { ticketNumber: dispute.ticketNumber },
             entityId: payload.disputeId,
             entityType: "DISPUTE",
             eventType: "DISPUTE_PM_CHANGED",
@@ -394,10 +394,10 @@ export class DisputesNotificationsService {
     // Notify old PM
     notifications.push(
       this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: [payload.oldPmId],
-          title: "Removed as project manager",
-          message: `You were removed as project manager of "${dispute.project.name}" because of a dispute`,
+          messageKey: "dispute.manager_removed",
+          messageParams: { projectName: dispute.project.name },
           entityId: payload.disputeId,
           entityType: "DISPUTE",
           eventType: "DISPUTE_PM_CHANGED",
@@ -408,10 +408,10 @@ export class DisputesNotificationsService {
     // Notify new PM
     notifications.push(
       this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: [payload.newPmId],
-          title: "Assigned as new project manager",
-          message: `You were assigned as project manager of "${dispute.project.name}"`,
+          messageKey: "dispute.manager_assigned",
+          messageParams: { projectName: dispute.project.name },
           entityId: payload.disputeId,
           entityType: "DISPUTE",
           eventType: "DISPUTE_PM_CHANGED",
@@ -440,10 +440,10 @@ export class DisputesNotificationsService {
     if (client?.userId) {
       notifications.push(
         this.notificationsService
-          .notifyUsers({
+          .notifyUsersWithMessage({
             userIds: [client.userId],
-            title: "Dispute ticket closed",
-            message: `Your dispute ticket #${dispute.ticketNumber} was closed`,
+            messageKey: "dispute.closed",
+            messageParams: { ticketNumber: dispute.ticketNumber, client: "client" },
             entityId: payload.disputeId,
             entityType: "DISPUTE",
             eventType: "DISPUTE_CLOSED",
@@ -455,10 +455,10 @@ export class DisputesNotificationsService {
     // Notify PM
     notifications.push(
       this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: [payload.pmId],
-          title: "Dispute ticket closed",
-          message: `Dispute ticket #${dispute.ticketNumber} was closed`,
+          messageKey: "dispute.closed",
+          messageParams: { ticketNumber: dispute.ticketNumber },
           entityId: payload.disputeId,
           entityType: "DISPUTE",
           eventType: "DISPUTE_CLOSED",
@@ -492,10 +492,13 @@ export class DisputesNotificationsService {
       3: `Final reminder: dispute ticket #${payload.ticketNumber} will be escalated automatically if there is no response`,
     };
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: [client.userId],
-      title: `Reminder ${payload.reminderNumber}`,
-      message: reminderMessages[payload.reminderNumber],
+      messageKey: "dispute.reminder",
+      messageParams: {
+        reminderNumber: payload.reminderNumber,
+        message: reminderMessages[payload.reminderNumber],
+      },
       entityId: payload.disputeId,
       entityType: "DISPUTE",
       eventType: `DISPUTE_REMINDER_DAY${payload.reminderNumber}` as any,

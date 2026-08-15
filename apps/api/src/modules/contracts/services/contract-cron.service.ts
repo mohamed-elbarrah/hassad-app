@@ -62,10 +62,14 @@ export class ContractCronService {
         contract.client.userId,
       ].filter(Boolean) as string[];
       if (recipientIds.length > 0) {
-        await this.notificationsService.notifyUsers({
+        await this.notificationsService.notifyUsersWithMessage({
           userIds: recipientIds,
-          title: "Contract expiring soon",
-          message: `Contract "${contract.title}" with ${contract.client.companyName} expires in 7 days`,
+          messageKey: "contract.expiring",
+          messageParams: {
+            contractTitle: contract.title,
+            companyName: contract.client.companyName,
+            days: 7,
+          },
           entityId: contract.id,
           entityType: "CONTRACT",
           eventType: "CONTRACT_EXPIRING",
@@ -102,10 +106,13 @@ export class ContractCronService {
         contract.client.userId,
       ].filter(Boolean) as string[];
       if (recipientIds.length > 0) {
-        await this.notificationsService.notifyUsers({
+        await this.notificationsService.notifyUsersWithMessage({
           userIds: recipientIds,
-          title: "Contract expired",
-          message: `Contract "${contract.title}" with ${contract.client.companyName} has expired. Please contact the client about renewal.`,
+          messageKey: "contract.expired",
+          messageParams: {
+            contractTitle: contract.title,
+            companyName: contract.client.companyName,
+          },
           entityId: contract.id,
           entityType: "CONTRACT",
           eventType: "CONTRACT_EXPIRED",
@@ -149,10 +156,14 @@ export class ContractCronService {
         contract.client?.accountManager,
       ].filter(Boolean) as string[];
       if (managerIds.length > 0) {
-        await this.notificationsService.notifyUsers({
+        await this.notificationsService.notifyUsersWithMessage({
           userIds: managerIds,
-          title: "Urgent contract renewal",
-          message: `Contract "${contract.title}" with ${contract.client?.companyName} expires in 7 days and no action has been taken. Please contact the client about renewal.`,
+          messageKey: "contract.renewal_urgent",
+          messageParams: {
+            contractTitle: contract.title,
+            companyName: contract.client?.companyName,
+            days: 7,
+          },
           entityId: contract.id,
           entityType: "CONTRACT",
           eventType: "RENEWAL_ESCALATED",

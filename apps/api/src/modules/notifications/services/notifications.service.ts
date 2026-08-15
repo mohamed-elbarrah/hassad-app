@@ -2,6 +2,10 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import {
+  NotificationMessageKey,
+  renderNotificationMessage,
+} from "./notification-messages";
 
 @Injectable()
 export class NotificationsService {
@@ -52,6 +56,26 @@ export class NotificationsService {
       entityType: row.event.entityType,
       eventType: row.event.eventType,
     };
+  }
+
+  async createLocalizedNotification(params: {
+    entityId: string;
+    entityType: string;
+    eventType: string;
+    userId: string;
+    messageKey: NotificationMessageKey;
+    messageParams?: Record<string, string | number | null | undefined>;
+    metadata?: Prisma.InputJsonValue;
+  }) {
+    const rendered = renderNotificationMessage(
+      params.messageKey,
+      params.messageParams ?? {},
+    );
+    return this.createNotification({
+      ...params,
+      title: rendered.title,
+      body: rendered.body,
+    });
   }
 
   async createNotification(params: {
@@ -239,6 +263,27 @@ export class NotificationsService {
     });
 
     return result;
+  }
+
+  async notifyUsersWithMessage(params: {
+    userIds: string[];
+    excludeUserIds?: string[];
+    messageKey: NotificationMessageKey;
+    messageParams?: Record<string, string | number | null | undefined>;
+    entityId?: string;
+    entityType?: string;
+    eventType?: string;
+    metadata?: Prisma.InputJsonValue;
+  }) {
+    const rendered = renderNotificationMessage(
+      params.messageKey,
+      params.messageParams ?? {},
+    );
+    return this.notifyUsers({
+      ...params,
+      title: rendered.title,
+      message: rendered.body,
+    });
   }
 
   async notifyUsers(params: {

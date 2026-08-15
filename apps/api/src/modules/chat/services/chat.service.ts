@@ -665,10 +665,10 @@ export class ChatService {
         ? ` (${attachmentCount} attachment${attachmentCount > 1 ? "s" : ""})`
         : "";
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: recipients,
-      title: `New message from ${sender}`,
-      message: truncatedContent + suffix,
+      messageKey: "chat.new_message",
+      messageParams: { sender, content: truncatedContent + suffix },
       entityId: conversation.id,
       entityType: "conversation",
       eventType: "NEW_MESSAGE",

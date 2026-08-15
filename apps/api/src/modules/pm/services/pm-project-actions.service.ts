@@ -119,13 +119,13 @@ export class PmProjectActionsService {
     });
 
     if (project.client?.userId) {
-      this.notificationsService.createNotification({
+      this.notificationsService.createLocalizedNotification({
         entityId: meeting.id,
         entityType: "project",
         eventType: "MEETING_SCHEDULED",
         userId: project.client.userId,
-        title: "New meeting scheduled",
-        body: dto.title,
+        messageKey: "meeting.pm_scheduled",
+        messageParams: { meetingTitle: dto.title },
       }).catch(() => undefined);
     }
 
@@ -162,13 +162,13 @@ export class PmProjectActionsService {
     });
 
     if (project.client?.userId) {
-      this.notificationsService.createNotification({
+      this.notificationsService.createLocalizedNotification({
         entityId: meetingId,
         entityType: "project",
         eventType: "MEETING_UPDATED",
         userId: project.client.userId,
-        title: "Meeting updated",
-        body: dto.title ?? updated.title,
+        messageKey: "meeting.pm_updated",
+        messageParams: { meetingTitle: dto.title ?? updated.title },
       }).catch(() => undefined);
     }
 
@@ -255,13 +255,13 @@ export class PmProjectActionsService {
     });
 
     if (project.client?.userId) {
-      this.notificationsService.createNotification({
+      this.notificationsService.createLocalizedNotification({
         entityId: created.id,
         entityType: "project",
         eventType: "PROJECT_FILE_UPLOADED",
         userId: project.client.userId,
-        title: "New file uploaded",
-        body: file.originalname,
+        messageKey: "project.file_uploaded",
+        messageParams: { fileName: file.originalname },
       }).catch(() => undefined);
     }
 

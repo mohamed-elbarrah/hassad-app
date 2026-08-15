@@ -187,13 +187,13 @@ export class ProjectsService {
 
         // Notify marketer
         this.notificationsService
-          .createNotification({
+          .createLocalizedNotification({
             entityId: task.id,
             entityType: "task",
             eventType: "TASK_ASSIGNED",
             userId: dto.userId,
-            title: "New marketing task assigned",
-            body: `The task "Manage advertising campaigns" was created automatically for you in project ${project.name}.`,
+            messageKey: "marketing_task.assigned",
+            messageParams: { projectName: project.name },
             metadata: {
               taskId: task.id,
               projectId: project.id,
@@ -293,10 +293,14 @@ export class ProjectsService {
     ].filter(Boolean) as string[];
 
     if (recipientIds.length > 0) {
-      await this.notificationsService.notifyUsers({
+      await this.notificationsService.notifyUsersWithMessage({
         userIds: recipientIds,
-        title: "Project status updated",
-        message: `${actorName ?? "System"} changed project "${project.name}" status to ${status}`,
+        messageKey: "project.status_changed",
+        messageParams: {
+          actorName: actorName ?? "System",
+          projectName: project.name,
+          status,
+        },
         entityId: id,
         entityType: "PROJECT",
         eventType: "PROJECT_STATUS_CHANGED",
@@ -309,13 +313,13 @@ export class ProjectsService {
     });
     if (clientUser?.userId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "project",
           eventType: "PROJECT_STATUS_CHANGED",
           userId: clientUser.userId,
-          title: "Your project status updated",
-          body: `Project "${project.name}" status changed to ${status}`,
+          messageKey: "project.client_status_changed",
+          messageParams: { projectName: project.name, status },
         })
         .catch(() => undefined);
     }

@@ -114,13 +114,13 @@ export class SnoozeReminderScheduler {
           await this.markReminderSent(row.id, now);
 
           this.notificationsService
-            .createNotification({
+            .createLocalizedNotification({
               entityId: row.itemId,
               entityType: `ACTION_ITEM_${row.itemType}`,
               eventType: "ACTION_ITEM_SNOOZE_EXPIRED",
               userId: recipientId,
-              title,
-              body,
+              messageKey: "snooze.expired",
+              messageParams: { title, body },
               metadata: {
                 itemType: row.itemType,
                 itemId: row.itemId,

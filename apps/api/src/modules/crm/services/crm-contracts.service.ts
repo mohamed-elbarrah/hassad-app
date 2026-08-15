@@ -356,13 +356,13 @@ export class CrmContractsService {
 
     if (client?.userId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: client.userId,
-          title: "Contract sent for review",
-          body: `The contract "${contract.title}" is ready for approval.`,
+          messageKey: "crm.contract_review",
+          messageParams: { contractTitle: contract.title },
         })
         .catch(() => undefined);
     }

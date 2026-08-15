@@ -224,13 +224,13 @@ export class ContractsService {
     }
 
     await this.notificationsService
-      .createNotification({
+      .createLocalizedNotification({
         entityId: project.id,
         entityType: "project",
         eventType: "PROJECT_CREATED_FROM_CONTRACT",
         userId: projectManagerId,
-        title: "New project created automatically",
-        body: `Project "${project.name}" was created after the contract was signed. You can now assign tasks to the team.`,
+        messageKey: "project.created_from_contract",
+        messageParams: { projectName: project.name },
         metadata: {
           contractId: contract.id,
           clientId: contract.clientId,
@@ -453,14 +453,14 @@ export class ContractsService {
       select: { projectManagerId: true },
     });
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: [
         contract.createdBy,
         contract.client.accountManager,
         projectManager?.projectManagerId,
       ].filter(Boolean) as string[],
-      title: "Contract activated",
-      message: `Contract "${contract.title}" was activated after receiving the down payment.`,
+      messageKey: "contract.activated",
+      messageParams: { contractTitle: contract.title },
       entityId: contractId,
       entityType: "CONTRACT",
       eventType: "CONTRACT_ACTIVATED",
@@ -472,13 +472,13 @@ export class ContractsService {
     });
     if (clientUser?.userId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: contractId,
           entityType: "contract",
           eventType: "CONTRACT_ACTIVATED",
           userId: clientUser.userId,
-          title: "Contract activated",
-          body: `Contract "${contract.title}" was activated. The team is ready to start your project.`,
+          messageKey: "contract.activated",
+          messageParams: { contractTitle: contract.title, client: "client" },
         })
         .catch(() => undefined);
     }
@@ -641,11 +641,11 @@ export class ContractsService {
 
     if (resumeRecipients.length > 0) {
       await this.notificationsService
-        .notifyUsers({
+        .notifyUsersWithMessage({
           userIds: resumeRecipients,
           excludeUserIds: [userId],
-          title: "Period resumed",
-          message: `Period ${period.periodNumber} was resumed after the invoice was paid`,
+          messageKey: "period.resumed",
+          messageParams: { periodNumber: period.periodNumber },
           entityId: period.id,
           entityType: "PROJECT_PERIOD",
           eventType: "PERIOD_RESUMED",
@@ -868,13 +868,13 @@ export class ContractsService {
       created.request.client.userId ?? created.request.submittedBy;
     if (recipientId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: shareLinkToken,
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: recipientId,
-          title: "New contract awaiting your signature",
-          body: `Contract "${created.contract.title}" is ready for review and signature`,
+          messageKey: "contract.sent",
+          messageParams: { contractTitle: created.contract.title, client: "client" },
         })
         .catch(() => undefined);
     }
@@ -1007,25 +1007,25 @@ export class ContractsService {
       });
 
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: signed.id,
           entityType: "contract",
           eventType: "CONTRACT_SIGNED",
           userId: contract.createdBy,
-          title: "Contract signed",
-          body: `The client signed contract "${contract.title}"`,
+          messageKey: "contract.signed",
+          messageParams: { contractTitle: contract.title },
         })
         .catch(() => undefined);
 
       if (clientUser?.userId) {
         this.notificationsService
-          .createNotification({
+          .createLocalizedNotification({
             entityId: signed.id,
             entityType: "contract",
             eventType: "CONTRACT_SIGNED",
             userId: clientUser.userId,
-            title: "Contract signed successfully",
-            body: `Contract "${contract.title}" was signed successfully. Work on your project will begin soon.`,
+            messageKey: "contract.signed",
+            messageParams: { contractTitle: contract.title, client: "client" },
           })
           .catch(() => undefined);
       }
@@ -1085,10 +1085,14 @@ export class ContractsService {
       contract.createdBy,
     ].filter(Boolean) as string[];
     if (notifyUserIds.length > 0) {
-      await this.notificationsService.notifyUsers({
+      await this.notificationsService.notifyUsersWithMessage({
         userIds: notifyUserIds,
-        title: "Contract sent",
-        message: `${actorName ?? "System"} sent contract "${contract.title}" to ${contract.client.companyName}`,
+        messageKey: "contract.sent",
+        messageParams: {
+          actorName: actorName ?? "System",
+          contractTitle: contract.title,
+          companyName: contract.client.companyName,
+        },
         entityId: id,
         entityType: "CONTRACT",
         eventType: "CONTRACT_SENT",
@@ -1101,13 +1105,13 @@ export class ContractsService {
     });
     if (clientUser?.userId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "contract",
           eventType: "CONTRACT_SENT",
           userId: clientUser.userId,
-          title: "New contract awaiting your signature",
-          body: `Contract "${contract.title}" is ready for review and signature`,
+          messageKey: "contract.sent",
+          messageParams: { contractTitle: contract.title, client: "client" },
         })
         .catch(() => undefined);
     }
@@ -1178,13 +1182,13 @@ export class ContractsService {
 
     this.clientCounterService.onContractSigned(id).catch(() => undefined);
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: [contract.createdBy, contract.client.accountManager].filter(
         Boolean,
       ) as string[],
       excludeUserIds: [userId],
-      title: "Contract signed",
-      message: `Contract "${contract.title}" was signed with ${contract.client.companyName}`,
+      messageKey: "contract.signed",
+      messageParams: { contractTitle: contract.title, companyName: contract.client.companyName },
       entityId: id,
       entityType: "CONTRACT",
       eventType: "CONTRACT_SIGNED",
@@ -1226,13 +1230,17 @@ export class ContractsService {
     });
     const cancelActorName = cancelActor?.name ?? "System";
 
-    await this.notificationsService.notifyUsers({
+    await this.notificationsService.notifyUsersWithMessage({
       userIds: [contract.createdBy, contract.client.accountManager].filter(
         Boolean,
       ) as string[],
       excludeUserIds: [actorId],
-      title: "Contract cancelled",
-      message: `${cancelActorName} cancelled contract "${contract.title}" with ${contract.client.companyName}`,
+      messageKey: "contract.canceled",
+      messageParams: {
+        actorName: cancelActorName,
+        contractTitle: contract.title,
+        companyName: contract.client.companyName,
+      },
       entityId: id,
       entityType: "CONTRACT",
       eventType: "CONTRACT_CANCELLED",
@@ -1244,13 +1252,13 @@ export class ContractsService {
     });
     if (clientUser?.userId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: id,
           entityType: "contract",
           eventType: "CONTRACT_CANCELLED",
           userId: clientUser.userId,
-          title: "Contract cancelled",
-          body: `Contract "${contract.title}" was cancelled. Please contact our team if you have questions.`
+          messageKey: "contract.canceled",
+          messageParams: { contractTitle: contract.title, client: "client" }
         })
         .catch(() => undefined);
     }

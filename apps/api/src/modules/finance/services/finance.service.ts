@@ -110,13 +110,13 @@ export class FinanceService {
     });
 
     if (clientUser?.userId) {
-      await this.notificationsService.createNotification({
+      await this.notificationsService.createLocalizedNotification({
         entityId: invoice.id,
         entityType: "INVOICE",
         eventType: "INVOICE_CREATED",
         userId: clientUser.userId,
-        title: "New invoice",
-        body: `A new invoice was created for ${invoice.amount} SAR`,
+        messageKey: "invoice.created",
+        messageParams: { amount: invoice.amount },
       });
     }
 
@@ -220,13 +220,13 @@ export class FinanceService {
 
     if (clientUser?.userId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: invoice.id,
           entityType: "invoice",
           eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          title: "Automatic invoice created",
-          body: `Automatic invoice ${invoiceNumber} was created for contract "${contract.title}"`,
+          messageKey: "invoice.automatic_created",
+          messageParams: { invoiceNumber, contractTitle: contract.title },
         })
         .catch(() => undefined);
     }
@@ -306,13 +306,17 @@ export class FinanceService {
     });
     if (clientUser?.userId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: invoice.id,
           entityType: "invoice",
           eventType: "INVOICE_CREATED",
           userId: clientUser.userId,
-          title: "Invoice created",
-          body: `Invoice "${params.label}" for ${params.amount} SAR was created for contract "${contract.title}"`,
+          messageKey: "invoice.scheduled_created",
+          messageParams: {
+            label: params.label,
+            amount: params.amount,
+            contractTitle: contract.title,
+          },
         })
         .catch(() => undefined);
     }
@@ -430,13 +434,16 @@ export class FinanceService {
     });
 
     if (clientUser?.userId) {
-      await this.notificationsService.createNotification({
+      await this.notificationsService.createLocalizedNotification({
         entityId: payment.id,
         entityType: "PAYMENT",
         eventType: "PAYMENT_RECEIVED",
         userId: clientUser.userId,
-        title: "Payment received",
-        body: `A payment of ${payment.amount} SAR was received for invoice "${invoice.invoiceNumber}"`,
+        messageKey: "payment.received",
+        messageParams: {
+          amount: payment.amount,
+          invoiceNumber: invoice.invoiceNumber,
+        },
       });
     }
 
@@ -1573,13 +1580,13 @@ export class FinanceService {
     });
 
     if (clientUser?.userId) {
-      await this.notificationsService.createNotification({
+      await this.notificationsService.createLocalizedNotification({
         entityId: invoice.id,
         entityType: "invoice",
         eventType: "INVOICE_SENT",
         userId: clientUser.userId,
-        title: "Invoice sent",
-        body: `Invoice "${invoice.invoiceNumber}" was sent to you for review and payment`,
+        messageKey: "invoice.sent",
+        messageParams: { invoiceNumber: invoice.invoiceNumber },
       });
     }
 
@@ -1622,13 +1629,16 @@ export class FinanceService {
     });
 
     if (clientUser?.userId) {
-      await this.notificationsService.createNotification({
+      await this.notificationsService.createLocalizedNotification({
         entityId: invoice.id,
         entityType: "invoice",
         eventType: "INVOICE_REMINDER",
         userId: clientUser.userId,
-        title: "Invoice payment reminder",
-        body: `Reminder: invoice "${invoice.invoiceNumber}" for ${invoice.amount} SAR is due for payment`
+        messageKey: "invoice.due_reminder",
+        messageParams: {
+          invoiceNumber: invoice.invoiceNumber,
+          amount: invoice.amount,
+        },
       });
     }
 

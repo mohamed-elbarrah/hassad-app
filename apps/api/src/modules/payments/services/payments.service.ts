@@ -373,13 +373,13 @@ export class PaymentsService implements OnModuleInit {
             select: { userId: true },
           });
 
-          await this.notifications.notifyUsers({
+          await this.notifications.notifyUsersWithMessage({
             userIds: [
               payment.invoice.createdBy,
               clientUser?.userId,
             ].filter(Boolean) as string[],
-            title: "Invoice paid",
-            message: `Invoice ${payment.invoice.invoiceNumber} was paid in full`,
+            messageKey: "invoice.paid",
+            messageParams: { invoiceNumber: payment.invoice.invoiceNumber },
             entityId: payment.invoiceId,
             entityType: "INVOICE",
             eventType: "INVOICE_PAID",

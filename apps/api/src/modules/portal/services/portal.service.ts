@@ -1726,13 +1726,13 @@ export class PortalService {
       });
       if (clientUser?.userId) {
         this.notificationsService
-          .createNotification({
+          .createLocalizedNotification({
             entityId: id,
             entityType: "deliverable",
             eventType: "DELIVERABLE_APPROVED",
             userId: clientUser.userId,
-            title: "Deliverable approved",
-            body: `Deliverable "${deliverable.title}" was approved in project ${deliverable.project.name}`,
+            messageKey: "deliverable.approved",
+            messageParams: { deliverableTitle: deliverable.title, projectName: deliverable.project.name },
           })
           .catch(() => undefined);
       }
@@ -1759,13 +1759,13 @@ export class PortalService {
       });
       if (clientUser?.userId) {
         this.notificationsService
-          .createNotification({
+          .createLocalizedNotification({
             entityId: id,
             entityType: "deliverable",
             eventType: "DELIVERABLE_REVISION",
             userId: clientUser.userId,
-            title: "Deliverable revision requested",
-            body: `Revisions were requested for deliverable "${deliverable.title}" in project ${deliverable.project.name}`,
+            messageKey: "deliverable.revision_requested",
+            messageParams: { deliverableTitle: deliverable.title, projectName: deliverable.project.name },
           })
           .catch(() => undefined);
       }
@@ -2846,13 +2846,13 @@ export class PortalService {
 
     if (project.projectManagerId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: projectId,
           entityType: "project",
           eventType: "PROJECT_APPROVED",
           userId: project.projectManagerId,
-          title: "Project approved",
-          body: `Project "${project.name}" was approved by the client.`,
+          messageKey: "project.approved",
+          messageParams: { projectName: project.name },
         })
         .catch(() => undefined);
     }
@@ -2902,13 +2902,13 @@ export class PortalService {
 
     if (project.projectManagerId) {
       this.notificationsService
-        .createNotification({
+        .createLocalizedNotification({
           entityId: projectId,
           entityType: "project",
           eventType: "PROJECT_REVISION_REQUESTED",
           userId: project.projectManagerId,
-          title: "Client requested project revisions",
-          body: `The client requested revisions to project "${project.name}": ${dto.comment}`
+          messageKey: "project.revision_requested",
+          messageParams: { projectName: project.name, comment: dto.comment }
         })
         .catch(() => undefined);
     }
