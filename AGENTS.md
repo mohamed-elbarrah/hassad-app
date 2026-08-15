@@ -38,6 +38,18 @@ If these documents conflict, the priority is: execution rules, product catalog, 
 - Preserve existing business rules, permissions, and state-machine behavior unless a change explicitly requires otherwise.
 - Use Prisma migrations for schema changes and data changes.
 
+### Backend presentation and localization contract (mandatory for `apps/api`)
+
+- Backend-generated user-facing content must be English by default. Do not add Arabic hardcoded literals to API source files.
+- Preserve user-generated content exactly as entered: names, comments, chat messages, proposal/project titles, notes, and client-provided text must not be translated or rewritten.
+- Numbers in backend-generated text must always use Latin digits (`0-9`) without grouping separators. Use `formatPlainNumber` for numeric interpolation and avoid locale-dependent number formatting.
+- Do not use `toLocale*`, `Intl.NumberFormat`, or locale-dependent date/number formatting in API presentation code. Use the centralized English date helpers or return raw ISO/numeric values.
+- API errors must expose a stable `error.code`; frontend behavior must never parse English error messages. Add domain-specific codes through `ApiException` and document them in `docs/API_ERROR_CATALOG.md`.
+- Notifications must use typed message keys and parameters through `createLocalizedNotification` or `notifyUsersWithMessage`. Keep event types, recipients, entity IDs, and metadata stable. Do not introduce new raw `createNotification`/`notifyUsers` call sites outside `NotificationsService`.
+- Notification templates must keep dynamic user content as parameters. Do not translate user-provided parameter values.
+- Localization must be additive: English remains the fallback, and future Arabic catalogs must not change business logic, event types, error codes, or numeric formatting rules.
+- After changing API presentation, errors, or notifications, run package typecheck/build and the relevant tests; before completing a phase run the full API E2E suite and `git diff --check`.
+
 ### Frontend V2 engineering standards (mandatory for `apps/web-v2`)
 
 - Treat Next.js App Router code as long-lived product code. Optimize for maintainability, readability, and predictable data flow.
