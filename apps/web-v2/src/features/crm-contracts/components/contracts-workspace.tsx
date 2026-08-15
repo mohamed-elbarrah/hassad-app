@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { FileSignatureIcon } from "lucide-react";
+import { LocalizedCurrency } from "@/components/patterns/localized-currency";
 
 import { PageScaffold } from "@/components/patterns/page-scaffold";
 import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state";
@@ -39,7 +40,6 @@ import {
 } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
-  formatContractCurrency,
   formatContractStatus,
   type ContractDirectoryRecord,
   type ContractDateFilter,
@@ -49,8 +49,10 @@ import {
 import { mapContractIndexItem } from "@/features/admin-details/lib/admin-index-mappers";
 import { useGetAdminContractsQuery } from "@/lib/api/admin-contracts-api";
 import { useAppSelector } from "@/lib/store";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 
 export function ContractsWorkspace() {
+  const { locale, t } = useTranslations();
   const authStatus = useAppSelector((state) => state.auth.status);
   const [statusFilter, setStatusFilter] = useState<ContractDirectoryFilter>("all");
   const [dateFilter, setDateFilter] = useState<ContractDateFilter>("ending-60-days");
@@ -96,8 +98,8 @@ export function ContractsWorkspace() {
 
   return (
     <PageScaffold
-      title="Contracts"
-      description="CRM contract register for signing state, activation progress, renewal timing, and delivery handoff."
+      title={t("contracts")}
+      description={t("contractRegisterDescription")}
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
@@ -120,13 +122,13 @@ export function ContractsWorkspace() {
             size="sm"
             spacing={0}
           >
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="sent">Sent</ToggleGroupItem>
-            <ToggleGroupItem value="signed">Signed</ToggleGroupItem>
-            <ToggleGroupItem value="active">Active</ToggleGroupItem>
-            <ToggleGroupItem value="on-hold">On hold</ToggleGroupItem>
-            <ToggleGroupItem value="expired">Expired</ToggleGroupItem>
-            <ToggleGroupItem value="cancelled">Cancelled</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t("all")}</ToggleGroupItem>
+            <ToggleGroupItem value="sent">{t("sent")}</ToggleGroupItem>
+            <ToggleGroupItem value="signed">{t("signed")}</ToggleGroupItem>
+            <ToggleGroupItem value="active">{t("active")}</ToggleGroupItem>
+            <ToggleGroupItem value="on-hold">{t("stateOnHold")}</ToggleGroupItem>
+            <ToggleGroupItem value="expired">{t("expired")}</ToggleGroupItem>
+            <ToggleGroupItem value="cancelled">{t("stateCancelled")}</ToggleGroupItem>
           </ToggleGroup>
 
           <Select
@@ -142,15 +144,15 @@ export function ContractsWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter contracts by end date">
+            <SelectTrigger size="sm" aria-label={t("filterContractsEndDate")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-dates">All dates</SelectItem>
-                <SelectItem value="ending-30-days">Ending in 30 days</SelectItem>
-                <SelectItem value="ending-60-days">Ending in 60 days</SelectItem>
-                <SelectItem value="ending-90-days">Ending in 90 days</SelectItem>
+                <SelectItem value="all-dates">{t("allDates")}</SelectItem>
+                <SelectItem value="ending-30-days">{t("ending30")}</SelectItem>
+                <SelectItem value="ending-60-days">{t("ending60")}</SelectItem>
+                <SelectItem value="ending-90-days">{t("ending90")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -169,7 +171,7 @@ export function ContractsWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter contracts by value">
+            <SelectTrigger size="sm" aria-label={t("filterContractsValue")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -187,17 +189,17 @@ export function ContractsWorkspace() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Contract register</CardTitle>
+          <CardTitle>{t("contractRegister")}</CardTitle>
           <CardDescription>
-            Each row shows contract value, signing and activation state, renewal timing, invoice signal, and whether delivery has already been linked.
+            {t("contractRegisterDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {authStatus !== "authenticated" || (isLoading && !data) ? (
             <WorkspaceQueryState
               kind="loading"
-              loadingTitle="Loading contracts"
-              loadingDescription="Retrieving the contract register from the admin API."
+              loadingTitle={t("loadingContracts")}
+              loadingDescription={t("loadingContractsDescription")}
             />
           ) : isError && !data ? (
             <WorkspaceQueryState
@@ -213,9 +215,9 @@ export function ContractsWorkspace() {
                 <EmptyMedia variant="icon">
                   <FileSignatureIcon />
                 </EmptyMedia>
-                <EmptyTitle>No contracts match these filters</EmptyTitle>
+                <EmptyTitle>{t("noContracts")}</EmptyTitle>
                 <EmptyDescription>
-                  Change the status, date, or value filters to inspect another contract segment.
+                  {t("adjustContractFilters")}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -223,17 +225,17 @@ export function ContractsWorkspace() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Contract</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total value</TableHead>
-                  <TableHead className="text-right">Monthly</TableHead>
-                  <TableHead>Signed</TableHead>
-                  <TableHead>End</TableHead>
-                  <TableHead>Renewal</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Invoices</TableHead>
+                  <TableHead>{t("contract")}</TableHead>
+                  <TableHead>{t("client")}</TableHead>
+                  <TableHead>{t("contractType")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                  <TableHead className="text-right">{t("totalValue")}</TableHead>
+                  <TableHead className="text-right">{t("monthly")}</TableHead>
+                  <TableHead>{t("signed")}</TableHead>
+                  <TableHead>{t("end")}</TableHead>
+                  <TableHead>{t("renewal")}</TableHead>
+                  <TableHead>{t("project")}</TableHead>
+                  <TableHead>{t("invoices")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -248,28 +250,28 @@ export function ContractsWorkspace() {
                       </Link>
                     </TableCell>
                     <TableCell>{row.clientName}</TableCell>
-                    <TableCell>{row.typeLabel}</TableCell>
+                    <TableCell>{translateRequestLabel(locale, row.typeLabel)}</TableCell>
                     <TableCell>
                       <StatusBadge tone={row.statusTone}>
-                        {formatContractStatus(row.status)}
+                        {translateRequestLabel(locale, formatContractStatus(row.status))}
                       </StatusBadge>
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatContractCurrency(row.totalValue)}
+                      <LocalizedCurrency amount={row.totalValue} />
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {row.monthlyValue ? formatContractCurrency(row.monthlyValue) : "—"}
+                      {row.monthlyValue ? <LocalizedCurrency amount={row.monthlyValue} /> : "—"}
                     </TableCell>
-                    <TableCell>{row.signedLabel}</TableCell>
-                    <TableCell>{row.endLabel}</TableCell>
+                    <TableCell>{translateRequestLabel(locale, row.signedLabel)}</TableCell>
+                    <TableCell>{translateRequestLabel(locale, row.endLabel)}</TableCell>
                     <TableCell>
-                      <StatusBadge tone={row.renewalTone}>{row.renewalLabel}</StatusBadge>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge tone={row.projectTone}>{row.projectLabel}</StatusBadge>
+                      <StatusBadge tone={row.renewalTone}>{translateRequestLabel(locale, row.renewalLabel)}</StatusBadge>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge tone={row.invoiceTone}>{row.invoiceLabel}</StatusBadge>
+                      <StatusBadge tone={row.projectTone}>{translateRequestLabel(locale, row.projectLabel)}</StatusBadge>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge tone={row.invoiceTone}>{translateRequestLabel(locale, row.invoiceLabel)}</StatusBadge>
                     </TableCell>
                   </TableRow>
                 ))}
