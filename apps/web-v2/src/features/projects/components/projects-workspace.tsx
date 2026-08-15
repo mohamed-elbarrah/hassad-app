@@ -41,8 +41,10 @@ import {
 } from "@/features/projects/lib/project-directory";
 import { useGetDeliveryWorkspaceQuery } from "@/lib/api/admin-projects-api";
 import { useAppSelector } from "@/lib/store";
+import { useTranslations } from "@/lib/i18n";
 
 export function ProjectsWorkspace() {
+  const { t } = useTranslations();
   const authStatus = useAppSelector((state) => state.auth.status);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] =
@@ -69,15 +71,15 @@ export function ProjectsWorkspace() {
 
   return (
     <PageScaffold
-      title="Projects"
-      description="Delivery portfolio view for PM ownership, current periods, workload risk, and contract-backed value across active and archived projects."
+      title={t("projects")}
+      description={t("projectPortfolioDescription")}
       actions={
         <>
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search project, client, PM, or team"
-            aria-label="Search projects"
+            placeholder={t("searchProjects")}
+            aria-label={t("searchProjectsLabel")}
             className="sm:w-72"
           />
 
@@ -99,10 +101,10 @@ export function ProjectsWorkspace() {
             size="sm"
             spacing={0}
           >
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="active">Active</ToggleGroupItem>
-            <ToggleGroupItem value="attention">Needs attention</ToggleGroupItem>
-            <ToggleGroupItem value="completed">Completed</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t("all")}</ToggleGroupItem>
+            <ToggleGroupItem value="active">{t("active")}</ToggleGroupItem>
+            <ToggleGroupItem value="attention">{t("needsAttention")}</ToggleGroupItem>
+            <ToggleGroupItem value="completed">{t("stateCompleted")}</ToggleGroupItem>
           </ToggleGroup>
 
           <Select
@@ -117,14 +119,14 @@ export function ProjectsWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter projects by model">
+            <SelectTrigger size="sm" aria-label={t("allDeliveryModels")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-models">All delivery models</SelectItem>
-                <SelectItem value="recurring">Recurring retainers</SelectItem>
-                <SelectItem value="one-off">One-off projects</SelectItem>
+                <SelectItem value="all-models">{t("allDeliveryModels")}</SelectItem>
+                <SelectItem value="recurring">{t("recurringRetainers")}</SelectItem>
+                <SelectItem value="one-off">{t("oneOffProjects")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -142,15 +144,15 @@ export function ProjectsWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Filter projects by timeline">
+            <SelectTrigger size="sm" aria-label={t("allTimelines")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="all-timelines">All timelines</SelectItem>
-                <SelectItem value="ending-soon">Ending in 21 days</SelectItem>
-                <SelectItem value="overdue">Overdue or blocked</SelectItem>
-                <SelectItem value="archived">Archived only</SelectItem>
+                <SelectItem value="all-timelines">{t("allTimelines")}</SelectItem>
+                <SelectItem value="ending-soon">{t("ending21")}</SelectItem>
+                <SelectItem value="overdue">{t("overdueBlocked")}</SelectItem>
+                <SelectItem value="archived">{t("archivedOnly")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -167,14 +169,14 @@ export function ProjectsWorkspace() {
               }
             }}
           >
-            <SelectTrigger size="sm" aria-label="Sort projects">
+            <SelectTrigger size="sm" aria-label={t("sortProjects")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="highest-value">Highest value</SelectItem>
-                <SelectItem value="ending-soon">Ending soon</SelectItem>
-                <SelectItem value="newest">Newest start date</SelectItem>
+                <SelectItem value="highest-value">{t("highestValue")}</SelectItem>
+                <SelectItem value="ending-soon">{t("endingSoon")}</SelectItem>
+                <SelectItem value="newest">{t("newestStart")}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -183,18 +185,17 @@ export function ProjectsWorkspace() {
     >
       <Card>
         <CardHeader>
-          <CardTitle>Delivery portfolio</CardTitle>
+          <CardTitle>{t("projectPortfolio")}</CardTitle>
           <CardDescription>
-            Each row shows the current delivery model, PM owner, active period signal,
-            and the workload or billing risk that matters before you open project detail.
+            {t("projectPortfolioDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {authStatus !== "authenticated" || (isLoading && !data) ? (
             <WorkspaceQueryState
               kind="loading"
-              loadingTitle="Loading projects"
-              loadingDescription="Retrieving delivery portfolio, current period, and risk signals from the admin API."
+              loadingTitle={t("loadingProjects")}
+              loadingDescription={t("loadingProjectsDescription")}
             />
           ) : isError && !data ? (
             <WorkspaceQueryState
@@ -210,9 +211,9 @@ export function ProjectsWorkspace() {
                 <EmptyMedia variant="icon">
                   <FolderKanbanIcon />
                 </EmptyMedia>
-                <EmptyTitle>No projects match these filters</EmptyTitle>
+                <EmptyTitle>{t("noProjects")}</EmptyTitle>
                 <EmptyDescription>
-                  Change the search, status, model, or timeline filters to inspect another delivery segment.
+                  {t("adjustProjectFilters")}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

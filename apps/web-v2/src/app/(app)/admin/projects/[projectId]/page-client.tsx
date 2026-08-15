@@ -5,18 +5,20 @@ import { WorkspaceQueryState } from "@/components/patterns/workspace-query-state
 import { mapProjectDetailFromApi } from "@/features/admin-details/lib/detail-workspace-mappers";
 import { ProjectDetailWorkspace } from "@/features/projects/components/project-detail-workspace";
 import { useGetProjectDetailQuery } from "@/lib/api/admin-details-api";
+import { useTranslations } from "@/lib/i18n";
 
 export function ProjectDetailPageClient({ projectId }: { projectId: string }) {
+  const { t } = useTranslations();
   const { data, error, isError, isLoading, refetch } =
     useGetProjectDetailQuery(projectId);
 
   if (isLoading && !data) {
     return (
       <PageScaffold
-        title="Project detail"
-        description="Loading live project delivery, period, finance, and dispute data."
+        title={t("projectDetail")}
+        description={t("projectDetailLoadingDescription")}
       >
-        <WorkspaceQueryState kind="loading" loadingTitle="Loading project detail" />
+        <WorkspaceQueryState kind="loading" loadingTitle={t("projectDetailLoading")} />
       </PageScaffold>
     );
   }
@@ -24,8 +26,8 @@ export function ProjectDetailPageClient({ projectId }: { projectId: string }) {
   if ((isError || !data) && !data) {
     return (
       <PageScaffold
-        title="Project detail"
-        description="This workspace now reads directly from the backend."
+        title={t("projectDetail")}
+        description={t("projectDetailErrorDescription")}
       >
         <WorkspaceQueryState kind="error" error={error} onRetry={refetch} />
       </PageScaffold>

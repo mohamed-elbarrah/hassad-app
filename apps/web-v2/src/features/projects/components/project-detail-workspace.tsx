@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { EntityDetailLayout } from "@/components/patterns/entity-detail-layout";
+import { LocalizedCurrency } from "@/components/patterns/localized-currency";
 import { EntityTimeline } from "@/components/patterns/entity-timeline";
 import { MetricTile } from "@/components/patterns/metric-tile";
 import { PageScaffold } from "@/components/patterns/page-scaffold";
@@ -54,6 +55,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ProjectDetailRecord } from "@/features/projects/lib/project-detail";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 import {
   formatDisputeCategory,
   formatDisputePriority,
@@ -149,6 +151,7 @@ function getDefaultPeriodId(project: ProjectDetailRecord) {
 }
 
 export function ProjectDetailWorkspace({ project }: ProjectDetailWorkspaceProps) {
+  const { locale, t } = useTranslations();
   const [currentPm, setCurrentPm] = useState(project.projectManager);
   const [pmDialogOpen, setPmDialogOpen] = useState(false);
   const [draftPm, setDraftPm] = useState(project.projectManager);
@@ -176,8 +179,8 @@ export function ProjectDetailWorkspace({ project }: ProjectDetailWorkspaceProps)
   return (
     <>
       <PageScaffold
-        title="Project detail"
-        description="Periods, delivery load, finance checkpoints, disputes, and project administration."
+        title={t("projectDetail")}
+        description={t("projectDetailDescription")}
         actions={
           <Button
             variant="outline"
@@ -185,7 +188,7 @@ export function ProjectDetailWorkspace({ project }: ProjectDetailWorkspaceProps)
             render={<Link href="/admin/projects" />}
           >
             <ArrowLeftIcon data-icon="inline-start" />
-            Projects
+            {t("projectsBack")}
           </Button>
         }
       >
@@ -200,10 +203,10 @@ export function ProjectDetailWorkspace({ project }: ProjectDetailWorkspaceProps)
                       <CardDescription>{project.clientName}</CardDescription>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <StatusBadge tone={project.statusTone}>{project.status}</StatusBadge>
-                      <StatusBadge tone={project.healthTone}>{project.healthLabel}</StatusBadge>
+                      <StatusBadge tone={project.statusTone}>{translateRequestLabel(locale, project.status)}</StatusBadge>
+                      <StatusBadge tone={project.healthTone}>{translateRequestLabel(locale, project.healthLabel)}</StatusBadge>
                       {isArchived ? (
-                        <StatusBadge tone="neutral">Archived</StatusBadge>
+                        <StatusBadge tone="neutral">{t("archived")}</StatusBadge>
                       ) : null}
                     </div>
                   </div>
@@ -211,21 +214,21 @@ export function ProjectDetailWorkspace({ project }: ProjectDetailWorkspaceProps)
                 <CardContent className="flex flex-col gap-3">
                   <Button onClick={() => setPmDialogOpen(true)}>
                     <PencilIcon data-icon="inline-start" />
-                    Change PM
+                    {t("changePm")}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setIsArchived((current) => !current)}
                   >
                     <ArchiveIcon data-icon="inline-start" />
-                    {isArchived ? "Restore project" : "Archive project"}
+                    {isArchived ? t("restoreProject") : t("archiveProject")}
                   </Button>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Project context</CardTitle>
+                  <CardTitle>{t("projectContext")}</CardTitle>
                   <CardDescription>
                     Stable contract, ownership, and timeline details for admin decisions.
                   </CardDescription>
@@ -289,7 +292,7 @@ export function ProjectDetailWorkspace({ project }: ProjectDetailWorkspaceProps)
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Project summary</CardTitle>
+                  <CardTitle>{t("projectSummary")}</CardTitle>
                   <CardDescription>
                     Quick delivery and finance signals that stay visible across tabs.
                   </CardDescription>

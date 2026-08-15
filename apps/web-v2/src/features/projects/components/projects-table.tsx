@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LocalizedCurrency } from "@/components/patterns/localized-currency";
 
 import {
   Progress,
@@ -16,31 +17,32 @@ import {
 import { StatusBadge } from "@/components/patterns/status-badge";
 import {
   formatProjectDepartments,
-  formatMoney,
   formatProjectStatus,
   formatTimeline,
   type ProjectDirectoryRecord,
 } from "@/features/projects/lib/project-directory";
+import { translateRequestLabel, useTranslations } from "@/lib/i18n";
 
 type ProjectsTableProps = {
   rows: ProjectDirectoryRecord[];
 };
 
 export function ProjectsTable({ rows }: ProjectsTableProps) {
+  const { locale, t } = useTranslations();
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Project</TableHead>
-          <TableHead>Client</TableHead>
-          <TableHead>PM</TableHead>
-          <TableHead>State</TableHead>
-          <TableHead>Progress</TableHead>
-          <TableHead>Current period</TableHead>
-          <TableHead>Health</TableHead>
-          <TableHead>Team</TableHead>
-          <TableHead>Timeline</TableHead>
-          <TableHead className="text-right">Value</TableHead>
+          <TableHead>{t("project")}</TableHead>
+          <TableHead>{t("client")}</TableHead>
+          <TableHead>{t("pm")}</TableHead>
+          <TableHead>{t("projectState")}</TableHead>
+          <TableHead>{t("progress")}</TableHead>
+          <TableHead>{t("currentPeriod")}</TableHead>
+          <TableHead>{t("health")}</TableHead>
+          <TableHead>{t("team")}</TableHead>
+          <TableHead>{t("timeline")}</TableHead>
+          <TableHead className="text-right">{t("value")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -55,8 +57,7 @@ export function ProjectsTable({ rows }: ProjectsTableProps) {
                   {row.name}
                 </Link>
                 <span className="truncate text-sm text-muted-foreground">
-                  {row.model === "recurring" ? "Recurring retainer" : "One-off project"} ·{" "}
-                  {row.priority.toLowerCase()} priority
+                  {translateRequestLabel(locale, row.model === "recurring" ? "Monthly retainer" : "One-off delivery")} · {translateRequestLabel(locale, row.priority.toLowerCase())} {t("priority")}
                 </span>
               </div>
             </TableCell>
@@ -65,17 +66,17 @@ export function ProjectsTable({ rows }: ProjectsTableProps) {
             <TableCell>
               <div className="flex flex-wrap gap-2">
                 <StatusBadge tone={row.statusTone}>
-                  {formatProjectStatus(row.status)}
+                  {translateRequestLabel(locale, formatProjectStatus(row.status))}
                 </StatusBadge>
                 {row.archived ? (
-                  <StatusBadge tone={row.archivedTone}>Archived</StatusBadge>
+                  <StatusBadge tone={row.archivedTone}>{t("archived")}</StatusBadge>
                 ) : null}
               </div>
             </TableCell>
             <TableCell>
               <div className="flex min-w-40 flex-col gap-2">
                 <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="font-medium">{row.completionPercentage}% complete</span>
+                  <span className="font-medium">{row.completionPercentage}% {t("complete")}</span>
                   <span className="text-muted-foreground">
                     {row.completionPercentage}%
                   </span>
@@ -88,7 +89,7 @@ export function ProjectsTable({ rows }: ProjectsTableProps) {
                 <span className="font-medium">{row.currentPeriodLabel}</span>
                 <div>
                   <StatusBadge tone={row.currentPeriodStatusTone}>
-                    {row.currentPeriodStatusLabel}
+                    {translateRequestLabel(locale, row.currentPeriodStatusLabel)}
                   </StatusBadge>
                 </div>
               </div>
@@ -96,16 +97,16 @@ export function ProjectsTable({ rows }: ProjectsTableProps) {
             <TableCell>
               <div className="flex min-w-0 flex-col gap-1">
                 <div>
-                  <StatusBadge tone={row.healthTone}>{row.healthLabel}</StatusBadge>
+                  <StatusBadge tone={row.healthTone}>{translateRequestLabel(locale, row.healthLabel)}</StatusBadge>
                 </div>
-                <span className="font-medium">{row.healthSummary}</span>
+                <span className="font-medium">{translateRequestLabel(locale, row.healthSummary)}</span>
               </div>
             </TableCell>
             <TableCell>
               <div className="flex min-w-0 flex-col gap-1">
-                <span className="font-medium">{row.teamSize} members + PM</span>
+                <span className="font-medium">{row.teamSize} {t("members")}</span>
                 <span className="text-sm text-muted-foreground">
-                  {formatProjectDepartments(row.assignedDepartments)}
+                  {translateRequestLabel(locale, formatProjectDepartments(row.assignedDepartments))}
                 </span>
               </div>
             </TableCell>
@@ -115,15 +116,15 @@ export function ProjectsTable({ rows }: ProjectsTableProps) {
                   {row.startDate} to {row.endDate}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {formatTimeline(row.daysToEnd, row.endDate)}
+                  {translateRequestLabel(locale, formatTimeline(row.daysToEnd, row.endDate))}
                 </span>
               </div>
             </TableCell>
             <TableCell className="text-right">
               <div className="flex min-w-28 flex-col gap-1">
-                <span className="font-medium">{formatMoney(row.totalValue)}</span>
+                <span className="font-medium"><LocalizedCurrency amount={row.totalValue} /></span>
                 <span className="text-sm text-muted-foreground">
-                  {formatMoney(row.remainingValue)} remaining
+                  <LocalizedCurrency amount={row.remainingValue} /> {t("remaining")}
                 </span>
               </div>
             </TableCell>
